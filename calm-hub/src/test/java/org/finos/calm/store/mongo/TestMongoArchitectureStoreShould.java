@@ -10,6 +10,7 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.BsonDocument;
@@ -340,8 +341,11 @@ public class TestMongoArchitectureStoreShould {
     void throw_an_exception_when_create_on_a_version_that_exists() {
         mockSetupArchitectureDocumentWithVersions();
 
+        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
+
         Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.0").build();
+                .setId(42).setVersion("1.0.0").setArchitecture(validJson).build();
 
         assertThrows(ArchitectureVersionExistsException.class,
                 () -> mongoArchitectureStore.createArchitectureForVersion(architecture));
@@ -369,9 +373,13 @@ public class TestMongoArchitectureStoreShould {
     @Test
     void accept_the_creation_or_update_of_a_valid_version() throws ArchitectureNotFoundException, NamespaceNotFoundException, ArchitectureVersionExistsException {
         mockSetupArchitectureDocumentWithVersions();
+
+        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(NAMESPACE)
-                .setId(50)
+                .setId(42)
                 .setName("architecture-name")
                 .setDescription("architecture-description")
                 .setVersion("1.0.1")
@@ -380,6 +388,7 @@ public class TestMongoArchitectureStoreShould {
         mongoArchitectureStore.updateArchitectureForVersion(architecture);
         mongoArchitectureStore.createArchitectureForVersion(architecture);
 
-        verify(architectureCollection, times(2)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(architectureCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(architectureCollection).updateOne(any(Bson.class), any(Bson.class));
     }
 }

@@ -160,15 +160,22 @@ public class MongoPatternStore implements PatternStore {
 
     @Override
     public Pattern createPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException {
-        if(!namespaceStore.namespaceExists(pattern.getNamespace())) {
-            throw new NamespaceNotFoundException();
-        }
+        // Validates namespace and pattern existence
+        getPatternVersions(pattern);
 
-        if(versionExists(pattern)) {
+        // Atomic conditional update: only succeeds if the version doesn't already exist
+        Document filter = new Document("namespace", pattern.getNamespace())
+                .append("patterns", new Document("$elemMatch",
+                        new Document("patternId", pattern.getId())
+                                .append("versions." + pattern.getMongoVersion(), new Document("$exists", false))));
+
+        Document update = new Document("$set",
+                new Document("patterns.$.versions." + pattern.getMongoVersion(), Document.parse(pattern.getPatternJson())));
+
+        if (patternCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new PatternVersionExistsException();
         }
 
-        writePatternToMongo(pattern);
         return pattern;
     }
 
@@ -198,20 +205,4 @@ public class MongoPatternStore implements PatternStore {
         }
     }
 
-    private boolean versionExists(Pattern pattern) {
-        Document filter = new Document("namespace", pattern.getNamespace()).append("patterns.patternId", pattern.getId());
-        Bson projection = Projections.fields(Projections.include("patterns.versions." + pattern.getMongoVersion()));
-        Document result = patternCollection.find(filter).projection(projection).first();
-
-        if (result != null) {
-            List<Document> patterns = result.getList("patterns", Document.class );
-            for (Document patternDoc : patterns) {
-                Document versions = (Document) patternDoc.get("versions");
-                if (versions != null && versions.containsKey(pattern.getMongoVersion())) {
-                    return true;  // The version already exists
-                }
-            }
-        }
-        return false;
-    }
 }

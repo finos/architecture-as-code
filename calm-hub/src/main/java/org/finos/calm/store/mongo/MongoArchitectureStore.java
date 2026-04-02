@@ -160,15 +160,24 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
     @Override
     public Architecture createArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionExistsException {
-        if (!namespaceStore.namespaceExists(architecture.getNamespace())) {
-            throw new NamespaceNotFoundException();
-        }
+        // Validates namespace and architecture existence
+        getArchitectureVersions(architecture);
 
-        if (versionExists(architecture)) {
+        // Atomic conditional update: only succeeds if the version doesn't already exist
+        Document filter = new Document("namespace", architecture.getNamespace())
+                .append("architectures", new Document("$elemMatch",
+                        new Document("architectureId", architecture.getId())
+                                .append("versions." + architecture.getMongoVersion(), new Document("$exists", false))));
+
+        Document update = new Document("$set",
+                new Document("architectures.$.versions." + architecture.getMongoVersion(), Document.parse(architecture.getArchitectureJson()))
+                        .append("architectures.$.name", architecture.getName())
+                        .append("architectures.$.description", architecture.getDescription()));
+
+        if (architectureCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new ArchitectureVersionExistsException();
         }
 
-        writeArchitectureToMongo(architecture);
         return architecture;
     }
 
@@ -201,20 +210,4 @@ public class MongoArchitectureStore implements ArchitectureStore {
         }
     }
 
-    private boolean versionExists(Architecture architecture) {
-        Document filter = new Document("namespace", architecture.getNamespace()).append("architectures.architectureId", architecture.getId());
-        Bson projection = Projections.fields(Projections.include("architectures.versions." + architecture.getMongoVersion()));
-        Document result = architectureCollection.find(filter).projection(projection).first();
-
-        if (result != null) {
-            List<Document> architectures = result.getList("architectures", Document.class);
-            for (Document architectureDoc : architectures) {
-                Document versions = (Document) architectureDoc.get("versions");
-                if (versions != null && versions.containsKey(architecture.getMongoVersion())) {
-                    return true;  // The version already exists
-                }
-            }
-        }
-        return false;
-    }
 }

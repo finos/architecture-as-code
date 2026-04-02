@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -32,6 +34,7 @@ public class NitriteDomainStore implements DomainStore {
     private static final String NAME_FIELD = "name";
     
     private final NitriteCollection domainCollection;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteDomainStore(@StandaloneQualifier Nitrite db) {
@@ -52,18 +55,23 @@ public class NitriteDomainStore implements DomainStore {
 
     @Override
     public Domain createDomain(String name) throws DomainAlreadyExistsException {
-        if (domainExists(name)) {
-            LOG.warn("Domain already exists: {}", name);
-            throw new DomainAlreadyExistsException("Domain already exists: " + name);
-        }
+        lock.lock();
+        try {
+            if (domainExists(name)) {
+                LOG.warn("Domain already exists: {}", name);
+                throw new DomainAlreadyExistsException("Domain already exists: " + name);
+            }
 
-        Document domainDocument = Document.createDocument()
-                .put(NAME_FIELD, name);
-        
-        domainCollection.insert(domainDocument);
-        LOG.info("Created domain: {}", name);
-        
-        return new Domain(name);
+            Document domainDocument = Document.createDocument()
+                    .put(NAME_FIELD, name);
+
+            domainCollection.insert(domainDocument);
+            LOG.info("Created domain: {}", name);
+
+            return new Domain(name);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**

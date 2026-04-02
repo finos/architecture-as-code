@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -46,6 +48,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     private final NitriteCollection architectureCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteArchitectureStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -222,13 +225,18 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
-        if (versionExists(architecture)) {
-            LOG.warn("Version '{}' already exists for architecture {} in namespace '{}'",
-                    architecture.getDotVersion(), architecture.getId(), architecture.getNamespace());
-            throw new ArchitectureVersionExistsException();
-        }
+        lock.lock();
+        try {
+            if (versionExists(architecture)) {
+                LOG.warn("Version '{}' already exists for architecture {} in namespace '{}'",
+                        architecture.getDotVersion(), architecture.getId(), architecture.getNamespace());
+                throw new ArchitectureVersionExistsException();
+            }
 
-        writeArchitectureToNitrite(architecture);
+            writeArchitectureToNitrite(architecture);
+        } finally {
+            lock.unlock();
+        }
         return architecture;
     }
 

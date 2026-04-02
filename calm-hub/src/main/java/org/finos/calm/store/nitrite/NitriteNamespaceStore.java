@@ -8,6 +8,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
 import org.slf4j.Logger;
@@ -15,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -32,6 +35,7 @@ public class NitriteNamespaceStore implements NamespaceStore {
     private static final String DESCRIPTION_FIELD = "description";
 
     private final NitriteCollection namespaceCollection;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteNamespaceStore(@StandaloneQualifier Nitrite db) {
@@ -59,15 +63,19 @@ public class NitriteNamespaceStore implements NamespaceStore {
     }
 
     @Override
-    public void createNamespace(String name, String description) {
-        if (!namespaceExists(name)) {
+    public void createNamespace(String name, String description) throws NamespaceAlreadyExistsException {
+        lock.lock();
+        try {
+            if (namespaceExists(name)) {
+                throw new NamespaceAlreadyExistsException("Namespace already exists: " + name);
+            }
             Document namespaceDoc = Document.createDocument()
                     .put(NAME_FIELD, name)
                     .put(DESCRIPTION_FIELD, description);
             namespaceCollection.insert(namespaceDoc);
             LOG.info("Created namespace: {}", name);
-        } else {
-            LOG.debug("Namespace '{}' already exists, skipping creation", name);
+        } finally {
+            lock.unlock();
         }
     }
 }

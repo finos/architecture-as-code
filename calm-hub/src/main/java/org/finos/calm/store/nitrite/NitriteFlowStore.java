@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -47,6 +49,7 @@ public class NitriteFlowStore implements FlowStore {
     private final NitriteCollection flowCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteFlowStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -225,13 +228,18 @@ public class NitriteFlowStore implements FlowStore {
             throw new NamespaceNotFoundException();
         }
 
-        if (versionExists(flow)) {
-            LOG.warn("Version '{}' already exists for flow {} in namespace '{}'", 
-                    flow.getDotVersion(), flow.getId(), flow.getNamespace());
-            throw new FlowVersionExistsException();
-        }
+        lock.lock();
+        try {
+            if (versionExists(flow)) {
+                LOG.warn("Version '{}' already exists for flow {} in namespace '{}'",
+                        flow.getDotVersion(), flow.getId(), flow.getNamespace());
+                throw new FlowVersionExistsException();
+            }
 
-        writeFlowToNitrite(flow);
+            writeFlowToNitrite(flow);
+        } finally {
+            lock.unlock();
+        }
         return flow;
     }
 

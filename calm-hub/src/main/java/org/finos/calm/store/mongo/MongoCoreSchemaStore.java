@@ -1,5 +1,7 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.ErrorCategory;
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -61,15 +63,17 @@ public class MongoCoreSchemaStore implements CoreSchemaStore {
 
     @Override
     public void createSchemaVersion(String version, Map<String, Object> schemas) {
-        // Check if version already exists
-        Bson filter = Filters.eq("version", version);
-        Document existingDoc = schemaCollection.find(filter).first();
-        
-        if (existingDoc == null) {
+        try {
             Document schemaDoc = new Document()
                     .append("version", version)
                     .append("schemas", schemas);
             schemaCollection.insertOne(schemaDoc);
+        } catch (MongoWriteException e) {
+            if (ErrorCategory.fromErrorCode(e.getError().getCode()) == ErrorCategory.DUPLICATE_KEY) {
+                // Schema version already exists, silently ignore (idempotent create)
+                return;
+            }
+            throw e;
         }
     }
 }

@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
 import org.junit.jupiter.api.Test;
@@ -56,9 +57,7 @@ public class TestNamespaceResourceShould {
     }
 
     @Test
-    void create_namespace_successfully() {
-        when(namespaceStore.namespaceExists("test-namespace")).thenReturn(false);
-
+    void create_namespace_successfully() throws NamespaceAlreadyExistsException {
         given()
                 .contentType("application/json")
                 .body("{\"name\":\"test-namespace\",\"description\":\"desc\"}")
@@ -68,27 +67,24 @@ public class TestNamespaceResourceShould {
                 .statusCode(201)
                 .header("Location", containsString("/calm/namespaces/test-namespace"));
 
-        verify(namespaceStore).namespaceExists("test-namespace");
         verify(namespaceStore).createNamespace("test-namespace","desc");
     }
 
     @Test
-    void return_400_when_namespace_is_null() {
+    void return_400_when_namespace_is_null() throws NamespaceAlreadyExistsException {
         given()
                 .contentType("application/json")
-                .body("{}")
+                .body("{}") 
                 .when()
                 .post("/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString("Name must not be null"));
 
-        verify(namespaceStore, never()).namespaceExists(any());
-        verify(namespaceStore, never()).createNamespace(any(), any());
     }
 
     @Test
-    void return_400_when_namespace_is_empty() {
+    void return_400_when_namespace_is_empty() throws NamespaceAlreadyExistsException {
         given()
                 .contentType("application/json")
                 .body("{\"name\":\"\"}")
@@ -98,12 +94,11 @@ public class TestNamespaceResourceShould {
                 .statusCode(400)
                 .body(containsString("Name must not be blank"));
 
-        verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any(), any());
     }
 
     @Test
-    void return_400_when_namespace_contains_invalid_characters() {
+    void return_400_when_namespace_contains_invalid_characters() throws NamespaceAlreadyExistsException {
         given()
                 .contentType("application/json")
                 .body("{\"name\":\"test@namespace\"}")
@@ -113,14 +108,11 @@ public class TestNamespaceResourceShould {
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
 
-        verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any(), any());
     }
 
     @Test
-    void return_201_when_dotted_namespace_is_valid() {
-        when(namespaceStore.namespaceExists("org.finos")).thenReturn(false);
-
+    void return_201_when_dotted_namespace_is_valid() throws NamespaceAlreadyExistsException {
         given()
                 .contentType("application/json")
                 .body("{\"name\":\"org.finos\",\"description\":\"FINOS org namespace\"}")
@@ -134,7 +126,7 @@ public class TestNamespaceResourceShould {
     }
 
     @Test
-    void return_400_when_namespace_has_trailing_dot() {
+    void return_400_when_namespace_has_trailing_dot() throws NamespaceAlreadyExistsException {
         given()
                 .contentType("application/json")
                 .body("{\"name\":\"org.finos.\"}")
@@ -144,12 +136,11 @@ public class TestNamespaceResourceShould {
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
 
-        verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any(), any());
     }
 
     @Test
-    void return_400_when_namespace_has_leading_dot() {
+    void return_400_when_namespace_has_leading_dot() throws NamespaceAlreadyExistsException {
         given()
                 .contentType("application/json")
                 .body("{\"name\":\".org.finos\"}")
@@ -159,12 +150,11 @@ public class TestNamespaceResourceShould {
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
 
-        verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any(), any());
     }
 
     @Test
-    void return_400_when_namespace_has_consecutive_dots() {
+    void return_400_when_namespace_has_consecutive_dots() throws NamespaceAlreadyExistsException {
         given()
                 .contentType("application/json")
                 .body("{\"name\":\"org..finos\"}")
@@ -174,13 +164,13 @@ public class TestNamespaceResourceShould {
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
 
-        verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any(), any());
     }
 
     @Test
-    void return_409_when_namespace_already_exists() {
-        when(namespaceStore.namespaceExists("existing-namespace")).thenReturn(true);
+    void return_409_when_namespace_already_exists() throws NamespaceAlreadyExistsException {
+        doThrow(new NamespaceAlreadyExistsException("Namespace already exists: existing-namespace"))
+                .when(namespaceStore).createNamespace("existing-namespace", "desc");
 
         given()
                 .contentType("application/json")
@@ -191,12 +181,11 @@ public class TestNamespaceResourceShould {
                 .statusCode(409)
                 .body(containsString("Namespace already exists"));
 
-        verify(namespaceStore).namespaceExists("existing-namespace");
-        verify(namespaceStore, never()).createNamespace(any(), any());
+        verify(namespaceStore).createNamespace("existing-namespace", "desc");
     }
 
     @Test
-    void return_400_when_request_body_is_null() {
+    void return_400_when_request_body_is_null() throws NamespaceAlreadyExistsException {
         given()
                 .contentType("application/json")
                 .when()
@@ -205,7 +194,6 @@ public class TestNamespaceResourceShould {
                 .statusCode(400)
                 .body(containsString("Request must not be null"));
 
-        verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any(), any());
     }
 }

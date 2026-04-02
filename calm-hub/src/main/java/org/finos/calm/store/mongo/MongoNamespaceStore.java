@@ -1,10 +1,13 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.ErrorCategory;
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
+import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
 
@@ -37,11 +40,16 @@ public class MongoNamespaceStore implements NamespaceStore {
     }
 
     @Override
-    public void createNamespace(String name, String description) {
-        if (!namespaceExists(name)) {
+    public void createNamespace(String name, String description) throws NamespaceAlreadyExistsException {
+        try {
             Document namespaceDoc = new Document("name", name)
                     .append("description", description);
             namespaceCollection.insertOne(namespaceDoc);
+        } catch (MongoWriteException e) {
+            if (ErrorCategory.fromErrorCode(e.getError().getCode()) == ErrorCategory.DUPLICATE_KEY) {
+                throw new NamespaceAlreadyExistsException("Namespace already exists: " + name);
+            }
+            throw e;
         }
     }
 }

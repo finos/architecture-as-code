@@ -160,15 +160,22 @@ public class MongoFlowStore implements FlowStore {
 
     @Override
     public Flow createFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionExistsException {
-        if(!namespaceStore.namespaceExists(flow.getNamespace())) {
-            throw new NamespaceNotFoundException();
-        }
+        // Validates namespace and flow existence
+        getFlowVersions(flow);
 
-        if(versionExists(flow)) {
+        // Atomic conditional update: only succeeds if the version doesn't already exist
+        Document filter = new Document("namespace", flow.getNamespace())
+                .append("flows", new Document("$elemMatch",
+                        new Document("flowId", flow.getId())
+                                .append("versions." + flow.getMongoVersion(), new Document("$exists", false))));
+
+        Document update = new Document("$set",
+                new Document("flows.$.versions." + flow.getMongoVersion(), Document.parse(flow.getFlowJson())));
+
+        if (flowCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new FlowVersionExistsException();
         }
 
-        writeFlowToMongo(flow);
         return flow;
     }
 
@@ -198,20 +205,4 @@ public class MongoFlowStore implements FlowStore {
         }
     }
 
-    private boolean versionExists(Flow flow) {
-        Document filter = new Document("namespace", flow.getNamespace()).append("flows.flowId", flow.getId());
-        Bson projection = Projections.fields(Projections.include("flows.versions." + flow.getMongoVersion()));
-        Document result = flowCollection.find(filter).projection(projection).first();
-
-        if (result != null) {
-            List<Document> flows = result.getList("flows", Document.class);
-            for (Document flowDoc : flows) {
-                Document versions = (Document) flowDoc.get("versions");
-                if (versions != null && versions.containsKey(flow.getMongoVersion())) {
-                    return true;  // The version already exists
-                }
-            }
-        }
-        return false;
-    }
 }

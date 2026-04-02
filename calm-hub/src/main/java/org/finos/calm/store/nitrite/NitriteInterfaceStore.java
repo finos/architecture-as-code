@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -48,6 +50,7 @@ public class NitriteInterfaceStore implements InterfaceStore {
     private final NitriteCollection interfaceCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteInterfaceStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -203,51 +206,56 @@ public class NitriteInterfaceStore implements InterfaceStore {
             throw new NamespaceNotFoundException();
         }
 
-        Filter namespaceFilter = where(NAMESPACE_FIELD).eq(namespace);
-        Document namespaceDocument = interfaceCollection.find(namespaceFilter).firstOrNull();
+        lock.lock();
+        try {
+            Filter namespaceFilter = where(NAMESPACE_FIELD).eq(namespace);
+            Document namespaceDocument = interfaceCollection.find(namespaceFilter).firstOrNull();
 
-        if (namespaceDocument == null) {
-            LOG.warn("Namespace document for '{}' not found when creating interface version", namespace);
-            throw new InterfaceNotFoundException();
-        }
-
-        Document interfaceDoc = findInterfaceDocument(namespace, interfaceId);
-        if (interfaceDoc == null) {
-            LOG.warn("Interface with ID {} not found in namespace '{}'", interfaceId, namespace);
-            throw new InterfaceNotFoundException();
-        }
-
-        String mongoVersion = version.replace('.', '-');
-
-        Document versions = interfaceDoc.get(VERSIONS_FIELD, Document.class);
-        if (versions.containsKey(mongoVersion)) {
-            LOG.warn("Version '{}' already exists for interface {} in namespace '{}'",
-                    mongoVersion, interfaceId, namespace);
-            throw new InterfaceVersionExistsException();
-        }
-
-        // Add the new version
-        versions.put(mongoVersion, interfaceRequest.getInterfaceJson());
-        interfaceDoc.put(VERSIONS_FIELD, versions);
-        interfaceDoc.put(NAME_FIELD, interfaceRequest.getName());
-        interfaceDoc.put(DESCRIPTION_FIELD, interfaceRequest.getDescription());
-
-        // Update the interface in the namespace document
-        List<Document> interfaces = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(INTERFACES_FIELD);
-        interfaces = new ArrayList<>(interfaces); // Create a mutable copy
-        for (int i = 0; i < interfaces.size(); i++) {
-            Document doc = interfaces.get(i);
-            if (doc.get(INTERFACE_ID_FIELD, Integer.class).equals(interfaceId)) {
-                interfaces.set(i, interfaceDoc);
-                break;
+            if (namespaceDocument == null) {
+                LOG.warn("Namespace document for '{}' not found when creating interface version", namespace);
+                throw new InterfaceNotFoundException();
             }
-        }
 
-        namespaceDocument.put(INTERFACES_FIELD, interfaces);
-        interfaceCollection.update(namespaceFilter, namespaceDocument);
+            Document interfaceDoc = findInterfaceDocument(namespace, interfaceId);
+            if (interfaceDoc == null) {
+                LOG.warn("Interface with ID {} not found in namespace '{}'", interfaceId, namespace);
+                throw new InterfaceNotFoundException();
+            }
+
+            String mongoVersion = version.replace('.', '-');
+
+            Document versions = interfaceDoc.get(VERSIONS_FIELD, Document.class);
+            if (versions.containsKey(mongoVersion)) {
+                LOG.warn("Version '{}' already exists for interface {} in namespace '{}'",
+                        mongoVersion, interfaceId, namespace);
+                throw new InterfaceVersionExistsException();
+            }
+
+            // Add the new version
+            versions.put(mongoVersion, interfaceRequest.getInterfaceJson());
+            interfaceDoc.put(VERSIONS_FIELD, versions);
+            interfaceDoc.put(NAME_FIELD, interfaceRequest.getName());
+            interfaceDoc.put(DESCRIPTION_FIELD, interfaceRequest.getDescription());
+
+            // Update the interface in the namespace document
+            List<Document> interfaces = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(INTERFACES_FIELD);
+            interfaces = new ArrayList<>(interfaces); // Create a mutable copy
+            for (int i = 0; i < interfaces.size(); i++) {
+                Document doc = interfaces.get(i);
+                if (doc.get(INTERFACE_ID_FIELD, Integer.class).equals(interfaceId)) {
+                    interfaces.set(i, interfaceDoc);
+                    break;
+                }
+            }
+
+            namespaceDocument.put(INTERFACES_FIELD, interfaces);
+            interfaceCollection.update(namespaceFilter, namespaceDocument);
+        } finally {
+            lock.unlock();
+        }
 
         LOG.info("Created version '{}' for interface {} in namespace '{}'",
-                mongoVersion, interfaceId, namespace);
+                version.replace('.', '-'), interfaceId, namespace);
 
         CalmInterface calmInterface = new CalmInterface(interfaceRequest);
         calmInterface.setVersion(version);

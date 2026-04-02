@@ -1,5 +1,7 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.ErrorCategory;
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -33,18 +35,15 @@ public class MongoDomainStore implements DomainStore {
 
     @Override
     public Domain createDomain(String name) throws DomainAlreadyExistsException {
-        if (domainExists(name)) {
-            throw new DomainAlreadyExistsException("Domain already exists: " + name);
+        try {
+            Document domainDocument = new Document("name", name);
+            domainsCollection.insertOne(domainDocument);
+            return new Domain(name);
+        } catch (MongoWriteException e) {
+            if (ErrorCategory.fromErrorCode(e.getError().getCode()) == ErrorCategory.DUPLICATE_KEY) {
+                throw new DomainAlreadyExistsException("Domain already exists: " + name);
+            }
+            throw e;
         }
-
-        Document domainDocument = new Document("name", name);
-        domainsCollection.insertOne(domainDocument);
-
-        return new Domain(name);
-    }
-
-    private boolean domainExists(String name) {
-        Document query = new Document("name", name);
-        return domainsCollection.find(query).first() != null;
     }
 }

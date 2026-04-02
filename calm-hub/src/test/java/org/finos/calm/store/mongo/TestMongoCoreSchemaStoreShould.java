@@ -1,9 +1,13 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.MongoWriteException;
+import com.mongodb.ServerAddress;
+import com.mongodb.WriteError;
 import com.mongodb.client.*;
 import com.mongodb.client.model.Filters;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.junit.jupiter.api.BeforeEach;
@@ -134,35 +138,28 @@ public class TestMongoCoreSchemaStoreShould {
 
     @Test
     void create_schema_version_when_version_does_not_exist() {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(schemaCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null); // version doesn't exist
-
         Map<String, Object> schemas = new HashMap<>();
         schemas.put("calm.json", new HashMap<>());
         schemas.put("core.json", new HashMap<>());
 
         mongoCoreSchemaStore.createSchemaVersion("2024-10", schemas);
 
-        verify(schemaCollection).find(Filters.eq("version", "2024-10"));
         verify(schemaCollection).insertOne(any(Document.class));
     }
 
     @Test
     void do_not_create_schema_version_when_version_already_exists() {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(schemaCollection.find(any(Bson.class))).thenReturn(findIterable);
-
-        Document existingDoc = new Document("version", "2024-10");
-        when(findIterable.first()).thenReturn(existingDoc); // version exists
+        WriteError writeError = new WriteError(11000, "duplicate key error", new BsonDocument());
+        MongoWriteException duplicateKeyException = new MongoWriteException(writeError, new ServerAddress());
+        Mockito.doThrow(duplicateKeyException).when(schemaCollection).insertOne(any(Document.class));
 
         Map<String, Object> schemas = new HashMap<>();
         schemas.put("calm.json", new HashMap<>());
 
+        // Should not throw — DuplicateKey is silently handled (idempotent)
         mongoCoreSchemaStore.createSchemaVersion("2024-10", schemas);
 
-        verify(schemaCollection).find(Filters.eq("version", "2024-10"));
-        verify(schemaCollection, Mockito.never()).insertOne(any(Document.class));
+        verify(schemaCollection).insertOne(any(Document.class));
     }
 
     private FindIterable<Document> emptyFindIterableSetup() {

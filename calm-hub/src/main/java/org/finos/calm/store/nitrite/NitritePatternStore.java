@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -47,6 +49,7 @@ public class NitritePatternStore implements PatternStore {
     private final NitriteCollection patternCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitritePatternStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -209,45 +212,50 @@ public class NitritePatternStore implements PatternStore {
             throw new NamespaceNotFoundException();
         }
 
-        Filter namespaceFilter = where(NAMESPACE_FIELD).eq(pattern.getNamespace());
-        Document namespaceDocument = patternCollection.find(namespaceFilter).firstOrNull();
+        lock.lock();
+        try {
+            Filter namespaceFilter = where(NAMESPACE_FIELD).eq(pattern.getNamespace());
+            Document namespaceDocument = patternCollection.find(namespaceFilter).firstOrNull();
 
-        if (namespaceDocument == null) {
-            LOG.warn("Namespace document for '{}' not found when creating pattern version", pattern.getNamespace());
-            throw new PatternNotFoundException();
-        }
-
-        Document patternDoc = findPatternDocument(pattern.getNamespace(), pattern.getId());
-        if (patternDoc == null) {
-            LOG.warn("Pattern with ID {} not found in namespace '{}'", pattern.getId(), pattern.getNamespace());
-            throw new PatternNotFoundException();
-        }
-
-        Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
-        if (versions.containsKey(pattern.getMongoVersion())) {
-            LOG.warn("Version '{}' already exists for pattern {} in namespace '{}'",
-                    pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
-            throw new PatternVersionExistsException();
-        }
-
-        // Add the new version
-        versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
-        patternDoc.put(VERSIONS_FIELD, versions);
-
-        // Update the pattern in the namespace document
-        List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(PATTERNS_FIELD);
-        // Create a mutable copy of the list
-        patterns = new ArrayList<>(patterns);
-        for (int i = 0; i < patterns.size(); i++) {
-            Document doc = patterns.get(i);
-            if (doc.get(PATTERN_ID_FIELD, Integer.class) == pattern.getId()) {
-                patterns.set(i, patternDoc);
-                break;
+            if (namespaceDocument == null) {
+                LOG.warn("Namespace document for '{}' not found when creating pattern version", pattern.getNamespace());
+                throw new PatternNotFoundException();
             }
-        }
 
-        namespaceDocument.put(PATTERNS_FIELD, patterns);
-        patternCollection.update(namespaceFilter, namespaceDocument);
+            Document patternDoc = findPatternDocument(pattern.getNamespace(), pattern.getId());
+            if (patternDoc == null) {
+                LOG.warn("Pattern with ID {} not found in namespace '{}'", pattern.getId(), pattern.getNamespace());
+                throw new PatternNotFoundException();
+            }
+
+            Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
+            if (versions.containsKey(pattern.getMongoVersion())) {
+                LOG.warn("Version '{}' already exists for pattern {} in namespace '{}'",
+                        pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
+                throw new PatternVersionExistsException();
+            }
+
+            // Add the new version
+            versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
+            patternDoc.put(VERSIONS_FIELD, versions);
+
+            // Update the pattern in the namespace document
+            List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(PATTERNS_FIELD);
+            // Create a mutable copy of the list
+            patterns = new ArrayList<>(patterns);
+            for (int i = 0; i < patterns.size(); i++) {
+                Document doc = patterns.get(i);
+                if (doc.get(PATTERN_ID_FIELD, Integer.class) == pattern.getId()) {
+                    patterns.set(i, patternDoc);
+                    break;
+                }
+            }
+
+            namespaceDocument.put(PATTERNS_FIELD, patterns);
+            patternCollection.update(namespaceFilter, namespaceDocument);
+        } finally {
+            lock.unlock();
+        }
 
         LOG.info("Created version '{}' for pattern {} in namespace '{}'",
                 pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());

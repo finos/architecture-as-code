@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -172,22 +173,23 @@ public class MongoControlStore implements ControlStore {
 
     @Override
     public void createRequirementForVersion(String domain, int controlId, String version, String requirementJson) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
-        Document controlDoc = findControl(domain, controlId);
-        Document requirement = (Document) controlDoc.get("requirement");
+        // Validate domain and control exist
+        findControl(domain, controlId);
 
         String mongoVersion = version.replace('.', '-');
 
-        if (requirement != null && requirement.containsKey(mongoVersion)) {
-            throw new ControlRequirementVersionExistsException();
-        }
-
+        // Atomic conditional update: only succeeds if the requirement version doesn't already exist
         Document filter = new Document("domain", domain)
-                .append("controls.controlId", controlId);
+                .append("controls", new Document("$elemMatch",
+                        new Document("controlId", controlId)
+                                .append("requirement." + mongoVersion, new Document("$exists", false))));
 
         Document update = new Document("$set",
                 new Document("controls.$.requirement." + mongoVersion, Document.parse(requirementJson)));
 
-        controlCollection.updateOne(filter, update);
+        if (controlCollection.updateOne(filter, update).getMatchedCount() == 0) {
+            throw new ControlRequirementVersionExistsException();
+        }
     }
 
     @Override
@@ -212,24 +214,38 @@ public class MongoControlStore implements ControlStore {
 
     @Override
     public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, String configurationJson) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
-        Document configDoc = findConfiguration(domain, controlId, configurationId);
-        Document versions = (Document) configDoc.get("versions");
+        // Validate domain, control, and configuration exist
+        findConfiguration(domain, controlId, configurationId);
 
         String mongoVersion = version.replace('.', '-');
 
-        if (versions != null && versions.containsKey(mongoVersion)) {
-            throw new ControlConfigurationVersionExistsException();
-        }
-
-        controlCollection.updateOne(
+        // Atomic conditional update using $elemMatch in query filter to prevent race conditions
+        Bson filter = Filters.and(
                 Filters.eq("domain", domain),
+                Filters.elemMatch("controls",
+                        Filters.and(
+                                Filters.eq("controlId", controlId),
+                                Filters.elemMatch("configurations",
+                                        Filters.and(
+                                                Filters.eq("configurationId", configurationId),
+                                                Filters.exists("versions." + mongoVersion, false)
+                                        )
+                                )
+                        )
+                )
+        );
+
+        if (controlCollection.updateOne(
+                filter,
                 Updates.set("controls.$[ctrl].configurations.$[cfg].versions." + mongoVersion,
                         Document.parse(configurationJson)),
                 new UpdateOptions().arrayFilters(List.of(
                         Filters.eq("ctrl.controlId", controlId),
                         Filters.eq("cfg.configurationId", configurationId)
                 ))
-        );
+        ).getMatchedCount() == 0) {
+            throw new ControlConfigurationVersionExistsException();
+        }
     }
 
     private Document findControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
