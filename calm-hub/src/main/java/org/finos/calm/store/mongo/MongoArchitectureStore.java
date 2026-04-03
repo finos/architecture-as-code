@@ -57,10 +57,13 @@ public class MongoArchitectureStore implements ArchitectureStore {
         List<NamespaceArchitectureSummary> architectureSummaries = new ArrayList<>();
 
         for (Document architectureDoc : architectures) {
+            Integer archId = architectureDoc.getInteger("architectureId");
+            String name = architectureDoc.getString("name");
+            String description = architectureDoc.getString("description");
+            if (name == null) name = "Architecture " + archId;
+            if (description == null) description = "";
             NamespaceArchitectureSummary summary = new NamespaceArchitectureSummary(
-                    architectureDoc.getString("name"),
-                    architectureDoc.getString("description"),
-                    architectureDoc.getInteger("architectureId")
+                    name, description, archId
             );
             architectureSummaries.add(summary);
         }

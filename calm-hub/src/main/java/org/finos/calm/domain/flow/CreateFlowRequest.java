@@ -1,10 +1,13 @@
 package org.finos.calm.domain.flow;
 
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 
 public class CreateFlowRequest {
+    @NotBlank(message = "Name must not be blank")
     private String name;
     private String description;
+    @NotBlank(message = "Flow JSON must not be blank")
     private String flowJson;
 
     public CreateFlowRequest(String name, String description, String flowJson) {

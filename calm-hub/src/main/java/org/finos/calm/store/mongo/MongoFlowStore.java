@@ -57,11 +57,12 @@ public class MongoFlowStore implements FlowStore {
         List<NamespaceFlowSummary> flowSummaries = new ArrayList<>();
 
         for (Document flow : flows) {
-            flowSummaries.add(new NamespaceFlowSummary(
-                    flow.getString("name"),
-                    flow.getString("description"),
-                    flow.getInteger("flowId")
-            ));
+            Integer flowId = flow.getInteger("flowId");
+            String name = flow.getString("name");
+            String description = flow.getString("description");
+            if (name == null) name = "Flow " + flowId;
+            if (description == null) description = "";
+            flowSummaries.add(new NamespaceFlowSummary(name, description, flowId));
         }
 
         return flowSummaries;

@@ -57,11 +57,12 @@ public class MongoPatternStore implements PatternStore {
         List<NamespacePatternSummary> patternSummaries = new ArrayList<>();
 
         for (Document pattern : patterns) {
-            patternSummaries.add(new NamespacePatternSummary(
-                    pattern.getString("name"),
-                    pattern.getString("description"),
-                    pattern.getInteger("patternId")
-            ));
+            Integer patternId = pattern.getInteger("patternId");
+            String name = pattern.getString("name");
+            String description = pattern.getString("description");
+            if (name == null) name = "Pattern " + patternId;
+            if (description == null) description = "";
+            patternSummaries.add(new NamespacePatternSummary(name, description, patternId));
         }
 
         return patternSummaries;

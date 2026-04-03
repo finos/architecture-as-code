@@ -16,6 +16,8 @@ import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.store.InterfaceStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +30,8 @@ import java.util.Set;
 @ApplicationScoped
 @Typed(MongoInterfaceStore.class)
 public class MongoInterfaceStore implements InterfaceStore {
+
+    private static final Logger logger = LoggerFactory.getLogger(MongoInterfaceStore.class);
 
     private final MongoCounterStore counterStore;
     private final MongoNamespaceStore namespaceStore;

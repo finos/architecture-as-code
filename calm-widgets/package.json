@@ -25,7 +25,7 @@
   "dependencies": {
     "@finos/calm-models": "file:../calm-models",
     "handlebars": "^4.7.9",
-    "lodash": "^4.17.23"
+    "lodash": "^4.18.1"
   },
   "devDependencies": {
   },

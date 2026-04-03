@@ -86,6 +86,8 @@ public class NitritePatternStore implements PatternStore {
                     String name = patternDoc.get(NAME_FIELD, String.class);
                     String description = patternDoc.get(DESCRIPTION_FIELD, String.class);
                     if (patternId != null) {
+                        if (name == null) name = "Pattern " + patternId;
+                        if (description == null) description = "";
                         patternSummaries.add(new NamespacePatternSummary(name, description, patternId));
                     }
                 }

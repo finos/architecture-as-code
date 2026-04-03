@@ -191,17 +191,17 @@ public class NitriteInterfaceStore implements InterfaceStore {
         }
 
         Document versions = interfaceDocument.get(VERSIONS_FIELD, Document.class);
-        String mongoVersion = version.replace('.', '-');
-        String storedInterface = versions.get(mongoVersion, String.class);
+        String storedVersion = version.replace('.', '-');
+        String storedInterface = versions.get(storedVersion, String.class);
 
         if (storedInterface == null) {
             LOG.warn("Version '{}' not found for interface {} in namespace '{}'",
-                    mongoVersion, interfaceId, namespace);
+                    storedVersion, interfaceId, namespace);
             throw new InterfaceVersionNotFoundException();
         }
 
         LOG.debug("Retrieved version '{}' for interface {} in namespace '{}'",
-                mongoVersion, interfaceId, namespace);
+                storedVersion, interfaceId, namespace);
 
         return storedInterface;
     }

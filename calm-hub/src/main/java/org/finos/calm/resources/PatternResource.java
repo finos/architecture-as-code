@@ -1,6 +1,8 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -73,7 +75,7 @@ public class PatternResource {
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createPatternForNamespace(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            CreatePatternRequest patternRequest
+            @Valid @NotNull(message = "Request must not be null") CreatePatternRequest patternRequest
     ) throws URISyntaxException {
         try {
             return patternWithLocationResponse(store.createPatternForNamespace(patternRequest, namespace));

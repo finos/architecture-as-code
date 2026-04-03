@@ -81,11 +81,12 @@ public class NitriteFlowStore implements FlowStore {
 
         List<NamespaceFlowSummary> flowSummaries = new ArrayList<>();
         for (Document flow : flows) {
-            flowSummaries.add(new NamespaceFlowSummary(
-                    flow.get(NAME_FIELD, String.class),
-                    flow.get(DESCRIPTION_FIELD, String.class),
-                    flow.get(FLOW_ID_FIELD, Integer.class)
-            ));
+            Integer flowId = flow.get(FLOW_ID_FIELD, Integer.class);
+            String name = flow.get(NAME_FIELD, String.class);
+            String description = flow.get(DESCRIPTION_FIELD, String.class);
+            if (name == null) name = "Flow " + flowId;
+            if (description == null) description = "";
+            flowSummaries.add(new NamespaceFlowSummary(name, description, flowId));
         }
 
         return flowSummaries;
