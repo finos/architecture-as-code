@@ -8,6 +8,7 @@ export interface CalmChoice {
 
 export interface CalmOption {
     optionType: 'oneOf' | 'anyOf',
+    optionId: string,
     prompt: string,
     choices: CalmChoice[],
 }
@@ -26,6 +27,7 @@ function extractOptionsFromBlock(optionsRelationship: object, blockType: 'oneOf'
         .map((prefixItem: object) => prefixItem[blockType] as object[])
         .map((choices: object[]) => ({
             optionType: blockType,
+            optionId: optionsRelationship['properties']['unique-id']['const'],
             prompt: optionsRelationship['properties']['description']['const'],
             choices: choices.map(choice => ({
                 description: choice['properties']['description']['const'],

@@ -1,5 +1,6 @@
 import { CalmChoice, CalmOption, extractOptions, initLogger } from '@finos/calm-shared';
 import { select, checkbox } from '@inquirer/prompts';
+import { readFileSync, existsSync } from 'fs';
 
 type InquirerQuestion = {
     type: 'list' | 'checkbox',
@@ -44,6 +45,49 @@ async function getAnswersFromUser(questions: InquirerQuestion[]): Promise<string
         }
     }
     return answers;
+}
+
+/**
+ * Loads pre-defined option choices from a file path or inline JSON string.
+ * The input should be a JSON object mapping option unique-ids to choice descriptions,
+ * e.g. {"connection-options": "Application A connects to C"}
+ */
+export function loadChoicesFromInput(optionChoicesInput: string, pattern: object, debug: boolean = false): CalmChoice[] {
+    const logger = initLogger(debug, 'calm-generate-options');
+
+    let choiceMap: Record<string, string>;
+    try {
+        const jsonString = existsSync(optionChoicesInput)
+            ? readFileSync(optionChoicesInput, 'utf-8')
+            : optionChoicesInput;
+        const parsed = JSON.parse(jsonString);
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+            throw new Error('Option choices must be a JSON object mapping option ids to choice descriptions.');
+        }
+        choiceMap = parsed;
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(`Failed to parse option choices: ${message}`);
+    }
+
+    const patternOptions: CalmOption[] = extractOptions(pattern);
+
+    logger.debug('Resolving pre-defined choices: ' + JSON.stringify(choiceMap));
+
+    const resolved: CalmChoice[] = [];
+    for (const [optionId, choiceDescription] of Object.entries(choiceMap)) {
+        const option = patternOptions.find(opt => opt.optionId === optionId);
+        if (!option) {
+            throw new Error(`The option id [${optionId}] is not a valid option in the pattern.`);
+        }
+        const found = option.choices.find(choice => choice.description === choiceDescription);
+        if (!found) {
+            throw new Error(`The choice of [${choiceDescription}] is not a valid choice for option [${optionId}].`);
+        }
+        resolved.push(found);
+    }
+
+    return resolved;
 }
 
 export async function promptUserForOptions(pattern: object, debug: boolean = false): Promise<CalmChoice[]> {

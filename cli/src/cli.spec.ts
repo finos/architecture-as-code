@@ -77,6 +77,24 @@ describe('CLI Commands', () => {
                 {}, 'output.json', true, expect.any(calmShared.SchemaDirectory), []
             );
         });
+
+        it('should use pre-defined choices and skip prompting when --option-choices is provided', async () => {
+            const preDefinedChoices = [{ description: 'Use HTTP', nodes: ['node-a'], relationships: ['rel-a'] }];
+            vi.spyOn(optionsModule, 'loadChoicesFromInput').mockReturnValue(preDefinedChoices);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'generate',
+                '-p', 'pattern.json',
+                '-o', 'output.json',
+                '--option-choices', '{"connection-options": "Use HTTP"}',
+            ]);
+
+            expect(optionsModule.loadChoicesFromInput).toHaveBeenCalledWith('{"connection-options": "Use HTTP"}', {}, false);
+            expect(optionsModule.promptUserForOptions).not.toHaveBeenCalled();
+            expect(calmShared.runGenerate).toHaveBeenCalledWith(
+                {}, 'output.json', false, expect.any(calmShared.SchemaDirectory), preDefinedChoices
+            );
+        });
     });
 
     describe('Validate Command', () => {
