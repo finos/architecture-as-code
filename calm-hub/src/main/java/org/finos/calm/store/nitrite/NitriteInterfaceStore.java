@@ -45,7 +45,6 @@ public class NitriteInterfaceStore implements InterfaceStore {
     private static final String VERSIONS_FIELD = "versions";
     private static final String NAME_FIELD = "name";
     private static final String DESCRIPTION_FIELD = "description";
-    private static final String JSON_FIELD = "interfaceJson";
 
     private final NitriteCollection interfaceCollection;
     private final NitriteNamespaceStore namespaceStore;
@@ -163,9 +162,11 @@ public class NitriteInterfaceStore implements InterfaceStore {
         }
 
         Document versions = interfaceDoc.get(VERSIONS_FIELD, Document.class);
-        // In NitriteDB, we need to get the field names directly
         Set<String> fieldNames = versions.getFields();
-        List<String> versionList = new ArrayList<>(fieldNames);
+        List<String> versionList = new ArrayList<>();
+        for (String fieldName : fieldNames) {
+            versionList.add(fieldName.replace('-', '.'));
+        }
 
         LOG.debug("Retrieved {} versions for interface {} in namespace '{}'",
                 versionList.size(), interfaceId, namespace);
@@ -186,7 +187,7 @@ public class NitriteInterfaceStore implements InterfaceStore {
 
         Document versions = interfaceDocument.get(VERSIONS_FIELD, Document.class);
         String mongoVersion = version.replace('.', '-');
-        Document storedInterface = versions.get(mongoVersion, Document.class);
+        String storedInterface = versions.get(mongoVersion, String.class);
 
         if (storedInterface == null) {
             LOG.warn("Version '{}' not found for interface {} in namespace '{}'",
@@ -197,7 +198,7 @@ public class NitriteInterfaceStore implements InterfaceStore {
         LOG.debug("Retrieved version '{}' for interface {} in namespace '{}'",
                 mongoVersion, interfaceId, namespace);
 
-        return storedInterface.get(JSON_FIELD, String.class);
+        return storedInterface;
     }
 
     @Override

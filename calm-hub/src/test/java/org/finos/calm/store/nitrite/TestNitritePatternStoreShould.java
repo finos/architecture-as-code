@@ -223,8 +223,8 @@ public class TestNitritePatternStoreShould {
         // Assert
         assertThat(result, is(notNullValue()));
         assertThat(result.size(), is(2));
-        assertThat(result, hasItem("1-0-0"));
-        assertThat(result, hasItem("1-1-0"));
+        assertThat(result, hasItem("1.0.0"));
+        assertThat(result, hasItem("1.1.0"));
     }
 
     @Test

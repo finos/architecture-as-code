@@ -169,9 +169,11 @@ public class NitritePatternStore implements PatternStore {
         }
 
         Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
-        // In NitriteDB, we need to get the field names directly
         Set<String> fieldNames = versions.getFields();
-        List<String> versionList = new ArrayList<>(fieldNames);
+        List<String> versionList = new ArrayList<>();
+        for (String fieldName : fieldNames) {
+            versionList.add(fieldName.replace('-', '.'));
+        }
 
         LOG.debug("Retrieved {} versions for pattern {} in namespace '{}'",
                 versionList.size(), pattern.getId(), pattern.getNamespace());

@@ -12,8 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
@@ -39,18 +37,15 @@ public class MongoSchemaIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            // Ensure the 'namespaces' collection exists
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("schemas")) {
-                database.createCollection("schemas");
+            if (database.getCollection("schemas").countDocuments() == 0) {
+                Document schemaStub = new Document();
+                schemaStub.put("version", "2024-04");
+                schemaStub.put("schemas", new Document()
+                        .append("calm.json", CALM_TEST_SCHEMA)
+                        .append("interface.json", INTERFACE_TEST_SCHEMA));
+
+                database.getCollection("schemas").insertOne(schemaStub);
             }
-
-            Document schemaStub = new Document();
-            schemaStub.put("version", "2024-04");
-            schemaStub.put("schemas", new Document()
-                    .append("calm.json", CALM_TEST_SCHEMA)
-                    .append("interface.json", INTERFACE_TEST_SCHEMA));
-
-            database.getCollection("schemas").insertOne(schemaStub);
         }
     }
 

@@ -212,8 +212,8 @@ public class TestNitriteInterfaceStoreShould {
 
         assertThat(result, is(notNullValue()));
         assertThat(result.size(), is(2));
-        assertThat(result, hasItem("1-0-0"));
-        assertThat(result, hasItem("1-1-0"));
+        assertThat(result, hasItem("1.0.0"));
+        assertThat(result, hasItem("1.1.0"));
     }
 
     @Test
@@ -239,7 +239,7 @@ public class TestNitriteInterfaceStoreShould {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get("2-0-0", Document.class)).thenReturn(null);
+        when(versionsDoc.get("2-0-0", String.class)).thenReturn(null);
 
         Document interfaceDoc = mock(Document.class);
         when(interfaceDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
@@ -259,11 +259,8 @@ public class TestNitriteInterfaceStoreShould {
     public void testGetInterfaceForVersion_whenVersionExists_returnsInterface() throws NamespaceNotFoundException, InterfaceNotFoundException, InterfaceVersionNotFoundException {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
-        Document versionDoc = mock(Document.class);
-        when(versionDoc.get(eq("interfaceJson"), any())).thenReturn("{}");
-
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get(eq("2-0-0"), any())).thenReturn(versionDoc);
+        when(versionsDoc.get(eq("2-0-0"), any())).thenReturn("{}");
 
         Document interfaceDoc = mock(Document.class);
         when(interfaceDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
