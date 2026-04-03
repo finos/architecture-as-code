@@ -2,11 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { IoCompassOutline, IoChevronBackOutline, IoListOutline, IoGitBranchOutline } from 'react-icons/io5';
 import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
+import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr } from '../../../model/calm.js';
 import { ControlDetail, ControlData } from '../../../model/control.js';
+import { InterfaceDetail, InterfaceData } from '../../../model/interface.js';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DomainItem } from './DomainItem.js';
+import { InterfaceItem } from './InterfaceItem.js';
 
 type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs';
 type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
@@ -58,6 +61,7 @@ interface TreeNavigationProps {
     onDataLoad: (data: Data) => void;
     onAdrLoad: (adr: Adr) => void;
     onControlLoad: (control: ControlData) => void;
+    onInterfaceLoad: (iface: InterfaceData) => void;
     onCollapse?: () => void;
 }
 
@@ -97,10 +101,13 @@ interface NamespaceItemProps {
     selectedVersion: string;
     getResourceIDs: (type: string) => string[];
     getVersions: (type: string) => string[];
+    namespaceInterfaces: InterfaceDetail[];
+    selectedInterfaceId: number | null;
     onNamespaceClick: (namespace: string) => void;
     onTypeClick: (type: string) => void;
     onResourceClick: (resourceID: string, type: string) => void;
     onVersionClick: (version: string, type: string) => void;
+    onInterfaceClick: (iface: InterfaceDetail) => void;
 }
 
 export interface NamespaceNode {
@@ -279,12 +286,15 @@ function NamespaceItem({
     selectedVersion,
     getResourceIDs,
     getVersions,
+    namespaceInterfaces,
+    selectedInterfaceId,
     onNamespaceClick,
     onTypeClick,
     onResourceClick,
     onVersionClick,
+    onInterfaceClick,
 }: NamespaceItemProps) {
-    const resourceTypes = ['Architectures', 'Patterns', 'Flows', 'ADRs'];
+    const resourceTypes = ['Architectures', 'Patterns', 'Flows', 'ADRs', 'Interfaces'];
     const isThisSelected = node.namespace !== null && node.namespace === selectedNamespace;
     const hasSelectedDescendant = selectedNamespace.startsWith(node.label + '.');
 
@@ -318,20 +328,49 @@ function NamespaceItem({
                 </summary>
                 {isOpen && (
                     <ul>
-                        {isThisSelected && resourceTypes.map((type) => (
-                            <ResourceType
-                                key={type}
-                                type={type}
-                                isSelected={selectedType === type}
-                                resourceIDs={getResourceIDs(type)}
-                                selectedResourceID={selectedResourceID}
-                                versions={getVersions(type)}
-                                selectedVersion={selectedVersion}
-                                onTypeClick={onTypeClick}
-                                onResourceClick={onResourceClick}
-                                onVersionClick={onVersionClick}
-                            />
-                        ))}
+                        {isThisSelected && resourceTypes.map((type) => {
+                            if (type === 'Interfaces') {
+                                const isInterfacesSelected = selectedType === 'Interfaces';
+                                if (isInterfacesSelected) {
+                                    return (
+                                        <li key={type}>
+                                            <details open={true}>
+                                                <summary className="active">Interfaces</summary>
+                                                <ul>
+                                                    {namespaceInterfaces.map((iface) => (
+                                                        <InterfaceItem
+                                                            key={iface.id}
+                                                            iface={iface}
+                                                            isSelected={selectedInterfaceId === iface.id}
+                                                            onInterfaceClick={onInterfaceClick}
+                                                        />
+                                                    ))}
+                                                </ul>
+                                            </details>
+                                        </li>
+                                    );
+                                }
+                                return (
+                                    <li key={type}>
+                                        <a onClick={() => onTypeClick(type)}>{type}</a>
+                                    </li>
+                                );
+                            }
+                            return (
+                                <ResourceType
+                                    key={type}
+                                    type={type}
+                                    isSelected={selectedType === type}
+                                    resourceIDs={getResourceIDs(type)}
+                                    selectedResourceID={selectedResourceID}
+                                    versions={getVersions(type)}
+                                    selectedVersion={selectedVersion}
+                                    onTypeClick={onTypeClick}
+                                    onResourceClick={onResourceClick}
+                                    onVersionClick={onVersionClick}
+                                />
+                            );
+                        })}
                         {node.children.map((child) => (
                             <NamespaceItem
                                 key={child.label}
@@ -342,10 +381,13 @@ function NamespaceItem({
                                 selectedVersion={selectedVersion}
                                 getResourceIDs={getResourceIDs}
                                 getVersions={getVersions}
+                                namespaceInterfaces={namespaceInterfaces}
+                                selectedInterfaceId={selectedInterfaceId}
                                 onNamespaceClick={onNamespaceClick}
                                 onTypeClick={onTypeClick}
                                 onResourceClick={onResourceClick}
                                 onVersionClick={onVersionClick}
+                                onInterfaceClick={onInterfaceClick}
                             />
                         ))}
                     </ul>
@@ -423,7 +465,7 @@ function loadResource({
     }
 }
 
-export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollapse }: TreeNavigationProps) {
+export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfaceLoad, onCollapse }: TreeNavigationProps) {
     const navigate = useNavigate();
     const params = useParams<HubParams>();
 
@@ -449,8 +491,13 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
     const [domainControls, setDomainControls] = useState<ControlDetail[]>([]);
     const [selectedControlId, setSelectedControlId] = useState<number | null>(null);
 
+    // Interface state
+    const [namespaceInterfaces, setNamespaceInterfaces] = useState<InterfaceDetail[]>([]);
+    const [selectedInterfaceId, setSelectedInterfaceId] = useState<number | null>(null);
+
     const calmService = useMemo(() => new CalmService(), []);
     const controlService = useMemo(() => new ControlService(), []);
+    const interfaceService = useMemo(() => new InterfaceService(), []);
     const adrService = useMemo(() => new AdrService(), []);
     const [viewMode, setViewMode] = useState<'flat' | 'hierarchical'>('hierarchical');
     const namespaceTree = useMemo(() => {
@@ -515,6 +562,9 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
         // Clear domain selection when navigating namespaces
         setSelectedDomain('');
         setSelectedControlId(null);
+        // Clear interface selection when navigating namespaces
+        setNamespaceInterfaces([]);
+        setSelectedInterfaceId(null);
     }, [selectedNamespace]);
 
     const handleDomainClick = (domain: string) => {
@@ -530,6 +580,9 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
         setSelectedType(EMPTY_STR_VALUE);
         setSelectedResourceID(EMPTY_STR_VALUE);
         setSelectedVersion(EMPTY_STR_VALUE);
+        // Clear interface selection when navigating domains
+        setNamespaceInterfaces([]);
+        setSelectedInterfaceId(null);
     };
 
     const handleControlClick = (control: ControlDetail) => {
@@ -542,25 +595,43 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
         });
     };
 
+    const handleInterfaceClick = (iface: InterfaceDetail) => {
+        setSelectedInterfaceId(iface.id);
+        onInterfaceLoad({
+            namespace: selectedNamespace,
+            interfaceId: iface.id,
+            interfaceName: iface.name,
+            interfaceDescription: iface.description,
+        });
+    };
+
     const handleTypeClick = useCallback((type: string) => {
         if (selectedType === type) {
             setSelectedType(EMPTY_STR_VALUE);
         } else {
             setSelectedType(type);
-            loadResourceIds({
-                type,
-                namespace: selectedNamespace,
-                calmService,
-                setArchitectureIDs,
-                setPatternIDs,
-                setFlowIDs,
-                adrService,
-                setAdrIDs,
-            });
+            if (type === 'Interfaces') {
+                interfaceService.fetchInterfacesForNamespace(selectedNamespace).then(setNamespaceInterfaces).catch((error) => {
+                    console.error('Failed to fetch interfaces', error);
+                    setNamespaceInterfaces([]);
+                });
+            } else {
+                loadResourceIds({
+                    type,
+                    namespace: selectedNamespace,
+                    calmService,
+                    setArchitectureIDs,
+                    setPatternIDs,
+                    setFlowIDs,
+                    adrService,
+                    setAdrIDs,
+                });
+            }
         }
         setSelectedResourceID(EMPTY_STR_VALUE);
         setSelectedVersion(EMPTY_STR_VALUE);
-    }, [selectedNamespace, selectedType, calmService, adrService]);
+        setSelectedInterfaceId(null);
+    }, [selectedNamespace, selectedType, calmService, adrService, interfaceService]);
 
     const handleResourceClick = useCallback((resourceID: string, type: string) => {
         setSelectedResourceID(resourceID);
@@ -665,10 +736,13 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
                                     selectedVersion={selectedVersion}
                                     getResourceIDs={getResourceIDs}
                                     getVersions={getVersions}
+                                    namespaceInterfaces={namespaceInterfaces}
+                                    selectedInterfaceId={selectedInterfaceId}
                                     onNamespaceClick={handleNamespaceClick}
                                     onTypeClick={handleTypeClick}
                                     onResourceClick={handleResourceClick}
                                     onVersionClick={handleVersionClick}
+                                    onInterfaceClick={handleInterfaceClick}
                                 />
                             ))}
                         </ul>

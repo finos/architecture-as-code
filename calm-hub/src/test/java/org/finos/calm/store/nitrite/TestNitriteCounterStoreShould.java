@@ -24,6 +24,7 @@ public class TestNitriteCounterStoreShould {
     private static final String ADR_COUNTER = "adr_counter";
     private static final String FLOW_COUNTER = "flow_counter";
     private static final String DECORATOR_COUNTER = "decorator_counter";
+    private static final String INTERFACE_COUNTER = "interface_counter";
 
     @Mock
     private Nitrite mockDb;
@@ -124,6 +125,23 @@ public class TestNitriteCounterStoreShould {
         // Assert
         assertThat(result, is(4));
         verify(countersDoc).put(DECORATOR_COUNTER, 4);
+        verify(mockCollection).update(countersDoc);
+    }
+
+    @Test
+    public void testGetNextInterfaceSequenceValue() {
+        // Arrange
+        Document countersDoc = mock(Document.class);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.firstOrNull()).thenReturn(countersDoc);
+        when(countersDoc.get(INTERFACE_COUNTER, Integer.class)).thenReturn(7);
+
+        // Act
+        int result = counterStore.getNextInterfaceSequenceValue();
+
+        // Assert
+        assertThat(result, is(8));
+        verify(countersDoc).put(INTERFACE_COUNTER, 8);
         verify(mockCollection).update(countersDoc);
     }
 
