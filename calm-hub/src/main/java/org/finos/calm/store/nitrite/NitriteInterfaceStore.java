@@ -182,17 +182,17 @@ public class NitriteInterfaceStore implements InterfaceStore {
         }
 
         Document versions = interfaceDocument.get(VERSIONS_FIELD, Document.class);
-        String mongoVersion = version.replace('.', '-');
-        Document storedInterface = versions.get(mongoVersion, Document.class);
+        String storedVersion = version.replace('.', '-');
+        Document storedInterface = versions.get(storedVersion, Document.class);
 
         if (storedInterface == null) {
             LOG.warn("Version '{}' not found for interface {} in namespace '{}'",
-                    mongoVersion, interfaceId, namespace);
+                    storedVersion, interfaceId, namespace);
             throw new InterfaceVersionNotFoundException();
         }
 
         LOG.debug("Retrieved version '{}' for interface {} in namespace '{}'",
-                mongoVersion, interfaceId, namespace);
+                storedVersion, interfaceId, namespace);
 
         return storedInterface.get(JSON_FIELD, String.class);
     }
@@ -217,17 +217,17 @@ public class NitriteInterfaceStore implements InterfaceStore {
             throw new InterfaceNotFoundException();
         }
 
-        String mongoVersion = version.replace('.', '-');
+        String storedVersion = version.replace('.', '-');
 
         Document versions = interfaceDoc.get(VERSIONS_FIELD, Document.class);
-        if (versions.containsKey(mongoVersion)) {
+        if (versions.containsKey(storedVersion)) {
             LOG.warn("Version '{}' already exists for interface {} in namespace '{}'",
-                    mongoVersion, interfaceId, namespace);
+                    storedVersion, interfaceId, namespace);
             throw new InterfaceVersionExistsException();
         }
 
         // Add the new version
-        versions.put(mongoVersion, interfaceRequest.getInterfaceJson());
+        versions.put(storedVersion, interfaceRequest.getInterfaceJson());
         interfaceDoc.put(VERSIONS_FIELD, versions);
         interfaceDoc.put(NAME_FIELD, interfaceRequest.getName());
         interfaceDoc.put(DESCRIPTION_FIELD, interfaceRequest.getDescription());
@@ -247,7 +247,7 @@ public class NitriteInterfaceStore implements InterfaceStore {
         interfaceCollection.update(namespaceFilter, namespaceDocument);
 
         LOG.info("Created version '{}' for interface {} in namespace '{}'",
-                mongoVersion, interfaceId, namespace);
+                storedVersion, interfaceId, namespace);
 
         CalmInterface calmInterface = new CalmInterface(interfaceRequest);
         calmInterface.setVersion(version);

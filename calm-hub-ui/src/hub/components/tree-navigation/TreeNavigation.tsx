@@ -611,7 +611,10 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
         } else {
             setSelectedType(type);
             if (type === 'Interfaces') {
-                interfaceService.fetchInterfacesForNamespace(selectedNamespace).then(setNamespaceInterfaces);
+                interfaceService.fetchInterfacesForNamespace(selectedNamespace).then(setNamespaceInterfaces).catch((error) => {
+                    console.error('Failed to fetch interfaces', error);
+                    setNamespaceInterfaces([]);
+                });
             } else {
                 loadResourceIds({
                     type,
