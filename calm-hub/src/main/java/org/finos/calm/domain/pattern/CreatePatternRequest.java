@@ -1,10 +1,13 @@
 package org.finos.calm.domain.pattern;
 
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 
 public class CreatePatternRequest {
+    @NotBlank(message = "Name must not be blank")
     private String name;
     private String description;
+    @NotBlank(message = "Pattern JSON must not be blank")
     private String patternJson;
 
     public CreatePatternRequest(String name, String description, String patternJson) {

@@ -70,10 +70,13 @@ public class NitriteArchitectureStore implements ArchitectureStore {
 
         List<NamespaceArchitectureSummary> architectureSummaries = new ArrayList<>();
         for (Document architecture : architectures) {
+            Integer archId = architecture.get(ARCHITECTURE_ID_FIELD, Integer.class);
+            String name = architecture.get(NAME_FIELD, String.class);
+            String description = architecture.get(DESCRIPTION_FIELD, String.class);
+            if (name == null) name = "Architecture " + archId;
+            if (description == null) description = "";
             NamespaceArchitectureSummary summary = new NamespaceArchitectureSummary(
-                    architecture.get(NAME_FIELD, String.class),
-                    architecture.get(DESCRIPTION_FIELD, String.class),
-                    architecture.get(ARCHITECTURE_ID_FIELD, Integer.class)
+                    name, description, archId
             );
             architectureSummaries.add(summary);
         }

@@ -126,6 +126,29 @@ public class TestMongoPatternStoreShould {
         verify(namespaceStore).namespaceExists("finos");
     }
 
+    @Test
+    void get_pattern_for_namespace_returns_fallback_for_legacy_documents() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
+                .thenReturn(findIterable);
+        Document documentMock = Mockito.mock(Document.class);
+        when(findIterable.first()).thenReturn(documentMock);
+
+        // Legacy document without name or description
+        Document legacyDoc = new Document("patternId", 99);
+
+        when(documentMock.getList("patterns", Document.class))
+                .thenReturn(List.of(legacyDoc));
+
+        List<NamespacePatternSummary> patterns = mongoPatternStore.getPatternsForNamespace("finos");
+
+        assertThat(patterns.size(), is(1));
+        assertThat(patterns.get(0).getName(), is("Pattern 99"));
+        assertThat(patterns.get(0).getDescription(), is(""));
+        assertThat(patterns.get(0).getId(), is(99));
+    }
+
     private DocumentFindIterable setupInvalidPattern() {
         DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);

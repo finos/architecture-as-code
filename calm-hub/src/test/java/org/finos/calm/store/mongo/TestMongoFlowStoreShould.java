@@ -127,6 +127,29 @@ public class TestMongoFlowStoreShould {
         verify(namespaceStore).namespaceExists(NAMESPACE);
     }
 
+    @Test
+    void get_flow_for_namespace_returns_fallback_for_legacy_documents() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(flowCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
+                .thenReturn(findIterable);
+        Document documentMock = Mockito.mock(Document.class);
+        when(findIterable.first()).thenReturn(documentMock);
+
+        // Legacy document without name or description
+        Document legacyDoc = new Document("flowId", 77);
+
+        when(documentMock.getList("flows", Document.class))
+                .thenReturn(List.of(legacyDoc));
+
+        List<NamespaceFlowSummary> flows = mongoFlowStore.getFlowsForNamespace(NAMESPACE);
+
+        assertThat(flows.size(), is(1));
+        assertThat(flows.get(0).getName(), is("Flow 77"));
+        assertThat(flows.get(0).getDescription(), is(""));
+        assertThat(flows.get(0).getId(), is(77));
+    }
+
     private FindIterable<Document> setupInvalidFlow() {
         FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);

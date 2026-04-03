@@ -139,6 +139,29 @@ public class TestMongoArchitectureStoreShould {
         verify(namespaceStore).namespaceExists(NAMESPACE);
     }
 
+    @Test
+    void get_architecture_for_namespace_returns_fallback_for_legacy_documents() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
+                .thenReturn(findIterable);
+        Document documentMock = Mockito.mock(Document.class);
+        when(findIterable.first()).thenReturn(documentMock);
+
+        // Legacy document without name or description
+        Document legacyDoc = new Document("architectureId", 42);
+
+        when(documentMock.getList("architectures", Document.class))
+                .thenReturn(List.of(legacyDoc));
+
+        List<NamespaceArchitectureSummary> architectures = mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE);
+
+        assertThat(architectures.size(), is(1));
+        assertThat(architectures.get(0).getName(), is("Architecture 42"));
+        assertThat(architectures.get(0).getDescription(), is(""));
+        assertThat(architectures.get(0).getId(), is(42));
+    }
+
     private FindIterable<Document> setupInvalidArchitecture() {
         FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);

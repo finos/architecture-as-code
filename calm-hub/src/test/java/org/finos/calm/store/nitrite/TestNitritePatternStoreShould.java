@@ -119,6 +119,29 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
+    public void testGetPatternsForNamespace_whenLegacyDocumentsMissingNameAndDescription_returnsFallbacks() throws NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document legacyDoc = Document.createDocument("patternId", 99);
+        List<Document> patterns = List.of(legacyDoc);
+
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", patterns);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        List<NamespacePatternSummary> result = patternStore.getPatternsForNamespace(NAMESPACE);
+
+        assertThat(result.size(), is(1));
+        assertThat(result.get(0).getId(), is(99));
+        assertThat(result.get(0).getName(), is("Pattern 99"));
+        assertThat(result.get(0).getDescription(), is(""));
+    }
+
+    @Test
     public void testCreatePatternForNamespace_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
         // Arrange
         CreatePatternRequest request = new CreatePatternRequest("name", "desc", PATTERN_JSON);

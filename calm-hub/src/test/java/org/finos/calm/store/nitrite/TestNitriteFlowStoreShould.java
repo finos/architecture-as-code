@@ -135,6 +135,29 @@ public class TestNitriteFlowStoreShould {
     }
 
     @Test
+    public void testGetFlowsForNamespace_whenLegacyDocumentsMissingNameAndDescription_returnsFallbacks() throws NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document legacyDoc = Document.createDocument().put("flowId", 77);
+        List<Document> flows = List.of(legacyDoc);
+
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("flows", flows);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        List<NamespaceFlowSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getId(), is(77));
+        assertThat(result.get(0).getName(), is("Flow 77"));
+        assertThat(result.get(0).getDescription(), is(""));
+    }
+
+    @Test
     public void testCreateFlowForNamespace_whenNamespaceDoesNotExist_throwsException() {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);

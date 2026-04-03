@@ -1,6 +1,8 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -75,7 +77,7 @@ public class FlowResource {
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createFlowForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            CreateFlowRequest flowRequest
+            @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
         try {
             Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace);

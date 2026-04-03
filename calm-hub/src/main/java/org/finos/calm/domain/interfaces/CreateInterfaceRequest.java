@@ -1,10 +1,13 @@
 package org.finos.calm.domain.interfaces;
 
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 
 public class CreateInterfaceRequest {
+    @NotBlank(message = "Name must not be blank")
     private String name;
     private String description;
+    @NotBlank(message = "Interface JSON must not be blank")
     private String interfaceJson;
 
     public CreateInterfaceRequest(String name, String description, String interfaceJson) {

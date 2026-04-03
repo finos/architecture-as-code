@@ -168,6 +168,30 @@ public class TestNitriteArchitectureStoreShould {
     }
 
     @Test
+    public void testGetArchitecturesForNamespace_whenLegacyDocumentsMissingNameAndDescription_returnsFallbacks() throws NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document legacyDoc = Document.createDocument()
+                .put("architectureId", 42);
+        List<Document> architectures = List.of(legacyDoc);
+
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("architectures", architectures);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+
+        assertThat(result.size(), is(1));
+        assertThat(result.get(0).getId(), is(42));
+        assertThat(result.get(0).getName(), is("Architecture 42"));
+        assertThat(result.get(0).getDescription(), is(""));
+    }
+
+    @Test
     public void testCreateArchitectureForNamespace_whenNamespaceDoesNotExist_throwsException() {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);

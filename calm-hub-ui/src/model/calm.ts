@@ -16,7 +16,7 @@ export type Flow = CalmFlowSchema;
 export type Version = string;
 export type Revision = string;
 export type Adr = CalmAdrMeta;
-export type CalmType = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
+export type CalmType = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs' | 'Standards';
 
 /**
  * Summary returned from the API for namespace-scoped resources.
@@ -64,4 +64,11 @@ export type Data =
         name: Namespace;
         data: Adr | undefined;
         calmType: 'ADRs';
+    }
+    | {
+        id: string;
+        version: string;
+        name: Namespace;
+        data: unknown;
+        calmType: 'Standards';
     };
