@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.CalmInterface;
 import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
@@ -152,6 +153,25 @@ public class TestInterfaceResourceShould {
                 .header("Location", containsString("/calm/namespaces/valid/interfaces/5/versions/1.0.0"));
 
         verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "valid");
+    }
+
+    @Test
+    void return_a_400_when_invalid_json_is_provided_on_create_interface() throws NamespaceNotFoundException, JsonProcessingException {
+        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("valid")))
+                .thenThrow(new JsonParseException());
+
+        CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();
+        createInterfaceRequest.setName("tcp-port");
+        createInterfaceRequest.setDescription("TCP Port Interface");
+        createInterfaceRequest.setInterfaceJson("{ invalid json");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(objectMapper.writeValueAsString(createInterfaceRequest))
+                .when()
+                .post("/calm/namespaces/valid/interfaces")
+                .then()
+                .statusCode(400);
     }
 
     @Test
@@ -300,6 +320,7 @@ public class TestInterfaceResourceShould {
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),
                 Arguments.of("valid", new InterfaceNotFoundException(), 404),
                 Arguments.of("valid", new InterfaceVersionExistsException(), 409),
+                Arguments.of("valid", new JsonParseException(), 400),
                 Arguments.of("valid", null, 201)
         );
     }
