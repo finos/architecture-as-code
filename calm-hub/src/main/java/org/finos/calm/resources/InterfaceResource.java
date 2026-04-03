@@ -1,9 +1,13 @@
 package org.finos.calm.resources;
 
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.CalmInterface;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.InterfaceNotFoundException;
@@ -22,6 +26,7 @@ import java.net.URISyntaxException;
 
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
@@ -32,6 +37,7 @@ public class InterfaceResource {
 
     private final Logger logger = LoggerFactory.getLogger(InterfaceResource.class);
 
+    @Inject
     public InterfaceResource(InterfaceStore interfaceStore) {
         this.interfaceStore = interfaceStore;
     }
@@ -58,7 +64,7 @@ public class InterfaceResource {
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createInterfaceForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            CreateInterfaceRequest interfaceRequest
+            @Valid @NotNull(message = "Request must not be null") CreateInterfaceRequest interfaceRequest
     ) throws URISyntaxException {
         try {
             CalmInterface createdInterface = interfaceStore.createInterfaceForNamespace(interfaceRequest, namespace);
@@ -66,6 +72,9 @@ public class InterfaceResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating interface", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (JsonParseException e) {
+            logger.error("Cannot parse interface JSON for namespace [{}]", namespace, e);
+            return invalidJsonResponse();
         }
     }
 
@@ -120,20 +129,23 @@ public class InterfaceResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
-            CreateInterfaceRequest createInterfaceRequest
+            @Valid @NotNull(message = "Request must not be null") CreateInterfaceRequest createInterfaceRequest
     ) throws URISyntaxException {
         try {
             interfaceStore.createInterfaceForVersion(createInterfaceRequest, namespace, interfaceId, version);
             return Response.created(new URI("/calm/namespaces/" + namespace + "/interfaces/" + interfaceId + "/versions/" + version)).build();
         } catch (InterfaceVersionExistsException e) {
             logger.error("Interface Version [{}] already exists", version, e);
-            return Response.status(Response.Status.CONFLICT).entity("Interface version already exists: " + version).build();
+            return Response.status(Response.Status.CONFLICT).entity("Interface version already exists: " + STRICT_SANITIZATION_POLICY.sanitize(version)).build();
         } catch (InterfaceNotFoundException e) {
             logger.error("Invalid interface [{}] when retrieving interface versions", interfaceId, e);
             return invalidInterfaceResponse(interfaceId);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving interface versions", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (JsonParseException e) {
+            logger.error("Cannot parse interface JSON for interface [{}] in namespace [{}]", interfaceId, namespace, e);
+            return invalidJsonResponse();
         }
     }
 
@@ -143,6 +155,12 @@ public class InterfaceResource {
 
     private Response invalidInterfaceVersionResponse(int interfaceId, String version) {
         return Response.status(Response.Status.NOT_FOUND).entity("Interface Version not found. ID [" + interfaceId
-                + "] Version [" + version + "]").build();
+                + "] Version [" + STRICT_SANITIZATION_POLICY.sanitize(version) + "]").build();
+    }
+
+    private Response invalidJsonResponse() {
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity("The provided JSON could not be parsed")
+                .build();
     }
 }

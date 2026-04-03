@@ -27,6 +27,9 @@ export function InterfaceDetailSection({ interfaceData }: InterfaceDetailSection
             version
         ).then((data) => {
             setInterfaceJson(data as object | undefined);
+        }).catch((error) => {
+            console.error('Failed to fetch interface version', error);
+            setInterfaceJson(undefined);
         });
     }, [interfaceService, interfaceData.namespace, interfaceData.interfaceId]);
 
@@ -39,7 +42,10 @@ export function InterfaceDetailSection({ interfaceData }: InterfaceDetailSection
         interfaceService.fetchInterfaceVersions(
             interfaceData.namespace,
             interfaceData.interfaceId,
-        ).then(setVersions);
+        ).then(setVersions).catch((error) => {
+            console.error('Failed to fetch interface versions', error);
+            setVersions([]);
+        });
     }, [interfaceService, interfaceData.namespace, interfaceData.interfaceId]);
 
     // Auto-select first version when versions load
