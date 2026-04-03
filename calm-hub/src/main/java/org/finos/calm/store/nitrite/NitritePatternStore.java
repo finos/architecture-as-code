@@ -111,10 +111,12 @@ public class NitritePatternStore implements PatternStore {
             throw new JsonParseException(e.getMessage());
         }
 
-        int id = counterStore.getNextPatternSequenceValue();
+        lock.lock();
+        try {
+            int id = counterStore.getNextPatternSequenceValue();
 
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
-        Document namespaceDocument = patternCollection.find(filter).firstOrNull();
+            Filter filter = where(NAMESPACE_FIELD).eq(namespace);
+            Document namespaceDocument = patternCollection.find(filter).firstOrNull();
 
         Document patternDocument = Document.createDocument()
                 .put(PATTERN_ID_FIELD, id)
@@ -151,8 +153,11 @@ public class NitritePatternStore implements PatternStore {
                 .setVersion("1-0-0")
                 .build();
 
-        LOG.info("Created pattern with ID {} for namespace '{}'", id, namespace);
-        return persistedPattern;
+            LOG.info("Created pattern with ID {} for namespace '{}'", id, namespace);
+            return persistedPattern;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

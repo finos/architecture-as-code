@@ -107,8 +107,10 @@ public class NitriteFlowStore implements FlowStore {
             throw new JsonParseException(e.getMessage());
         }
 
-        int id = counterStore.getNextFlowSequenceValue();
-        Document flowDocument = Document.createDocument()
+        lock.lock();
+        try {
+            int id = counterStore.getNextFlowSequenceValue();
+            Document flowDocument = Document.createDocument()
                 .put(FLOW_ID_FIELD, id)
                 .put(NAME_FIELD, flowRequest.getName())
                 .put(DESCRIPTION_FIELD, flowRequest.getDescription())
@@ -139,12 +141,15 @@ public class NitriteFlowStore implements FlowStore {
 
         LOG.info("Created flow with ID {} for namespace '{}'", id, namespace);
 
-        return new Flow.FlowBuilder()
-                .setId(id)
-                .setVersion("1.0.0")
-                .setNamespace(namespace)
-                .setFlow(flowRequest.getFlowJson())
-                .build();
+            return new Flow.FlowBuilder()
+                    .setId(id)
+                    .setVersion("1.0.0")
+                    .setNamespace(namespace)
+                    .setFlow(flowRequest.getFlowJson())
+                    .build();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

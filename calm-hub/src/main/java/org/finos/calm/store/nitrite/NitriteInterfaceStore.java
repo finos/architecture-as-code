@@ -110,9 +110,11 @@ public class NitriteInterfaceStore implements InterfaceStore {
             throw new JsonParseException(e.getMessage());
         }
 
-        int id = counterStore.getNextInterfaceSequenceValue();
+        lock.lock();
+        try {
+            int id = counterStore.getNextInterfaceSequenceValue();
 
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
+            Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         Document namespaceDocument = interfaceCollection.find(filter).firstOrNull();
 
         Document interfaceDocument = Document.createDocument()
@@ -142,10 +144,13 @@ public class NitriteInterfaceStore implements InterfaceStore {
             interfaceCollection.update(filter, namespaceDocument);
         }
 
-        createdInterface.setId(id);
-        createdInterface.setVersion("1.0.0");
-        createdInterface.setNamespace(namespace);
-        return createdInterface;
+            createdInterface.setId(id);
+            createdInterface.setVersion("1.0.0");
+            createdInterface.setNamespace(namespace);
+            return createdInterface;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

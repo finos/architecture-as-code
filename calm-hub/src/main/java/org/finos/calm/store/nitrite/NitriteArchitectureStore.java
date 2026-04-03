@@ -101,9 +101,11 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new JsonParseException(e.getMessage());
         }
 
-        int id = counterStore.getNextArchitectureSequenceValue();
-        // Store the architecture JSON as a string
-        Document architectureDocument = Document.createDocument()
+        lock.lock();
+        try {
+            int id = counterStore.getNextArchitectureSequenceValue();
+            // Store the architecture JSON as a string
+            Document architectureDocument = Document.createDocument()
                 .put(NAME_FIELD, architecture.getName())
                 .put(DESCRIPTION_FIELD, architecture.getDescription())
                 .put(ARCHITECTURE_ID_FIELD, id)
@@ -132,15 +134,18 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             architectureCollection.update(filter, namespaceDoc);
         }
 
-        LOG.info("Created architecture with ID {} for namespace '{}'", id, architecture.getNamespace());
-        return new Architecture.ArchitectureBuilder()
-                .setId(id)
-                .setVersion("1.0.0")
-                .setNamespace(architecture.getNamespace())
-                .setName(architecture.getName())
-                .setDescription(architecture.getDescription())
-                .setArchitecture(architecture.getArchitectureJson())
-                .build();
+            LOG.info("Created architecture with ID {} for namespace '{}'", id, architecture.getNamespace());
+            return new Architecture.ArchitectureBuilder()
+                    .setId(id)
+                    .setVersion("1.0.0")
+                    .setNamespace(architecture.getNamespace())
+                    .setName(architecture.getName())
+                    .setDescription(architecture.getDescription())
+                    .setArchitecture(architecture.getArchitectureJson())
+                    .build();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

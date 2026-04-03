@@ -113,9 +113,11 @@ public class NitriteStandardStore implements StandardStore {
             throw new JsonParseException(e.getMessage());
         }
 
-        int id = counterStore.getNextStandardSequenceValue();
+        lock.lock();
+        try {
+            int id = counterStore.getNextStandardSequenceValue();
 
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
+            Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         Document namespaceDocument = standardCollection.find(filter).firstOrNull();
 
         Document standardDocument = Document.createDocument()
@@ -145,10 +147,13 @@ public class NitriteStandardStore implements StandardStore {
             standardCollection.update(filter, namespaceDocument);
         }
 
-        createdStandard.setId(id);
-        createdStandard.setVersion("1.0.0");
-        createdStandard.setNamespace(namespace);
-        return createdStandard;
+            createdStandard.setId(id);
+            createdStandard.setVersion("1.0.0");
+            createdStandard.setNamespace(namespace);
+            return createdStandard;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

@@ -85,8 +85,9 @@ public class NitriteControlStore implements ControlStore {
     @Override
     public ControlDetail createControlRequirement(CreateControlRequirement request, String domain) throws DomainNotFoundException {
         validateDomain(domain);
-
-        int controlId = counterStore.getNextControlSequenceValue();
+        lock.lock();
+        try {
+            int controlId = counterStore.getNextControlSequenceValue();
 
         Document requirementVersions = Document.createDocument()
                 .put("1-0-0", request.getRequirementJson());
@@ -120,7 +121,10 @@ public class NitriteControlStore implements ControlStore {
             controlCollection.update(where(DOMAIN_FIELD).eq(domain), existingDoc);
         }
 
-        return new ControlDetail(controlId, request.getName(), request.getDescription());
+            return new ControlDetail(controlId, request.getName(), request.getDescription());
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -235,9 +239,11 @@ public class NitriteControlStore implements ControlStore {
 
     @Override
     public int createControlConfiguration(CreateControlConfiguration request, String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        Document controlDoc = findControl(domain, controlId);
+        lock.lock();
+        try {
+            Document controlDoc = findControl(domain, controlId);
 
-        int configurationId = counterStore.getNextControlConfigurationSequenceValue();
+            int configurationId = counterStore.getNextControlConfigurationSequenceValue();
 
         Document configDoc = Document.createDocument()
                 .put(CONFIGURATION_ID_FIELD, configurationId)
@@ -254,10 +260,13 @@ public class NitriteControlStore implements ControlStore {
         configurations.add(configDoc);
         controlDoc.put(CONFIGURATIONS_FIELD, configurations);
 
-        Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
-        controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
+            Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+            controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
 
-        return configurationId;
+            return configurationId;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
