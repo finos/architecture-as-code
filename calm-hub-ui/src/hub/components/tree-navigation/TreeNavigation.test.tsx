@@ -16,14 +16,17 @@ vi.mock('react-router-dom', async () => {
 
 let calmServiceInstance: {
     fetchNamespaces: Mock;
-    fetchPatternIDs: Mock;
-    fetchFlowIDs: Mock;
-    fetchArchitectureIDs: Mock;
+    fetchPatternSummaries: Mock;
+    fetchFlowSummaries: Mock;
+    fetchStandardSummaries: Mock;
+    fetchArchitectureSummaries: Mock;
     fetchPatternVersions: Mock;
     fetchFlowVersions: Mock;
+    fetchStandardVersions: Mock;
     fetchArchitectureVersions: Mock;
     fetchPattern: Mock;
     fetchFlow: Mock;
+    fetchStandard: Mock;
     fetchArchitecture: Mock;
 } | undefined;
 
@@ -31,14 +34,17 @@ vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(() => {
         calmServiceInstance = {
             fetchNamespaces: vi.fn().mockResolvedValue(['test-namespace', 'another-namespace']),
-            fetchPatternIDs: vi.fn().mockResolvedValue([]),
-            fetchFlowIDs: vi.fn().mockResolvedValue([]),
-            fetchArchitectureIDs: vi.fn().mockResolvedValue([]),
+            fetchPatternSummaries: vi.fn().mockResolvedValue([]),
+            fetchFlowSummaries: vi.fn().mockResolvedValue([]),
+            fetchStandardSummaries: vi.fn().mockResolvedValue([]),
+            fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
             fetchPatternVersions: vi.fn().mockResolvedValue([]),
             fetchFlowVersions: vi.fn().mockResolvedValue([]),
+            fetchStandardVersions: vi.fn().mockResolvedValue([]),
             fetchArchitectureVersions: vi.fn().mockResolvedValue([]),
             fetchPattern: vi.fn().mockResolvedValue({}),
             fetchFlow: vi.fn().mockResolvedValue({}),
+            fetchStandard: vi.fn().mockResolvedValue({}),
             fetchArchitecture: vi.fn().mockResolvedValue({})
         };
         return calmServiceInstance;
@@ -59,14 +65,14 @@ vi.mock('../../../service/interface-service.js', () => ({
 }));
 
 let adrServiceInstance: {
-    fetchAdrIDs: Mock;
+    fetchAdrSummaries: Mock;
     fetchAdrRevisions: Mock;
     fetchAdr: Mock;
 } | undefined;
 vi.mock('../../../service/adr-service/adr-service.js', () => ({
     AdrService: vi.fn().mockImplementation(() => {
         adrServiceInstance = {
-            fetchAdrIDs: vi.fn().mockResolvedValue(['201', '202']),
+            fetchAdrSummaries: vi.fn().mockResolvedValue([{ id: 201, title: 'Use CALM', status: 'accepted' }, { id: 202, title: 'Use React', status: 'proposed' }]),
             fetchAdrRevisions: vi.fn().mockResolvedValue(['v1.0', 'v2.0']),
             fetchAdr: vi.fn().mockResolvedValue({})
         };
@@ -139,7 +145,7 @@ describe('TreeNavigation', () => {
 
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
-            expect(calmServiceInstance?.fetchPatternIDs).toHaveBeenCalledWith('test-namespace');
+            expect(calmServiceInstance?.fetchPatternSummaries).toHaveBeenCalledWith('test-namespace');
             expect(calmServiceInstance?.fetchPatternVersions).toHaveBeenCalledWith('test-namespace', 'pattern2');
             expect(calmServiceInstance?.fetchPattern).toHaveBeenCalledWith('test-namespace', 'pattern2', 'v2.0');
         });
@@ -159,7 +165,7 @@ describe('TreeNavigation', () => {
 
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
-            expect(calmServiceInstance?.fetchArchitectureIDs).toHaveBeenCalledWith('test-namespace');
+            expect(calmServiceInstance?.fetchArchitectureSummaries).toHaveBeenCalledWith('test-namespace');
             expect(calmServiceInstance?.fetchArchitectureVersions).toHaveBeenCalledWith('test-namespace', '201');
             expect(calmServiceInstance?.fetchArchitecture).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
         });
@@ -179,7 +185,7 @@ describe('TreeNavigation', () => {
 
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
-            expect(calmServiceInstance?.fetchFlowIDs).toHaveBeenCalledWith('test-namespace');
+            expect(calmServiceInstance?.fetchFlowSummaries).toHaveBeenCalledWith('test-namespace');
             expect(calmServiceInstance?.fetchFlowVersions).toHaveBeenCalledWith('test-namespace', '201');
             expect(calmServiceInstance?.fetchFlow).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
         });
@@ -198,7 +204,7 @@ describe('TreeNavigation', () => {
         </MemoryRouter>);
 
         await waitFor(() => {
-            expect(adrServiceInstance?.fetchAdrIDs).toHaveBeenCalledWith('test-namespace');
+            expect(adrServiceInstance?.fetchAdrSummaries).toHaveBeenCalledWith('test-namespace');
             expect(adrServiceInstance?.fetchAdrRevisions).toHaveBeenCalledWith('test-namespace', '201');
             expect(adrServiceInstance?.fetchAdr).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
         });
@@ -257,14 +263,17 @@ describe('buildNamespaceTree', () => {
         vi.mocked(useParams).mockReturnValue({});
         vi.mocked(CalmService).mockImplementationOnce(() => ({
             fetchNamespaces: vi.fn().mockResolvedValue(['org.finos', 'org.finos.calm', 'com.traderx']),
-            fetchPatternIDs: vi.fn().mockResolvedValue([]),
-            fetchFlowIDs: vi.fn().mockResolvedValue([]),
-            fetchArchitectureIDs: vi.fn().mockResolvedValue([]),
+            fetchPatternSummaries: vi.fn().mockResolvedValue([]),
+            fetchFlowSummaries: vi.fn().mockResolvedValue([]),
+            fetchStandardSummaries: vi.fn().mockResolvedValue([]),
+            fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
             fetchPatternVersions: vi.fn().mockResolvedValue([]),
             fetchFlowVersions: vi.fn().mockResolvedValue([]),
+            fetchStandardVersions: vi.fn().mockResolvedValue([]),
             fetchArchitectureVersions: vi.fn().mockResolvedValue([]),
             fetchPattern: vi.fn().mockResolvedValue({}),
             fetchFlow: vi.fn().mockResolvedValue({}),
+            fetchStandard: vi.fn().mockResolvedValue({}),
             fetchArchitecture: vi.fn().mockResolvedValue({})
         }));
 

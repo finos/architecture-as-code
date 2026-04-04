@@ -21,6 +21,8 @@ import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.flow.CreateFlowRequest;
+import org.finos.calm.domain.flow.NamespaceFlowSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -107,16 +109,45 @@ public class TestMongoFlowStoreShould {
         Document documentMock = Mockito.mock(Document.class);
         when(findIterable.first()).thenReturn(documentMock);
 
-        Document doc1 = new Document("flowId", 1001);
-        Document doc2 = new Document("flowId", 1002);
+        Document doc1 = new Document("flowId", 1001).append("name", "Flow One").append("description", "First flow");
+        Document doc2 = new Document("flowId", 1002).append("name", "Flow Two").append("description", "Second flow");
 
         when(documentMock.getList("flows", Document.class))
                 .thenReturn(Arrays.asList(doc1, doc2));
 
-        List<Integer> flowIds = mongoFlowStore.getFlowsForNamespace(NAMESPACE);
+        List<NamespaceFlowSummary> flows = mongoFlowStore.getFlowsForNamespace(NAMESPACE);
 
-        assertThat(flowIds, is(Arrays.asList(1001, 1002)));
+        assertThat(flows.size(), is(2));
+        assertThat(flows.get(0).getName(), is("Flow One"));
+        assertThat(flows.get(0).getDescription(), is("First flow"));
+        assertThat(flows.get(0).getId(), is(1001));
+        assertThat(flows.get(1).getName(), is("Flow Two"));
+        assertThat(flows.get(1).getDescription(), is("Second flow"));
+        assertThat(flows.get(1).getId(), is(1002));
         verify(namespaceStore).namespaceExists(NAMESPACE);
+    }
+
+    @Test
+    void get_flow_for_namespace_returns_fallback_for_legacy_documents() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(flowCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
+                .thenReturn(findIterable);
+        Document documentMock = Mockito.mock(Document.class);
+        when(findIterable.first()).thenReturn(documentMock);
+
+        // Legacy document without name or description
+        Document legacyDoc = new Document("flowId", 77);
+
+        when(documentMock.getList("flows", Document.class))
+                .thenReturn(List.of(legacyDoc));
+
+        List<NamespaceFlowSummary> flows = mongoFlowStore.getFlowsForNamespace(NAMESPACE);
+
+        assertThat(flows.size(), is(1));
+        assertThat(flows.get(0).getName(), is("Flow 77"));
+        assertThat(flows.get(0).getDescription(), is(""));
+        assertThat(flows.get(0).getId(), is(77));
     }
 
     private FindIterable<Document> setupInvalidFlow() {
@@ -146,10 +177,10 @@ public class TestMongoFlowStoreShould {
     void return_a_namespace_exception_when_namespace_does_not_exist_when_creating_an_flow() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
         String namespace = "does-not-exist";
-        Flow flow = new Flow.FlowBuilder().setNamespace(namespace).build();
+        CreateFlowRequest request = new CreateFlowRequest("name", "desc", validJson);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoFlowStore.createFlowForNamespace(flow));
+                () -> mongoFlowStore.createFlowForNamespace(request, namespace));
 
         verify(namespaceStore).namespaceExists(namespace);
     }
@@ -158,12 +189,10 @@ public class TestMongoFlowStoreShould {
     void return_a_json_parse_exception_when_an_invalid_json_object_is_presented() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(counterStore.getNextFlowSequenceValue()).thenReturn(42);
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setFlow("Invalid JSON")
-                .build();
+        CreateFlowRequest request = new CreateFlowRequest("name", "desc", "Invalid JSON");
 
         assertThrows(JsonParseException.class,
-                () -> mongoFlowStore.createFlowForNamespace(flow));
+                () -> mongoFlowStore.createFlowForNamespace(request, NAMESPACE));
     }
 
     @Test
@@ -172,11 +201,9 @@ public class TestMongoFlowStoreShould {
         int sequenceNumber = 42;
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(counterStore.getNextFlowSequenceValue()).thenReturn(sequenceNumber);
-        Flow flowToCreate = new Flow.FlowBuilder().setFlow(validJson)
-                .setNamespace(validNamespace)
-                .build();
+        CreateFlowRequest request = new CreateFlowRequest("Test Flow", "A test", validJson);
 
-        Flow flow = mongoFlowStore.createFlowForNamespace(flowToCreate);
+        Flow flow = mongoFlowStore.createFlowForNamespace(request, validNamespace);
 
         Flow expectedFlow = new Flow.FlowBuilder().setFlow(validJson)
                 .setNamespace(validNamespace)
@@ -185,7 +212,10 @@ public class TestMongoFlowStoreShould {
                 .build();
 
         assertThat(flow, is(expectedFlow));
-        Document expectedDoc = new Document("flowId", flow.getId()).append("versions",
+        Document expectedDoc = new Document("flowId", flow.getId())
+                .append("name", "Test Flow")
+                .append("description", "A test")
+                .append("versions",
                 new Document("1-0-0", Document.parse(flow.getFlowJson())));
 
         verify(flowCollection).updateOne(

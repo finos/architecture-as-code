@@ -272,6 +272,8 @@ if (db.patterns.countDocuments() === 0) {
             patterns: [
                 {
                     patternId: NumberInt(1),
+                    name: "API Gateway Pattern",
+                    description: "A pattern for securing and routing API traffic through a gateway with identity provider integration",
                     versions:
                     {
                         "1-0-0": {
@@ -527,6 +529,8 @@ if (db.patterns.countDocuments() === 0) {
             patterns: [
                 {
                     patternId: NumberInt(1),
+                    name: "Conference Signup Pattern",
+                    description: "A reusable architecture pattern for conference signup systems with Kubernetes deployment",
                     versions:
                     {
                         "1-0-0": {
@@ -842,6 +846,8 @@ if (db.patterns.countDocuments() === 0) {
                 },
                 {
                     patternId: NumberInt(2),
+                    name: "Conference Secure Signup Pattern",
+                    description: "A secure reusable architecture pattern for conference signup systems with Kubernetes deployment",
                     versions:
                     {
                         "1-0-0": {
@@ -1295,6 +1301,8 @@ if (db.flows.countDocuments() === 0) {
             flows: [
                 {
                     flowId: NumberInt(1),
+                    name: "Flow 1",
+                    description: "This is a non-compliant flow document. Just creating something to simulate",
                     versions:
                     {
                         "1-0-0": {
@@ -1307,6 +1315,8 @@ if (db.flows.countDocuments() === 0) {
                 },
                 {
                     flowId: NumberInt(2),
+                    name: "Flow 2",
+                    description: "This is a non-compliant flow document. Just creating something to simulate",
                     versions:
                     {
                         "1-0-0": {
@@ -1326,6 +1336,8 @@ if (db.flows.countDocuments() === 0) {
             flows: [
                 {
                     flowId: NumberInt(1),
+                    name: "Add or Update Account",
+                    description: "Flow for adding or updating account information in the database",
                     versions:
                     {
                         "1-0-0": {
@@ -1369,6 +1381,8 @@ if (db.flows.countDocuments() === 0) {
                 },
                 {
                     flowId: NumberInt(2),
+                    name: "Load List of Accounts",
+                    description: "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection",
                     versions:
                     {
                         "1-0-0": {
@@ -1421,6 +1435,8 @@ if (db.architectures.countDocuments() === 0) {
             namespace: "finos",
             architectures: [{
                 architectureId: NumberInt(1),
+                name: "Architecture 1",
+                description: "This is a non-compliant arch document. Just creating something to simulate",
                 versions:
                 {
                     "1-0-0": {
@@ -1437,6 +1453,8 @@ if (db.architectures.countDocuments() === 0) {
             architectures: [
                 {
                     architectureId: NumberInt(1),
+                    name: "Conference Signup Architecture",
+                    description: "Conference signup system with load-balanced services and Kubernetes deployment",
                     versions:
                     {
                         "1-0-0": {
@@ -1583,6 +1601,8 @@ if (db.architectures.countDocuments() === 0) {
             namespace: "traderx",
             architectures: [{
                 architectureId: NumberInt(1),
+                name: "TraderX",
+                description: "Simple Trading System architecture",
                 versions:
                 {
                     "1-0-0": {

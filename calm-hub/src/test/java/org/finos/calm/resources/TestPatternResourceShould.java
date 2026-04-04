@@ -8,6 +8,8 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.pattern.CreatePatternRequest;
+import org.finos.calm.domain.pattern.NamespacePatternSummary;
 import org.finos.calm.store.PatternStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,73 +61,72 @@ public class TestPatternResourceShould {
     }
 
     @Test
-    void return_list_of_pattern_ids_when_valid_namespace_provided_on_get_patterns() throws NamespaceNotFoundException {
-        when(mockPatternStore.getPatternsForNamespace(anyString())).thenReturn(Arrays.asList(12345,54321));
+    void return_list_of_pattern_summaries_when_valid_namespace_provided_on_get_patterns() throws NamespaceNotFoundException {
+        List<NamespacePatternSummary> summaries = Arrays.asList(
+                new NamespacePatternSummary("Pattern One", "First", 12345),
+                new NamespacePatternSummary("Pattern Two", "Second", 54321)
+        );
+        when(mockPatternStore.getPatternsForNamespace(anyString())).thenReturn(summaries);
 
         given()
                 .when()
                 .get("/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
-                .body(equalTo("{\"values\":[12345,54321]}"));
+                .body("values[0].name", equalTo("Pattern One"))
+                .body("values[0].description", equalTo("First"))
+                .body("values[0].id", equalTo(12345))
+                .body("values[1].name", equalTo("Pattern Two"))
+                .body("values[1].description", equalTo("Second"))
+                .body("values[1].id", equalTo(54321));
 
         verify(mockPatternStore, times(1)).getPatternsForNamespace("finos");
     }
 
     @Test
     void return_a_404_when_invalid_namespace_is_provided_on_create_pattern() throws NamespaceNotFoundException {
-        when(mockPatternStore.createPatternForNamespace(any(Pattern.class)))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String pattern = "{ \"test\": \"json\" }";
+        String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"{ \\\"test\\\": \\\"json\\\" }\" }";
 
         given()
                 .header("Content-Type", "application/json")
-                .body(pattern)
+                .body(requestBody)
                 .when()
                 .post("/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(404);
 
-        Pattern expectedPattern = new Pattern.PatternBuilder()
-                .setPattern(pattern)
-                .setNamespace("invalid")
-                .build();
-
-        verify(mockPatternStore, times(1)).createPatternForNamespace(expectedPattern);
+        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"));
     }
 
     @Test
     void return_a_400_when_invalid_pattern_json_is_provided_on_create_pattern() throws NamespaceNotFoundException {
-        when(mockPatternStore.createPatternForNamespace(any(Pattern.class)))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString()))
                 .thenThrow(new JsonParseException());
 
-        String pattern = "{ \"test\": this is invalid json";
+        String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"invalid json\" }";
 
         given()
                 .header("Content-Type", "application/json")
-                .body(pattern)
+                .body(requestBody)
                 .when()
                 .post("/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(400);
 
-        Pattern expectedPattern = new Pattern.PatternBuilder()
-                .setPattern(pattern)
-                .setNamespace("invalid")
-                .build();
-
-        verify(mockPatternStore, times(1)).createPatternForNamespace(expectedPattern);
+        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"));
     }
 
     @Test
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_create_pattern() throws NamespaceNotFoundException {
 
-        String pattern = "{ \"test\": this is invalid json";
+        String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"{}\" }";
 
         given()
                 .header("Content-Type", "application/json")
-                .body(pattern)
+                .body(requestBody)
                 .when()
                 .post("/calm/namespaces/invalid_/patterns")
                 .then()
@@ -145,11 +146,13 @@ public class TestPatternResourceShould {
                 .setNamespace(namespace)
                 .build();
 
-        when(mockPatternStore.createPatternForNamespace(any(Pattern.class))).thenReturn(stubbedReturnPattern);
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace))).thenReturn(stubbedReturnPattern);
+
+        String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"{ \\\"test\\\": \\\"json\\\" }\" }";
 
         given()
                 .header("Content-Type", "application/json")
-                .body(patternJson)
+                .body(requestBody)
                 .when()
                 .post("/calm/namespaces/finos/patterns")
                 .then()
@@ -157,12 +160,7 @@ public class TestPatternResourceShould {
                 //Derived from stubbed pattern in resource
                 .header("Location", containsString("/calm/namespaces/finos/patterns/12/versions/1.0.0"));
 
-        Pattern expectedPatternToCreate = new Pattern.PatternBuilder()
-                .setPattern(patternJson)
-                .setNamespace(namespace)
-                .build();
-
-        verify(mockPatternStore, times(1)).createPatternForNamespace(expectedPatternToCreate);
+        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace));
     }
 
     @Test

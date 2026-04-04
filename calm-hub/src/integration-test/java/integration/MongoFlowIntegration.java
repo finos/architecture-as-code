@@ -66,8 +66,16 @@ public class MongoFlowIntegration {
     @Test
     @Order(2)
     void end_to_end_create_an_flow() {
+        String payload = """
+                {
+                     "name": "name",
+                     "description": "description",
+                     "flowJson": "{\\"name\\": \\"demo-flow\\"}"
+                }
+                """;
+
         given()
-                .body(FLOW)
+                .body(payload)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/flows")
                 .then()

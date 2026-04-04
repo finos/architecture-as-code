@@ -10,6 +10,8 @@ import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.flow.CreateFlowRequest;
+import org.finos.calm.domain.flow.NamespaceFlowSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,7 +76,7 @@ public class TestNitriteFlowStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = flowStore.getFlowsForNamespace(NAMESPACE);
+        List<NamespaceFlowSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(empty()));
@@ -94,7 +96,7 @@ public class TestNitriteFlowStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = flowStore.getFlowsForNamespace(NAMESPACE);
+        List<NamespaceFlowSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(empty()));
@@ -102,12 +104,12 @@ public class TestNitriteFlowStoreShould {
     }
 
     @Test
-    public void testGetFlowsForNamespace_whenFlowsExist_returnsFlowIds() throws NamespaceNotFoundException {
+    public void testGetFlowsForNamespace_whenFlowsExist_returnsFlowSummaries() throws NamespaceNotFoundException {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
         
-        Document flow1 = Document.createDocument().put("flowId", 1001);
-        Document flow2 = Document.createDocument().put("flowId", 1002);
+        Document flow1 = Document.createDocument().put("flowId", 1001).put("name", "Flow One").put("description", "First");
+        Document flow2 = Document.createDocument().put("flowId", 1002).put("name", "Flow Two").put("description", "Second");
         List<Document> flows = Arrays.asList(flow1, flow2);
         
         Document namespaceDoc = Document.createDocument()
@@ -119,12 +121,40 @@ public class TestNitriteFlowStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = flowStore.getFlowsForNamespace(NAMESPACE);
+        List<NamespaceFlowSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, hasSize(2));
-        assertThat(result, hasItems(1001, 1002));
+        assertThat(result.get(0).getId(), is(1001));
+        assertThat(result.get(0).getName(), is("Flow One"));
+        assertThat(result.get(0).getDescription(), is("First"));
+        assertThat(result.get(1).getId(), is(1002));
+        assertThat(result.get(1).getName(), is("Flow Two"));
+        assertThat(result.get(1).getDescription(), is("Second"));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
+    }
+
+    @Test
+    public void testGetFlowsForNamespace_whenLegacyDocumentsMissingNameAndDescription_returnsFallbacks() throws NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document legacyDoc = Document.createDocument().put("flowId", 77);
+        List<Document> flows = List.of(legacyDoc);
+
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("flows", flows);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        List<NamespaceFlowSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getId(), is(77));
+        assertThat(result.get(0).getName(), is("Flow 77"));
+        assertThat(result.get(0).getDescription(), is(""));
     }
 
     @Test
@@ -132,13 +162,10 @@ public class TestNitriteFlowStoreShould {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
         
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(NAMESPACE)
-                .setFlow(VALID_JSON)
-                .build();
+        CreateFlowRequest request = new CreateFlowRequest("name", "desc", VALID_JSON);
 
         // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> flowStore.createFlowForNamespace(flow));
+        assertThrows(NamespaceNotFoundException.class, () -> flowStore.createFlowForNamespace(request, NAMESPACE));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
@@ -147,13 +174,10 @@ public class TestNitriteFlowStoreShould {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
         
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(NAMESPACE)
-                .setFlow("Invalid JSON")
-                .build();
+        CreateFlowRequest request = new CreateFlowRequest("name", "desc", "Invalid JSON");
 
         // Act & Assert
-        assertThrows(Exception.class, () -> flowStore.createFlowForNamespace(flow));
+        assertThrows(Exception.class, () -> flowStore.createFlowForNamespace(request, NAMESPACE));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
@@ -163,17 +187,14 @@ public class TestNitriteFlowStoreShould {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
         when(mockCounterStore.getNextFlowSequenceValue()).thenReturn(FLOW_ID);
         
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(NAMESPACE)
-                .setFlow(VALID_JSON)
-                .build();
+        CreateFlowRequest request = new CreateFlowRequest("Test Flow", "A test", VALID_JSON);
         
         DocumentCursor cursor = mock(DocumentCursor.class);
         when(cursor.firstOrNull()).thenReturn(null);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        Flow result = flowStore.createFlowForNamespace(flow);
+        Flow result = flowStore.createFlowForNamespace(request, NAMESPACE);
 
         // Assert
         assertThat(result.getId(), is(FLOW_ID));
@@ -191,10 +212,7 @@ public class TestNitriteFlowStoreShould {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
         when(mockCounterStore.getNextFlowSequenceValue()).thenReturn(FLOW_ID);
         
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(NAMESPACE)
-                .setFlow(VALID_JSON)
-                .build();
+        CreateFlowRequest request = new CreateFlowRequest("Test Flow", "A test", VALID_JSON);
         
         Document existingFlow = Document.createDocument().put("flowId", 1001);
         List<Document> flows = new ArrayList<>();
@@ -209,7 +227,7 @@ public class TestNitriteFlowStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        Flow result = flowStore.createFlowForNamespace(flow);
+        Flow result = flowStore.createFlowForNamespace(request, NAMESPACE);
 
         // Assert
         assertThat(result.getId(), is(FLOW_ID));

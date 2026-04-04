@@ -1,6 +1,8 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -12,6 +14,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.PatternStore;
@@ -72,21 +75,16 @@ public class PatternResource {
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createPatternForNamespace(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            String patternJson
+            @Valid @NotNull(message = "Request must not be null") CreatePatternRequest patternRequest
     ) throws URISyntaxException {
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(namespace)
-                .setPattern(patternJson)
-                .build();
-
         try {
-            return patternWithLocationResponse(store.createPatternForNamespace(pattern));
+            return patternWithLocationResponse(store.createPatternForNamespace(patternRequest, namespace));
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating pattern", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (JsonParseException e) {
-            logger.error("Cannot parse Pattern JSON for namespace [{}]. Pattern JSON : [{}]", namespace, STRICT_SANITIZATION_POLICY.sanitize(patternJson), e);
-            return invalidPatternJsonResponse(STRICT_SANITIZATION_POLICY.sanitize(patternJson));
+            logger.error("Cannot parse Pattern JSON for namespace [{}]. Pattern JSON : [{}]", namespace, STRICT_SANITIZATION_POLICY.sanitize(patternRequest.getPatternJson()), e);
+            return invalidPatternJsonResponse(STRICT_SANITIZATION_POLICY.sanitize(patternRequest.getPatternJson()));
         }
     }
 

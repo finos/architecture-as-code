@@ -4,15 +4,15 @@ import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
 import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
-import { Data, Adr } from '../../../model/calm.js';
+import { Data, Adr, ResourceSummary, AdrSummary } from '../../../model/calm.js';
 import { ControlDetail, ControlData } from '../../../model/control.js';
 import { InterfaceDetail, InterfaceData } from '../../../model/interface.js';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DomainItem } from './DomainItem.js';
 import { InterfaceItem } from './InterfaceItem.js';
 
-type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs';
-type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
+type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs' | 'standards';
+type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs' | 'Standards';
 type HubParams = {
     namespace: string;
     type: TypeInUrl;
@@ -24,11 +24,12 @@ interface LoadResourceIdsOptions {
     type: string;
     namespace: string;
     calmService: CalmService;
-    setArchitectureIDs: (ids: string[]) => void;
-    setPatternIDs: (ids: string[]) => void;
-    setFlowIDs: (ids: string[]) => void;
+    setArchitectureSummaries: (summaries: ResourceSummary[]) => void;
+    setPatternSummaries: (summaries: ResourceSummary[]) => void;
+    setFlowSummaries: (summaries: ResourceSummary[]) => void;
+    setStandardSummaries: (summaries: ResourceSummary[]) => void;
     adrService: AdrService;
-    setAdrIDs: (ids: string[]) => void;
+    setAdrSummaries: (summaries: AdrSummary[]) => void;
 }
 
 interface LoadVersionsOptions {
@@ -39,6 +40,7 @@ interface LoadVersionsOptions {
     setArchitectureVersions: (versions: string[]) => void;
     setPatternVersions: (versions: string[]) => void;
     setFlowVersions: (versions: string[]) => void;
+    setStandardVersions: (versions: string[]) => void;
     adrService: AdrService;
     setAdrRevisions: (revisions: string[]) => void;
 }
@@ -73,6 +75,7 @@ interface VersionItemProps {
 
 interface ResourceItemProps {
     resourceID: string;
+    displayName?: string;
     type: string;
     isSelected: boolean;
     versions: string[];
@@ -85,6 +88,7 @@ interface ResourceTypeProps {
     type: string;
     isSelected: boolean;
     resourceIDs: string[];
+    resourceNames?: Record<string, string>;
     selectedResourceID: string;
     versions: string[];
     selectedVersion: string;
@@ -100,6 +104,7 @@ interface NamespaceItemProps {
     selectedResourceID: string;
     selectedVersion: string;
     getResourceIDs: (type: string) => string[];
+    getResourceNames: (type: string) => Record<string, string>;
     getVersions: (type: string) => string[];
     namespaceInterfaces: InterfaceDetail[];
     selectedInterfaceId: number | null;
@@ -170,6 +175,8 @@ function mapTypeInUrlToTypeInUI(urlType: TypeInUrl): TypeInUI {
             return 'Flows';
         case 'adrs':
             return 'ADRs';
+        case 'standards':
+            return 'Standards';
         default:
             throw new Error(`Unhandled type: ${urlType}`);
     }
@@ -185,6 +192,8 @@ function mapTypeInUIToTypeInUrl(uiType: TypeInUI): TypeInUrl {
             return 'flows';
         case 'ADRs':
             return 'adrs';
+        case 'Standards':
+            return 'standards';
         default:
             throw new Error(`Unhandled type: ${uiType}`);
     }
@@ -202,6 +211,7 @@ function VersionItem({ version, isSelected, onVersionClick }: VersionItemProps) 
 
 function ResourceItem({
     resourceID,
+    displayName,
     type,
     isSelected,
     versions,
@@ -209,11 +219,12 @@ function ResourceItem({
     onResourceClick,
     onVersionClick,
 }: ResourceItemProps) {
+    const label = displayName ?? resourceID;
     if (isSelected) {
         return (
             <li>
                 <details open={true}>
-                    <summary className="active">{resourceID}</summary>
+                    <summary className="active">{label}</summary>
                     <ul>
                         {versions.map((version) => (
                             <VersionItem
@@ -231,7 +242,7 @@ function ResourceItem({
 
     return (
         <li>
-            <a onClick={() => onResourceClick(resourceID, type)}>{resourceID}</a>
+            <a onClick={() => onResourceClick(resourceID, type)}>{label}</a>
         </li>
     );
 }
@@ -240,6 +251,7 @@ function ResourceType({
     type,
     isSelected,
     resourceIDs,
+    resourceNames,
     selectedResourceID,
     versions,
     selectedVersion,
@@ -257,6 +269,7 @@ function ResourceType({
                             <ResourceItem
                                 key={resourceID}
                                 resourceID={resourceID}
+                                displayName={resourceNames?.[resourceID]}
                                 type={type}
                                 isSelected={selectedResourceID === resourceID}
                                 versions={versions}
@@ -285,6 +298,7 @@ function NamespaceItem({
     selectedResourceID,
     selectedVersion,
     getResourceIDs,
+    getResourceNames,
     getVersions,
     namespaceInterfaces,
     selectedInterfaceId,
@@ -294,7 +308,7 @@ function NamespaceItem({
     onVersionClick,
     onInterfaceClick,
 }: NamespaceItemProps) {
-    const resourceTypes = ['Architectures', 'Patterns', 'Flows', 'ADRs', 'Interfaces'];
+    const resourceTypes = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
     const isThisSelected = node.namespace !== null && node.namespace === selectedNamespace;
     const hasSelectedDescendant = selectedNamespace.startsWith(node.label + '.');
 
@@ -362,6 +376,7 @@ function NamespaceItem({
                                     type={type}
                                     isSelected={selectedType === type}
                                     resourceIDs={getResourceIDs(type)}
+                                    resourceNames={getResourceNames(type)}
                                     selectedResourceID={selectedResourceID}
                                     versions={getVersions(type)}
                                     selectedVersion={selectedVersion}
@@ -380,6 +395,7 @@ function NamespaceItem({
                                 selectedResourceID={selectedResourceID}
                                 selectedVersion={selectedVersion}
                                 getResourceIDs={getResourceIDs}
+                                getResourceNames={getResourceNames}
                                 getVersions={getVersions}
                                 namespaceInterfaces={namespaceInterfaces}
                                 selectedInterfaceId={selectedInterfaceId}
@@ -401,22 +417,23 @@ function loadResourceIds({
     type, 
     namespace,
     calmService,
-    setArchitectureIDs, 
-    setPatternIDs, 
-    setFlowIDs, 
+    setArchitectureSummaries, 
+    setPatternSummaries, 
+    setFlowSummaries, 
+    setStandardSummaries,
     adrService, 
-    setAdrIDs 
+    setAdrSummaries 
 }: LoadResourceIdsOptions) {
     if (type === 'Architectures') {
-        calmService.fetchArchitectureIDs(namespace).then(setArchitectureIDs);
+        calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries);
     } else if (type === 'Patterns') {
-        calmService.fetchPatternIDs(namespace).then(setPatternIDs);
+        calmService.fetchPatternSummaries(namespace).then(setPatternSummaries);
     } else if (type === 'Flows') {
-        calmService.fetchFlowIDs(namespace).then(setFlowIDs);
+        calmService.fetchFlowSummaries(namespace).then(setFlowSummaries);
+    } else if (type === 'Standards') {
+        calmService.fetchStandardSummaries(namespace).then(setStandardSummaries);
     } else if (type === 'ADRs') {
-        adrService
-            .fetchAdrIDs(namespace)
-            .then((ids) => setAdrIDs(ids.map((id) => id.toString())));
+        adrService.fetchAdrSummaries(namespace).then(setAdrSummaries);
     }
 }
 
@@ -428,6 +445,7 @@ function loadVersions({
     setArchitectureVersions, 
     setPatternVersions, 
     setFlowVersions, 
+    setStandardVersions,
     adrService, 
     setAdrRevisions 
 }: LoadVersionsOptions) {
@@ -437,6 +455,8 @@ function loadVersions({
         calmService.fetchPatternVersions(namespace, resourceID).then(setPatternVersions);
     } else if (type === 'Flows') {
         calmService.fetchFlowVersions(namespace, resourceID).then(setFlowVersions);
+    } else if (type === 'Standards') {
+        calmService.fetchStandardVersions(namespace, resourceID).then(setStandardVersions);
     } else if (type === 'ADRs') {
         adrService
             .fetchAdrRevisions(namespace, resourceID)
@@ -460,6 +480,8 @@ function loadResource({
         calmService.fetchPattern(namespace, resourceID, version).then(onDataLoad);
     } else if (type === 'Flows') {
         calmService.fetchFlow(namespace, resourceID, version).then(onDataLoad);
+    } else if (type === 'Standards') {
+        calmService.fetchStandard(namespace, resourceID, version).then(onDataLoad);
     } else if (type === 'ADRs') {
         adrService.fetchAdr(namespace, resourceID, version).then(onAdrLoad);
     }
@@ -475,14 +497,16 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const [selectedResourceID, setSelectedResourceID] = useState<string>(EMPTY_STR_VALUE);
     const [selectedVersion, setSelectedVersion] = useState<string>(EMPTY_STR_VALUE);
 
-    const [architectureIDs, setArchitectureIDs] = useState<string[]>([]);
-    const [patternIDs, setPatternIDs] = useState<string[]>([]);
-    const [flowIDs, setFlowIDs] = useState<string[]>([]);
-    const [adrIDs, setAdrIDs] = useState<string[]>([]);
+    const [architectureSummaries, setArchitectureSummaries] = useState<ResourceSummary[]>([]);
+    const [patternSummaries, setPatternSummaries] = useState<ResourceSummary[]>([]);
+    const [flowSummaries, setFlowSummaries] = useState<ResourceSummary[]>([]);
+    const [standardSummaries, setStandardSummaries] = useState<ResourceSummary[]>([]);
+    const [adrSummaries, setAdrSummaries] = useState<AdrSummary[]>([]);
 
     const [architectureVersions, setArchitectureVersions] = useState<string[]>([]);
     const [patternVersions, setPatternVersions] = useState<string[]>([]);
     const [flowVersions, setFlowVersions] = useState<string[]>([]);
+    const [standardVersions, setStandardVersions] = useState<string[]>([]);
     const [adrRevisions, setAdrRevisions] = useState<string[]>([]);
 
     // Domain / Controls state
@@ -518,11 +542,12 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 type: mapTypeInUrlToTypeInUI(params.type),
                 namespace: params.namespace,
                 calmService,
-                setArchitectureIDs,
-                setPatternIDs,
-                setFlowIDs,
+                setArchitectureSummaries,
+                setPatternSummaries,
+                setFlowSummaries,
+                setStandardSummaries,
                 adrService,
-                setAdrIDs,
+                setAdrSummaries,
             });
             setSelectedResourceID(params.id);
             loadVersions({
@@ -533,6 +558,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 setArchitectureVersions,
                 setPatternVersions,
                 setFlowVersions,
+                setStandardVersions,
                 adrService,
                 setAdrRevisions,
             });
@@ -620,11 +646,12 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                     type,
                     namespace: selectedNamespace,
                     calmService,
-                    setArchitectureIDs,
-                    setPatternIDs,
-                    setFlowIDs,
+                    setArchitectureSummaries,
+                    setPatternSummaries,
+                    setFlowSummaries,
+                    setStandardSummaries,
                     adrService,
-                    setAdrIDs,
+                    setAdrSummaries,
                 });
             }
         }
@@ -644,6 +671,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             setArchitectureVersions,
             setPatternVersions,
             setFlowVersions,
+            setStandardVersions,
             adrService,
             setAdrRevisions,
         });
@@ -656,15 +684,44 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const getResourceIDs = (type: string): string[] => {
         switch (type) {
             case 'Architectures':
-                return architectureIDs;
+                return architectureSummaries.map((s) => s.id.toString());
             case 'Patterns':
-                return patternIDs;
+                return patternSummaries.map((s) => s.id.toString());
             case 'Flows':
-                return flowIDs;
+                return flowSummaries.map((s) => s.id.toString());
+            case 'Standards':
+                return standardSummaries.map((s) => s.id.toString());
             case 'ADRs':
-                return adrIDs;
+                return adrSummaries.map((s) => s.id.toString());
             default:
                 return [];
+        }
+    };
+
+    const getResourceNames = (type: string): Record<string, string> => {
+        switch (type) {
+            case 'Architectures':
+                return Object.fromEntries(
+                    architectureSummaries.map((s) => [s.id.toString(), s.name])
+                );
+            case 'Patterns':
+                return Object.fromEntries(
+                    patternSummaries.map((s) => [s.id.toString(), s.name])
+                );
+            case 'Flows':
+                return Object.fromEntries(
+                    flowSummaries.map((s) => [s.id.toString(), s.name])
+                );
+            case 'Standards':
+                return Object.fromEntries(
+                    standardSummaries.map((s) => [s.id.toString(), s.name])
+                );
+            case 'ADRs':
+                return Object.fromEntries(
+                    adrSummaries.map((s) => [s.id.toString(), s.title + ' (' + s.status + ')'])
+                );
+            default:
+                return {};
         }
     };
 
@@ -676,6 +733,8 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 return patternVersions;
             case 'Flows':
                 return flowVersions;
+            case 'Standards':
+                return standardVersions;
             case 'ADRs':
                 return adrRevisions;
             default:
@@ -735,6 +794,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                                     selectedResourceID={selectedResourceID}
                                     selectedVersion={selectedVersion}
                                     getResourceIDs={getResourceIDs}
+                                    getResourceNames={getResourceNames}
                                     getVersions={getVersions}
                                     namespaceInterfaces={namespaceInterfaces}
                                     selectedInterfaceId={selectedInterfaceId}

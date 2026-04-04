@@ -10,6 +10,7 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -55,7 +56,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     }
 
     @Override
-    public List<Integer> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceArchitectureSummary> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving architectures", namespace);
             throw new NamespaceNotFoundException();
@@ -67,13 +68,21 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             return List.of();
         }
 
-        List<Integer> architectureIds = new ArrayList<>();
+        List<NamespaceArchitectureSummary> architectureSummaries = new ArrayList<>();
         for (Document architecture : architectures) {
-            architectureIds.add(architecture.get(ARCHITECTURE_ID_FIELD, Integer.class));
+            Integer archId = architecture.get(ARCHITECTURE_ID_FIELD, Integer.class);
+            String name = architecture.get(NAME_FIELD, String.class);
+            String description = architecture.get(DESCRIPTION_FIELD, String.class);
+            if (name == null) name = "Architecture " + archId;
+            if (description == null) description = "";
+            NamespaceArchitectureSummary summary = new NamespaceArchitectureSummary(
+                    name, description, archId
+            );
+            architectureSummaries.add(summary);
         }
 
-        LOG.debug("Retrieved {} architectures for namespace '{}'", architectureIds.size(), namespace);
-        return architectureIds;
+        LOG.debug("Retrieved {} architectures for namespace '{}'", architectureSummaries.size(), namespace);
+        return architectureSummaries;
     }
 
     @Override

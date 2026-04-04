@@ -16,6 +16,8 @@ import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.flow.CreateFlowRequest;
+import org.finos.calm.domain.flow.NamespaceFlowSummary;
 import org.finos.calm.store.FlowStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +41,7 @@ public class MongoFlowStore implements FlowStore {
     }
 
     @Override
-    public List<Integer> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceFlowSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
         if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -51,36 +53,44 @@ public class MongoFlowStore implements FlowStore {
             return List.of();
         }
 
-        List<Document> patterns = namespaceDocument.getList("flows", Document.class);
-        List<Integer> flowIds = new ArrayList<>();
+        List<Document> flows = namespaceDocument.getList("flows", Document.class);
+        List<NamespaceFlowSummary> flowSummaries = new ArrayList<>();
 
-        for (Document pattern : patterns) {
-            flowIds.add(pattern.getInteger("flowId"));
+        for (Document flow : flows) {
+            Integer flowId = flow.getInteger("flowId");
+            String name = flow.getString("name");
+            String description = flow.getString("description");
+            if (name == null) name = "Flow " + flowId;
+            if (description == null) description = "";
+            flowSummaries.add(new NamespaceFlowSummary(name, description, flowId));
         }
 
-        return flowIds;
+        return flowSummaries;
     }
 
     @Override
-    public Flow createFlowForNamespace(Flow flow) throws NamespaceNotFoundException {
-        if(!namespaceStore.namespaceExists(flow.getNamespace())) {
+    public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
+        if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
         int id = counterStore.getNextFlowSequenceValue();
-        Document flowDocument = new Document("flowId", id).append("versions",
-                new Document("1-0-0", Document.parse(flow.getFlowJson())));
+        Document flowDocument = new Document("flowId", id)
+                .append("name", flowRequest.getName())
+                .append("description", flowRequest.getDescription())
+                .append("versions",
+                new Document("1-0-0", Document.parse(flowRequest.getFlowJson())));
 
         flowCollection.updateOne(
-                Filters.eq("namespace", flow.getNamespace()),
+                Filters.eq("namespace", namespace),
                 Updates.push("flows", flowDocument),
                 new UpdateOptions().upsert(true));
 
         Flow persistedFlow = new Flow.FlowBuilder()
                 .setId(id)
                 .setVersion("1.0.0")
-                .setNamespace(flow.getNamespace())
-                .setFlow(flow.getFlowJson())
+                .setNamespace(namespace)
+                .setFlow(flowRequest.getFlowJson())
                 .build();
 
         return persistedFlow;
