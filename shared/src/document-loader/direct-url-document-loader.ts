@@ -5,6 +5,8 @@ import { CalmDocumentType, DocumentLoader } from './document-loader';
 import { DocumentLoadError } from './document-loader';
 import { Logger, initLogger } from '../logger';
 
+const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
+
 const PRIVATE_IPV4_PATTERNS = [
     /^127\./,
     /^10\./,
@@ -33,11 +35,24 @@ function isPrivateHost(hostname: string): boolean {
     return false;
 }
 
+function normalizeHost(hostname: string): string {
+    const bare = hostname.startsWith('[') && hostname.endsWith(']')
+        ? hostname.slice(1, -1)
+        : hostname;
+    return bare.toLowerCase();
+}
+
+function toRequestPath(parsedUrl: URL): string {
+    const normalizedPath = parsedUrl.pathname.replace(/^\/+/, '');
+    return `/${normalizedPath}${parsedUrl.search}`;
+}
+
 export class DirectUrlDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private logger: Logger;
+    private readonly allowedRemoteHosts: Set<string>;
 
-    constructor(debug: boolean, axiosInstance?: Axios) {
+    constructor(debug: boolean, axiosInstance?: Axios, allowedRemoteHosts: readonly string[] = DEFAULT_ALLOWED_REMOTE_HOSTS) {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
@@ -48,6 +63,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
         }
 
         this.logger = initLogger(debug, 'direct-url-document-loader');
+        this.allowedRemoteHosts = new Set(allowedRemoteHosts.map(host => normalizeHost(host)));
         if (debug) {
             this.addAxiosDebug();
         }
@@ -86,8 +102,26 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     message: `Requests to private or internal network addresses are not allowed: ${parsedUrl.hostname}`,
                 });
             }
-            const targetUrl = parsedUrl.toString();
-            const response = await this.ax.get(targetUrl, { maxRedirects: 0 });
+            const normalizedHost = normalizeHost(parsedUrl.hostname);
+            if (!this.allowedRemoteHosts.has(normalizedHost)) {
+                throw new DocumentLoadError({
+                    name: 'UNKNOWN',
+                    message: `Direct URL loading is restricted to approved hosts. Host '${parsedUrl.hostname}' is not allowlisted.`,
+                });
+            }
+            if (parsedUrl.username || parsedUrl.password) {
+                throw new DocumentLoadError({
+                    name: 'UNKNOWN',
+                    message: 'Credentials in URL are not allowed.',
+                });
+            }
+            const requestPath = toRequestPath(parsedUrl);
+            const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
+            const response = await this.ax.get(requestPath, {
+                baseURL,
+                maxRedirects: 0,
+                allowAbsoluteUrls: false
+            });
             return response.data;
         } catch (error) {
             if (error instanceof DocumentLoadError) {

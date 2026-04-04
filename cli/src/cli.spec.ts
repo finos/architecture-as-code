@@ -7,7 +7,6 @@ import {
 } from '@finos/calm-shared';
 import { Command } from 'commander';
 import { MockInstance } from 'vitest';
-import { parseDocumentLoaderConfig } from './cli';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
@@ -440,8 +439,18 @@ describe('CLI Commands', () => {
 });
 
 describe('parseDocumentLoaderConfig', () => {
+    const parseDocLoaderConfigForTest = async (options: {
+        verbose?: boolean;
+        calmHubUrl?: string;
+        schemaDirectory?: string;
+        allowedRemoteHosts?: string[];
+    }) => {
+        const cliModule = await import('./cli');
+        return cliModule.parseDocumentLoaderConfig(options);
+    };
+
     it('should parse calmhub url when provided', async () => {
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
             calmHubUrl: 'calmhub'
         });
         expect(options.calmHubUrl).toEqual('calmhub');
@@ -451,28 +460,57 @@ describe('parseDocumentLoaderConfig', () => {
         cliConfigModule = await import('./cli-config');
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ calmHubUrl: 'calmhub-file' });
 
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
             calmHubUrl: 'calmhub-cli'
         });
         expect(options.calmHubUrl).toEqual('calmhub-cli');
     });
 
     it('should parse schemaDirectoryPath when provided', async () => {
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
             schemaDirectory: 'path'
         });
         expect(options.schemaDirectoryPath).toEqual('path');
     });
 
+    it('should parse allowedRemoteHosts when provided', async () => {
+        const options = await parseDocLoaderConfigForTest({
+            allowedRemoteHosts: ['schemas.example.com']
+        });
+        expect(options.allowedRemoteHosts).toEqual(['schemas.example.com']);
+    });
+
+    it('should use allowedRemoteHosts from config when CLI does not provide them', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            allowedRemoteHosts: ['config.example.com']
+        });
+
+        const options = await parseDocLoaderConfigForTest({});
+        expect(options.allowedRemoteHosts).toEqual(['config.example.com']);
+    });
+
+    it('should prefer CLI allowedRemoteHosts over config values', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            allowedRemoteHosts: ['config.example.com']
+        });
+
+        const options = await parseDocLoaderConfigForTest({
+            allowedRemoteHosts: ['cli.example.com']
+        });
+        expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
+    });
+
     it('should set debug to true when verbose passed along', async () => {
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
             verbose: true
         });
         expect(options.debug).toBeTruthy();
     });
 
     it('should default debug to false', async () => {
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
         });
         expect(options.debug).toBeFalsy();
     });
