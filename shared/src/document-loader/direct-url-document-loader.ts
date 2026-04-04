@@ -42,9 +42,49 @@ function normalizeHost(hostname: string): string {
     return bare.toLowerCase();
 }
 
-function toRequestPath(parsedUrl: URL): string {
-    const normalizedPath = parsedUrl.pathname.replace(/^\/+/, '');
-    return `/${normalizedPath}${parsedUrl.search}`;
+/**
+ * Validate and normalise the request path to prevent SSRF via path traversal or
+ * access to unintended endpoints on the allowed host.
+ *
+ * This implementation:
+ *  - strips leading slashes,
+ *  - rejects empty paths,
+ *  - rejects ".", ".." and empty segments,
+ *  - ensures the path starts with an expected prefix (e.g. "schemas/").
+ */
+function toSafeRequestPath(parsedUrl: URL): string {
+    const rawPath = parsedUrl.pathname || '/';
+    const withoutLeadingSlashes = rawPath.replace(/^\/+/, '');
+
+    if (!withoutLeadingSlashes) {
+        throw new DocumentLoadError({
+            name: 'UNKNOWN',
+            message: 'Empty document path is not allowed in direct URL loader.',
+        });
+    }
+
+    const segments = withoutLeadingSlashes.split('/');
+    for (const segment of segments) {
+        if (!segment || segment === '.' || segment === '..') {
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: 'Path traversal or invalid path segment detected in document URL.',
+            });
+        }
+    }
+
+    // Constrain schemas to a well-known prefix on the remote host.
+    // Adjust "schemas/" if the remote host uses a different directory for documents.
+    const safePrefix = 'schemas/';
+    const normalisedPath = segments.join('/');
+    if (!normalisedPath.startsWith(safePrefix)) {
+        throw new DocumentLoadError({
+            name: 'UNKNOWN',
+            message: `Direct URL loading is restricted to paths under "/${safePrefix}".`,
+        });
+    }
+
+    return `/${normalisedPath}${parsedUrl.search}`;
 }
 
 export class DirectUrlDocumentLoader implements DocumentLoader {
@@ -115,7 +155,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     message: 'Credentials in URL are not allowed.',
                 });
             }
-            const requestPath = toRequestPath(parsedUrl);
+            const requestPath = toSafeRequestPath(parsedUrl);
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
             const response = await this.ax.get(requestPath, {
                 baseURL,
