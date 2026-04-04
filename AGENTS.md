@@ -385,6 +385,10 @@ Before considering any code change ready:
 
 **CRITICAL:** Always create a feature branch for your changes and submit a pull request. Never commit directly to the main branch—direct commits will be rejected.
 
+### Pull Request Template Requirement
+
+**CRITICAL:** Always use the repository PR template in `.github/pull_request_template.md` when creating or updating a pull request. Do not submit ad-hoc PR descriptions when a template exists; populate each section with accurate status.
+
 1. **Fork the repository**
 2. **Create a feature branch** with descriptive name (e.g., `feat/add-caching`, `fix/mongodb-timeout`)
 3. **Make your changes** following package-specific guidelines (see AGENTS.md files)
