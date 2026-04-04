@@ -2,7 +2,7 @@ import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, Schema
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions } from './command-helpers/generate-options';
-import { loadCliConfig } from './cli-config';
+import * as cliConfig from './cli-config';
 import path from 'path';
 import { select } from '@inquirer/prompts';
 
@@ -245,6 +245,7 @@ interface ParseDocumentLoaderOptions {
     verbose?: boolean;
     calmHubUrl?: string;
     schemaDirectory?: string;
+    allowedRemoteHosts?: string[];
 }
 
 export async function parseDocumentLoaderConfig(
@@ -258,13 +259,18 @@ export async function parseDocumentLoaderConfig(
         schemaDirectoryPath: options.schemaDirectory,
         urlToLocalMap: urlToLocalMap,
         basePath: basePath,
+        allowedRemoteHosts: options.allowedRemoteHosts,
         debug: !!options.verbose
     };
 
-    const userConfig = await loadCliConfig();
+    const userConfig = await cliConfig.loadCliConfig();
     if (userConfig && userConfig.calmHubUrl && !options.calmHubUrl) {
         logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
         docLoaderOpts.calmHubUrl = userConfig.calmHubUrl;
+    }
+    if (userConfig && userConfig.allowedRemoteHosts && !options.allowedRemoteHosts) {
+        logger.info('Using allowed remote hosts from config file');
+        docLoaderOpts.allowedRemoteHosts = userConfig.allowedRemoteHosts;
     }
     return docLoaderOpts;
 }

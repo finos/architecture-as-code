@@ -14,6 +14,10 @@ const mocks = vi.hoisted(() => {
         mappedDocLoader: vi.fn(() => ({
             initialise: vi.fn(),
             loadMissingDocument: vi.fn()
+        })),
+        directDocLoader: vi.fn(() => ({
+            initialise: vi.fn(),
+            loadMissingDocument: vi.fn()
         }))
     };
 });
@@ -34,6 +38,12 @@ vi.mock('./calmhub-document-loader', () => {
 vi.mock('./mapped-document-loader', () => {
     return {
         MappedDocumentLoader: mocks.mappedDocLoader
+    };
+});
+
+vi.mock('./direct-url-document-loader', () => {
+    return {
+        DirectUrlDocumentLoader: mocks.directDocLoader
     };
 });
 
@@ -63,6 +73,16 @@ describe('DocumentLoader', () => {
         buildDocumentLoader(docLoaderOpts);
 
         expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false);
+    });
+
+    it('should pass allowedRemoteHosts to DirectUrlDocumentLoader when provided', () => {
+        const docLoaderOpts: DocumentLoaderOptions = {
+            allowedRemoteHosts: ['schemas.example.com']
+        };
+
+        buildDocumentLoader(docLoaderOpts);
+
+        expect(mocks.directDocLoader).toHaveBeenCalledWith(false, undefined, ['schemas.example.com']);
     });
 
     it('should create a MappedDocumentLoader when urlToLocalMap is provided', () => {

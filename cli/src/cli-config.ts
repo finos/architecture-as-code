@@ -5,6 +5,7 @@ import { join } from 'path';
 
 export interface CLIConfig {
     calmHubUrl?: string
+    allowedRemoteHosts?: string[]
 }
 
 function getUserConfigLocation(): string {
