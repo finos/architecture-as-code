@@ -215,7 +215,9 @@ public class NitriteControlStore implements ControlStore {
     public void createRequirementForVersion(String domain, int controlId, String version, String requirementJson) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
         lock.lock();
         try {
-            Document controlDoc = findControl(domain, controlId);
+            validateDomain(domain);
+            Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+            Document controlDoc = findControlInDomainDoc(domainDoc, controlId);
             Document requirement = controlDoc.get(REQUIREMENT_FIELD, Document.class);
 
             String nitriteVersion = version.replace('.', '-');
@@ -230,7 +232,6 @@ public class NitriteControlStore implements ControlStore {
             }
             requirement.put(nitriteVersion, requirementJson);
 
-            Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
             controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
         } finally {
             lock.unlock();
@@ -241,26 +242,27 @@ public class NitriteControlStore implements ControlStore {
     public int createControlConfiguration(CreateControlConfiguration request, String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
         lock.lock();
         try {
-            Document controlDoc = findControl(domain, controlId);
+            validateDomain(domain);
+            Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+            Document controlDoc = findControlInDomainDoc(domainDoc, controlId);
 
             int configurationId = counterStore.getNextControlConfigurationSequenceValue();
 
-        Document configDoc = Document.createDocument()
-                .put(CONFIGURATION_ID_FIELD, configurationId)
-                .put(VERSIONS_FIELD, Document.createDocument()
-                        .put("1-0-0", request.getConfigurationJson()));
+            Document configDoc = Document.createDocument()
+                    .put(CONFIGURATION_ID_FIELD, configurationId)
+                    .put(VERSIONS_FIELD, Document.createDocument()
+                            .put("1-0-0", request.getConfigurationJson()));
 
-        @SuppressWarnings("unchecked")
-        List<Document> configurations = (List<Document>) controlDoc.get(CONFIGURATIONS_FIELD);
-        if (configurations == null) {
-            configurations = new ArrayList<>();
-        } else {
-            configurations = new ArrayList<>(configurations);
-        }
-        configurations.add(configDoc);
-        controlDoc.put(CONFIGURATIONS_FIELD, configurations);
+            @SuppressWarnings("unchecked")
+            List<Document> configurations = (List<Document>) controlDoc.get(CONFIGURATIONS_FIELD);
+            if (configurations == null) {
+                configurations = new ArrayList<>();
+            } else {
+                configurations = new ArrayList<>(configurations);
+            }
+            configurations.add(configDoc);
+            controlDoc.put(CONFIGURATIONS_FIELD, configurations);
 
-            Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
             controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
 
             return configurationId;
@@ -273,7 +275,10 @@ public class NitriteControlStore implements ControlStore {
     public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, String configurationJson) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
         lock.lock();
         try {
-            Document configDoc = findConfiguration(domain, controlId, configurationId);
+            validateDomain(domain);
+            Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+            Document controlDoc = findControlInDomainDoc(domainDoc, controlId);
+            Document configDoc = findConfigurationInControlDoc(controlDoc, configurationId);
             Document versions = configDoc.get(VERSIONS_FIELD, Document.class);
 
             String nitriteVersion = version.replace('.', '-');
@@ -288,7 +293,6 @@ public class NitriteControlStore implements ControlStore {
             }
             versions.put(nitriteVersion, configurationJson);
 
-            Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
             controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
         } finally {
             lock.unlock();
@@ -320,7 +324,30 @@ public class NitriteControlStore implements ControlStore {
 
     private Document findConfiguration(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
         Document controlDoc = findControl(domain, controlId);
+        return findConfigurationInControlDoc(controlDoc, configurationId);
+    }
 
+    private Document findControlInDomainDoc(Document domainDoc, int controlId) throws ControlNotFoundException {
+        if (domainDoc == null) {
+            throw new ControlNotFoundException();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Document> controls = (List<Document>) domainDoc.get(CONTROLS_FIELD);
+        if (controls == null) {
+            throw new ControlNotFoundException();
+        }
+
+        for (Document control : controls) {
+            if (controlId == control.get(CONTROL_ID_FIELD, Integer.class)) {
+                return control;
+            }
+        }
+
+        throw new ControlNotFoundException();
+    }
+
+    private Document findConfigurationInControlDoc(Document controlDoc, int configurationId) throws ControlConfigurationNotFoundException {
         @SuppressWarnings("unchecked")
         List<Document> configurations = (List<Document>) controlDoc.get(CONFIGURATIONS_FIELD);
         if (configurations == null) {

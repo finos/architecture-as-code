@@ -1,6 +1,5 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.ErrorCategory;
 import com.mongodb.MongoWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteError;
