@@ -5,6 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
+import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -108,7 +110,7 @@ public class TestNitriteNamespaceStoreShould {
     }
     
     @Test
-    public void testCreateNamespace_whenNamespaceDoesNotExist_createsNamespace() {
+    public void testCreateNamespace_whenNamespaceDoesNotExist_createsNamespace() throws NamespaceAlreadyExistsException {
         // Arrange
         DocumentCursor cursor = mock(DocumentCursor.class);
         when(cursor.firstOrNull()).thenReturn(null);
@@ -122,17 +124,17 @@ public class TestNitriteNamespaceStoreShould {
     }
     
     @Test
-    public void testCreateNamespace_whenNamespaceAlreadyExists_doesNotCreateDuplicate() {
+    public void testCreateNamespace_whenNamespaceAlreadyExists_throwsException() {
         // Arrange
         Document existingDoc = Document.createDocument("name", "existing-namespace");
         DocumentCursor cursor = mock(DocumentCursor.class);
         when(cursor.firstOrNull()).thenReturn(existingDoc);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
         
-        // Act
-        namespaceStore.createNamespace("existing-namespace","desc");
+        // Act & Assert
+        assertThrows(NamespaceAlreadyExistsException.class, () ->
+                namespaceStore.createNamespace("existing-namespace","desc"));
         
-        // Assert
         verify(mockCollection, never()).insert(any(Document.class));
     }
 }

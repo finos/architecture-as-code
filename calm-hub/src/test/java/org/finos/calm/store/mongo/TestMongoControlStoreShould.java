@@ -4,6 +4,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.Document;
@@ -472,6 +473,9 @@ public class TestMongoControlStoreShould {
         when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(domainDoc);
 
+        when(controlCollection.updateOne(any(Document.class), any(Document.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
         mongoControlStore.createRequirementForVersion("security", 1, "2.0.0", "{\"type\": \"req-v2\"}");
 
         verify(controlCollection).updateOne(any(Document.class), any(Document.class));
@@ -493,6 +497,9 @@ public class TestMongoControlStoreShould {
         FindIterable<Document> findIterable = mockFindIterable();
         when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(domainDoc);
+
+        when(controlCollection.updateOne(any(Document.class), any(Document.class)))
+                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
 
         assertThrows(ControlRequirementVersionExistsException.class, () ->
                 mongoControlStore.createRequirementForVersion("security", 1, "1.0.0", "{}"));
@@ -595,6 +602,9 @@ public class TestMongoControlStoreShould {
         when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(domainDoc);
 
+        when(controlCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
         mongoControlStore.createConfigurationForVersion("security", 1, 10, "2.0.0", "{\"setting\": \"b\"}");
 
         verify(controlCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
@@ -618,6 +628,9 @@ public class TestMongoControlStoreShould {
         FindIterable<Document> findIterable = mockFindIterable();
         when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(domainDoc);
+
+        when(controlCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
 
         assertThrows(ControlConfigurationVersionExistsException.class, () ->
                 mongoControlStore.createConfigurationForVersion("security", 1, 10, "1.0.0", "{}"));

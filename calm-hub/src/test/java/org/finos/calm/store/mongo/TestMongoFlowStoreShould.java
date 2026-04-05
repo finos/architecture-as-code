@@ -10,6 +10,7 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.BsonDocument;
@@ -341,8 +342,11 @@ public class TestMongoFlowStoreShould {
     void throw_an_exception_when_create_on_a_version_that_exists() {
         mockSetupFlowDocumentWithVersions();
 
+        when(flowCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
+
         Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.0").build();
+                .setId(42).setVersion("1.0.0").setFlow(validJson).build();
 
         assertThrows(FlowVersionExistsException.class,
                 () -> mongoFlowStore.createFlowForVersion(flow));
@@ -370,13 +374,18 @@ public class TestMongoFlowStoreShould {
     @Test
     void accept_the_creation_or_update_of_a_valid_version() throws FlowNotFoundException, NamespaceNotFoundException, FlowVersionExistsException {
         mockSetupFlowDocumentWithVersions();
+
+        when(flowCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
         Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(50).setVersion("1.0.1")
+                .setId(42).setVersion("1.0.1")
                 .setFlow(validJson).build();
 
         mongoFlowStore.updateFlowForVersion(flow);
         mongoFlowStore.createFlowForVersion(flow);
 
-        verify(flowCollection, times(2)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(flowCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(flowCollection).updateOne(any(Bson.class), any(Bson.class));
     }
 }

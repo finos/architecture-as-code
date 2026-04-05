@@ -1,8 +1,12 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.MongoWriteException;
+import com.mongodb.ServerAddress;
+import com.mongodb.WriteError;
 import com.mongodb.client.*;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
@@ -56,21 +60,15 @@ public class TestMongoDomainStoreShould {
 
     @Test
     void create_domain_fails_and_throws_if_domain_already_exists() {
-        //Simulate a domain already existing
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(domainsCollection.find(any(Bson.class))).thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
+        WriteError writeError = new WriteError(11000, "duplicate key error", new BsonDocument());
+        MongoWriteException duplicateKeyException = new MongoWriteException(writeError, new ServerAddress());
+        Mockito.doThrow(duplicateKeyException).when(domainsCollection).insertOne(any(Document.class));
 
         assertThrows(DomainAlreadyExistsException.class, () -> mongoDomainStore.createDomain("security"));
     }
 
     @Test
     void create_domain_succeeds_if_domain_doesnt_exist() throws DomainAlreadyExistsException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(domainsCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
         mongoDomainStore.createDomain("security");
         verify(domainsCollection).insertOne(new Document("name", "security"));
     }

@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -38,6 +40,7 @@ public class NitriteUserAccessStore implements UserAccessStore {
     private static final String CREATED_AT_FIELD = "createdAt";
     private static final String LAST_UPDATED_FIELD = "lastUpdated";
 
+    private final Lock lock = new ReentrantLock();
     private final NitriteCollection userAccessCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
@@ -60,29 +63,34 @@ public class NitriteUserAccessStore implements UserAccessStore {
             throw new NamespaceNotFoundException();
         }
 
-        int userAccessId = counterStore.getNextUserAccessSequenceValue();
-        
-        Document userAccessDoc = Document.createDocument()
-                .put(USERNAME_FIELD, userAccess.getUsername())
-                .put(PERMISSION_FIELD, userAccess.getPermission().name())
-                .put(NAMESPACE_FIELD, userAccess.getNamespace())
-                .put(RESOURCE_TYPE_FIELD, userAccess.getResourceType().name())
-                .put(CREATED_AT_FIELD, userAccess.getCreationDateTime())
-                .put(LAST_UPDATED_FIELD, userAccess.getUpdateDateTime())
-                .put(USER_ACCESS_ID_FIELD, userAccessId);
+        lock.lock();
+        try {
+            int userAccessId = counterStore.getNextUserAccessSequenceValue();
 
-        userAccessCollection.insert(userAccessDoc);
-        
-        LOG.info("UserAccess has been created for namespace: {}, resource: {}, permission: {}, username: {}",
-                userAccess.getNamespace(), userAccess.getResourceType(), userAccess.getPermission(), userAccess.getUsername());
+            Document userAccessDoc = Document.createDocument()
+                    .put(USERNAME_FIELD, userAccess.getUsername())
+                    .put(PERMISSION_FIELD, userAccess.getPermission().name())
+                    .put(NAMESPACE_FIELD, userAccess.getNamespace())
+                    .put(RESOURCE_TYPE_FIELD, userAccess.getResourceType().name())
+                    .put(CREATED_AT_FIELD, userAccess.getCreationDateTime())
+                    .put(LAST_UPDATED_FIELD, userAccess.getUpdateDateTime())
+                    .put(USER_ACCESS_ID_FIELD, userAccessId);
 
-        return new UserAccess.UserAccessBuilder()
-                .setUserAccessId(userAccessId)
-                .setResourceType(userAccess.getResourceType())
-                .setNamespace(userAccess.getNamespace())
-                .setPermission(userAccess.getPermission())
-                .setUsername(userAccess.getUsername())
-                .build();
+            userAccessCollection.insert(userAccessDoc);
+
+            LOG.info("UserAccess has been created for namespace: {}, resource: {}, permission: {}, username: {}",
+                    userAccess.getNamespace(), userAccess.getResourceType(), userAccess.getPermission(), userAccess.getUsername());
+
+            return new UserAccess.UserAccessBuilder()
+                    .setUserAccessId(userAccessId)
+                    .setResourceType(userAccess.getResourceType())
+                    .setNamespace(userAccess.getNamespace())
+                    .setPermission(userAccess.getPermission())
+                    .setUsername(userAccess.getUsername())
+                    .build();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
