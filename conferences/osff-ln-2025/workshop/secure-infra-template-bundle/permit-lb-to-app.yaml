@@ -1,0 +1,12 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-external-ingress-to-app
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ appName }}
+  ingress:
+    - {}
+  policyTypes:
+    - Ingress

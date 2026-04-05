@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ databaseName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      db: {{ databaseName }}
+  template:
+    metadata:
+      labels:
+        db: {{ databaseName }}
+    spec:
+      containers:
+        - name: db
+          image: postgres
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ databasePort }}
+          env:
+            - name: POSTGRES_DB
+              value: conference
+            - name: POSTGRES_USER
+              value: calm
+            - name: POSTGRES_PASSWORD
+              value: demo
+          resources:
+            requests:
+              memory: "128Mi"  # Equivalent to shm_size: 128mb in Docker Compose

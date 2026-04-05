@@ -22,8 +22,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import static org.dizitart.no2.filters.FluentFilter.where;
 
 /**
- * Implementation of the DomainStore interface using NitriteDB.
- * This implementation is used when the application is running in standalone mode.
+ * NitriteDB-backed implementation of {@link DomainStore}, used in standalone mode.
+ *
+ * <h2>Concurrency strategy — ReentrantLock</h2>
+ * Same approach as {@link NitriteNamespaceStore}: a {@link ReentrantLock} serializes
+ * write operations to prevent duplicate domain creation. The lock is held across the
+ * existence check and insert to eliminate the check-then-act race condition.
+ * This is a single-JVM strategy; horizontal scaling requires MongoDB mode.
+ *
+ * @see org.finos.calm.store.mongo.MongoDomainStore MongoDomainStore for the
+ *      contrasting database-enforced uniqueness approach
  */
 @ApplicationScoped
 @Typed(NitriteDomainStore.class)
@@ -53,6 +61,10 @@ public class NitriteDomainStore implements DomainStore {
         return domains;
     }
 
+    /**
+     * Creates a domain, guarded by a {@link ReentrantLock} to prevent concurrent
+     * duplicate creation. The lock is held across the existence check and insert.
+     */
     @Override
     public Domain createDomain(String name) throws DomainAlreadyExistsException {
         lock.lock();

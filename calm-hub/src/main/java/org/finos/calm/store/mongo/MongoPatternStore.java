@@ -26,6 +26,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * MongoDB-backed implementation of {@link PatternStore}.
+ *
+ * <h2>Document model &amp; concurrency</h2>
+ * Follows the same namespace-scoped document pattern as {@link MongoArchitectureStore}:
+ * one document per namespace (enforced by a unique index on {@code patterns.namespace}),
+ * with an array of pattern sub-documents. New patterns are added via upsert + {@code $push},
+ * and new versions use an atomic conditional update with {@code $elemMatch} /
+ * {@code $exists: false} to prevent duplicate version creation under concurrency.
+ * Unique pattern IDs are generated atomically by {@link MongoCounterStore}.
+ *
+ * @see MongoIndexInitializer
+ * @see MongoCounterStore
+ */
 @ApplicationScoped
 @Typed(MongoPatternStore.class)
 public class MongoPatternStore implements PatternStore {

@@ -14,6 +14,19 @@ import org.finos.calm.store.DomainStore;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * MongoDB-backed implementation of {@link DomainStore}.
+ *
+ * <h2>Concurrency strategy</h2>
+ * Identical to {@link MongoNamespaceStore}: a unique index on {@code domains.name}
+ * (created by {@link MongoIndexInitializer}) enforces uniqueness at the database level.
+ * Concurrent duplicate inserts are caught as {@link ErrorCategory#DUPLICATE_KEY} errors
+ * and translated into {@link DomainAlreadyExistsException}.
+ *
+ * @see MongoIndexInitializer
+ * @see org.finos.calm.store.nitrite.NitriteDomainStore NitriteDomainStore for the standalone
+ *      ReentrantLock-based approach
+ */
 @ApplicationScoped
 @Typed(MongoDomainStore.class)
 public class MongoDomainStore implements DomainStore {
@@ -33,6 +46,10 @@ public class MongoDomainStore implements DomainStore {
         return domains;
     }
 
+    /**
+     * Inserts a new domain document. Concurrent duplicate inserts are caught via
+     * MongoDB's unique index and translated to {@link DomainAlreadyExistsException}.
+     */
     @Override
     public Domain createDomain(String name) throws DomainAlreadyExistsException {
         try {

@@ -24,8 +24,18 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Implementation of the InterfaceStore interface using MongoDB.
- * This is the default implementation used when the application is running with MongoDB.
+ * MongoDB-backed implementation of {@link InterfaceStore}.
+ *
+ * <h2>Document model &amp; concurrency</h2>
+ * Follows the same namespace-scoped document pattern as {@link MongoArchitectureStore}:
+ * one document per namespace (enforced by a unique index on {@code interfaces.namespace}),
+ * with an array of interface sub-documents. New interfaces are added via upsert + {@code $push},
+ * and new versions use an atomic conditional update with {@code $elemMatch} /
+ * {@code $exists: false} to prevent duplicate version creation under concurrency.
+ * Unique interface IDs are generated atomically by {@link MongoCounterStore}.
+ *
+ * @see MongoIndexInitializer
+ * @see MongoCounterStore
  */
 @ApplicationScoped
 @Typed(MongoInterfaceStore.class)

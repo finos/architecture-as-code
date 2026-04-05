@@ -22,8 +22,24 @@ import java.util.concurrent.locks.ReentrantLock;
 import static org.dizitart.no2.filters.FluentFilter.where;
 
 /**
- * Implementation of the NamespaceStore interface using NitriteDB.
- * This implementation is used when the application is running in standalone mode.
+ * NitriteDB-backed implementation of {@link NamespaceStore}, used in standalone mode.
+ *
+ * <h2>Concurrency strategy — ReentrantLock</h2>
+ * Unlike the MongoDB implementation ({@link org.finos.calm.store.mongo.MongoNamespaceStore}),
+ * NitriteDB does not support unique index constraints. Instead, this class uses a
+ * {@link ReentrantLock} to serialize write operations: the lock is acquired before
+ * checking for an existing namespace and held through the insert, ensuring that no
+ * concurrent thread can insert a duplicate between the check and the insert.
+ *
+ * <h2>Limitation — single JVM only</h2>
+ * Because {@link ReentrantLock} is a JVM-level construct, this strategy only works
+ * within a single application instance. If multiple instances share the same Nitrite
+ * database file, concurrent writes from different JVMs would not be protected.
+ * This is acceptable because standalone/Nitrite mode is designed for single-instance
+ * deployments; horizontal scaling requires MongoDB mode.
+ *
+ * @see org.finos.calm.store.mongo.MongoNamespaceStore MongoNamespaceStore for the
+ *      contrasting database-enforced uniqueness approach
  */
 @ApplicationScoped
 @Typed(NitriteNamespaceStore.class)
@@ -62,6 +78,11 @@ public class NitriteNamespaceStore implements NamespaceStore {
         return exists;
     }
 
+    /**
+     * Creates a namespace, guarded by a {@link ReentrantLock} to prevent concurrent
+     * duplicate creation. The lock is held across the existence check and the insert
+     * to eliminate the check-then-act race condition.
+     */
     @Override
     public void createNamespace(String name, String description) throws NamespaceAlreadyExistsException {
         lock.lock();

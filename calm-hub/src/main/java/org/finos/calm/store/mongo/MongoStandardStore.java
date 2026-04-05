@@ -21,6 +21,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * MongoDB-backed implementation of {@link StandardStore}.
+ *
+ * <h2>Document model &amp; concurrency</h2>
+ * Follows the same namespace-scoped document pattern as {@link MongoArchitectureStore}:
+ * one document per namespace (enforced by a unique index on {@code standards.namespace}),
+ * with an array of standard sub-documents. New standards are added via upsert + {@code $push},
+ * and new versions use an atomic conditional update with {@code $elemMatch} /
+ * {@code $exists: false} to prevent duplicate version creation under concurrency.
+ * Unique standard IDs are generated atomically by {@link MongoCounterStore}.
+ *
+ * @see MongoIndexInitializer
+ * @see MongoCounterStore
+ */
 @ApplicationScoped
 @Typed(MongoStandardStore.class)
 public class MongoStandardStore implements StandardStore {
