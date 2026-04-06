@@ -136,13 +136,32 @@ describe('Drawer — decorator fetching', () => {
         mockFetchDecoratorValues.mockResolvedValue([]);
     });
 
-    it('fetches decorator values when architecture data is provided without decorators prop', async () => {
+    it('fetches decorator values using friendly URL when architecture data has a slug ID', async () => {
         render(<Drawer data={architectureData} />);
 
         await waitFor(() => {
             expect(mockFetchDecoratorValues).toHaveBeenCalledWith(
                 'my-namespace',
-                '/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0',
+                '/calm/my-namespace/my-arch/versions/1-0-0',
+                'deployment'
+            );
+        });
+    });
+
+    it('fetches decorator values using numeric URL when architecture data has a numeric ID', async () => {
+        const numericArchData: Data = {
+            name: 'my-namespace',
+            calmType: 'Architectures',
+            id: '42',
+            version: '1.0.0',
+            data: { nodes: [], relationships: [] },
+        };
+        render(<Drawer data={numericArchData} />);
+
+        await waitFor(() => {
+            expect(mockFetchDecoratorValues).toHaveBeenCalledWith(
+                'my-namespace',
+                '/calm/namespaces/my-namespace/architectures/42/versions/1-0-0',
                 'deployment'
             );
         });

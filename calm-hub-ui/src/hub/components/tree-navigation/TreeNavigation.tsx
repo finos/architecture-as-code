@@ -4,7 +4,21 @@ import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
 import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
-import { Data, Adr, ResourceSummary, AdrSummary } from '../../../model/calm.js';
+import { Data, Adr, ResourceSummary, AdrSummary, ResourceMapping } from '../../../model/calm.js';
+
+function isSlug(id: string): boolean {
+    return !/^\d+$/.test(id);
+}
+
+function mapCalmTypeToResourceType(type: string): string {
+    switch (type) {
+        case 'Architectures': return 'ARCHITECTURE';
+        case 'Patterns': return 'PATTERN';
+        case 'Flows': return 'FLOW';
+        case 'Standards': return 'STANDARD';
+        default: return '';
+    }
+}
 import { ControlDetail, ControlData } from '../../../model/control.js';
 import { InterfaceDetail, InterfaceData } from '../../../model/interface.js';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -437,6 +451,35 @@ function loadResourceIds({
     }
 }
 
+function loadVersionsForId(
+    resourceID: string,
+    type: string,
+    namespace: string,
+    calmService: CalmService,
+    setVersions: { setArchitectureVersions: (v: string[]) => void; setPatternVersions: (v: string[]) => void; setFlowVersions: (v: string[]) => void; setStandardVersions: (v: string[]) => void; },
+) {
+    if (isSlug(resourceID)) {
+        const setter = type === 'Architectures' ? setVersions.setArchitectureVersions
+            : type === 'Patterns' ? setVersions.setPatternVersions
+            : type === 'Flows' ? setVersions.setFlowVersions
+            : setVersions.setStandardVersions;
+        calmService.fetchVersionsByCustomId(namespace, resourceID).then(setter);
+    }
+}
+
+function loadResourceForId(
+    version: string,
+    type: string,
+    namespace: string,
+    resourceID: string,
+    calmService: CalmService,
+    onDataLoad: (data: Data) => void,
+) {
+    if (isSlug(resourceID)) {
+        calmService.fetchResourceByCustomId(namespace, resourceID, version, type).then(onDataLoad);
+    }
+}
+
 function loadVersions({ 
     resourceID, 
     type, 
@@ -523,6 +566,23 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const controlService = useMemo(() => new ControlService(), []);
     const interfaceService = useMemo(() => new InterfaceService(), []);
     const adrService = useMemo(() => new AdrService(), []);
+
+    // Resource mappings: merge customId into summaries after fetching
+    const mergeMappings = useCallback((summaries: ResourceSummary[], mappings: ResourceMapping[]): ResourceSummary[] => {
+        const byNumericId = new Map(mappings.map(m => [m.numericId, m.customId]));
+        return summaries.map(s => ({
+            ...s,
+            customId: byNumericId.get(s.id) ?? undefined,
+        }));
+    }, []);
+
+    const enrichWithMappings = useCallback((type: string, summaries: ResourceSummary[], setter: (s: ResourceSummary[]) => void) => {
+        const resourceType = mapCalmTypeToResourceType(type);
+        if (!resourceType) { setter(summaries); return; }
+        calmService.fetchMappings(selectedNamespace, resourceType).then(mappings => {
+            setter(mergeMappings(summaries, mappings));
+        }).catch(() => setter(summaries));
+    }, [calmService, selectedNamespace, mergeMappings]);
     const [viewMode, setViewMode] = useState<'flat' | 'hierarchical'>('hierarchical');
     const namespaceTree = useMemo(() => {
         if (viewMode === 'hierarchical') return buildNamespaceTree(namespaces);
@@ -536,10 +596,11 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
 
     useEffect(() => {
         if (params.namespace && params.type && params.id && params.version) {
+            const uiType = mapTypeInUrlToTypeInUI(params.type);
             setSelectedNamespace(params.namespace);
-            setSelectedType(mapTypeInUrlToTypeInUI(params.type));
+            setSelectedType(uiType);
             loadResourceIds({
-                type: mapTypeInUrlToTypeInUI(params.type),
+                type: uiType,
                 namespace: params.namespace,
                 calmService,
                 setArchitectureSummaries,
@@ -550,29 +611,39 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 setAdrSummaries,
             });
             setSelectedResourceID(params.id);
-            loadVersions({
-                resourceID: params.id,
-                type: mapTypeInUrlToTypeInUI(params.type),
-                namespace: params.namespace,
-                calmService,
-                setArchitectureVersions,
-                setPatternVersions,
-                setFlowVersions,
-                setStandardVersions,
-                adrService,
-                setAdrRevisions,
-            });
+            if (isSlug(params.id)) {
+                loadVersionsForId(params.id, uiType, params.namespace, calmService, {
+                    setArchitectureVersions, setPatternVersions, setFlowVersions, setStandardVersions,
+                });
+            } else {
+                loadVersions({
+                    resourceID: params.id,
+                    type: uiType,
+                    namespace: params.namespace,
+                    calmService,
+                    setArchitectureVersions,
+                    setPatternVersions,
+                    setFlowVersions,
+                    setStandardVersions,
+                    adrService,
+                    setAdrRevisions,
+                });
+            }
             setSelectedVersion(params.version);
-            loadResource({
-                version: params.version,
-                type: mapTypeInUrlToTypeInUI(params.type),
-                namespace: params.namespace,
-                resourceID: params.id,
-                calmService,
-                onDataLoad,
-                onAdrLoad,
-                adrService,
-            });
+            if (isSlug(params.id)) {
+                loadResourceForId(params.version, uiType, params.namespace, params.id, calmService, onDataLoad);
+            } else {
+                loadResource({
+                    version: params.version,
+                    type: uiType,
+                    namespace: params.namespace,
+                    resourceID: params.id,
+                    calmService,
+                    onDataLoad,
+                    onAdrLoad,
+                    adrService,
+                });
+            }
         }
     }, [params, calmService, adrService, onDataLoad, onAdrLoad]);
 
@@ -641,40 +712,48 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                     console.error('Failed to fetch interfaces', error);
                     setNamespaceInterfaces([]);
                 });
+            } else if (type === 'ADRs') {
+                adrService.fetchAdrSummaries(selectedNamespace).then(setAdrSummaries);
             } else {
-                loadResourceIds({
-                    type,
-                    namespace: selectedNamespace,
-                    calmService,
-                    setArchitectureSummaries,
-                    setPatternSummaries,
-                    setFlowSummaries,
-                    setStandardSummaries,
-                    adrService,
-                    setAdrSummaries,
+                const setter = type === 'Architectures' ? setArchitectureSummaries
+                    : type === 'Patterns' ? setPatternSummaries
+                    : type === 'Flows' ? setFlowSummaries
+                    : setStandardSummaries;
+                const fetcher = type === 'Architectures' ? calmService.fetchArchitectureSummaries.bind(calmService)
+                    : type === 'Patterns' ? calmService.fetchPatternSummaries.bind(calmService)
+                    : type === 'Flows' ? calmService.fetchFlowSummaries.bind(calmService)
+                    : calmService.fetchStandardSummaries.bind(calmService);
+                fetcher(selectedNamespace).then((summaries: ResourceSummary[]) => {
+                    enrichWithMappings(type, summaries, setter);
                 });
             }
         }
         setSelectedResourceID(EMPTY_STR_VALUE);
         setSelectedVersion(EMPTY_STR_VALUE);
         setSelectedInterfaceId(null);
-    }, [selectedNamespace, selectedType, calmService, adrService, interfaceService]);
+    }, [selectedNamespace, selectedType, calmService, adrService, interfaceService, enrichWithMappings]);
 
     const handleResourceClick = useCallback((resourceID: string, type: string) => {
         setSelectedResourceID(resourceID);
         setSelectedVersion(EMPTY_STR_VALUE);
-        loadVersions({
-            resourceID,
-            type,
-            namespace: selectedNamespace,
-            calmService,
-            setArchitectureVersions,
-            setPatternVersions,
-            setFlowVersions,
-            setStandardVersions,
-            adrService,
-            setAdrRevisions,
-        });
+        if (isSlug(resourceID)) {
+            loadVersionsForId(resourceID, type, selectedNamespace, calmService, {
+                setArchitectureVersions, setPatternVersions, setFlowVersions, setStandardVersions,
+            });
+        } else {
+            loadVersions({
+                resourceID,
+                type,
+                namespace: selectedNamespace,
+                calmService,
+                setArchitectureVersions,
+                setPatternVersions,
+                setFlowVersions,
+                setStandardVersions,
+                adrService,
+                setAdrRevisions,
+            });
+        }
     }, [selectedNamespace, calmService, adrService]);
 
     const handleVersionClick = useCallback((version: string, type: string) => {
@@ -682,15 +761,16 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     }, [navigate, selectedNamespace, selectedResourceID]);
 
     const getResourceIDs = (type: string): string[] => {
+        const toId = (s: ResourceSummary) => s.customId ?? s.id.toString();
         switch (type) {
             case 'Architectures':
-                return architectureSummaries.map((s) => s.id.toString());
+                return architectureSummaries.map(toId);
             case 'Patterns':
-                return patternSummaries.map((s) => s.id.toString());
+                return patternSummaries.map(toId);
             case 'Flows':
-                return flowSummaries.map((s) => s.id.toString());
+                return flowSummaries.map(toId);
             case 'Standards':
-                return standardSummaries.map((s) => s.id.toString());
+                return standardSummaries.map(toId);
             case 'ADRs':
                 return adrSummaries.map((s) => s.id.toString());
             default:
@@ -699,23 +779,16 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     };
 
     const getResourceNames = (type: string): Record<string, string> => {
+        const toEntry = (s: ResourceSummary): [string, string] => [(s.customId ?? s.id.toString()), s.name];
         switch (type) {
             case 'Architectures':
-                return Object.fromEntries(
-                    architectureSummaries.map((s) => [s.id.toString(), s.name])
-                );
+                return Object.fromEntries(architectureSummaries.map(toEntry));
             case 'Patterns':
-                return Object.fromEntries(
-                    patternSummaries.map((s) => [s.id.toString(), s.name])
-                );
+                return Object.fromEntries(patternSummaries.map(toEntry));
             case 'Flows':
-                return Object.fromEntries(
-                    flowSummaries.map((s) => [s.id.toString(), s.name])
-                );
+                return Object.fromEntries(flowSummaries.map(toEntry));
             case 'Standards':
-                return Object.fromEntries(
-                    standardSummaries.map((s) => [s.id.toString(), s.name])
-                );
+                return Object.fromEntries(standardSummaries.map(toEntry));
             case 'ADRs':
                 return Object.fromEntries(
                     adrSummaries.map((s) => [s.id.toString(), s.title + ' (' + s.status + ')'])
