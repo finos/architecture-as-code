@@ -118,7 +118,8 @@ public class FrontControllerResource {
             }
             String latestVersion = getLatestVersion(versions);
             String json = getResourceJsonForVersion(mapping, latestVersion);
-            return Response.ok(json).build();
+            String rewrittenJson = rewriteId(json, namespace, customId, latestVersion);
+            return Response.ok(rewrittenJson).build();
         } catch (MappingNotFoundException e) {
             return mappingNotFoundResponse(customId);
         } catch (NamespaceNotFoundException e) {
@@ -148,7 +149,8 @@ public class FrontControllerResource {
         try {
             ResourceMapping mapping = mappingStore.getMapping(namespace, customId);
             String json = getResourceJsonForVersion(mapping, version);
-            return Response.ok(json).build();
+            String rewrittenJson = rewriteId(json, namespace, customId, version);
+            return Response.ok(rewrittenJson).build();
         } catch (MappingNotFoundException e) {
             return mappingNotFoundResponse(customId);
         } catch (NamespaceNotFoundException e) {
@@ -259,7 +261,6 @@ public class FrontControllerResource {
         }
 
         String version = "1.0.0";
-        String rewrittenJson = rewriteId(request.getJson(), namespace, customId, version);
         String name = request.getName() != null ? request.getName() : "";
         String description = request.getDescription() != null ? request.getDescription() : "";
 
@@ -267,7 +268,7 @@ public class FrontControllerResource {
             // Reserve the mapping first to prevent duplicate-create races
             mappingStore.createMapping(namespace, customId, resourceType, 0);
             try {
-                int numericId = createResourceInStore(resourceType, namespace, rewrittenJson, name, description);
+                int numericId = createResourceInStore(resourceType, namespace, request.getJson(), name, description);
                 mappingStore.updateMappingNumericId(namespace, customId, numericId);
             } catch (Exception e) {
                 // Rollback the mapping reservation on resource creation failure
@@ -310,9 +311,8 @@ public class FrontControllerResource {
             List<String> versions = getVersionsForMapping(mapping);
             String latestVersion = getLatestVersion(versions);
             String newVersion = SemverUtils.bumpVersion(latestVersion, request.getChangeType());
-            String rewrittenJson = rewriteId(request.getJson(), namespace, customId, newVersion);
 
-            createVersionedResourceInStore(mapping.getResourceType(), namespace, mapping.getNumericId(), newVersion, rewrittenJson);
+            createVersionedResourceInStore(mapping.getResourceType(), namespace, mapping.getNumericId(), newVersion, request.getJson());
 
             URI location = new URI("/calm/" + namespace + "/" + customId + "/versions/" + newVersion);
             return Response.created(location).build();

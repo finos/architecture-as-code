@@ -271,4 +271,86 @@ public class TestNitriteResourceMappingStoreShould {
         assertThat(result, hasSize(1));
         assertThat(result.get(0).getCustomId(), is("pattern-a"));
     }
+
+    // --- updateMappingNumericId ---
+
+    @Test
+    void update_mapping_numeric_id_successfully() throws MappingNotFoundException, NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document existing = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("customId", "api-gateway")
+                .put("resourceType", "PATTERN")
+                .put("numericId", 0);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(existing);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        store.updateMappingNumericId(NAMESPACE, "api-gateway", 99);
+
+        verify(mockCollection).update(any(Document.class));
+    }
+
+    @Test
+    void throw_namespace_not_found_on_update_numeric_id_when_namespace_does_not_exist() {
+        when(mockNamespaceStore.namespaceExists("invalid")).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.updateMappingNumericId("invalid", "test", 1));
+    }
+
+    @Test
+    void throw_mapping_not_found_on_update_numeric_id_when_mapping_does_not_exist() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(null);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        assertThrows(MappingNotFoundException.class,
+                () -> store.updateMappingNumericId(NAMESPACE, "nonexistent", 1));
+    }
+
+    // --- deleteMapping ---
+
+    @Test
+    void delete_mapping_successfully() throws MappingNotFoundException, NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document existing = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("customId", "api-gateway")
+                .put("resourceType", "PATTERN")
+                .put("numericId", 1);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(existing);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        store.deleteMapping(NAMESPACE, "api-gateway");
+
+        verify(mockCollection).remove(existing);
+    }
+
+    @Test
+    void throw_namespace_not_found_on_delete_when_namespace_does_not_exist() {
+        when(mockNamespaceStore.namespaceExists("invalid")).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.deleteMapping("invalid", "test"));
+    }
+
+    @Test
+    void throw_mapping_not_found_on_delete_when_mapping_does_not_exist() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(null);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        assertThrows(MappingNotFoundException.class,
+                () -> store.deleteMapping(NAMESPACE, "nonexistent"));
+    }
 }
