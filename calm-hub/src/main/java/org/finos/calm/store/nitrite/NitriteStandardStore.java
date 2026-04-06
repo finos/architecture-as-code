@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -43,11 +45,11 @@ public class NitriteStandardStore implements StandardStore {
     private static final String VERSIONS_FIELD = "versions";
     private static final String NAME_FIELD = "name";
     private static final String DESCRIPTION_FIELD = "description";
-    private static final String JSON_FIELD = "standardJson";
 
     private final NitriteCollection standardCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteStandardStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -111,9 +113,11 @@ public class NitriteStandardStore implements StandardStore {
             throw new JsonParseException(e.getMessage());
         }
 
-        int id = counterStore.getNextStandardSequenceValue();
+        lock.lock();
+        try {
+            int id = counterStore.getNextStandardSequenceValue();
 
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
+            Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         Document namespaceDocument = standardCollection.find(filter).firstOrNull();
 
         Document standardDocument = Document.createDocument()
@@ -143,10 +147,13 @@ public class NitriteStandardStore implements StandardStore {
             standardCollection.update(filter, namespaceDocument);
         }
 
-        createdStandard.setId(id);
-        createdStandard.setVersion("1.0.0");
-        createdStandard.setNamespace(namespace);
-        return createdStandard;
+            createdStandard.setId(id);
+            createdStandard.setVersion("1.0.0");
+            createdStandard.setNamespace(namespace);
+            return createdStandard;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -163,9 +170,11 @@ public class NitriteStandardStore implements StandardStore {
         }
 
         Document versions = standardDoc.get(VERSIONS_FIELD, Document.class);
-        // In NitriteDB, we need to get the field names directly
         Set<String> fieldNames = versions.getFields();
-        List<String> versionList = new ArrayList<>(fieldNames);
+        List<String> versionList = new ArrayList<>();
+        for (String fieldName : fieldNames) {
+            versionList.add(fieldName.replace('-', '.'));
+        }
 
         LOG.debug("Retrieved {} versions for standard {} in namespace '{}'",
                 versionList.size(), standardId, namespace);
@@ -186,7 +195,7 @@ public class NitriteStandardStore implements StandardStore {
 
         Document versions = standardDocument.get(VERSIONS_FIELD, Document.class);
         String mongoVersion = version.replace('.', '-');
-        Document storedStandard = versions.get(mongoVersion, Document.class);
+        String storedStandard = versions.get(mongoVersion, String.class);
 
         if (storedStandard == null) {
             LOG.warn("Version '{}' not found for standard {} in namespace '{}'",
@@ -197,7 +206,7 @@ public class NitriteStandardStore implements StandardStore {
         LOG.debug("Retrieved version '{}' for standard {} in namespace '{}'",
                 mongoVersion, standardId, namespace);
 
-        return storedStandard.get(JSON_FIELD, String.class);
+        return storedStandard;
     }
 
     @Override
@@ -206,52 +215,57 @@ public class NitriteStandardStore implements StandardStore {
             throw new NamespaceNotFoundException();
         }
 
-        Filter namespaceFilter = where(NAMESPACE_FIELD).eq(namespace);
-        Document namespaceDocument = standardCollection.find(namespaceFilter).firstOrNull();
+        lock.lock();
+        try {
+            Filter namespaceFilter = where(NAMESPACE_FIELD).eq(namespace);
+            Document namespaceDocument = standardCollection.find(namespaceFilter).firstOrNull();
 
-        if (namespaceDocument == null) {
-            LOG.warn("Namespace document for '{}' not found when creating standard version", namespace);
-            throw new StandardNotFoundException();
-        }
-
-        Document standardDoc = findStandardDocument(namespace, standardId);
-        if (standardDoc == null) {
-            LOG.warn("Standard with ID {} not found in namespace '{}'", standardId, namespace);
-            throw new StandardNotFoundException();
-        }
-
-        String mongoVersion = version.replace('.','-');
-
-        Document versions = standardDoc.get(VERSIONS_FIELD, Document.class);
-        if (versions.containsKey(mongoVersion)) {
-            LOG.warn("Version '{}' already exists for standard {} in namespace '{}'",
-                    mongoVersion, standardId, namespace);
-            throw new StandardVersionExistsException();
-        }
-
-        // Add the new version
-        versions.put(mongoVersion, standardRequest.getStandardJson());
-        standardDoc.put(VERSIONS_FIELD, versions);
-        standardDoc.put(NAME_FIELD, standardRequest.getName());
-        standardDoc.put(DESCRIPTION_FIELD, standardRequest.getDescription());
-
-        // Update the standard in the namespace document
-        List<Document> standards = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(STANDARDS_FIELD);
-        // Create a mutable copy of the list
-        standards = new ArrayList<>(standards);
-        for (int i = 0; i < standards.size(); i++) {
-            Document doc = standards.get(i);
-            if (doc.get(STANDARD_ID_FIELD, Integer.class).equals(standardId)) {
-                standards.set(i, standardDoc);
-                break;
+            if (namespaceDocument == null) {
+                LOG.warn("Namespace document for '{}' not found when creating standard version", namespace);
+                throw new StandardNotFoundException();
             }
-        }
 
-        namespaceDocument.put(STANDARDS_FIELD, standards);
-        standardCollection.update(namespaceFilter, namespaceDocument);
+            Document standardDoc = findStandardDocument(namespace, standardId);
+            if (standardDoc == null) {
+                LOG.warn("Standard with ID {} not found in namespace '{}'", standardId, namespace);
+                throw new StandardNotFoundException();
+            }
+
+            String mongoVersion = version.replace('.','-');
+
+            Document versions = standardDoc.get(VERSIONS_FIELD, Document.class);
+            if (versions.containsKey(mongoVersion)) {
+                LOG.warn("Version '{}' already exists for standard {} in namespace '{}'",
+                        mongoVersion, standardId, namespace);
+                throw new StandardVersionExistsException();
+            }
+
+            // Add the new version
+            versions.put(mongoVersion, standardRequest.getStandardJson());
+            standardDoc.put(VERSIONS_FIELD, versions);
+            standardDoc.put(NAME_FIELD, standardRequest.getName());
+            standardDoc.put(DESCRIPTION_FIELD, standardRequest.getDescription());
+
+            // Update the standard in the namespace document
+            List<Document> standards = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(STANDARDS_FIELD);
+            // Create a mutable copy of the list
+            standards = new ArrayList<>(standards);
+            for (int i = 0; i < standards.size(); i++) {
+                Document doc = standards.get(i);
+                if (doc.get(STANDARD_ID_FIELD, Integer.class).equals(standardId)) {
+                    standards.set(i, standardDoc);
+                    break;
+                }
+            }
+
+            namespaceDocument.put(STANDARDS_FIELD, standards);
+            standardCollection.update(namespaceFilter, namespaceDocument);
+        } finally {
+            lock.unlock();
+        }
 
         LOG.info("Created version '{}' for standard {} in namespace '{}'",
-                mongoVersion, standardId, namespace);
+                version.replace('.','-'), standardId, namespace);
 
         Standard standard = new Standard(standardRequest);
         standard.setVersion(version);

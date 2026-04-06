@@ -24,8 +24,18 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Implementation of the InterfaceStore interface using MongoDB.
- * This is the default implementation used when the application is running with MongoDB.
+ * MongoDB-backed implementation of {@link InterfaceStore}.
+ *
+ * <h2>Document model &amp; concurrency</h2>
+ * Follows the same namespace-scoped document pattern as {@link MongoArchitectureStore}:
+ * one document per namespace (enforced by a unique index on {@code interfaces.namespace}),
+ * with an array of interface sub-documents. New interfaces are added via upsert + {@code $push},
+ * and new versions use an atomic conditional update with {@code $elemMatch} /
+ * {@code $exists: false} to prevent duplicate version creation under concurrency.
+ * Unique interface IDs are generated atomically by {@link MongoCounterStore}.
+ *
+ * @see MongoIndexInitializer
+ * @see MongoCounterStore
  */
 @ApplicationScoped
 @Typed(MongoInterfaceStore.class)
@@ -152,55 +162,29 @@ public class MongoInterfaceStore implements InterfaceStore {
 
     @Override
     public CalmInterface createInterfaceForVersion(CreateInterfaceRequest interfaceRequest, String namespace, Integer interfaceId, String version) throws NamespaceNotFoundException, InterfaceNotFoundException, InterfaceVersionExistsException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        // Validates namespace and interface existence
+        getInterfaceVersions(namespace, interfaceId);
 
-        if (versionExists(namespace, interfaceId, version)) {
+        String mongoVersion = version.replace('.', '-');
+
+        // Atomic conditional update: only succeeds if the version doesn't already exist
+        Document filter = new Document("namespace", namespace)
+                .append("interfaces", new Document("$elemMatch",
+                        new Document("interfaceId", interfaceId)
+                                .append("versions." + mongoVersion, new Document("$exists", false))));
+
+        Document update = new Document("$set", new Document()
+                .append("interfaces.$.name", interfaceRequest.getName())
+                .append("interfaces.$.description", interfaceRequest.getDescription())
+                .append("interfaces.$.versions." + mongoVersion, Document.parse(interfaceRequest.getInterfaceJson())));
+
+        if (interfaceCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new InterfaceVersionExistsException();
         }
 
-        return writeInterfaceToMongo(interfaceRequest, namespace, interfaceId, version);
-    }
-
-    private CalmInterface writeInterfaceToMongo(CreateInterfaceRequest createInterfaceRequest, String namespace, Integer interfaceId, String version) throws InterfaceNotFoundException, NamespaceNotFoundException {
-        retrieveInterfaceVersions(namespace);
-
-        Document interfaceDocument = Document.parse(createInterfaceRequest.getInterfaceJson());
-        Document filter = new Document("namespace", namespace)
-                .append("interfaces.interfaceId", interfaceId);
-
-        Document update = new Document("$set", new Document()
-                .append("interfaces.$.name", createInterfaceRequest.getName())
-                .append("interfaces.$.description", createInterfaceRequest.getDescription())
-                .append("interfaces.$.versions." + version.replace('.', '-'), interfaceDocument));
-
-        try {
-            interfaceCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
-        } catch (MongoWriteException ex) {
-            logger.error("Failed to write interface version for interfaceId [{}] in namespace [{}]", interfaceId, namespace, ex);
-            throw new InterfaceNotFoundException();
-        }
-        CalmInterface calmInterface = new CalmInterface(createInterfaceRequest);
+        CalmInterface calmInterface = new CalmInterface(interfaceRequest);
         calmInterface.setId(interfaceId);
         calmInterface.setVersion(version);
         return calmInterface;
-    }
-
-    private boolean versionExists(String namespace, Integer interfaceId, String version) {
-        Document filter = new Document("namespace", namespace).append("interfaces.interfaceId", interfaceId);
-        Bson projection = Projections.fields(Projections.include("interfaces"));
-        Document result = interfaceCollection.find(filter).projection(projection).first();
-
-        if (result != null) {
-            List<Document> interfaces = result.getList("interfaces", Document.class);
-            for (Document interfaceDoc : interfaces) {
-                Document versions = (Document) interfaceDoc.get("versions");
-                if (versions != null && versions.containsKey(version.replace('.', '-'))) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }

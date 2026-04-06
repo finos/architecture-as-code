@@ -1,0 +1,159 @@
+package integration;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import org.finos.calm.domain.adr.Adr;
+import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.Decision;
+import org.finos.calm.domain.adr.Link;
+import org.finos.calm.domain.adr.NewAdrRequest;
+import org.finos.calm.domain.adr.Option;
+import org.finos.calm.domain.adr.Status;
+import org.junit.jupiter.api.*;
+
+import java.util.List;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
+@QuarkusTest
+@TestProfile(NitriteIntegrationTestProfile.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class NitriteAdrIntegration {
+
+    private ObjectMapper objectMapper;
+
+    private final String TITLE = "<b>My ADR</b><script><img>";
+    private final String EXPECTED_TITLE = "<b>My ADR</b>";
+    private final String PROBLEM_STATEMENT = "<a>My problem is...</a>";
+    private final String EXPECTED_PROBLEM_STATEMENT = "My problem is...";
+    private final List<String> DECISION_DRIVERS = List.of("a", "b", "c");
+    private final Option OPTION_A = new Option("Option A", "optionDescription", List.of("a"), List.of("b"));
+    private final Option OPTION_B = new Option("Option B", "optionDescription", List.of("c"), List.of("d"));
+    private final List<Option> CONSIDERED_OPTIONS = List.of(OPTION_A, OPTION_B);
+    private final String RATIONALE = "This is the best option";
+    private final Decision DECISION_OUTCOME = new Decision(OPTION_A, RATIONALE);
+    private final List<Link> LINKS = List.of(new Link("abc", "http://abc.com"));
+
+    private final NewAdrRequest newAdr = new NewAdrRequest(TITLE, PROBLEM_STATEMENT, DECISION_DRIVERS,
+            CONSIDERED_OPTIONS, DECISION_OUTCOME, LINKS);
+
+    private final Adr adr = new Adr.AdrBuilder(newAdr).setTitle(EXPECTED_TITLE).setContextAndProblemStatement(EXPECTED_PROBLEM_STATEMENT).setStatus(Status.draft).build();
+
+    @BeforeEach
+    public void setup() {
+        NitriteSetup.namespaceSetup();
+        this.objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+    }
+
+    @Test
+    @Order(1)
+    void end_to_end_verify_get_with_no_adrs() {
+        given()
+                .when().get("/calm/namespaces/finos/adrs")
+                .then()
+                .statusCode(200)
+                .body("values", empty());
+    }
+
+    @Test
+    @Order(2)
+    void end_to_end_verify_create_an_adr() throws JsonProcessingException {
+        given()
+                .body(objectMapper.writeValueAsString(newAdr))
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/adrs")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("calm/namespaces/finos/adrs/1"));
+    }
+
+    @Test
+    @Order(3)
+    void end_to_end_verify_get_adr_revision() {
+        AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace("finos")
+                .setId(1)
+                .setRevision(1)
+                .setAdr(adr)
+                .build();
+
+        AdrMeta actualAdrMeta = given()
+                .when().get("/calm/namespaces/finos/adrs/1/revisions/1")
+                .then()
+                .statusCode(200)
+                .extract()
+                .body()
+                .as(AdrMeta.class);
+        assertThat(actualAdrMeta, is(expectedAdrMeta));
+    }
+
+    @Test
+    @Order(4)
+    void end_to_end_verify_get_adr() {
+        AdrMeta actualAdrMeta = given()
+                .when().get("/calm/namespaces/finos/adrs/1")
+                .then()
+                .statusCode(200)
+                .extract()
+                .body()
+                .as(AdrMeta.class);
+
+        AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace("finos")
+                .setId(1)
+                .setRevision(1)
+                .setAdr(adr)
+                .build();
+        assertThat(actualAdrMeta, is(expectedAdrMeta));
+    }
+
+    @Test
+    @Order(5)
+    void end_to_end_verify_update_an_adr() throws JsonProcessingException {
+        given()
+                .body(objectMapper.writeValueAsString(newAdr))
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/adrs/1")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("calm/namespaces/finos/adrs/1"));
+    }
+
+    @Test
+    @Order(6)
+    void end_to_end_verify_get_revisions() {
+        given()
+                .when().get("/calm/namespaces/finos/adrs/1/revisions")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2))
+                .body("values[0]", equalTo(1))
+                .body("values[1]", equalTo(2));
+    }
+
+    @Test
+    @Order(7)
+    void end_to_end_verify_update_an_adr_status() {
+        given()
+                .when().post("/calm/namespaces/finos/adrs/1/status/proposed")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("calm/namespaces/finos/adrs/1"));
+    }
+
+    @Test
+    @Order(8)
+    void end_to_end_verify_status_changed() {
+        given()
+                .when().get("/calm/namespaces/finos/adrs/1/revisions/3")
+                .then()
+                .statusCode(200)
+                .body("adr.status", equalTo("proposed"));
+    }
+}

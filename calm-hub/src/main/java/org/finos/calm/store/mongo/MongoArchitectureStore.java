@@ -25,6 +25,33 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * MongoDB-backed implementation of {@link ArchitectureStore}.
+ *
+ * <h2>Document model</h2>
+ * The {@code architectures} collection has <em>one document per namespace</em>, enforced by a
+ * unique index on the {@code namespace} field (created by {@link MongoIndexInitializer}).
+ * Each document contains an {@code architectures} array where individual architecture
+ * entries are stored as sub-documents with a unique {@code architectureId}, versioned
+ * content, and metadata.
+ *
+ * <h2>Concurrency strategy — create</h2>
+ * New architectures are added via {@code updateOne} with {@code upsert: true} and
+ * {@code $push}. The upsert creates the namespace document if it doesn't exist; the
+ * unique index on {@code namespace} prevents two concurrent upserts from creating
+ * duplicate namespace documents. The {@link MongoCounterStore} provides an atomically
+ * unique {@code architectureId} via {@code findOneAndUpdate} with {@code $inc}.
+ *
+ * <h2>Concurrency strategy — new version</h2>
+ * Adding a new version to an existing architecture uses an atomic conditional update:
+ * the query filter includes {@code $elemMatch} with {@code $exists: false} on the target
+ * version key. If a concurrent request already added the version, the filter won't match
+ * and {@code matchedCount == 0} signals a conflict, throwing
+ * {@link ArchitectureVersionExistsException}.
+ *
+ * @see MongoIndexInitializer
+ * @see MongoCounterStore
+ */
 @ApplicationScoped
 @Typed(MongoArchitectureStore.class)
 public class MongoArchitectureStore implements ArchitectureStore {
@@ -163,15 +190,24 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
     @Override
     public Architecture createArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionExistsException {
-        if (!namespaceStore.namespaceExists(architecture.getNamespace())) {
-            throw new NamespaceNotFoundException();
-        }
+        // Validates namespace and architecture existence
+        getArchitectureVersions(architecture);
 
-        if (versionExists(architecture)) {
+        // Atomic conditional update: only succeeds if the version doesn't already exist
+        Document filter = new Document("namespace", architecture.getNamespace())
+                .append("architectures", new Document("$elemMatch",
+                        new Document("architectureId", architecture.getId())
+                                .append("versions." + architecture.getMongoVersion(), new Document("$exists", false))));
+
+        Document update = new Document("$set",
+                new Document("architectures.$.versions." + architecture.getMongoVersion(), Document.parse(architecture.getArchitectureJson()))
+                        .append("architectures.$.name", architecture.getName())
+                        .append("architectures.$.description", architecture.getDescription()));
+
+        if (architectureCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new ArchitectureVersionExistsException();
         }
 
-        writeArchitectureToMongo(architecture);
         return architecture;
     }
 
@@ -204,20 +240,4 @@ public class MongoArchitectureStore implements ArchitectureStore {
         }
     }
 
-    private boolean versionExists(Architecture architecture) {
-        Document filter = new Document("namespace", architecture.getNamespace()).append("architectures.architectureId", architecture.getId());
-        Bson projection = Projections.fields(Projections.include("architectures.versions." + architecture.getMongoVersion()));
-        Document result = architectureCollection.find(filter).projection(projection).first();
-
-        if (result != null) {
-            List<Document> architectures = result.getList("architectures", Document.class);
-            for (Document architectureDoc : architectures) {
-                Document versions = (Document) architectureDoc.get("versions");
-                if (versions != null && versions.containsKey(architecture.getMongoVersion())) {
-                    return true;  // The version already exists
-                }
-            }
-        }
-        return false;
-    }
 }

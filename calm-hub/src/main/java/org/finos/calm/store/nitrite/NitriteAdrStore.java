@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -46,6 +48,7 @@ public class NitriteAdrStore implements AdrStore {
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
     private final ObjectMapper objectMapper;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteAdrStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -125,11 +128,13 @@ public class NitriteAdrStore implements AdrStore {
             throw new AdrParseException();
         }
 
-        int id = counterStore.getNextAdrSequenceValue();
-        Document adrDocument = Document.createDocument()
-                .put(ADR_ID_FIELD, id)
-                .put(REVISIONS_FIELD, Document.createDocument()
-                        .put(String.valueOf(adrMeta.getRevision()), adrStr));
+        lock.lock();
+        try {
+            int id = counterStore.getNextAdrSequenceValue();
+            Document adrDocument = Document.createDocument()
+                    .put(ADR_ID_FIELD, id)
+                    .put(REVISIONS_FIELD, Document.createDocument()
+                            .put(String.valueOf(adrMeta.getRevision()), adrStr));
 
         Filter filter = where(NAMESPACE_FIELD).eq(adrMeta.getNamespace());
         Document namespaceDoc = adrCollection.find(filter).firstOrNull();
@@ -154,8 +159,11 @@ public class NitriteAdrStore implements AdrStore {
             adrCollection.update(filter, namespaceDoc);
         }
 
-        LOG.info("Created ADR with ID {} for namespace '{}'", id, adrMeta.getNamespace());
-        return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).build();
+            LOG.info("Created ADR with ID {} for namespace '{}'", id, adrMeta.getNamespace());
+            return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).build();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

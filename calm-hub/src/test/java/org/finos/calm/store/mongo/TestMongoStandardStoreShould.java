@@ -10,6 +10,7 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.BsonDocument;
@@ -325,6 +326,9 @@ public class TestMongoStandardStoreShould {
         mockSetupStandardDocumentWithVersions();
         CreateStandardRequest standard = standardToStore();
 
+        when(standardCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
+
         assertThrows(StandardVersionExistsException.class, () -> mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.0"));
     }
 
@@ -332,9 +336,13 @@ public class TestMongoStandardStoreShould {
     void accept_the_creation_of_a_valid_version() throws StandardVersionExistsException, StandardNotFoundException, NamespaceNotFoundException {
         mockSetupStandardDocumentWithVersions();
         CreateStandardRequest standard = standardToStore();
+
+        when(standardCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
         mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.1");
 
-        verify(standardCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(standardCollection).updateOne(any(Bson.class), any(Bson.class));
     }
 
     private CreateStandardRequest standardToStore() {

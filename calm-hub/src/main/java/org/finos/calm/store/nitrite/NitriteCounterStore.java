@@ -11,6 +11,9 @@ import org.finos.calm.config.StandaloneQualifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import static org.dizitart.no2.filters.FluentFilter.where;
 
 /**
@@ -39,6 +42,7 @@ public class NitriteCounterStore {
     private static final String COUNTER_TYPE_FIELD = "counter_type";
     private static final String COUNTERS_DOC_TYPE = "main_counters";
 
+    private final Lock lock = new ReentrantLock();
     private final NitriteCollection counterCollection;
 
     @Inject
@@ -163,22 +167,27 @@ public class NitriteCounterStore {
      * @param counterField The counter field name
      * @return The next sequence value
      */
-    private synchronized int nextValueForCounter(String counterField) {
-        Filter filter = where(COUNTER_TYPE_FIELD).eq(COUNTERS_DOC_TYPE);
-        Document countersDoc = counterCollection.find(filter).firstOrNull();
-        
-        if (countersDoc == null) {
-            initializeCountersDocument();
-            countersDoc = counterCollection.find(filter).firstOrNull();
+    private int nextValueForCounter(String counterField) {
+        lock.lock();
+        try {
+            Filter filter = where(COUNTER_TYPE_FIELD).eq(COUNTERS_DOC_TYPE);
+            Document countersDoc = counterCollection.find(filter).firstOrNull();
+
+            if (countersDoc == null) {
+                initializeCountersDocument();
+                countersDoc = counterCollection.find(filter).firstOrNull();
+            }
+
+            Integer currentValue = countersDoc.get(counterField, Integer.class);
+            int nextValue = currentValue == null ? 1 : currentValue + 1;
+
+            countersDoc.put(counterField, nextValue);
+            counterCollection.update(countersDoc);
+
+            LOG.debug("Generated next sequence value {} for counter '{}'", nextValue, counterField);
+            return nextValue;
+        } finally {
+            lock.unlock();
         }
-        
-        Integer currentValue = countersDoc.get(counterField, Integer.class);
-        int nextValue = currentValue == null ? 1 : currentValue + 1;
-        
-        countersDoc.put(counterField, nextValue);
-        counterCollection.update(countersDoc);
-        
-        LOG.debug("Generated next sequence value {} for counter '{}'", nextValue, counterField);
-        return nextValue;
     }
 }

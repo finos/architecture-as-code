@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -33,6 +35,7 @@ public class NitriteCoreSchemaStore implements CoreSchemaStore {
     private static final String SCHEMAS_FIELD = "schemas";
 
     private final NitriteCollection schemaCollection;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteCoreSchemaStore(@StandaloneQualifier Nitrite db) {
@@ -71,18 +74,23 @@ public class NitriteCoreSchemaStore implements CoreSchemaStore {
 
     @Override
     public void createSchemaVersion(String version, Map<String, Object> schemas) {
-        // Check if version already exists
-        Filter filter = where(VERSION_FIELD).eq(version);
-        Document existingDoc = schemaCollection.find(filter).firstOrNull();
-        
-        if (existingDoc == null) {
-            Document schemaDoc = Document.createDocument()
-                    .put(VERSION_FIELD, version)
-                    .put(SCHEMAS_FIELD, schemas);
-            schemaCollection.insert(schemaDoc);
-            LOG.info("Created schema version: {}", version);
-        } else {
-            LOG.debug("Schema version '{}' already exists, skipping creation", version);
+        lock.lock();
+        try {
+            // Check if version already exists
+            Filter filter = where(VERSION_FIELD).eq(version);
+            Document existingDoc = schemaCollection.find(filter).firstOrNull();
+
+            if (existingDoc == null) {
+                Document schemaDoc = Document.createDocument()
+                        .put(VERSION_FIELD, version)
+                        .put(SCHEMAS_FIELD, schemas);
+                schemaCollection.insert(schemaDoc);
+                LOG.info("Created schema version: {}", version);
+            } else {
+                LOG.debug("Schema version '{}' already exists, skipping creation", version);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 }
