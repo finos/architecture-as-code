@@ -249,8 +249,8 @@ public class TestNitriteStandardStoreShould {
         // Assert
         assertThat(result, is(notNullValue()));
         assertThat(result.size(), is(2));
-        assertThat(result, hasItem("1-0-0"));
-        assertThat(result, hasItem("1-1-0"));
+        assertThat(result, hasItem("1.0.0"));
+        assertThat(result, hasItem("1.1.0"));
     }
 
     @Test
@@ -283,7 +283,7 @@ public class TestNitriteStandardStoreShould {
 
         // Mock the versionsDoc with the fields we need
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get("2-0-0", Document.class)).thenReturn(null); // Version not found
+        when(versionsDoc.get("2-0-0", String.class)).thenReturn(null); // Version not found
 
         // Mock the standard document
         Document standardDoc = mock(Document.class);
@@ -316,12 +316,8 @@ public class TestNitriteStandardStoreShould {
         expectedStandard.setVersion("2.0.0");
         expectedStandard.setStandardJson("{}");
 
-        Document versionDoc = mock(Document.class);
-        when(versionDoc.get(eq("standardJson"), any())).thenReturn(expectedStandard.getStandardJson());
-
-        // Mock the versionsDoc with the fields we need
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get(eq("2-0-0"), any())).thenReturn(versionDoc);
+        when(versionsDoc.get(eq("2-0-0"), any())).thenReturn("{}");
 
         // Mock the standard document
         Document standardDoc = mock(Document.class);

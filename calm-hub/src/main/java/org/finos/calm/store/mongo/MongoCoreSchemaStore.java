@@ -1,5 +1,7 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.ErrorCategory;
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -14,6 +16,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * MongoDB-backed implementation of {@link CoreSchemaStore}.
+ *
+ * <h2>Concurrency strategy — idempotent create</h2>
+ * A unique index on {@code schemas.version} (created by {@link MongoIndexInitializer})
+ * prevents duplicate schema versions. Unlike the namespace and domain stores, this class
+ * treats a {@code DUPLICATE_KEY} error as a <em>no-op</em> rather than an error:
+ * if a schema version already exists, the insert is silently ignored. This makes
+ * {@link #createSchemaVersion} idempotent — calling it twice with the same version
+ * has no additional effect and does not throw an exception.
+ *
+ * <p>This is intentional because core schemas are typically loaded during application
+ * bootstrap and may be re-applied on restart.
+ *
+ * @see MongoIndexInitializer
+ */
 @ApplicationScoped
 @Typed(MongoCoreSchemaStore.class)
 public class MongoCoreSchemaStore implements CoreSchemaStore {
@@ -59,17 +77,24 @@ public class MongoCoreSchemaStore implements CoreSchemaStore {
         return null;
     }
 
+    /**
+     * Creates a new schema version document. If the version already exists (detected via
+     * the unique index on {@code schemas.version}), the {@code DUPLICATE_KEY} error is
+     * silently ignored, making this operation idempotent.
+     */
     @Override
     public void createSchemaVersion(String version, Map<String, Object> schemas) {
-        // Check if version already exists
-        Bson filter = Filters.eq("version", version);
-        Document existingDoc = schemaCollection.find(filter).first();
-        
-        if (existingDoc == null) {
+        try {
             Document schemaDoc = new Document()
                     .append("version", version)
                     .append("schemas", schemas);
             schemaCollection.insertOne(schemaDoc);
+        } catch (MongoWriteException e) {
+            if (ErrorCategory.fromErrorCode(e.getError().getCode()) == ErrorCategory.DUPLICATE_KEY) {
+                // Schema version already exists, silently ignore (idempotent create)
+                return;
+            }
+            throw e;
         }
     }
 }

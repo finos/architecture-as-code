@@ -21,6 +21,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * MongoDB-backed implementation of {@link StandardStore}.
+ *
+ * <h2>Document model &amp; concurrency</h2>
+ * Follows the same namespace-scoped document pattern as {@link MongoArchitectureStore}:
+ * one document per namespace (enforced by a unique index on {@code standards.namespace}),
+ * with an array of standard sub-documents. New standards are added via upsert + {@code $push},
+ * and new versions use an atomic conditional update with {@code $elemMatch} /
+ * {@code $exists: false} to prevent duplicate version creation under concurrency.
+ * Unique standard IDs are generated atomically by {@link MongoCounterStore}.
+ *
+ * @see MongoIndexInitializer
+ * @see MongoCounterStore
+ */
 @ApplicationScoped
 @Typed(MongoStandardStore.class)
 public class MongoStandardStore implements StandardStore {
@@ -150,54 +164,28 @@ public class MongoStandardStore implements StandardStore {
 
     @Override
     public Standard createStandardForVersion(CreateStandardRequest standardRequest, String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException {
-        if(!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        // Validates namespace and standard existence
+        getStandardVersions(namespace, standardId);
+        String mongoVersion = version.replace('.', '-');
 
-        if(versionExists(namespace, standardId, version)) {
+        // Atomic conditional update: only succeeds if the version doesn't already exist
+        Document filter = new Document("namespace", namespace)
+                .append("standards", new Document("$elemMatch",
+                        new Document("standardId", standardId)
+                                .append("versions." + mongoVersion, new Document("$exists", false))));
+
+        Document update = new Document("$set", new Document()
+                .append("standards.$.name", standardRequest.getName())
+                .append("standards.$.description", standardRequest.getDescription())
+                .append("standards.$.versions." + mongoVersion, Document.parse(standardRequest.getStandardJson())));
+
+        if (standardCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new StandardVersionExistsException();
         }
 
-        return writeStandardToMongo(standardRequest, namespace, standardId, version);
-    }
-
-    private Standard writeStandardToMongo(CreateStandardRequest createStandardRequest, String namespace, Integer standardId, String version) throws StandardNotFoundException, NamespaceNotFoundException {
-        retrieveStandardVersions(namespace);
-
-        Document standardDocument = Document.parse(createStandardRequest.getStandardJson());
-        Document filter = new Document("namespace", namespace)
-                .append("standards.standardId", standardId);
-
-        Document update = new Document("$set", new Document()
-                .append("standards.$.name", createStandardRequest.getName())
-                .append("standards.$.description", createStandardRequest.getDescription())
-                .append("standards.$.versions." + version.replace('.', '-'), standardDocument));
-
-        try {
-            standardCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
-        } catch (MongoWriteException ex) {
-            throw new StandardNotFoundException();
-        }
-        Standard standard = new Standard(createStandardRequest);
+        Standard standard = new Standard(standardRequest);
         standard.setId(standardId);
         standard.setVersion(version);
         return standard;
-    }
-
-    private boolean versionExists(String namespace, Integer standardId, String version) {
-        Document filter = new Document("namespace", namespace).append("standards.standardId", standardId);
-        Bson projection = Projections.fields(Projections.include("standards.versions." + standardId));
-        Document result = standardCollection.find(filter).projection(projection).first();
-
-        if(result != null) {
-            List<Document> standards = result.getList("standards", Document.class);
-            for (Document standardDoc : standards) {
-                Document versions = (Document) standardDoc.get("versions");
-                if (versions != null && versions.containsKey(version.replace('.', '-'))) {
-                    return true;  // The version already exists
-                }
-            }
-        }
-        return false;
     }
 }

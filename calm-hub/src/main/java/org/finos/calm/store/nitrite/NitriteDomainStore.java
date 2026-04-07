@@ -16,12 +16,22 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
 /**
- * Implementation of the DomainStore interface using NitriteDB.
- * This implementation is used when the application is running in standalone mode.
+ * NitriteDB-backed implementation of {@link DomainStore}, used in standalone mode.
+ *
+ * <h2>Concurrency strategy — ReentrantLock</h2>
+ * Same approach as {@link NitriteNamespaceStore}: a {@link ReentrantLock} serializes
+ * write operations to prevent duplicate domain creation. The lock is held across the
+ * existence check and insert to eliminate the check-then-act race condition.
+ * This is a single-JVM strategy; horizontal scaling requires MongoDB mode.
+ *
+ * @see org.finos.calm.store.mongo.MongoDomainStore MongoDomainStore for the
+ *      contrasting database-enforced uniqueness approach
  */
 @ApplicationScoped
 @Typed(NitriteDomainStore.class)
@@ -32,6 +42,7 @@ public class NitriteDomainStore implements DomainStore {
     private static final String NAME_FIELD = "name";
     
     private final NitriteCollection domainCollection;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteDomainStore(@StandaloneQualifier Nitrite db) {
@@ -50,20 +61,29 @@ public class NitriteDomainStore implements DomainStore {
         return domains;
     }
 
+    /**
+     * Creates a domain, guarded by a {@link ReentrantLock} to prevent concurrent
+     * duplicate creation. The lock is held across the existence check and insert.
+     */
     @Override
     public Domain createDomain(String name) throws DomainAlreadyExistsException {
-        if (domainExists(name)) {
-            LOG.warn("Domain already exists: {}", name);
-            throw new DomainAlreadyExistsException("Domain already exists: " + name);
-        }
+        lock.lock();
+        try {
+            if (domainExists(name)) {
+                LOG.warn("Domain already exists: {}", name);
+                throw new DomainAlreadyExistsException("Domain already exists: " + name);
+            }
 
-        Document domainDocument = Document.createDocument()
-                .put(NAME_FIELD, name);
-        
-        domainCollection.insert(domainDocument);
-        LOG.info("Created domain: {}", name);
-        
-        return new Domain(name);
+            Document domainDocument = Document.createDocument()
+                    .put(NAME_FIELD, name);
+
+            domainCollection.insert(domainDocument);
+            LOG.info("Created domain: {}", name);
+
+            return new Domain(name);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**

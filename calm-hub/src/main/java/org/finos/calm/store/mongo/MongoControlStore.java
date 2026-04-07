@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -25,6 +26,36 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * MongoDB-backed implementation of {@link ControlStore}.
+ *
+ * <h2>Document model</h2>
+ * The {@code controls} collection has <em>one document per domain</em>, enforced by a
+ * unique index on the {@code domain} field (created by {@link MongoIndexInitializer}).
+ * Each document contains a {@code controls} array of control sub-documents. Each control
+ * in turn contains a {@code requirement} map (version → JSON) and a {@code configurations}
+ * array of configuration sub-documents, each with its own versioned content.
+ *
+ * <h2>Concurrency strategy — creating controls</h2>
+ * New controls are added via {@code updateOne} with {@code upsert: true} and {@code $push}.
+ * The unique index on {@code domain} prevents duplicate domain documents. Unique
+ * {@code controlId} and {@code configurationId} values are generated atomically by
+ * {@link MongoCounterStore}.
+ *
+ * <h2>Concurrency strategy — creating requirement/configuration versions</h2>
+ * New versions use an <b>atomic conditional update</b>: the query filter includes
+ * {@code $elemMatch} combined with {@code $exists: false} on the target version key.
+ * If a concurrent request already wrote the version, the filter won't match and
+ * {@code matchedCount == 0} signals a conflict. For deeply nested configuration versions,
+ * the update uses <b>array filters</b> ({@code arrayFilters}) to target the correct
+ * control and configuration sub-documents within the nested arrays.
+ *
+ * <p>This pattern ensures version writes are atomic and conflict-free without requiring
+ * application-level locking.
+ *
+ * @see MongoIndexInitializer
+ * @see MongoCounterStore
+ */
 @ApplicationScoped
 @Typed(MongoControlStore.class)
 public class MongoControlStore implements ControlStore {
@@ -172,22 +203,23 @@ public class MongoControlStore implements ControlStore {
 
     @Override
     public void createRequirementForVersion(String domain, int controlId, String version, String requirementJson) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
-        Document controlDoc = findControl(domain, controlId);
-        Document requirement = (Document) controlDoc.get("requirement");
+        // Validate domain and control exist
+        findControl(domain, controlId);
 
         String mongoVersion = version.replace('.', '-');
 
-        if (requirement != null && requirement.containsKey(mongoVersion)) {
-            throw new ControlRequirementVersionExistsException();
-        }
-
+        // Atomic conditional update: only succeeds if the requirement version doesn't already exist
         Document filter = new Document("domain", domain)
-                .append("controls.controlId", controlId);
+                .append("controls", new Document("$elemMatch",
+                        new Document("controlId", controlId)
+                                .append("requirement." + mongoVersion, new Document("$exists", false))));
 
         Document update = new Document("$set",
                 new Document("controls.$.requirement." + mongoVersion, Document.parse(requirementJson)));
 
-        controlCollection.updateOne(filter, update);
+        if (controlCollection.updateOne(filter, update).getMatchedCount() == 0) {
+            throw new ControlRequirementVersionExistsException();
+        }
     }
 
     @Override
@@ -212,24 +244,43 @@ public class MongoControlStore implements ControlStore {
 
     @Override
     public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, String configurationJson) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
-        Document configDoc = findConfiguration(domain, controlId, configurationId);
-        Document versions = (Document) configDoc.get("versions");
+        // Validate domain, control, and configuration exist
+        findConfiguration(domain, controlId, configurationId);
 
         String mongoVersion = version.replace('.', '-');
 
-        if (versions != null && versions.containsKey(mongoVersion)) {
-            throw new ControlConfigurationVersionExistsException();
-        }
-
-        controlCollection.updateOne(
+        // Atomic conditional update: the query filter uses nested $elemMatch to assert that
+        // the target configuration exists AND the desired version does NOT yet exist.
+        // If a concurrent request already wrote this version, the filter won't match
+        // (matchedCount == 0) and we throw ControlConfigurationVersionExistsException.
+        // Array filters (ctrl, cfg) are used in the update path to target the correct
+        // nested sub-documents without relying on positional operators for multiple levels.
+        Bson filter = Filters.and(
                 Filters.eq("domain", domain),
+                Filters.elemMatch("controls",
+                        Filters.and(
+                                Filters.eq("controlId", controlId),
+                                Filters.elemMatch("configurations",
+                                        Filters.and(
+                                                Filters.eq("configurationId", configurationId),
+                                                Filters.exists("versions." + mongoVersion, false)
+                                        )
+                                )
+                        )
+                )
+        );
+
+        if (controlCollection.updateOne(
+                filter,
                 Updates.set("controls.$[ctrl].configurations.$[cfg].versions." + mongoVersion,
                         Document.parse(configurationJson)),
                 new UpdateOptions().arrayFilters(List.of(
                         Filters.eq("ctrl.controlId", controlId),
                         Filters.eq("cfg.configurationId", configurationId)
                 ))
-        );
+        ).getMatchedCount() == 0) {
+            throw new ControlConfigurationVersionExistsException();
+        }
     }
 
     private Document findControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {

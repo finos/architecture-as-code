@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.NamespaceRequest;
 import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
@@ -55,13 +56,14 @@ public class NamespaceResource {
         String name = request.getName().trim();
         String description = request.getDescription().trim();
 
-        if (namespaceStore.namespaceExists(name)) {
+        try {
+            namespaceStore.createNamespace(name, description);
+        } catch (NamespaceAlreadyExistsException e) {
             return Response.status(Response.Status.CONFLICT)
                     .entity("{\"error\":\"Namespace already exists\"}")
                     .build();
         }
 
-        namespaceStore.createNamespace(name, description);
         return Response.created(new URI("/calm/namespaces/" + name)).build();
     }
 
