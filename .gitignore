@@ -47,12 +47,20 @@ coverage/
 .github/agents
 shared/test-output/
 
+# pnpm (calm-suite projects use pnpm until npm workspace migration)
+calm-suite/**/pnpm-lock.yaml
+
 # Next.js
 .next/
 next-env.d.ts
 
 # SvelteKit
 .svelte-kit/
+**/build/
+
+# Docusaurus (sub-projects)
+**/.docusaurus/
+**/docs-site/docs/api/
 
 # Tauri/Rust build output
 **/src-tauri/target/
