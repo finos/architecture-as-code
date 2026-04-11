@@ -118,12 +118,12 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/finos-labs/dtcch-2026-opsflow-llc',
+              href: 'https://github.com/finos/architecture-as-code/tree/main/calm-suite/calm-guard',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} CALMGuard — Built for DTCC/FINOS Innovate Hackathon 2026. MIT License.`,
+      copyright: `Copyright © ${new Date().getFullYear()} CALMGuard — FINOS Architecture as Code. Apache-2.0 License.`,
     },
     prism: {
       theme: prismThemes.github,
