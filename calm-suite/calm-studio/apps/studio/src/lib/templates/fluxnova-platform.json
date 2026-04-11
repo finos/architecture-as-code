@@ -1,0 +1,195 @@
+{
+  "_template": {
+    "id": "fluxnova-platform",
+    "name": "FluxNova: Platform",
+    "description": "Base FluxNova BPM platform deployment topology with engine, web apps, REST API, and process database",
+    "category": "fluxnova",
+    "tags": ["fluxnova", "bpm", "bpmn", "platform", "financial-services"],
+    "version": "1.0.0",
+    "author": "CalmStudio Contributors",
+    "sourceRef": "finos/fluxnova-bpm-platform"
+  },
+  "nodes": [
+    {
+      "unique-id": "fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment comprising engine, web applications, REST API, and process database"
+    },
+    {
+      "unique-id": "fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 process execution engine responsible for orchestrating workflows, managing process state, and executing service tasks",
+      "controls": {
+        "audit-logging": {
+          "description": "All process execution events, variable changes, and task assignments are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing 200+ endpoints for process deployment, task management, variable access, and external system integration (OpenAPI documented)",
+      "interfaces": [
+        {
+          "unique-id": "rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring and operations dashboard providing real-time visibility into running process instances, incidents, and batch operations",
+      "interfaces": [
+        {
+          "unique-id": "cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for user, group, and tenant administration, authorization configuration, and system settings",
+      "interfaces": [
+        {
+          "unique-id": "admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task assignment and lifecycle management UI enabling human task claiming, completion, and delegation within BPMN workflows",
+      "interfaces": [
+        {
+          "unique-id": "tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing process definitions, runtime state, history, job executor data, and audit logs",
+      "interfaces": [
+        {
+          "unique-id": "process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "engine-to-process-db",
+      "relationship-type": "connects",
+      "source": "fluxnova-engine",
+      "destination": "fluxnova-process-db",
+      "protocol": "JDBC",
+      "description": "Engine persists process state, history, and audit data to the process database",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+          "requirements": [
+            {
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "rest-api-to-engine",
+      "relationship-type": "connects",
+      "source": "fluxnova-rest-api",
+      "destination": "fluxnova-engine",
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "cockpit-to-rest-api",
+      "relationship-type": "connects",
+      "source": "fluxnova-cockpit",
+      "destination": "fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Cockpit queries process instances, incidents, and deployments via the REST API"
+    },
+    {
+      "unique-id": "admin-to-rest-api",
+      "relationship-type": "connects",
+      "source": "fluxnova-admin",
+      "destination": "fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Admin manages users, groups, authorizations, and system configuration via the REST API"
+    },
+    {
+      "unique-id": "tasklist-to-rest-api",
+      "relationship-type": "connects",
+      "source": "fluxnova-tasklist",
+      "destination": "fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human tasks via the REST API"
+    },
+    {
+      "unique-id": "platform-has-engine",
+      "relationship-type": "composed-of",
+      "source": "fluxnova-platform",
+      "destination": "fluxnova-engine",
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "platform-has-rest-api",
+      "relationship-type": "composed-of",
+      "source": "fluxnova-platform",
+      "destination": "fluxnova-rest-api",
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "platform-has-cockpit",
+      "relationship-type": "composed-of",
+      "source": "fluxnova-platform",
+      "destination": "fluxnova-cockpit",
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "platform-has-admin",
+      "relationship-type": "composed-of",
+      "source": "fluxnova-platform",
+      "destination": "fluxnova-admin",
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "platform-has-tasklist",
+      "relationship-type": "composed-of",
+      "source": "fluxnova-platform",
+      "destination": "fluxnova-tasklist",
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "platform-has-process-db",
+      "relationship-type": "composed-of",
+      "source": "fluxnova-platform",
+      "destination": "fluxnova-process-db",
+      "description": "FluxNova platform contains the process database"
+    }
+  ]
+}

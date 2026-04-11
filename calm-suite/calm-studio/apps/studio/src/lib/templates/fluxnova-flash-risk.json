@@ -1,0 +1,315 @@
+{
+  "_template": {
+    "id": "fluxnova-flash-risk",
+    "name": "FluxNova: Flash Risk Management",
+    "description": "Real-time flash risk management blueprint with on-premise and cloud compute, aggregation, and auto-provisioning for latency-sensitive financial risk calculations",
+    "category": "fluxnova",
+    "tags": ["fluxnova", "risk", "flash-risk", "hybrid-cloud", "financial-services", "real-time"],
+    "version": "1.0.0",
+    "author": "CalmStudio Contributors",
+    "sourceRef": "finos/fluxnova-examples/process-examples/financial-services/risk/flash-risk"
+  },
+  "nodes": [
+    {
+      "unique-id": "fr-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the flash risk orchestration process"
+    },
+    {
+      "unique-id": "fr-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating the flash risk calculation workflow, dispatching tasks to on-premise and cloud compute nodes",
+      "controls": {
+        "audit-logging": {
+          "description": "All risk calculation dispatches, results, and exceptions are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "fr-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing endpoints for risk process deployment, external task worker integration, and risk result retrieval",
+      "interfaces": [
+        {
+          "unique-id": "fr-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard providing real-time visibility into risk calculation instances, incidents, and batch operations",
+      "interfaces": [
+        {
+          "unique-id": "fr-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for user, group, and tenant administration for the risk management platform",
+      "interfaces": [
+        {
+          "unique-id": "fr-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task assignment UI for human review and exception handling in risk calculation workflows",
+      "interfaces": [
+        {
+          "unique-id": "fr-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing risk process definitions, runtime state, history, and audit logs",
+      "interfaces": [
+        {
+          "unique-id": "fr-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-risk-compute-onprem",
+      "node-type": "service",
+      "name": "On-Premise Risk Engine",
+      "description": "On-premise risk computation engine for latency-sensitive calculations requiring sub-millisecond response times and access to co-located market data feeds",
+      "data-classification": "Confidential",
+      "controls": {
+        "data-classification": {
+          "description": "Risk computation results are classified Confidential — position data, P&L, and risk factors must not leave the secure perimeter",
+          "requirements": [
+            {
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "fr-onprem-compute-endpoint",
+          "type": "host-port",
+          "value": "risk-compute-onprem:8080"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-risk-compute-cloud",
+      "node-type": "service",
+      "name": "Cloud Risk Engine",
+      "description": "Cloud-based risk computation engine for burst capacity scaling during high-volatility market events when on-premise capacity is exhausted",
+      "data-classification": "Confidential",
+      "controls": {
+        "data-classification": {
+          "description": "Cloud risk computations handle Confidential position data — encryption in transit and at rest is mandatory",
+          "requirements": [
+            {
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+            }
+          ]
+        },
+        "encryption-in-transit": {
+          "description": "All position data sent to cloud compute is encrypted in transit using TLS 1.3 minimum",
+          "requirements": [
+            {
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#cloud-encryption"
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "fr-cloud-compute-endpoint",
+          "type": "url",
+          "value": "https://risk-compute-cloud.internal/compute"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-risk-aggregation-svc",
+      "node-type": "service",
+      "name": "Risk Aggregation Service",
+      "description": "Aggregates risk results from on-premise and cloud compute nodes, merges partial risk vectors, and produces consolidated real-time risk reports",
+      "interfaces": [
+        {
+          "unique-id": "fr-aggregation-endpoint",
+          "type": "host-port",
+          "value": "risk-aggregation-svc:8081"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-cloud-provisioner",
+      "node-type": "service",
+      "name": "Cloud Provisioner",
+      "description": "Auto-provisions cloud compute instances based on market volatility signals, scaling out when VIX or realized volatility exceeds configured thresholds",
+      "interfaces": [
+        {
+          "unique-id": "fr-provisioner-endpoint",
+          "type": "url",
+          "value": "https://cloud-provisioner.internal/provision"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "fr-engine-to-process-db",
+      "relationship-type": "connects",
+      "source": "fr-fluxnova-engine",
+      "destination": "fr-fluxnova-process-db",
+      "protocol": "JDBC",
+      "description": "Engine persists risk process state, history, and audit data to the process database"
+    },
+    {
+      "unique-id": "fr-rest-api-to-engine",
+      "relationship-type": "connects",
+      "source": "fr-fluxnova-rest-api",
+      "destination": "fr-fluxnova-engine",
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "fr-cockpit-to-rest-api",
+      "relationship-type": "connects",
+      "source": "fr-fluxnova-cockpit",
+      "destination": "fr-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Cockpit queries risk process instances and incidents via the REST API"
+    },
+    {
+      "unique-id": "fr-admin-to-rest-api",
+      "relationship-type": "connects",
+      "source": "fr-fluxnova-admin",
+      "destination": "fr-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Admin manages users, authorizations, and risk platform configuration via the REST API"
+    },
+    {
+      "unique-id": "fr-tasklist-to-rest-api",
+      "relationship-type": "connects",
+      "source": "fr-fluxnova-tasklist",
+      "destination": "fr-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human exception-handling tasks via the REST API"
+    },
+    {
+      "unique-id": "fr-platform-has-engine",
+      "relationship-type": "composed-of",
+      "source": "fr-fluxnova-platform",
+      "destination": "fr-fluxnova-engine",
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "fr-platform-has-rest-api",
+      "relationship-type": "composed-of",
+      "source": "fr-fluxnova-platform",
+      "destination": "fr-fluxnova-rest-api",
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "fr-platform-has-cockpit",
+      "relationship-type": "composed-of",
+      "source": "fr-fluxnova-platform",
+      "destination": "fr-fluxnova-cockpit",
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "fr-platform-has-admin",
+      "relationship-type": "composed-of",
+      "source": "fr-fluxnova-platform",
+      "destination": "fr-fluxnova-admin",
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "fr-platform-has-tasklist",
+      "relationship-type": "composed-of",
+      "source": "fr-fluxnova-platform",
+      "destination": "fr-fluxnova-tasklist",
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "fr-platform-has-process-db",
+      "relationship-type": "composed-of",
+      "source": "fr-fluxnova-platform",
+      "destination": "fr-fluxnova-process-db",
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "fr-engine-to-onprem-compute",
+      "relationship-type": "connects",
+      "source": "fr-fluxnova-engine",
+      "destination": "fr-risk-compute-onprem",
+      "protocol": "HTTPS",
+      "description": "Engine dispatches risk calculation tasks to the on-premise compute engine for low-latency position risk calculations"
+    },
+    {
+      "unique-id": "fr-engine-to-cloud-compute",
+      "relationship-type": "connects",
+      "source": "fr-fluxnova-engine",
+      "destination": "fr-risk-compute-cloud",
+      "protocol": "HTTPS",
+      "description": "Engine dispatches burst risk calculation tasks to the cloud compute engine when on-premise capacity is exceeded"
+    },
+    {
+      "unique-id": "fr-onprem-to-aggregation",
+      "relationship-type": "connects",
+      "source": "fr-risk-compute-onprem",
+      "destination": "fr-risk-aggregation-svc",
+      "protocol": "HTTPS",
+      "description": "On-premise compute pushes partial risk vectors to the aggregation service for consolidation"
+    },
+    {
+      "unique-id": "fr-cloud-to-aggregation",
+      "relationship-type": "connects",
+      "source": "fr-risk-compute-cloud",
+      "destination": "fr-risk-aggregation-svc",
+      "protocol": "HTTPS",
+      "description": "Cloud compute pushes burst risk results to the aggregation service for consolidation"
+    },
+    {
+      "unique-id": "fr-provisioner-to-cloud-compute",
+      "relationship-type": "connects",
+      "source": "fr-cloud-provisioner",
+      "destination": "fr-risk-compute-cloud",
+      "protocol": "HTTPS",
+      "description": "Provisioner scales cloud compute instances up or down based on real-time volatility signals"
+    },
+    {
+      "unique-id": "fr-engine-to-provisioner",
+      "relationship-type": "connects",
+      "source": "fr-fluxnova-engine",
+      "destination": "fr-cloud-provisioner",
+      "protocol": "HTTPS",
+      "description": "Engine signals the provisioner to scale cloud capacity when market volatility triggers burst mode"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ module.exports = {
         'calm-hub-ui',
         'docs',
         'vscode',
+        'calm-suite',
         'deps',
         'ci',
         'release'

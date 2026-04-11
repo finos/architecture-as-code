@@ -1,0 +1,153 @@
+{
+  "_template": {
+    "id": "opengris-market-risk",
+    "name": "OpenGRIS: Market Risk (Waterfall)",
+    "description": "Financial risk calculation with waterfall scaling — burst on-premise first, overflow to ECS cloud. Priority 1 native workers handle primary load; priority 2 ECS handles burst.",
+    "category": "opengris",
+    "tags": ["opengris", "market-risk", "waterfall", "ecs", "financial-services", "hybrid-cloud"],
+    "version": "1.0.0",
+    "author": "CalmStudio Contributors"
+  },
+  "nodes": [
+    {
+      "unique-id": "ogmr-scheduler",
+      "node-type": "opengris:scheduler",
+      "name": "Risk Scheduler",
+      "description": "OpenGRIS Scaler scheduler dispatching market risk calculation tasks across on-premise and cloud worker pools",
+      "customMetadata": {
+        "scheduler_address": "tcp://10.0.0.10:8516"
+      }
+    },
+    {
+      "unique-id": "ogmr-worker-1",
+      "node-type": "opengris:worker",
+      "name": "Risk Worker 1",
+      "description": "On-premise compute worker for latency-sensitive market risk calculations"
+    },
+    {
+      "unique-id": "ogmr-worker-2",
+      "node-type": "opengris:worker",
+      "name": "Risk Worker 2",
+      "description": "On-premise compute worker for latency-sensitive market risk calculations"
+    },
+    {
+      "unique-id": "ogmr-worker-3",
+      "node-type": "opengris:worker",
+      "name": "Risk Worker 3",
+      "description": "On-premise compute worker for latency-sensitive market risk calculations"
+    },
+    {
+      "unique-id": "ogmr-worker-4",
+      "node-type": "opengris:worker",
+      "name": "Risk Worker 4",
+      "description": "On-premise compute worker for latency-sensitive market risk calculations"
+    },
+    {
+      "unique-id": "ogmr-worker-manager-native",
+      "node-type": "opengris:worker-manager",
+      "name": "On-Premise Worker Manager",
+      "description": "Native worker manager — primary tier in the waterfall, handles on-premise compute capacity (priority 1)",
+      "customMetadata": {
+        "manager_type": "native",
+        "priority": "1",
+        "max_workers": "8"
+      }
+    },
+    {
+      "unique-id": "ogmr-worker-manager-ecs",
+      "node-type": "opengris:worker-manager",
+      "name": "ECS Burst Worker Manager",
+      "description": "AWS ECS worker manager — secondary tier in the waterfall, handles burst overflow when on-premise capacity is exhausted (priority 2)",
+      "customMetadata": {
+        "manager_type": "ecs",
+        "priority": "2",
+        "ecs_cluster": "risk-scaler-cluster",
+        "ecs_task_definition": "scaler-worker"
+      }
+    },
+    {
+      "unique-id": "ogmr-object-storage",
+      "node-type": "opengris:object-storage",
+      "name": "Risk Object Store",
+      "description": "Object storage for market risk task inputs (portfolios, market data) and outputs (risk vectors, P&L)",
+      "customMetadata": {
+        "storage_address": "tcp://10.0.0.10:8517"
+      }
+    },
+    {
+      "unique-id": "ogmr-client",
+      "node-type": "opengris:client",
+      "name": "Risk Engine Client",
+      "description": "Risk engine client submitting portfolio batches to Scaler for distributed market risk calculation",
+      "customMetadata": {
+        "client_address": "tcp://10.0.0.100:9000"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ogmr-client-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmr-client",
+      "destination": "ogmr-scheduler",
+      "protocol": "TCP",
+      "description": "Risk engine client submits market risk calculation tasks to the scheduler (ZeroMQ TCP)"
+    },
+    {
+      "unique-id": "ogmr-scheduler-to-object-storage",
+      "relationship-type": "connects",
+      "source": "ogmr-scheduler",
+      "destination": "ogmr-object-storage",
+      "protocol": "TCP",
+      "description": "Scheduler reads portfolio inputs and writes risk results via object store"
+    },
+    {
+      "unique-id": "ogmr-worker-1-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmr-worker-1",
+      "destination": "ogmr-scheduler",
+      "protocol": "TCP",
+      "description": "Worker receives risk tasks and returns results to the scheduler (ZeroMQ TCP)"
+    },
+    {
+      "unique-id": "ogmr-worker-2-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmr-worker-2",
+      "destination": "ogmr-scheduler",
+      "protocol": "TCP",
+      "description": "Worker receives risk tasks and returns results to the scheduler (ZeroMQ TCP)"
+    },
+    {
+      "unique-id": "ogmr-worker-3-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmr-worker-3",
+      "destination": "ogmr-scheduler",
+      "protocol": "TCP",
+      "description": "Worker receives risk tasks and returns results to the scheduler (ZeroMQ TCP)"
+    },
+    {
+      "unique-id": "ogmr-worker-4-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmr-worker-4",
+      "destination": "ogmr-scheduler",
+      "protocol": "TCP",
+      "description": "Worker receives risk tasks and returns results to the scheduler (ZeroMQ TCP)"
+    },
+    {
+      "unique-id": "ogmr-native-manager-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmr-worker-manager-native",
+      "destination": "ogmr-scheduler",
+      "protocol": "TCP",
+      "description": "Native worker manager registers with scheduler; spawns on-premise workers as first waterfall tier"
+    },
+    {
+      "unique-id": "ogmr-ecs-manager-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmr-worker-manager-ecs",
+      "destination": "ogmr-scheduler",
+      "protocol": "TCP",
+      "description": "ECS worker manager registers with scheduler; launches ECS tasks as second waterfall tier when on-premise is saturated"
+    }
+  ]
+}

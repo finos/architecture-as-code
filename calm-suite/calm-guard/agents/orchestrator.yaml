@@ -1,0 +1,23 @@
+apiVersion: calmguard/v1
+kind: Agent
+metadata:
+  name: orchestrator
+  displayName: Orchestrator
+  icon: brain
+  color: "#8b5cf6"
+spec:
+  role: |
+    Coordinate multi-agent analysis of CALM architectures. Orchestrate parallel Phase 1
+    execution (Architecture Analyzer, Compliance Mapper, Pipeline Generator) followed by
+    sequential Phase 2 aggregation (Risk Scorer). Manage agent lifecycle, event streaming,
+    and result aggregation.
+  model:
+    provider: google
+    model: gemini-2.5-flash
+    temperature: 0.1
+  skills: []
+  inputs:
+    - type: parsed-architecture
+  outputs:
+    - type: analysis-result
+  maxTokens: 4096
