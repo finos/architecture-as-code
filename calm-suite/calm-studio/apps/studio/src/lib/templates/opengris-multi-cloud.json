@@ -1,0 +1,115 @@
+{
+  "_template": {
+    "id": "opengris-multi-cloud",
+    "name": "OpenGRIS: Multi-Cloud (3-Tier Waterfall)",
+    "description": "Enterprise deployment with three-tier waterfall — native on-premise (priority 1), AWS ECS burst (priority 2), and Symphony HPC overflow (priority 3). Maximum elasticity across cloud providers.",
+    "category": "opengris",
+    "tags": ["opengris", "multi-cloud", "waterfall", "enterprise", "ecs", "symphony", "three-tier"],
+    "version": "1.0.0",
+    "author": "CalmStudio Contributors"
+  },
+  "nodes": [
+    {
+      "unique-id": "ogmc-scheduler",
+      "node-type": "opengris:scheduler",
+      "name": "Enterprise Scheduler",
+      "description": "OpenGRIS Scaler scheduler orchestrating compute across three worker manager tiers — native, ECS, and Symphony",
+      "customMetadata": {
+        "scheduler_address": "tcp://10.0.0.10:8516"
+      }
+    },
+    {
+      "unique-id": "ogmc-worker-manager-native",
+      "node-type": "opengris:worker-manager",
+      "name": "On-Premise Worker Manager",
+      "description": "Native worker manager — first tier in the 3-tier waterfall, handles on-premise compute with lowest latency (priority 1)",
+      "customMetadata": {
+        "manager_type": "native",
+        "priority": "1",
+        "max_workers": "16"
+      }
+    },
+    {
+      "unique-id": "ogmc-worker-manager-ecs",
+      "node-type": "opengris:worker-manager",
+      "name": "ECS Burst Worker Manager",
+      "description": "AWS ECS worker manager — second tier in the 3-tier waterfall, handles burst overflow from on-premise (priority 2)",
+      "customMetadata": {
+        "manager_type": "ecs",
+        "priority": "2",
+        "ecs_cluster": "enterprise-scaler-cluster",
+        "ecs_task_definition": "scaler-worker"
+      }
+    },
+    {
+      "unique-id": "ogmc-worker-manager-symphony",
+      "node-type": "opengris:worker-manager",
+      "name": "Symphony HPC Worker Manager",
+      "description": "IBM Symphony worker manager — third tier in the 3-tier waterfall, handles high-volume HPC overflow from ECS (priority 3)",
+      "customMetadata": {
+        "manager_type": "symphony",
+        "priority": "3"
+      }
+    },
+    {
+      "unique-id": "ogmc-object-storage",
+      "node-type": "opengris:object-storage",
+      "name": "Enterprise Object Store",
+      "description": "Shared object storage for task payloads, intermediate results, and outputs across all compute tiers",
+      "customMetadata": {
+        "storage_address": "tcp://10.0.0.10:8517"
+      }
+    },
+    {
+      "unique-id": "ogmc-client",
+      "node-type": "opengris:client",
+      "name": "Enterprise Client",
+      "description": "Enterprise application client submitting high-volume computation jobs to the multi-cloud Scaler deployment",
+      "customMetadata": {
+        "client_address": "tcp://10.0.0.200:9000"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ogmc-client-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmc-client",
+      "destination": "ogmc-scheduler",
+      "protocol": "TCP",
+      "description": "Enterprise client submits computation jobs to the scheduler (ZeroMQ TCP)"
+    },
+    {
+      "unique-id": "ogmc-scheduler-to-object-storage",
+      "relationship-type": "connects",
+      "source": "ogmc-scheduler",
+      "destination": "ogmc-object-storage",
+      "protocol": "TCP",
+      "description": "Scheduler reads task inputs and writes results via shared object store"
+    },
+    {
+      "unique-id": "ogmc-native-manager-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmc-worker-manager-native",
+      "destination": "ogmc-scheduler",
+      "protocol": "TCP",
+      "description": "Native worker manager registers with scheduler as first waterfall tier; spawns on-premise workers"
+    },
+    {
+      "unique-id": "ogmc-ecs-manager-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmc-worker-manager-ecs",
+      "destination": "ogmc-scheduler",
+      "protocol": "TCP",
+      "description": "ECS worker manager registers with scheduler as second waterfall tier; launches ECS tasks on demand"
+    },
+    {
+      "unique-id": "ogmc-symphony-manager-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogmc-worker-manager-symphony",
+      "destination": "ogmc-scheduler",
+      "protocol": "TCP",
+      "description": "Symphony worker manager registers with scheduler as third waterfall tier; submits jobs to Symphony cluster"
+    }
+  ]
+}

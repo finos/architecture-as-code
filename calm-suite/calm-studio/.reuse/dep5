@@ -1,0 +1,24 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: calmstudio
+Upstream-Contact: https://github.com/finos/calmstudio
+Source: https://github.com/finos/calmstudio
+
+Files: *.json *.yaml *.yml pnpm-lock.yaml .npmrc .gitignore .gitattributes
+Copyright: 2024 CalmStudio contributors - see NOTICE file
+License: Apache-2.0
+
+Files: *.png *.svg *.ico *.jpg *.jpeg *.gif *.webp
+Copyright: 2024 CalmStudio contributors - see NOTICE file
+License: Apache-2.0
+
+Files: .planning/*
+Copyright: 2024 CalmStudio contributors - see NOTICE file
+License: Apache-2.0
+
+Files: .husky/*
+Copyright: 2024 CalmStudio contributors - see NOTICE file
+License: Apache-2.0
+
+Files: NOTICE LICENSES/* LICENSE
+Copyright: 2024 CalmStudio contributors - see NOTICE file
+License: Apache-2.0

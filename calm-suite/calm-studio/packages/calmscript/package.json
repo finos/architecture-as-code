@@ -1,0 +1,13 @@
+{
+  "name": "@calmstudio/calmscript",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo \"no-op\" && exit 0",
+    "lint": "echo \"no-op\" && exit 0",
+    "test": "echo \"no-op\" && exit 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {}
+}

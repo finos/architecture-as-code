@@ -1,0 +1,37 @@
+{
+  "name": "@calmstudio/mcp",
+  "version": "0.0.0",
+  "private": false,
+  "type": "module",
+  "bin": {
+    "calmstudio-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && chmod 755 dist/index.js",
+    "build:bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs --external:elkjs-svg",
+    "build:sidecar": "pnpm build:bundle && pnpm dlx @yao-pkg/pkg dist/bundle.cjs --targets node20-macos-arm64,node20-macos-x64,node20-linux-x64,node20-win-x64 --output dist/calmstudio-mcp",
+    "build:sidecar-local": "pnpm build:bundle && pnpm dlx @yao-pkg/pkg dist/bundle.cjs --targets node20-macos-arm64 --output dist/calmstudio-mcp",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"no-op\" && exit 0"
+  },
+  "dependencies": {
+    "@calmstudio/calm-core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "elkjs": "^0.11.1",
+    "elkjs-svg": "latest",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@calmstudio/calm-core": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "3.2.4",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.8"
+  }
+}

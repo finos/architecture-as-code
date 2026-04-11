@@ -1,0 +1,122 @@
+{
+  "_template": {
+    "id": "opengris-local-dev",
+    "name": "OpenGRIS: Local Dev Cluster",
+    "description": "Single-machine Scaler deployment for local development and testing. Runs scheduler, object store, and workers on localhost with native process management.",
+    "category": "opengris",
+    "tags": ["opengris", "local-dev", "scaler", "native", "development"],
+    "version": "1.0.0",
+    "author": "CalmStudio Contributors"
+  },
+  "nodes": [
+    {
+      "unique-id": "ogld-cluster",
+      "node-type": "opengris:cluster",
+      "name": "Local Dev Cluster",
+      "description": "Single-machine OpenGRIS cluster container for local development and testing"
+    },
+    {
+      "unique-id": "ogld-scheduler",
+      "node-type": "opengris:scheduler",
+      "name": "Local Scheduler",
+      "description": "OpenGRIS Scaler scheduler coordinating task dispatch to local workers",
+      "customMetadata": {
+        "scheduler_address": "tcp://127.0.0.1:8516"
+      }
+    },
+    {
+      "unique-id": "ogld-worker-1",
+      "node-type": "opengris:worker",
+      "name": "Worker 1",
+      "description": "Local compute worker process for task execution"
+    },
+    {
+      "unique-id": "ogld-worker-2",
+      "node-type": "opengris:worker",
+      "name": "Worker 2",
+      "description": "Local compute worker process for task execution"
+    },
+    {
+      "unique-id": "ogld-object-storage",
+      "node-type": "opengris:object-storage",
+      "name": "Local Object Store",
+      "description": "In-process object storage for task inputs, outputs, and intermediate data",
+      "customMetadata": {
+        "storage_address": "tcp://127.0.0.1:8517"
+      }
+    },
+    {
+      "unique-id": "ogld-worker-manager",
+      "node-type": "opengris:worker-manager",
+      "name": "Native Worker Manager",
+      "description": "Native process worker manager — spawns worker processes on the local machine",
+      "customMetadata": {
+        "manager_type": "native",
+        "priority": "1",
+        "max_workers": "4"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ogld-cluster-has-scheduler",
+      "relationship-type": "composed-of",
+      "source": "ogld-cluster",
+      "destination": "ogld-scheduler",
+      "description": "Cluster contains the scheduler"
+    },
+    {
+      "unique-id": "ogld-cluster-has-worker-1",
+      "relationship-type": "composed-of",
+      "source": "ogld-cluster",
+      "destination": "ogld-worker-1",
+      "description": "Cluster contains worker 1"
+    },
+    {
+      "unique-id": "ogld-cluster-has-worker-2",
+      "relationship-type": "composed-of",
+      "source": "ogld-cluster",
+      "destination": "ogld-worker-2",
+      "description": "Cluster contains worker 2"
+    },
+    {
+      "unique-id": "ogld-cluster-has-object-storage",
+      "relationship-type": "composed-of",
+      "source": "ogld-cluster",
+      "destination": "ogld-object-storage",
+      "description": "Cluster contains the object storage service"
+    },
+    {
+      "unique-id": "ogld-scheduler-to-object-storage",
+      "relationship-type": "connects",
+      "source": "ogld-scheduler",
+      "destination": "ogld-object-storage",
+      "protocol": "TCP",
+      "description": "Scheduler reads and writes task data via the object store (ZeroMQ TCP)"
+    },
+    {
+      "unique-id": "ogld-worker-1-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogld-worker-1",
+      "destination": "ogld-scheduler",
+      "protocol": "TCP",
+      "description": "Worker 1 receives tasks from and reports results to the scheduler (ZeroMQ TCP)"
+    },
+    {
+      "unique-id": "ogld-worker-2-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogld-worker-2",
+      "destination": "ogld-scheduler",
+      "protocol": "TCP",
+      "description": "Worker 2 receives tasks from and reports results to the scheduler (ZeroMQ TCP)"
+    },
+    {
+      "unique-id": "ogld-worker-manager-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogld-worker-manager",
+      "destination": "ogld-scheduler",
+      "protocol": "TCP",
+      "description": "Native worker manager registers with scheduler and spawns local worker processes on demand"
+    }
+  ]
+}

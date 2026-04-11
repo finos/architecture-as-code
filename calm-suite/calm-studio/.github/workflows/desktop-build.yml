@@ -1,0 +1,145 @@
+# SPDX-FileCopyrightText: 2024 FINOS CalmStudio Contributors
+# SPDX-License-Identifier: Apache-2.0
+
+name: Desktop Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: 'Create as draft release'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-sidecar:
+    name: Build MCP Sidecar (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: node20-macos-arm64
+            triple: aarch64-apple-darwin
+          - os: macos-13
+            target: node20-macos-x64
+            triple: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            target: node20-linux-x64
+            triple: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: node20-win-x64
+            triple: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @calmstudio/calm-core build
+      - name: Build sidecar
+        run: |
+          cd packages/mcp-server
+          pnpm build:bundle
+          pnpm dlx @yao-pkg/pkg dist/bundle.cjs --target ${{ matrix.target }} --output dist/calmstudio-mcp
+      - name: Rename with target triple
+        shell: bash
+        run: |
+          cd packages/mcp-server/dist
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            mv calmstudio-mcp.exe calmstudio-mcp-${{ matrix.triple }}.exe
+          else
+            mv calmstudio-mcp calmstudio-mcp-${{ matrix.triple }}
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-${{ matrix.triple }}
+          path: packages/mcp-server/dist/calmstudio-mcp-*
+
+  build-desktop:
+    name: Build Desktop (${{ matrix.triple }})
+    needs: build-sidecar
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            args: --target aarch64-apple-darwin
+            triple: aarch64-apple-darwin
+          - os: macos-13
+            args: --target x86_64-apple-darwin
+            triple: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            args: ''
+            triple: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            args: ''
+            triple: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/studio/src-tauri
+
+      - name: Download sidecar binary
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ matrix.triple }}
+          path: apps/studio/src-tauri/binaries/
+
+      - name: Make sidecar executable
+        if: runner.os != 'Windows'
+        run: chmod +x apps/studio/src-tauri/binaries/calmstudio-mcp-*
+
+      - name: Build desktop app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/studio
+          tauriScript: pnpm tauri
+          args: ${{ matrix.args }}
+          tagName: ${{ github.ref_name }}
+          releaseName: 'CalmStudio ${{ github.ref_name }}'
+          releaseBody: 'See the [changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.'
+          releaseDraft: ${{ github.event.inputs.draft || 'false' }}
+          prerelease: false

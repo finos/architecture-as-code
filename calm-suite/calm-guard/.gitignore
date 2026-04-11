@@ -1,0 +1,76 @@
+# .gitignore
+#
+#   This file specifies intentionally untracked files that Git should ignore.
+#
+#   Alternatively, see the collection of .gitignore templates
+#       https://github.com/github/gitignore
+
+# macOS-specific
+.DS_Store
+
+# Build directories
+dist
+site
+html
+
+# Virtual environments
+venv
+
+# Miscellaneous
+.idea
+.vscode
+
+# Python directories
+__pycache__
+*.pyc
+*.tmp
+.pytest_cache
+
+# MSFT Office
+~$*.*
+
+# dependencies
+/node_modules
+/.planning/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env files
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# presentation research (private)
+/presentation/
+

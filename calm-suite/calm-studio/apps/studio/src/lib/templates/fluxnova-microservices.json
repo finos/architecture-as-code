@@ -1,0 +1,308 @@
+{
+  "_template": {
+    "id": "fluxnova-microservices",
+    "name": "FluxNova: Microservices Orchestration",
+    "description": "FluxNova BPM orchestrating microservices via the external task worker pattern — payment, notification, and fraud-check workers with an async event bus and API gateway",
+    "category": "fluxnova",
+    "tags": ["fluxnova", "microservices", "external-tasks", "event-driven", "financial-services", "payments"],
+    "version": "1.0.0",
+    "author": "CalmStudio Contributors",
+    "sourceRef": "finos/fluxnova-examples/process-examples/financial-services/microservices-orchestration"
+  },
+  "nodes": [
+    {
+      "unique-id": "ms-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the microservices orchestration process"
+    },
+    {
+      "unique-id": "ms-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating microservice workers via the external task pattern — coordinates payment, notification, and fraud-check service tasks",
+      "controls": {
+        "audit-logging": {
+          "description": "All worker task assignments, completions, and failures are recorded in an immutable audit log for payment traceability",
+          "requirements": [
+            {
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ms-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing external task fetch-and-lock, complete, and failure endpoints for worker microservices",
+      "interfaces": [
+        {
+          "unique-id": "ms-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard for payment process instances, worker throughput, queue depths, and failed tasks",
+      "interfaces": [
+        {
+          "unique-id": "ms-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for worker registration, user administration, and payment platform configuration",
+      "interfaces": [
+        {
+          "unique-id": "ms-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Human task UI for payment exception handling, fraud review escalations, and manual approval workflows",
+      "interfaces": [
+        {
+          "unique-id": "ms-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing payment process definitions, runtime state, external task queues, and audit logs",
+      "interfaces": [
+        {
+          "unique-id": "ms-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-payment-worker",
+      "node-type": "fluxnova:external-task-worker",
+      "name": "Payment Worker",
+      "description": "External task worker microservice that processes payment transaction tasks — polls the FluxNova engine for tasks, executes payment settlement, and reports completion",
+      "interfaces": [
+        {
+          "unique-id": "ms-payment-worker-endpoint",
+          "type": "url",
+          "value": "https://payment-worker.internal/health"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-notification-worker",
+      "node-type": "fluxnova:external-task-worker",
+      "name": "Notification Worker",
+      "description": "External task worker microservice that handles notification delivery tasks — sends SMS, email, and push notifications based on process variables",
+      "interfaces": [
+        {
+          "unique-id": "ms-notification-worker-endpoint",
+          "type": "url",
+          "value": "https://notification-worker.internal/health"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fraud-check-worker",
+      "node-type": "fluxnova:external-task-worker",
+      "name": "Fraud Check Worker",
+      "description": "External task worker microservice that executes fraud detection tasks — scores transactions via ML models, returns risk scores to the process engine",
+      "interfaces": [
+        {
+          "unique-id": "ms-fraud-check-worker-endpoint",
+          "type": "url",
+          "value": "https://fraud-check-worker.internal/health"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-message-broker",
+      "node-type": "service",
+      "name": "Message Broker",
+      "description": "Async event bus for worker-to-worker communication and domain event publishing — decouples workers from direct coupling and enables event-driven scaling",
+      "interfaces": [
+        {
+          "unique-id": "ms-message-broker-endpoint",
+          "type": "host-port",
+          "value": "message-broker:5672"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-api-gateway",
+      "node-type": "service",
+      "name": "API Gateway",
+      "description": "Entry point gateway for external API consumers — handles authentication, rate limiting, TLS termination, and request routing to the FluxNova REST API",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "All external client connections terminate TLS at the API gateway — internal traffic uses mTLS on the service mesh",
+          "requirements": [
+            {
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#api-gateway"
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "ms-api-gateway-endpoint",
+          "type": "url",
+          "value": "https://api-gateway.internal/v1"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ms-engine-to-process-db",
+      "relationship-type": "connects",
+      "source": "ms-fluxnova-engine",
+      "destination": "ms-fluxnova-process-db",
+      "protocol": "JDBC",
+      "description": "Engine persists payment process state, external task queues, and audit data to the process database"
+    },
+    {
+      "unique-id": "ms-rest-api-to-engine",
+      "relationship-type": "connects",
+      "source": "ms-fluxnova-rest-api",
+      "destination": "ms-fluxnova-engine",
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "ms-cockpit-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ms-fluxnova-cockpit",
+      "destination": "ms-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Cockpit queries payment process instances and worker metrics via the REST API"
+    },
+    {
+      "unique-id": "ms-admin-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ms-fluxnova-admin",
+      "destination": "ms-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Admin manages worker registration, users, and payment platform configuration via the REST API"
+    },
+    {
+      "unique-id": "ms-tasklist-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ms-fluxnova-tasklist",
+      "destination": "ms-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human escalation and exception tasks via the REST API"
+    },
+    {
+      "unique-id": "ms-platform-has-engine",
+      "relationship-type": "composed-of",
+      "source": "ms-fluxnova-platform",
+      "destination": "ms-fluxnova-engine",
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "ms-platform-has-rest-api",
+      "relationship-type": "composed-of",
+      "source": "ms-fluxnova-platform",
+      "destination": "ms-fluxnova-rest-api",
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "ms-platform-has-cockpit",
+      "relationship-type": "composed-of",
+      "source": "ms-fluxnova-platform",
+      "destination": "ms-fluxnova-cockpit",
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "ms-platform-has-admin",
+      "relationship-type": "composed-of",
+      "source": "ms-fluxnova-platform",
+      "destination": "ms-fluxnova-admin",
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "ms-platform-has-tasklist",
+      "relationship-type": "composed-of",
+      "source": "ms-fluxnova-platform",
+      "destination": "ms-fluxnova-tasklist",
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "ms-platform-has-process-db",
+      "relationship-type": "composed-of",
+      "source": "ms-fluxnova-platform",
+      "destination": "ms-fluxnova-process-db",
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "ms-payment-worker-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ms-payment-worker",
+      "destination": "ms-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Payment worker polls FluxNova REST API for external tasks, locks them for execution, and submits completion or failure results"
+    },
+    {
+      "unique-id": "ms-notification-worker-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ms-notification-worker",
+      "destination": "ms-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Notification worker polls FluxNova REST API for notification tasks, executes delivery, and reports back"
+    },
+    {
+      "unique-id": "ms-fraud-check-worker-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ms-fraud-check-worker",
+      "destination": "ms-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Fraud check worker polls FluxNova REST API for fraud scoring tasks, runs ML inference, and reports risk scores"
+    },
+    {
+      "unique-id": "ms-payment-worker-to-broker",
+      "relationship-type": "connects",
+      "source": "ms-payment-worker",
+      "destination": "ms-message-broker",
+      "protocol": "AMQP",
+      "description": "Payment worker publishes domain events (payment-completed, payment-failed) to the message broker for downstream consumption"
+    },
+    {
+      "unique-id": "ms-notification-worker-to-broker",
+      "relationship-type": "connects",
+      "source": "ms-notification-worker",
+      "destination": "ms-message-broker",
+      "protocol": "AMQP",
+      "description": "Notification worker subscribes to payment events from the message broker to trigger customer notifications asynchronously"
+    },
+    {
+      "unique-id": "ms-api-gateway-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ms-api-gateway",
+      "destination": "ms-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "API gateway proxies authenticated external requests to the FluxNova REST API after TLS termination and rate-limit checks"
+    }
+  ]
+}

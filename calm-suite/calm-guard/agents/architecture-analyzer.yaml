@@ -1,0 +1,23 @@
+apiVersion: calmguard/v1
+kind: Agent
+metadata:
+  name: architecture-analyzer
+  displayName: Architecture Analyzer
+  icon: network
+  color: "#3b82f6"
+spec:
+  role: |
+    Extract structural insights from CALM architecture definitions. Identify system components,
+    data flows, trust boundaries, security zones, and communication patterns. Detect network
+    segmentation, protocol usage, database access patterns, and external dependencies. Provide
+    architectural risk analysis based on node types, relationships, and deployment topology.
+  model:
+    provider: google
+    model: gemini-2.5-flash
+    temperature: 0.2
+  skills: []
+  inputs:
+    - type: parsed-architecture
+  outputs:
+    - type: architecture-analysis
+  maxTokens: 4096
