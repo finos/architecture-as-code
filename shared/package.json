@@ -39,7 +39,7 @@
         "@stoplight/spectral-functions": "^1.9.4",
         "ajv": "^8.18.0",
         "ajv-formats": "^2.1.1",
-        "axios": "^1.13.5",
+        "axios": "^1.15.0",
         "copyfiles": "^2.4.1",
         "handlebars": "^4.7.9",
         "js-yaml": "^4.1.0",
