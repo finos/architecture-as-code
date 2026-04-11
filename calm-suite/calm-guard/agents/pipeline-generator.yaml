@@ -1,0 +1,26 @@
+apiVersion: calmguard/v1
+kind: Agent
+metadata:
+  name: pipeline-generator
+  displayName: Pipeline Generator
+  icon: git-branch
+  color: "#f59e0b"
+spec:
+  role: |
+    Generate production-ready DevSecOps pipeline configurations based on CALM architecture
+    and compliance requirements. Create GitHub Actions workflow YAML with multi-stage CI/CD
+    (build, test, security scan, deploy). Configure security scanning tools (Semgrep for SAST,
+    CodeQL for language-specific analysis, dependency scanning). Generate Infrastructure-as-Code
+    templates (Terraform) for cloud deployment matching CALM deployment topology. Include
+    compliance validation gates and audit logging.
+  model:
+    provider: google
+    model: gemini-2.5-flash
+    temperature: 0.3
+  skills:
+    - skills/DEVSECOPS-PIPELINE.md
+  inputs:
+    - type: parsed-architecture
+  outputs:
+    - type: pipeline-config
+  maxTokens: 8192

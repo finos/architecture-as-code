@@ -1,0 +1,190 @@
+{
+  "_template": {
+    "id": "opengris-scientific-research",
+    "name": "OpenGRIS: Scientific Research (HPC Batch)",
+    "description": "Research institution HPC deployment with AWS HPC Batch worker management. Uses task graphs for parallel scientific workloads — simulations, genomics, climate modelling.",
+    "category": "opengris",
+    "tags": ["opengris", "scientific-research", "hpc", "aws-hpc", "batch", "high-performance-computing"],
+    "version": "1.0.0",
+    "author": "CalmStudio Contributors"
+  },
+  "nodes": [
+    {
+      "unique-id": "ogsr-scheduler",
+      "node-type": "opengris:scheduler",
+      "name": "HPC Scheduler",
+      "description": "OpenGRIS Scaler scheduler managing HPC batch job dispatch across AWS HPC queue workers",
+      "customMetadata": {
+        "scheduler_address": "tcp://10.1.0.10:8516"
+      }
+    },
+    {
+      "unique-id": "ogsr-worker-1",
+      "node-type": "opengris:worker",
+      "name": "HPC Worker 1",
+      "description": "High-performance compute worker for scientific simulation tasks"
+    },
+    {
+      "unique-id": "ogsr-worker-2",
+      "node-type": "opengris:worker",
+      "name": "HPC Worker 2",
+      "description": "High-performance compute worker for scientific simulation tasks"
+    },
+    {
+      "unique-id": "ogsr-worker-3",
+      "node-type": "opengris:worker",
+      "name": "HPC Worker 3",
+      "description": "High-performance compute worker for scientific simulation tasks"
+    },
+    {
+      "unique-id": "ogsr-worker-4",
+      "node-type": "opengris:worker",
+      "name": "HPC Worker 4",
+      "description": "High-performance compute worker for scientific simulation tasks"
+    },
+    {
+      "unique-id": "ogsr-worker-5",
+      "node-type": "opengris:worker",
+      "name": "HPC Worker 5",
+      "description": "High-performance compute worker for scientific simulation tasks"
+    },
+    {
+      "unique-id": "ogsr-worker-6",
+      "node-type": "opengris:worker",
+      "name": "HPC Worker 6",
+      "description": "High-performance compute worker for scientific simulation tasks"
+    },
+    {
+      "unique-id": "ogsr-worker-7",
+      "node-type": "opengris:worker",
+      "name": "HPC Worker 7",
+      "description": "High-performance compute worker for scientific simulation tasks"
+    },
+    {
+      "unique-id": "ogsr-worker-8",
+      "node-type": "opengris:worker",
+      "name": "HPC Worker 8",
+      "description": "High-performance compute worker for scientific simulation tasks"
+    },
+    {
+      "unique-id": "ogsr-worker-manager-aws-hpc",
+      "node-type": "opengris:worker-manager",
+      "name": "AWS HPC Batch Manager",
+      "description": "AWS HPC Batch worker manager — submits Scaler worker jobs to the HPC queue for elastically scaled high-performance compute",
+      "customMetadata": {
+        "manager_type": "aws_hpc",
+        "priority": "1",
+        "aws_region": "us-east-1",
+        "hpc_queue": "scaler-queue"
+      }
+    },
+    {
+      "unique-id": "ogsr-object-storage",
+      "node-type": "opengris:object-storage",
+      "name": "Research Object Store",
+      "description": "Object storage for scientific task inputs (datasets, parameter files) and outputs (simulation results, analysis data)",
+      "customMetadata": {
+        "storage_address": "tcp://10.1.0.10:8517"
+      }
+    },
+    {
+      "unique-id": "ogsr-task-graph",
+      "node-type": "opengris:task-graph",
+      "name": "Research Task Graph",
+      "description": "Task graph orchestrator defining parallel execution topology for multi-stage scientific pipelines with configurable parallelism",
+      "customMetadata": {
+        "max_parallel_tasks": "16"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ogsr-task-graph-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-task-graph",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "Task graph submits parallel computation tasks to the scheduler based on the DAG topology"
+    },
+    {
+      "unique-id": "ogsr-scheduler-to-object-storage",
+      "relationship-type": "connects",
+      "source": "ogsr-scheduler",
+      "destination": "ogsr-object-storage",
+      "protocol": "TCP",
+      "description": "Scheduler reads research task inputs and writes results to the object store"
+    },
+    {
+      "unique-id": "ogsr-worker-1-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-worker-1",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "HPC worker receives simulation tasks and returns results to the scheduler"
+    },
+    {
+      "unique-id": "ogsr-worker-2-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-worker-2",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "HPC worker receives simulation tasks and returns results to the scheduler"
+    },
+    {
+      "unique-id": "ogsr-worker-3-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-worker-3",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "HPC worker receives simulation tasks and returns results to the scheduler"
+    },
+    {
+      "unique-id": "ogsr-worker-4-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-worker-4",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "HPC worker receives simulation tasks and returns results to the scheduler"
+    },
+    {
+      "unique-id": "ogsr-worker-5-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-worker-5",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "HPC worker receives simulation tasks and returns results to the scheduler"
+    },
+    {
+      "unique-id": "ogsr-worker-6-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-worker-6",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "HPC worker receives simulation tasks and returns results to the scheduler"
+    },
+    {
+      "unique-id": "ogsr-worker-7-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-worker-7",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "HPC worker receives simulation tasks and returns results to the scheduler"
+    },
+    {
+      "unique-id": "ogsr-worker-8-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-worker-8",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "HPC worker receives simulation tasks and returns results to the scheduler"
+    },
+    {
+      "unique-id": "ogsr-aws-hpc-manager-to-scheduler",
+      "relationship-type": "connects",
+      "source": "ogsr-worker-manager-aws-hpc",
+      "destination": "ogsr-scheduler",
+      "protocol": "TCP",
+      "description": "AWS HPC Batch manager registers with scheduler and submits Scaler worker jobs to the HPC queue"
+    }
+  ]
+}

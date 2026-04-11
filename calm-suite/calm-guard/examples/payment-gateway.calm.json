@@ -1,0 +1,293 @@
+{
+  "nodes": [
+    {
+      "unique-id": "customer",
+      "node-type": "actor",
+      "name": "Customer",
+      "description": "End user making a payment transaction through the checkout process"
+    },
+    {
+      "unique-id": "checkout-page",
+      "node-type": "webclient",
+      "name": "Checkout Page",
+      "description": "PCI-DSS compliant payment form for secure card data entry",
+      "controls": {
+        "input-validation": {
+          "description": "Client-side validation of card number format and CVV",
+          "requirements": [
+            {
+              "requirement-url": "https://www.pcisecuritystandards.org/document_library?category=pcidss&document=pci_dss"
+            }
+          ]
+        },
+        "secure-transmission": {
+          "description": "All payment data transmitted over TLS 1.2 or higher",
+          "requirements": [
+            {
+              "requirement-url": "https://www.pcisecuritystandards.org/document_library?category=pcidss&document=pci_dss"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "payment-api",
+      "node-type": "service",
+      "name": "Payment API",
+      "description": "Payment processing endpoint orchestrating tokenization, fraud detection, and authorization",
+      "controls": {
+        "pci-dss-compliance": {
+          "description": "PCI-DSS SAQ-D compliant service with annual assessment",
+          "requirements": [
+            {
+              "requirement-url": "https://www.pcisecuritystandards.org/document_library?category=pcidss&document=pci_dss"
+            }
+          ]
+        },
+        "api-authentication": {
+          "description": "API key authentication with rate limiting and IP whitelisting",
+          "requirements": [
+            {
+              "requirement-url": "https://owasp.org/www-project-api-security/"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "tokenization-service",
+      "node-type": "service",
+      "name": "Tokenization Service",
+      "description": "PCI-DSS card tokenization service replacing sensitive card data with tokens",
+      "data-classification": "RESTRICTED",
+      "controls": {
+        "encryption-at-rest": {
+          "description": "AES-256 encryption for stored card data in secure vault",
+          "requirements": [
+            {
+              "requirement-url": "https://www.pcisecuritystandards.org/document_library?category=pcidss&document=pci_dss"
+            }
+          ]
+        },
+        "key-management": {
+          "description": "HSM-based key management with key rotation every 90 days",
+          "requirements": [
+            {
+              "requirement-url": "https://csrc.nist.gov/publications/detail/sp/800-57-part-1/rev-5/final"
+            }
+          ]
+        },
+        "access-logging": {
+          "description": "Comprehensive audit logging of all vault access with tamper detection",
+          "requirements": [
+            {
+              "requirement-url": "https://www.pcisecuritystandards.org/document_library?category=pcidss&document=pci_dss"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "fraud-detection",
+      "node-type": "service",
+      "name": "Fraud Detection",
+      "description": "ML-based fraud scoring engine analyzing transaction patterns and risk indicators",
+      "controls": {
+        "model-monitoring": {
+          "description": "Monitor ML model performance and retrain quarterly on new fraud patterns",
+          "requirements": [
+            {
+              "requirement-url": "https://www.iso.org/standard/54534.html"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "transaction-database",
+      "node-type": "database",
+      "name": "Transaction Database",
+      "description": "Payment transaction records and authorization history",
+      "data-classification": "CONFIDENTIAL",
+      "controls": {
+        "data-encryption": {
+          "description": "Transparent data encryption for all payment transaction records",
+          "requirements": [
+            {
+              "requirement-url": "https://www.pcisecuritystandards.org/document_library?category=pcidss&document=pci_dss"
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "Database audit trail for all access to payment records",
+          "requirements": [
+            {
+              "requirement-url": "https://www.pcisecuritystandards.org/document_library?category=pcidss&document=pci_dss"
+            }
+          ]
+        },
+        "data-retention": {
+          "description": "Retain transaction records for 3 years, securely delete afterward",
+          "requirements": [
+            {
+              "requirement-url": "https://www.visa.com/splisting/searchGrsp.do?companyNameCriteria=data%20retention"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "card-network",
+      "node-type": "system",
+      "name": "Card Network",
+      "description": "External card network (Visa/Mastercard) for authorization and settlement"
+    },
+    {
+      "unique-id": "cardholder-data",
+      "node-type": "data-asset",
+      "name": "Cardholder Data",
+      "description": "PCI-DSS scoped cardholder data including PAN, CVV, and expiration date",
+      "data-classification": "RESTRICTED",
+      "controls": {
+        "data-minimization": {
+          "description": "Collect only minimum required cardholder data, never store CVV",
+          "requirements": [
+            {
+              "requirement-url": "https://www.pcisecuritystandards.org/document_library?category=pcidss&document=pci_dss"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "customer-to-checkout",
+      "relationship-type": "interacts",
+      "description": "Customer enters payment information on checkout page",
+      "interacts": {
+        "actor": "customer",
+        "nodes": ["checkout-page"]
+      }
+    },
+    {
+      "unique-id": "checkout-to-payment-api",
+      "relationship-type": "connects",
+      "description": "Checkout page submits encrypted payment data to payment API",
+      "protocol": "HTTPS",
+      "connects": {
+        "source": {
+          "node": "checkout-page"
+        },
+        "destination": {
+          "node": "payment-api"
+        }
+      },
+      "controls": {
+        "tls-enforcement": {
+          "description": "Enforce TLS 1.2 minimum with strong cipher suites",
+          "requirements": [
+            {
+              "requirement-url": "https://www.pcisecuritystandards.org/document_library?category=pcidss&document=pci_dss"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "payment-api-to-tokenization",
+      "relationship-type": "connects",
+      "description": "Payment API requests card tokenization",
+      "protocol": "mTLS",
+      "connects": {
+        "source": {
+          "node": "payment-api"
+        },
+        "destination": {
+          "node": "tokenization-service"
+        }
+      }
+    },
+    {
+      "unique-id": "payment-api-to-fraud",
+      "relationship-type": "connects",
+      "description": "Payment API checks transaction for fraud indicators",
+      "protocol": "HTTPS",
+      "connects": {
+        "source": {
+          "node": "payment-api"
+        },
+        "destination": {
+          "node": "fraud-detection"
+        }
+      }
+    },
+    {
+      "unique-id": "payment-api-to-db",
+      "relationship-type": "connects",
+      "description": "Payment API persists transaction records",
+      "protocol": "JDBC",
+      "connects": {
+        "source": {
+          "node": "payment-api"
+        },
+        "destination": {
+          "node": "transaction-database"
+        }
+      }
+    },
+    {
+      "unique-id": "tokenization-to-card-network",
+      "relationship-type": "connects",
+      "description": "Tokenization service forwards authorization request to card network",
+      "protocol": "mTLS",
+      "connects": {
+        "source": {
+          "node": "tokenization-service"
+        },
+        "destination": {
+          "node": "card-network"
+        }
+      }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "payment-processing-flow",
+      "name": "Payment Processing Flow",
+      "description": "Complete payment flow from customer card entry through authorization",
+      "transitions": [
+        {
+          "relationship-unique-id": "customer-to-checkout",
+          "sequence-number": 1,
+          "description": "Customer enters card details on checkout page"
+        },
+        {
+          "relationship-unique-id": "checkout-to-payment-api",
+          "sequence-number": 2,
+          "description": "Checkout submits encrypted payment to API"
+        },
+        {
+          "relationship-unique-id": "payment-api-to-fraud",
+          "sequence-number": 3,
+          "description": "Payment API checks fraud score"
+        },
+        {
+          "relationship-unique-id": "payment-api-to-tokenization",
+          "sequence-number": 4,
+          "description": "Payment API requests tokenization"
+        },
+        {
+          "relationship-unique-id": "tokenization-to-card-network",
+          "sequence-number": 5,
+          "description": "Tokenization service authorizes with card network"
+        },
+        {
+          "relationship-unique-id": "payment-api-to-db",
+          "sequence-number": 6,
+          "description": "Payment API records transaction"
+        }
+      ]
+    }
+  ]
+}

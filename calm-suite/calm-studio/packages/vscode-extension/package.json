@@ -1,0 +1,68 @@
+{
+  "name": "calmstudio",
+  "publisher": "opsflow",
+  "displayName": "CalmStudio",
+  "description": "CALM architecture diagram preview and MCP integration",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "Visualization"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/*.calm.json"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "calmstudio.openPreview",
+        "title": "Open CALM Diagram Preview",
+        "category": "CalmStudio"
+      },
+      {
+        "command": "calmstudio.openInApp",
+        "title": "Open in CalmStudio",
+        "category": "CalmStudio"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "calmstudio.openPreview",
+          "when": "resourceExtname == .json",
+          "group": "navigation"
+        },
+        {
+          "command": "calmstudio.openInApp",
+          "when": "resourceExtname == .json",
+          "group": "navigation"
+        }
+      ]
+    },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "calmstudio.mcpServer",
+        "label": "CalmStudio MCP"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "build": "node esbuild.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "package": "vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@calmstudio/mcp": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.99.0",
+    "@vscode/vsce": "latest",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.8"
+  }
+}

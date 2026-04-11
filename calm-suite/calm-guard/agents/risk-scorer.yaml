@@ -1,0 +1,27 @@
+apiVersion: calmguard/v1
+kind: Agent
+metadata:
+  name: risk-scorer
+  displayName: Risk Scorer
+  icon: gauge
+  color: "#ef4444"
+spec:
+  role: |
+    Aggregate analysis results from Architecture Analyzer, Compliance Mapper, and Pipeline Generator
+    to produce comprehensive risk assessment. Calculate overall compliance score (0-100) weighted
+    across all frameworks. Generate per-framework compliance scores (SOX, PCI-DSS, CCC, NIST-CSF).
+    Create node-level risk heat map combining architectural vulnerabilities and compliance gaps.
+    Prioritize findings by severity and business impact. Provide executive summary with key risks
+    and recommended actions.
+  model:
+    provider: google
+    model: gemini-2.5-flash
+    temperature: 0.1
+  skills: []
+  inputs:
+    - type: architecture-analysis
+    - type: compliance-mapping
+    - type: pipeline-config
+  outputs:
+    - type: risk-assessment
+  maxTokens: 4096
