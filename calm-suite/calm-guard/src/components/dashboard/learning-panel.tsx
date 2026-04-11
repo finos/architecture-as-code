@@ -196,7 +196,7 @@ function LearningCurve({ data }: { data: ChartDataPoint[] }) {
               fontSize: 12,
             }}
             labelFormatter={(v) => `Run ${v}`}
-            formatter={(v: number | undefined) => [`${v ?? 0}`, 'Score']}
+            formatter={(v) => [`${v ?? 0}`, 'Score']}
           />
           <Area
             type="monotone"
