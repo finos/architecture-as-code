@@ -1,0 +1,105 @@
+name: Build CALM Studio
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        branches:
+            - 'main'
+            - 'release*'
+        paths:
+            - 'calm-suite/calm-studio/**'
+            - '.github/workflows/build-calm-studio.yml'
+    push:
+        branches:
+            - 'main'
+            - 'release*'
+        paths:
+            - 'calm-suite/calm-studio/**'
+            - '.github/workflows/build-calm-studio.yml'
+
+defaults:
+    run:
+        working-directory: calm-suite/calm-studio
+
+jobs:
+    build-lint-test:
+        name: Build, Lint & Test
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+
+            - name: Setup Node.js
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+              with:
+                  node-version: 22
+                  cache: pnpm
+                  cache-dependency-path: calm-suite/calm-studio/pnpm-lock.yaml
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Build
+              run: pnpm -r run build
+
+            - name: Lint
+              run: pnpm -r run lint
+
+            - name: Test with coverage
+              run: |
+                  pnpm --filter @calmstudio/calm-core run test:coverage
+                  pnpm --filter @calmstudio/extensions run test:coverage
+                  pnpm --filter @calmstudio/mcp-server run test:coverage
+                  pnpm --filter @calmstudio/studio run test:coverage
+
+            - name: Upload coverage reports
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+              if: always()
+              with:
+                  name: calm-studio-coverage-reports
+                  path: |
+                      calm-suite/calm-studio/packages/calm-core/coverage/
+                      calm-suite/calm-studio/packages/extensions/coverage/
+                      calm-suite/calm-studio/packages/mcp-server/coverage/
+                      calm-suite/calm-studio/apps/studio/coverage/
+                  retention-days: 14
+
+    e2e-tests:
+        name: E2E Tests
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        needs: build-lint-test
+        steps:
+            - name: Checkout
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+
+            - name: Setup Node.js
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+              with:
+                  node-version: 22
+                  cache: pnpm
+                  cache-dependency-path: calm-suite/calm-studio/pnpm-lock.yaml
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Install Playwright browsers
+              run: npx playwright install --with-deps chromium
+
+            - name: Build
+              run: pnpm -r run build
+
+            - name: Run E2E tests
+              run: pnpm --filter @calmstudio/studio run test:e2e

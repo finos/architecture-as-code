@@ -46,3 +46,18 @@ coverage/
 .github/chatmodes
 .github/agents
 shared/test-output/
+
+# Next.js
+.next/
+next-env.d.ts
+
+# SvelteKit
+.svelte-kit/
+
+# Tauri/Rust build output
+**/src-tauri/target/
+**/src-tauri/gen/
+
+# Playwright
+playwright-report/
+test-results/
