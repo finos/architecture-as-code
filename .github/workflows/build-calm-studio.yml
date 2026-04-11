@@ -52,24 +52,12 @@ jobs:
             - name: Lint
               run: pnpm --filter '!calmstudio-docs' -r run lint
 
-            - name: Test with coverage
+            - name: Test
               run: |
-                  pnpm --filter @calmstudio/calm-core run test:coverage
-                  pnpm --filter @calmstudio/extensions run test:coverage
-                  pnpm --filter @calmstudio/mcp-server run test:coverage
-                  pnpm --filter @calmstudio/studio run test:coverage
-
-            - name: Upload coverage reports
-              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
-              if: always()
-              with:
-                  name: calm-studio-coverage-reports
-                  path: |
-                      calm-suite/calm-studio/packages/calm-core/coverage/
-                      calm-suite/calm-studio/packages/extensions/coverage/
-                      calm-suite/calm-studio/packages/mcp-server/coverage/
-                      calm-suite/calm-studio/apps/studio/coverage/
-                  retention-days: 14
+                  pnpm --filter @calmstudio/calm-core run test
+                  pnpm --filter @calmstudio/extensions run test
+                  pnpm --filter @calmstudio/mcp-server run test
+                  pnpm --filter @calmstudio/studio run test
 
     e2e-tests:
         name: E2E Tests
