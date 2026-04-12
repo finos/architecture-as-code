@@ -84,7 +84,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: '� Intermediate',
+          label: '🟡 Intermediate',
           link: {type: 'doc', id: 'tutorials/intermediate/intermediate-tutorials'},
           items: [
             'tutorials/intermediate/08-controls',
@@ -104,7 +104,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: '�🛠️ Practitioner',
+          label: '🛠️ Practitioner',
           link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
           items: [
             'tutorials/build-a-calm-architecture/tool-setup',
