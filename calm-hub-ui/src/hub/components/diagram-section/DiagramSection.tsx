@@ -43,7 +43,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         const versionPath = data.version.replace(/\./g, '-');
         const isSlugId = !/^\d+$/.test(data.id);
         const target = isSlugId
-            ? `/calm/${data.name}/${data.id}/versions/${versionPath}`
+            ? `/calm/namespaces/${data.name}/${data.id}/versions/${versionPath}`
             : `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
         calmService.fetchDecoratorValues(data.name, target, 'deployment').then((values) => setDecorators(values as DeploymentDecorator[]));
     }, [data, isArchitecture, calmService]);

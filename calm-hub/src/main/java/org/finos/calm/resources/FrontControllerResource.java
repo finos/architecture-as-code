@@ -13,9 +13,11 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.Semver;
 import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.flow.CreateFlowRequest;
+import org.finos.calm.domain.frontcontroller.ChangeType;
 import org.finos.calm.domain.frontcontroller.FrontControllerCreateRequest;
 import org.finos.calm.domain.frontcontroller.FrontControllerUpdateRequest;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
@@ -42,7 +44,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
  * <p>This resource lives alongside the existing type-specific resources (PatternResource,
  * ArchitectureResource, etc.) and dispatches to the same underlying stores.</p>
  */
-@Path("/calm")
+@Path("/calm/namespaces")
 public class FrontControllerResource {
 
     private final Logger logger = LoggerFactory.getLogger(FrontControllerResource.class);
@@ -182,7 +184,7 @@ public class FrontControllerResource {
             ResourceMapping mapping = mappingStore.getMapping(namespace, customId);
             List<String> versions = getVersionsForMapping(mapping);
             List<String> sortedVersions = versions.stream()
-                    .sorted(Comparator.comparing(SemverUtils::parseSortableVersion))
+                    .sorted(Comparator.comparing(Semver::tryParse))
                     .toList();
             return Response.ok(new ValueWrapper<>(sortedVersions)).build();
         } catch (MappingNotFoundException e) {
@@ -279,7 +281,7 @@ public class FrontControllerResource {
                 }
                 throw e;
             }
-            URI location = new URI("/calm/" + namespace + "/" + customId + "/versions/" + version);
+            URI location = new URI("/calm/namespaces/" + namespace + "/" + customId + "/versions/" + version);
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating resource", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -288,7 +290,8 @@ public class FrontControllerResource {
             return Response.status(Response.Status.CONFLICT).entity("Custom ID already exists in namespace: " + STRICT_SANITIZATION_POLICY.sanitize(customId)).build();
         } catch (Exception e) {
             logger.error("Error creating resource [{}] in namespace [{}]", STRICT_SANITIZATION_POLICY.sanitize(customId), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
-            return Response.status(Response.Status.BAD_REQUEST).entity("Failed to create resource: " + STRICT_SANITIZATION_POLICY.sanitize(e.getMessage())).build();
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error";
+            return Response.status(Response.Status.BAD_REQUEST).entity("Failed to create resource: " + STRICT_SANITIZATION_POLICY.sanitize(errorMsg)).build();
         }
     }
 
@@ -300,7 +303,7 @@ public class FrontControllerResource {
             return invalidJsonResponse("Cannot parse request body");
         }
 
-        if (request.getChangeType() == null || request.getChangeType().isBlank()) {
+        if (request.getChangeType() == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity("Field 'changeType' is required for updates (MAJOR, MINOR, or PATCH)").build();
         }
         if (request.getJson() == null || request.getJson().isBlank()) {
@@ -309,21 +312,23 @@ public class FrontControllerResource {
 
         try {
             List<String> versions = getVersionsForMapping(mapping);
+            if (versions.isEmpty()) {
+                return mappingNotFoundResponse(customId);
+            }
             String latestVersion = getLatestVersion(versions);
-            String newVersion = SemverUtils.bumpVersion(latestVersion, request.getChangeType());
+            String newVersion = Semver.parse(latestVersion).bump(request.getChangeType()).toString();
 
             createVersionedResourceInStore(mapping.getResourceType(), namespace, mapping.getNumericId(), newVersion, request.getJson());
 
-            URI location = new URI("/calm/" + namespace + "/" + customId + "/versions/" + newVersion);
+            URI location = new URI("/calm/namespaces/" + namespace + "/" + customId + "/versions/" + newVersion);
             return Response.created(location).build();
-        } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid changeType: " + STRICT_SANITIZATION_POLICY.sanitize(request.getChangeType()) + ". Must be MAJOR, MINOR, or PATCH").build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when updating resource", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (Exception e) {
             logger.error("Error updating resource [{}] in namespace [{}]", STRICT_SANITIZATION_POLICY.sanitize(customId), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
-            return Response.status(Response.Status.BAD_REQUEST).entity("Failed to update resource: " + STRICT_SANITIZATION_POLICY.sanitize(e.getMessage())).build();
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error";
+            return Response.status(Response.Status.BAD_REQUEST).entity("Failed to update resource: " + STRICT_SANITIZATION_POLICY.sanitize(errorMsg)).build();
         }
     }
 
@@ -478,10 +483,17 @@ public class FrontControllerResource {
      * Rewrites the $id field in the JSON to use the friendly URL.
      */
     private String rewriteId(String json, String namespace, String customId, String version) {
+        String configuredBaseUrl = baseUrl.map(String::trim).filter(url -> !url.isEmpty()).orElse(null);
+        if (configuredBaseUrl == null) {
+            return json;
+        }
         try {
             JsonNode tree = OBJECT_MAPPER.readTree(json);
             if (tree.isObject()) {
-                String friendlyUrl = baseUrl.orElse("") + "/calm/" + namespace + "/" + customId + "/versions/" + version;
+                String normalizedBase = configuredBaseUrl.endsWith("/")
+                        ? configuredBaseUrl.substring(0, configuredBaseUrl.length() - 1)
+                        : configuredBaseUrl;
+                String friendlyUrl = normalizedBase + "/calm/namespaces/" + namespace + "/" + customId + "/versions/" + version;
                 ((ObjectNode) tree).put("$id", friendlyUrl);
                 return OBJECT_MAPPER.writeValueAsString(tree);
             }
@@ -496,7 +508,7 @@ public class FrontControllerResource {
      */
     private String getLatestVersion(List<String> versions) {
         return versions.stream()
-                .max(Comparator.comparing(SemverUtils::parseSortableVersion))
+                .max(Comparator.comparing(Semver::tryParse))
                 .orElse("1.0.0");
     }
 

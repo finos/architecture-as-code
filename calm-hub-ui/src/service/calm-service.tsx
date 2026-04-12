@@ -273,7 +273,7 @@ export class CalmService {
         const headers = await getAuthHeaders();
         const query = type ? `?type=${encodeURIComponent(type)}` : '';
         return this.ax
-            .get(`/calm/${encodeURIComponent(namespace)}/mappings${query}`, { headers })
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/mappings${query}`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -287,7 +287,7 @@ export class CalmService {
     public async fetchVersionsByCustomId(namespace: string, customId: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/${encodeURIComponent(namespace)}/${encodeURIComponent(customId)}/versions`, { headers })
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(customId)}/versions`, { headers })
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching versions for custom ID ${customId}:`;
@@ -299,7 +299,7 @@ export class CalmService {
     public async fetchResourceByCustomId(namespace: string, customId: string, version: string, calmType: string): Promise<Data> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/${encodeURIComponent(namespace)}/${encodeURIComponent(customId)}/versions/${encodeURIComponent(version)}`, { headers })
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(customId)}/versions/${encodeURIComponent(version)}`, { headers })
             .then((res) => ({
                 id: customId,
                 version: version,

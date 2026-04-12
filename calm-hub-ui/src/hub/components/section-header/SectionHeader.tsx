@@ -17,7 +17,7 @@ export function SectionHeader({ icon, namespace, id, version, rightContent }: Se
     const [copied, setCopied] = useState(false);
     const [pinned, setPinned] = useState(false);
     const showShareBar = isSlug(id);
-    const latestUrl = `${window.location.origin}/calm/${namespace}/${id}`;
+    const latestUrl = `${window.location.origin}/calm/namespaces/${namespace}/${id}`;
     const pinnedUrl = `${latestUrl}/versions/${version}`;
     const shareUrl = pinned ? pinnedUrl : latestUrl;
 

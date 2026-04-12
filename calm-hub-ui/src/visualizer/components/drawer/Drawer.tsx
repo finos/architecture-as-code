@@ -64,7 +64,7 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
         const versionPath = data.version.replace(/\./g, '-');
         const isSlugId = !/^\d+$/.test(data.id);
         const target = isSlugId
-            ? `/calm/${data.name}/${data.id}/versions/${versionPath}`
+            ? `/calm/namespaces/${data.name}/${data.id}/versions/${versionPath}`
             : `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
         calmService.fetchDecoratorValues(data.name, target, 'deployment').then(setDecoratorsState);
     }, [data, fileInstance, decoratorsProp, calmService]);

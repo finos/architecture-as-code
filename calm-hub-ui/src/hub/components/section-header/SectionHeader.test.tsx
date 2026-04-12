@@ -91,7 +91,7 @@ describe('SectionHeader', () => {
 
         const urlInput = screen.getByRole('textbox', { name: 'Shareable URL' });
         expect(urlInput).toBeInTheDocument();
-        expect(urlInput).toHaveValue('http://localhost:3000/calm/finos/api-gateway');
+        expect(urlInput).toHaveValue('http://localhost:3000/calm/namespaces/finos/api-gateway');
         expect(urlInput).toHaveAttribute('readOnly');
 
         expect(screen.getByTitle('Link to latest version')).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe('SectionHeader', () => {
         fireEvent.click(screen.getByTitle('Link to this specific version'));
 
         const urlInput = screen.getByRole('textbox', { name: 'Shareable URL' });
-        expect(urlInput).toHaveValue('http://localhost:3000/calm/finos/api-gateway/versions/1.0.0');
+        expect(urlInput).toHaveValue('http://localhost:3000/calm/namespaces/finos/api-gateway/versions/1.0.0');
     });
 
     it('switches back to latest URL when Latest is clicked after Pinned', () => {
@@ -133,7 +133,7 @@ describe('SectionHeader', () => {
         fireEvent.click(screen.getByTitle('Link to latest version'));
 
         const urlInput = screen.getByRole('textbox', { name: 'Shareable URL' });
-        expect(urlInput).toHaveValue('http://localhost:3000/calm/finos/api-gateway');
+        expect(urlInput).toHaveValue('http://localhost:3000/calm/namespaces/finos/api-gateway');
     });
 
     it('does not show share bar when id is numeric', () => {

@@ -142,7 +142,7 @@ describe('Drawer — decorator fetching', () => {
         await waitFor(() => {
             expect(mockFetchDecoratorValues).toHaveBeenCalledWith(
                 'my-namespace',
-                '/calm/my-namespace/my-arch/versions/1-0-0',
+                '/calm/namespaces/my-namespace/my-arch/versions/1-0-0',
                 'deployment'
             );
         });
