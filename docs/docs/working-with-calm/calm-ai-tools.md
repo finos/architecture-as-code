@@ -14,7 +14,7 @@ The `init-ai` command configures your development environment with comprehensive
 
 |LLM Supported|IDE / Assistant|
 |------------|---|
-|LLM available in Github Copilot|VSCode|
+|LLM available in GitHub Copilot|VS Code|
 |Claude family of LLM|KIRO|
 |Claude family of LLM|Claude Code - CLI|
 |OpenAI Codex|Codex CLI, IDE extension, or app|
