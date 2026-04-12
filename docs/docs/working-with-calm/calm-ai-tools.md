@@ -10,13 +10,14 @@ CALM AI Tools provides AI-powered development assistance for CALM architecture m
 
 ## Overview
 
-The `init-ai` command configures your development environment with comprehensive tool prompts that help your coding agent understand CALM schema requirements, validation rules, and best practices. This enables you to get intelligent assistance when creating and modifying CALM architectures.  At present we support these IDEs
+The `init-ai` command configures your development environment with comprehensive tool prompts that help your coding agent understand CALM schema requirements, validation rules, and best practices. This enables you to get intelligent assistance when creating and modifying CALM architectures. At present we support these IDEs and coding assistants:
 
-|LLM Supported|IDE|
+|LLM Supported|IDE / Assistant|
 |------------|---|
-|LLM available in Github Copilot|VSCode|
+|LLM available in GitHub Copilot|VS Code|
 |Claude family of LLM|KIRO|
 |Claude family of LLM|Claude Code - CLI|
+|OpenAI Codex|Codex CLI, IDE extension, or app|
 
 ## Prerequisites
 
@@ -34,6 +35,9 @@ Before setting up CALM AI Support, ensure you have:
 ### Claude Code - CLI
 - **Claude Code**: Version 2.0.74 or later
 - **AI Support**: Active Claude Code Plan
+
+### Codex
+- **Codex**: Codex CLI, IDE extension, or app with access to the target repository
 
 ### Install CALM CLI
 - **CALM CLI**: Installed globally (`npm install -g @finos/calm-cli`)
@@ -53,11 +57,11 @@ Or specify a different directory:
 calm init-ai -p kiro --directory /path/to/your/calm-project
 ```
 
-This command creates a configuration files the `.kiro` sub-directory in your repository that provides AWS Kiro with specialized CALM knowledge.
+This command creates assistant-specific configuration files in your repository. For Codex, it creates a CALM skill under `.agents/skills/calm` and does not create or modify root `AGENTS.md`.
 
 ## Command Options
 
-- **`-p, --provider <provider>`**: The AI coding assistant to setup.  Currently, these are supported `copilot`, `kiro`, and `claude`.
+- **`-p, --provider <provider>`**: The AI coding assistant to setup.  Currently, these are supported `copilot`, `kiro`, `claude`, and `codex`.
 - **`-d, --directory <path>`**: Target directory (defaults to current directory)
 - **`-v, --verbose`**: Enable verbose logging (default: false)
 - **`-h, --help`**: Display help for command
@@ -72,7 +76,7 @@ Usage: calm init-ai [options]
 Augment a git repository with AI assistance for CALM
 
 Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude")
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex")
   -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
   -v, --verbose              Enable verbose logging. (default: false)
   -h, --help                 display help for command
@@ -86,6 +90,7 @@ $ calm init-ai
 ❯ copilot 
   kiro 
   claude
+  codex
 ```
 
 ### Specify the AI Assistant
@@ -153,10 +158,16 @@ With Claude Code:
 2. After the `claude` REPL starts, enter `/calm` to enable the CALM skill
 3. Ask questions or request assistance with your CALM architecture
 
+### Codex
+With Codex:
+
+1. Open the repository in Codex CLI, the Codex IDE extension, or the Codex app
+2. Use the generated CALM skill for CALM architecture work, for example by asking Codex to use the `calm` skill
+3. Ask questions or request assistance with your CALM architecture
 
 ### Example Queries
 
-Here are some examples of how to use CALM Copilot Chat:
+Here are some examples of how to use CALM AI assistance:
 
 **Creating Components:**
 ```
