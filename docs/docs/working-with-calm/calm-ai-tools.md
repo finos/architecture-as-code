@@ -10,7 +10,7 @@ CALM AI Tools provides AI-powered development assistance for CALM architecture m
 
 ## Overview
 
-The `init-ai` command configures your development environment with comprehensive tool prompts that help your coding agent understand CALM schema requirements, validation rules, and best practices. This enables you to get intelligent assistance when creating and modifying CALM architectures.  At present we support these IDEs and coding assistants
+The `init-ai` command configures your development environment with comprehensive tool prompts that help your coding agent understand CALM schema requirements, validation rules, and best practices. This enables you to get intelligent assistance when creating and modifying CALM architectures. At present we support these IDEs and coding assistants:
 
 |LLM Supported|IDE / Assistant|
 |------------|---|
