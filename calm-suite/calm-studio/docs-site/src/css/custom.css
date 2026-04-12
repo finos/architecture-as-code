@@ -1,0 +1,90 @@
+/* SPDX-FileCopyrightText: 2024 FINOS CalmStudio Contributors */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/**
+ * CalmStudio / FINOS-themed CSS
+ * Primary color: #0033A0 (FINOS blue)
+ * Dark mode primary: #0091EA (lighter blue)
+ */
+
+/* ===== FINOS color palette ===== */
+:root {
+  --ifm-color-primary: #0033a0;
+  --ifm-color-primary-dark: #002e90;
+  --ifm-color-primary-darker: #002b88;
+  --ifm-color-primary-darkest: #002370;
+  --ifm-color-primary-light: #0038b0;
+  --ifm-color-primary-lighter: #003bb8;
+  --ifm-color-primary-lightest: #0043d0;
+
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 51, 160, 0.1);
+
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --ifm-heading-font-weight: 600;
+  --ifm-navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode overrides */
+[data-theme='dark'] {
+  --ifm-color-primary: #4a9eff;
+  --ifm-color-primary-dark: #2e90ff;
+  --ifm-color-primary-darker: #2088ff;
+  --ifm-color-primary-darkest: #006ee8;
+  --ifm-color-primary-light: #66acff;
+  --ifm-color-primary-lighter: #74b4ff;
+  --ifm-color-primary-lightest: #9eceff;
+
+  --docusaurus-highlighted-code-line-bg: rgba(74, 158, 255, 0.15);
+}
+
+/* ===== Hero section ===== */
+.hero--primary {
+  background: linear-gradient(135deg, #0033a0 0%, #0047cc 100%);
+  color: #ffffff;
+}
+
+[data-theme='dark'] .hero--primary {
+  background: linear-gradient(135deg, #001a5c 0%, #002b88 100%);
+}
+
+.hero__title {
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.hero__subtitle {
+  font-size: 1.25rem;
+  opacity: 0.9;
+}
+
+/* ===== Feature cards ===== */
+.features {
+  display: flex;
+  align-items: center;
+  padding: 2rem 0;
+  width: 100%;
+}
+
+.featureSvg {
+  height: 200px;
+  width: 200px;
+}
+
+/* ===== Navbar ===== */
+.navbar__brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* ===== Code blocks ===== */
+.theme-code-block {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ===== Footer ===== */
+.footer--dark {
+  background-color: #0a0f1e;
+}

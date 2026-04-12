@@ -1,0 +1,17 @@
+name: 'CalmStudio Diagram Renderer'
+description: 'Renders CALM architecture diagrams as SVG images in PR comments'
+inputs:
+  github-token:
+    description: 'GitHub token for posting PR comments'
+    required: false
+    default: ${{ github.token }}
+  calm-files:
+    description: 'Glob pattern for CALM files to render (default: auto-detect from PR diff)'
+    required: false
+    default: '**/*.calm.json,**/*.json'
+outputs:
+  comment-url:
+    description: 'URL of the posted PR comment'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

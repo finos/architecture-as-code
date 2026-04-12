@@ -1,0 +1,261 @@
+{
+  "_template": {
+    "id": "fluxnova-ai-agent",
+    "name": "FluxNova: AI Agent Orchestration",
+    "description": "FluxNova BPM platform orchestrating autonomous AI agents with LLM inference, guardrails, and callable tools — AIGF governance controls pre-applied",
+    "category": "fluxnova",
+    "tags": ["fluxnova", "ai-agents", "llm", "aigf", "governance", "financial-services"],
+    "version": "1.0.0",
+    "author": "CalmStudio Contributors",
+    "sourceRef": "finos/fluxnova-examples/process-examples/financial-services/ai-agent-orchestration"
+  },
+  "nodes": [
+    {
+      "unique-id": "ai-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the AI agent orchestration process"
+    },
+    {
+      "unique-id": "ai-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating AI agent task dispatch, monitoring, and human-in-the-loop escalation workflows",
+      "controls": {
+        "audit-logging": {
+          "description": "All AI agent task dispatches, LLM calls, guardrail verdicts, and tool invocations are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer for AI process deployment, agent task polling, and result submission",
+      "interfaces": [
+        {
+          "unique-id": "ai-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard for AI agent task instances, LLM latency, guardrail rejection rates, and escalation incidents",
+      "interfaces": [
+        {
+          "unique-id": "ai-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for AI agent configuration, LLM model version management, and guardrail policy administration",
+      "interfaces": [
+        {
+          "unique-id": "ai-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Human-in-the-loop task UI for reviewing AI agent decisions, approving high-risk actions, and resolving guardrail rejections",
+      "interfaces": [
+        {
+          "unique-id": "ai-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing AI agent process definitions, runtime state, LLM interaction history, and AIGF audit logs",
+      "interfaces": [
+        {
+          "unique-id": "ai-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-agent",
+      "node-type": "ai:agent",
+      "name": "AI Agent",
+      "description": "Autonomous AI agent executing tasks assigned by the FluxNova process engine — uses LLM for reasoning, tools for action, and guardrails for safety",
+      "controls": {
+        "agent-least-privilege": {
+          "description": "AI agent operates with least-privilege tool access — only tools explicitly granted per process definition are callable",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-18"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-llm",
+      "node-type": "ai:llm",
+      "name": "Large Language Model",
+      "description": "Large language model providing inference and reasoning capabilities for AI agent decisions — version-pinned for reproducible behaviour",
+      "controls": {
+        "model-version-pinning": {
+          "description": "LLM model version is pinned to a specific checkpoint — no automatic model upgrades without governance review and regression testing",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-guardrail",
+      "node-type": "ai:guardrail",
+      "name": "AI Guardrail",
+      "description": "Safety filter validating AI agent inputs and outputs against policy — rejects hallucinations, PII leakage, prompt injections, and policy violations before action"
+    },
+    {
+      "unique-id": "ai-tool",
+      "node-type": "ai:tool",
+      "name": "AI Tool",
+      "description": "Callable function exposed to the AI agent for structured external actions — wraps downstream APIs, databases, and services with typed schemas and access controls"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ai-engine-to-process-db",
+      "relationship-type": "connects",
+      "source": "ai-fluxnova-engine",
+      "destination": "ai-fluxnova-process-db",
+      "protocol": "JDBC",
+      "description": "Engine persists AI agent process state, LLM interaction history, and audit data to the process database"
+    },
+    {
+      "unique-id": "ai-rest-api-to-engine",
+      "relationship-type": "connects",
+      "source": "ai-fluxnova-rest-api",
+      "destination": "ai-fluxnova-engine",
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "ai-cockpit-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ai-fluxnova-cockpit",
+      "destination": "ai-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Cockpit queries AI agent process instances and LLM performance metrics via the REST API"
+    },
+    {
+      "unique-id": "ai-admin-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ai-fluxnova-admin",
+      "destination": "ai-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Admin manages AI agent configuration, model versions, and guardrail policies via the REST API"
+    },
+    {
+      "unique-id": "ai-tasklist-to-rest-api",
+      "relationship-type": "connects",
+      "source": "ai-fluxnova-tasklist",
+      "destination": "ai-fluxnova-rest-api",
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human-in-the-loop review and escalation tasks via the REST API"
+    },
+    {
+      "unique-id": "ai-platform-has-engine",
+      "relationship-type": "composed-of",
+      "source": "ai-fluxnova-platform",
+      "destination": "ai-fluxnova-engine",
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "ai-platform-has-rest-api",
+      "relationship-type": "composed-of",
+      "source": "ai-fluxnova-platform",
+      "destination": "ai-fluxnova-rest-api",
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "ai-platform-has-cockpit",
+      "relationship-type": "composed-of",
+      "source": "ai-fluxnova-platform",
+      "destination": "ai-fluxnova-cockpit",
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "ai-platform-has-admin",
+      "relationship-type": "composed-of",
+      "source": "ai-fluxnova-platform",
+      "destination": "ai-fluxnova-admin",
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "ai-platform-has-tasklist",
+      "relationship-type": "composed-of",
+      "source": "ai-fluxnova-platform",
+      "destination": "ai-fluxnova-tasklist",
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "ai-platform-has-process-db",
+      "relationship-type": "composed-of",
+      "source": "ai-fluxnova-platform",
+      "destination": "ai-fluxnova-process-db",
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "ai-engine-to-agent",
+      "relationship-type": "connects",
+      "source": "ai-fluxnova-engine",
+      "destination": "ai-agent",
+      "protocol": "HTTPS",
+      "description": "Engine dispatches AI agent tasks via the external task worker pattern — agent polls for tasks, executes, and submits results"
+    },
+    {
+      "unique-id": "ai-agent-to-llm",
+      "relationship-type": "connects",
+      "source": "ai-agent",
+      "destination": "ai-llm",
+      "protocol": "HTTPS",
+      "description": "AI agent sends prompts and context to the LLM for reasoning and decision generation"
+    },
+    {
+      "unique-id": "ai-guardrail-to-agent",
+      "relationship-type": "connects",
+      "source": "ai-guardrail",
+      "destination": "ai-agent",
+      "protocol": "HTTPS",
+      "description": "Guardrail validates agent inputs before LLM invocation and agent outputs before tool execution — acts as a safety filter in the critical path"
+    },
+    {
+      "unique-id": "ai-agent-to-tool",
+      "relationship-type": "connects",
+      "source": "ai-agent",
+      "destination": "ai-tool",
+      "protocol": "HTTPS",
+      "description": "AI agent invokes callable tools for structured external actions after guardrail approval"
+    }
+  ]
+}

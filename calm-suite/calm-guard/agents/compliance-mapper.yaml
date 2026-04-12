@@ -1,0 +1,29 @@
+apiVersion: calmguard/v1
+kind: Agent
+metadata:
+  name: compliance-mapper
+  displayName: Compliance Mapper
+  icon: shield-check
+  color: "#22c55e"
+spec:
+  role: |
+    Map CALM architecture controls to regulatory compliance frameworks (SOX, PCI-DSS, FINOS CCC,
+    NIST-CSF, SOC2). Assess compliance status for each applicable requirement based on CALM controls
+    defined in nodes and relationships. Identify compliance gaps, evaluate control effectiveness,
+    and provide remediation recommendations. Generate per-framework compliance scores and produce
+    detailed evidence for auditors.
+  model:
+    provider: google
+    model: gemini-2.5-flash
+    temperature: 0.2
+  skills:
+    - skills/SOX.md
+    - skills/PCI-DSS.md
+    - skills/FINOS-CCC.md
+    - skills/NIST-CSF.md
+    - skills/SOC2.md
+  inputs:
+    - type: parsed-architecture
+  outputs:
+    - type: compliance-mapping
+  maxTokens: 8192
