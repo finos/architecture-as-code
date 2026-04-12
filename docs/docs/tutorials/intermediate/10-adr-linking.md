@@ -161,13 +161,7 @@ Should pass! ✅
 
 Create an index table listing each ADR, its title, and date. Link the ADRs in `architectures/ecommerce-platform.json` to keep traceability clear.
 
-### 8. Commit Your Work
-
-```bash
-git add architectures/ecommerce-platform.json docs/adr README.md
-git commit -m "Day 10: Link ADRs to architecture for decision traceability"
-git tag day-10
-```
+Remember to baseline your work using git. Committing at this point gives you a clean restore point if you need to revisit this lesson.
 
 ## Key Concepts
 

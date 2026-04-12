@@ -140,13 +140,7 @@ Use requirement-url pointing to internal-policy.example.com and include inline c
 calm validate -a architectures/ecommerce-platform.json
 ```
 
-### 10. Commit Your Work
-
-```bash
-git add architectures/ecommerce-platform.json README.md
-git commit -m "Day 14: AI-assisted resilience improvements - LB, replicas, message queue"
-git tag day-14
-```
+Take a moment to commit what you've built so far using git. Tracking your changes incrementally makes it easier to review how your architecture has grown.
 
 ## Key Concepts
 

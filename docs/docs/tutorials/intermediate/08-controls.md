@@ -121,13 +121,7 @@ calm validate -a architectures/ecommerce-platform.json
 
 Should pass! ✅
 
-### 7. Commit Your Work
-
-```bash
-git add architectures/ecommerce-platform.json
-git commit -m "Day 8: Add security and performance controls for NFRs"
-git tag day-8
-```
+Now is a good time to use git to snapshot your progress. Stage your changes and commit them with a meaningful message before moving on.
 
 ## Key Concepts
 

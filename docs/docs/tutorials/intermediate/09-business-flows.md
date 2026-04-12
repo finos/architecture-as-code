@@ -121,13 +121,7 @@ Add an "audit" control with:
     config (inline): { "log-level": "detailed", "retention-days": 365 }
 ```
 
-### 7. Commit Your Work
-
-```bash
-git add architectures/ecommerce-platform.json
-git commit -m "Day 9: Model order processing and inventory check flows"
-git tag day-9
-```
+Before continuing, take a moment to commit your changes using git. A clear commit message will help you track how your architecture has evolved.
 
 ## Key Concepts
 

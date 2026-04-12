@@ -103,13 +103,7 @@ Think about how you would publish this website in your organization:
 
 > **Tip:** Add docify to your CI/CD pipeline so documentation is always up-to-date with your architecture.
 
-### 6. Commit Your Work
-
-```bash
-git add docs/generated/ README.md
-git commit -m "Day 11: Generate shareable documentation website"
-git tag day-11
-```
+Use git to preserve the changes you've made in this lesson. A well-named commit makes it easy to trace how your work has evolved over time.
 
 ## Key Concepts
 

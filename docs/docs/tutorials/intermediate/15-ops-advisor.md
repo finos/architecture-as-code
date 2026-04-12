@@ -197,13 +197,7 @@ Analyze my architecture to help identify the root cause:
 
 CALM should identify the API Gateway or load balancer as the likely shared failure point.
 
-### 10. Commit Your Work
-
-```bash
-git add architectures/ecommerce-platform.json
-git commit -m "Day 15: Add operational metadata for support documentation"
-git tag day-15
-```
+Use git to lock in the progress you've made in this lesson before continuing.
 
 ## Key Concepts
 

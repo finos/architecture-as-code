@@ -132,13 +132,7 @@ Experiment with different options — the [calm-widgets README](https://github.c
 
 > **Note:** These same templates work with the CLI `calm docify` command to generate static documentation websites for publishing or sharing.
 
-### 6. Commit Your Work
-
-```bash
-git add docs/ README.md
-git commit -m "Day 12: Create custom docs with calm-widgets"
-git tag day-12
-```
+This is a natural checkpoint — use git to record the current state of your work before moving to the next lesson.
 
 ## Key Concepts
 

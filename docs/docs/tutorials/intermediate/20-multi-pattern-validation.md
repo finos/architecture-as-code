@@ -193,13 +193,7 @@ Architectures should be validated against multiple patterns:
 Run both validations before committing any architecture change.
 ```
 
-### 9. Commit and Tag
-
-```bash
-git add architectures/generated-webapp.json patterns/README.md .github/workflows/calm-validate.yml
-git commit -m "Day 20: Implement multi-pattern validation for complete compliance"
-git tag day-20
-```
+Use git to version-control your work so far. Small, frequent commits make it easier to track the evolution of your architecture over the course of this series.
 
 ## Key Concepts
 

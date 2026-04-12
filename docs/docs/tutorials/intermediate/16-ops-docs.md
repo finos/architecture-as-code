@@ -256,13 +256,7 @@ Your architecture is the source of truth. When it changes, docs should regenerat
 - Changes to architecture are automatically reflected
 - Single source of truth for both architecture and docs
 
-### 9. Commit Your Work
-
-```bash
-git add templates/ops/ docs/ops/
-git commit -m "Day 16: Generate operations documentation with docify templates"
-git tag day-16
-```
+This is a good point to stage and commit your changes with git, preserving a clear record of your work.
 
 ## Key Concepts
 

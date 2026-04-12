@@ -147,13 +147,7 @@ Create standards/README.md that documents:
 3. Our company's relationship standard requirements (data classification, encrypted)
 ```
 
-### 10. Commit Your Work
-
-```bash
-git add standards/
-git commit -m "Day 18: Create CALM Standards for organizational node and relationship requirements"
-git tag day-18
-```
+Record your progress by committing your changes to git. Keeping a tidy history now pays dividends when you need to revisit decisions later.
 
 ## Key Concepts
 

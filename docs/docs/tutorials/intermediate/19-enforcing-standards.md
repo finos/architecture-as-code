@@ -155,13 +155,7 @@ Should pass! ✅
 rm architectures/compliant-test.json
 ```
 
-### 10. Commit Your Work
-
-```bash
-git add url-mapping.json patterns/company-base-pattern.json patterns/README.md
-git commit -m "Day 19: Create Company Base Pattern to enforce Standards"
-git tag day-19
-```
+Now that you've completed this lesson, use git to baseline the changes you've made. A committed snapshot ensures you can always return to this point.
 
 ## Key Concepts
 

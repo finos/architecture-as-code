@@ -188,13 +188,7 @@ calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp
 
 No warnings ✅ — adding extra properties doesn't break pattern compliance.
 
-### 11. Commit Your Work
-
-```bash
-git add patterns/ architectures/generated-webapp.json
-git commit -m "Day 17: Create first CALM pattern for web applications"
-git tag day-17
-```
+Before moving on, use git to capture the state of your work. A descriptive commit message will help future-you understand what changed and why.
 
 ## Key Concepts
 

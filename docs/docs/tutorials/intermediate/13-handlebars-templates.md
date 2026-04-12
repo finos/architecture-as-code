@@ -200,13 +200,7 @@ architecture: ../architectures/ecommerce-platform.json
 {{table nodes columns="unique-id,name,node-type"}}
 ```
 
-### 9. Commit Your Work
-
-```bash
-git add templates/ docs/generated/ README.md
-git commit -m "Day 13: Create custom documentation with Handlebars templates"
-git tag day-13
-```
+Don't forget to commit your progress with git. Capturing a snapshot here keeps your change history clean and meaningful.
 
 ## Key Concepts
 
