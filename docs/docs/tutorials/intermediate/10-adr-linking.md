@@ -22,7 +22,7 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Model Business Flows](./09-business-flows) first.
+Complete the [Beginner Tutorials](../beginner/07-complete-architecture) section first. You will need your `architectures/ecommerce-platform.json` from the [Build a Complete Architecture](../beginner/07-complete-architecture) lesson.
 
 ## Step-by-Step Guide
 

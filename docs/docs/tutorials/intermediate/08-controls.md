@@ -22,7 +22,7 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete the [Beginner Tutorials](../beginner/07-complete-architecture) section first. You will need your `architectures/ecommerce-platform.json` from Day 7.
+Complete the [Beginner Tutorials](../beginner/07-complete-architecture) section first. You will need your `architectures/ecommerce-platform.json` from the [Build a Complete Architecture](../beginner/07-complete-architecture) lesson.
 
 ## Step-by-Step Guide
 
@@ -47,7 +47,7 @@ Controls can be applied at multiple levels:
 
 ### 2. Add an Architecture-Level Security Control
 
-Open your `architectures/ecommerce-platform.json` from Day 7.
+Open your `architectures/ecommerce-platform.json` from the [Build a Complete Architecture](../beginner/07-complete-architecture) lesson.
 
 **Prompt:**
 ```text

@@ -23,7 +23,7 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Controls for Non-Functional Requirements](./08-controls) first.
+Complete the [Beginner Tutorials](../beginner/07-complete-architecture) section first. You will need your `architectures/ecommerce-platform.json` from the [Build a Complete Architecture](../beginner/07-complete-architecture) lesson.
 
 ## Step-by-Step Guide
 
@@ -43,7 +43,7 @@ Flows consist of:
 
 Open `architectures/ecommerce-platform.json`.
 
-First, identify the relationship unique-ids from your Day 7 architecture that form the order flow path:
+First, identify the relationship unique-ids from your [Build a Complete Architecture](../beginner/07-complete-architecture) architecture that form the order flow path:
 - Customer → API Gateway (interacts relationship)
 - API Gateway → Order Service (connects relationship)
 - Order Service → Payment Service (connects relationship)
@@ -64,7 +64,7 @@ Create a flow with:
 Look up the exact relationship unique-ids from my relationships array and use those.
 ```
 
-> **Note:** Your relationship unique-ids may differ based on how Copilot named them in Day 7. The AI will look up your actual IDs.
+> **Note:** Your relationship unique-ids may differ based on how Copilot named them in the [Build a Complete Architecture](../beginner/07-complete-architecture) lesson. The AI will look up your actual IDs.
 
 ### 3. Validate Flow Structure
 
