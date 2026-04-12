@@ -84,7 +84,27 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: '🛠️ Practitioner',
+          label: '� Intermediate',
+          link: {type: 'doc', id: 'tutorials/intermediate/intermediate-tutorials'},
+          items: [
+            'tutorials/intermediate/08-controls',
+            'tutorials/intermediate/09-business-flows',
+            'tutorials/intermediate/10-adr-linking',
+            'tutorials/intermediate/11-docify',
+            'tutorials/intermediate/12-calm-widgets',
+            'tutorials/intermediate/13-handlebars-templates',
+            'tutorials/intermediate/14-ai-advisor',
+            'tutorials/intermediate/15-ops-advisor',
+            'tutorials/intermediate/16-ops-docs',
+            'tutorials/intermediate/17-patterns',
+            'tutorials/intermediate/18-standards',
+            'tutorials/intermediate/19-enforcing-standards',
+            'tutorials/intermediate/20-multi-pattern-validation',
+          ],
+        },
+        {
+          type: 'category',
+          label: '�🛠️ Practitioner',
           link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
           items: [
             'tutorials/build-a-calm-architecture/tool-setup',

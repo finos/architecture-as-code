@@ -15,7 +15,7 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 │                         YOUR CALM LEARNING PATH                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│   BEGINNER TUTORIALS                                                        │
+│   🟢 BEGINNER TUTORIALS                                                     │
 │   ├── Setup & CLI                                                           │
 │   ├── First Node                                                            │
 │   ├── Relationships                                                         │
@@ -23,8 +23,25 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 │   ├── Interfaces                                                            │
 │   ├── Metadata                                                              │
 │   └── Complete Architecture                                                 │
-│                                                                             │
-│   PRACTITIONER TUTORIAL                                                     │
+│                          │                                                  │
+│                          ▼                                                  │
+│   🟡 INTERMEDIATE TUTORIALS                                                 │
+│   ├── Controls                                                              │
+│   ├── Business Flows                                                        │
+│   ├── ADR Linking                                                           │
+│   ├── Docify                                                                │
+│   ├── CALM Widgets                                                          │
+│   ├── Handlebars Templates                                                  │
+│   ├── AI Advisor                                                            │
+│   ├── Ops Advisor                                                           │
+│   ├── Ops Documentation                                                     │
+│   ├── Patterns                                                              │
+│   ├── Standards                                                             │
+│   ├── Enforcing Standards                                                   │
+│   └── Multi-Pattern Validation                                              │
+│                          │                                                  │
+│                          ▼                                                  │
+│   🛠️ PRACTITIONER TUTORIAL                                                  │
 │   ├── Tool Setup                                                            │
 │   ├── Understand the Business Context                                       │
 │   ├── Define Initial Architecture                                           │
@@ -53,7 +70,28 @@ Learn the core building blocks of CALM architectures:
 
 ---
 
-## Prerequisites
+## Next Step: Intermediate Tutorials
+
+### 🟡 Intermediate Tutorials
+
+**Complete the Beginner Tutorials before starting here**
+
+Go beyond the basics and learn how to build richer, governance-ready architectures:
+- Adding controls and business flows to architectures
+- Linking Architecture Decision Records (ADRs)
+- Publishing architecture docs with `docify`
+- Building custom templates and widgets
+- Using CALM as an AI-powered advisor
+- Creating reusable Patterns and organizational Standards
+- Enforcing compliance with multi-pattern validation
+
+**Time commitment:** ~30-60 minutes per tutorial
+
+[Start Intermediate Tutorials →](./intermediate/)
+
+---
+
+## Start Here: Beginner Tutorials
 
 Before you begin, make sure you have:
 
