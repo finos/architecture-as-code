@@ -22,7 +22,12 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Link Architecture Decision Records](./10-adr-linking) first. Ensure your CALM CLI is version 1.22.1 or above:
+Complete the following lessons first:
+- [Controls for Non-Functional Requirements](./08-controls)
+- [Model Business Flows](./09-business-flows)
+- [Link Architecture Decision Records](./10-adr-linking)
+
+Ensure your CALM CLI is version 1.22.1 or above:
 
 ```bash
 calm --version

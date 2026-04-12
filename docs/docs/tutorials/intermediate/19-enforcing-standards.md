@@ -23,13 +23,13 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Organizational Standards](./18-standards) first. You will need your `standards/company-node-standard.json` and `standards/company-relationship-standard.json` from Day 18.
+Complete [Organizational Standards](./18-standards) first. You will need your `standards/company-node-standard.json` and `standards/company-relationship-standard.json` from the [Organizational Standards](./18-standards) lesson.
 
 ## Step-by-Step Guide
 
 ### 1. Understand the Gap
 
-Your `web-app-pattern` from Day 17 enforces structure:
+Your `web-app-pattern` from the [Introduction to CALM Patterns](./17-patterns) lesson enforces structure:
 - ✅ Must have `"api-gateway"`, `"api-service"`, `"app-database"` nodes
 - ✅ Must have specific relationships
 

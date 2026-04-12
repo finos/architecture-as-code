@@ -22,13 +22,13 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Use CALM as Your Operations Advisor](./15-ops-advisor) first. You will need your `architectures/ecommerce-platform.json` enriched with operational metadata from Day 15.
+Complete [Use CALM as Your Operations Advisor](./15-ops-advisor) first. You will need your `architectures/ecommerce-platform.json` enriched with operational metadata from the [Use CALM as Your Operations Advisor](./15-ops-advisor) lesson.
 
 ## Step-by-Step Guide
 
 ### 1. Understand the Ops Documentation Goal
 
-Your Day 15 architecture now contains:
+Your architecture from the [Use CALM as Your Operations Advisor](./15-ops-advisor) lesson now contains:
 - Owner and on-call contacts per service
 - Health endpoints and runbook links
 - Failure modes with symptoms and remediation

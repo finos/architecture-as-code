@@ -28,7 +28,7 @@ Complete [Enforcing Standards with Patterns](./19-enforcing-standards) first. Yo
 
 ### 1. Review Your Current State
 
-Your `generated-webapp.json` from Day 17 validates against the web app structural pattern:
+Your `generated-webapp.json` from the [Introduction to CALM Patterns](./17-patterns) lesson validates against the web app structural pattern:
 
 ```bash
 calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json

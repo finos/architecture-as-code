@@ -30,7 +30,7 @@ Complete [Custom Documentation with CALM Widgets](./12-calm-widgets) first.
 
 ### 1. When to Use Raw Handlebars
 
-On Day 12 you learned calm-widgets provide ready-made components. Use raw Handlebars when you need to:
+In the [Custom Documentation with CALM Widgets](./12-calm-widgets) lesson you learned calm-widgets provide ready-made components. Use raw Handlebars when you need to:
 - Create custom filtering logic (e.g., only show nodes of a certain type)
 - Format data in ways widgets don't support
 - Build complex conditional documentation
@@ -110,7 +110,7 @@ architecture: ../architectures/ecommerce-platform.json
 
 ### 5. Preview in VSCode
 
-Just like Day 12, you can preview this template in VSCode:
+Just like in the [Custom Documentation with CALM Widgets](./12-calm-widgets) lesson, you can preview this template in VSCode:
 
 1. Open `templates/node-inventory.md` in VSCode
 2. Open the CALM preview pane (`Ctrl+Shift+C` / `Cmd+Shift+C`) to see the rendered output
