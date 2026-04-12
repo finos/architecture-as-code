@@ -241,7 +241,7 @@ This isn't a full break, but it implies that you've forgotten to fill out a deta
 
 ## CALM init-ai
 
-The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present four AI Assistant providers are supported: Github Copilot, Claude Code, AWS Kiro, and Codex.
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present four AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, and Codex.
 
 ```shell
 calm init-ai --help
