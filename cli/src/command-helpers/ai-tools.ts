@@ -78,7 +78,7 @@ export async function setupAiTools(provider: string, targetDirectory: string, ve
         await createToolPrompts(assistantDir, logger);
 
         logger.info('✅ CALM AI tools setup completed successfully!');
-        logger.info('🚀 To use: Open this repository in your IDE and start a chat with the CALM agent');
+        logger.info('🚀 To use: Open this repository in your AI assistant and start a CALM-aware chat');
         logger.info(`📁 Files created in ${aiConfig.topLevelDirectory} directory following ${provider} AI Assistant conventions`);
 
     } catch (error) {
@@ -94,6 +94,7 @@ async function validateBundledResources(logger: Logger): Promise<void> {
         'ai-assistants/copilot.json',
         'ai-assistants/kiro.json',
         'ai-assistants/claude.json',
+        'ai-assistants/codex.json',
         'templates/CALM.chatmode_template.md',
         'tools/architecture-creation.md',
         'tools/node-creation.md',

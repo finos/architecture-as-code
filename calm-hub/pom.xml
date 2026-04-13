@@ -31,7 +31,7 @@
                 CVE-2026-33870/CVE-2026-33871 (affecting <=4.1.131.Final).
                 Must stay on 4.1.x — Quarkus 3.x applies a CleanerJava9 bytecode
                 transformation incompatible with Netty 4.2 (see quarkusio/quarkus#53309). -->
-                <version>4.2.12.Final</version>
+                <version>4.1.132.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

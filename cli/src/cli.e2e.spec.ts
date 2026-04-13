@@ -43,7 +43,8 @@ describe('CLI Integration Tests', () => {
 
         const sourceTarball = path.join(repoRoot, tgzName);
         const targetTarball = path.join(tempDir, tgzName);
-        fs.renameSync(sourceTarball, targetTarball);
+        fs.copyFileSync(sourceTarball, targetTarball);
+        fs.unlinkSync(sourceTarball);
 
         execSync('npm init -y', { cwd: tempDir, stdio: 'inherit' });
         execSync(`npm install ${targetTarball}`, {
@@ -92,7 +93,7 @@ describe('CLI Integration Tests', () => {
         expect(stdout).toContain('Options:');
     });
 
-    describe.each(['copilot', 'kiro', 'claude'])('calm init-ai -p %s', (provider) => {
+    describe.each(['copilot', 'kiro', 'claude', 'codex'])('calm init-ai -p %s', (provider) => {
         test('creates correct directory structure and files', async () => {
             const testDir = path.join(tempDir, `init-ai-${provider}-test`);
             fs.mkdirSync(testDir, { recursive: true });
@@ -123,6 +124,12 @@ describe('CLI Integration Tests', () => {
                     mainPromptFile: '.claude/skills/calm/SKILL.md',
                     skillPromptsDir: '.claude/skills/calm/calm-prompts',
                     frontmatterContains: ['name: calm', 'description:', 'user-invocable: true'],
+                },
+                codex: {
+                    topLevelDir: '.agents/skills/calm',
+                    mainPromptFile: '.agents/skills/calm/SKILL.md',
+                    skillPromptsDir: '.agents/skills/calm/calm-prompts',
+                    frontmatterContains: ['name: calm', 'description:'],
                 },
             };
 
@@ -189,7 +196,7 @@ describe('CLI Integration Tests', () => {
         await expect(
             run(calm(), ['init-ai', '-p', 'invalidprovider', '--directory', testDir])
         ).rejects.toMatchObject({
-            stderr: expect.stringContaining('error: option \'-p, --provider <provider>\' argument \'invalidprovider\' is invalid. Allowed choices are copilot, kiro, claude.')
+            stderr: expect.stringContaining('error: option \'-p, --provider <provider>\' argument \'invalidprovider\' is invalid. Allowed choices are copilot, kiro, claude, codex.')
         });
 
         // Clean up test directory
