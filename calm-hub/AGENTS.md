@@ -152,6 +152,19 @@ public class ArchitectureStoreProducer {
 
 ## Testing
 
+### Coverage Requirements
+
+**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify -Ddependency-check.skip=true` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
+
+```bash
+# Run the same check CI uses — always run this before pushing changes
+../mvnw clean verify -Ddependency-check.skip=true
+```
+
+**Exclusions**: Classes in `**/domain/**/*`, `**/*Constants.*`, `**/CalmHubScopes.*`, and `**/LogSanitizationPolicy.*` are excluded from the coverage check.
+
+If coverage drops below 90% for a class you've modified, add tests for uncovered error paths (catch blocks, edge cases) until the threshold is met. Check the JaCoCo report at `target/site/jacoco/` for details on uncovered lines.
+
 ### Unit Tests
 ```bash
 ../mvnw test                  # All unit tests

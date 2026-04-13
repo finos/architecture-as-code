@@ -130,7 +130,7 @@ Configure CALM-specific AI assistance inside a repo:
 calm init-ai -p <provider> [--directory <path>] [--verbose]
 ```
 
-At present Github Copilot (`copilot`), AWS Kiro (`kiro`), and Claude Code (`claude`) are supported as providers.
+At present GitHub Copilot (`copilot`), AWS Kiro (`kiro`), Claude Code (`claude`), and Codex (`codex`) are supported as providers.
 
 This generates custom prompts for the specified <provider> to use CALM-aware tools (nodes, relationships, interfaces, controls, flows, patterns, metadata).
 

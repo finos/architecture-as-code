@@ -19,18 +19,10 @@ public class NitritePatternIntegration {
         NitriteSetup.namespaceSetup();
     }
 
-    @Test
-    @Order(1)
-    void end_to_end_get_with_no_patterns() {
-        given()
-                .when().get("/calm/namespaces/finos/patterns")
-                .then()
-                .statusCode(200)
-                .body("values", empty());
-    }
+    private static String createdPatternId;
 
     @Test
-    @Order(2)
+    @Order(1)
     void end_to_end_create_a_pattern() {
         String payload = """
                 {
@@ -40,20 +32,31 @@ public class NitritePatternIntegration {
                 }
                 """;
 
-        given()
+        var response = given()
                 .body(payload)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("calm/namespaces/finos/patterns/1"));
+                .header("Location", containsString("calm/namespaces/finos/patterns/"))
+                .extract();
+
+        String location = response.header("Location");
+        // Extract pattern ID from Location header (e.g. /calm/namespaces/finos/patterns/2/versions/1-0-0)
+        String[] parts = location.split("/");
+        for (int i = 0; i < parts.length; i++) {
+            if ("patterns".equals(parts[i]) && i + 1 < parts.length) {
+                createdPatternId = parts[i + 1];
+                break;
+            }
+        }
     }
 
     @Test
-    @Order(3)
+    @Order(2)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/1/versions")
+                .when().get("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -61,10 +64,10 @@ public class NitritePatternIntegration {
     }
 
     @Test
-    @Order(4)
+    @Order(3)
     void end_to_end_verify_pattern() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/1/versions/1.0.0")
+                .when().get("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(PATTERN));

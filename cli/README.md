@@ -241,7 +241,7 @@ This isn't a full break, but it implies that you've forgotten to fill out a deta
 
 ## CALM init-ai
 
-The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode agent with comprehensive tool prompts.  At present three AI Assistant providers are supported:  Github Copilot, Claude Code, and AWS Kiro.
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present four AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, and Codex.
 
 ```shell
 calm init-ai --help
@@ -250,7 +250,7 @@ Usage: calm init-ai [options]
 Augment a git repository with AI assistance for CALM
 
 Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude")
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex")
   -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
   -v, --verbose              Enable verbose logging. (default: false)
   -h, --help                 display help for command
@@ -276,7 +276,7 @@ calm init-ai -p <provider>
 calm init-ai -p <provider> --directory /path/to/your/calm-project
 ```
 
-This will create the necessary IDE-specific configuration files to enable CALM-specific AI assistance. Once set up, you can use GitHub Copilot Chat with specialized CALM tools that understand schema requirements, validation rules, and best practices.
+This will create the necessary assistant-specific configuration files to enable CALM-specific AI assistance. Once set up, your selected assistant can use specialized CALM tools that understand schema requirements, validation rules, and best practices. For Codex, this creates a CALM skill under `.agents/skills/calm` and does not create or modify root `AGENTS.md`.
 
 ### Tool Prompts
 

@@ -123,6 +123,15 @@ public class MongoIndexInitializer {
             database.getCollection("controls")
                     .createIndex(new Document("domain", 1), uniqueIndex);
             LOG.info("Ensured unique index on controls.domain");
+
+            // Resource mappings — unique (namespace, customId) and reverse lookup index
+            database.getCollection("resource_mappings")
+                    .createIndex(new Document("namespace", 1).append("customId", 1), uniqueIndex);
+            LOG.info("Ensured unique index on resource_mappings.(namespace, customId)");
+
+            database.getCollection("resource_mappings")
+                    .createIndex(new Document("namespace", 1).append("resourceType", 1).append("numericId", 1));
+            LOG.info("Ensured index on resource_mappings.(namespace, resourceType, numericId)");
         } catch (Exception e) {
             LOG.warn("Failed to create MongoDB indexes — indexes may already exist or MongoDB is unavailable", e);
         }

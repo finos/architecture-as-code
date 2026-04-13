@@ -6,7 +6,7 @@ This directory contains AI tools, prompts, and configuration for integrating AI 
 
 The CALM AI tools provide:
 - **Specialized prompts** to guide AI assistants in creating, validating, and documenting CALM architectures
-- **Configuration files** for multiple AI assistant providers (GitHub Copilot, AWS Kiro/Q)
+- **Configuration files** for multiple AI assistant providers (GitHub Copilot, AWS Kiro/Q, Claude Code, Codex)
 - **Template system** using Handlebars to generate provider-specific prompt files
 - **CLI integration** via the `calm init-ai` command for automated setup
 
@@ -17,6 +17,8 @@ These tools enable AI assistants to provide context-aware assistance for CALM ar
 ```
 calm-ai/
 ├── ai-assistants/          # AI provider configuration files
+│   ├── claude.json        # Claude Code configuration
+│   ├── codex.json         # Codex configuration
 │   ├── copilot.json       # GitHub Copilot configuration
 │   └── kiro.json          # AWS Kiro/Q configuration
 ├── templates/             # Handlebars templates
@@ -188,6 +190,11 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 - Prompts placed in `.kiro/steering/` directory
 - Skill prompts referenced as `#[[calm-prompts/architecture-creation.md]]`
 
+**Codex specifics:**
+- Prompts are installed as a CALM skill under `.agents/skills/calm/`
+- The main skill file is `.agents/skills/calm/SKILL.md`
+- Root `AGENTS.md` is not created or modified by this integration
+
 ## Template System (`templates/`)
 
 The `CALM.chatmode_template.md` file is a Handlebars template that generates provider-specific prompt files. It defines the structure and instructions for AI assistants working with CALM architectures.
@@ -246,6 +253,9 @@ calm init-ai -p copilot
 
 # Initialize AWS Kiro/Q integration
 calm init-ai -p kiro
+
+# Initialize Codex integration
+calm init-ai -p codex
 ```
 
 This command:

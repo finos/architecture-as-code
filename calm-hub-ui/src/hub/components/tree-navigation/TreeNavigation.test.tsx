@@ -28,6 +28,9 @@ let calmServiceInstance: {
     fetchFlow: Mock;
     fetchStandard: Mock;
     fetchArchitecture: Mock;
+    fetchMappings: Mock;
+    fetchVersionsByCustomId: Mock;
+    fetchResourceByCustomId: Mock;
 } | undefined;
 
 vi.mock('../../../service/calm-service.js', () => ({
@@ -45,7 +48,10 @@ vi.mock('../../../service/calm-service.js', () => ({
             fetchPattern: vi.fn().mockResolvedValue({}),
             fetchFlow: vi.fn().mockResolvedValue({}),
             fetchStandard: vi.fn().mockResolvedValue({}),
-            fetchArchitecture: vi.fn().mockResolvedValue({})
+            fetchArchitecture: vi.fn().mockResolvedValue({}),
+            fetchMappings: vi.fn().mockResolvedValue([]),
+            fetchVersionsByCustomId: vi.fn().mockResolvedValue([]),
+            fetchResourceByCustomId: vi.fn().mockResolvedValue({})
         };
         return calmServiceInstance;
     })
@@ -135,7 +141,7 @@ describe('TreeNavigation', () => {
         vi.mocked(useParams).mockReturnValue({
             namespace: 'test-namespace',
             type: 'patterns',
-            id: 'pattern2',
+            id: '102',
             version: 'v2.0'
         });
 
@@ -146,8 +152,8 @@ describe('TreeNavigation', () => {
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
             expect(calmServiceInstance?.fetchPatternSummaries).toHaveBeenCalledWith('test-namespace');
-            expect(calmServiceInstance?.fetchPatternVersions).toHaveBeenCalledWith('test-namespace', 'pattern2');
-            expect(calmServiceInstance?.fetchPattern).toHaveBeenCalledWith('test-namespace', 'pattern2', 'v2.0');
+            expect(calmServiceInstance?.fetchPatternVersions).toHaveBeenCalledWith('test-namespace', '102');
+            expect(calmServiceInstance?.fetchPattern).toHaveBeenCalledWith('test-namespace', '102', 'v2.0');
         });
     });
 
@@ -274,7 +280,10 @@ describe('buildNamespaceTree', () => {
             fetchPattern: vi.fn().mockResolvedValue({}),
             fetchFlow: vi.fn().mockResolvedValue({}),
             fetchStandard: vi.fn().mockResolvedValue({}),
-            fetchArchitecture: vi.fn().mockResolvedValue({})
+            fetchArchitecture: vi.fn().mockResolvedValue({}),
+            fetchMappings: vi.fn().mockResolvedValue([]),
+            fetchVersionsByCustomId: vi.fn().mockResolvedValue([]),
+            fetchResourceByCustomId: vi.fn().mockResolvedValue({})
         }));
 
         render(
