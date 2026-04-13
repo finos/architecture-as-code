@@ -46,7 +46,7 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 │   ├── Understand the Business Context                                       │
 │   ├── Define Initial Architecture                                           │
 │   ├── Refine Architecture Definition                                        │
-│   ├── Generate Architecture Documentation                                  │
+│   ├── Generate Architecture Documentation                                   │
 │   └── Key Takeaways                                                         │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
