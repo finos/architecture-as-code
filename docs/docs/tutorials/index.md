@@ -52,7 +52,7 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Start Here: Beginner Tutorials
+## Start Here: Beginner
 
 ### 🟢 Beginner Tutorials
 
@@ -66,11 +66,35 @@ Learn the core building blocks of CALM architectures:
 
 **Time commitment:** ~15-45 minutes per tutorial
 
-[Start with Beginner Tutorials →](./beginner/)
+### Prerequisites
+
+Before you begin, make sure you have:
+
+- **Git** installed
+- **Node.js** (20+) and npm installed
+- **VSCode** editor (version 1.96+)
+- **GitHub Copilot** access (optional but recommended, requires VSCode 1.106+)
+
+### Getting Started
+
+1. **[Start with Setup & CLI](./beginner/01-setup)** — Set up your CALM workspace and tools
+2. **Work through each tutorial** — They build on each other progressively
+3. **Ask questions** — Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
+
+### Skills You'll Acquire
+
+By completing all beginner tutorials, you'll be able to:
+
+✅ **Create** complete architecture documents from scratch  
+✅ **Model** nodes, relationships, interfaces, and metadata  
+✅ **Use** the VSCode extension for visualization  
+✅ **Build** realistic multi-service architectures  
+
+[Start your CALM journey →](./beginner/01-setup)
 
 ---
 
-## Next Step: Intermediate Tutorials
+## Start Here: Intermediate
 
 ### 🟡 Intermediate Tutorials
 
@@ -87,41 +111,37 @@ Go beyond the basics and learn how to build richer, governance-ready architectur
 
 **Time commitment:** ~30-60 minutes per tutorial
 
-[Start Intermediate Tutorials →](./intermediate/)
+### Prerequisites
 
----
+- **Completed all Beginner Tutorials** (see [Start Here: Beginner](#start-here-beginner) above)
 
-## Start Here: Beginner Tutorials
+### Getting Started
 
-Before you begin, make sure you have:
-
-- **Git** installed
-- **Node.js** (20+) and npm installed
-- **VSCode** editor (version 1.96+)
-- **GitHub Copilot** access (optional but recommended, requires VSCode 1.106+)
-
-## Getting Started
-
-1. **[Start with Setup & CLI](./beginner/01-setup)** — Set up your CALM workspace and tools
+1. **[Start with Controls](./intermediate/08-controls)** — Add governance controls to your architecture
 2. **Work through each tutorial** — They build on each other progressively
 3. **Ask questions** — Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
 
-## Skills You'll Acquire
+### Skills You'll Acquire
 
-By completing all tutorials, you'll be able to:
+By completing all intermediate tutorials, you'll be able to:
 
-✅ **Create** complete architecture documents from scratch  
-✅ **Model** nodes, relationships, interfaces, and metadata  
-✅ **Use** the VSCode extension for visualization  
-✅ **Build** realistic multi-service architectures  
+✅ **Add** controls and business flows to architectures  
+✅ **Link** Architecture Decision Records (ADRs) to architecture elements  
+✅ **Publish** architecture documentation using `docify`  
+✅ **Build** custom templates and widgets for visualization  
+✅ **Use** CALM as an AI-powered architecture advisor  
+✅ **Create** reusable Patterns and organizational Standards  
+✅ **Enforce** compliance through multi-pattern validation  
 
-Ready to begin? [Start your CALM journey →](beginner/01-setup)
+[Start Intermediate Tutorials →](./intermediate/)
+
+---
 
 ## Start Here: Practitioner
 
 ### 🛠️ Practitioner Tutorial
 
-**Some CALM knowledge required, similar to what is covered in the Beginner tutorial.**
+**Some CALM knowledge required, similar to what is covered in the Beginner and Intermediate tutorials.**
 
 ## Prerequisites
 
