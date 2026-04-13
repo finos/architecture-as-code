@@ -25,6 +25,25 @@ export interface ResourceSummary {
     id: number;
     name: string;
     description: string;
+    customId?: string;
+}
+
+/**
+ * A mapping from a human-readable custom ID (slug) to a numeric resource ID.
+ */
+export interface ResourceMapping {
+    namespace: string;
+    customId: string;
+    resourceType: string;
+    numericId: number;
+}
+
+/**
+ * Returns true when the given identifier is a human-readable slug
+ * rather than a legacy numeric ID.
+ */
+export function isSlug(id: string): boolean {
+    return !/^\d+$/.test(id);
 }
 
 /**

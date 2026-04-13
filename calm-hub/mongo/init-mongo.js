@@ -2454,4 +2454,27 @@ if (db.interfaces.countDocuments() === 0) {
     logSkip("Interfaces already initialized, skipping...");
 }
 
+logSection("Resource Mappings");
+db.resource_mappings.createIndex({ namespace: 1, customId: 1 }, { unique: true });
+db.resource_mappings.createIndex({ namespace: 1, resourceType: 1, numericId: 1 });
+logSuccess("Created resource_mappings indexes");
+
+if (db.resource_mappings.countDocuments() === 0) {
+    db.resource_mappings.insertMany([
+        { namespace: "finos", customId: "api-gateway-pattern", resourceType: "PATTERN", numericId: NumberInt(1) },
+        { namespace: "finos", customId: "flow-1", resourceType: "FLOW", numericId: NumberInt(1) },
+        { namespace: "finos", customId: "flow-2", resourceType: "FLOW", numericId: NumberInt(2) },
+        { namespace: "finos", customId: "sample-architecture", resourceType: "ARCHITECTURE", numericId: NumberInt(1) },
+        { namespace: "traderx", customId: "add-update-account", resourceType: "FLOW", numericId: NumberInt(1) },
+        { namespace: "traderx", customId: "load-list-of-accounts", resourceType: "FLOW", numericId: NumberInt(2) },
+        { namespace: "traderx", customId: "traderx", resourceType: "ARCHITECTURE", numericId: NumberInt(1) },
+        { namespace: "workshop", customId: "conference-signup-pattern", resourceType: "PATTERN", numericId: NumberInt(1) },
+        { namespace: "workshop", customId: "conference-secure-signup-pattern", resourceType: "PATTERN", numericId: NumberInt(2) },
+        { namespace: "workshop", customId: "conference-signup-architecture", resourceType: "ARCHITECTURE", numericId: NumberInt(1) }
+    ]);
+    logSuccess("Initialized resource_mappings with seed data");
+} else {
+    logSkip("Resource mappings already exist, no initialization needed");
+}
+
 logSection("Initialization complete");
