@@ -178,6 +178,8 @@ calm docify \
 
 You can mix calm-widgets with raw Handlebars in the same template:
 
+**File:** `templates/combined-view.md`
+
 ```handlebars
 ---
 architecture: ../architectures/ecommerce-platform.json
