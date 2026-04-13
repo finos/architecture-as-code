@@ -25,7 +25,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
-@Path("calm/namespaces")
+@Path("/calm/namespaces")
 public class StandardResource {
 
     private final StandardStore standardStore;

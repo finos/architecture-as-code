@@ -63,17 +63,17 @@ public class MongoFrontControllerIntegration {
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/finos/test-pattern")
+                .when().post("/calm/namespaces/finos/test-pattern")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/finos/test-pattern/versions/1.0.0"));
+                .header("Location", containsString("/calm/namespaces/finos/test-pattern/versions/1.0.0"));
     }
 
     @Test
     @Order(2)
     void get_latest_version_by_custom_id() {
         given()
-                .when().get("/calm/finos/test-pattern")
+                .when().get("/calm/namespaces/finos/test-pattern")
                 .then()
                 .statusCode(200)
                 .body(containsString("front-controller-test"));
@@ -83,7 +83,7 @@ public class MongoFrontControllerIntegration {
     @Order(3)
     void get_specific_version_by_custom_id() {
         given()
-                .when().get("/calm/finos/test-pattern/versions/1.0.0")
+                .when().get("/calm/namespaces/finos/test-pattern/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("front-controller-test"));
@@ -93,7 +93,7 @@ public class MongoFrontControllerIntegration {
     @Order(4)
     void list_versions_by_custom_id() {
         given()
-                .when().get("/calm/finos/test-pattern/versions")
+                .when().get("/calm/namespaces/finos/test-pattern/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -113,17 +113,17 @@ public class MongoFrontControllerIntegration {
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/finos/test-pattern")
+                .when().post("/calm/namespaces/finos/test-pattern")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/finos/test-pattern/versions/1.1.0"));
+                .header("Location", containsString("/calm/namespaces/finos/test-pattern/versions/1.1.0"));
     }
 
     @Test
     @Order(6)
     void get_latest_returns_newest_version() {
         given()
-                .when().get("/calm/finos/test-pattern")
+                .when().get("/calm/namespaces/finos/test-pattern")
                 .then()
                 .statusCode(200)
                 .body(containsString("front-controller-test-v2"));
@@ -133,7 +133,7 @@ public class MongoFrontControllerIntegration {
     @Order(7)
     void original_version_still_accessible() {
         given()
-                .when().get("/calm/finos/test-pattern/versions/1.0.0")
+                .when().get("/calm/namespaces/finos/test-pattern/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("front-controller-test"));
@@ -143,7 +143,7 @@ public class MongoFrontControllerIntegration {
     @Order(8)
     void list_versions_shows_both() {
         given()
-                .when().get("/calm/finos/test-pattern/versions")
+                .when().get("/calm/namespaces/finos/test-pattern/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2))
@@ -154,7 +154,7 @@ public class MongoFrontControllerIntegration {
     @Order(9)
     void lookup_mappings_includes_created_mapping() {
         given()
-                .when().get("/calm/finos/mappings?type=PATTERN")
+                .when().get("/calm/namespaces/finos/mappings?type=PATTERN")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(greaterThanOrEqualTo(1)))
@@ -175,17 +175,17 @@ public class MongoFrontControllerIntegration {
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/finos/test-pattern")
+                .when().post("/calm/namespaces/finos/test-pattern")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/finos/test-pattern/versions/1.1.1"));
+                .header("Location", containsString("/calm/namespaces/finos/test-pattern/versions/1.1.1"));
     }
 
     @Test
     @Order(11)
     void return_404_for_nonexistent_custom_id() {
         given()
-                .when().get("/calm/finos/nonexistent-resource")
+                .when().get("/calm/namespaces/finos/nonexistent-resource")
                 .then()
                 .statusCode(404);
     }
