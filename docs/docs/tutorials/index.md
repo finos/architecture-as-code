@@ -143,7 +143,16 @@ By completing all intermediate tutorials, you'll be able to:
 
 **Some CALM knowledge required, similar to what is covered in the Beginner and Intermediate tutorials.**
 
-## Prerequisites
+Apply your CALM knowledge to build a complete, real-world architecture end-to-end with AI assistance:
+- Setting up your practitioner toolset
+- Understanding business context for architecture decisions
+- Defining and refining an initial architecture
+- Generating architecture documentation
+- Applying key takeaways for future projects
+
+**Time commitment:** ~2-3 hours for the complete tutorial
+
+### Prerequisites
 
 Before you begin, make sure you have:
 
@@ -153,13 +162,19 @@ Before you begin, make sure you have:
 - **CALM AI Assistant** Copilot, Claude or KIRO AI Assistant is enabled
 - **calm cli** installed
 
-## Skills You'll Acquire
+### Getting Started
+
+1. **[Start with Tool Setup](./build-a-calm-architecture/tool-setup)** — Configure your practitioner environment
+2. **Work through each section** — They build a complete architecture from start to finish
+3. **Ask questions** — Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
+
+### Skills You'll Acquire
 
 By completing this tutorial, you'll see how to use the CALM AI Assistant to:
 
 ✅ **Create** complete architecture document from a business design  
 ✅ **Enhance** definition of nodes, relationships, interfaces, and metadata with organizational specific information  
-✅ **Use** the VSCode extension for visualization   
+✅ **Use** the VSCode extension for visualization  
 ✅ **Generate** views of the architecture  
 ✅ **Learn** best practices in working with CALM architectures  
 
