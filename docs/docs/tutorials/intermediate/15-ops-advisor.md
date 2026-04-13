@@ -47,6 +47,8 @@ Unlike static wikis, this documentation lives with the architecture and stays in
 
 ### 2. Add Operational Metadata to Nodes
 
+Open your `architectures/ecommerce-platform.json`.
+
 **Prompt:**
 ```text
 Add operational metadata to my e-commerce architecture nodes. For each service (load-balancer, api-gateway-1, api-gateway-2, order-service, inventory-service, payment-service), add metadata including:
