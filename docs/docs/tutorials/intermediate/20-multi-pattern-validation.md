@@ -10,7 +10,7 @@ sidebar_position: 14
 
 ## Overview
 
-Learn how to validate a single architecture against multiple Patterns simultaneously — combining structural patterns with standards-enforcing patterns for complete, layered governance. This is the culmination of the Intermediate tutorials, bringing together all concepts from Days 17-19.
+Learn how to validate a single architecture against multiple Patterns simultaneously — combining structural patterns with standards-enforcing patterns for complete, layered governance. This is the culmination of the Intermediate tutorials, bringing together all concepts from earlier lessons.
 
 ## Learning Objectives
 
@@ -48,43 +48,40 @@ Should fail ❌ — missing `costCenter`, `owner`, `environment` on nodes and `d
 
 Open `architectures/generated-webapp.json` and update each node to include Standard properties:
 
-**API Gateway node:**
-```json
-{
-  "unique-id": "api-gateway",
-  "node-type": "service",
-  "name": "API Gateway",
-  "description": "Routes requests from the Internet to backend services",
-  "costCenter": "CC-1234",
-  "owner": "platform-team",
-  "environment": "production"
-}
+**Prompt:**
+```text
+Update architectures/generated-webapp.json to add Standard-compliant properties to ALL nodes.
+
+For each node, add these properties (alongside existing properties like unique-id, name, etc.):
+- costCenter: use the values below
+- owner: use the team names below  
+- environment: "production" for all
+
+Here are the mappings:
+- web-frontend: CC-1001, frontend-team
+- api-service: CC-2001, backend-team
+- app-database: CC-3001, data-team
+
+Keep all existing node properties intact.
 ```
-
-Apply the same pattern to your `api-service` and `app-database` nodes, adjusting `costCenter` if needed.
-
-> **Tip:** Use a CALM-aware prompt to update all nodes at once:
-> ```text
-> Update architectures/generated-webapp.json to add Standard properties to all nodes.
-> Add costCenter: "CC-1234", owner: "platform-team", environment: "production" to each node.
-> ```
 
 ### 3. Add Standards Properties to Relationships
 
 Update each relationship in `generated-webapp.json`:
 
-```json
-{
-  "unique-id": "api-to-service",
-  "relationship-type": {
-    "connects": {
-      "source": {"node": "api-gateway"},
-      "destination": {"node": "api-service"}
-    }
-  },
-  "dataClassification": "internal",
-  "encrypted": true
-}
+**Prompt:**
+```text
+Update architectures/generated-webapp.json to add Standard-compliant properties to ALL relationships.
+
+For each relationship, add:
+- dataClassification: appropriate level based on data sensitivity
+- encrypted: true (all communications should be encrypted)
+
+Use these classifications:
+- frontend-to-api: "internal" (browser to API)
+- api-to-database: "confidential" (API to database contains sensitive data)
+
+Keep all existing relationship properties intact.
 ```
 
 Apply to all relationships in the architecture.
@@ -177,9 +174,18 @@ jobs:
 
 ### 8. Update the Patterns README
 
-Update `patterns/README.md` to document the multi-pattern validation strategy:
+**Prompt:**
+```text
+Update patterns/README.md to document the multi-pattern validation approach:
 
-```markdown
+1. Explain how structural patterns and standards patterns work together
+2. Explain why this is better than combined patterns
+3. Describe how this enables CI/CD governance
+4. List the current patterns:
+   - web-app-pattern.json (structural)
+   - company-base-pattern.json (standards)
+```
+
 ## Validation Strategy
 
 Architectures should be validated against multiple patterns:
@@ -191,7 +197,6 @@ Architectures should be validated against multiple patterns:
    organizational standards (costCenter, owner, environment, dataClassification, encrypted).
 
 Run both validations before committing any architecture change.
-```
 
 Use git to version-control your work so far. Small, frequent commits make it easier to track the evolution of your architecture over the course of this series.
 
@@ -200,20 +205,20 @@ Use git to version-control your work so far. Small, frequent commits make it eas
 ### Multi-Pattern Validation Benefits
 
 ```
-           Single Combined Pattern
-           ─────────────────────────────
-           web-app-with-standards.json
-           (1 file, hard to maintain,
-           must be duplicated per style)
+    Single Combined Pattern
+    ─────────────────────────────
+    web-app-with-standards.json
+    (1 file, hard to maintain,
+    must be duplicated per style)
 
 
-           Multi-Pattern Validation
-           ─────────────────────────────
-           web-app-pattern.json       (structure)
-              +
-           company-base-pattern.json  (standards)
-           (2 separate files, each doing one job,
-           standards pattern reused by all styles)
+    Multi-Pattern Validation
+    ─────────────────────────────
+    web-app-pattern.json       (structure)
+      +
+    company-base-pattern.json  (standards)
+    (2 separate files, each doing one job,
+    standards pattern reused by all styles)
 ```
 
 ### Separation of Concerns
