@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline } from 'react-icons/io5';
-import { Data } from '../../../model/calm.js';
+import { Data, isSlug } from '../../../model/calm.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
@@ -41,8 +41,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             return;
         }
         const versionPath = data.version.replace(/\./g, '-');
-        const isSlugId = !/^\d+$/.test(data.id);
-        const target = isSlugId
+        const target = isSlug(data.id)
             ? `/calm/namespaces/${data.name}/${data.id}/versions/${versionPath}`
             : `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
         calmService.fetchDecoratorValues(data.name, target, 'deployment').then((values) => setDecorators(values as DeploymentDecorator[]));

@@ -39,6 +39,14 @@ export interface ResourceMapping {
 }
 
 /**
+ * Returns true when the given identifier is a human-readable slug
+ * rather than a legacy numeric ID.
+ */
+export function isSlug(id: string): boolean {
+    return !/^\d+$/.test(id);
+}
+
+/**
  * Summary returned from the API for ADR resources (title + status instead of name + description).
  */
 export interface AdrSummary {

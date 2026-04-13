@@ -7,6 +7,7 @@ import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
 import { CalmService } from '../../../service/calm-service.js';
 import type { DrawerProps, Flow, Control, Decorator } from '../../contracts/contracts.js';
+import { isSlug } from '../../../model/calm.js';
 
 /**
  * Detect whether JSON data is a CALM pattern (JSON Schema) or an architecture instance.
@@ -62,8 +63,7 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
             return;
         }
         const versionPath = data.version.replace(/\./g, '-');
-        const isSlugId = !/^\d+$/.test(data.id);
-        const target = isSlugId
+        const target = isSlug(data.id)
             ? `/calm/namespaces/${data.name}/${data.id}/versions/${versionPath}`
             : `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
         calmService.fetchDecoratorValues(data.name, target, 'deployment').then(setDecoratorsState);

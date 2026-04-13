@@ -1,9 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { IoCopyOutline, IoCheckmarkOutline, IoLinkOutline } from 'react-icons/io5';
-
-function isSlug(id: string): boolean {
-    return !/^\d+$/.test(id);
-}
+import { isSlug } from '../../../model/calm.js';
 
 interface SectionHeaderProps {
     icon: ReactNode;

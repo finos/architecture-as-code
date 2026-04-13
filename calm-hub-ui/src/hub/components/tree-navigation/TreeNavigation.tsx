@@ -4,11 +4,7 @@ import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
 import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
-import { Data, Adr, ResourceSummary, AdrSummary, ResourceMapping } from '../../../model/calm.js';
-
-function isSlug(id: string): boolean {
-    return !/^\d+$/.test(id);
-}
+import { Data, Adr, ResourceSummary, AdrSummary, ResourceMapping, isSlug } from '../../../model/calm.js';
 
 function mapCalmTypeToResourceType(type: string): string {
     switch (type) {
