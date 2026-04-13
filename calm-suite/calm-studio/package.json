@@ -14,6 +14,13 @@
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r run typecheck"
   },
+  "pnpm": {
+    "overrides": {
+      "undici": ">=6.24.0",
+      "serialize-javascript": ">=7.0.5",
+      "cookie": ">=0.7.0"
+    }
+  },
   "devDependencies": {
     "@commitlint/cli": "^20.4.3",
     "@commitlint/config-conventional": "^20.4.3",
