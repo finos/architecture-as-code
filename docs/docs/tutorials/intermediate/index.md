@@ -39,7 +39,7 @@ Before starting, ensure you have:
 
 ## Time Commitment
 
-Each tutorial takes approximately **30-60 minutes** to complete. The AI-assisted tutorials (Days 14–16) may vary depending on how deeply you explore the recommendations.
+Each tutorial takes approximately **30-60 minutes** to complete. The AI-assisted tutorials may vary depending on how deeply you explore the recommendations.
 
 ## Getting Started
 
@@ -48,7 +48,7 @@ Ready to begin? [Start with Controls for NFRs →](./08-controls)
 ## Learning Path
 
 ```
-Controls for NFRs
+Controls for NFRs ─────────────► "I can enforce non-functional requirements!"
     │
     ▼
 Business Flows ────────────────► "I can model business processes!"
@@ -96,4 +96,4 @@ Multi-Pattern Validation ──────► "I can apply layered governance!"
 2. **Keep your `ecommerce-platform.json`** — Most tutorials evolve this same file
 3. **Use CALM Chat mode** — The AI assistant accelerates implementation
 4. **Validate frequently** — Run `calm validate -a architectures/ecommerce-platform.json` after each change
-5. **Commit as you go** — Each tutorial includes a commit command; use it to build a clear history
+5. **Commit as you go** — Use of `git` is a best practice in working with architecture-as-code.
