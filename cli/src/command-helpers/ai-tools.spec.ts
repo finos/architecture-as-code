@@ -52,7 +52,7 @@ describe('ai-tools', () => {
 
         // Mock readFile to return appropriate content based on file type
         mocks.readFile.mockImplementation((path: string) => {
-            const pathStr = String(path);
+            const pathStr = normalizePath(path);
             if (pathStr.endsWith('.json')) {
                 // Return mock JSON config for provider config files
                 return Promise.resolve(JSON.stringify({
@@ -74,8 +74,9 @@ describe('ai-tools', () => {
         vi.restoreAllMocks();
     });
 
-    const providers = ['copilot', 'kiro', 'claude'] as const;
+    const providers = ['copilot', 'kiro', 'claude', 'codex'] as const;
     const targetDirectory = '/test/directory';
+    const normalizePath = (path: string): string => String(path).replace(/\\/g, '/');
 
     // 1. Provider-agnostic tests - run once for core functionality
     describe('setupAiTools - provider-agnostic behavior', () => {
@@ -112,7 +113,7 @@ describe('ai-tools', () => {
 
             // Also update stat to handle real files
             mocks.stat.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 // Mock test directory and .git checks
                 if (pathStr.includes('/test/directory') || pathStr.endsWith('.git')) {
@@ -152,7 +153,7 @@ describe('ai-tools', () => {
                 }
 
                 // For agent files in test directory, return mock content
-                if (path.includes('/test/directory/') && (path.includes('CALM.agent.md') || path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
+                if (normalizePath(path).includes('/test/directory/') && (path.includes('CALM.agent.md') || path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
                     return Promise.resolve('# Mock CALM agent content used for tests (may not meet minimum length validation)');
                 }
 
@@ -205,7 +206,7 @@ describe('ai-tools', () => {
                 }
 
                 // For agent files in test directory after writeFile is called, return the short content
-                if (path.includes('/test/directory/') && (path.includes('CALM.agent.md') || path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
+                if (normalizePath(path).includes('/test/directory/') && (path.includes('CALM.agent.md') || path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
                     return Promise.resolve('short');
                 }
 
@@ -336,7 +337,7 @@ describe('ai-tools', () => {
             // Verify no paths with ".." were used
             const allCalls = mocks.readFile.mock.calls;
             allCalls.forEach(([path]) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
                 // Internal bundled resources shouldn't have .. in their constructed paths
                 if (pathStr.includes('calm-ai')) {
                     expect(pathStr).not.toMatch(/\.\.\//);
@@ -350,7 +351,7 @@ describe('ai-tools', () => {
             // Verify that all bundled resource reads use relative paths from __dirname
             const allCalls = mocks.readFile.mock.calls;
             allCalls.forEach(([path]) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
                 if (pathStr.includes('calm-ai')) {
                     // Should contain calm-ai but not start with / (absolute)
                     expect(pathStr).toContain('calm-ai');
@@ -519,7 +520,7 @@ describe('ai-tools', () => {
         it('should successfully validate all bundled resources exist', async () => {
             // Mock all required files with valid content
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
@@ -545,7 +546,7 @@ describe('ai-tools', () => {
 
         it('should detect and report missing bundled files', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 // Simulate missing bundled files (architecture-creation.md, node-creation.md)
                 if (pathStr.includes('tools/architecture-creation.md') ||
@@ -578,7 +579,7 @@ describe('ai-tools', () => {
 
         it('should detect and warn about empty/corrupted bundled files', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 // Simulate corrupted/empty files
                 if (pathStr.includes('tools/relationship-creation.md')) {
@@ -613,7 +614,7 @@ describe('ai-tools', () => {
     describe('createToolPrompts - edge cases and error handling', () => {
         it('should warn when tool file content is too short', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 // Short content for a tool file (< 100 chars)
                 if (pathStr.includes('tools/metadata-creation.md')) {
@@ -650,7 +651,7 @@ describe('ai-tools', () => {
 
         it('should throw error when more than half of tool prompts fail', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 // Fail specific tool files (8 out of 14)
                 const failingFiles = [
@@ -665,7 +666,7 @@ describe('ai-tools', () => {
                 ];
 
                 if (pathStr.includes('tools/') && !pathStr.includes('templates/')) {
-                    const fileName = pathStr.split('/').pop();
+                    const fileName = pathStr.split(/[\\/]/).pop();
                     if (fileName && failingFiles.includes(fileName)) {
                         throw new Error('Read failed');
                     }
@@ -702,7 +703,7 @@ describe('ai-tools', () => {
 
         it('should warn but continue when less than half of tool prompts fail', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 // Fail 3 out of 11 tool files (minority)
                 if (pathStr.includes('tools/control-creation.md') ||
@@ -745,7 +746,7 @@ describe('ai-tools', () => {
 
         it('should handle tool prompt file stat verification failure', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
@@ -769,7 +770,7 @@ describe('ai-tools', () => {
 
             // Mock stat to fail for written tool prompt files
             mocks.stat.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 if (pathStr === resolve(targetDirectory)) {
                     return Promise.resolve({ isDirectory: () => true, size: 100 });
@@ -797,7 +798,7 @@ describe('ai-tools', () => {
 
         it('should detect empty tool prompt files after write (size = 0)', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
@@ -821,7 +822,7 @@ describe('ai-tools', () => {
 
             // Mock stat to return size 0 for some written files
             mocks.stat.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 if (pathStr === resolve(targetDirectory)) {
                     return Promise.resolve({ isDirectory: () => true, size: 100 });
@@ -851,7 +852,7 @@ describe('ai-tools', () => {
     describe('setupAiTools - directory handling variations', () => {
         it('should create agent file with simple filename', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
@@ -877,7 +878,7 @@ describe('ai-tools', () => {
 
             // Verify agent was created directly in agents directory
             expect(mocks.writeFile).toHaveBeenCalledWith(
-                expect.stringContaining('.github/agents/CALM.agent.md'),
+                expect.stringMatching(/\.github[\\/]agents[\\/]CALM\.agent\.md/),
                 expect.any(String),
                 'utf-8'
             );
@@ -885,7 +886,7 @@ describe('ai-tools', () => {
 
         it('should create nested directory when topLevelPromptFileName contains path separator', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
-                const pathStr = String(path);
+                const pathStr = normalizePath(path);
 
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
@@ -911,13 +912,13 @@ describe('ai-tools', () => {
 
             // Verify nested directory was created
             expect(mocks.mkdir).toHaveBeenCalledWith(
-                expect.stringContaining('.kiro/steering'),
+                expect.stringMatching(/\.kiro[\\/]steering/),
                 { recursive: true }
             );
 
             // Verify chatmode was created in nested directory
             expect(mocks.writeFile).toHaveBeenCalledWith(
-                expect.stringContaining('.kiro/steering/CALM.chatmode.md'),
+                expect.stringMatching(/\.kiro[\\/]steering[\\/]CALM\.chatmode\.md/),
                 expect.any(String),
                 'utf-8'
             );
