@@ -223,6 +223,8 @@ calm docify -a architectures/ecommerce-platform.json \
   -o docs/ops/flow-support-guide.md
 ```
 
+Note: HTTP resolution failure can be ignored—`example.com` is a fictitious domain used for demonstration purposes.
+
 ### 7. Review Generated Documents
 
 Open each generated document and verify:
