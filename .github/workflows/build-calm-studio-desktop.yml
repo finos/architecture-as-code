@@ -39,7 +39,7 @@ jobs:
                       triple: x86_64-pc-windows-msvc
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
               with:
                   version: 9
             - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -89,7 +89,7 @@ jobs:
                       triple: x86_64-pc-windows-msvc
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
               with:
                   version: 9
             - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -106,17 +106,17 @@ jobs:
                   sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
             - name: Install Rust
-              uses: dtolnay/rust-toolchain@stable
+              uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
               with:
                   targets: ${{ matrix.triple }}
 
             - name: Rust cache
-              uses: swatinem/rust-cache@v2
+              uses: swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
               with:
                   workspaces: calm-suite/calm-studio/apps/studio/src-tauri
 
             - name: Download sidecar binary
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
               with:
                   name: sidecar-${{ matrix.triple }}
                   path: calm-suite/calm-studio/apps/studio/src-tauri/binaries/
@@ -126,7 +126,7 @@ jobs:
               run: chmod +x apps/studio/src-tauri/binaries/calmstudio-mcp-*
 
             - name: Build desktop app
-              uses: tauri-apps/tauri-action@v0
+              uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
