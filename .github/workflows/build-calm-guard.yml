@@ -1,0 +1,107 @@
+name: Build CALM Guard
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        branches:
+            - 'main'
+            - 'release*'
+        paths:
+            - 'calm-suite/calm-guard/**'
+            - '.github/workflows/build-calm-guard.yml'
+    push:
+        branches:
+            - 'main'
+            - 'release*'
+        paths:
+            - 'calm-suite/calm-guard/**'
+            - '.github/workflows/build-calm-guard.yml'
+
+defaults:
+    run:
+        working-directory: calm-suite/calm-guard
+
+jobs:
+    lint:
+        name: Lint & Typecheck
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+              with:
+                  package_json_file: calm-suite/calm-guard/package.json
+
+            - name: Setup Node.js
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+              with:
+                  node-version: 22
+                  cache: pnpm
+                  cache-dependency-path: calm-suite/calm-guard/pnpm-lock.yaml
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Lint
+              run: pnpm lint
+
+            - name: Typecheck
+              run: pnpm typecheck
+
+    test:
+        name: Test
+        runs-on: ubuntu-latest
+        needs: lint
+        steps:
+            - name: Checkout
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+              with:
+                  package_json_file: calm-suite/calm-guard/package.json
+
+            - name: Setup Node.js
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+              with:
+                  node-version: 22
+                  cache: pnpm
+                  cache-dependency-path: calm-suite/calm-guard/pnpm-lock.yaml
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Run tests
+              run: pnpm test:run
+
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        needs: test
+        env:
+            NEXT_SKIP_VALIDATE: "1"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+              with:
+                  package_json_file: calm-suite/calm-guard/package.json
+
+            - name: Setup Node.js
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+              with:
+                  node-version: 22
+                  cache: pnpm
+                  cache-dependency-path: calm-suite/calm-guard/pnpm-lock.yaml
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Build
+              run: pnpm build

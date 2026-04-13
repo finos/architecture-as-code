@@ -1,0 +1,31 @@
+{
+  "name": "@calmstudio/diagram",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "./dist/calm-diagram.es.js",
+  "module": "./dist/calm-diagram.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/calm-diagram.es.js",
+      "require": "./dist/calm-diagram.iife.js"
+    }
+  },
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@calmstudio/calm-core": "workspace:*",
+    "@calmstudio/extensions": "workspace:*",
+    "elkjs": "^0.11.1"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "svelte": "^5.53.10",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.8",
+    "vitest": "^3.2.1"
+  }
+}

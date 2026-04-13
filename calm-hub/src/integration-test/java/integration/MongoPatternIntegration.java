@@ -26,6 +26,26 @@ public class MongoPatternIntegration {
     private static final Logger logger = LoggerFactory.getLogger(MongoPatternIntegration.class);
     public static final String PATTERN = "{\"name\": \"demo-pattern\"}";
 
+    @BeforeAll
+    public static void resetPatterns() {
+        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
+        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+
+        try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
+            MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
+
+            // Drop patterns and resource_mappings to ensure clean state regardless of test ordering
+            database.getCollection("patterns").drop();
+            database.getCollection("resource_mappings").drop();
+
+            // Reset pattern counter to 0
+            database.getCollection("counters").updateOne(
+                    new Document("_id", "patternStoreCounter"),
+                    new Document("$set", new Document("sequence_value", 0))
+            );
+        }
+    }
+
     @BeforeEach
     public void setupPatterns() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
@@ -65,8 +85,16 @@ public class MongoPatternIntegration {
     @Test
     @Order(2)
     void end_to_end_create_a_pattern() {
+        String payload = """
+                {
+                     "name": "name",
+                     "description": "description",
+                     "patternJson": "{\\"name\\": \\"demo-pattern\\"}"
+                }
+                """;
+
         given()
-                .body(PATTERN)
+                .body(payload)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/patterns")
                 .then()

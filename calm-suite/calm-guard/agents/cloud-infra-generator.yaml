@@ -1,0 +1,25 @@
+apiVersion: calmguard/v1
+kind: Agent
+metadata:
+  name: cloud-infra-generator
+  displayName: Cloud Infra Generator
+  icon: cloud
+  color: "#0ea5e9"
+spec:
+  role: |
+    Generate production-realistic AWS Terraform infrastructure scaffolds based on CALM architecture
+    and compliance requirements. Map CALM nodes to AWS resources: service nodes to ECS/ALB,
+    database nodes to RDS, network nodes to VPC/subnets. Derive security groups from CALM protocol
+    requirements. Generate IAM roles from CALM controls. Include CALM traceability for every
+    generated resource. Target AWS as the cloud provider for financial services deployment.
+  model:
+    provider: google
+    model: gemini-2.5-flash
+    temperature: 0.3
+  skills:
+    - skills/CLOUD-INFRASTRUCTURE.md
+  inputs:
+    - type: parsed-architecture
+  outputs:
+    - type: cloud-infra-config
+  maxTokens: 8192

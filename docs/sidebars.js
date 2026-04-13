@@ -39,6 +39,8 @@ const sidebars = {
         'core-concepts/timelines',
         'core-concepts/decorators',
         'core-concepts/metadata',
+        'core-concepts/patterns',
+        'core-concepts/widgets'
       ],
     },
     {
@@ -48,8 +50,10 @@ const sidebars = {
       items: [
         'working-with-calm/installation',
         'working-with-calm/using-the-cli',
-        'working-with-calm/validate',
         'working-with-calm/generate',
+        'working-with-calm/validate',
+        'working-with-calm/docify',
+        'working-with-calm/validation-server',
         'working-with-calm/calm-ai-tools',
         'working-with-calm/voice-mode'
       ],

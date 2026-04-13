@@ -1,0 +1,22 @@
+{
+  "name": "@calmstudio/github-action",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "ncc build src/index.ts --out dist",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "@actions/github": "^6.0.0",
+    "@calmstudio/calm-core": "workspace:*",
+    "@calmstudio/mcp": "workspace:*"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.8"
+  }
+}

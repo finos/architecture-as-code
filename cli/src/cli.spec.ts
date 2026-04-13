@@ -2,15 +2,14 @@ import {
     Docifier,
     DocifyMode,
     TemplateProcessingMode,
-    TemplateProcessor
+    TemplateProcessor,
+    DocumentLoader
 } from '@finos/calm-shared';
 import { Command } from 'commander';
 import { MockInstance } from 'vitest';
-import { parseDocumentLoaderConfig } from './cli';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
-let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
 let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
@@ -20,6 +19,7 @@ let cliConfigModule: typeof import('./cli-config');
 
 describe('CLI Commands', () => {
     let program: Command;
+    let mockDocLoader: DocumentLoader;
 
     beforeEach(async () => {
         vi.resetModules();
@@ -27,7 +27,6 @@ describe('CLI Commands', () => {
 
         calmShared = await import('@finos/calm-shared');
         validateModule = await import('./command-helpers/validate');
-        serverModule = await import('./server/cli-server');
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
         fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
@@ -40,13 +39,16 @@ describe('CLI Commands', () => {
         vi.spyOn(validateModule, 'runValidate').mockResolvedValue(undefined);
         vi.spyOn(validateModule, 'checkValidateOptions').mockResolvedValue(undefined);
 
-        vi.spyOn(serverModule, 'startServer').mockImplementation(vi.fn());
         vi.spyOn(templateModule, 'getUrlToLocalFileMap').mockReturnValue(new Map());
 
         vi.spyOn(optionsModule, 'promptUserForOptions').mockResolvedValue([]);
 
-        vi.spyOn(fileSystemDocLoaderModule, 'FileSystemDocumentLoader').mockImplementation(vi.fn());
-        vi.spyOn(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype, 'loadMissingDocument').mockResolvedValue({});
+        mockDocLoader = {
+            initialise: vi.fn().mockResolvedValue(undefined),
+            loadMissingDocument: vi.fn().mockResolvedValue({}),
+            resolvePath: vi.fn().mockReturnValue(undefined)
+        };
+        vi.spyOn(calmShared, 'buildDocumentLoader').mockReturnValue(mockDocLoader);
 
         // Mock buildDocumentLoader to return a mock DocumentLoader.
         // The generate command now uses buildDocumentLoader() which creates a
@@ -75,16 +77,14 @@ describe('CLI Commands', () => {
                 '--schema-directory', 'schemas',
             ]);
 
-            expect(documentLoaderModule.buildDocumentLoader).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    schemaDirectoryPath: 'schemas',
-                    debug: true,
-                })
-            );
-
-            const mockDocLoader = vi.mocked(documentLoaderModule.buildDocumentLoader).mock.results[0].value;
             expect(mockDocLoader.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
+
+            expect(calmShared.buildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({
+                schemaDirectoryPath: 'schemas',
+                debug: true,
+                basePath: process.cwd()
+            }));
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
                 {}, 'output.json', true, expect.any(calmShared.SchemaDirectory), []
@@ -105,23 +105,6 @@ describe('CLI Commands', () => {
                 patternPath: 'pattern.json',
                 architecturePath: 'arch.json',
             }));
-        });
-    });
-
-    describe('Server Command', () => {
-        it('should call startServer with correct options', async () => {
-            await program.parseAsync([
-                'node', 'cli.js', 'server',
-                '--port', '4000',
-                '--schema-directory', 'mySchemas',
-                '--verbose',
-            ]);
-
-            expect(serverModule.startServer).toHaveBeenCalledWith(
-                '4000',
-                expect.any(calmShared.SchemaDirectory),
-                true,
-            );
         });
     });
 
@@ -397,13 +380,91 @@ describe('CLI Commands', () => {
                 false
             );
         });
+
+        it('should not show --ants in help output', () => {
+            const docifyCmd = program.commands.find(c => c.name() === 'docify');
+            const helpText = docifyCmd!.helpInformation();
+            expect(helpText).not.toContain('--ants');
+        });
+
+        it('should use ANTS mode when --ants is specified', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--ants',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'ANTS',
+                'model.json',
+                'outDir',
+                undefined,
+                'bundle',
+                undefined,
+                false,
+                false
+            );
+        });
+
+        it('should exit if --ants is combined with --template', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+                throw new Error('process.exit called');
+            });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--ants',
+                '--template', 'template.hbs',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ --ants cannot be combined with --template or --template-dir');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
+        });
+
+        it('should exit if --ants is combined with --template-dir', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+                throw new Error('process.exit called');
+            });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--ants',
+                '--template-dir', 'templateDir',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ --ants cannot be combined with --template or --template-dir');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
+        });
     });
 
 });
 
 describe('parseDocumentLoaderConfig', () => {
+    const parseDocLoaderConfigForTest = async (options: {
+        verbose?: boolean;
+        calmHubUrl?: string;
+        schemaDirectory?: string;
+        allowedRemoteHosts?: string[];
+    }) => {
+        const cliModule = await import('./cli');
+        return cliModule.parseDocumentLoaderConfig(options);
+    };
+
     it('should parse calmhub url when provided', async () => {
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
             calmHubUrl: 'calmhub'
         });
         expect(options.calmHubUrl).toEqual('calmhub');
@@ -413,28 +474,57 @@ describe('parseDocumentLoaderConfig', () => {
         cliConfigModule = await import('./cli-config');
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ calmHubUrl: 'calmhub-file' });
 
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
             calmHubUrl: 'calmhub-cli'
         });
         expect(options.calmHubUrl).toEqual('calmhub-cli');
     });
 
     it('should parse schemaDirectoryPath when provided', async () => {
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
             schemaDirectory: 'path'
         });
         expect(options.schemaDirectoryPath).toEqual('path');
     });
 
+    it('should parse allowedRemoteHosts when provided', async () => {
+        const options = await parseDocLoaderConfigForTest({
+            allowedRemoteHosts: ['schemas.example.com']
+        });
+        expect(options.allowedRemoteHosts).toEqual(['schemas.example.com']);
+    });
+
+    it('should use allowedRemoteHosts from config when CLI does not provide them', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            allowedRemoteHosts: ['config.example.com']
+        });
+
+        const options = await parseDocLoaderConfigForTest({});
+        expect(options.allowedRemoteHosts).toEqual(['config.example.com']);
+    });
+
+    it('should prefer CLI allowedRemoteHosts over config values', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            allowedRemoteHosts: ['config.example.com']
+        });
+
+        const options = await parseDocLoaderConfigForTest({
+            allowedRemoteHosts: ['cli.example.com']
+        });
+        expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
+    });
+
     it('should set debug to true when verbose passed along', async () => {
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
             verbose: true
         });
         expect(options.debug).toBeTruthy();
     });
 
     it('should default debug to false', async () => {
-        const options = await parseDocumentLoaderConfig({
+        const options = await parseDocLoaderConfigForTest({
         });
         expect(options.debug).toBeFalsy();
     });

@@ -6,7 +6,7 @@ This directory contains AI tools, prompts, and configuration for integrating AI 
 
 The CALM AI tools provide:
 - **Specialized prompts** to guide AI assistants in creating, validating, and documenting CALM architectures
-- **Configuration files** for multiple AI assistant providers (GitHub Copilot, AWS Kiro/Q)
+- **Configuration files** for multiple AI assistant providers (GitHub Copilot, AWS Kiro/Q, Claude Code, Codex)
 - **Template system** using Handlebars to generate provider-specific prompt files
 - **CLI integration** via the `calm init-ai` command for automated setup
 
@@ -17,6 +17,8 @@ These tools enable AI assistants to provide context-aware assistance for CALM ar
 ```
 calm-ai/
 ├── ai-assistants/          # AI provider configuration files
+│   ├── claude.json        # Claude Code configuration
+│   ├── codex.json         # Codex configuration
 │   ├── copilot.json       # GitHub Copilot configuration
 │   └── kiro.json          # AWS Kiro/Q configuration
 ├── templates/             # Handlebars templates
@@ -127,7 +129,7 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
     "topLevelPromptFileName": "CALM.agent.md",
     "skillPrefix": "`",
     "skillSuffix": "`",
-    "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\nmodel: Claude Sonnet 4.5\n---",
+    "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\n---",
     "skillPrompts": [
         "calm-prompts/architecture-creation.md",
         "calm-prompts/calm-cli-instructions.md",
@@ -149,7 +151,7 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 
 **GitHub Copilot specifics:**
 - Uses backticks (`` ` ``) to reference skill files
-- Frontmatter specifies Claude Sonnet 4.5 model and available tools
+- Frontmatter specifies available tools
 - Prompts placed in `.github/agents/` directory
 - Skill prompts referenced as `` `calm-prompts/architecture-creation.md` ``
 
@@ -187,6 +189,11 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 - Frontmatter specifies manual inclusion mode
 - Prompts placed in `.kiro/steering/` directory
 - Skill prompts referenced as `#[[calm-prompts/architecture-creation.md]]`
+
+**Codex specifics:**
+- Prompts are installed as a CALM skill under `.agents/skills/calm/`
+- The main skill file is `.agents/skills/calm/SKILL.md`
+- Root `AGENTS.md` is not created or modified by this integration
 
 ## Template System (`templates/`)
 
@@ -232,7 +239,7 @@ The template includes:
 - Enables easy addition of new providers via JSON config
 
 ### 4. CLI Integration
-- Integrated with `calm` CLI via `calm init-ai <provider>` command
+- Integrated with `calm` CLI via `calm init-ai -p <provider>` command
 - Automated setup reduces manual configuration
 - Ensures consistent prompt structure across projects
 
@@ -242,10 +249,13 @@ The template includes:
 
 ```bash
 # Initialize GitHub Copilot integration
-calm init-ai copilot
+calm init-ai -p copilot
 
 # Initialize AWS Kiro/Q integration
-calm init-ai kiro
+calm init-ai -p kiro
+
+# Initialize Codex integration
+calm init-ai -p codex
 ```
 
 This command:
@@ -281,7 +291,7 @@ Once initialized, AI assistants automatically:
    - `skillPrefix`, `skillSuffix`, `frontmatter`, `skillPrompts`
 3. Determine provider-specific delimiters and directory structure
 4. Update CLI to recognize the new provider
-5. Test generation with `calm init-ai <provider>`
+5. Test generation with `calm init-ai -p <provider>`
 
 ### Modifying the Template
 

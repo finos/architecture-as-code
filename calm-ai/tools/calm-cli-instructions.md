@@ -21,7 +21,7 @@ Run `calm` with no arguments to see the top-level help:
 calm
 ```
 
-This displays available commands such as `generate`, `validate`, `init-ai`, `server`, `template`, and `docify`.
+This displays available commands such as `generate`, `validate`, `init-ai`, `template`, and `docify`.
 
 ## Generate Architectures from Patterns
 
@@ -130,22 +130,9 @@ Configure CALM-specific AI assistance inside a repo:
 calm init-ai -p <provider> [--directory <path>] [--verbose]
 ```
 
-At present Github Copilot (`copilot`), AWS Kiro (`kiro`), and Claude Code (`claude`) are supported as providers.
+At present GitHub Copilot (`copilot`), AWS Kiro (`kiro`), Claude Code (`claude`), and Codex (`codex`) are supported as providers.
 
 This generates custom prompts for the specified <provider> to use CALM-aware tools (nodes, relationships, interfaces, controls, flows, patterns, metadata).
-
-## CLI Server (Experimental)
-
-Expose CLI functionality over HTTP:
-
-```shell
-calm server --schema-directory <path>
-```
-
-Endpoints (default `http://127.0.0.1:3000`):
-
-- `GET /health` for health checks
-- `POST /calm/validate` with a CALM model payload to validate
 
 ## Template Command
 

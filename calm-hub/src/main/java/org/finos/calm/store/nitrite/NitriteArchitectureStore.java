@@ -10,6 +10,7 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -22,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -45,6 +48,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     private final NitriteCollection architectureCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteArchitectureStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -55,7 +59,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     }
 
     @Override
-    public List<Integer> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceArchitectureSummary> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving architectures", namespace);
             throw new NamespaceNotFoundException();
@@ -67,13 +71,21 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             return List.of();
         }
 
-        List<Integer> architectureIds = new ArrayList<>();
+        List<NamespaceArchitectureSummary> architectureSummaries = new ArrayList<>();
         for (Document architecture : architectures) {
-            architectureIds.add(architecture.get(ARCHITECTURE_ID_FIELD, Integer.class));
+            Integer archId = architecture.get(ARCHITECTURE_ID_FIELD, Integer.class);
+            String name = architecture.get(NAME_FIELD, String.class);
+            String description = architecture.get(DESCRIPTION_FIELD, String.class);
+            if (name == null) name = "Architecture " + archId;
+            if (description == null) description = "";
+            NamespaceArchitectureSummary summary = new NamespaceArchitectureSummary(
+                    name, description, archId
+            );
+            architectureSummaries.add(summary);
         }
 
-        LOG.debug("Retrieved {} architectures for namespace '{}'", architectureIds.size(), namespace);
-        return architectureIds;
+        LOG.debug("Retrieved {} architectures for namespace '{}'", architectureSummaries.size(), namespace);
+        return architectureSummaries;
     }
 
     @Override
@@ -92,9 +104,11 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new JsonParseException(e.getMessage());
         }
 
-        int id = counterStore.getNextArchitectureSequenceValue();
-        // Store the architecture JSON as a string
-        Document architectureDocument = Document.createDocument()
+        lock.lock();
+        try {
+            int id = counterStore.getNextArchitectureSequenceValue();
+            // Store the architecture JSON as a string
+            Document architectureDocument = Document.createDocument()
                 .put(NAME_FIELD, architecture.getName())
                 .put(DESCRIPTION_FIELD, architecture.getDescription())
                 .put(ARCHITECTURE_ID_FIELD, id)
@@ -123,15 +137,18 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             architectureCollection.update(filter, namespaceDoc);
         }
 
-        LOG.info("Created architecture with ID {} for namespace '{}'", id, architecture.getNamespace());
-        return new Architecture.ArchitectureBuilder()
-                .setId(id)
-                .setVersion("1.0.0")
-                .setNamespace(architecture.getNamespace())
-                .setName(architecture.getName())
-                .setDescription(architecture.getDescription())
-                .setArchitecture(architecture.getArchitectureJson())
-                .build();
+            LOG.info("Created architecture with ID {} for namespace '{}'", id, architecture.getNamespace());
+            return new Architecture.ArchitectureBuilder()
+                    .setId(id)
+                    .setVersion("1.0.0")
+                    .setNamespace(architecture.getNamespace())
+                    .setName(architecture.getName())
+                    .setDescription(architecture.getDescription())
+                    .setArchitecture(architecture.getArchitectureJson())
+                    .build();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -216,13 +233,18 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
-        if (versionExists(architecture)) {
-            LOG.warn("Version '{}' already exists for architecture {} in namespace '{}'",
-                    architecture.getDotVersion(), architecture.getId(), architecture.getNamespace());
-            throw new ArchitectureVersionExistsException();
-        }
+        lock.lock();
+        try {
+            if (versionExists(architecture)) {
+                LOG.warn("Version '{}' already exists for architecture {} in namespace '{}'",
+                        architecture.getDotVersion(), architecture.getId(), architecture.getNamespace());
+                throw new ArchitectureVersionExistsException();
+            }
 
-        writeArchitectureToNitrite(architecture);
+            writeArchitectureToNitrite(architecture);
+        } finally {
+            lock.unlock();
+        }
         return architecture;
     }
 

@@ -1,26 +1,15 @@
 import { useState, useRef, useCallback } from 'react';
-import { THEME } from './theme';
-import { FlowsPanel, Flow } from './FlowsPanel';
-import { ControlsPanel, Control } from './ControlsPanel';
+import { THEME } from './theme.js';
+import { FlowsPanel } from './FlowsPanel.js';
+import { ControlsPanel } from './ControlsPanel.js';
+import { DeploymentPanel } from './DeploymentPanel.js';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
-
-interface MetadataPanelProps {
-    flows: Flow[];
-    controls: Record<string, Control>;
-    onTransitionClick?: (relationshipId: string) => void;
-    onNodeClick?: (nodeId: string) => void;
-    onControlClick?: (controlId: string) => void;
-    isCollapsed: boolean;
-    onToggleCollapse: () => void;
-    height: number;
-    onHeightChange: (height: number) => void;
-}
-
-type TabType = 'flows' | 'controls';
+import type { DeploymentDecorator, MetadataPanelProps, MetadataPanelTabType } from '../../contracts/contracts.js';
 
 export function MetadataPanel({
     flows,
     controls,
+    decorators,
     onTransitionClick,
     onNodeClick,
     onControlClick,
@@ -31,7 +20,9 @@ export function MetadataPanel({
 }: MetadataPanelProps) {
     const hasFlows = flows.length > 0;
     const hasControls = Object.keys(controls).length > 0;
-    const [activeTab, setActiveTab] = useState<TabType>(hasFlows ? 'flows' : 'controls');
+    const hasDeployment = decorators.length > 0;
+    const defaultTab: MetadataPanelTabType = hasFlows ? 'flows' : hasControls ? 'controls' : 'deployment';
+    const [activeTab, setActiveTab] = useState<MetadataPanelTabType>(defaultTab);
     const [isDragging, setIsDragging] = useState(false);
     const dragStartY = useRef<number>(0);
     const dragStartHeight = useRef<number>(0);
@@ -61,7 +52,7 @@ export function MetadataPanel({
         [height, onHeightChange]
     );
 
-    if (!hasFlows && !hasControls) {
+    if (!hasFlows && !hasControls && !hasDeployment) {
         return null;
     }
 
@@ -83,6 +74,8 @@ export function MetadataPanel({
                     {hasFlows && <span>Flows ({flows.length})</span>}
                     {hasFlows && hasControls && <span>•</span>}
                     {hasControls && <span>Controls ({Object.keys(controls).length})</span>}
+                    {(hasFlows || hasControls) && hasDeployment && <span>•</span>}
+                    {hasDeployment && <span>Deployment ({decorators.length})</span>}
                 </div>
                 <button
                     onClick={onToggleCollapse}
@@ -262,6 +255,34 @@ export function MetadataPanel({
                         Controls ({Object.keys(controls).length})
                     </button>
                 )}
+                {hasDeployment && (
+                    <button
+                        onClick={() => setActiveTab('deployment')}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            border: 'none',
+                            background: activeTab === 'deployment' ? THEME.colors.accent : 'transparent',
+                            color: activeTab === 'deployment' ? '#ffffff' : THEME.colors.foreground,
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'deployment') {
+                                e.currentTarget.style.background = THEME.colors.backgroundSecondary;
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'deployment') {
+                                e.currentTarget.style.background = 'transparent';
+                            }
+                        }}
+                    >
+                        Deployment
+                    </button>
+                )}
             </div>
 
             {/* Tab Content */}
@@ -269,6 +290,9 @@ export function MetadataPanel({
                 {activeTab === 'flows' && hasFlows && <FlowsPanel flows={flows} onTransitionClick={onTransitionClick} />}
                 {activeTab === 'controls' && hasControls && (
                     <ControlsPanel controls={controls} onNodeClick={onNodeClick} onControlClick={onControlClick} />
+                )}
+                {activeTab === 'deployment' && (
+                    <DeploymentPanel decorators={decorators as DeploymentDecorator[]} />
                 )}
             </div>
         </div>

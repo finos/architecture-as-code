@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrParseException;
@@ -71,15 +72,23 @@ public class TestAdrResourceShould {
     }
 
     @Test
-    void return_list_of_adr_ids_when_valid_namespace_provided_on_get_adrs() throws NamespaceNotFoundException {
-        when(mockAdrStore.getAdrsForNamespace(anyString())).thenReturn(Arrays.asList(12345, 54321));
+    void return_list_of_adr_summaries_when_valid_namespace_provided_on_get_adrs() throws NamespaceNotFoundException {
+        when(mockAdrStore.getAdrsForNamespace(anyString())).thenReturn(Arrays.asList(
+                new NamespaceAdrSummary("First ADR", "draft", 12345),
+                new NamespaceAdrSummary("Second ADR", "accepted", 54321)
+        ));
 
         given()
                 .when()
                 .get("/calm/namespaces/finos/adrs")
                 .then()
                 .statusCode(200)
-                .body(equalTo("{\"values\":[12345,54321]}"));
+                .body("values[0].title", equalTo("First ADR"))
+                .body("values[0].status", equalTo("draft"))
+                .body("values[0].id", equalTo(12345))
+                .body("values[1].title", equalTo("Second ADR"))
+                .body("values[1].status", equalTo("accepted"))
+                .body("values[1].id", equalTo(54321));
 
         verify(mockAdrStore, times(1)).getAdrsForNamespace("finos");
     }

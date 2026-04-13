@@ -28,7 +28,7 @@
     },
     "overrides": {
         "serve-handler": {
-            "path-to-regexp": "3.3.0"
+            "path-to-regexp": "8.4.2"
         },
         "cross-spawn": "^7.0.5",
         "on-headers": "^1.1.0"

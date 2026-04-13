@@ -4,6 +4,7 @@ import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO } from './document-loa
 import { initLogger, Logger } from '../logger';
 
 export class CalmHubDocumentLoader implements DocumentLoader {
+    private static readonly SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_\-.]+(\.json)?$/;
     private readonly ax: Axios;
     private readonly logger: Logger;
 
@@ -51,7 +52,16 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         if (protocol !== CALM_HUB_PROTO) {
             throw new Error(`CalmHubDocumentLoader only loads documents with protocol '${CALM_HUB_PROTO}'. (Requested: ${protocol})`);
         }
+        // The URL constructor normalizes '..' segments, so url.pathname is already resolved.
+        // Reject if the original input contained traversal sequences before normalization.
+        if (documentId.includes('/..')) {
+            throw new Error(`CalmHubDocumentLoader rejected path containing directory traversal in: ${documentId}`);
+        }
         const path = url.pathname;
+
+        if (!CalmHubDocumentLoader.SAFE_PATH_PATTERN.test(path)) {
+            throw new Error(`CalmHubDocumentLoader rejected path with disallowed characters: ${path}`);
+        }
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
 

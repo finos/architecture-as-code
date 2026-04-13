@@ -25,6 +25,7 @@ export type DocumentLoaderOptions = {
     schemaDirectoryPath?: string;
     urlToLocalMap?: Map<string, string>;
     basePath?: string;
+    allowedRemoteHosts?: string[];
     debug?: boolean;
     // If set, DocumentLoader will attempt to load documents from a workspace bundle at this path
     workspaceBundlePath?: string;
@@ -60,7 +61,7 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
         docLoaderOpts.basePath ?? process.cwd()
     ));
 
-    loaders.push(new DirectUrlDocumentLoader(debug));
+    loaders.push(new DirectUrlDocumentLoader(debug, undefined, docLoaderOpts.allowedRemoteHosts));
 
     return new MultiStrategyDocumentLoader(loaders, debug);
 }

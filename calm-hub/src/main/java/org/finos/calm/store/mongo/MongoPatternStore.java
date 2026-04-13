@@ -16,6 +16,8 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.pattern.CreatePatternRequest;
+import org.finos.calm.domain.pattern.NamespacePatternSummary;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * MongoDB-backed implementation of {@link PatternStore}.
+ *
+ * <h2>Document model &amp; concurrency</h2>
+ * Follows the same namespace-scoped document pattern as {@link MongoArchitectureStore}:
+ * one document per namespace (enforced by a unique index on {@code patterns.namespace}),
+ * with an array of pattern sub-documents. New patterns are added via upsert + {@code $push},
+ * and new versions use an atomic conditional update with {@code $elemMatch} /
+ * {@code $exists: false} to prevent duplicate version creation under concurrency.
+ * Unique pattern IDs are generated atomically by {@link MongoCounterStore}.
+ *
+ * @see MongoIndexInitializer
+ * @see MongoCounterStore
+ */
 @ApplicationScoped
 @Typed(MongoPatternStore.class)
 public class MongoPatternStore implements PatternStore {
@@ -39,7 +55,7 @@ public class MongoPatternStore implements PatternStore {
     }
 
     @Override
-    public List<Integer> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespacePatternSummary> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
         if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -52,35 +68,43 @@ public class MongoPatternStore implements PatternStore {
         }
 
         List<Document> patterns = namespaceDocument.getList("patterns", Document.class);
-        List<Integer> patternIds = new ArrayList<>();
+        List<NamespacePatternSummary> patternSummaries = new ArrayList<>();
 
         for (Document pattern : patterns) {
-            patternIds.add(pattern.getInteger("patternId"));
+            Integer patternId = pattern.getInteger("patternId");
+            String name = pattern.getString("name");
+            String description = pattern.getString("description");
+            if (name == null) name = "Pattern " + patternId;
+            if (description == null) description = "";
+            patternSummaries.add(new NamespacePatternSummary(name, description, patternId));
         }
 
-        return patternIds;
+        return patternSummaries;
     }
 
     @Override
-    public Pattern createPatternForNamespace(Pattern pattern) throws NamespaceNotFoundException {
-        if(!namespaceStore.namespaceExists(pattern.getNamespace())) {
+    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException {
+        if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
         int id = counterStore.getNextPatternSequenceValue();
-        Document patternDocument = new Document("patternId", id).append("versions",
-                new Document("1-0-0", Document.parse(pattern.getPatternJson())));
+        Document patternDocument = new Document("patternId", id)
+                .append("name", patternRequest.getName())
+                .append("description", patternRequest.getDescription())
+                .append("versions",
+                new Document("1-0-0", Document.parse(patternRequest.getPatternJson())));
 
         patternCollection.updateOne(
-                Filters.eq("namespace", pattern.getNamespace()),
+                Filters.eq("namespace", namespace),
                 Updates.push("patterns", patternDocument),
                 new UpdateOptions().upsert(true));
 
         Pattern persistedPattern = new Pattern.PatternBuilder()
                 .setId(id)
                 .setVersion("1.0.0")
-                .setNamespace(pattern.getNamespace())
-                .setPattern(pattern.getPatternJson())
+                .setNamespace(namespace)
+                .setPattern(patternRequest.getPatternJson())
                 .build();
 
         return persistedPattern;
@@ -151,15 +175,22 @@ public class MongoPatternStore implements PatternStore {
 
     @Override
     public Pattern createPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException {
-        if(!namespaceStore.namespaceExists(pattern.getNamespace())) {
-            throw new NamespaceNotFoundException();
-        }
+        // Validates namespace and pattern existence
+        getPatternVersions(pattern);
 
-        if(versionExists(pattern)) {
+        // Atomic conditional update: only succeeds if the version doesn't already exist
+        Document filter = new Document("namespace", pattern.getNamespace())
+                .append("patterns", new Document("$elemMatch",
+                        new Document("patternId", pattern.getId())
+                                .append("versions." + pattern.getMongoVersion(), new Document("$exists", false))));
+
+        Document update = new Document("$set",
+                new Document("patterns.$.versions." + pattern.getMongoVersion(), Document.parse(pattern.getPatternJson())));
+
+        if (patternCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new PatternVersionExistsException();
         }
 
-        writePatternToMongo(pattern);
         return pattern;
     }
 
@@ -189,20 +220,4 @@ public class MongoPatternStore implements PatternStore {
         }
     }
 
-    private boolean versionExists(Pattern pattern) {
-        Document filter = new Document("namespace", pattern.getNamespace()).append("patterns.patternId", pattern.getId());
-        Bson projection = Projections.fields(Projections.include("patterns.versions." + pattern.getMongoVersion()));
-        Document result = patternCollection.find(filter).projection(projection).first();
-
-        if (result != null) {
-            List<Document> patterns = result.getList("patterns", Document.class );
-            for (Document patternDoc : patterns) {
-                Document versions = (Document) patternDoc.get("versions");
-                if (versions != null && versions.containsKey(pattern.getMongoVersion())) {
-                    return true;  // The version already exists
-                }
-            }
-        }
-        return false;
-    }
 }

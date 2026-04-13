@@ -14,6 +14,8 @@ import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.flow.CreateFlowRequest;
+import org.finos.calm.domain.flow.NamespaceFlowSummary;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
@@ -22,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -39,10 +43,13 @@ public class NitriteFlowStore implements FlowStore {
     private static final String FLOWS_FIELD = "flows";
     private static final String FLOW_ID_FIELD = "flowId";
     private static final String VERSIONS_FIELD = "versions";
+    private static final String NAME_FIELD = "name";
+    private static final String DESCRIPTION_FIELD = "description";
 
     private final NitriteCollection flowCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteFlowStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -53,7 +60,7 @@ public class NitriteFlowStore implements FlowStore {
     }
 
     @Override
-    public List<Integer> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceFlowSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving flows", namespace);
             throw new NamespaceNotFoundException();
@@ -72,43 +79,52 @@ public class NitriteFlowStore implements FlowStore {
             return List.of();
         }
 
-        List<Integer> flowIds = new ArrayList<>();
+        List<NamespaceFlowSummary> flowSummaries = new ArrayList<>();
         for (Document flow : flows) {
-            flowIds.add(flow.get(FLOW_ID_FIELD, Integer.class));
+            Integer flowId = flow.get(FLOW_ID_FIELD, Integer.class);
+            String name = flow.get(NAME_FIELD, String.class);
+            String description = flow.get(DESCRIPTION_FIELD, String.class);
+            if (name == null) name = "Flow " + flowId;
+            if (description == null) description = "";
+            flowSummaries.add(new NamespaceFlowSummary(name, description, flowId));
         }
 
-        return flowIds;
+        return flowSummaries;
     }
 
     @Override
-    public Flow createFlowForNamespace(Flow flow) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(flow.getNamespace())) {
-            LOG.warn("Namespace '{}' not found when creating flow", flow.getNamespace());
+    public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
+        if (!namespaceStore.namespaceExists(namespace)) {
+            LOG.warn("Namespace '{}' not found when creating flow", namespace);
             throw new NamespaceNotFoundException();
         }
 
         // Validate JSON
         try {
             // Use org.bson.Document to validate JSON
-            org.bson.Document.parse(flow.getFlowJson());
+            org.bson.Document.parse(flowRequest.getFlowJson());
         } catch (Exception e) {
             LOG.error("Invalid JSON format for flow: {}", e.getMessage());
             throw new JsonParseException(e.getMessage());
         }
 
-        int id = counterStore.getNextFlowSequenceValue();
-        Document flowDocument = Document.createDocument()
+        lock.lock();
+        try {
+            int id = counterStore.getNextFlowSequenceValue();
+            Document flowDocument = Document.createDocument()
                 .put(FLOW_ID_FIELD, id)
+                .put(NAME_FIELD, flowRequest.getName())
+                .put(DESCRIPTION_FIELD, flowRequest.getDescription())
                 .put(VERSIONS_FIELD, Document.createDocument()
-                        .put("1-0-0", flow.getFlowJson()));
+                        .put("1-0-0", flowRequest.getFlowJson()));
 
-        Filter filter = where(NAMESPACE_FIELD).eq(flow.getNamespace());
+        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         Document namespaceDoc = flowCollection.find(filter).firstOrNull();
 
         if (namespaceDoc == null) {
             // Create a new namespace document with the flow
             namespaceDoc = Document.createDocument()
-                    .put(NAMESPACE_FIELD, flow.getNamespace())
+                    .put(NAMESPACE_FIELD, namespace)
                     .put(FLOWS_FIELD, List.of(flowDocument));
             flowCollection.insert(namespaceDoc);
         } else {
@@ -124,14 +140,17 @@ public class NitriteFlowStore implements FlowStore {
             flowCollection.update(filter, namespaceDoc);
         }
 
-        LOG.info("Created flow with ID {} for namespace '{}'", id, flow.getNamespace());
+        LOG.info("Created flow with ID {} for namespace '{}'", id, namespace);
 
-        return new Flow.FlowBuilder()
-                .setId(id)
-                .setVersion("1.0.0")
-                .setNamespace(flow.getNamespace())
-                .setFlow(flow.getFlowJson())
-                .build();
+            return new Flow.FlowBuilder()
+                    .setId(id)
+                    .setVersion("1.0.0")
+                    .setNamespace(namespace)
+                    .setFlow(flowRequest.getFlowJson())
+                    .build();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -215,13 +234,18 @@ public class NitriteFlowStore implements FlowStore {
             throw new NamespaceNotFoundException();
         }
 
-        if (versionExists(flow)) {
-            LOG.warn("Version '{}' already exists for flow {} in namespace '{}'", 
-                    flow.getDotVersion(), flow.getId(), flow.getNamespace());
-            throw new FlowVersionExistsException();
-        }
+        lock.lock();
+        try {
+            if (versionExists(flow)) {
+                LOG.warn("Version '{}' already exists for flow {} in namespace '{}'",
+                        flow.getDotVersion(), flow.getId(), flow.getNamespace());
+                throw new FlowVersionExistsException();
+            }
 
-        writeFlowToNitrite(flow);
+            writeFlowToNitrite(flow);
+        } finally {
+            lock.unlock();
+        }
         return flow;
     }
 

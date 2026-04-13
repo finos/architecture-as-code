@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Sidebar } from './Sidebar.js';
-import { NodeData, EdgeData } from '../../contracts/contracts.js';
+import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 
 vi.mock('@monaco-editor/react', () => ({
     Editor: ({ value }: { value: string }) => (
@@ -12,10 +12,10 @@ vi.mock('@monaco-editor/react', () => ({
 describe('Sidebar Component', () => {
     const mockCloseSidebar = vi.fn();
 
-    const mockNodeData: NodeData = {
-        id: 'node-1',
+    const mockNodeData: CalmNodeSchema = {
+        'unique-id': 'node-1',
         name: 'Node 1',
-        type: 'type-1',
+        'node-type': 'type-1',
         description: 'Mock Node',
         interfaces: [
             {
@@ -29,9 +29,9 @@ describe('Sidebar Component', () => {
                 description: 'Control requirements for delivering patterns',
                 requirements: [
                     {
-                        'control-requirement-url':
+                        'requirement-url':
                             'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json',
-                        'control-config-url':
+                        'config-url':
                             'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json',
                     },
                 ],
@@ -39,11 +39,15 @@ describe('Sidebar Component', () => {
         },
     };
 
-    const mockEdgeData: EdgeData = {
-        id: 'edge-1',
-        label: 'Edge 1',
-        source: 'node-1',
-        target: 'node-2',
+    const mockEdgeData: CalmRelationshipSchema = {
+        'unique-id': 'edge-1',
+        'relationship-type': {
+            connects: {
+                source: { node: 'node-1' },
+                destination: { node: 'node-2' },
+            },
+        },
+        description: 'Edge 1',
     };
 
     it('should display message unknown entity', () => {
@@ -51,28 +55,43 @@ describe('Sidebar Component', () => {
         render(<Sidebar selectedData={{} as any} closeSidebar={mockCloseSidebar} />);
 
         expect(screen.getByText('Unknown Selected Entity')).toBeInTheDocument();
-        expect(screen.queryByText('Node Details')).not.toBeInTheDocument();
-        expect(screen.queryByText('Relationship Details')).not.toBeInTheDocument();
     });
 
-    it('should render edge details correctly', () => {
+    it('should render readable relationship details by default', () => {
         render(<Sidebar selectedData={mockEdgeData} closeSidebar={mockCloseSidebar} />);
 
-        // Monaco Editor is mocked as a textarea, so check its value
-        const textarea = screen.getByTestId('monaco-editor');
-
-        expect(screen.getByText('Relationship Details')).toBeInTheDocument();
-        expect(textarea).toHaveValue(JSON.stringify(mockEdgeData, null, 2));
+        expect(screen.getByText('Relationship')).toBeInTheDocument();
+        expect(screen.getByText('Edge 1')).toBeInTheDocument();
+        expect(screen.getByText('edge-1')).toBeInTheDocument();
+        expect(screen.getByText('connects')).toBeInTheDocument();
     });
 
-    it('should render node details dynamically based on selectedData', () => {
+    it('should render readable node details by default', () => {
         render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
 
-        expect(screen.getByText('Node Details')).toBeInTheDocument();
+        expect(screen.getByText('Node')).toBeInTheDocument();
+        expect(screen.getByText('Node 1')).toBeInTheDocument();
+        expect(screen.getByText('node-1')).toBeInTheDocument();
+        expect(screen.getByText('Mock Node')).toBeInTheDocument();
+    });
 
-        // Monaco Editor is mocked as a textarea, so check its value
+    it('should show JSON view when JSON tab is clicked', () => {
+        render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
+
+        fireEvent.click(screen.getByRole('tab', { name: 'JSON' }));
+
         const textarea = screen.getByTestId('monaco-editor');
         expect(textarea).toHaveValue(JSON.stringify(mockNodeData, null, 2));
+    });
+
+    it('should switch back to details view', () => {
+        render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
+
+        fireEvent.click(screen.getByRole('tab', { name: 'JSON' }));
+        fireEvent.click(screen.getByRole('tab', { name: 'Details' }));
+
+        expect(screen.getByText('Node 1')).toBeInTheDocument();
+        expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
     });
 
     it('should call closeSidebar when close button is clicked', () => {

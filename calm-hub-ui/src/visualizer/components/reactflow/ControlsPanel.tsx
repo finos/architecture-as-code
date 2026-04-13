@@ -1,38 +1,6 @@
-import { THEME } from './theme';
-import { ControlsPanelHeader, ControlCard } from './controls-panel';
-
-// Types for CALM control data
-export interface ControlRequirementConfig {
-    appliesTo?: {
-        nodes?: string[];
-        relationships?: string[];
-    };
-    [key: string]: unknown;
-}
-
-export interface ControlRequirement {
-    'requirement-url'?: string;
-    'config-url'?: string;
-    config?: ControlRequirementConfig;
-}
-
-export interface Control {
-    description?: string;
-    requirements?: ControlRequirement[];
-    'aigf-mitigations'?: string[];
-    'aigf-risks'?: string[];
-    // Extended properties added during extraction
-    appliesTo?: string;
-    nodeName?: string;
-    relationshipDescription?: string;
-    appliesToType?: 'node' | 'relationship';
-}
-
-interface ControlsPanelProps {
-    controls: Record<string, Control>;
-    onNodeClick?: (nodeId: string) => void;
-    onControlClick?: (controlId: string) => void;
-}
+import { THEME } from './theme.js';
+import { ControlsPanelHeader, ControlCard } from './controls-panel/index.js';
+import type { ControlsPanelProps } from '../../contracts/contracts.js';
 
 export function ControlsPanel({ controls, onNodeClick, onControlClick }: ControlsPanelProps) {
     if (!controls || Object.keys(controls).length === 0) return null;

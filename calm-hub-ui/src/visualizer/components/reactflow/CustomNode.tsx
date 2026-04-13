@@ -16,34 +16,9 @@ import {
     ZoomIn,
     Info,
 } from 'lucide-react';
-import { extractId, extractNodeType } from './utils/calmHelpers';
-import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme';
-
-/**
- * AIGF risk item - all fields optional as CALM data may have partial info
- */
-interface RiskItem {
-    id?: string;
-    name?: string;
-    description?: string;
-}
-
-/**
- * AIGF mitigation item - all fields optional as CALM data may have partial info
- */
-interface MitigationItem {
-    id?: string;
-    name?: string;
-    description?: string;
-}
-
-/**
- * Control item - flexible structure to accommodate various control types
- */
-interface ControlItem {
-    description?: string;
-    [key: string]: unknown;
-}
+import { extractId, extractNodeType } from './utils/calmHelpers.js';
+import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
+import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
 
 export function CustomNode({ data }: NodeProps) {
   const [isHovered, setIsHovered] = useState(false);

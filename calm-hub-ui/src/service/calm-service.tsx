@@ -1,251 +1,316 @@
-import { Data } from '../model/calm.js';
+import axios, { AxiosInstance } from 'axios';
+import { Data, ResourceSummary, ResourceMapping } from '../model/calm.js';
 import { getAuthHeaders } from '../authService.js';
+import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
 
 /**
- * Fetch namespaces and set them using the provided setter function.
+ * Service for interacting with CALM API endpoints.
+ * 
+ * TODO: Add type safety for API responses by:
+ * - Defining response interfaces (e.g., NamespacesResponse, PatternIDsResponse)
+ * - Validating responses at runtime (e.g., with Zod or similar validation library)
+ * - Using typed axios responses to ensure type safety throughout the call chain
  */
-export async function fetchNamespaces(setNamespaces: (namespaces: string[]) => void) {
-    try {
-        const headers = await getAuthHeaders();
-        const res = await fetch('/calm/namespaces', {
-            method: 'GET',
-            headers,
-        });
-        const data = await res.json();
-        const values = Array.isArray(data?.values) ? data.values : [];
-        const namespaces = values
-            .map((v: { name?: string }) => v?.name)
-            .filter((name): name is string => typeof name === 'string');
-        setNamespaces(namespaces);
-    } catch (error) {
-        console.error('Error fetching namespaces:', error);
+export class CalmService {
+    private readonly ax: AxiosInstance;
+
+    constructor(axiosInstance?: AxiosInstance) {
+        if (axiosInstance) {
+            this.ax = axiosInstance;
+        } else {
+            this.ax = axios.create();
+        }
     }
-}
 
-/**
- * Fetch pattern IDs for a given namespace and set them using the provided setter function.
- */
-export async function fetchPatternIDs(
-    namespace: string,
-    setPatternIDs: (patternIDs: string[]) => void
-) {
-    try {
+    public async fetchNamespaces(): Promise<string[]> {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/patterns`, {
-            method: 'GET',
-            headers,
-        });
-        const data = await res.json();
-        setPatternIDs(data.values.map((num: number) => num.toString()));
-    } catch (error) {
-        console.error(`Error fetching pattern IDs for namespace ${namespace}:`, error);
+        return this.ax
+            .get('/calm/namespaces', { headers })
+            .then((res) => {
+                const namespaces = (res.data?.values ?? [])
+                    .map((v: { name?: string }) => v?.name)
+                    .filter((name: string | undefined): name is string => !!name);
+                return namespaces;
+            })
+            .catch((error) => {
+                const errorMessage = 'Error fetching namespaces:';
+                console.error(errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch flow IDs for a given namespace and set them using the provided setter function.
- */
-export async function fetchFlowIDs(namespace: string, setFlowIDs: (flowIDs: string[]) => void) {
-    try {
+    public async fetchPatternSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/flows`, {
-            method: 'GET',
-            headers,
-        });
-        const data = await res.json();
-        setFlowIDs(data.values.map((id: number) => id.toString()));
-    } catch (error) {
-        console.error(`Error fetching flow IDs for namespace ${namespace}:`, error);
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/patterns`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching patterns for namespace ${namespace}:`;
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch versions for a given namespace and pattern ID and set them using the provided setter function.
- */
-export async function fetchPatternVersions(
-    namespace: string,
-    patternID: string,
-    setVersions: (versions: string[]) => void
-) {
-    try {
+    public async fetchFlowSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`, {
-            method: 'GET',
-            headers,
-        });
-        const data = await res.json();
-        setVersions(data.values);
-    } catch (error) {
-        console.error(`Error fetching versions for pattern ID ${patternID}:`, error);
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching flows for namespace ${namespace}:`;
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch versions for a given namespace and flow ID and set them using the provided setter function.
- */
-export async function fetchFlowVersions(
-    namespace: string,
-    flowID: string,
-    setFlowVersions: (flowVersions: string[]) => void
-) {
-    try {
+    public async fetchArchitectureSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/flows/${flowID}/versions`, {
-            method: 'GET',
-            headers,
-        });
-        const data = await res.json();
-        setFlowVersions(data.values);
-    } catch (error) {
-        console.error(`Error fetching versions for flow ID ${flowID}:`, error);
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/architectures`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching architectures for namespace ${namespace}:`;
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch a specific pattern by namespace, pattern ID, and version, and set it using the provided setter function.
- */
-export async function fetchPattern(
-    namespace: string,
-    patternID: string,
-    version: string,
-    setPattern: (pattern: Data) => void
-) {
-    try {
+    public async fetchPatternVersions(namespace: string, patternID: string): Promise<string[]> {
         const headers = await getAuthHeaders();
-        const res = await fetch(
-            `/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`,
-            {
-                method: 'GET',
+        return this.ax
+            .get(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`, { headers })
+            .then((res) => res.data.values)
+            .catch((error) => {
+                const errorMessage = `Error fetching versions for pattern ID ${patternID}:`;
+                // arg1 is %s to prevent format string injection from `patternID`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchFlowVersions(namespace: string, flowID: string): Promise<string[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/namespaces/${namespace}/flows/${flowID}/versions`, { headers })
+            .then((res) => res.data.values)
+            .catch((error) => {
+                const errorMessage = `Error fetching versions for flow ID ${flowID}:`;
+                // arg1 is %s to prevent format string injection from `flowID`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchArchitectureVersions(namespace: string, architectureID: string): Promise<string[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/namespaces/${namespace}/architectures/${architectureID}/versions`, {
                 headers,
-            }
-        );
-        const response = await res.json();
-        const data: Data = {
-            id: patternID,
-            version: version,
-            calmType: 'Patterns',
-            name: namespace,
-            data: response,
-        };
-        setPattern(data);
-    } catch (error) {
-        console.error(
-            `Error fetching pattern for namespace ${namespace}, pattern ID ${patternID}, version ${version}:`,
-            error
-        );
+            })
+            .then((res) => res.data.values)
+            .catch((error) => {
+                const errorMessage = `Error fetching versions for architecture ID ${architectureID}:`;
+                // arg1 is %s to prevent format string injection from `architectureID`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch a specific flow by namespace, flow ID, and version, and set it using the provided setter function.
- */
-export async function fetchFlow(
-    namespace: string,
-    flowID: string,
-    version: string,
-    setFlow: (flow: Data) => void
-) {
-    try {
+    public async fetchPattern(namespace: string, patternID: string, version: string): Promise<Data> {
         const headers = await getAuthHeaders();
-        const res = await fetch(
-            `/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`,
-            {
-                method: 'GET',
+        return this.ax
+            .get(`/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`, {
                 headers,
-            }
-        );
-        const response = await res.json();
-        const data: Data = {
-            id: flowID,
-            version: version,
-            calmType: 'Flows',
-            name: namespace,
-            data: response,
-        };
-        setFlow(data);
-    } catch (error) {
-        console.error(
-            `Error fetching flow for namespace ${namespace}, flow ID ${flowID}, version ${version}:`,
-            error
-        );
+            })
+            .then((res) => ({
+                id: patternID,
+                version: version,
+                calmType: 'Patterns',
+                name: namespace,
+                data: res.data,
+            }))
+            .catch((error) => {
+                const errorMessage = `Error fetching pattern for namespace ${namespace}, pattern ID ${patternID}, version ${version}:`;
+                // arg1 is %s to prevent format string injection from `namespace`, `patternID`, and `version`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch architecture IDs for a given namespace and set them using the provided setter function.
- */
-export async function fetchArchitectureIDs(
-    namespace: string,
-    setArchitectureIDs: (architectureIDs: string[]) => void
-) {
-    try {
+    public async fetchFlow(namespace: string, flowID: string, version: string): Promise<Data> {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/architectures`, {
-            method: 'GET',
-            headers,
-        });
-        const data = await res.json();
-        setArchitectureIDs(data.values.map((id: number) => id.toString()));
-    } catch (error) {
-        console.error(`Error fetching architecture IDs for namespace ${namespace}:`, error);
-    }
-}
-
-/**
- * Fetch versions for a given namespace and architecture ID and set them using the provided setter function.
- */
-export async function fetchArchitectureVersions(
-    namespace: string,
-    architectureID: string,
-    setVersions: (versions: string[]) => void
-) {
-    try {
-        const headers = await getAuthHeaders();
-        const res = await fetch(
-            `/calm/namespaces/${namespace}/architectures/${architectureID}/versions`,
-            {
-                method: 'GET',
+        return this.ax
+            .get(`/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`, {
                 headers,
-            }
-        );
-        const data = await res.json();
-        setVersions(data.values);
-    } catch (error) {
-        console.error(`Error fetching versions for architecture ID ${architectureID}:`, error);
+            })
+            .then((res) => ({
+                id: flowID,
+                version: version,
+                calmType: 'Flows',
+                name: namespace,
+                data: res.data,
+            }))
+            .catch((error) => {
+                const errorMessage = `Error fetching flow for namespace ${namespace}, flow ID ${flowID}, version ${version}:`;
+                // arg1 is %s to prevent format string injection from `namespace`, `flowID`, and `version`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch a specific architecture by namespace, architecture ID, and version, and set it using the provided setter function.
- */
-export async function fetchArchitecture(
-    namespace: string,
-    architectureID: string,
-    version: string,
-    setArchitecture: (architecture: Data) => void
-) {
-    try {
+    public async fetchArchitecture(
+        namespace: string,
+        architectureID: string,
+        version: string
+    ): Promise<Data> {
         const headers = await getAuthHeaders();
-        const res = await fetch(
-            `/calm/namespaces/${namespace}/architectures/${architectureID}/versions/${version}`,
-            {
-                method: 'GET',
-                headers,
-            }
-        );
-        const response = await res.json();
-        const data: Data = {
-            id: architectureID,
-            version: version,
-            calmType: 'Architectures',
-            name: namespace,
-            data: response,
-        };
-        setArchitecture(data);
-    } catch (error) {
-        console.error(
-            `Error fetching architecture for namespace ${namespace}, architecture ID ${architectureID}, version ${version}:`,
-            error
-        );
+        return this.ax
+            .get(
+                `/calm/namespaces/${namespace}/architectures/${architectureID}/versions/${version}`,
+                { headers }
+            )
+            .then((res) => ({
+                id: architectureID,
+                version: version,
+                calmType: 'Architectures',
+                name: namespace,
+                data: res.data,
+            }))
+            .catch((error) => {
+                const errorMessage = `Error fetching architecture for namespace ${namespace}, architecture ID ${architectureID}, version ${version}:`;
+                // arg1 is %s to prevent format string injection from `namespace`, `architectureID`, and `version`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchStandardSummaries(namespace: string): Promise<ResourceSummary[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/standards`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching standards for namespace ${namespace}:`;
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchStandardVersions(namespace: string, standardID: string): Promise<string[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/standards/${standardID}/versions`, { headers })
+            .then((res) => res.data.values)
+            .catch((error) => {
+                const errorMessage = `Error fetching versions for standard ID ${standardID}:`;
+                // arg1 is %s to prevent format string injection from `standardID`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchStandard(namespace: string, standardID: string, version: string): Promise<Data> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(
+                `/calm/namespaces/${encodeURIComponent(namespace)}/standards/${standardID}/versions/${version}`,
+                { headers }
+            )
+            .then((res) => ({
+                id: standardID,
+                version: version,
+                calmType: 'Standards',
+                name: namespace,
+                data: res.data,
+            }))
+            .catch((error) => {
+                const errorMessage = `Error fetching standard for namespace ${namespace}, standard ID ${standardID}, version ${version}:`;
+                // arg1 is %s to prevent format string injection from `namespace`, `standardID`, and `version`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    /**
+     * Fetch decorator values for a given namespace with optional target and type filters.
+    */
+    public async fetchDecoratorValues(
+        namespace: string,
+        target?: string,
+        type?: string
+    ): Promise<Decorator[]> {
+        const headers = await getAuthHeaders();
+        const params = new URLSearchParams();
+        if (target) params.set('target', target);
+        if (type) params.set('type', type);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/decorators/values${query}`, { headers })
+            .then((res) => res.data.values ?? [])
+            .catch((error) => {
+                const errorMessage = `Error fetching decorator values for namespace ${namespace}:`;
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
+                return [];
+            });
+    }
+
+    // --- Front Controller API (custom ID / slug-based access) ---
+
+    public async fetchMappings(namespace: string, type?: string): Promise<ResourceMapping[]> {
+        const headers = await getAuthHeaders();
+        const query = type ? `?type=${encodeURIComponent(type)}` : '';
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/mappings${query}`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching mappings for namespace ${namespace}:`;
+                console.error('%s', errorMessage, error);
+                return [];
+            });
+    }
+
+    public async fetchVersionsByCustomId(namespace: string, customId: string): Promise<string[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(customId)}/versions`, { headers })
+            .then((res) => res.data.values)
+            .catch((error) => {
+                const errorMessage = `Error fetching versions for custom ID ${customId}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchResourceByCustomId(namespace: string, customId: string, version: string, calmType: string): Promise<Data> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(customId)}/versions/${encodeURIComponent(version)}`, { headers })
+            .then((res) => ({
+                id: customId,
+                version: version,
+                calmType: calmType as Data['calmType'],
+                name: namespace,
+                data: res.data,
+            }))
+            .catch((error) => {
+                const errorMessage = `Error fetching resource ${customId} version ${version}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
 }

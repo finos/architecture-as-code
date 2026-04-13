@@ -152,6 +152,19 @@ public class ArchitectureStoreProducer {
 
 ## Testing
 
+### Coverage Requirements
+
+**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify -Ddependency-check.skip=true` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
+
+```bash
+# Run the same check CI uses — always run this before pushing changes
+../mvnw clean verify -Ddependency-check.skip=true
+```
+
+**Exclusions**: Classes in `**/domain/**/*`, `**/*Constants.*`, `**/CalmHubScopes.*`, and `**/LogSanitizationPolicy.*` are excluded from the coverage check.
+
+If coverage drops below 90% for a class you've modified, add tests for uncovered error paths (catch blocks, edge cases) until the threshold is met. Check the JaCoCo report at `target/site/jacoco/` for details on uncovered lines.
+
 ### Unit Tests
 ```bash
 ../mvnw test                  # All unit tests
@@ -166,6 +179,107 @@ public class ArchitectureStoreProducer {
 ### Test Structure
 - `src/test/java/` - Unit tests (fast, no containers)
 - `src/integration-test/java/` - Integration tests (TestContainers)
+
+### Test Conventions
+
+All tests must follow these conventions. The Pattern and Architecture tests are the reference implementations — Controls and any new resource types must match them.
+
+#### Class & Method Naming
+- Test class: `Test<ClassName>Should` (e.g. `TestPatternResourceShould`, `TestMongoPatternStoreShould`)
+- Test methods: `snake_case` descriptive names (e.g. `return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_patterns`)
+
+#### Resource Tests (`@QuarkusTest` + `@InjectMock`)
+
+**Mock field naming**: Prefix store mocks with `mock` — e.g. `mockPatternStore`, `mockControlStore`, not `patternStore` or `controlStore`.
+
+```java
+@InjectMock
+PatternStore mockPatternStore;
+```
+
+**Parameterized tests for exception/status-code scenarios**: Use `@ParameterizedTest` + `@MethodSource` to consolidate multiple error-path tests into one:
+
+```java
+static Stream<Arguments> provideParametersForGetPatternVersionTests() {
+    return Stream.of(
+            Arguments.of("finos", new NamespaceNotFoundException(), 404),
+            Arguments.of("finos", new PatternNotFoundException(), 404),
+            Arguments.of("finos", null, 200)
+    );
+}
+
+@ParameterizedTest
+@MethodSource("provideParametersForGetPatternVersionTests")
+void respond_correctly_to_get_pattern_versions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
+    // ...
+}
+```
+
+**Input validation tests**: Every endpoint with `@Pattern`-annotated path parameters must have corresponding 400-validation tests:
+- Invalid domain format (e.g. `invalid_domain` with underscores) → 400 with `DOMAIN_NAME_MESSAGE`
+- Invalid namespace format (e.g. `fin_os`) → 400 with `NAMESPACE_MESSAGE`
+- Invalid version format (e.g. `1.0.invalid0`) → 400 with `VERSION_MESSAGE`
+
+```java
+@Test
+void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_patterns() {
+    given()
+            .when()
+            .get("/calm/namespaces/fin_os/patterns")
+            .then()
+            .statusCode(400)
+            .body(containsString(NAMESPACE_MESSAGE));
+}
+```
+
+Import validation constants from `ResourceValidationConstants`:
+```java
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+```
+
+#### Mongo Store Tests (`@QuarkusTest` + `@InjectMock`)
+
+**Inner interfaces for type-safe mocking** — never use `@SuppressWarnings("unchecked")`:
+
+```java
+private interface DocumentFindIterable extends FindIterable<Document> {
+}
+
+private interface DocumentMongoCollection extends MongoCollection<Document> {
+}
+
+@BeforeEach
+void setup() {
+    patternCollection = Mockito.mock(DocumentMongoCollection.class);
+    // ...
+}
+
+private FindIterable<Document> mockFindIterable() {
+    return Mockito.mock(DocumentFindIterable.class);
+}
+```
+
+**Field naming**: Use short names without the `mongo` prefix:
+- `counterStore` (not `mongoCounterStore`)
+- `domainStore` (not `mongoDomainStore`)
+- `namespaceStore` (not `mongoNamespaceStore`)
+
+**Shared fixture helpers**: Extract common Document setup into reusable helpers:
+- `setupInvalidPattern()` — mock find returning null for not-found scenarios
+- `mockSetupPatternDocumentWithVersions()` — mock a full document with versions
+- `setupPatternVersionDocument()` — build a Document fixture
+
+#### Nitrite Store Tests (`@ExtendWith(MockitoExtension.class)`)
+
+Nitrite tests use plain Mockito (not `@QuarkusTest`). Follow the same patterns as Mongo store tests where applicable.
+
+**Constants**: Always use `private static final` (not `private final`):
+```java
+private static final String NAMESPACE = "finos";
+private static final int PATTERN_ID = 42;
+```
 
 ## Common Tasks
 

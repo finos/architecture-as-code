@@ -41,4 +41,16 @@ describe('calmhub-document-loader', () => {
 
         await expect(calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
     });
+
+    it('rejects paths containing directory traversal segments', async () => {
+        const traversalUrl = 'calm:/schemas/2025-03/../../admin/secrets.json';
+        await expect(calmHubDocumentLoader.loadMissingDocument(traversalUrl, 'schema'))
+            .rejects.toThrow('directory traversal');
+    });
+
+    it('rejects paths with disallowed characters', async () => {
+        const maliciousUrl = 'calm:/schemas/%00malicious';
+        await expect(calmHubDocumentLoader.loadMissingDocument(maliciousUrl, 'schema'))
+            .rejects.toThrow('disallowed characters');
+    });
 });

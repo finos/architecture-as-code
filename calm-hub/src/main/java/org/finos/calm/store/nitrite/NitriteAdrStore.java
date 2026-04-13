@@ -13,6 +13,7 @@ import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.AdrStore;
@@ -23,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -45,6 +48,7 @@ public class NitriteAdrStore implements AdrStore {
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
     private final ObjectMapper objectMapper;
+    private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteAdrStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -57,7 +61,7 @@ public class NitriteAdrStore implements AdrStore {
     }
 
     @Override
-    public List<Integer> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving ADRs", namespace);
             throw new NamespaceNotFoundException();
@@ -69,13 +73,39 @@ public class NitriteAdrStore implements AdrStore {
             return List.of();
         }
 
-        List<Integer> adrIds = new ArrayList<>();
+        List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (Document adr : adrs) {
-            adrIds.add(adr.get(ADR_ID_FIELD, Integer.class));
+            int adrId = adr.get(ADR_ID_FIELD, Integer.class);
+            String title = "ADR " + adrId;
+            String status = "unknown";
+
+            Document revisions = adr.get(REVISIONS_FIELD, Document.class);
+            if (revisions != null) {
+                Set<String> fieldNames = revisions.getFields();
+                if (!fieldNames.isEmpty()) {
+                    int latestRevision = fieldNames.stream()
+                            .map(Integer::parseInt)
+                            .mapToInt(i -> i)
+                            .max()
+                            .getAsInt();
+                    String adrStr = revisions.get(String.valueOf(latestRevision), String.class);
+                    if (adrStr != null) {
+                        try {
+                            Adr adrObj = objectMapper.readValue(adrStr, Adr.class);
+                            if (adrObj.getTitle() != null) title = adrObj.getTitle();
+                            if (adrObj.getStatus() != null) status = adrObj.getStatus().name();
+                        } catch (JsonProcessingException e) {
+                            LOG.warn("Could not parse ADR {} for summary, using fallback", adrId, e);
+                        }
+                    }
+                }
+            }
+
+            summaries.add(new NamespaceAdrSummary(title, status, adrId));
         }
 
-        LOG.debug("Retrieved {} ADRs for namespace '{}'", adrIds.size(), namespace);
-        return adrIds;
+        LOG.debug("Retrieved {} ADRs for namespace '{}'", summaries.size(), namespace);
+        return summaries;
     }
 
     @Override
@@ -98,11 +128,13 @@ public class NitriteAdrStore implements AdrStore {
             throw new AdrParseException();
         }
 
-        int id = counterStore.getNextAdrSequenceValue();
-        Document adrDocument = Document.createDocument()
-                .put(ADR_ID_FIELD, id)
-                .put(REVISIONS_FIELD, Document.createDocument()
-                        .put(String.valueOf(adrMeta.getRevision()), adrStr));
+        lock.lock();
+        try {
+            int id = counterStore.getNextAdrSequenceValue();
+            Document adrDocument = Document.createDocument()
+                    .put(ADR_ID_FIELD, id)
+                    .put(REVISIONS_FIELD, Document.createDocument()
+                            .put(String.valueOf(adrMeta.getRevision()), adrStr));
 
         Filter filter = where(NAMESPACE_FIELD).eq(adrMeta.getNamespace());
         Document namespaceDoc = adrCollection.find(filter).firstOrNull();
@@ -127,8 +159,11 @@ public class NitriteAdrStore implements AdrStore {
             adrCollection.update(filter, namespaceDoc);
         }
 
-        LOG.info("Created ADR with ID {} for namespace '{}'", id, adrMeta.getNamespace());
-        return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).build();
+            LOG.info("Created ADR with ID {} for namespace '{}'", id, adrMeta.getNamespace());
+            return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).build();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

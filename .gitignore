@@ -26,7 +26,6 @@ docs/contributing.md
 /calm-hub-ui/package-lock.json
 /cli/package-lock.json
 /docs/package-lock.json
-/experimental/calm-explorer/package-lock.json
 /shared/package-lock.json
 
 **/.vscode**/
@@ -49,3 +48,23 @@ coverage/
 shared/test-output/
 .calm-workspace/
 cli/test_fixtures/getting-started/actual-output/
+
+# Next.js
+.next/
+next-env.d.ts
+
+# SvelteKit
+.svelte-kit/
+**/build/
+
+# Docusaurus (sub-projects)
+**/.docusaurus/
+**/docs-site/docs/api/
+
+# Tauri/Rust build output
+**/src-tauri/target/
+**/src-tauri/gen/
+
+# Playwright
+playwright-report/
+test-results/

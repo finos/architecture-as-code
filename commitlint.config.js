@@ -9,11 +9,13 @@ module.exports = {
       [
         'cli',
         'shared',
+        'calm-server',
         'calm-widgets',
         'calm-hub',
         'calm-hub-ui',
         'docs',
         'vscode',
+        'calm-suite',
         'deps',
         'ci',
         'release'

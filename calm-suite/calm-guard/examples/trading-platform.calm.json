@@ -1,0 +1,316 @@
+{
+  "nodes": [
+    {
+      "unique-id": "trader",
+      "node-type": "actor",
+      "name": "Trader",
+      "description": "Human trader interacting with the trading system to execute buy/sell orders"
+    },
+    {
+      "unique-id": "trading-dashboard",
+      "node-type": "webclient",
+      "name": "Trading Dashboard",
+      "description": "Browser-based trading UI providing real-time market data and order management",
+      "controls": {
+        "session-management": {
+          "description": "Session timeout and secure cookie management",
+          "requirements": [
+            {
+              "requirement-url": "https://owasp.org/www-project-web-security-testing-guide/"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "order-mgmt-service",
+      "node-type": "service",
+      "name": "Order Management Service",
+      "description": "Core service for processing trading orders with pre-trade risk checks",
+      "controls": {
+        "data-encryption": {
+          "description": "Encrypt order data at rest and in transit using AES-256",
+          "requirements": [
+            {
+              "requirement-url": "https://csrc.nist.gov/publications/detail/fips/140/2/final"
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "Log all order operations for compliance audit trail",
+          "requirements": [
+            {
+              "requirement-url": "https://www.sec.gov/rules/final/34-47806.htm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "fix-gateway",
+      "node-type": "service",
+      "name": "FIX Gateway",
+      "description": "FIX protocol adapter for connectivity to external exchanges and market venues",
+      "controls": {
+        "access-control": {
+          "description": "Certificate-based authentication for FIX sessions",
+          "requirements": [
+            {
+              "requirement-url": "https://www.fixtrading.org/standards/fix-security/"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "market-data-service",
+      "node-type": "service",
+      "name": "Market Data Service",
+      "description": "Real-time market data aggregation and distribution service",
+      "controls": {
+        "rate-limiting": {
+          "description": "Rate limit market data subscriptions to prevent system overload",
+          "requirements": [
+            {
+              "requirement-url": "https://owasp.org/www-community/controls/Blocking_Brute_Force_Attacks"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "risk-engine",
+      "node-type": "service",
+      "name": "Risk Engine",
+      "description": "Pre-trade risk validation engine checking position limits and exposure",
+      "controls": {
+        "business-logic-validation": {
+          "description": "Validate trading limits and risk thresholds before order execution",
+          "requirements": [
+            {
+              "requirement-url": "https://www.finra.org/rules-guidance/rulebooks/finra-rules/4210"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "order-database",
+      "node-type": "database",
+      "name": "Order Database",
+      "description": "PostgreSQL database storing order history and execution records",
+      "controls": {
+        "data-retention": {
+          "description": "Retain order records for 7 years per regulatory requirements",
+          "requirements": [
+            {
+              "requirement-url": "https://www.sec.gov/rules/final/34-38245.txt"
+            }
+          ]
+        },
+        "backup-recovery": {
+          "description": "Daily backups with point-in-time recovery capability",
+          "requirements": [
+            {
+              "requirement-url": "https://csrc.nist.gov/publications/detail/sp/800-34/rev-1/final"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "market-data-cache",
+      "node-type": "database",
+      "name": "Market Data Cache",
+      "description": "Redis cache for real-time price feeds and market snapshots",
+      "metadata": {
+        "technology": "Redis",
+        "eviction-policy": "LRU"
+      }
+    },
+    {
+      "unique-id": "exchange-gateway",
+      "node-type": "system",
+      "name": "Exchange Gateway",
+      "description": "External exchange connectivity system for order routing and execution"
+    },
+    {
+      "unique-id": "trading-network",
+      "node-type": "network",
+      "name": "Trading Network",
+      "description": "Low-latency network infrastructure for trading services",
+      "controls": {
+        "network-segmentation": {
+          "description": "Isolate trading network from corporate network",
+          "requirements": [
+            {
+              "requirement-url": "https://www.cisecurity.org/controls/network-security"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "trader-to-dashboard",
+      "relationship-type": "interacts",
+      "description": "Trader accesses trading dashboard via web browser",
+      "interacts": {
+        "actor": "trader",
+        "nodes": ["trading-dashboard"]
+      }
+    },
+    {
+      "unique-id": "dashboard-to-order-mgmt",
+      "relationship-type": "connects",
+      "description": "Trading dashboard submits orders to order management service",
+      "protocol": "HTTPS",
+      "connects": {
+        "source": {
+          "node": "trading-dashboard"
+        },
+        "destination": {
+          "node": "order-mgmt-service"
+        }
+      }
+    },
+    {
+      "unique-id": "order-mgmt-to-risk",
+      "relationship-type": "connects",
+      "description": "Order management service validates orders with risk engine",
+      "protocol": "HTTPS",
+      "connects": {
+        "source": {
+          "node": "order-mgmt-service"
+        },
+        "destination": {
+          "node": "risk-engine"
+        }
+      }
+    },
+    {
+      "unique-id": "order-mgmt-to-fix",
+      "relationship-type": "connects",
+      "description": "Order management service routes validated orders to FIX gateway",
+      "protocol": "TCP",
+      "connects": {
+        "source": {
+          "node": "order-mgmt-service"
+        },
+        "destination": {
+          "node": "fix-gateway"
+        }
+      }
+    },
+    {
+      "unique-id": "order-mgmt-to-db",
+      "relationship-type": "connects",
+      "description": "Order management service persists orders to database",
+      "protocol": "JDBC",
+      "connects": {
+        "source": {
+          "node": "order-mgmt-service"
+        },
+        "destination": {
+          "node": "order-database"
+        }
+      }
+    },
+    {
+      "unique-id": "market-data-to-cache",
+      "relationship-type": "connects",
+      "description": "Market data service updates real-time price cache",
+      "protocol": "TCP",
+      "connects": {
+        "source": {
+          "node": "market-data-service"
+        },
+        "destination": {
+          "node": "market-data-cache"
+        }
+      }
+    },
+    {
+      "unique-id": "fix-to-exchange",
+      "relationship-type": "connects",
+      "description": "FIX gateway connects to exchange for order execution",
+      "protocol": "mTLS",
+      "connects": {
+        "source": {
+          "node": "fix-gateway"
+        },
+        "destination": {
+          "node": "exchange-gateway"
+        }
+      }
+    },
+    {
+      "unique-id": "dashboard-to-market-data",
+      "relationship-type": "connects",
+      "description": "Trading dashboard subscribes to real-time market data",
+      "protocol": "WebSocket",
+      "connects": {
+        "source": {
+          "node": "trading-dashboard"
+        },
+        "destination": {
+          "node": "market-data-service"
+        }
+      }
+    },
+    {
+      "unique-id": "trading-services-network",
+      "relationship-type": "deployed-in",
+      "description": "Core trading services deployed in low-latency network",
+      "deployed-in": {
+        "container": "trading-network",
+        "nodes": [
+          "order-mgmt-service",
+          "fix-gateway",
+          "risk-engine",
+          "market-data-service"
+        ]
+      }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "order-execution-flow",
+      "name": "Order Execution Flow",
+      "description": "Complete flow from trader order entry through exchange execution",
+      "transitions": [
+        {
+          "relationship-unique-id": "trader-to-dashboard",
+          "sequence-number": 1,
+          "description": "Trader enters order on dashboard"
+        },
+        {
+          "relationship-unique-id": "dashboard-to-order-mgmt",
+          "sequence-number": 2,
+          "description": "Dashboard submits order to order management"
+        },
+        {
+          "relationship-unique-id": "order-mgmt-to-risk",
+          "sequence-number": 3,
+          "description": "Order management validates with risk engine"
+        },
+        {
+          "relationship-unique-id": "order-mgmt-to-db",
+          "sequence-number": 4,
+          "description": "Order management persists order"
+        },
+        {
+          "relationship-unique-id": "order-mgmt-to-fix",
+          "sequence-number": 5,
+          "description": "Order management routes to FIX gateway"
+        },
+        {
+          "relationship-unique-id": "fix-to-exchange",
+          "sequence-number": 6,
+          "description": "FIX gateway sends order to exchange"
+        }
+      ]
+    }
+  ]
+}

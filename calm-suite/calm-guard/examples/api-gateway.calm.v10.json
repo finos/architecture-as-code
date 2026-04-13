@@ -1,0 +1,27 @@
+{
+  "calmSchemaVersion": "1.0",
+  "name": "API Gateway Customer Service Architecture",
+  "nodes": [
+    {
+      "name": "customer-service",
+      "type": "microservice",
+      "metadata": {
+        "description": "Customer-facing microservice handling customer data and interactions"
+      }
+    },
+    {
+      "name": "api-gateway",
+      "type": "apigateway",
+      "metadata": {
+        "description": "API Gateway that routes requests to downstream services"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "from": "api-gateway",
+      "to": "customer-service",
+      "type": "uses"
+    }
+  ]
+}

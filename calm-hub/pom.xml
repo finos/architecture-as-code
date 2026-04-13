@@ -27,9 +27,11 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>
-                <!-- Force patched Netty version to mitigate CVE-2025-58057 (affecting
-                4.1.124.Final) -->
-                <version>4.2.10.Final</version>
+                <!-- Force patched Netty 4.1 version to mitigate CVE-2025-58057 and
+                CVE-2026-33870/CVE-2026-33871 (affecting <=4.1.131.Final).
+                Must stay on 4.1.x — Quarkus 3.x applies a CleanerJava9 bytecode
+                transformation incompatible with Netty 4.2 (see quarkusio/quarkus#53309). -->
+                <version>4.1.132.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

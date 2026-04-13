@@ -112,4 +112,79 @@ public class TestMongoCounterStoreShould {
 
         assertThat(counterStore.getNextUserAccessSequenceValue(), equalTo(3));
     }
+
+    @Test
+    void return_the_next_value_in_sequence_for_decorators() {
+        Document document = new Document("sequence_value", 4);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "decoratorStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class)
+        )).thenReturn(document);
+
+        assertThat(counterStore.getNextDecoratorSequenceValue(), equalTo(4));
+    }
+
+    @Test
+    void return_the_next_value_in_sequence_for_control_configurations() {
+        Document document = new Document("sequence_value", 7);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "controlConfigurationStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class)
+        )).thenReturn(document);
+
+        assertThat(counterStore.getNextControlConfigurationSequenceValue(), equalTo(7));
+    }
+
+    @Test
+    void return_the_next_value_in_sequence_for_adrs() {
+        Document document = new Document("sequence_value", 11);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "adrStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class)
+        )).thenReturn(document);
+
+        assertThat(counterStore.getNextAdrSequenceValue(), equalTo(11));
+    }
+
+    @Test
+    void return_the_next_value_in_sequence_for_controls() {
+        Document document = new Document("sequence_value", 15);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "controlStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class)
+        )).thenReturn(document);
+
+        assertThat(counterStore.getNextControlSequenceValue(), equalTo(15));
+    }
+
+    @Test
+    void return_the_next_value_in_sequence_for_interfaces() {
+        Document document = new Document("sequence_value", 9);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "interfaceStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class)
+        )).thenReturn(document);
+
+        assertThat(counterStore.getNextInterfaceSequenceValue(), equalTo(9));
+    }
 }

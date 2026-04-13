@@ -24,24 +24,10 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@finos/calm-models": "file:../calm-models",
-    "handlebars": "^4.7.8",
-    "lodash": "^4.17.23"
+    "handlebars": "^4.7.9",
+    "lodash": "^4.18.1"
   },
   "devDependencies": {
-    "@stoplight/types": "^14.1.1",
-    "@types/js-yaml": "^4.0.9",
-    "@types/json-pointer": "^1.0.34",
-    "@types/junit-report-builder": "^3.0.2",
-    "@types/lodash": "^4.17.16",
-    "@typescript-eslint/eslint-plugin": "^8.29.1",
-    "@typescript-eslint/parser": "^8.29.1",
-    "axios-mock-adapter": "^2.1.0",
-    "eslint": "^9.24.0",
-    "fetch-mock": "^12.5.2",
-    "globals": "^16.0.0",
-    "memfs": "^4.17.0",
-    "msw": "^2.7.3",
-    "typescript": "^5.8.3"
   },
   "files": [
     "dist/**/*",

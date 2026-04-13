@@ -9,6 +9,7 @@ import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.adr.*;
+import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.exception.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,7 +82,7 @@ public class TestNitriteAdrStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = assertDoesNotThrow(() -> adrStore.getAdrsForNamespace(NAMESPACE));
+        List<NamespaceAdrSummary> result = assertDoesNotThrow(() -> adrStore.getAdrsForNamespace(NAMESPACE));
 
         // Assert
         assertThat(result.isEmpty(), is(true));
@@ -304,7 +305,7 @@ public class TestNitriteAdrStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = adrStore.getAdrsForNamespace(NAMESPACE);
+        List<NamespaceAdrSummary> result = adrStore.getAdrsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.isEmpty(), is(true));
@@ -324,7 +325,7 @@ public class TestNitriteAdrStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = adrStore.getAdrsForNamespace(NAMESPACE);
+        List<NamespaceAdrSummary> result = adrStore.getAdrsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.isEmpty(), is(true));
@@ -382,12 +383,31 @@ public class TestNitriteAdrStoreShould {
     }
 
     @Test
-    public void testGetAdrsForNamespace_whenAdrsExist_returnsAdrIds() throws NamespaceNotFoundException {
+    public void testGetAdrsForNamespace_whenAdrsExist_returnsAdrSummaries() throws NamespaceNotFoundException, JsonProcessingException {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
-        Document adr1 = Document.createDocument().put("adrId", 1);
-        Document adr2 = Document.createDocument().put("adrId", 2);
+        Adr adr1Obj = new Adr.AdrBuilder()
+                .setTitle("First ADR")
+                .setStatus(Status.draft)
+                .setCreationDateTime(LocalDateTime.now())
+                .setUpdateDateTime(LocalDateTime.now())
+                .build();
+        Adr adr2Obj = new Adr.AdrBuilder()
+                .setTitle("Second ADR")
+                .setStatus(Status.accepted)
+                .setCreationDateTime(LocalDateTime.now())
+                .setUpdateDateTime(LocalDateTime.now())
+                .build();
+
+        Document adr1 = Document.createDocument()
+                .put("adrId", 1)
+                .put("revisions", Document.createDocument()
+                        .put("1", objectMapper.writeValueAsString(adr1Obj)));
+        Document adr2 = Document.createDocument()
+                .put("adrId", 2)
+                .put("revisions", Document.createDocument()
+                        .put("1", objectMapper.writeValueAsString(adr2Obj)));
         List<Document> adrs = Arrays.asList(adr1, adr2);
 
         Document namespaceDoc = Document.createDocument()
@@ -399,12 +419,16 @@ public class TestNitriteAdrStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = adrStore.getAdrsForNamespace(NAMESPACE);
+        List<NamespaceAdrSummary> result = adrStore.getAdrsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.size(), is(2));
-        assertThat(result, hasItem(1));
-        assertThat(result, hasItem(2));
+        assertThat(result.get(0).getTitle(), is("First ADR"));
+        assertThat(result.get(0).getStatus(), is("draft"));
+        assertThat(result.get(0).getId(), is(1));
+        assertThat(result.get(1).getTitle(), is("Second ADR"));
+        assertThat(result.get(1).getStatus(), is("accepted"));
+        assertThat(result.get(1).getId(), is(2));
     }
 
     @Test

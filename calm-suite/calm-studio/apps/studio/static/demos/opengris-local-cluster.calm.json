@@ -1,0 +1,120 @@
+{
+  "nodes": [
+    {
+      "unique-id": "demo-og-cluster",
+      "node-type": "opengris:cluster",
+      "name": "Local Cluster",
+      "description": "OpenGRIS local development cluster containing all compute and storage components."
+    },
+    {
+      "unique-id": "demo-og-scheduler",
+      "node-type": "opengris:scheduler",
+      "name": "Scheduler",
+      "description": "OpenGRIS task scheduler that distributes work to registered workers.",
+      "customMetadata": {
+        "scheduler_address": "tcp://127.0.0.1:8516"
+      }
+    },
+    {
+      "unique-id": "demo-og-worker-1",
+      "node-type": "opengris:worker",
+      "name": "Worker 1",
+      "description": "Primary compute worker node registered with the local cluster scheduler."
+    },
+    {
+      "unique-id": "demo-og-worker-2",
+      "node-type": "opengris:worker",
+      "name": "Worker 2",
+      "description": "Secondary compute worker node registered with the local cluster scheduler."
+    },
+    {
+      "unique-id": "demo-og-object-storage",
+      "node-type": "opengris:object-storage",
+      "name": "Object Storage",
+      "description": "Local object storage service for persisting task inputs and outputs.",
+      "customMetadata": {
+        "storage_address": "tcp://127.0.0.1:8517"
+      }
+    },
+    {
+      "unique-id": "demo-og-worker-manager",
+      "node-type": "opengris:worker-manager",
+      "name": "Worker Manager",
+      "description": "Manages worker lifecycle including registration, health checks, and capacity scaling.",
+      "customMetadata": {
+        "manager_type": "native",
+        "priority": "1",
+        "max_workers": "4"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "demo-og-rel-scheduler-worker1",
+      "relationship-type": "connects",
+      "source": "demo-og-scheduler",
+      "destination": "demo-og-worker-1",
+      "protocol": "TCP",
+      "description": "Scheduler dispatches tasks to Worker 1 over ZeroMQ TCP."
+    },
+    {
+      "unique-id": "demo-og-rel-scheduler-worker2",
+      "relationship-type": "connects",
+      "source": "demo-og-scheduler",
+      "destination": "demo-og-worker-2",
+      "protocol": "TCP",
+      "description": "Scheduler dispatches tasks to Worker 2 over ZeroMQ TCP."
+    },
+    {
+      "unique-id": "demo-og-rel-scheduler-storage",
+      "relationship-type": "connects",
+      "source": "demo-og-scheduler",
+      "destination": "demo-og-object-storage",
+      "protocol": "TCP",
+      "description": "Scheduler reads and writes task data via object storage."
+    },
+    {
+      "unique-id": "demo-og-rel-manager-scheduler",
+      "relationship-type": "connects",
+      "source": "demo-og-worker-manager",
+      "destination": "demo-og-scheduler",
+      "protocol": "TCP",
+      "description": "Worker Manager registers worker capacity with the scheduler."
+    },
+    {
+      "unique-id": "demo-og-rel-cluster-scheduler",
+      "relationship-type": "composed-of",
+      "source": "demo-og-cluster",
+      "destination": "demo-og-scheduler",
+      "description": "Cluster contains the scheduler component."
+    },
+    {
+      "unique-id": "demo-og-rel-cluster-worker1",
+      "relationship-type": "composed-of",
+      "source": "demo-og-cluster",
+      "destination": "demo-og-worker-1",
+      "description": "Cluster contains Worker 1."
+    },
+    {
+      "unique-id": "demo-og-rel-cluster-worker2",
+      "relationship-type": "composed-of",
+      "source": "demo-og-cluster",
+      "destination": "demo-og-worker-2",
+      "description": "Cluster contains Worker 2."
+    },
+    {
+      "unique-id": "demo-og-rel-cluster-storage",
+      "relationship-type": "composed-of",
+      "source": "demo-og-cluster",
+      "destination": "demo-og-object-storage",
+      "description": "Cluster contains the object storage component."
+    },
+    {
+      "unique-id": "demo-og-rel-cluster-manager",
+      "relationship-type": "composed-of",
+      "source": "demo-og-cluster",
+      "destination": "demo-og-worker-manager",
+      "description": "Cluster contains the worker manager."
+    }
+  ]
+}

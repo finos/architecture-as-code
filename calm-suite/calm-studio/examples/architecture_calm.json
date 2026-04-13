@@ -1,0 +1,248 @@
+{
+  "nodes": [
+    {
+      "unique-id": "customer",
+      "node-type": "actor",
+      "name": "Customer",
+      "description": "End user browsing and purchasing products"
+    },
+    {
+      "unique-id": "web-app",
+      "node-type": "webclient",
+      "name": "Web Application",
+      "description": "React-based storefront SPA",
+      "interfaces": [
+        { "unique-id": "web-url", "type": "url", "value": "https://shop.example.com" }
+      ]
+    },
+    {
+      "unique-id": "api-gateway",
+      "node-type": "network",
+      "name": "API Gateway",
+      "description": "Kong API gateway handling routing, rate limiting, and auth",
+      "interfaces": [
+        { "unique-id": "gateway-url", "type": "url", "value": "https://api.example.com" }
+      ]
+    },
+    {
+      "unique-id": "product-service",
+      "node-type": "service",
+      "name": "Product Service",
+      "description": "Manages product catalog, search, and inventory",
+      "interfaces": [
+        { "unique-id": "product-api", "type": "url", "value": "https://api.example.com/v1/products" }
+      ]
+    },
+    {
+      "unique-id": "order-service",
+      "node-type": "service",
+      "name": "Order Service",
+      "description": "Handles order placement, tracking, and fulfillment",
+      "interfaces": [
+        { "unique-id": "order-api", "type": "url", "value": "https://api.example.com/v1/orders" }
+      ]
+    },
+    {
+      "unique-id": "auth-service",
+      "node-type": "service",
+      "name": "Auth Service",
+      "description": "User authentication and authorization via JWT",
+      "interfaces": [
+        { "unique-id": "auth-api", "type": "url", "value": "https://api.example.com/v1/auth" }
+      ]
+    },
+    {
+      "unique-id": "notification-service",
+      "node-type": "service",
+      "name": "Notification Service",
+      "description": "Sends email and push notifications for order events"
+    },
+    {
+      "unique-id": "product-db",
+      "node-type": "database",
+      "name": "Product Database",
+      "description": "PostgreSQL storing product catalog and inventory",
+      "interfaces": [
+        { "unique-id": "product-db-port", "type": "host-port", "value": "product-db:5432" }
+      ]
+    },
+    {
+      "unique-id": "order-db",
+      "node-type": "database",
+      "name": "Order Database",
+      "description": "PostgreSQL storing orders and transaction history",
+      "interfaces": [
+        { "unique-id": "order-db-port", "type": "host-port", "value": "order-db:5432" }
+      ]
+    },
+    {
+      "unique-id": "user-db",
+      "node-type": "database",
+      "name": "User Database",
+      "description": "PostgreSQL storing user accounts and credentials",
+      "interfaces": [
+        { "unique-id": "user-db-port", "type": "host-port", "value": "user-db:5432" }
+      ]
+    },
+    {
+      "unique-id": "cache",
+      "node-type": "database",
+      "name": "Redis Cache",
+      "description": "In-memory cache for sessions and product data",
+      "interfaces": [
+        { "unique-id": "cache-port", "type": "host-port", "value": "redis:6379" }
+      ]
+    },
+    {
+      "unique-id": "message-queue",
+      "node-type": "data-asset",
+      "name": "Message Queue",
+      "description": "RabbitMQ for async event processing between services"
+    },
+    {
+      "unique-id": "payment-gateway",
+      "node-type": "system",
+      "name": "Payment Gateway",
+      "description": "External Stripe payment processing system"
+    },
+    {
+      "unique-id": "cloud-platform",
+      "node-type": "ecosystem",
+      "name": "AWS Cloud",
+      "description": "AWS cloud environment hosting all services"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "customer-to-web",
+      "relationship-type": "interacts",
+      "source": "customer",
+      "destination": "web-app",
+      "description": "Customer browses and shops via web app"
+    },
+    {
+      "unique-id": "web-to-gateway",
+      "relationship-type": "connects",
+      "source": "web-app",
+      "destination": "api-gateway",
+      "protocol": "HTTPS",
+      "description": "Web app sends API requests through gateway"
+    },
+    {
+      "unique-id": "gateway-to-products",
+      "relationship-type": "connects",
+      "source": "api-gateway",
+      "destination": "product-service",
+      "protocol": "HTTPS",
+      "description": "Routes product requests to product service"
+    },
+    {
+      "unique-id": "gateway-to-orders",
+      "relationship-type": "connects",
+      "source": "api-gateway",
+      "destination": "order-service",
+      "protocol": "HTTPS",
+      "description": "Routes order requests to order service"
+    },
+    {
+      "unique-id": "gateway-to-auth",
+      "relationship-type": "connects",
+      "source": "api-gateway",
+      "destination": "auth-service",
+      "protocol": "HTTPS",
+      "description": "Routes auth requests and validates tokens"
+    },
+    {
+      "unique-id": "products-to-db",
+      "relationship-type": "connects",
+      "source": "product-service",
+      "destination": "product-db",
+      "protocol": "TCP",
+      "description": "Product service reads/writes catalog data"
+    },
+    {
+      "unique-id": "products-to-cache",
+      "relationship-type": "connects",
+      "source": "product-service",
+      "destination": "cache",
+      "protocol": "TCP",
+      "description": "Caches frequently accessed product data"
+    },
+    {
+      "unique-id": "orders-to-db",
+      "relationship-type": "connects",
+      "source": "order-service",
+      "destination": "order-db",
+      "protocol": "TCP",
+      "description": "Order service persists order data"
+    },
+    {
+      "unique-id": "orders-to-payment",
+      "relationship-type": "connects",
+      "source": "order-service",
+      "destination": "payment-gateway",
+      "protocol": "HTTPS",
+      "description": "Processes payments via Stripe API"
+    },
+    {
+      "unique-id": "orders-to-queue",
+      "relationship-type": "connects",
+      "source": "order-service",
+      "destination": "message-queue",
+      "protocol": "AMQP",
+      "description": "Publishes order events for async processing"
+    },
+    {
+      "unique-id": "notifications-from-queue",
+      "relationship-type": "connects",
+      "source": "message-queue",
+      "destination": "notification-service",
+      "protocol": "AMQP",
+      "description": "Notification service consumes order events"
+    },
+    {
+      "unique-id": "auth-to-db",
+      "relationship-type": "connects",
+      "source": "auth-service",
+      "destination": "user-db",
+      "protocol": "TCP",
+      "description": "Auth service verifies credentials and manages users"
+    },
+    {
+      "unique-id": "auth-to-cache",
+      "relationship-type": "connects",
+      "source": "auth-service",
+      "destination": "cache",
+      "protocol": "TCP",
+      "description": "Caches session tokens and auth state"
+    },
+    {
+      "unique-id": "products-in-cloud",
+      "relationship-type": "deployed-in",
+      "source": "product-service",
+      "destination": "cloud-platform",
+      "description": "Product service deployed in AWS"
+    },
+    {
+      "unique-id": "orders-in-cloud",
+      "relationship-type": "deployed-in",
+      "source": "order-service",
+      "destination": "cloud-platform",
+      "description": "Order service deployed in AWS"
+    },
+    {
+      "unique-id": "auth-in-cloud",
+      "relationship-type": "deployed-in",
+      "source": "auth-service",
+      "destination": "cloud-platform",
+      "description": "Auth service deployed in AWS"
+    },
+    {
+      "unique-id": "notifications-in-cloud",
+      "relationship-type": "deployed-in",
+      "source": "notification-service",
+      "destination": "cloud-platform",
+      "description": "Notification service deployed in AWS"
+    }
+  ]
+}

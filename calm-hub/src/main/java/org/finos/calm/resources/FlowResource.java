@@ -1,6 +1,8 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -13,6 +15,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
+import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.FlowStore;
@@ -25,6 +28,7 @@ import java.util.List;
 
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
@@ -73,22 +77,16 @@ public class FlowResource {
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createFlowForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            String flowJson
+            @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(namespace)
-                .setFlow(flowJson)
-                .build();
-
         try {
-
-            Flow flowForNamespace = store.createFlowForNamespace(flow);
+            Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace);
             return flowWithLocationResponse(flowForNamespace);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating flow", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (JsonParseException e) {
-            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, flowJson, e);
+            logger.error("Cannot parse Flow JSON for namespace [{}]. Flow JSON : [{}]", namespace, STRICT_SANITIZATION_POLICY.sanitize(flowRequest.getFlowJson()), e);
             return invalidFlowJsonResponse(namespace);
         }
     }

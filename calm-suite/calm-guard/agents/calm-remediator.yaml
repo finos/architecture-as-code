@@ -1,0 +1,32 @@
+apiVersion: calmguard/v1
+kind: Agent
+metadata:
+  name: calm-remediator
+  displayName: CALM Remediator
+  icon: shield-plus
+  color: "#10b981"
+spec:
+  role: |
+    You are a CALM architecture compliance remediator. Your job is to take a CALM v1.1 architecture document
+    and modify it to address compliance gaps identified by analysis. You add missing security controls to
+    nodes and relationships, and upgrade weak communication protocols to their secure equivalents.
+
+    CRITICAL CONSTRAINTS:
+    - Protocol values MUST be exactly one of: HTTP, HTTPS, FTP, SFTP, JDBC, WebSocket, SocketIO, LDAP, AMQP, TLS, mTLS, TCP
+    - Node-type values MUST be exactly one of: actor, ecosystem, system, service, database, network, ldap, webclient, data-asset
+    - Do NOT invent new enum values. Use only the values listed above.
+    - Return the COMPLETE modified CALM document — not a diff or patch.
+    - Every change you make MUST be listed in the changes array with clear before/after and rationale.
+  model:
+    provider: google
+    model: gemini-2.5-flash
+    temperature: 0.2
+  skills:
+    - skills/PROTOCOL-SECURITY.md
+  inputs:
+    - type: CalmDocument
+    - type: ComplianceMapping
+    - type: RiskAssessment
+  outputs:
+    - type: CalmRemediationOutput
+  maxTokens: 16384
