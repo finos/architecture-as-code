@@ -18,14 +18,14 @@ export async function loadJsonFile(filePath: string): Promise<unknown> {
 }
 
 /**
- * Pull all references from files in a workspace bundle.
+ * Populate all references from files in a workspace bundle.
  * Scans each file in the manifest for reference properties ($ref, requirement-url, config-url, etc.)
  * and recursively fetches any HTTP(S) references, adding them to the bundle.
  *
  * @param bundlePath Absolute path to the workspace bundle directory
  * @param docLoader Document loader instance for fetching remote documents
  */
-export async function pullReferencesFromBundle(bundlePath: string, docLoader: DocumentLoader): Promise<void> {
+export async function populateReferencesFromBundle(bundlePath: string, docLoader: DocumentLoader): Promise<void> {
     const manifest = await loadManifest(bundlePath);
     const processed = new Set<string>(Object.keys(manifest));
     const queue: string[] = Object.values(manifest).map(e => path.join(bundlePath, e.path));
@@ -76,7 +76,7 @@ export async function pullReferencesFromBundle(bundlePath: string, docLoader: Do
 }
 
 /**
- * Pull all referenced documents for a workspace bundle.
+ * Populate all referenced documents for a workspace bundle.
  *
  * This will:
  *  - locate the workspace bundle (if bundlePath not provided),
@@ -89,7 +89,7 @@ export async function pullReferencesFromBundle(bundlePath: string, docLoader: Do
  *                   repository workspace bundle will be discovered.
  * @param docLoaderOpts Optional DocumentLoaderOptions to configure the document loader.
  */
-export async function pullWorkspaceBundle(bundlePath?: string, docLoaderOpts?: DocumentLoaderOptions): Promise<void> {
+export async function populateWorkspaceBundle(bundlePath?: string, docLoaderOpts?: DocumentLoaderOptions): Promise<void> {
     const bp = bundlePath || findWorkspaceBundlePath(process.cwd());
     if (!bp) {
         throw new Error('No CALM workspace bundle found.');
@@ -97,8 +97,8 @@ export async function pullWorkspaceBundle(bundlePath?: string, docLoaderOpts?: D
 
     const opts: DocumentLoaderOptions = docLoaderOpts ?? {};
     const docLoader = buildDocumentLoader(opts);
-    // Note: we don't call initialise() here because pull only needs loadMissingDocument()
+    // Note: we don't call initialise() here because populate only needs loadMissingDocument()
     // to fetch external URLs, not pre-loaded filesystem schemas.
 
-    await pullReferencesFromBundle(bp, docLoader);
+    await populateReferencesFromBundle(bp, docLoader);
 }

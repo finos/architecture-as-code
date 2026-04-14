@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import path from 'path';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
 import { addFileToBundle, printBundleTree, BundleDocumentType } from './bundle';
-import { pullWorkspaceBundle } from './pull';
+import { populateWorkspaceBundle } from './populate';
 import { findWorkspaceBundlePath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 
@@ -70,22 +70,20 @@ export function setupWorkspaceCommands(program: Command) {
             }
         });
 
-    // Add pull command
     workspaceCmd
-        .command('pull')
-        .description('Pull referenced documents for all files in the current workspace bundle')
+        .command('populate')
+        .description('Look at currently-tracked documents and add referenced files to the current workspace.')
         .option('--verbose', 'Show verbose logging from document loaders')
         .action(async (options: { verbose?: boolean }) => {
             try {
-                await pullWorkspaceBundle(undefined, { debug: options.verbose ?? false });
-                logger.info('Pull complete');
+                await populateWorkspaceBundle(undefined, { debug: options.verbose ?? false });
+                logger.info('Populate complete');
             } catch (err) {
-                logger.error('Failed to pull references: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to populate references: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
 
-    // Add tree command
     workspaceCmd
         .command('tree')
         .description('Print dependency tree of files in the current workspace bundle')
@@ -103,7 +101,6 @@ export function setupWorkspaceCommands(program: Command) {
             }
         });
 
-    // Add list command
     workspaceCmd
         .command('list')
         .description('List all available workspaces')
@@ -134,7 +131,6 @@ export function setupWorkspaceCommands(program: Command) {
             }
         });
 
-    // Add show command
     workspaceCmd
         .command('show')
         .description('Show the active workspace')
@@ -157,7 +153,6 @@ export function setupWorkspaceCommands(program: Command) {
             }
         });
 
-    // Add switch command
     workspaceCmd
         .command('switch')
         .description('Switch the active workspace')
@@ -182,7 +177,6 @@ export function setupWorkspaceCommands(program: Command) {
             }
         });
 
-    // Add clean command
     workspaceCmd
         .command('clean')
         .description('Clean the active workspace bundle (use --all to clean all workspaces)')

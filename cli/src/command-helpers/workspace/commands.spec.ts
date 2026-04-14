@@ -7,12 +7,12 @@ const mocks = vi.hoisted(() => {
         ensureWorkspaceBundle: vi.fn(async () => '/fake/bundle'),
         getActiveWorkspace: vi.fn(async () => 'default'),
         listWorkspaces: vi.fn(async () => ['default', 'other']),
-        setActiveWorkspace: vi.fn(async () => {}),
-        cleanWorkspaceBundle: vi.fn(async () => {}),
-        cleanAllWorkspaces: vi.fn(async () => {}),
+        setActiveWorkspace: vi.fn(async () => { }),
+        cleanWorkspaceBundle: vi.fn(async () => { }),
+        cleanAllWorkspaces: vi.fn(async () => { }),
         addFileToBundle: vi.fn(async () => ({ id: 'test-doc', destPath: '/fake/bundle/files/test.json', rel: 'files/test.json' })),
-        printBundleTree: vi.fn(async () => {}),
-        pullWorkspaceBundle: vi.fn(async () => {}),
+        printBundleTree: vi.fn(async () => { }),
+        populateWorkspaceBundle: vi.fn(async () => { }),
         findWorkspaceBundlePath: vi.fn(() => '/fake/bundle'),
         findGitRoot: vi.fn(() => '/fake/repo'),
     };
@@ -32,8 +32,8 @@ vi.mock('./bundle', () => ({
     printBundleTree: mocks.printBundleTree,
 }));
 
-vi.mock('./pull', () => ({
-    pullWorkspaceBundle: mocks.pullWorkspaceBundle,
+vi.mock('./populate', () => ({
+    populateWorkspaceBundle: mocks.populateWorkspaceBundle,
 }));
 
 vi.mock('../../workspace-resolver', () => ({
@@ -122,20 +122,20 @@ describe('setupWorkspaceCommands', () => {
         });
     });
 
-    describe('workspace pull', () => {
-        it('should call pullWorkspaceBundle', async () => {
-            await program.parseAsync(['node', 'test', 'workspace', 'pull']);
-            expect(mocks.pullWorkspaceBundle).toHaveBeenCalledWith(undefined, { debug: false });
+    describe('workspace populate', () => {
+        it('should call populateWorkspaceBundle', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'populate']);
+            expect(mocks.populateWorkspaceBundle).toHaveBeenCalledWith(undefined, { debug: false });
         });
 
         it('should pass verbose option', async () => {
-            await program.parseAsync(['node', 'test', 'workspace', 'pull', '--verbose']);
-            expect(mocks.pullWorkspaceBundle).toHaveBeenCalledWith(undefined, { debug: true });
+            await program.parseAsync(['node', 'test', 'workspace', 'populate', '--verbose']);
+            expect(mocks.populateWorkspaceBundle).toHaveBeenCalledWith(undefined, { debug: true });
         });
 
         it('should exit on error', async () => {
-            mocks.pullWorkspaceBundle.mockRejectedValueOnce(new Error('pull failed'));
-            await expect(program.parseAsync(['node', 'test', 'workspace', 'pull'])).rejects.toThrow();
+            mocks.populateWorkspaceBundle.mockRejectedValueOnce(new Error('populate failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'populate'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
     });
