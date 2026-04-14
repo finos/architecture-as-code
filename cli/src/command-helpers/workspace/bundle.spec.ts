@@ -87,12 +87,26 @@ describe('bundle', () => {
             expect(manifest).toEqual({});
         });
 
-        it('should load existing manifest', async () => {
-            const expected = { 'doc1': 'files/doc1.json', 'doc2': 'files/doc2.json' };
+        it('should load existing manifest in new format', async () => {
+            const expected = {
+                'doc1': { path: 'files/doc1.json', type: 'architecture' },
+                'doc2': { path: 'files/doc2.json', type: 'schema' }
+            };
             await writeFile(path.join(bundlePath, MANIFEST_FILENAME), JSON.stringify(expected));
 
             const manifest = await loadManifest(bundlePath);
             expect(manifest).toEqual(expected);
+        });
+
+        it('should migrate old string-value format to new entry format', async () => {
+            const old = { 'doc1': 'files/doc1.json', 'doc2': 'files/doc2.json' };
+            await writeFile(path.join(bundlePath, MANIFEST_FILENAME), JSON.stringify(old));
+
+            const manifest = await loadManifest(bundlePath);
+            expect(manifest).toEqual({
+                'doc1': { path: 'files/doc1.json', type: 'unknown' },
+                'doc2': { path: 'files/doc2.json', type: 'unknown' }
+            });
         });
 
         it('should return empty object when manifest contains invalid JSON', async () => {
@@ -105,7 +119,7 @@ describe('bundle', () => {
 
     describe('saveManifest', () => {
         it('should save manifest to disk', async () => {
-            const manifest = { 'doc1': 'files/doc1.json' };
+            const manifest = { 'doc1': { path: 'files/doc1.json', type: 'architecture' as const } };
             await saveManifest(bundlePath, manifest);
 
             const content = await readFile(path.join(bundlePath, MANIFEST_FILENAME), 'utf8');
@@ -113,9 +127,10 @@ describe('bundle', () => {
         });
 
         it('should overwrite existing manifest', async () => {
-            await writeFile(path.join(bundlePath, MANIFEST_FILENAME), JSON.stringify({ old: 'data' }));
+            const oldManifest = { 'old': { path: 'files/old.json', type: 'unknown' as const } };
+            await writeFile(path.join(bundlePath, MANIFEST_FILENAME), JSON.stringify(oldManifest));
 
-            const newManifest = { 'new': 'data' };
+            const newManifest = { 'new': { path: 'files/new.json', type: 'schema' as const } };
             await saveManifest(bundlePath, newManifest);
 
             const content = await readFile(path.join(bundlePath, MANIFEST_FILENAME), 'utf8');
@@ -177,7 +192,15 @@ describe('bundle', () => {
             expect(result.rel).toBe(path.relative(bundlePath, srcFile));
 
             const manifest = await loadManifest(bundlePath);
-            expect(manifest['source-doc']).toBe(result.rel);
+            expect(manifest['source-doc'].path).toBe(result.rel);
+            expect(manifest['source-doc'].type).toBe('unknown');
+        });
+
+        it('should store provided type in manifest', async () => {
+            await addFileToBundle(bundlePath, srcFile, { type: 'architecture' });
+
+            const manifest = await loadManifest(bundlePath);
+            expect(manifest['source-doc'].type).toBe('architecture');
         });
 
         it('should copy file when copy option is true', async () => {
@@ -189,7 +212,8 @@ describe('bundle', () => {
             expect(existsSync(result.destPath)).toBe(true);
 
             const manifest = await loadManifest(bundlePath);
-            expect(manifest['source-doc']).toBe('files/source.json');
+            expect(manifest['source-doc'].path).toBe('files/source.json');
+            expect(manifest['source-doc'].type).toBe('unknown');
         });
 
         it('should use explicit id when provided', async () => {
@@ -198,6 +222,7 @@ describe('bundle', () => {
             expect(result.id).toBe('custom-id');
             const manifest = await loadManifest(bundlePath);
             expect(manifest['custom-id']).toBeDefined();
+            expect(manifest['custom-id'].path).toBeDefined();
         });
 
         it('should use custom destName when copying', async () => {
@@ -226,7 +251,16 @@ describe('bundle', () => {
             expect(content).toEqual(obj);
 
             const manifest = await loadManifest(bundlePath);
-            expect(manifest['object-id']).toBe(result.rel);
+            expect(manifest['object-id'].path).toBe(result.rel);
+            expect(manifest['object-id'].type).toBe('unknown');
+        });
+
+        it('should store provided type in manifest', async () => {
+            const obj = { '$id': 'typed-obj' };
+            await addObjectToBundle(bundlePath, obj, undefined, 'schema');
+
+            const manifest = await loadManifest(bundlePath);
+            expect(manifest['typed-obj'].type).toBe('schema');
         });
 
         it('should use explicit id over $id property', async () => {
@@ -275,8 +309,8 @@ describe('bundle', () => {
             await writeFile(path.join(filesPath, 'doc1.json'), JSON.stringify({ '$id': 'doc1' }));
             await writeFile(path.join(filesPath, 'doc2.json'), JSON.stringify({ '$id': 'doc2' }));
             await saveManifest(bundlePath, {
-                'doc1': 'files/doc1.json',
-                'doc2': 'files/doc2.json'
+                'doc1': { path: 'files/doc1.json', type: 'unknown' },
+                'doc2': { path: 'files/doc2.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);
@@ -296,8 +330,8 @@ describe('bundle', () => {
                 '$id': 'child'
             }));
             await saveManifest(bundlePath, {
-                'parent': 'files/parent.json',
-                'child': 'files/child.json'
+                'parent': { path: 'files/parent.json', type: 'unknown' },
+                'child': { path: 'files/child.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);
@@ -315,8 +349,8 @@ describe('bundle', () => {
                 '$id': 'child'
             }));
             await saveManifest(bundlePath, {
-                'parent': 'files/parent.json',
-                'child': 'files/child.json'
+                'parent': { path: 'files/parent.json', type: 'unknown' },
+                'child': { path: 'files/child.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);
@@ -333,8 +367,8 @@ describe('bundle', () => {
                 '$id': 'child'
             }));
             await saveManifest(bundlePath, {
-                'parent': 'files/parent.json',
-                'child': 'files/child.json'
+                'parent': { path: 'files/parent.json', type: 'unknown' },
+                'child': { path: 'files/child.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);
@@ -362,9 +396,9 @@ describe('bundle', () => {
                 '$id': 'config-doc'
             }));
             await saveManifest(bundlePath, {
-                'pattern': 'files/pattern.json',
-                'requirement-doc': 'files/requirement.json',
-                'config-doc': 'files/config.json'
+                'pattern': { path: 'files/pattern.json', type: 'pattern' },
+                'requirement-doc': { path: 'files/requirement.json', type: 'unknown' },
+                'config-doc': { path: 'files/config.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);
@@ -386,9 +420,9 @@ describe('bundle', () => {
                 '$id': 'const-ref'
             }));
             await saveManifest(bundlePath, {
-                'parent': 'files/parent.json',
-                'direct-ref': 'files/direct.json',
-                'const-ref': 'files/const.json'
+                'parent': { path: 'files/parent.json', type: 'unknown' },
+                'direct-ref': { path: 'files/direct.json', type: 'unknown' },
+                'const-ref': { path: 'files/const.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);
@@ -407,8 +441,8 @@ describe('bundle', () => {
                 definitions: { foo: {} }
             }));
             await saveManifest(bundlePath, {
-                'parent': 'files/parent.json',
-                'child': 'files/child.json'
+                'parent': { path: 'files/parent.json', type: 'unknown' },
+                'child': { path: 'files/child.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);
@@ -420,8 +454,8 @@ describe('bundle', () => {
             await writeFile(path.join(filesPath, 'good.json'), JSON.stringify({ '$id': 'good' }));
             await writeFile(path.join(filesPath, 'bad.json'), 'not valid json');
             await saveManifest(bundlePath, {
-                'good': 'files/good.json',
-                'bad': 'files/bad.json'
+                'good': { path: 'files/good.json', type: 'unknown' },
+                'bad': { path: 'files/bad.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);
@@ -439,7 +473,7 @@ describe('bundle', () => {
                 '$ref': 'https://external.com/schema.json'
             }));
             await saveManifest(bundlePath, {
-                'doc': 'files/doc.json'
+                'doc': { path: 'files/doc.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);
@@ -460,8 +494,8 @@ describe('bundle', () => {
                 '$id': 'child'
             }));
             await saveManifest(bundlePath, {
-                'parent': 'files/parent.json',
-                'child': 'files/child.json'
+                'parent': { path: 'files/parent.json', type: 'unknown' },
+                'child': { path: 'files/child.json', type: 'unknown' }
             });
 
             const graph = await buildDependencyGraph(bundlePath);

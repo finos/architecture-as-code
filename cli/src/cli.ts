@@ -283,9 +283,9 @@ export async function parseDocumentLoaderConfig(
             try {
                 const manifest = await loadManifest(workspaceBundle);
                 const bundleMap = new Map<string, string>();
-                for (const [id, rel] of Object.entries(manifest)) {
-                    // manifest values are relative to bundlePath
-                    bundleMap.set(id, path.resolve(workspaceBundle, rel));
+                for (const [id, entry] of Object.entries(manifest)) {
+                    // manifest entries are relative to bundlePath
+                    bundleMap.set(id, path.resolve(workspaceBundle, entry.path));
                 }
 
                 // Merge with any provided urlToLocalMap, allowing bundle entries to override

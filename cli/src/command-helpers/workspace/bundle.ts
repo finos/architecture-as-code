@@ -3,6 +3,7 @@ import { mkdir, copyFile, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
+import type { CalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
 
 /**
  * Property names that can contain document references (URLs or paths) in CALM JSON.
@@ -53,7 +54,15 @@ export function extractAllReferences(json: object): string[] {
     return Array.from(new Set(allRefs));
 }
 
-export type BundleManifest = Record<string, string>;
+export type BundleDocumentType = CalmDocumentType | 'unknown';
+
+export type BundleManifestEntry = {
+    path: string;
+    type: BundleDocumentType;
+};
+
+export type BundleManifest = Record<string, BundleManifestEntry>;
+
 export type DependencyGraph = {
     nodes: string[]; // ids
     edges: Record<string, string[]>; // id -> referenced ids
@@ -74,10 +83,24 @@ export async function loadManifest(bundlePath: string): Promise<BundleManifest> 
     if (!existsSync(manifestPath)) return {};
     try {
         const content = await readFile(manifestPath, 'utf8');
-        return JSON.parse(content) as BundleManifest;
+        const raw = JSON.parse(content) as Record<string, unknown>;
+        const manifest: BundleManifest = {};
+        for (const [id, value] of Object.entries(raw)) {
+            if (typeof value === 'string') {
+                // Migrate old format: plain string path -> entry with unknown type
+                manifest[id] = { path: value, type: 'unknown' };
+            } else if (
+                value &&
+                typeof value === 'object' &&
+                'path' in value &&
+                typeof (value as BundleManifestEntry).path === 'string'
+            ) {
+                manifest[id] = value as BundleManifestEntry;
+            }
+        }
+        return manifest;
     } catch (_) {
-        // If manifest is corrupted, return empty and overwrite on save
-        return {};
+        throw new Error("Workspace bundle file at " + bundlePath + " is corrupted.")
     }
 }
 
@@ -133,7 +156,7 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
 export async function addFileToBundle(
     bundlePath: string,
     srcPath: string,
-    opts?: { id?: string; destName?: string, copy?: boolean }
+    opts?: { id?: string; destName?: string; copy?: boolean; type?: BundleDocumentType }
 ): Promise<{ id: string; destPath: string; rel: string }> {
 
     const id = await determineDocumentId(srcPath, opts?.id);
@@ -155,7 +178,7 @@ export async function addFileToBundle(
     }
 
     const manifest = await loadManifest(bundlePath);
-    manifest[id] = rel;
+    manifest[id] = { path: rel, type: opts?.type ?? 'unknown' };
     await saveManifest(bundlePath, manifest);
 
     return { id, destPath, rel };
@@ -171,13 +194,15 @@ export async function addFileToBundle(
 export async function addObjectToBundle(
     bundlePath: string,
     obj: object,
-    explicitId?: string
+    explicitId?: string,
+    type?: BundleDocumentType
 ): Promise<{ id: string; destPath: string; rel: string }> {
     // We will determine id using the same logic but since we don't have a source file,
     // prefer explicitId, then $id property on the object, then fallback to a generated name.
     let id = explicitId && explicitId.trim() ? explicitId.trim() : undefined;
-    if (!id && obj && typeof obj['$id'] === 'string' && obj['$id'].trim()) {
-        id = obj['$id'].trim();
+    const objRecord = obj as Record<string, unknown>;
+    if (!id && objRecord && typeof objRecord['$id'] === 'string' && (objRecord['$id'] as string).trim()) {
+        id = (objRecord['$id'] as string).trim();
     }
     if (!id) {
         throw new Error('Cannot add object to bundle: no explicit id provided and object has no $id property.');
@@ -193,7 +218,7 @@ export async function addObjectToBundle(
     await writeFile(destPath, JSON.stringify(obj, null, 2), 'utf8');
 
     const manifest = await loadManifest(bundlePath);
-    manifest[id] = rel;
+    manifest[id] = { path: rel, type: type ?? 'unknown' };
     await saveManifest(bundlePath, manifest);
 
     return { id, destPath, rel };
@@ -206,8 +231,8 @@ export async function addObjectToBundle(
 export async function buildDependencyGraph(bundlePath: string): Promise<DependencyGraph> {
     const manifest = await loadManifest(bundlePath);
     const idToPath: Record<string, string> = {};
-    for (const [id, rel] of Object.entries(manifest)) {
-        idToPath[id] = path.join(bundlePath, rel);
+    for (const [id, entry] of Object.entries(manifest)) {
+        idToPath[id] = path.join(bundlePath, entry.path);
     }
 
     const edges: Record<string, string[]> = {};

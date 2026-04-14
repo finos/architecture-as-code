@@ -28,7 +28,7 @@ export async function loadJsonFile(filePath: string): Promise<unknown> {
 export async function pullReferencesFromBundle(bundlePath: string, docLoader: DocumentLoader): Promise<void> {
     const manifest = await loadManifest(bundlePath);
     const processed = new Set<string>(Object.keys(manifest));
-    const queue: string[] = Object.values(manifest).map(p => path.join(bundlePath, p));
+    const queue: string[] = Object.values(manifest).map(e => path.join(bundlePath, e.path));
 
     while (queue.length > 0) {
         const filePath = queue.shift()!;

@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import path from 'path';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
-import { addFileToBundle, printBundleTree } from './bundle';
+import { addFileToBundle, printBundleTree, BundleDocumentType } from './bundle';
 import { pullWorkspaceBundle } from './pull';
 import { findWorkspaceBundlePath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
@@ -41,7 +41,8 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('<file>', 'Path to the file to add to the bundle')
         .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
         .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
-        .action(async (file: string, options: { id?: string; copy?: boolean }) => {
+        .option('--type <type>', 'Document type: architecture, pattern, schema, interface, timeline (defaults to unknown)')
+        .action(async (file: string, options: { id?: string; copy?: boolean; type?: string }) => {
             try {
                 const bundlePath = findWorkspaceBundlePath(process.cwd());
                 if (!bundlePath) {
@@ -54,7 +55,8 @@ export function setupWorkspaceCommands(program: Command) {
                 // Delegate to bundle helper which does all FS operations
                 const { id, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
                     id: options.id,
-                    copy: options.copy
+                    copy: options.copy,
+                    type: options.type as BundleDocumentType | undefined
                 });
 
                 if (options.copy) {

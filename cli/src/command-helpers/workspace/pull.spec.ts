@@ -85,7 +85,7 @@ describe('pull', () => {
                 '$ref': 'https://example.com/schema.json'
             }));
             await saveManifest(bundlePath, {
-                'doc': 'files/doc.json'
+                'doc': { path: 'files/doc.json', type: 'unknown' }
             });
 
             const mockLoader = createMockDocLoader({
@@ -106,7 +106,7 @@ describe('pull', () => {
                 '$ref': './local-ref.json'
             }));
             await saveManifest(bundlePath, {
-                'doc': 'files/doc.json'
+                'doc': { path: 'files/doc.json', type: 'unknown' }
             });
 
             const mockLoader = createMockDocLoader({});
@@ -126,7 +126,7 @@ describe('pull', () => {
                 }
             }));
             await saveManifest(bundlePath, {
-                'doc': 'files/doc.json'
+                'doc': { path: 'files/doc.json', type: 'unknown' }
             });
 
             const mockLoader = createMockDocLoader({
@@ -151,8 +151,8 @@ describe('pull', () => {
                 '$id': 'already-present'
             }));
             await saveManifest(bundlePath, {
-                'doc': 'files/doc.json',
-                'already-present': 'files/present.json'
+                'doc': { path: 'files/doc.json', type: 'unknown' },
+                'already-present': { path: 'files/present.json', type: 'unknown' }
             });
 
             const mockLoader = createMockDocLoader({});
@@ -166,7 +166,7 @@ describe('pull', () => {
         it('should handle files that fail to parse', async () => {
             await writeFile(path.join(filesPath, 'bad.json'), 'not valid json');
             await saveManifest(bundlePath, {
-                'bad': 'files/bad.json'
+                'bad': { path: 'files/bad.json', type: 'unknown' }
             });
 
             const mockLoader = createMockDocLoader({});
@@ -181,7 +181,7 @@ describe('pull', () => {
                 '$ref': 'https://example.com/missing.json'
             }));
             await saveManifest(bundlePath, {
-                'doc': 'files/doc.json'
+                'doc': { path: 'files/doc.json', type: 'unknown' }
             });
 
             const mockLoader = createMockDocLoader({});  // No responses = all fail
@@ -196,7 +196,7 @@ describe('pull', () => {
                 '$ref': 'https://example.com/level1.json'
             }));
             await saveManifest(bundlePath, {
-                'root': 'files/root.json'
+                'root': { path: 'files/root.json', type: 'unknown' }
             });
 
             // level1 references level2
@@ -226,7 +226,7 @@ describe('pull', () => {
                 'config-url': 'https://example.com/config.json'
             }));
             await saveManifest(bundlePath, {
-                'doc': 'files/doc.json'
+                'doc': { path: 'files/doc.json', type: 'unknown' }
             });
 
             const mockLoader = createMockDocLoader({
@@ -251,7 +251,7 @@ describe('pull', () => {
                 'data': 'test'
             }));
             await saveManifest(bundlePath, {
-                'doc': 'files/doc.json'
+                'doc': { path: 'files/doc.json', type: 'unknown' }
             });
 
             // Should not throw when given a valid bundle path
