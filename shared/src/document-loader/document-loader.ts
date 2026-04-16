@@ -6,7 +6,8 @@ import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
 import { MappedDocumentLoader } from './mapped-document-loader';
 
-export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline' | 'interface';
+export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline' | 'interface' | 'flow' | 'adr';
+export const CALM_DOCUMENT_TYPES_LIST: string[] = ['pattern', 'architecture', 'interface', 'flow', 'control', 'schema', 'timeline', 'adr'];
 
 export const CALM_HUB_PROTO = 'calm:';
 

@@ -1,10 +1,13 @@
-import { Command } from 'commander';
+import { Argument, Command } from 'commander';
 import path from 'path';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
 import { addFileToBundle, printBundleTree, BundleDocumentType } from './bundle';
 import { populateWorkspaceBundle } from './populate';
+import { createNewDocument } from './new';
 import { findWorkspaceBundlePath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
+import { select, input } from '@inquirer/prompts';
+import { CALM_DOCUMENT_TYPES_LIST } from '@finos/calm-shared/src/document-loader/document-loader';
 
 const logger: Logger = initLogger(false, 'workspace');
 
@@ -206,4 +209,49 @@ export function setupWorkspaceCommands(program: Command) {
                 process.exit(1);
             }
         });
+
+    workspaceCmd
+        .command('new')
+        .description('Add a new document based on a template and track it in the current workspace.')
+        .addArgument(new Argument('[type]', 'The type of document to create.')
+            .choices(CALM_DOCUMENT_TYPES_LIST))
+        .argument('namespace')
+        .argument('name')
+        .action(async (type, namespace, name) => {
+            try {
+                type = await enforceOptionPresenceByPrompt(type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
+                namespace = await enforceOptionPresenceByPrompt(namespace, 'Enter the namespace for your new document:');
+                name = await enforceOptionPresenceByPrompt(name, `Enter the name for your new ${type} document:`);
+
+                const bundlePath = findWorkspaceBundlePath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                const filePath = await createNewDocument(namespace, name, type);
+                await addFileToBundle(bundlePath, filePath, { type: type as BundleDocumentType });
+
+                logger.info(`Created ${filePath}`);
+            } catch (err) {
+                logger.error('Failed to create document: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
 }
+
+async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: string[]): Promise<string> {
+    if (cliInput) {
+        // if it was selected already, just use that 
+        return cliInput;
+    }
+    if (choices) {
+        return await select({
+            message: prompt,
+            choices: choices.map((p: string) => ({ name: p, value: p }))
+        })
+    }
+    return await input({
+        message: prompt
+    })
+};
