@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { TreeNavigation, buildNamespaceTree } from './TreeNavigation.js';
 import { CalmService } from '../../../service/calm-service.js';
+import { ControlService } from '../../../service/control-service.js';
+import { InterfaceService } from '../../../service/interface-service.js';
 import { MemoryRouter, useParams } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 
@@ -57,17 +59,32 @@ vi.mock('../../../service/calm-service.js', () => ({
     })
 }));
 
+let controlServiceInstance: {
+    fetchDomains: Mock;
+    fetchControlsForDomain: Mock;
+} | undefined;
+
 vi.mock('../../../service/control-service.js', () => ({
-    ControlService: vi.fn().mockImplementation(() => ({
-        fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
-        fetchControlsForDomain: vi.fn().mockResolvedValue([]),
-    })),
+    ControlService: vi.fn().mockImplementation(() => {
+        controlServiceInstance = {
+            fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
+            fetchControlsForDomain: vi.fn().mockResolvedValue([]),
+        };
+        return controlServiceInstance;
+    }),
 }));
 
+let interfaceServiceInstance: {
+    fetchInterfacesForNamespace: Mock;
+} | undefined;
+
 vi.mock('../../../service/interface-service.js', () => ({
-    InterfaceService: vi.fn().mockImplementation(() => ({
-        fetchInterfacesForNamespace: vi.fn().mockResolvedValue([]),
-    })),
+    InterfaceService: vi.fn().mockImplementation(() => {
+        interfaceServiceInstance = {
+            fetchInterfacesForNamespace: vi.fn().mockResolvedValue([]),
+        };
+        return interfaceServiceInstance;
+    }),
 }));
 
 let adrServiceInstance: {
@@ -213,6 +230,71 @@ describe('TreeNavigation', () => {
             expect(adrServiceInstance?.fetchAdrSummaries).toHaveBeenCalledWith('test-namespace');
             expect(adrServiceInstance?.fetchAdrRevisions).toHaveBeenCalledWith('test-namespace', '201');
             expect(adrServiceInstance?.fetchAdr).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
+        });
+    });
+
+    it('loads data based on deeplink route - interface', async () => {
+        vi.mocked(InterfaceService).mockImplementation(() => {
+            interfaceServiceInstance = {
+                fetchInterfacesForNamespace: vi.fn().mockResolvedValue([
+                    { id: 301, name: 'Test Interface', description: 'An interface' },
+                ]),
+            };
+            return interfaceServiceInstance as unknown as InstanceType<typeof InterfaceService>;
+        });
+
+        vi.mocked(useParams).mockReturnValue({
+            namespace: 'test-namespace',
+            type: 'interfaces',
+            id: '301',
+            version: 'detail',
+        });
+
+        render(<MemoryRouter initialEntries={["/"]}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await waitFor(() => {
+            expect(interfaceServiceInstance?.fetchInterfacesForNamespace).toHaveBeenCalledWith('test-namespace');
+            expect(mockProps.onInterfaceLoad).toHaveBeenCalledWith({
+                namespace: 'test-namespace',
+                interfaceId: 301,
+                interfaceName: 'Test Interface',
+                interfaceDescription: 'An interface',
+            });
+        });
+    });
+
+    it('loads data based on deeplink route - control', async () => {
+        vi.mocked(ControlService).mockImplementation(() => {
+            controlServiceInstance = {
+                fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
+                fetchControlsForDomain: vi.fn().mockResolvedValue([
+                    { id: 401, name: 'Test Control', description: 'A control' },
+                ]),
+            };
+            return controlServiceInstance as unknown as InstanceType<typeof ControlService>;
+        });
+
+        vi.mocked(useParams).mockReturnValue({
+            namespace: 'test-domain',
+            type: 'controls',
+            id: '401',
+            version: 'detail',
+        });
+
+        render(<MemoryRouter initialEntries={["/"]}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await waitFor(() => {
+            expect(controlServiceInstance?.fetchControlsForDomain).toHaveBeenCalledWith('test-domain');
+            expect(mockProps.onControlLoad).toHaveBeenCalledWith({
+                domain: 'test-domain',
+                controlId: 401,
+                controlName: 'Test Control',
+                controlDescription: 'A control',
+            });
         });
     });
 });
