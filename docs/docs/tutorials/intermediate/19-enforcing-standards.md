@@ -213,7 +213,7 @@ Architectures (actual systems)
 ## Resources
 
 - [JSON Schema $ref](https://json-schema.org/understanding-json-schema/structuring#dollarref)
-- [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
+- [CALM Pattern Documentation](../../core-concepts/patterns.md)
 
 ## Next Steps
 

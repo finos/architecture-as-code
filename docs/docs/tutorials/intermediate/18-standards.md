@@ -158,7 +158,7 @@ Standards use `allOf` to extend CALM schemas rather than replace them:
 ```json
 {
   "allOf": [
-    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
+    { "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node" },
     { "required": ["costCenter", "owner"] }
   ]
 }
