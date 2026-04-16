@@ -3,6 +3,7 @@ import { THEME } from './theme.js';
 import { FlowsPanel } from './FlowsPanel.js';
 import { ControlsPanel } from './ControlsPanel.js';
 import { DeploymentPanel } from './DeploymentPanel.js';
+import { AdrsPanel } from './AdrsPanel.js';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import type { DeploymentDecorator, MetadataPanelProps, MetadataPanelTabType } from '../../contracts/contracts.js';
 
@@ -10,6 +11,7 @@ export function MetadataPanel({
     flows,
     controls,
     decorators,
+    adrs,
     onTransitionClick,
     onNodeClick,
     onControlClick,
@@ -21,7 +23,8 @@ export function MetadataPanel({
     const hasFlows = flows.length > 0;
     const hasControls = Object.keys(controls).length > 0;
     const hasDeployment = decorators.length > 0;
-    const defaultTab: MetadataPanelTabType = hasFlows ? 'flows' : hasControls ? 'controls' : 'deployment';
+    const hasAdrs = adrs.length > 0;
+    const defaultTab: MetadataPanelTabType = hasFlows ? 'flows' : hasControls ? 'controls' : hasDeployment ? 'deployment' : 'adrs';
     const [activeTab, setActiveTab] = useState<MetadataPanelTabType>(defaultTab);
     const [isDragging, setIsDragging] = useState(false);
     const dragStartY = useRef<number>(0);
@@ -52,7 +55,7 @@ export function MetadataPanel({
         [height, onHeightChange]
     );
 
-    if (!hasFlows && !hasControls && !hasDeployment) {
+    if (!hasFlows && !hasControls && !hasDeployment && !hasAdrs) {
         return null;
     }
 
@@ -70,12 +73,14 @@ export function MetadataPanel({
                     background: THEME.colors.backgroundSecondary,
                 }}
             >
-                <div style={{ display: 'flex', gap: '8px', fontSize: '13px', color: THEME.colors.muted }}>
+                <div style={{ display: 'flex', gap: '8px', fontSize: '13px', fontWeight: 600, color: THEME.colors.foreground }}>
                     {hasFlows && <span>Flows ({flows.length})</span>}
-                    {hasFlows && hasControls && <span>•</span>}
+                    {hasFlows && hasControls && <span style={{ color: THEME.colors.muted }}>•</span>}
                     {hasControls && <span>Controls ({Object.keys(controls).length})</span>}
-                    {(hasFlows || hasControls) && hasDeployment && <span>•</span>}
+                    {(hasFlows || hasControls) && hasDeployment && <span style={{ color: THEME.colors.muted }}>•</span>}
                     {hasDeployment && <span>Deployment ({decorators.length})</span>}
+                    {(hasFlows || hasControls || hasDeployment) && hasAdrs && <span style={{ color: THEME.colors.muted }}>•</span>}
+                    {hasAdrs && <span>ADRs ({adrs.length})</span>}
                 </div>
                 <button
                     onClick={onToggleCollapse}
@@ -283,6 +288,34 @@ export function MetadataPanel({
                         Deployment
                     </button>
                 )}
+                {hasAdrs && (
+                    <button
+                        onClick={() => setActiveTab('adrs')}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            border: 'none',
+                            background: activeTab === 'adrs' ? THEME.colors.accent : 'transparent',
+                            color: activeTab === 'adrs' ? '#ffffff' : THEME.colors.foreground,
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'adrs') {
+                                e.currentTarget.style.background = THEME.colors.backgroundSecondary;
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'adrs') {
+                                e.currentTarget.style.background = 'transparent';
+                            }
+                        }}
+                    >
+                        ADRs ({adrs.length})
+                    </button>
+                )}
             </div>
 
             {/* Tab Content */}
@@ -294,6 +327,7 @@ export function MetadataPanel({
                 {activeTab === 'deployment' && (
                     <DeploymentPanel decorators={decorators as DeploymentDecorator[]} />
                 )}
+                {activeTab === 'adrs' && hasAdrs && <AdrsPanel adrs={adrs} />}
             </div>
         </div>
     );
