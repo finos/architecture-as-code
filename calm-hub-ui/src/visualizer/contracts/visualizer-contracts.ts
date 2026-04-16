@@ -60,6 +60,7 @@ export interface MetadataPanelProps {
     flows: Flow[];
     controls: Record<string, Control>;
     decorators: Decorator[];
+    adrs: string[];
     onTransitionClick?: (relationshipId: string) => void;
     onNodeClick?: (nodeId: string) => void;
     onControlClick?: (controlId: string) => void;
@@ -72,4 +73,11 @@ export interface MetadataPanelProps {
 /**
  * Tab type for MetadataPanel
  */
-export type MetadataPanelTabType = 'flows' | 'controls' | 'deployment';
+export type MetadataPanelTabType = 'flows' | 'controls' | 'deployment' | 'adrs';
+
+/**
+ * Props for AdrsPanel component
+ */
+export interface AdrsPanelProps {
+    adrs: string[];
+}
