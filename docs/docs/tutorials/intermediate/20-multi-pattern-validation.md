@@ -110,14 +110,14 @@ Both should pass! ✅ ✅
 
 **Why not just combine everything into one pattern?**
 
-| Approach | Patterns | Architectures | Validations needed |
-|----------|----------|---------------|-------------------|
-| Combined | N combined patterns | M architectures | N × M |
-| Multi-pattern (separate) | S structural + 1 standards | M architectures | (S + 1) × M |
+| Approach | Patterns Needed | Maintenance |
+|----------|-----------------|-------------|
+| Combined patterns | 1 per architecture type × standards | N patterns to update when standards change |
+| Multi-pattern validation | 1 structural + 1 standards | Update standards once, applies everywhere |
 
-With 5 structural patterns and 20 architectures:
-- **Combined:** Could require up to 5 customised versions of the standards pattern × 20 = 100 validations
-- **Multi-pattern:** 6 validations per architecture × 20 = 120 total, but each validation is simpler and reusable
+**Example:** If you have 10 different architecture types and your company updates its Standards:
+- **Combined patterns**: Update 10 patterns
+- **Multi-pattern validation**: Update 1 standards pattern
 
 The real power: your `company-base-pattern.json` works with **every** architecture type, not just 3-tier web apps. You write the Standards once, and they apply everywhere.
 
