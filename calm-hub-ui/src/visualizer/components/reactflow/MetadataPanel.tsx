@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { THEME } from './theme.js';
 import { FlowsPanel } from './FlowsPanel.js';
 import { ControlsPanel } from './ControlsPanel.js';
 import { DeploymentPanel } from './DeploymentPanel.js';
 import { AdrsPanel } from './AdrsPanel.js';
+import { TabButton } from './TabButton.js';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import type { DeploymentDecorator, MetadataPanelProps, MetadataPanelTabType } from '../../contracts/contracts.js';
 
@@ -26,6 +27,19 @@ export function MetadataPanel({
     const hasAdrs = adrs.length > 0;
     const defaultTab: MetadataPanelTabType = hasFlows ? 'flows' : hasControls ? 'controls' : hasDeployment ? 'deployment' : 'adrs';
     const [activeTab, setActiveTab] = useState<MetadataPanelTabType>(defaultTab);
+
+    useEffect(() => {
+        const tabAvailable: Record<MetadataPanelTabType, boolean> = {
+            flows: hasFlows,
+            controls: hasControls,
+            deployment: hasDeployment,
+            adrs: hasAdrs,
+        };
+        if (!tabAvailable[activeTab]) {
+            setActiveTab(defaultTab);
+        }
+    }, [hasFlows, hasControls, hasDeployment, hasAdrs, activeTab, defaultTab]);
+
     const [isDragging, setIsDragging] = useState(false);
     const dragStartY = useRef<number>(0);
     const dragStartHeight = useRef<number>(0);
@@ -205,116 +219,24 @@ export function MetadataPanel({
                 }}
             >
                 {hasFlows && (
-                    <button
-                        onClick={() => setActiveTab('flows')}
-                        style={{
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: activeTab === 'flows' ? THEME.colors.accent : 'transparent',
-                            color: activeTab === 'flows' ? '#ffffff' : THEME.colors.foreground,
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={(e) => {
-                            if (activeTab !== 'flows') {
-                                e.currentTarget.style.background = THEME.colors.backgroundSecondary;
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (activeTab !== 'flows') {
-                                e.currentTarget.style.background = 'transparent';
-                            }
-                        }}
-                    >
+                    <TabButton isActive={activeTab === 'flows'} onClick={() => setActiveTab('flows')}>
                         Flows ({flows.length})
-                    </button>
+                    </TabButton>
                 )}
                 {hasControls && (
-                    <button
-                        onClick={() => setActiveTab('controls')}
-                        style={{
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: activeTab === 'controls' ? THEME.colors.accent : 'transparent',
-                            color: activeTab === 'controls' ? '#ffffff' : THEME.colors.foreground,
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={(e) => {
-                            if (activeTab !== 'controls') {
-                                e.currentTarget.style.background = THEME.colors.backgroundSecondary;
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (activeTab !== 'controls') {
-                                e.currentTarget.style.background = 'transparent';
-                            }
-                        }}
-                    >
+                    <TabButton isActive={activeTab === 'controls'} onClick={() => setActiveTab('controls')}>
                         Controls ({Object.keys(controls).length})
-                    </button>
+                    </TabButton>
                 )}
                 {hasDeployment && (
-                    <button
-                        onClick={() => setActiveTab('deployment')}
-                        style={{
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: activeTab === 'deployment' ? THEME.colors.accent : 'transparent',
-                            color: activeTab === 'deployment' ? '#ffffff' : THEME.colors.foreground,
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={(e) => {
-                            if (activeTab !== 'deployment') {
-                                e.currentTarget.style.background = THEME.colors.backgroundSecondary;
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (activeTab !== 'deployment') {
-                                e.currentTarget.style.background = 'transparent';
-                            }
-                        }}
-                    >
+                    <TabButton isActive={activeTab === 'deployment'} onClick={() => setActiveTab('deployment')}>
                         Deployment
-                    </button>
+                    </TabButton>
                 )}
                 {hasAdrs && (
-                    <button
-                        onClick={() => setActiveTab('adrs')}
-                        style={{
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: activeTab === 'adrs' ? THEME.colors.accent : 'transparent',
-                            color: activeTab === 'adrs' ? '#ffffff' : THEME.colors.foreground,
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={(e) => {
-                            if (activeTab !== 'adrs') {
-                                e.currentTarget.style.background = THEME.colors.backgroundSecondary;
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (activeTab !== 'adrs') {
-                                e.currentTarget.style.background = 'transparent';
-                            }
-                        }}
-                    >
+                    <TabButton isActive={activeTab === 'adrs'} onClick={() => setActiveTab('adrs')}>
                         ADRs ({adrs.length})
-                    </button>
+                    </TabButton>
                 )}
             </div>
 

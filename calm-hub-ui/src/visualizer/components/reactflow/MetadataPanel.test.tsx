@@ -245,4 +245,37 @@ describe('MetadataPanel', () => {
         );
         expect(container.firstChild).not.toBeNull();
     });
+
+    it('resets to valid tab when active tab data disappears', () => {
+        const { rerender } = render(
+            <MetadataPanel
+                {...defaultProps}
+                flows={mockFlows}
+                controls={{}}
+                decorators={[]}
+                adrs={['https://example.com/adr/0001.md']}
+            />
+        );
+
+        // Initially on flows tab
+        expect(screen.getByTestId('flows-panel')).toBeInTheDocument();
+
+        // Switch to ADRs tab
+        fireEvent.click(screen.getByRole('button', { name: /ADRs \(1\)/ }));
+        expect(screen.getByTestId('adrs-panel')).toBeInTheDocument();
+
+        // Re-render with no ADRs — activeTab should reset to flows
+        rerender(
+            <MetadataPanel
+                {...defaultProps}
+                flows={mockFlows}
+                controls={{}}
+                decorators={[]}
+                adrs={[]}
+            />
+        );
+
+        expect(screen.getByTestId('flows-panel')).toBeInTheDocument();
+        expect(screen.queryByTestId('adrs-panel')).not.toBeInTheDocument();
+    });
 });

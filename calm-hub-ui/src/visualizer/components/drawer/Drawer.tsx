@@ -79,8 +79,15 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
 
     // Extract ADR links from CALM data
     const adrs = useMemo((): string[] => {
-        const calmData = calmInstance as CalmArchitectureSchema & { adrs?: string[] };
-        return calmData?.adrs || [];
+        const calmData = calmInstance as CalmArchitectureSchema & { adrs?: unknown };
+        const rawAdrs = calmData?.adrs;
+        if (!Array.isArray(rawAdrs)) {
+            return [];
+        }
+        return rawAdrs
+            .filter((adr): adr is string => typeof adr === 'string')
+            .map((adr) => adr.trim())
+            .filter((adr) => adr.length > 0);
     }, [calmInstance]);
 
     // Extract controls from CALM data (from root, nodes, and relationships)

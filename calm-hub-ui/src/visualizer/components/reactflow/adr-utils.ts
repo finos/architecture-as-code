@@ -2,7 +2,7 @@
  * Pattern to detect calm-hub internal ADR links.
  * Matches paths like /calm/namespaces/{ns}/adrs/{id}
  */
-const CALM_HUB_ADR_PATTERN = /^\/calm\/namespaces\/([^/]+)\/adrs\/(\d+)/;
+const CALM_HUB_ADR_PATTERN = /^\/calm\/namespaces\/([^/]+)\/adrs\/(\d+)\/?$/;
 
 /**
  * Extract a display name from an ADR URL.
