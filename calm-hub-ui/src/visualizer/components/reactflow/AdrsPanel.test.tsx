@@ -48,6 +48,20 @@ describe('AdrsPanel', () => {
         expect(screen.getByRole('link', { name: /0001-use-oauth2.md/ })).toHaveAttribute('target', '_blank');
         expect(screen.getByRole('link', { name: /ADR 42 \(finos\)/ })).toHaveAttribute('href', '#/finos/adrs/42/1');
     });
+
+    it('renders each unique ADR as a distinct link using the ADR URL as key', () => {
+        const adrs = [
+            'https://github.com/org/project/docs/adr/0001-use-oauth2.md',
+            'https://github.com/org/project/docs/adr/0002-rate-limiting.md',
+            '/calm/namespaces/workshop/adrs/1',
+            '/calm/namespaces/finos/adrs/42',
+        ];
+        render(<AdrsPanel adrs={adrs} />);
+
+        const links = screen.getAllByRole('link');
+        expect(links).toHaveLength(4);
+        expect(screen.getByText('Architecture Decision Records (4)')).toBeInTheDocument();
+    });
 });
 
 describe('getAdrDisplayName', () => {
