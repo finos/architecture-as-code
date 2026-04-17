@@ -182,6 +182,9 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
     );
 
     const handleClear = useCallback(() => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
         setQuery('');
         setResults(null);
         setShowDropdown(false);

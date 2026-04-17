@@ -30,6 +30,11 @@ public class CalmHubScopes {
     public static final String ADRS_ALL = "adrs:all";
 
     /**
+     * Allows read operations on the Search endpoint. Results are filtered based on user access grants.
+     */
+    public static final String SEARCH_READ = "search:read";
+
+    /**
      * Allow to grant access to users on namespace associated resources and for the admin operations.
      */
     public static final String NAMESPACE_ADMIN = "namespace:admin";
