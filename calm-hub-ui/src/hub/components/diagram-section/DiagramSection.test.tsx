@@ -7,8 +7,6 @@ import { Data } from '../../../model/calm.js';
 
 const calmServiceMock = {
     fetchDecoratorValues: vi.fn().mockResolvedValue([]),
-    fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
-    fetchMappings: vi.fn().mockResolvedValue([]),
 };
 
 vi.mock('react-router-dom', async () => {
@@ -30,8 +28,6 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(() => ({
         fetchDecoratorValues: calmServiceMock.fetchDecoratorValues,
-        fetchArchitectureSummaries: calmServiceMock.fetchArchitectureSummaries,
-        fetchMappings: calmServiceMock.fetchMappings,
     })),
 }));
 
@@ -55,8 +51,6 @@ describe('DiagramSection', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         calmServiceMock.fetchDecoratorValues.mockResolvedValue([]);
-        calmServiceMock.fetchArchitectureSummaries.mockResolvedValue([]);
-        calmServiceMock.fetchMappings.mockResolvedValue([]);
     });
 
     describe('with architecture data', () => {
@@ -84,19 +78,10 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('drawer')).toHaveTextContent('Drawer for test-arch');
         });
 
-        it('uses numeric architecture id in deployment decorator target when selected id is a display name', async () => {
-            calmServiceMock.fetchArchitectureSummaries.mockResolvedValue([
-                { id: 321, name: 'Payments Architecture', description: '' },
-            ]);
-
-            const architectureWithDisplayNameId: Data & { calmType: 'Architectures' } = {
-                ...architectureData,
-                id: 'Payments Architecture',
-            };
-
+        it('uses selected architecture id in deployment decorator target', async () => {
             render(
                 <MemoryRouter>
-                    <DiagramSection data={architectureWithDisplayNameId} />
+                    <DiagramSection data={architectureData} />
                 </MemoryRouter>
             );
 
@@ -104,7 +89,7 @@ describe('DiagramSection', () => {
 
             expect(calmServiceMock.fetchDecoratorValues).toHaveBeenCalledWith(
                 'arch-namespace',
-                '/calm/namespaces/arch-namespace/architectures/321/versions/1-0-0',
+                '/calm/namespaces/arch-namespace/architectures/test-arch/versions/1-0-0',
                 'deployment'
             );
         });
