@@ -755,7 +755,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const handleVersionClick = useCallback((version: string, type: string) => {
         const resourceIDForRoute = type === 'Architectures'
             ? architectureSummaries
-                .find((summary) => (summary.customId ?? summary.id.toString()) === selectedResourceID || summary.name === selectedResourceID || summary.id.toString() === selectedResourceID)
+                .find((summary) => (summary.customId ?? summary.id.toString()) === selectedResourceID || summary.name === selectedResourceID)
                 ?.id
                 ?.toString() ?? selectedResourceID
             : selectedResourceID;
