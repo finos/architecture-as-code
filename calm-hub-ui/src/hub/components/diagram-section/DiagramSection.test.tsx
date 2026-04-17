@@ -2,8 +2,14 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { Data } from '../../../model/calm.js';
+
+const calmServiceMock = {
+    fetchDecoratorValues: vi.fn().mockResolvedValue([]),
+    fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
+    fetchMappings: vi.fn().mockResolvedValue([]),
+};
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -23,7 +29,9 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(() => ({
-        fetchDecoratorValues: vi.fn().mockResolvedValue([]),
+        fetchDecoratorValues: calmServiceMock.fetchDecoratorValues,
+        fetchArchitectureSummaries: calmServiceMock.fetchArchitectureSummaries,
+        fetchMappings: calmServiceMock.fetchMappings,
     })),
 }));
 
@@ -44,6 +52,13 @@ const patternData: Data & { calmType: 'Patterns' } = {
 };
 
 describe('DiagramSection', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        calmServiceMock.fetchDecoratorValues.mockResolvedValue([]);
+        calmServiceMock.fetchArchitectureSummaries.mockResolvedValue([]);
+        calmServiceMock.fetchMappings.mockResolvedValue([]);
+    });
+
     describe('with architecture data', () => {
         it('renders title with namespace, id, and version', () => {
             render(
@@ -68,6 +83,32 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('drawer')).toBeInTheDocument();
             expect(screen.getByTestId('drawer')).toHaveTextContent('Drawer for test-arch');
         });
+
+        it('uses numeric architecture id in deployment decorator target when selected id is a display name', async () => {
+            calmServiceMock.fetchArchitectureSummaries.mockResolvedValue([
+                { id: 321, name: 'Payments Architecture', description: '' },
+            ]);
+
+            const architectureWithDisplayNameId: Data & { calmType: 'Architectures' } = {
+                ...architectureData,
+                id: 'Payments Architecture',
+            };
+
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureWithDisplayNameId} />
+                </MemoryRouter>
+            );
+
+            await screen.findByTestId('drawer');
+
+            expect(calmServiceMock.fetchDecoratorValues).toHaveBeenCalledWith(
+                'arch-namespace',
+                '/calm/namespaces/arch-namespace/architectures/321/versions/1-0-0',
+                'deployment'
+            );
+        });
+
     });
 
     describe('with pattern data', () => {
