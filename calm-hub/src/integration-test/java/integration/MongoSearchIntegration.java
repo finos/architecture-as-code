@@ -18,7 +18,6 @@ import static io.restassured.RestAssured.given;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.domainSetup;
 import static integration.MongoSetup.namespaceSetup;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
@@ -184,37 +183,5 @@ public class MongoSearchIntegration {
                 .body("architectures", hasSize(1))
                 .body("patterns", hasSize(1))
                 .body("controls", hasSize(1));
-    }
-
-    @Test
-    @Order(11)
-    void end_to_end_search_returns_400_for_missing_query() {
-        given()
-                .when().get("/calm/search")
-                .then()
-                .statusCode(400)
-                .body(containsString("Query parameter 'q' is required"));
-    }
-
-    @Test
-    @Order(12)
-    void end_to_end_search_returns_400_for_blank_query() {
-        given()
-                .queryParam("q", "   ")
-                .when().get("/calm/search")
-                .then()
-                .statusCode(400)
-                .body(containsString("Query parameter 'q' is required"));
-    }
-
-    @Test
-    @Order(13)
-    void end_to_end_search_returns_400_for_over_length_query() {
-        given()
-                .queryParam("q", "a".repeat(201))
-                .when().get("/calm/search")
-                .then()
-                .statusCode(400)
-                .body(containsString("must not exceed 200 characters"));
     }
 }

@@ -7,9 +7,13 @@ import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
@@ -24,46 +28,32 @@ import static org.mockito.Mockito.when;
 public class TestSearchResourceShould {
 
     @InjectMock
-    SearchStore searchStore;
+    SearchStore mockSearchStore;
 
-    @Test
-    void return_400_when_query_is_missing() {
-        given()
-                .when()
-                .get("/calm/search")
-                .then()
-                .statusCode(400)
-                .body(containsString("Query parameter 'q' is required"));
-
-        verify(searchStore, never()).search(org.mockito.ArgumentMatchers.any());
+    static Stream<Arguments> provideInvalidQueryParameters() {
+        return Stream.of(
+                Arguments.of(null, "Query parameter 'q' is required"),
+                Arguments.of("   ", "Query parameter 'q' is required"),
+                Arguments.of("a".repeat(201), "must not exceed 200 characters")
+        );
     }
 
-    @Test
-    void return_400_when_query_is_blank() {
-        given()
-                .queryParam("q", "   ")
+    @ParameterizedTest
+    @MethodSource("provideInvalidQueryParameters")
+    void return_400_for_invalid_query(String query, String expectedMessage) {
+        var request = given();
+        if (query != null) {
+            request = request.queryParam("q", query);
+        }
+
+        request
                 .when()
                 .get("/calm/search")
                 .then()
                 .statusCode(400)
-                .body(containsString("Query parameter 'q' is required"));
+                .body(containsString(expectedMessage));
 
-        verify(searchStore, never()).search(org.mockito.ArgumentMatchers.any());
-    }
-
-    @Test
-    void return_400_when_query_exceeds_200_characters() {
-        String longQuery = "a".repeat(201);
-
-        given()
-                .queryParam("q", longQuery)
-                .when()
-                .get("/calm/search")
-                .then()
-                .statusCode(400)
-                .body(containsString("must not exceed 200 characters"));
-
-        verify(searchStore, never()).search(org.mockito.ArgumentMatchers.any());
+        verify(mockSearchStore, never()).search(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -78,7 +68,7 @@ public class TestSearchResourceShould {
                 List.of()
         );
 
-        when(searchStore.search("test")).thenReturn(results);
+        when(mockSearchStore.search("test")).thenReturn(results);
 
         given()
                 .queryParam("q", "test")
@@ -97,7 +87,7 @@ public class TestSearchResourceShould {
                 .body("controls", hasSize(0))
                 .body("adrs", hasSize(0));
 
-        verify(searchStore).search("test");
+        verify(mockSearchStore).search("test");
     }
 
     @Test
@@ -106,7 +96,7 @@ public class TestSearchResourceShould {
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
         );
 
-        when(searchStore.search("nonexistent")).thenReturn(results);
+        when(mockSearchStore.search("nonexistent")).thenReturn(results);
 
         given()
                 .queryParam("q", "nonexistent")
@@ -122,7 +112,7 @@ public class TestSearchResourceShould {
                 .body("controls", hasSize(0))
                 .body("adrs", hasSize(0));
 
-        verify(searchStore).search("nonexistent");
+        verify(mockSearchStore).search("nonexistent");
     }
 
     @Test
@@ -137,7 +127,7 @@ public class TestSearchResourceShould {
                 List.of()
         );
 
-        when(searchStore.search("demo")).thenReturn(results);
+        when(mockSearchStore.search("demo")).thenReturn(results);
 
         given()
                 .queryParam("q", "demo")
@@ -150,7 +140,7 @@ public class TestSearchResourceShould {
                 .body("flows", hasSize(1))
                 .body("controls", hasSize(1));
 
-        verify(searchStore).search("demo");
+        verify(mockSearchStore).search("demo");
     }
 
     @Test
@@ -161,7 +151,7 @@ public class TestSearchResourceShould {
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
         );
 
-        when(searchStore.search(maxQuery)).thenReturn(results);
+        when(mockSearchStore.search(maxQuery)).thenReturn(results);
 
         given()
                 .queryParam("q", maxQuery)
@@ -170,12 +160,12 @@ public class TestSearchResourceShould {
                 .then()
                 .statusCode(200);
 
-        verify(searchStore).search(maxQuery);
+        verify(mockSearchStore).search(maxQuery);
     }
 
     @Test
     void return_500_when_search_store_throws_exception() {
-        when(searchStore.search("error")).thenThrow(new RuntimeException("Database connection failed"));
+        when(mockSearchStore.search("error")).thenThrow(new RuntimeException("Database connection failed"));
 
         given()
                 .queryParam("q", "error")
@@ -185,6 +175,6 @@ public class TestSearchResourceShould {
                 .statusCode(500)
                 .body(containsString("An unexpected error occurred"));
 
-        verify(searchStore).search("error");
+        verify(mockSearchStore).search("error");
     }
 }
