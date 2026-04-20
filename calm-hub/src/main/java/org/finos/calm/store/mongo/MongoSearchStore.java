@@ -8,7 +8,7 @@ import org.bson.Document;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
-import org.finos.calm.store.util.SearchMatchUtils;
+import org.finos.calm.store.util.SearchTextMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,12 +80,12 @@ public class MongoSearchStore implements SearchStore {
                 }
                 String name = entry.getString("name");
                 String description = entry.getString("description");
-                if (SearchMatchUtils.containsIgnoreCase(name, lowerQuery) || SearchMatchUtils.containsIgnoreCase(description, lowerQuery)) {
+                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                     results.add(new SearchResult(
                             namespace,
                             entry.getInteger(idField),
-                            SearchMatchUtils.nullToEmpty(name),
-                            SearchMatchUtils.nullToEmpty(description)
+                            SearchTextMatcher.nullToEmpty(name),
+                            SearchTextMatcher.nullToEmpty(description)
                     ));
                 }
             }
@@ -109,12 +109,12 @@ public class MongoSearchStore implements SearchStore {
                 }
                 String name = control.getString("name");
                 String description = control.getString("description");
-                if (SearchMatchUtils.containsIgnoreCase(name, lowerQuery) || SearchMatchUtils.containsIgnoreCase(description, lowerQuery)) {
+                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                     results.add(new SearchResult(
                             domain,
                             control.getInteger("controlId"),
-                            SearchMatchUtils.nullToEmpty(name),
-                            SearchMatchUtils.nullToEmpty(description)
+                            SearchTextMatcher.nullToEmpty(name),
+                            SearchTextMatcher.nullToEmpty(description)
                     ));
                 }
             }
@@ -155,7 +155,7 @@ public class MongoSearchStore implements SearchStore {
                     }
                 }
 
-                if (SearchMatchUtils.containsIgnoreCase(title, lowerQuery)) {
+                if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
                     results.add(new SearchResult(namespace, adrId, title, ""));
                 }
             }

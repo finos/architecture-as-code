@@ -4,9 +4,9 @@ package org.finos.calm.store.util;
  * Shared search matching utilities used by both MongoDB and NitriteDB search store implementations.
  * Provides a consistent, case-insensitive substring matching algorithm across backends.
  */
-public final class SearchMatchUtils {
+public final class SearchTextMatcher {
 
-    private SearchMatchUtils() {
+    private SearchTextMatcher() {
     }
 
     /**

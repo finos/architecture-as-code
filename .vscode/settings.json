@@ -20,5 +20,12 @@
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
     },
-    "java.jdt.ls.vmargs": "-XX:+UseG1GC -XX:+UseStringDeduplication -Xmx2G -Xms256m"
+    "java.jdt.ls.vmargs": "-XX:+UseG1GC -XX:+UseStringDeduplication -Xmx2G -Xms256m",
+    "chat.tools.terminal.autoApprove": {
+        "../mvnw": true,
+        "npm run lint": true,
+        "npx vitest": true,
+        "npx --workspace calm-hub-ui": true,
+        "/Users/jpgough/finos/architecture-as-code/mvnw": true
+    }
 }

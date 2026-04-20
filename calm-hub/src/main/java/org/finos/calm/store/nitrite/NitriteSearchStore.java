@@ -10,7 +10,7 @@ import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
-import org.finos.calm.store.util.SearchMatchUtils;
+import org.finos.calm.store.util.SearchTextMatcher;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,12 +87,12 @@ public class NitriteSearchStore implements SearchStore {
                 }
                 String name = entry.get("name", String.class);
                 String description = entry.get("description", String.class);
-                if (SearchMatchUtils.containsIgnoreCase(name, lowerQuery) || SearchMatchUtils.containsIgnoreCase(description, lowerQuery)) {
+                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                     results.add(new SearchResult(
                             namespace,
                             entry.get(idField, Integer.class),
-                            SearchMatchUtils.nullToEmpty(name),
-                            SearchMatchUtils.nullToEmpty(description)
+                            SearchTextMatcher.nullToEmpty(name),
+                            SearchTextMatcher.nullToEmpty(description)
                     ));
                 }
             }
@@ -117,12 +117,12 @@ public class NitriteSearchStore implements SearchStore {
                 }
                 String name = control.get("name", String.class);
                 String description = control.get("description", String.class);
-                if (SearchMatchUtils.containsIgnoreCase(name, lowerQuery) || SearchMatchUtils.containsIgnoreCase(description, lowerQuery)) {
+                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                     results.add(new SearchResult(
                             domain,
                             control.get("controlId", Integer.class),
-                            SearchMatchUtils.nullToEmpty(name),
-                            SearchMatchUtils.nullToEmpty(description)
+                            SearchTextMatcher.nullToEmpty(name),
+                            SearchTextMatcher.nullToEmpty(description)
                     ));
                 }
             }
@@ -165,7 +165,7 @@ public class NitriteSearchStore implements SearchStore {
                     }
                 }
 
-                if (SearchMatchUtils.containsIgnoreCase(title, lowerQuery)) {
+                if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
                     results.add(new SearchResult(namespace, adrId, title, ""));
                 }
             }
