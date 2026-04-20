@@ -51,12 +51,14 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<GroupedSearchResults | null>(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
     const service = useMemo(() => searchService ?? new SearchService(), [searchService]);
     const calmService = useMemo(() => calmServiceProp ?? new CalmService(), [calmServiceProp]);
     const adrService = useMemo(() => adrServiceProp ?? new AdrService(), [adrServiceProp]);
@@ -69,20 +71,33 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
         if (!searchQuery.trim()) {
             setResults(null);
             setShowDropdown(false);
+            setError(false);
             return;
         }
 
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         setLoading(true);
+        setError(false);
         try {
             const data = await service.search(searchQuery);
+            if (controller.signal.aborted) return;
             setResults(data);
             setShowDropdown(true);
             setSelectedIndex(-1);
         } catch {
+            if (controller.signal.aborted) return;
             setResults(null);
-            setShowDropdown(false);
+            setError(true);
+            setShowDropdown(true);
         } finally {
-            setLoading(false);
+            if (!controller.signal.aborted) {
+                setLoading(false);
+            }
         }
     }, [service]);
 
@@ -154,7 +169,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     navigate(`/${result.namespace}/${route}/${id}/${version}`);
                 })
                 .catch(() => {
-                    navigate(`/${result.namespace}/${route}/${id}/1-0-0`);
+                    navigate(`/${result.namespace}/${route}`);
                 });
         },
         [navigate, resolveLatestVersion]
@@ -185,10 +200,14 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
         }
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
         setQuery('');
         setResults(null);
         setShowDropdown(false);
         setSelectedIndex(-1);
+        setError(false);
         inputRef.current?.focus();
     }, []);
 
@@ -209,10 +228,17 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
             if (debounceRef.current) {
                 clearTimeout(debounceRef.current);
             }
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
         };
     }, []);
 
     const renderGroupedResults = () => {
+        if (error) {
+            return <div className="p-3 text-sm text-error">Search failed, please try again</div>;
+        }
+
         if (!results) return null;
 
         const groups = Object.entries(results).filter(
@@ -234,7 +260,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     const currentIndex = globalIndex++;
                     return (
                         <button
-                            key={`${type}-${item.id}`}
+                            key={`${type}-${item.namespace}-${item.id}`}
                             className={`w-full text-left px-3 py-2 text-sm hover:bg-base-200 cursor-pointer ${
                                 currentIndex === selectedIndex ? 'bg-base-200' : ''
                             }`}

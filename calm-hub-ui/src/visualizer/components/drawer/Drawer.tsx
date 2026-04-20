@@ -77,6 +77,19 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
         return calmData?.flows || [];
     }, [calmInstance]);
 
+    // Extract ADR links from CALM data
+    const adrs = useMemo((): string[] => {
+        const calmData = calmInstance as CalmArchitectureSchema & { adrs?: unknown };
+        const rawAdrs = calmData?.adrs;
+        if (!Array.isArray(rawAdrs)) {
+            return [];
+        }
+        return rawAdrs
+            .filter((adr): adr is string => typeof adr === 'string')
+            .map((adr) => adr.trim())
+            .filter((adr) => adr.length > 0);
+    }, [calmInstance]);
+
     // Extract controls from CALM data (from root, nodes, and relationships)
     const controls = useMemo((): Record<string, Control> => {
         const calmData = calmInstance as CalmArchitectureSchema & {
@@ -126,7 +139,7 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
         return { ...nodeControls, ...relationshipControls, ...rootControls };
     }, [calmInstance]);
 
-    const hasMetadata = flows.length > 0 || Object.keys(controls).length > 0 || decorators.length > 0;
+    const hasMetadata = flows.length > 0 || Object.keys(controls).length > 0 || decorators.length > 0 || adrs.length > 0;
 
     const hasContent = !!(calmInstance || patternInstance);
 
@@ -212,6 +225,7 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
                                 flows={flows}
                                 controls={controls}
                                 decorators={decorators}
+                                adrs={adrs}
                                 onTransitionClick={handleTransitionClick}
                                 onNodeClick={handleControlNodeClick}
                                 isCollapsed={isMetadataCollapsed}

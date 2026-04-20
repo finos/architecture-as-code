@@ -204,8 +204,7 @@ describe('GlobalSearchBar', () => {
             await vi.runAllTimersAsync();
         });
 
-        // After an error, the dropdown should not be shown
-        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+        expect(screen.getByText('Search failed, please try again')).toBeInTheDocument();
     });
 
     it('does not search when input is empty', async () => {

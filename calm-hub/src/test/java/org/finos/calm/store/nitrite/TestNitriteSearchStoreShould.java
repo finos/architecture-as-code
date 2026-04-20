@@ -6,11 +6,13 @@ import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
+import org.finos.calm.store.SearchStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -206,6 +208,39 @@ class TestNitriteSearchStoreShould {
     }
 
     @Test
+    void handle_null_entries_array_gracefully() {
+        Document namespaceDoc = Document.createDocument("namespace", "finos")
+                .put("architectures", null);
+
+        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+
+        GroupedSearchResults results = searchStore.search("test");
+
+        assertTrue(results.getArchitectures().isEmpty());
+    }
+
+    @Test
+    void match_literal_special_characters_in_query() {
+        Document archEntry = Document.createDocument("architectureId", 1)
+                .put("name", "test.arch")
+                .put("description", "desc");
+        Document namespaceDoc = Document.createDocument("namespace", "finos")
+                .put("architectures", List.of(archEntry));
+
+        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+
+        GroupedSearchResults results = searchStore.search("test.arch");
+        assertEquals(1, results.getArchitectures().size());
+
+        GroupedSearchResults results2 = searchStore.search("test_arch");
+        assertTrue(results2.getArchitectures().isEmpty());
+    }
+
+    @Test
     void return_results_from_multiple_collections() {
         Document archEntry = Document.createDocument("architectureId", 1)
                 .put("name", "Demo Architecture")
@@ -228,6 +263,26 @@ class TestNitriteSearchStoreShould {
 
         assertEquals(1, results.getArchitectures().size());
         assertEquals(1, results.getFlows().size());
+    }
+
+    @Test
+    void cap_results_at_max_per_type() {
+        List<Document> entries = new ArrayList<>();
+        for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
+            entries.add(Document.createDocument("architectureId", i)
+                    .put("name", "Match " + i)
+                    .put("description", "desc"));
+        }
+        Document namespaceDoc = Document.createDocument("namespace", "finos")
+                .put("architectures", entries);
+
+        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+
+        GroupedSearchResults results = searchStore.search("match");
+
+        assertEquals(SearchStore.MAX_RESULTS_PER_TYPE, results.getArchitectures().size());
     }
 
     private void mockCollectionFind(NitriteCollection collection, List<Document> documents) {

@@ -8,12 +8,12 @@ import org.bson.Document;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
+import org.finos.calm.store.util.SearchTextMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * MongoDB-backed implementation of {@link SearchStore}.
@@ -49,24 +49,23 @@ public class MongoSearchStore implements SearchStore {
 
     @Override
     public GroupedSearchResults search(String query) {
-        String escapedQuery = Pattern.quote(query);
-        Pattern compiledPattern = Pattern.compile(escapedQuery, Pattern.CASE_INSENSITIVE);
+        String lowerQuery = query.toLowerCase();
 
         return new GroupedSearchResults(
-                searchNamespacedCollection(architectureCollection, "architectures", "architectureId", compiledPattern),
-                searchNamespacedCollection(patternCollection, "patterns", "patternId", compiledPattern),
-                searchNamespacedCollection(flowCollection, "flows", "flowId", compiledPattern),
-                searchNamespacedCollection(standardCollection, "standards", "standardId", compiledPattern),
-                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", compiledPattern),
-                searchControlCollection(compiledPattern),
-                searchAdrCollection(compiledPattern)
+                searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery),
+                searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery),
+                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery),
+                searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery),
+                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery),
+                searchControlCollection(lowerQuery),
+                searchAdrCollection(lowerQuery)
         );
     }
 
     private List<SearchResult> searchNamespacedCollection(MongoCollection<Document> collection,
                                                           String arrayField,
                                                           String idField,
-                                                          Pattern compiledPattern) {
+                                                          String lowerQuery) {
         List<SearchResult> results = new ArrayList<>();
 
         for (Document namespaceDoc : collection.find()) {
@@ -76,14 +75,17 @@ public class MongoSearchStore implements SearchStore {
                 continue;
             }
             for (Document entry : entries) {
+                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                    return results;
+                }
                 String name = entry.getString("name");
                 String description = entry.getString("description");
-                if (matchesQuery(name, compiledPattern) || matchesQuery(description, compiledPattern)) {
+                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                     results.add(new SearchResult(
                             namespace,
                             entry.getInteger(idField),
-                            name != null ? name : "",
-                            description != null ? description : ""
+                            SearchTextMatcher.nullToEmpty(name),
+                            SearchTextMatcher.nullToEmpty(description)
                     ));
                 }
             }
@@ -92,7 +94,7 @@ public class MongoSearchStore implements SearchStore {
         return results;
     }
 
-    private List<SearchResult> searchControlCollection(Pattern compiledPattern) {
+    private List<SearchResult> searchControlCollection(String lowerQuery) {
         List<SearchResult> results = new ArrayList<>();
 
         for (Document domainDoc : controlCollection.find()) {
@@ -102,14 +104,17 @@ public class MongoSearchStore implements SearchStore {
                 continue;
             }
             for (Document control : controls) {
+                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                    return results;
+                }
                 String name = control.getString("name");
                 String description = control.getString("description");
-                if (matchesQuery(name, compiledPattern) || matchesQuery(description, compiledPattern)) {
+                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                     results.add(new SearchResult(
                             domain,
                             control.getInteger("controlId"),
-                            name != null ? name : "",
-                            description != null ? description : ""
+                            SearchTextMatcher.nullToEmpty(name),
+                            SearchTextMatcher.nullToEmpty(description)
                     ));
                 }
             }
@@ -118,7 +123,7 @@ public class MongoSearchStore implements SearchStore {
         return results;
     }
 
-    private List<SearchResult> searchAdrCollection(Pattern compiledPattern) {
+    private List<SearchResult> searchAdrCollection(String lowerQuery) {
         List<SearchResult> results = new ArrayList<>();
 
         for (Document namespaceDoc : adrCollection.find()) {
@@ -128,6 +133,9 @@ public class MongoSearchStore implements SearchStore {
                 continue;
             }
             for (Document adr : adrs) {
+                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                    return results;
+                }
                 int adrId = adr.getInteger("adrId");
                 String title = "ADR " + adrId;
 
@@ -147,19 +155,12 @@ public class MongoSearchStore implements SearchStore {
                     }
                 }
 
-                if (matchesQuery(title, compiledPattern)) {
+                if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
                     results.add(new SearchResult(namespace, adrId, title, ""));
                 }
             }
         }
 
         return results;
-    }
-
-    private boolean matchesQuery(String value, Pattern compiledPattern) {
-        if (value == null) {
-            return false;
-        }
-        return compiledPattern.matcher(value).find();
     }
 }

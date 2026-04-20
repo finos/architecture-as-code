@@ -7,11 +7,13 @@ import com.mongodb.client.MongoCursor;
 import org.bson.Document;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
+import org.finos.calm.store.SearchStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -248,7 +250,7 @@ class TestMongoSearchStoreShould {
     }
 
     @Test
-    void escape_regex_special_characters_in_query() {
+    void match_literal_special_characters_in_query() {
         Document archEntry = new Document("architectureId", 1)
                 .append("name", "test.arch")
                 .append("description", "desc");
@@ -259,13 +261,33 @@ class TestMongoSearchStoreShould {
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
-        // Searching for "test.arch" should match literal dot, not regex wildcard
+        // Searching for "test.arch" should match literal dot as substring
         GroupedSearchResults results = searchStore.search("test.arch");
         assertEquals(1, results.getArchitectures().size());
 
-        // "test_arch" should NOT match "test.arch" because dot is escaped
+        // "test_arch" should NOT match "test.arch"
         GroupedSearchResults results2 = searchStore.search("test_arch");
         assertTrue(results2.getArchitectures().isEmpty());
+    }
+
+    @Test
+    void cap_results_at_max_per_type() {
+        List<Document> entries = new ArrayList<>();
+        for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
+            entries.add(new Document("architectureId", i)
+                    .append("name", "Match " + i)
+                    .append("description", "desc"));
+        }
+        Document namespaceDoc = new Document("namespace", "finos")
+                .append("architectures", entries);
+
+        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+
+        GroupedSearchResults results = searchStore.search("match");
+
+        assertEquals(SearchStore.MAX_RESULTS_PER_TYPE, results.getArchitectures().size());
     }
 
     @SuppressWarnings("unchecked")

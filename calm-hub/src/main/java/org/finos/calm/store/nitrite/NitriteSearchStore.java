@@ -10,6 +10,7 @@ import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
+import org.finos.calm.store.util.SearchTextMatcher;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,14 +82,17 @@ public class NitriteSearchStore implements SearchStore {
                 continue;
             }
             for (Document entry : entries) {
+                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                    return results;
+                }
                 String name = entry.get("name", String.class);
                 String description = entry.get("description", String.class);
-                if (containsIgnoreCase(name, lowerQuery) || containsIgnoreCase(description, lowerQuery)) {
+                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                     results.add(new SearchResult(
                             namespace,
                             entry.get(idField, Integer.class),
-                            name != null ? name : "",
-                            description != null ? description : ""
+                            SearchTextMatcher.nullToEmpty(name),
+                            SearchTextMatcher.nullToEmpty(description)
                     ));
                 }
             }
@@ -108,14 +112,17 @@ public class NitriteSearchStore implements SearchStore {
                 continue;
             }
             for (Document control : controls) {
+                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                    return results;
+                }
                 String name = control.get("name", String.class);
                 String description = control.get("description", String.class);
-                if (containsIgnoreCase(name, lowerQuery) || containsIgnoreCase(description, lowerQuery)) {
+                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                     results.add(new SearchResult(
                             domain,
                             control.get("controlId", Integer.class),
-                            name != null ? name : "",
-                            description != null ? description : ""
+                            SearchTextMatcher.nullToEmpty(name),
+                            SearchTextMatcher.nullToEmpty(description)
                     ));
                 }
             }
@@ -136,6 +143,9 @@ public class NitriteSearchStore implements SearchStore {
                 continue;
             }
             for (Document adr : adrs) {
+                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                    return results;
+                }
                 Integer adrId = adr.get("adrId", Integer.class);
                 String title = "ADR " + adrId;
 
@@ -155,19 +165,12 @@ public class NitriteSearchStore implements SearchStore {
                     }
                 }
 
-                if (containsIgnoreCase(title, lowerQuery)) {
+                if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
                     results.add(new SearchResult(namespace, adrId, title, ""));
                 }
             }
         }
 
         return results;
-    }
-
-    private boolean containsIgnoreCase(String value, String lowerQuery) {
-        if (value == null) {
-            return false;
-        }
-        return value.toLowerCase().contains(lowerQuery);
     }
 }
