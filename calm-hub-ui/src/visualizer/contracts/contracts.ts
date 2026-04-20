@@ -37,6 +37,7 @@ export type {
     ArchitectureGraphProps,
     MetadataPanelProps,
     MetadataPanelTabType,
+    AdrsPanelProps,
 } from './visualizer-contracts.js';
 export type {
     ControlsPanelHeaderProps,

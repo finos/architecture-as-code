@@ -21,6 +21,12 @@ vi.mock('./DeploymentPanel', () => ({
     ),
 }));
 
+vi.mock('./AdrsPanel', () => ({
+    AdrsPanel: ({ adrs }: { adrs: string[] }) => (
+        <div data-testid="adrs-panel">ADRs: {adrs.length}</div>
+    ),
+}));
+
 describe('MetadataPanel', () => {
     const mockFlows = [
         {
@@ -63,6 +69,7 @@ describe('MetadataPanel', () => {
         flows: mockFlows,
         controls: mockControls,
         decorators: [] as typeof mockDecorators,
+        adrs: [] as string[],
         isCollapsed: false,
         onToggleCollapse: vi.fn(),
         height: 250,
@@ -76,6 +83,7 @@ describe('MetadataPanel', () => {
                 flows={[]}
                 controls={{}}
                 decorators={[]}
+                adrs={[]}
             />
         );
         expect(container.firstChild).toBeNull();
@@ -191,5 +199,83 @@ describe('MetadataPanel', () => {
         render(<MetadataPanel {...defaultProps} flows={[]} controls={{}} decorators={mockDecorators} />);
 
         expect(screen.getByTestId('deployment-panel')).toBeInTheDocument();
+    });
+
+    it('shows ADRs tab button when adrs exist', () => {
+        render(<MetadataPanel {...defaultProps} adrs={['https://example.com/adr/0001.md', 'https://example.com/adr/0002.md']} />);
+
+        expect(screen.getByRole('button', { name: /ADRs \(2\)/ })).toBeInTheDocument();
+    });
+
+    it('does not show ADRs tab when adrs is empty', () => {
+        render(<MetadataPanel {...defaultProps} adrs={[]} />);
+
+        expect(screen.queryByRole('button', { name: /ADRs/ })).not.toBeInTheDocument();
+    });
+
+    it('switches to AdrsPanel when clicking ADRs tab', () => {
+        render(<MetadataPanel {...defaultProps} adrs={['https://example.com/adr/0001.md']} />);
+
+        fireEvent.click(screen.getByRole('button', { name: /ADRs \(1\)/ }));
+
+        expect(screen.getByTestId('adrs-panel')).toBeInTheDocument();
+    });
+
+    it('defaults to adrs tab when only adrs exist', () => {
+        render(<MetadataPanel {...defaultProps} flows={[]} controls={{}} decorators={[]} adrs={['https://example.com/adr/0001.md']} />);
+
+        expect(screen.getByTestId('adrs-panel')).toBeInTheDocument();
+    });
+
+    it('renders ADR count in collapsed view when adrs exist', () => {
+        render(<MetadataPanel {...defaultProps} adrs={['https://example.com/adr/0001.md']} isCollapsed={true} />);
+
+        expect(screen.getByText('ADRs (1)')).toBeInTheDocument();
+    });
+
+    it('renders only with adrs and no other metadata', () => {
+        const { container } = render(
+            <MetadataPanel
+                {...defaultProps}
+                flows={[]}
+                controls={{}}
+                decorators={[]}
+                adrs={['https://example.com/adr/0001.md']}
+            />
+        );
+        expect(container.firstChild).not.toBeNull();
+    });
+
+    it('resets to valid tab when active tab data disappears', () => {
+        const { rerender } = render(
+            <MetadataPanel
+                {...defaultProps}
+                flows={mockFlows}
+                controls={{}}
+                decorators={[]}
+                adrs={['https://example.com/adr/0001.md']}
+            />
+        );
+
+        // Initially on flows tab
+        expect(screen.getByTestId('flows-panel')).toBeInTheDocument();
+
+        // Switch to ADRs tab
+        fireEvent.click(screen.getByRole('button', { name: /ADRs \(1\)/ }));
+        expect(screen.getByTestId('adrs-panel')).toBeInTheDocument();
+
+        // Re-render with no ADRs — activeTab should reset to flows
+        rerender(
+            <MetadataPanel
+                {...defaultProps}
+                flows={mockFlows}
+                controls={{}}
+                decorators={[]}
+                adrs={[]}
+            />
+        );
+
+        expect(screen.getByTestId('flows-panel')).toBeInTheDocument();
+        expect(screen.queryByTestId('adrs-panel')).not.toBeInTheDocument();
     });
 });
