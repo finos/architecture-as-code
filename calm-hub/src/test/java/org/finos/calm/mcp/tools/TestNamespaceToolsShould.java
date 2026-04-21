@@ -94,6 +94,13 @@ class TestNamespaceToolsShould {
     }
 
     @Test
+    void create_namespace_with_null_description() throws NamespaceAlreadyExistsException {
+        String result = namespaceTools.createNamespace("no-desc", null);
+
+        assertThat(result, containsString("created successfully"));
+    }
+
+    @Test
     void return_error_when_namespace_exists() throws NamespaceAlreadyExistsException {
         org.mockito.Mockito.doThrow(new NamespaceAlreadyExistsException("duplicate"))
                 .when(namespaceStore).createNamespace("existing", "desc");

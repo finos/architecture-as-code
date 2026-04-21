@@ -95,6 +95,22 @@ class TestDecoratorToolsShould {
     }
 
     @Test
+    void return_decorators_with_target_filter_only() throws NamespaceNotFoundException {
+        Decorator dec = new Decorator.DecoratorBuilder()
+                .setUniqueId("target-filtered-dec")
+                .setType("threat-model")
+                .setTarget(List.of("/calm/ns/1"))
+                .build();
+
+        when(decoratorStore.getDecoratorValuesForNamespace("workshop", "/calm/ns/1", null))
+                .thenReturn(List.of(dec));
+
+        String result = decoratorTools.listDecorators("workshop", "/calm/ns/1", "");
+
+        assertThat(result, containsString("target-filtered-dec"));
+    }
+
+    @Test
     void return_error_for_missing_namespace() throws NamespaceNotFoundException {
         when(decoratorStore.getDecoratorValuesForNamespace("missing", null, null))
                 .thenThrow(new NamespaceNotFoundException());

@@ -15,6 +15,11 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * MCP tool provider for decorator resources. Exposes CRUD operations on
+ * decorators (e.g. threat models, deployments) within CalmHub namespaces
+ * via the Quarkiverse MCP server.
+ */
 @ApplicationScoped
 public class DecoratorTools {
 
@@ -71,6 +76,8 @@ public class DecoratorTools {
         if (error != null) return error;
 
         try {
+            // The store may return Optional.empty() for a missing decorator, or throw
+            // DecoratorNotFoundException depending on the storage backend. Handle both paths.
             Optional<Decorator> decorator = decoratorStore.getDecoratorById(namespace, decoratorId);
             if (decorator.isEmpty()) {
                 return "Decorator " + decoratorId + " not found in namespace '" + namespace + "'.";

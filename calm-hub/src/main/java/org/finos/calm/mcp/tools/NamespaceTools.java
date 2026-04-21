@@ -14,6 +14,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+/**
+ * MCP tool provider for namespace and domain resources. Exposes listing and
+ * creation of namespaces and listing of control domains via the Quarkiverse MCP server.
+ */
 @ApplicationScoped
 public class NamespaceTools {
 

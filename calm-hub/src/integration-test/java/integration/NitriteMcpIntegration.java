@@ -167,6 +167,22 @@ public class NitriteMcpIntegration {
         assertThat(result, not(startsWith("Error:")));
     }
 
+    @Test
+    @Order(10)
+    void mcp_get_control_requirement_not_found() {
+        String result = controlTools.getControlRequirement("security", 999, "1.0.0");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("not found"));
+    }
+
+    @Test
+    @Order(10)
+    void mcp_list_control_versions_not_found() {
+        String result = controlTools.listControlVersions("security", 999);
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("not found"));
+    }
+
     // --- Decorator Tools ---
 
     @Test
@@ -217,6 +233,14 @@ public class NitriteMcpIntegration {
     void mcp_list_flows() {
         String result = flowTools.listFlows("finos");
         assertThat(result, not(startsWith("Error:")));
+    }
+
+    @Test
+    @Order(16)
+    void mcp_get_flow_not_found() {
+        String result = flowTools.getFlow("finos", 999, "1.0.0");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("not found"));
     }
 
     // --- Search Tools ---

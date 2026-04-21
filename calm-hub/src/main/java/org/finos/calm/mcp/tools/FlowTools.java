@@ -16,6 +16,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+/**
+ * MCP tool provider for flow resources. Exposes read operations on
+ * flows within CalmHub namespaces via the Quarkiverse MCP server.
+ */
 @ApplicationScoped
 public class FlowTools {
 

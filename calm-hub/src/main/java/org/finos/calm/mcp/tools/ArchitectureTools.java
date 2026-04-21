@@ -17,6 +17,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+/**
+ * MCP tool provider for architecture resources. Exposes CRUD operations on
+ * architectures within CalmHub namespaces via the Quarkiverse MCP server.
+ */
 @ApplicationScoped
 public class ArchitectureTools {
 

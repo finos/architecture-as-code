@@ -101,6 +101,19 @@ class TestSearchToolsShould {
     }
 
     @Test
+    void accept_query_at_max_length_boundary() {
+        String maxQuery = "a".repeat(200);
+
+        GroupedSearchResults grouped = new GroupedSearchResults(
+                EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
+        when(searchStore.search(maxQuery)).thenReturn(grouped);
+
+        String result = searchTools.searchHub(maxQuery);
+
+        assertThat(result, containsString("No results found"));
+    }
+
+    @Test
     void skip_empty_groups_in_results() {
         List<SearchResult> archResults = List.of(
                 new SearchResult("workshop", 1, "My Arch", "desc")

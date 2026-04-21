@@ -15,6 +15,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+/**
+ * MCP tool provider for control requirement resources. Exposes read operations
+ * on control requirements within CalmHub domains via the Quarkiverse MCP server.
+ */
 @ApplicationScoped
 public class ControlTools {
 

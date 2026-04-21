@@ -15,6 +15,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * MCP tool provider for global search across CalmHub. Searches all resource
+ * types (architectures, patterns, flows, standards, interfaces, controls, ADRs)
+ * and returns grouped results via the Quarkiverse MCP server.
+ */
 @ApplicationScoped
 public class SearchTools {
 
