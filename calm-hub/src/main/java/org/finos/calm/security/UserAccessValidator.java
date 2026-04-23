@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Validates whether a user is authorized to access a particular resource based on
@@ -82,15 +84,36 @@ public class UserAccessValidator {
     }
 
     /**
-     * Checks whether the request targets the default-accessible endpoint.
+     * Returns the set of namespaces that the given user has read access to,
+     * based on their access grants. Both read and write permissions grant read access.
+     *
+     * @param username the username to check access for
+     * @return a set of namespace names the user can read; empty set if no grants exist
+     */
+    public Set<String> getReadableNamespaces(String username) {
+        try {
+            List<UserAccess> userAccesses = userAccessStore.getUserAccessForUsername(username);
+            return userAccesses.stream()
+                    .map(UserAccess::getNamespace)
+                    .collect(Collectors.toSet());
+        } catch (UserAccessNotFoundException ex) {
+            logger.debug("No access permissions found for user [{}]", username);
+            return Set.of();
+        }
+    }
+
+    /**
+     * Checks whether the request targets a default-accessible endpoint.
      *
      * @param userRequestAttributes the attributes of the incoming user request
      * @return true if the endpoint is accessible by default, false otherwise
      */
     private boolean isDefaultAccessibleResource(UserRequestAttributes userRequestAttributes) {
         //TODO: How to protect GET - /calm/namespaces endpoint, by maintaining namespace specific user grants.
-        return "/calm/namespaces".equals(userRequestAttributes.path()) &&
-                "get".equalsIgnoreCase(userRequestAttributes.requestMethod());
+        String path = userRequestAttributes.path();
+        String method = userRequestAttributes.requestMethod();
+        return "get".equalsIgnoreCase(method) &&
+                ("/calm/namespaces".equals(path) || "/calm/search".equals(path));
     }
 
     /**
