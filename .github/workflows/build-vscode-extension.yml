@@ -47,6 +47,9 @@ jobs:
         name: Integration Test (VSCode ${{ matrix.vscode-version }})
         runs-on: ubuntu-latest
         needs: build-and-test
+        # Stable is an informational matrix entry (CDN-resolved, can flake on
+        # transient network issues); pinned versions are the real gate.
+        continue-on-error: ${{ matrix.vscode-version == 'stable' }}
         strategy:
             fail-fast: false
             matrix:
