@@ -59,6 +59,7 @@ export type BundleDocumentType = CalmDocumentType | 'unknown';
 export type BundleManifestEntry = {
     path: string;
     type: BundleDocumentType;
+    namespace?: string;
 };
 
 export type BundleManifest = Record<string, BundleManifestEntry>;
@@ -156,7 +157,7 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
 export async function addFileToBundle(
     bundlePath: string,
     srcPath: string,
-    opts?: { id?: string; destName?: string; copy?: boolean; type?: BundleDocumentType }
+    opts?: { id?: string; destName?: string; copy?: boolean; type?: BundleDocumentType; namespace?: string }
 ): Promise<{ id: string; destPath: string; rel: string }> {
 
     const id = await determineDocumentId(srcPath, opts?.id);
@@ -178,7 +179,7 @@ export async function addFileToBundle(
     }
 
     const manifest = await loadManifest(bundlePath);
-    manifest[id] = { path: rel, type: opts?.type ?? 'unknown' };
+    manifest[id] = { path: rel, type: opts?.type ?? 'unknown', ...(opts?.namespace ? { namespace: opts.namespace } : {}) };
     await saveManifest(bundlePath, manifest);
 
     return { id, destPath, rel };
@@ -195,7 +196,8 @@ export async function addObjectToBundle(
     bundlePath: string,
     obj: object,
     explicitId?: string,
-    type?: BundleDocumentType
+    type?: BundleDocumentType,
+    namespace?: string
 ): Promise<{ id: string; destPath: string; rel: string }> {
     // We will determine id using the same logic but since we don't have a source file,
     // prefer explicitId, then $id property on the object, then fallback to a generated name.
@@ -218,7 +220,7 @@ export async function addObjectToBundle(
     await writeFile(destPath, JSON.stringify(obj, null, 2), 'utf8');
 
     const manifest = await loadManifest(bundlePath);
-    manifest[id] = { path: rel, type: type ?? 'unknown' };
+    manifest[id] = { path: rel, type: type ?? 'unknown', ...(namespace ? { namespace } : {}) };
     await saveManifest(bundlePath, manifest);
 
     return { id, destPath, rel };

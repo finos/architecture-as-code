@@ -1,13 +1,17 @@
 import { Argument, Command } from 'commander';
 import path from 'path';
+import { readFile } from 'fs/promises';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
 import { addFileToBundle, printBundleTree, BundleDocumentType } from './bundle';
 import { populateWorkspaceBundle } from './populate';
 import { createNewDocument } from './new';
+import { pushWorkspaceToHub } from './push';
 import { findWorkspaceBundlePath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 import { select, input } from '@inquirer/prompts';
 import { CALM_DOCUMENT_TYPES_LIST } from '@finos/calm-shared/src/document-loader/document-loader';
+import { CalmHubService } from '../../service/calm-hub-service';
+import { loadCliConfig } from '../../cli-config';
 
 const logger: Logger = initLogger(false, 'workspace');
 
@@ -45,7 +49,8 @@ export function setupWorkspaceCommands(program: Command) {
         .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
         .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
         .option('--type <type>', 'Document type: architecture, pattern, schema, interface, timeline (defaults to unknown)')
-        .action(async (file: string, options: { id?: string; copy?: boolean; type?: string }) => {
+        .option('--namespace <namespace>', 'CalmHub namespace to associate with this file')
+        .action(async (file: string, options: { id?: string; copy?: boolean; type?: string; namespace?: string }) => {
             try {
                 const bundlePath = findWorkspaceBundlePath(process.cwd());
                 if (!bundlePath) {
@@ -55,17 +60,34 @@ export function setupWorkspaceCommands(program: Command) {
 
                 const srcPath = path.resolve(file);
 
-                // Delegate to bundle helper which does all FS operations
-                const { id, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
-                    id: options.id,
+                const type = await enforceOptionPresenceByPrompt(options.type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
+
+                let id = options.id;
+                if (!id) {
+                    try {
+                        const parsed = JSON.parse(await readFile(srcPath, 'utf8'));
+                        if (parsed && typeof parsed.title === 'string' && parsed.title.trim()) {
+                            id = parsed.title.trim();
+                        }
+                    } catch (_) {
+                        // file unreadable or not JSON; fall through to prompt
+                    }
+                    if (!id) {
+                        id = await input({ message: 'Enter a name for this document:' });
+                    }
+                }
+
+                const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
+                    id,
                     copy: options.copy,
-                    type: options.type as BundleDocumentType | undefined
+                    type: type as BundleDocumentType | undefined,
+                    namespace: options.namespace
                 });
 
                 if (options.copy) {
-                    logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${id})`);
+                    logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${resolvedId})`);
                 } else {
-                    logger.info(`Added reference to ${finalDestPath} (id: ${id})`);
+                    logger.info(`Added reference to ${finalDestPath} (id: ${resolvedId})`);
                 }
             } catch (err) {
                 logger.error('Failed to add file to workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
@@ -215,8 +237,8 @@ export function setupWorkspaceCommands(program: Command) {
         .description('Add a new document based on a template and track it in the current workspace.')
         .addArgument(new Argument('[type]', 'The type of document to create.')
             .choices(CALM_DOCUMENT_TYPES_LIST))
-        .argument('namespace')
-        .argument('name')
+        .argument('[namespace]', 'The namespace for your new document')
+        .argument('[name]', 'The name for your new document')
         .action(async (type, namespace, name) => {
             try {
                 type = await enforceOptionPresenceByPrompt(type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
@@ -230,7 +252,7 @@ export function setupWorkspaceCommands(program: Command) {
                 }
 
                 const filePath = await createNewDocument(namespace, name, type);
-                await addFileToBundle(bundlePath, filePath, { type: type as BundleDocumentType });
+                await addFileToBundle(bundlePath, filePath, { type: type as BundleDocumentType, namespace });
 
                 logger.info(`Created ${filePath}`);
             } catch (err) {
@@ -238,11 +260,38 @@ export function setupWorkspaceCommands(program: Command) {
                 process.exit(1);
             }
         });
+
+    workspaceCmd
+        .command('push')
+        .description('Push all files in the current workspace manifest to CalmHub, creating or updating resources as needed')
+        .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
+        .action(async (options: { calmHubUrl?: string }) => {
+            try {
+                const bundlePath = findWorkspaceBundlePath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                const config = await loadCliConfig();
+                const calmHubUrl = options.calmHubUrl ?? config?.calmHubUrl;
+                if (!calmHubUrl) {
+                    logger.error('No CalmHub URL configured. Use --calm-hub-url or set calmHubUrl in ~/.calm.json');
+                    process.exit(1);
+                }
+
+                const service = new CalmHubService(calmHubUrl);
+                await pushWorkspaceToHub(bundlePath, service);
+            } catch (err) {
+                logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
 }
 
 async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: string[]): Promise<string> {
     if (cliInput) {
-        // if it was selected already, just use that 
+        // if it was selected already, just use that
         return cliInput;
     }
     if (choices) {
