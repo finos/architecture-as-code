@@ -87,7 +87,7 @@ public class MongoDecoratorStore implements DecoratorStore {
     }
 
     @Override
-    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
+    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
         validateNamespace(namespace);
 
         Document namespaceDocument = fetchNamespaceDocument(namespace);

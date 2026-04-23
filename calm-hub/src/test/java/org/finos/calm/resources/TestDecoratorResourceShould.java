@@ -296,11 +296,11 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void return_404_when_decorator_not_found_exception_thrown_from_get_by_id() throws NamespaceNotFoundException, DecoratorNotFoundException {
+    void return_404_when_decorator_not_found_exception_thrown_from_get_by_id() throws NamespaceNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 123;
 
-        when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenThrow(new DecoratorNotFoundException());
+        when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenReturn(Optional.empty());
 
         given()
                 .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)

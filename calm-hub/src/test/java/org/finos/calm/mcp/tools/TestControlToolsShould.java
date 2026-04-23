@@ -1,5 +1,7 @@
 package org.finos.calm.mcp.tools;
 
+import io.quarkiverse.mcp.server.TextContent;
+import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
@@ -19,7 +21,7 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -37,21 +39,26 @@ class TestControlToolsShould {
         controlTools.mcpEnabled = true;
     }
 
+    private static String text(ToolResponse r) {
+        return ((TextContent) r.firstContent()).text();
+    }
+
     // --- listControls ---
 
     @Test
     void return_controls_for_domain() throws DomainNotFoundException {
-        when(controlStore.getControlsForDomain("api-threats"))
+        when(controlStore.getControlsForDomain("security"))
                 .thenReturn(List.of(
                         new ControlDetail(1, "BOLA", "Broken Object Level Authorization"),
                         new ControlDetail(2, "Broken Auth", "Broken Authentication")
                 ));
 
-        String result = controlTools.listControls("api-threats");
+        ToolResponse result = controlTools.listControls("security");
 
-        assertThat(result, containsString("BOLA"));
-        assertThat(result, containsString("Broken Auth"));
-        assertThat(result, containsString("api-threats"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("BOLA"));
+        assertThat(text(result), containsString("Broken Auth"));
+        assertThat(text(result), containsString("security"));
     }
 
     @Test
@@ -59,9 +66,10 @@ class TestControlToolsShould {
         when(controlStore.getControlsForDomain("empty-domain"))
                 .thenReturn(List.of());
 
-        String result = controlTools.listControls("empty-domain");
+        ToolResponse result = controlTools.listControls("empty-domain");
 
-        assertThat(result, containsString("No controls found"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("No controls found"));
     }
 
     @Test
@@ -69,42 +77,43 @@ class TestControlToolsShould {
         when(controlStore.getControlsForDomain("missing"))
                 .thenThrow(new DomainNotFoundException("missing"));
 
-        String result = controlTools.listControls("missing");
+        ToolResponse result = controlTools.listControls("missing");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"   ", "bad domain", "bad.domain"})
     void reject_invalid_domain_for_list_controls(String domain) {
-        String result = controlTools.listControls(domain);
+        ToolResponse result = controlTools.listControls(domain);
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
         verifyNoInteractions(controlStore);
     }
 
-    // --- getControlRequirement ---
+    // --- getControl ---
 
     @Test
-    void return_control_requirement_json() throws Exception {
-        when(controlStore.getRequirementForVersion("api-threats", 1, "1.0.0"))
+    void return_control_json() throws Exception {
+        when(controlStore.getRequirementForVersion("security", 1, "1.0.0"))
                 .thenReturn("{\"name\":\"BOLA\",\"description\":\"...\"}");
 
-        String result = controlTools.getControlRequirement("api-threats", 1, "1.0.0");
+        ToolResponse result = controlTools.getControl("security", 1, "1.0.0");
 
-        assertThat(result, containsString("BOLA"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("BOLA"));
     }
 
     @Test
     void return_error_for_missing_control_version() throws Exception {
-        when(controlStore.getRequirementForVersion("api-threats", 1, "9.9.9"))
+        when(controlStore.getRequirementForVersion("security", 1, "9.9.9"))
                 .thenThrow(new ControlRequirementVersionNotFoundException());
 
-        String result = controlTools.getControlRequirement("api-threats", 1, "9.9.9");
+        ToolResponse result = controlTools.getControl("security", 1, "9.9.9");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Version"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Version"));
     }
 
     @Test
@@ -112,36 +121,44 @@ class TestControlToolsShould {
         when(controlStore.getRequirementForVersion("missing", 1, "1.0.0"))
                 .thenThrow(new DomainNotFoundException("missing"));
 
-        String result = controlTools.getControlRequirement("missing", 1, "1.0.0");
+        ToolResponse result = controlTools.getControl("missing", 1, "1.0.0");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Domain"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Domain"));
     }
 
     @Test
     void return_error_for_missing_control_on_get() throws Exception {
-        when(controlStore.getRequirementForVersion("api-threats", 99, "1.0.0"))
+        when(controlStore.getRequirementForVersion("security", 99, "1.0.0"))
                 .thenThrow(new ControlNotFoundException());
 
-        String result = controlTools.getControlRequirement("api-threats", 99, "1.0.0");
+        ToolResponse result = controlTools.getControl("security", 99, "1.0.0");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Control"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Control"));
     }
 
     @Test
-    void reject_invalid_domain_for_get_requirement() {
-        String result = controlTools.getControlRequirement("bad domain", 1, "1.0.0");
+    void reject_invalid_domain_for_get_control() {
+        ToolResponse result = controlTools.getControl("bad domain", 1, "1.0.0");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
         verifyNoInteractions(controlStore);
     }
 
     @Test
-    void reject_invalid_version_for_get_requirement() {
-        String result = controlTools.getControlRequirement("api-threats", 1, "not-a-version");
+    void reject_invalid_version_for_get_control() {
+        ToolResponse result = controlTools.getControl("security", 1, "not-a-version");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    @Test
+    void reject_non_positive_control_id_for_get_control() {
+        ToolResponse result = controlTools.getControl("security", 0, "1.0.0");
+
+        assertThat(result.isError(), is(true));
         verifyNoInteractions(controlStore);
     }
 
@@ -149,33 +166,35 @@ class TestControlToolsShould {
 
     @Test
     void return_control_versions() throws Exception {
-        when(controlStore.getRequirementVersions("api-threats", 1))
+        when(controlStore.getRequirementVersions("security", 1))
                 .thenReturn(List.of("1.0.0", "2.0.0"));
 
-        String result = controlTools.listControlVersions("api-threats", 1);
+        ToolResponse result = controlTools.listControlVersions("security", 1);
 
-        assertThat(result, containsString("1.0.0"));
-        assertThat(result, containsString("2.0.0"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+        assertThat(text(result), containsString("2.0.0"));
     }
 
     @Test
     void return_empty_versions_message() throws Exception {
-        when(controlStore.getRequirementVersions("api-threats", 1))
+        when(controlStore.getRequirementVersions("security", 1))
                 .thenReturn(List.of());
 
-        String result = controlTools.listControlVersions("api-threats", 1);
+        ToolResponse result = controlTools.listControlVersions("security", 1);
 
-        assertThat(result, containsString("No versions found"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("No versions found"));
     }
 
     @Test
     void return_error_when_control_not_found_for_versions() throws Exception {
-        when(controlStore.getRequirementVersions("api-threats", 99))
+        when(controlStore.getRequirementVersions("security", 99))
                 .thenThrow(new ControlNotFoundException());
 
-        String result = controlTools.listControlVersions("api-threats", 99);
+        ToolResponse result = controlTools.listControlVersions("security", 99);
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
     }
 
     @Test
@@ -183,17 +202,25 @@ class TestControlToolsShould {
         when(controlStore.getRequirementVersions("missing", 1))
                 .thenThrow(new DomainNotFoundException("missing"));
 
-        String result = controlTools.listControlVersions("missing", 1);
+        ToolResponse result = controlTools.listControlVersions("missing", 1);
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Domain"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Domain"));
     }
 
     @Test
     void reject_invalid_domain_for_list_versions() {
-        String result = controlTools.listControlVersions("bad domain", 1);
+        ToolResponse result = controlTools.listControlVersions("bad domain", 1);
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    @Test
+    void reject_non_positive_control_id_for_list_versions() {
+        ToolResponse result = controlTools.listControlVersions("security", -1);
+
+        assertThat(result.isError(), is(true));
         verifyNoInteractions(controlStore);
     }
 
@@ -203,9 +230,9 @@ class TestControlToolsShould {
     void return_disabled_message_when_mcp_is_disabled() {
         controlTools.mcpEnabled = false;
 
-        assertThat(controlTools.listControls("api-threats"), containsString("disabled"));
-        assertThat(controlTools.getControlRequirement("api-threats", 1, "1.0.0"), containsString("disabled"));
-        assertThat(controlTools.listControlVersions("api-threats", 1), containsString("disabled"));
+        assertThat(text(controlTools.listControls("security")), containsString("disabled"));
+        assertThat(text(controlTools.getControl("security", 1, "1.0.0")), containsString("disabled"));
+        assertThat(text(controlTools.listControlVersions("security", 1)), containsString("disabled"));
         verifyNoInteractions(controlStore);
     }
 }

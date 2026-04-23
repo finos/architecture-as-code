@@ -2,6 +2,7 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
+import io.quarkiverse.mcp.server.ToolResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -31,18 +32,18 @@ public class ControlTools {
     @Inject
     ControlStore controlStore;
 
-    @Tool(description = "List all control requirements in a domain (e.g. 'api-threats'). Returns control IDs, names, and descriptions.")
-    public String listControls(
-            @ToolArg(description = "The domain to list controls for (e.g. 'api-threats')") String domain) {
+    @Tool(description = "List all control requirements in a domain (e.g. 'security'). Returns control IDs, names, and descriptions.")
+    public ToolResponse listControls(
+            @ToolArg(description = "The domain to list controls for (e.g. 'security')") String domain) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateDomain(domain);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
 
         try {
             List<ControlDetail> controls = controlStore.getControlsForDomain(domain);
             if (controls.isEmpty()) {
-                return "No controls found in domain '" + domain + "'.";
+                return ToolResponse.success("No controls found in domain '" + domain + "'.");
             }
             StringBuilder sb = new StringBuilder("Controls in domain '" + domain + "':\n");
             for (ControlDetail control : controls) {
@@ -55,64 +56,68 @@ public class ControlTools {
                 }
                 sb.append("\n");
             }
-            return sb.toString();
+            return ToolResponse.success(sb.toString());
         } catch (DomainNotFoundException e) {
-            logger.error("Domain not found [{}]", domain, e);
-            return "Error: Domain '" + domain + "' not found.";
+            logger.warn("Domain not found [{}]", domain, e);
+            return ToolResponse.error("Error: Domain '" + domain + "' not found.");
         }
     }
 
     @Tool(description = "Get the full JSON content of a specific control requirement version.")
-    public String getControlRequirement(
-            @ToolArg(description = "The domain containing the control") String domain,
-            @ToolArg(description = "The control ID (integer)") int controlId,
+    public ToolResponse getControl(
+            @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
+            @ToolArg(description = "The control ID (positive integer)") int controlId,
             @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateDomain(domain);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
+        error = McpValidationHelper.validatePositiveId(controlId, "Control ID");
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateVersion(version);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
 
         try {
-            return controlStore.getRequirementForVersion(domain, controlId, version);
+            return ToolResponse.success(controlStore.getRequirementForVersion(domain, controlId, version));
         } catch (DomainNotFoundException e) {
-            logger.error("Domain not found [{}]", domain, e);
-            return "Error: Domain '" + domain + "' not found.";
+            logger.warn("Domain not found [{}]", domain, e);
+            return ToolResponse.error("Error: Domain '" + domain + "' not found.");
         } catch (ControlNotFoundException e) {
-            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
-            return "Error: Control " + controlId + " not found in domain '" + domain + "'.";
+            logger.warn("Control [{}] not found in domain [{}]", controlId, domain, e);
+            return ToolResponse.error("Error: Control " + controlId + " not found in domain '" + domain + "'.");
         } catch (ControlRequirementVersionNotFoundException e) {
-            logger.error("Version [{}] not found for control [{}] in domain [{}]", version, controlId, domain, e);
-            return "Error: Version '" + version + "' not found for control " + controlId + ".";
+            logger.warn("Version [{}] not found for control [{}] in domain [{}]", version, controlId, domain, e);
+            return ToolResponse.error("Error: Version '" + version + "' not found for control " + controlId + ".");
         }
     }
 
     @Tool(description = "List available versions for a specific control requirement.")
-    public String listControlVersions(
-            @ToolArg(description = "The domain containing the control") String domain,
-            @ToolArg(description = "The control ID (integer)") int controlId) {
+    public ToolResponse listControlVersions(
+            @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
+            @ToolArg(description = "The control ID (positive integer)") int controlId) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateDomain(domain);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
+        error = McpValidationHelper.validatePositiveId(controlId, "Control ID");
+        if (error != null) return ToolResponse.error(error);
 
         try {
             List<String> versions = controlStore.getRequirementVersions(domain, controlId);
             if (versions.isEmpty()) {
-                return "No versions found for control " + controlId + " in domain '" + domain + "'.";
+                return ToolResponse.success("No versions found for control " + controlId + " in domain '" + domain + "'.");
             }
             StringBuilder sb = new StringBuilder("Versions for control " + controlId + ":\n");
             for (String version : versions) {
                 sb.append("- ").append(version).append("\n");
             }
-            return sb.toString();
+            return ToolResponse.success(sb.toString());
         } catch (DomainNotFoundException e) {
-            logger.error("Domain not found [{}]", domain, e);
-            return "Error: Domain '" + domain + "' not found.";
+            logger.warn("Domain not found [{}]", domain, e);
+            return ToolResponse.error("Error: Domain '" + domain + "' not found.");
         } catch (ControlNotFoundException e) {
-            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
-            return "Error: Control " + controlId + " not found in domain '" + domain + "'.";
+            logger.warn("Control [{}] not found in domain [{}]", controlId, domain, e);
+            return ToolResponse.error("Error: Control " + controlId + " not found in domain '" + domain + "'.");
         }
     }
 }

@@ -1,6 +1,7 @@
 package org.finos.calm.mcp.tools;
 
-import org.bson.json.JsonParseException;
+import io.quarkiverse.mcp.server.TextContent;
+import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
@@ -21,7 +22,7 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -40,6 +41,10 @@ class TestArchitectureToolsShould {
         architectureTools.mcpEnabled = true;
     }
 
+    private static String text(ToolResponse r) {
+        return ((TextContent) r.firstContent()).text();
+    }
+
     // --- listArchitectures ---
 
     @Test
@@ -49,11 +54,12 @@ class TestArchitectureToolsShould {
                         new NamespaceArchitectureSummary("Conference Signup", "A conference signup architecture", 1)
                 ));
 
-        String result = architectureTools.listArchitectures("workshop");
+        ToolResponse result = architectureTools.listArchitectures("workshop");
 
-        assertThat(result, containsString("workshop"));
-        assertThat(result, containsString("Conference Signup"));
-        assertThat(result, containsString("ID: 1"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("workshop"));
+        assertThat(text(result), containsString("Conference Signup"));
+        assertThat(text(result), containsString("ID: 1"));
     }
 
     @Test
@@ -61,9 +67,10 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitecturesForNamespace("empty"))
                 .thenReturn(List.of());
 
-        String result = architectureTools.listArchitectures("empty");
+        ToolResponse result = architectureTools.listArchitectures("empty");
 
-        assertThat(result, containsString("No architectures found"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("No architectures found"));
     }
 
     @Test
@@ -71,19 +78,19 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitecturesForNamespace("missing"))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String result = architectureTools.listArchitectures("missing");
+        ToolResponse result = architectureTools.listArchitectures("missing");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("not found"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"   ", "bad namespace", "bad/ns"})
     void reject_invalid_namespace_for_list_architectures(String namespace) {
-        String result = architectureTools.listArchitectures(namespace);
+        ToolResponse result = architectureTools.listArchitectures(namespace);
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
         verifyNoInteractions(architectureStore);
     }
 
@@ -94,10 +101,11 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitectureVersions(any()))
                 .thenReturn(List.of("1.0.0", "2.0.0"));
 
-        String result = architectureTools.listArchitectureVersions("workshop", 1);
+        ToolResponse result = architectureTools.listArchitectureVersions("workshop", 1);
 
-        assertThat(result, containsString("1.0.0"));
-        assertThat(result, containsString("2.0.0"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+        assertThat(text(result), containsString("2.0.0"));
     }
 
     @Test
@@ -105,9 +113,10 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitectureVersions(any()))
                 .thenReturn(List.of());
 
-        String result = architectureTools.listArchitectureVersions("workshop", 1);
+        ToolResponse result = architectureTools.listArchitectureVersions("workshop", 1);
 
-        assertThat(result, containsString("No versions found"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("No versions found"));
     }
 
     @Test
@@ -115,10 +124,10 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitectureVersions(any()))
                 .thenThrow(new ArchitectureNotFoundException());
 
-        String result = architectureTools.listArchitectureVersions("workshop", 99);
+        ToolResponse result = architectureTools.listArchitectureVersions("workshop", 99);
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("not found"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
     }
 
     @Test
@@ -126,17 +135,25 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitectureVersions(any()))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String result = architectureTools.listArchitectureVersions("missing", 1);
+        ToolResponse result = architectureTools.listArchitectureVersions("missing", 1);
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Namespace"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Namespace"));
     }
 
     @Test
     void reject_invalid_namespace_for_list_versions() {
-        String result = architectureTools.listArchitectureVersions("bad ns", 1);
+        ToolResponse result = architectureTools.listArchitectureVersions("bad ns", 1);
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void reject_non_positive_architecture_id_for_list_versions() {
+        ToolResponse result = architectureTools.listArchitectureVersions("workshop", 0);
+
+        assertThat(result.isError(), is(true));
         verifyNoInteractions(architectureStore);
     }
 
@@ -147,9 +164,10 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitectureForVersion(any()))
                 .thenReturn("{\"nodes\":[],\"relationships\":[]}");
 
-        String result = architectureTools.getArchitecture("workshop", 1, "1.0.0");
+        ToolResponse result = architectureTools.getArchitecture("workshop", 1, "1.0.0");
 
-        assertThat(result, containsString("nodes"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("nodes"));
     }
 
     @Test
@@ -157,10 +175,10 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitectureForVersion(any()))
                 .thenThrow(new ArchitectureVersionNotFoundException());
 
-        String result = architectureTools.getArchitecture("workshop", 1, "9.9.9");
+        ToolResponse result = architectureTools.getArchitecture("workshop", 1, "9.9.9");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Version"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Version"));
     }
 
     @Test
@@ -168,10 +186,10 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitectureForVersion(any()))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String result = architectureTools.getArchitecture("missing", 1, "1.0.0");
+        ToolResponse result = architectureTools.getArchitecture("missing", 1, "1.0.0");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Namespace"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Namespace"));
     }
 
     @Test
@@ -179,25 +197,33 @@ class TestArchitectureToolsShould {
         when(architectureStore.getArchitectureForVersion(any()))
                 .thenThrow(new ArchitectureNotFoundException());
 
-        String result = architectureTools.getArchitecture("workshop", 99, "1.0.0");
+        ToolResponse result = architectureTools.getArchitecture("workshop", 99, "1.0.0");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Architecture"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Architecture"));
     }
 
     @Test
     void reject_invalid_namespace_for_get_architecture() {
-        String result = architectureTools.getArchitecture("bad ns", 1, "1.0.0");
+        ToolResponse result = architectureTools.getArchitecture("bad ns", 1, "1.0.0");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
         verifyNoInteractions(architectureStore);
     }
 
     @Test
     void reject_invalid_version_for_get_architecture() {
-        String result = architectureTools.getArchitecture("workshop", 1, "not-a-version");
+        ToolResponse result = architectureTools.getArchitecture("workshop", 1, "not-a-version");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void reject_non_positive_architecture_id_for_get_architecture() {
+        ToolResponse result = architectureTools.getArchitecture("workshop", -1, "1.0.0");
+
+        assertThat(result.isError(), is(true));
         verifyNoInteractions(architectureStore);
     }
 
@@ -213,11 +239,12 @@ class TestArchitectureToolsShould {
         when(architectureStore.createArchitectureForNamespace(any()))
                 .thenReturn(returnedArch);
 
-        String result = architectureTools.createArchitecture("workshop", "My Arch", "A description", "{\"nodes\":[]}");
+        ToolResponse result = architectureTools.createArchitecture("workshop", "My Arch", "A description", "{\"nodes\":[]}");
 
-        assertThat(result, containsString("ID: 42"));
-        assertThat(result, containsString("version 1.0.0"));
-        assertThat(result, containsString("workshop"));
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("ID: 42"));
+        assertThat(text(result), containsString("version 1.0.0"));
+        assertThat(text(result), containsString("workshop"));
     }
 
     @Test
@@ -225,28 +252,26 @@ class TestArchitectureToolsShould {
         when(architectureStore.createArchitectureForNamespace(any()))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String result = architectureTools.createArchitecture("missing", "My Arch", "desc", "{}");
+        ToolResponse result = architectureTools.createArchitecture("missing", "My Arch", "desc", "{}");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("not found"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
     }
 
     @Test
-    void return_error_for_invalid_architecture_json() throws NamespaceNotFoundException {
-        when(architectureStore.createArchitectureForNamespace(any()))
-                .thenThrow(new JsonParseException("bad json"));
+    void return_error_for_invalid_architecture_json() {
+        ToolResponse result = architectureTools.createArchitecture("workshop", "My Arch", "desc", "not-json");
 
-        String result = architectureTools.createArchitecture("workshop", "My Arch", "desc", "not-json");
-
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Invalid"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Invalid"));
+        verifyNoInteractions(architectureStore);
     }
 
     @Test
     void reject_invalid_namespace_for_create_architecture() {
-        String result = architectureTools.createArchitecture("bad ns", "name", "desc", "{}");
+        ToolResponse result = architectureTools.createArchitecture("bad ns", "name", "desc", "{}");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(result.isError(), is(true));
         verifyNoInteractions(architectureStore);
     }
 
@@ -254,10 +279,10 @@ class TestArchitectureToolsShould {
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
     void reject_blank_json_for_create_architecture(String json) {
-        String result = architectureTools.createArchitecture("workshop", "name", "desc", json);
+        ToolResponse result = architectureTools.createArchitecture("workshop", "name", "desc", json);
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Architecture JSON"));
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Architecture JSON"));
         verifyNoInteractions(architectureStore);
     }
 
@@ -267,10 +292,10 @@ class TestArchitectureToolsShould {
     void return_disabled_message_when_mcp_is_disabled() {
         architectureTools.mcpEnabled = false;
 
-        assertThat(architectureTools.listArchitectures("workshop"), containsString("disabled"));
-        assertThat(architectureTools.listArchitectureVersions("workshop", 1), containsString("disabled"));
-        assertThat(architectureTools.getArchitecture("workshop", 1, "1.0.0"), containsString("disabled"));
-        assertThat(architectureTools.createArchitecture("workshop", "n", "d", "{}"), containsString("disabled"));
+        assertThat(text(architectureTools.listArchitectures("workshop")), containsString("disabled"));
+        assertThat(text(architectureTools.listArchitectureVersions("workshop", 1)), containsString("disabled"));
+        assertThat(text(architectureTools.getArchitecture("workshop", 1, "1.0.0")), containsString("disabled"));
+        assertThat(text(architectureTools.createArchitecture("workshop", "n", "d", "{}")), containsString("disabled"));
         verifyNoInteractions(architectureStore);
     }
 }

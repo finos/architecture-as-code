@@ -2,6 +2,7 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
+import io.quarkiverse.mcp.server.ToolResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -25,6 +26,7 @@ public class SearchTools {
 
     private static final Logger logger = LoggerFactory.getLogger(SearchTools.class);
     private static final int MAX_QUERY_LENGTH = 200;
+    private static final int MAX_RESULTS_PER_GROUP = 25;
 
     @Inject
     @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
@@ -34,24 +36,24 @@ public class SearchTools {
     SearchStore searchStore;
 
     @Tool(description = "Search across all resource types in CalmHub. Performs a global search across architectures, patterns, flows, standards, interfaces, controls, and ADRs. Results are grouped by type.")
-    public String searchHub(
+    public ToolResponse searchHub(
             @ToolArg(description = "The search query string (1-200 characters)") String query) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
 
         if (query == null || query.isBlank()) {
-            return "Error: Search query must not be blank.";
+            return ToolResponse.error("Error: Search query must not be blank.");
         }
 
         if (query.length() > MAX_QUERY_LENGTH) {
-            return "Error: Search query must not exceed " + MAX_QUERY_LENGTH + " characters.";
+            return ToolResponse.error("Error: Search query must not exceed " + MAX_QUERY_LENGTH + " characters.");
         }
 
         GroupedSearchResults groupedResults = searchStore.search(query);
         Map<String, List<SearchResult>> groups = toGroupMap(groupedResults);
 
         if (groups.values().stream().allMatch(List::isEmpty)) {
-            return "No results found for '" + query + "'.";
+            return ToolResponse.success("No results found for '" + query + "'.");
         }
 
         StringBuilder sb = new StringBuilder("Search results for '" + query + "':\n");
@@ -60,8 +62,11 @@ public class SearchTools {
             if (items.isEmpty()) {
                 continue;
             }
+            int total = items.size();
+            int shown = Math.min(total, MAX_RESULTS_PER_GROUP);
             sb.append("\n").append(entry.getKey()).append(":\n");
-            for (SearchResult item : items) {
+            for (int i = 0; i < shown; i++) {
+                SearchResult item = items.get(i);
                 sb.append("- ID: ").append(item.getId());
                 if (item.getName() != null) {
                     sb.append(", Name: ").append(item.getName());
@@ -74,8 +79,11 @@ public class SearchTools {
                 }
                 sb.append("\n");
             }
+            if (total > MAX_RESULTS_PER_GROUP) {
+                sb.append("  (showing ").append(shown).append(" of ").append(total).append(")\n");
+            }
         }
-        return sb.toString();
+        return ToolResponse.success(sb.toString());
     }
 
     private static Map<String, List<SearchResult>> toGroupMap(GroupedSearchResults results) {

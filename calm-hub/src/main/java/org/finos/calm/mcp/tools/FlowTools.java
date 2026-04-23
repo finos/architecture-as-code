@@ -2,6 +2,7 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
+import io.quarkiverse.mcp.server.ToolResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -33,17 +34,17 @@ public class FlowTools {
     FlowStore flowStore;
 
     @Tool(description = "List all flows in a CalmHub namespace.")
-    public String listFlows(
+    public ToolResponse listFlows(
             @ToolArg(description = "The namespace to list flows from") String namespace) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
 
         try {
             List<NamespaceFlowSummary> flows = flowStore.getFlowsForNamespace(namespace);
             if (flows.isEmpty()) {
-                return "No flows found in namespace '" + namespace + "'.";
+                return ToolResponse.success("No flows found in namespace '" + namespace + "'.");
             }
             StringBuilder sb = new StringBuilder("Flows in '" + namespace + "':\n");
             for (NamespaceFlowSummary flow : flows) {
@@ -53,24 +54,26 @@ public class FlowTools {
                 }
                 sb.append("\n");
             }
-            return sb.toString();
+            return ToolResponse.success(sb.toString());
         } catch (NamespaceNotFoundException e) {
-            logger.error("Namespace not found [{}]", namespace, e);
-            return "Error: Namespace '" + namespace + "' not found.";
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
         }
     }
 
     @Tool(description = "Get the full JSON content of a specific flow version.")
-    public String getFlow(
+    public ToolResponse getFlow(
             @ToolArg(description = "The namespace containing the flow") String namespace,
-            @ToolArg(description = "The flow ID (integer)") int flowId,
+            @ToolArg(description = "The flow ID (positive integer)") int flowId,
             @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
+        error = McpValidationHelper.validatePositiveId(flowId, "Flow ID");
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateVersion(version);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
 
         try {
             Flow flow = new Flow.FlowBuilder()
@@ -78,16 +81,16 @@ public class FlowTools {
                     .setId(flowId)
                     .setVersion(version)
                     .build();
-            return flowStore.getFlowForVersion(flow);
+            return ToolResponse.success(flowStore.getFlowForVersion(flow));
         } catch (NamespaceNotFoundException e) {
-            logger.error("Namespace not found [{}]", namespace, e);
-            return "Error: Namespace '" + namespace + "' not found.";
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
         } catch (FlowNotFoundException e) {
-            logger.error("Flow [{}] not found in namespace [{}]", flowId, namespace, e);
-            return "Error: Flow " + flowId + " not found in namespace '" + namespace + "'.";
+            logger.warn("Flow [{}] not found in namespace [{}]", flowId, namespace, e);
+            return ToolResponse.error("Error: Flow " + flowId + " not found in namespace '" + namespace + "'.");
         } catch (FlowVersionNotFoundException e) {
-            logger.error("Version [{}] not found for flow [{}] in namespace [{}]", version, flowId, namespace, e);
-            return "Error: Version '" + version + "' not found for flow " + flowId + ".";
+            logger.warn("Version [{}] not found for flow [{}] in namespace [{}]", version, flowId, namespace, e);
+            return ToolResponse.error("Error: Version '" + version + "' not found for flow " + flowId + ".");
         }
     }
 }

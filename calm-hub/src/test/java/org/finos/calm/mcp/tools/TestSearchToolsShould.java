@@ -1,5 +1,6 @@
 package org.finos.calm.mcp.tools;
 
+import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
@@ -35,6 +36,11 @@ class TestSearchToolsShould {
 
     private static final List<SearchResult> EMPTY = List.of();
 
+    /** Extract the text payload from a ToolResponse for assertion purposes. */
+    private static String text(ToolResponse r) {
+        return r.firstContent().asText().text();
+    }
+
     @Test
     void return_grouped_results_for_valid_query() {
         List<SearchResult> archResults = List.of(
@@ -49,7 +55,7 @@ class TestSearchToolsShould {
 
         when(searchStore.search("trade")).thenReturn(grouped);
 
-        String result = searchTools.searchHub("trade");
+        String result = text(searchTools.searchHub("trade"));
 
         assertThat(result, containsString("Search results for 'trade'"));
         assertThat(result, containsString("architectures:"));
@@ -66,26 +72,26 @@ class TestSearchToolsShould {
 
         when(searchStore.search("nonexistent")).thenReturn(grouped);
 
-        String result = searchTools.searchHub("nonexistent");
+        String result = text(searchTools.searchHub("nonexistent"));
 
         assertThat(result, containsString("No results found"));
     }
 
     @Test
     void return_error_for_null_query() {
-        String result = searchTools.searchHub(null);
+        ToolResponse response = searchTools.searchHub(null);
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("blank"));
+        assertThat(response.isError(), org.hamcrest.Matchers.is(true));
+        assertThat(text(response), containsString("blank"));
         verifyNoInteractions(searchStore);
     }
 
     @Test
     void return_error_for_blank_query() {
-        String result = searchTools.searchHub("   ");
+        ToolResponse response = searchTools.searchHub("   ");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("blank"));
+        assertThat(response.isError(), org.hamcrest.Matchers.is(true));
+        assertThat(text(response), containsString("blank"));
         verifyNoInteractions(searchStore);
     }
 
@@ -93,10 +99,10 @@ class TestSearchToolsShould {
     void return_error_for_query_exceeding_max_length() {
         String longQuery = "a".repeat(201);
 
-        String result = searchTools.searchHub(longQuery);
+        ToolResponse response = searchTools.searchHub(longQuery);
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("200"));
+        assertThat(response.isError(), org.hamcrest.Matchers.is(true));
+        assertThat(text(response), containsString("200"));
         verifyNoInteractions(searchStore);
     }
 
@@ -108,7 +114,7 @@ class TestSearchToolsShould {
                 EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
         when(searchStore.search(maxQuery)).thenReturn(grouped);
 
-        String result = searchTools.searchHub(maxQuery);
+        String result = text(searchTools.searchHub(maxQuery));
 
         assertThat(result, containsString("No results found"));
     }
@@ -124,7 +130,7 @@ class TestSearchToolsShould {
 
         when(searchStore.search("arch")).thenReturn(grouped);
 
-        String result = searchTools.searchHub("arch");
+        String result = text(searchTools.searchHub("arch"));
 
         assertThat(result, containsString("architectures:"));
         assertThat(result, not(containsString("controls:")));
@@ -137,7 +143,9 @@ class TestSearchToolsShould {
     void return_disabled_message_when_mcp_is_disabled() {
         searchTools.mcpEnabled = false;
 
-        assertThat(searchTools.searchHub("trade"), containsString("disabled"));
+        ToolResponse response = searchTools.searchHub("trade");
+        assertThat(response.isError(), org.hamcrest.Matchers.is(true));
+        assertThat(text(response), containsString("disabled"));
         verifyNoInteractions(searchStore);
     }
 }

@@ -1,5 +1,6 @@
 package org.finos.calm.mcp.tools;
 
+import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -19,6 +20,7 @@ import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -38,6 +40,10 @@ class TestDecoratorToolsShould {
         decoratorTools.mcpEnabled = true;
     }
 
+    private static String text(ToolResponse r) {
+        return r.firstContent().asText().text();
+    }
+
     // --- listDecorators ---
 
     @Test
@@ -51,7 +57,7 @@ class TestDecoratorToolsShould {
         when(decoratorStore.getDecoratorValuesForNamespace("workshop", null, "threat-model"))
                 .thenReturn(List.of(dec));
 
-        String result = decoratorTools.listDecorators("workshop", "", "threat-model");
+        String result = text(decoratorTools.listDecorators("workshop", "", "threat-model"));
 
         assertThat(result, containsString("test-decorator"));
         assertThat(result, containsString("threat-model"));
@@ -68,7 +74,7 @@ class TestDecoratorToolsShould {
         when(decoratorStore.getDecoratorValuesForNamespace("workshop", "/calm/ns/1", "deployment"))
                 .thenReturn(List.of(dec));
 
-        String result = decoratorTools.listDecorators("workshop", "/calm/ns/1", "deployment");
+        String result = text(decoratorTools.listDecorators("workshop", "/calm/ns/1", "deployment"));
 
         assertThat(result, containsString("filtered-dec"));
     }
@@ -78,7 +84,7 @@ class TestDecoratorToolsShould {
         when(decoratorStore.getDecoratorValuesForNamespace("workshop", null, null))
                 .thenReturn(List.of());
 
-        String result = decoratorTools.listDecorators("workshop", "", "");
+        String result = text(decoratorTools.listDecorators("workshop", "", ""));
 
         assertThat(result, containsString("No decorators found"));
     }
@@ -88,7 +94,7 @@ class TestDecoratorToolsShould {
         when(decoratorStore.getDecoratorValuesForNamespace("workshop", null, "deployment"))
                 .thenReturn(List.of());
 
-        String result = decoratorTools.listDecorators("workshop", null, "deployment");
+        String result = text(decoratorTools.listDecorators("workshop", null, "deployment"));
 
         assertThat(result, containsString("No decorators found"));
         assertThat(result, containsString("deployment"));
@@ -105,7 +111,7 @@ class TestDecoratorToolsShould {
         when(decoratorStore.getDecoratorValuesForNamespace("workshop", "/calm/ns/1", null))
                 .thenReturn(List.of(dec));
 
-        String result = decoratorTools.listDecorators("workshop", "/calm/ns/1", "");
+        String result = text(decoratorTools.listDecorators("workshop", "/calm/ns/1", ""));
 
         assertThat(result, containsString("target-filtered-dec"));
     }
@@ -115,18 +121,20 @@ class TestDecoratorToolsShould {
         when(decoratorStore.getDecoratorValuesForNamespace("missing", null, null))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String result = decoratorTools.listDecorators("missing", "", "");
+        ToolResponse response = decoratorTools.listDecorators("missing", "", "");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"   ", "bad namespace"})
     void reject_invalid_namespace_for_list_decorators(String namespace) {
-        String result = decoratorTools.listDecorators(namespace, null, null);
+        ToolResponse response = decoratorTools.listDecorators(namespace, null, null);
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
         verifyNoInteractions(decoratorStore);
     }
 
@@ -146,7 +154,7 @@ class TestDecoratorToolsShould {
         when(decoratorStore.getDecoratorById("workshop", 1))
                 .thenReturn(Optional.of(dec));
 
-        String result = decoratorTools.getDecorator("workshop", 1);
+        String result = text(decoratorTools.getDecorator("workshop", 1));
 
         assertThat(result, containsString("threat-model-1"));
         assertThat(result, containsString("threat-model"));
@@ -157,19 +165,9 @@ class TestDecoratorToolsShould {
         when(decoratorStore.getDecoratorById("workshop", 99))
                 .thenReturn(Optional.empty());
 
-        String result = decoratorTools.getDecorator("workshop", 99);
+        String result = text(decoratorTools.getDecorator("workshop", 99));
 
         assertThat(result, containsString("not found"));
-    }
-
-    @Test
-    void return_error_when_decorator_not_found_exception() throws Exception {
-        when(decoratorStore.getDecoratorById("workshop", 99))
-                .thenThrow(new DecoratorNotFoundException());
-
-        String result = decoratorTools.getDecorator("workshop", 99);
-
-        assertThat(result, startsWith("Error:"));
     }
 
     @Test
@@ -177,17 +175,18 @@ class TestDecoratorToolsShould {
         when(decoratorStore.getDecoratorById("missing", 1))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String result = decoratorTools.getDecorator("missing", 1);
+        ToolResponse response = decoratorTools.getDecorator("missing", 1);
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Namespace"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Namespace"));
     }
 
     @Test
     void reject_invalid_namespace_for_get_decorator() {
-        String result = decoratorTools.getDecorator("bad ns", 1);
+        ToolResponse response = decoratorTools.getDecorator("bad ns", 1);
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
         verifyNoInteractions(decoratorStore);
     }
 
@@ -198,7 +197,7 @@ class TestDecoratorToolsShould {
         when(decoratorStore.createDecorator(eq("workshop"), anyString()))
                 .thenReturn(5);
 
-        String result = decoratorTools.createDecorator("workshop", "{\"type\":\"threat-model\"}");
+        String result = text(decoratorTools.createDecorator("workshop", "{\"type\":\"threat-model\"}"));
 
         assertThat(result, containsString("created successfully"));
         assertThat(result, containsString("5"));
@@ -209,16 +208,18 @@ class TestDecoratorToolsShould {
         when(decoratorStore.createDecorator(eq("missing"), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String result = decoratorTools.createDecorator("missing", "{}");
+        ToolResponse response = decoratorTools.createDecorator("missing", "{\"type\":\"test\"}");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
     }
 
     @Test
     void reject_invalid_namespace_for_create_decorator() {
-        String result = decoratorTools.createDecorator("bad ns", "{}");
+        ToolResponse response = decoratorTools.createDecorator("bad ns", "{\"type\":\"test\"}");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
         verifyNoInteractions(decoratorStore);
     }
 
@@ -226,10 +227,10 @@ class TestDecoratorToolsShould {
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
     void reject_blank_json_for_create_decorator(String json) {
-        String result = decoratorTools.createDecorator("workshop", json);
+        ToolResponse response = decoratorTools.createDecorator("workshop", json);
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Decorator JSON"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Decorator JSON"));
         verifyNoInteractions(decoratorStore);
     }
 
@@ -237,7 +238,7 @@ class TestDecoratorToolsShould {
 
     @Test
     void update_decorator_successfully() throws Exception {
-        String result = decoratorTools.updateDecorator("workshop", 1, "{\"updated\":true}");
+        String result = text(decoratorTools.updateDecorator("workshop", 1, "{\"updated\":true}"));
 
         assertThat(result, containsString("updated successfully"));
     }
@@ -247,9 +248,10 @@ class TestDecoratorToolsShould {
         org.mockito.Mockito.doThrow(new DecoratorNotFoundException())
                 .when(decoratorStore).updateDecorator(eq("workshop"), eq(99), anyString());
 
-        String result = decoratorTools.updateDecorator("workshop", 99, "{}");
+        ToolResponse response = decoratorTools.updateDecorator("workshop", 99, "{\"type\":\"test\"}");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
     }
 
     @Test
@@ -257,17 +259,18 @@ class TestDecoratorToolsShould {
         org.mockito.Mockito.doThrow(new NamespaceNotFoundException())
                 .when(decoratorStore).updateDecorator(eq("missing"), eq(1), anyString());
 
-        String result = decoratorTools.updateDecorator("missing", 1, "{}");
+        ToolResponse response = decoratorTools.updateDecorator("missing", 1, "{\"type\":\"test\"}");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Namespace"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Namespace"));
     }
 
     @Test
     void reject_invalid_namespace_for_update_decorator() {
-        String result = decoratorTools.updateDecorator("bad ns", 1, "{}");
+        ToolResponse response = decoratorTools.updateDecorator("bad ns", 1, "{\"type\":\"test\"}");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
         verifyNoInteractions(decoratorStore);
     }
 
@@ -275,10 +278,10 @@ class TestDecoratorToolsShould {
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
     void reject_blank_json_for_update_decorator(String json) {
-        String result = decoratorTools.updateDecorator("workshop", 1, json);
+        ToolResponse response = decoratorTools.updateDecorator("workshop", 1, json);
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Decorator JSON"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Decorator JSON"));
         verifyNoInteractions(decoratorStore);
     }
 
@@ -288,10 +291,19 @@ class TestDecoratorToolsShould {
     void return_disabled_message_when_mcp_is_disabled() {
         decoratorTools.mcpEnabled = false;
 
-        assertThat(decoratorTools.listDecorators("workshop", null, null), containsString("disabled"));
-        assertThat(decoratorTools.getDecorator("workshop", 1), containsString("disabled"));
-        assertThat(decoratorTools.createDecorator("workshop", "{}"), containsString("disabled"));
-        assertThat(decoratorTools.updateDecorator("workshop", 1, "{}"), containsString("disabled"));
+        ToolResponse listDec = decoratorTools.listDecorators("workshop", null, null);
+        ToolResponse getDec = decoratorTools.getDecorator("workshop", 1);
+        ToolResponse createDec = decoratorTools.createDecorator("workshop", "{\"type\":\"test\"}");
+        ToolResponse updateDec = decoratorTools.updateDecorator("workshop", 1, "{\"type\":\"test\"}");
+
+        assertThat(listDec.isError(), is(true));
+        assertThat(text(listDec), containsString("disabled"));
+        assertThat(getDec.isError(), is(true));
+        assertThat(text(getDec), containsString("disabled"));
+        assertThat(createDec.isError(), is(true));
+        assertThat(text(createDec), containsString("disabled"));
+        assertThat(updateDec.isError(), is(true));
+        assertThat(text(updateDec), containsString("disabled"));
         verifyNoInteractions(decoratorStore);
     }
 }

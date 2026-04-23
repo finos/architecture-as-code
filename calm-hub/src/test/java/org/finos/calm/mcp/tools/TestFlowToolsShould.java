@@ -1,5 +1,6 @@
 package org.finos.calm.mcp.tools;
 
+import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -19,6 +20,7 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -38,6 +40,10 @@ class TestFlowToolsShould {
         flowTools.mcpEnabled = true;
     }
 
+    private static String text(ToolResponse r) {
+        return r.firstContent().asText().text();
+    }
+
     // --- listFlows ---
 
     @Test
@@ -47,7 +53,7 @@ class TestFlowToolsShould {
                         new NamespaceFlowSummary("Signup Flow", "User registration flow", 1)
                 ));
 
-        String result = flowTools.listFlows("workshop");
+        String result = text(flowTools.listFlows("workshop"));
 
         assertThat(result, containsString("Signup Flow"));
         assertThat(result, containsString("ID: 1"));
@@ -58,7 +64,7 @@ class TestFlowToolsShould {
         when(flowStore.getFlowsForNamespace("empty"))
                 .thenReturn(List.of());
 
-        String result = flowTools.listFlows("empty");
+        String result = text(flowTools.listFlows("empty"));
 
         assertThat(result, containsString("No flows found"));
     }
@@ -68,18 +74,20 @@ class TestFlowToolsShould {
         when(flowStore.getFlowsForNamespace("missing"))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String result = flowTools.listFlows("missing");
+        ToolResponse response = flowTools.listFlows("missing");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"   ", "bad namespace"})
     void reject_invalid_namespace_for_list_flows(String namespace) {
-        String result = flowTools.listFlows(namespace);
+        ToolResponse response = flowTools.listFlows(namespace);
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
         verifyNoInteractions(flowStore);
     }
 
@@ -90,7 +98,7 @@ class TestFlowToolsShould {
         when(flowStore.getFlowForVersion(any()))
                 .thenReturn("{\"transitions\":[]}");
 
-        String result = flowTools.getFlow("workshop", 1, "1.0.0");
+        String result = text(flowTools.getFlow("workshop", 1, "1.0.0"));
 
         assertThat(result, containsString("transitions"));
     }
@@ -100,10 +108,10 @@ class TestFlowToolsShould {
         when(flowStore.getFlowForVersion(any()))
                 .thenThrow(new FlowVersionNotFoundException());
 
-        String result = flowTools.getFlow("workshop", 1, "9.9.9");
+        ToolResponse response = flowTools.getFlow("workshop", 1, "9.9.9");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Version"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Version"));
     }
 
     @Test
@@ -111,10 +119,10 @@ class TestFlowToolsShould {
         when(flowStore.getFlowForVersion(any()))
                 .thenThrow(new FlowNotFoundException());
 
-        String result = flowTools.getFlow("workshop", 99, "1.0.0");
+        ToolResponse response = flowTools.getFlow("workshop", 99, "1.0.0");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("not found"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("not found"));
     }
 
     @Test
@@ -122,25 +130,27 @@ class TestFlowToolsShould {
         when(flowStore.getFlowForVersion(any()))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String result = flowTools.getFlow("missing", 1, "1.0.0");
+        ToolResponse response = flowTools.getFlow("missing", 1, "1.0.0");
 
-        assertThat(result, startsWith("Error:"));
-        assertThat(result, containsString("Namespace"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Namespace"));
     }
 
     @Test
     void reject_invalid_namespace_for_get_flow() {
-        String result = flowTools.getFlow("bad ns", 1, "1.0.0");
+        ToolResponse response = flowTools.getFlow("bad ns", 1, "1.0.0");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
         verifyNoInteractions(flowStore);
     }
 
     @Test
     void reject_invalid_version_for_get_flow() {
-        String result = flowTools.getFlow("workshop", 1, "not-a-version");
+        ToolResponse response = flowTools.getFlow("workshop", 1, "not-a-version");
 
-        assertThat(result, startsWith("Error:"));
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
         verifyNoInteractions(flowStore);
     }
 
@@ -150,8 +160,13 @@ class TestFlowToolsShould {
     void return_disabled_message_when_mcp_is_disabled() {
         flowTools.mcpEnabled = false;
 
-        assertThat(flowTools.listFlows("workshop"), containsString("disabled"));
-        assertThat(flowTools.getFlow("workshop", 1, "1.0.0"), containsString("disabled"));
+        ToolResponse listFlows = flowTools.listFlows("workshop");
+        ToolResponse getFlow = flowTools.getFlow("workshop", 1, "1.0.0");
+
+        assertThat(listFlows.isError(), is(true));
+        assertThat(text(listFlows), containsString("disabled"));
+        assertThat(getFlow.isError(), is(true));
+        assertThat(text(getFlow), containsString("disabled"));
         verifyNoInteractions(flowStore);
     }
 }

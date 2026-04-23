@@ -119,4 +119,73 @@ class TestMcpValidationHelperShould {
         assertThat(result, containsString("disabled"));
         assertThat(result, containsString("CALM_MCP_ENABLED"));
     }
+
+    // --- validatePositiveId ---
+
+    @Test
+    void accept_positive_id() {
+        assertThat(McpValidationHelper.validatePositiveId(1, "TestId"), is(nullValue()));
+        assertThat(McpValidationHelper.validatePositiveId(100, "TestId"), is(nullValue()));
+    }
+
+    @Test
+    void reject_zero_id() {
+        String result = McpValidationHelper.validatePositiveId(0, "TestId");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("TestId"));
+    }
+
+    @Test
+    void reject_negative_id() {
+        String result = McpValidationHelper.validatePositiveId(-1, "TestId");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("TestId"));
+    }
+
+    // --- validateDescriptionLength ---
+
+    @Test
+    void accept_description_within_max_length() {
+        assertThat(McpValidationHelper.validateDescriptionLength("short desc", "Desc"), is(nullValue()));
+        assertThat(McpValidationHelper.validateDescriptionLength("x".repeat(1024), "Desc"), is(nullValue()));
+    }
+
+    @Test
+    void reject_description_exceeding_max_length() {
+        String result = McpValidationHelper.validateDescriptionLength("x".repeat(1025), "Desc");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("Desc"));
+        assertThat(result, containsString("1024"));
+    }
+
+    // --- validateJson ---
+
+    @Test
+    void accept_valid_json_object() {
+        assertThat(McpValidationHelper.validateJson("{}", "TestJson"), is(nullValue()));
+        assertThat(McpValidationHelper.validateJson("{\"key\":\"value\"}", "TestJson"), is(nullValue()));
+    }
+
+    @Test
+    void accept_null_or_blank_json_without_error() {
+        // null/blank JSON is only rejected if it was required; validateJson treats blank as "no value"
+        assertThat(McpValidationHelper.validateJson(null, "TestJson"), is(nullValue()));
+        assertThat(McpValidationHelper.validateJson("", "TestJson"), is(nullValue()));
+        assertThat(McpValidationHelper.validateJson("   ", "TestJson"), is(nullValue()));
+    }
+
+    @Test
+    void reject_invalid_json_syntax() {
+        String result = McpValidationHelper.validateJson("not-json", "TestJson");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("Invalid"));
+        assertThat(result, containsString("TestJson"));
+    }
+
+    @Test
+    void reject_json_array_as_non_object() {
+        String result = McpValidationHelper.validateJson("[1,2,3]", "TestJson");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("TestJson"));
+    }
 }

@@ -42,7 +42,7 @@ public interface DecoratorStore {
      * @return an optional containing the decorator if found
      * @throws NamespaceNotFoundException if the namespace does not exist
      */
-    Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException;
+    Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException;
 
     /**
      * Create a new decorator in the given namespace.

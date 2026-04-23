@@ -2,6 +2,7 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
+import io.quarkiverse.mcp.server.ToolResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -33,14 +34,14 @@ public class DecoratorTools {
     DecoratorStore decoratorStore;
 
     @Tool(description = "List decorators in a namespace, optionally filtered by target architecture path and/or type (e.g. 'threat-model', 'deployment').")
-    public String listDecorators(
+    public ToolResponse listDecorators(
             @ToolArg(description = "The namespace to list decorators from") String namespace,
-            @ToolArg(description = "Optional: filter by target path (e.g. '/calm/namespaces/workshop/architectures/1/versions/1-0-0')") String target,
-            @ToolArg(description = "Optional: filter by decorator type (e.g. 'threat-model', 'deployment')") String type) {
+            @ToolArg(description = "Filter by target path (e.g. '/calm/namespaces/workshop/architectures/1/versions/1-0-0')", required = false) String target,
+            @ToolArg(description = "Filter by decorator type (e.g. 'threat-model', 'deployment')", required = false) String type) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
 
         try {
             String targetFilter = (target != null && !target.isBlank()) ? target : null;
@@ -48,9 +49,9 @@ public class DecoratorTools {
 
             List<Decorator> decorators = decoratorStore.getDecoratorValuesForNamespace(namespace, targetFilter, typeFilter);
             if (decorators.isEmpty()) {
-                return "No decorators found in namespace '" + namespace + "'" +
+                return ToolResponse.success("No decorators found in namespace '" + namespace + "'" +
                         (typeFilter != null ? " with type '" + typeFilter + "'" : "") +
-                        (targetFilter != null ? " targeting '" + targetFilter + "'" : "") + ".";
+                        (targetFilter != null ? " targeting '" + targetFilter + "'" : "") + ".");
             }
             StringBuilder sb = new StringBuilder("Decorators in '" + namespace + "':\n");
             for (Decorator dec : decorators) {
@@ -59,89 +60,102 @@ public class DecoratorTools {
                   .append(", target: ").append(dec.getTarget())
                   .append("\n");
             }
-            return sb.toString();
+            return ToolResponse.success(sb.toString());
         } catch (NamespaceNotFoundException e) {
-            logger.error("Namespace not found [{}]", namespace, e);
-            return "Error: Namespace '" + namespace + "' not found.";
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
         }
     }
 
     @Tool(description = "Get a specific decorator by its numeric ID in a namespace. Returns the full decorator JSON including data payload.")
-    public String getDecorator(
+    public ToolResponse getDecorator(
             @ToolArg(description = "The namespace containing the decorator") String namespace,
-            @ToolArg(description = "The decorator numeric ID") int decoratorId) {
+            @ToolArg(description = "The decorator numeric ID (positive integer)") int decoratorId) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
+        error = McpValidationHelper.validatePositiveId(decoratorId, "Decorator ID");
+        if (error != null) return ToolResponse.error(error);
 
         try {
-            // The store may return Optional.empty() for a missing decorator, or throw
-            // DecoratorNotFoundException depending on the storage backend. Handle both paths.
             Optional<Decorator> decorator = decoratorStore.getDecoratorById(namespace, decoratorId);
             if (decorator.isEmpty()) {
-                return "Decorator " + decoratorId + " not found in namespace '" + namespace + "'.";
+                return ToolResponse.error("Error: Decorator " + decoratorId + " not found in namespace '" + namespace + "'.");
             }
             Decorator dec = decorator.get();
-            return "Decorator " + decoratorId + ":\n" +
+            return ToolResponse.success("Decorator " + decoratorId + ":\n" +
                     "  unique-id: " + dec.getUniqueId() + "\n" +
                     "  type: " + dec.getType() + "\n" +
                     "  target: " + dec.getTarget() + "\n" +
                     "  target-type: " + dec.getTargetType() + "\n" +
                     "  applies-to: " + dec.getAppliesTo() + "\n" +
-                    "  data: " + dec.getData();
+                    "  data: " + dec.getData());
         } catch (NamespaceNotFoundException e) {
-            logger.error("Namespace not found [{}]", namespace, e);
-            return "Error: Namespace '" + namespace + "' not found.";
-        } catch (DecoratorNotFoundException e) {
-            logger.error("Decorator [{}] not found in namespace [{}]", decoratorId, namespace, e);
-            return "Error: Decorator " + decoratorId + " not found in namespace '" + namespace + "'.";
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
         }
     }
 
     @Tool(description = "Create a new decorator in a namespace. Use this to store threat model results, deployments, or other decorator data. Returns the assigned decorator ID.")
-    public String createDecorator(
+    public ToolResponse createDecorator(
             @ToolArg(description = "The namespace to create the decorator in") String namespace,
             @ToolArg(description = "The decorator JSON payload (must include $schema, unique-id, type, target, target-type, applies-to, and data fields)") String decoratorJson) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateNotBlank(decoratorJson, "Decorator JSON");
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
+        error = McpValidationHelper.validateJson(decoratorJson, "Decorator JSON");
+        if (error != null) return ToolResponse.error(error);
 
         try {
             int id = decoratorStore.createDecorator(namespace, decoratorJson);
             logger.info("Decorator created with ID [{}] in namespace [{}]", id, namespace);
-            return "Decorator created successfully with ID: " + id;
+            return ToolResponse.success("Decorator created successfully with ID: " + id);
         } catch (NamespaceNotFoundException e) {
-            logger.error("Namespace not found [{}]", namespace, e);
-            return "Error: Namespace '" + namespace + "' not found.";
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
         }
     }
 
-    @Tool(description = "Update an existing decorator in a namespace.")
-    public String updateDecorator(
+    @Tool(description = "Update an existing decorator in a namespace. Returns the updated decorator representation.")
+    public ToolResponse updateDecorator(
             @ToolArg(description = "The namespace containing the decorator") String namespace,
-            @ToolArg(description = "The decorator numeric ID to update") int decoratorId,
+            @ToolArg(description = "The decorator numeric ID to update (positive integer)") int decoratorId,
             @ToolArg(description = "The updated decorator JSON payload") String decoratorJson) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
+        error = McpValidationHelper.validatePositiveId(decoratorId, "Decorator ID");
+        if (error != null) return ToolResponse.error(error);
         error = McpValidationHelper.validateNotBlank(decoratorJson, "Decorator JSON");
-        if (error != null) return error;
+        if (error != null) return ToolResponse.error(error);
+        error = McpValidationHelper.validateJson(decoratorJson, "Decorator JSON");
+        if (error != null) return ToolResponse.error(error);
 
         try {
             decoratorStore.updateDecorator(namespace, decoratorId, decoratorJson);
             logger.info("Decorator [{}] updated in namespace [{}]", decoratorId, namespace);
-            return "Decorator " + decoratorId + " updated successfully.";
+            // Return updated representation so callers can verify the change without a follow-up getDecorator call
+            Optional<Decorator> updated = decoratorStore.getDecoratorById(namespace, decoratorId);
+            if (updated.isEmpty()) {
+                return ToolResponse.success("Decorator " + decoratorId + " updated successfully.");
+            }
+            Decorator dec = updated.get();
+            return ToolResponse.success("Decorator " + decoratorId + " updated successfully.\n" +
+                    "  unique-id: " + dec.getUniqueId() + "\n" +
+                    "  type: " + dec.getType() + "\n" +
+                    "  target: " + dec.getTarget() + "\n" +
+                    "  data: " + dec.getData());
         } catch (NamespaceNotFoundException e) {
-            logger.error("Namespace not found [{}]", namespace, e);
-            return "Error: Namespace '" + namespace + "' not found.";
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
         } catch (DecoratorNotFoundException e) {
-            logger.error("Decorator [{}] not found in namespace [{}]", decoratorId, namespace, e);
-            return "Error: Decorator " + decoratorId + " not found in namespace '" + namespace + "'.";
+            logger.warn("Decorator [{}] not found in namespace [{}]", decoratorId, namespace, e);
+            return ToolResponse.error("Error: Decorator " + decoratorId + " not found in namespace '" + namespace + "'.");
         }
     }
 }
