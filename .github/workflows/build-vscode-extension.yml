@@ -21,8 +21,8 @@ on:
                 type: boolean
 
 jobs:
-    build-and-publish:
-        name: Build, Test, and Publish VS Code Extension
+    build-and-test:
+        name: Build and Test VS Code Extension
         runs-on: ubuntu-latest
 
         steps:
@@ -42,6 +42,54 @@ jobs:
 
             - name: Build and Test VS Code Extension
               run: npm run test:vscode
+
+    integration-test:
+        name: Integration Test (VSCode ${{ matrix.vscode-version }})
+        runs-on: ubuntu-latest
+        needs: build-and-test
+        strategy:
+            fail-fast: false
+            matrix:
+                # 1.115.0 is the last known-good version for issue #2361.
+                # 1.116.0 is the first version exhibiting the blank-paint regression.
+                # 'stable' tracks whatever is current — early warning for new regressions.
+                vscode-version: ['1.115.0', '1.116.0', 'stable']
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              with:
+                  node-version: v22
+
+            - name: Install workspace
+              run: npm ci
+
+            - name: Integration Test VS Code Extension (Xvfb)
+              # Xvfb provides a virtual display so @vscode/test-electron can launch
+              # a real VSCode instance headlessly. xvfb-run wraps the command.
+              env:
+                  VSCODE_VERSION: ${{ matrix.vscode-version }}
+              run: xvfb-run -a npm run test:integration --workspace=calm-plugins/vscode
+
+    package-and-publish:
+        name: Package and Publish VS Code Extension
+        runs-on: ubuntu-latest
+        needs: [build-and-test, integration-test]
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              with:
+                  node-version: v22
+
+            - name: Install workspace
+              run: npm ci
 
             - name: Package VS Code Extension
               run: npm run package:vscode

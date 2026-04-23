@@ -1,12 +1,14 @@
 import * as vscode from 'vscode'
 import { CalmExtensionController } from './calm-extension-controller'
+import type { CalmExtensionTestApi } from './test-api'
 
 
 let controller: CalmExtensionController | undefined
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext): Promise<CalmExtensionTestApi | undefined> {
     controller = new CalmExtensionController()
-    controller.start(context)
+    await controller.start(context)
+    return controller.getTestApi()
 }
 
 export function deactivate() {

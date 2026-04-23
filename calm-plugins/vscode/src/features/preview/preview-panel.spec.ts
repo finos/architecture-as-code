@@ -143,6 +143,33 @@ describe('CalmPreviewPanel', () => {
     }
   })
 
+  describe('createOrShow panel lifecycle', () => {
+    // Regression guard for issue #2361: on VSCode 1.116+, calling panel.reveal()
+    // on a panel that createWebviewPanel just created causes a blank first paint.
+    // createWebviewPanel already shows the panel, so reveal() must only fire on reuse.
+
+    const fakeUri = { fsPath: '/test/arch.json' } as any
+
+    it('does NOT call panel.reveal() when creating a brand-new panel', () => {
+      expect(CalmPreviewPanel.currentPanel).toBeUndefined()
+
+      CalmPreviewPanel.createOrShow(mockContext, fakeUri, mockConfig, mockLogger)
+
+      expect(vscode.window.createWebviewPanel).toHaveBeenCalledTimes(1)
+      expect(mockPanel.reveal).not.toHaveBeenCalled()
+    })
+
+    it('DOES call panel.reveal() when reusing an existing panel', () => {
+      CalmPreviewPanel.createOrShow(mockContext, fakeUri, mockConfig, mockLogger)
+      expect(mockPanel.reveal).not.toHaveBeenCalled() // sanity: brand-new path did not reveal
+
+      CalmPreviewPanel.createOrShow(mockContext, fakeUri, mockConfig, mockLogger)
+
+      expect(vscode.window.createWebviewPanel).toHaveBeenCalledTimes(1) // not recreated
+      expect(mockPanel.reveal).toHaveBeenCalled()
+    })
+  })
+
   describe('isRelativePath method', () => {
     let panel: CalmPreviewPanel
 

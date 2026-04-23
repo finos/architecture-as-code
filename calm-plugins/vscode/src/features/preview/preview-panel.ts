@@ -15,6 +15,7 @@ import {
   RevealInEditorCmd,
   SelectedCmd,
   ReadyCmd,
+  RenderedCmd,
   RunDocifyCmd,
   RequestModelDataCmd,
   RequestTemplateDataCmd,
@@ -76,7 +77,9 @@ export class CalmPreviewPanel {
       ],
     })
     CalmPreviewPanel.currentPanel = new CalmPreviewPanel(panel, context, config, log)
-    CalmPreviewPanel.currentPanel.reveal(uri)
+    // createWebviewPanel already shows the panel; calling reveal() here causes a
+    // blank first paint on VSCode 1.116+. Initialize state without re-revealing.
+    CalmPreviewPanel.currentPanel.reveal(uri, { revealPanel: false })
     return CalmPreviewPanel.currentPanel
   }
 
@@ -111,7 +114,8 @@ export class CalmPreviewPanel {
       ],
     })
     CalmPreviewPanel.currentPanel = new CalmPreviewPanel(panel, context, config, log, viewModel)
-    CalmPreviewPanel.currentPanel.reveal(uri)
+    // See note in createOrShow: skip panel.reveal() on brand-new panels.
+    CalmPreviewPanel.currentPanel.reveal(uri, { revealPanel: false })
     return CalmPreviewPanel.currentPanel
   }
 
@@ -138,6 +142,7 @@ export class CalmPreviewPanel {
     this.commands.register(new RevealInEditorCmd(this))
     this.commands.register(new SelectedCmd(this))
     this.commands.register(new ReadyCmd(this))
+    this.commands.register(new RenderedCmd(this))
     this.commands.register(new RunDocifyCmd(this))
     this.commands.register(new RequestModelDataCmd(this))
     this.commands.register(new RequestTemplateDataCmd(this))
@@ -212,7 +217,8 @@ export class CalmPreviewPanel {
   }
 
   /** --------- public API - now delegates to ViewModel --------- */
-  reveal(uri: vscode.Uri) {
+  reveal(uri: vscode.Uri, options: { revealPanel?: boolean } = {}) {
+    const revealPanel = options.revealPanel !== false
     this.viewModel.setCurrentUri(uri.fsPath)
     const fileInfo = detectFileType(uri.fsPath)
     const isTemplateMode = fileInfo.type === FileType.TemplateFile && fileInfo.isValid
@@ -245,7 +251,9 @@ export class CalmPreviewPanel {
 
     // Don't trigger docify immediately here - let refreshForDocument handle it after selection is determined
 
-    this.panel.reveal(vscode.ViewColumn.Beside)
+    if (revealPanel) {
+      this.panel.reveal(vscode.ViewColumn.Beside)
+    }
   }
 
   getCurrentUri(): vscode.Uri | undefined {
@@ -295,6 +303,11 @@ export class CalmPreviewPanel {
   public handleReady() {
     this.log.info('[preview] handleReady() called - webview is ready')
     this.viewModel.handleReady()
+  }
+
+  public handleRendered() {
+    this.log.info('[preview] handleRendered() called - webview compositor produced a frame')
+    this.viewModel.handleRendered()
   }
 
   public handleRunDocify() {
