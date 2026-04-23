@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * MongoDB-backed implementation of {@link SearchStore}.
@@ -21,7 +23,8 @@ import java.util.List;
  * Searches across 7 resource collections by matching the query (case-insensitive)
  * against the {@code name} and {@code description} fields of each resource entry.
  * For ADRs, the {@code title} field of the latest revision is searched instead.
- * Controls are scoped by domain rather than namespace.
+ * Controls are scoped by domain rather than namespace, so they bypass the
+ * readable-namespaces filter.
  */
 @ApplicationScoped
 @Typed(MongoSearchStore.class)
@@ -48,28 +51,32 @@ public class MongoSearchStore implements SearchStore {
     }
 
     @Override
-    public GroupedSearchResults search(String query) {
+    public GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces) {
         String lowerQuery = query.toLowerCase();
 
         return new GroupedSearchResults(
-                searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery),
-                searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery),
-                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery),
-                searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery),
-                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery),
+                searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery, readableNamespaces),
+                searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery, readableNamespaces),
+                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
+                searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
+                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),
-                searchAdrCollection(lowerQuery)
+                searchAdrCollection(lowerQuery, readableNamespaces)
         );
     }
 
     private List<SearchResult> searchNamespacedCollection(MongoCollection<Document> collection,
                                                           String arrayField,
                                                           String idField,
-                                                          String lowerQuery) {
+                                                          String lowerQuery,
+                                                          Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
         for (Document namespaceDoc : collection.find()) {
             String namespace = namespaceDoc.getString("namespace");
+            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
+                continue;
+            }
             List<Document> entries = namespaceDoc.getList(arrayField, Document.class);
             if (entries == null) {
                 continue;
@@ -123,11 +130,14 @@ public class MongoSearchStore implements SearchStore {
         return results;
     }
 
-    private List<SearchResult> searchAdrCollection(String lowerQuery) {
+    private List<SearchResult> searchAdrCollection(String lowerQuery, Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
         for (Document namespaceDoc : adrCollection.find()) {
             String namespace = namespaceDoc.getString("namespace");
+            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
+                continue;
+            }
             List<Document> adrs = namespaceDoc.getList("adrs", Document.class);
             if (adrs == null) {
                 continue;

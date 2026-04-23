@@ -11,7 +11,6 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.search.GroupedSearchResults;
-import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.security.UserAccessValidator;
@@ -19,13 +18,14 @@ import org.finos.calm.store.SearchStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Path("/calm/search")
 public class SearchResource {
 
     private static final int MAX_QUERY_LENGTH = 200;
+    private static final int MAX_LOGGED_QUERY_LENGTH = 100;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final SearchStore searchStore;
@@ -62,43 +62,46 @@ public class SearchResource {
         }
 
         try {
-            GroupedSearchResults results = searchStore.search(query);
-
-            if (userAccessValidatorInstance.isResolvable() && jwtInstance.isResolvable()) {
-                String username = jwtInstance.get().getClaim("preferred_username");
-                if (username != null) {
-                    Set<String> readableNamespaces = userAccessValidatorInstance.get()
-                            .getReadableNamespaces(username);
-                    results = filterResultsByAccess(results, readableNamespaces);
-                }
-            }
-
+            Optional<Set<String>> readableNamespaces = resolveReadableNamespaces();
+            GroupedSearchResults results = searchStore.search(query, readableNamespaces);
             return Response.ok(results).build();
         } catch (Exception e) {
-            log.error("Error performing search for query: {}", query, e);
+            log.error("Error performing search for query: {}", sanitizeForLog(query), e);
             return Response.serverError()
                     .entity("{\"error\":\"An unexpected error occurred while performing the search\"}")
                     .build();
         }
     }
 
-    private GroupedSearchResults filterResultsByAccess(GroupedSearchResults results,
-                                                       Set<String> readableNamespaces) {
-        return new GroupedSearchResults(
-                filterByNamespace(results.getArchitectures(), readableNamespaces),
-                filterByNamespace(results.getPatterns(), readableNamespaces),
-                filterByNamespace(results.getFlows(), readableNamespaces),
-                filterByNamespace(results.getStandards(), readableNamespaces),
-                filterByNamespace(results.getInterfaces(), readableNamespaces),
-                filterByNamespace(results.getControls(), readableNamespaces),
-                filterByNamespace(results.getAdrs(), readableNamespaces)
-        );
+    /**
+     * Returns the set of namespaces the current caller is permitted to read, or
+     * {@link Optional#empty()} when no namespace-based filtering should be applied
+     * (i.e. the secure profile is not active or the JWT has no username).
+     */
+    private Optional<Set<String>> resolveReadableNamespaces() {
+        if (!userAccessValidatorInstance.isResolvable() || !jwtInstance.isResolvable()) {
+            return Optional.empty();
+        }
+        String username = jwtInstance.get().getClaim("preferred_username");
+        if (username == null) {
+            return Optional.empty();
+        }
+        return Optional.of(userAccessValidatorInstance.get().getReadableNamespaces(username));
     }
 
-    private List<SearchResult> filterByNamespace(List<SearchResult> results,
-                                                  Set<String> readableNamespaces) {
-        return results.stream()
-                .filter(result -> readableNamespaces.contains(result.getNamespace()))
-                .toList();
+    /**
+     * Strips characters that could be used to forge log entries (CR/LF/other control
+     * characters) and truncates the query to a safe maximum length before logging.
+     * The query is user-supplied input so must be neutralised before being written
+     * to log streams (OWASP A09:2021 — Security Logging Failures).
+     */
+    static String sanitizeForLog(String value) {
+        if (value == null) {
+            return "null";
+        }
+        String truncated = value.length() > MAX_LOGGED_QUERY_LENGTH
+                ? value.substring(0, MAX_LOGGED_QUERY_LENGTH) + "..."
+                : value;
+        return truncated.replaceAll("[\\r\\n\\t\\p{Cntrl}]", "_");
     }
 }
