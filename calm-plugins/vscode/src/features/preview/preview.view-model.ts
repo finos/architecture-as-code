@@ -359,9 +359,18 @@ export class PreviewViewModel implements PreviewViewModelInterface {
      * regressions like issue #2361 where the paint pipeline stalls.
      */
     handleRendered(): void {
-        if (!this.isRendered) {
-            this.isRendered = true
-            this.renderedStateChangedEmitter.fire(true)
+        this.setRendered(true)
+    }
+
+    /**
+     * Set rendered state. Must be reset to false when the webview is disposed
+     * so the next panel instance gets a fresh probe — otherwise a stale
+     * rendered=true from a previous panel would mask a new blank-paint bug.
+     */
+    setRendered(rendered: boolean): void {
+        if (this.isRendered !== rendered) {
+            this.isRendered = rendered
+            this.renderedStateChangedEmitter.fire(rendered)
         }
     }
 

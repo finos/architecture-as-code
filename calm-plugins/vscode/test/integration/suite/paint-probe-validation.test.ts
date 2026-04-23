@@ -79,30 +79,34 @@ async function runBuggyProbe(timeoutMs: number): Promise<ProbeResult> {
     return { ready, rendered }
 }
 
-const vscodeVersion = process.env.VSCODE_VERSION ?? 'stable'
+// Use vscode.version (actual runtime version) rather than the VSCODE_VERSION
+// env var, which holds the matrix label (e.g. "stable") and doesn't reflect
+// the real version the test is running against.
+const actualVersion = vscode.version
+const isBuggyVersion = /^1\.116\./.test(actualVersion)
 
 suite('Paint probe self-validation (standalone webview)', () => {
-    if (vscodeVersion.startsWith('1.116')) {
-        test(`probe catches paint stall on ${vscodeVersion} (expects rendered=false)`, async function () {
+    if (isBuggyVersion) {
+        test(`probe catches paint stall on ${actualVersion} (expects rendered=false)`, async function () {
             this.timeout(30_000)
             const { ready, rendered } = await runBuggyProbe(15_000)
             assert.strictEqual(ready, true, 'JS should still execute — `ready` expected')
             assert.strictEqual(
                 rendered,
                 false,
-                'rAF should NOT fire on 1.116 with the bug pattern. If this asserts true, ' +
+                `rAF should NOT fire on ${actualVersion} with the bug pattern. If this asserts true, ` +
                 'the probe is not detecting the paint stall and would silently pass in CI.'
             )
         })
     } else {
-        test(`probe does not false-positive on ${vscodeVersion} (expects rendered=true)`, async function () {
+        test(`probe does not false-positive on ${actualVersion} (expects rendered=true)`, async function () {
             this.timeout(30_000)
             const { ready, rendered } = await runBuggyProbe(15_000)
             assert.strictEqual(ready, true)
             assert.strictEqual(
                 rendered,
                 true,
-                `rAF should fire on ${vscodeVersion} (paint regression is 1.116-specific). ` +
+                `rAF should fire on ${actualVersion} (paint regression is 1.116-specific). ` +
                 'If this asserts false, the probe is returning false for unrelated reasons ' +
                 '(e.g. broken rAF under Xvfb) and would false-positive in CI.'
             )

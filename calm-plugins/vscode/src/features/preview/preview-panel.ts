@@ -281,6 +281,7 @@ export class CalmPreviewPanel {
   dispose() {
     this.viewModel.setVisible(false)
     this.viewModel.setReady(false)  // Reset ready state so new panel can trigger state changes
+    this.viewModel.setRendered(false)  // Reset rendered probe so next panel gets a fresh paint check
     this.viewModel.clearCurrentUri()  // Clear URI so reopening will trigger proper data loading
     CalmPreviewPanel.currentPanel = undefined
     while (this.disposables.length) {
