@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { IoCompassOutline, IoChevronBackOutline, IoListOutline, IoGitBranchOutline } from 'react-icons/io5';
 import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
@@ -21,8 +21,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { DomainItem } from './DomainItem.js';
 import { InterfaceItem } from './InterfaceItem.js';
 
-type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs' | 'standards';
-type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs' | 'Standards';
+type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs' | 'standards' | 'interfaces' | 'controls';
+type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs' | 'Standards' | 'Interfaces' | 'Controls';
 type HubParams = {
     namespace: string;
     type: TypeInUrl;
@@ -187,6 +187,10 @@ function mapTypeInUrlToTypeInUI(urlType: TypeInUrl): TypeInUI {
             return 'ADRs';
         case 'standards':
             return 'Standards';
+        case 'interfaces':
+            return 'Interfaces';
+        case 'controls':
+            return 'Controls';
         default:
             throw new Error(`Unhandled type: ${urlType}`);
     }
@@ -204,6 +208,10 @@ function mapTypeInUIToTypeInUrl(uiType: TypeInUI): TypeInUrl {
             return 'adrs';
         case 'Standards':
             return 'standards';
+        case 'Interfaces':
+            return 'interfaces';
+        case 'Controls':
+            return 'controls';
         default:
             throw new Error(`Unhandled type: ${uiType}`);
     }
@@ -530,6 +538,14 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const navigate = useNavigate();
     const params = useParams<HubParams>();
 
+    // Stable ref for onInterfaceLoad to avoid re-triggering the deep-link useEffect
+    const onInterfaceLoadRef = useRef(onInterfaceLoad);
+    onInterfaceLoadRef.current = onInterfaceLoad;
+
+    // Stable ref for onControlLoad to avoid re-triggering the deep-link useEffect
+    const onControlLoadRef = useRef(onControlLoad);
+    onControlLoadRef.current = onControlLoad;
+
     const [namespaces, setNamespaces] = useState<string[]>([]);
     const [selectedNamespace, setSelectedNamespace] = useState<string>(EMPTY_STR_VALUE);
     const [selectedType, setSelectedType] = useState<string>(EMPTY_STR_VALUE);
@@ -595,6 +611,53 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             const uiType = mapTypeInUrlToTypeInUI(params.type);
             setSelectedNamespace(params.namespace);
             setSelectedType(uiType);
+
+            if (uiType === 'Interfaces') {
+                const interfaceId = Number(params.id);
+                interfaceService.fetchInterfacesForNamespace(params.namespace)
+                    .then((interfaces) => {
+                        setNamespaceInterfaces(interfaces);
+                        const match = interfaces.find((i) => i.id === interfaceId);
+                        if (match) {
+                            setSelectedInterfaceId(match.id);
+                            onInterfaceLoadRef.current({
+                                namespace: params.namespace!,
+                                interfaceId: match.id,
+                                interfaceName: match.name,
+                                interfaceDescription: match.description,
+                            });
+                        }
+                    })
+                    .catch(() => {
+                        setNamespaceInterfaces([]);
+                    });
+                return;
+            }
+
+            if (uiType === 'Controls') {
+                const controlId = Number(params.id);
+                const domain = params.namespace;
+                controlService.fetchControlsForDomain(domain)
+                    .then((controls) => {
+                        setDomainControls(controls);
+                        setSelectedDomain(domain);
+                        const match = controls.find((c) => c.id === controlId);
+                        if (match) {
+                            setSelectedControlId(match.id);
+                            onControlLoadRef.current({
+                                domain,
+                                controlId: match.id,
+                                controlName: match.name,
+                                controlDescription: match.description,
+                            });
+                        }
+                    })
+                    .catch(() => {
+                        setDomainControls([]);
+                    });
+                return;
+            }
+
             loadResourceIds({
                 type: uiType,
                 namespace: params.namespace,
@@ -641,7 +704,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 });
             }
         }
-    }, [params, calmService, adrService, onDataLoad, onAdrLoad]);
+    }, [params, calmService, adrService, interfaceService, controlService, onDataLoad, onAdrLoad]);
 
     const handleNamespaceClick = useCallback((namespace: string) => {
         if (selectedNamespace === namespace) {

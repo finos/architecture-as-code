@@ -29,6 +29,7 @@ docs/contributing.md
 /shared/package-lock.json
 
 **/.vscode**/
+/.vscode/settings.json
 
 node_modules/
 **/dist/

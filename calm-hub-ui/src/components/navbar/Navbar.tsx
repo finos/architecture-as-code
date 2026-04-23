@@ -1,5 +1,6 @@
 import './Navbar.css';
 import { NavLink } from 'react-router-dom';
+import { GlobalSearchBar } from './GlobalSearchBar.js';
 
 export function Navbar() {
     return (
@@ -55,6 +56,9 @@ export function Navbar() {
                         </li>
                     </ul>
                 </div>
+            </div>
+            <div className="navbar-end">
+                <GlobalSearchBar />
             </div>
         </div>
     );
