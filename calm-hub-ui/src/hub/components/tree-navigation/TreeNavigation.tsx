@@ -816,8 +816,15 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     }, [selectedNamespace, calmService, adrService]);
 
     const handleVersionClick = useCallback((version: string, type: string) => {
-        navigate(`${basePath}/${selectedNamespace}/${mapTypeInUIToTypeInUrl(type as TypeInUI)}/${selectedResourceID}/${version}`);
-    }, [navigate, selectedNamespace, selectedResourceID]);
+        const resourceIDForRoute = type === 'Architectures'
+            ? architectureSummaries
+                .find((summary) => (summary.customId ?? summary.id.toString()) === selectedResourceID || summary.name === selectedResourceID)
+                ?.id
+                ?.toString() ?? selectedResourceID
+            : selectedResourceID;
+
+        navigate(`${basePath}/${selectedNamespace}/${mapTypeInUIToTypeInUrl(type as TypeInUI)}/${resourceIDForRoute}/${version}`);
+    }, [navigate, selectedNamespace, selectedResourceID, architectureSummaries]);
 
     const getResourceIDs = (type: string): string[] => {
         const toId = (s: ResourceSummary) => s.customId ?? s.id.toString();
