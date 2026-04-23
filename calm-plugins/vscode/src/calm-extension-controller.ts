@@ -16,6 +16,7 @@ import { DiagnosticsService } from './core/services/diagnostics-service'
 import { createApplicationStore, type ApplicationStoreApi } from './application-store'
 import { setWidgetLogger } from '@finos/calm-shared'
 import { ValidationService } from './features/validation/validation-service'
+import { createTestApi, CalmExtensionTestApi } from './test-api'
 
 /**
  * Main extension controller that orchestrates all VS Code extension functionality
@@ -23,6 +24,11 @@ import { ValidationService } from './features/validation/validation-service'
 export class CalmExtensionController {
   private disposables: vscode.Disposable[] = []
   private logging: LoggingService | undefined
+  private previewPanelFactory: PreviewPanelFactory | undefined
+
+  getTestApi(): CalmExtensionTestApi | undefined {
+    return this.previewPanelFactory ? createTestApi(this.previewPanelFactory) : undefined
+  }
 
   async start(context: vscode.ExtensionContext) {
     this.logging = new LoggingService('vscode-ext')
@@ -42,6 +48,7 @@ export class CalmExtensionController {
 
     const configService: Config = new ConfigService()
     const previewPanelFactory = new PreviewPanelFactory()
+    this.previewPanelFactory = previewPanelFactory
     const treeManager = new TreeViewFactory(store)
     const editorFactory = new EditorFactory(store)
     const navigationService = new NavigationService(log, configService)

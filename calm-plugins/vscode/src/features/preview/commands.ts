@@ -3,6 +3,7 @@ export type InMsg =
   | { type: 'revealInEditor'; id: string }
   | { type: 'selected'; id: string }
   | { type: 'ready' }
+  | { type: 'rendered' }
   | { type: 'runDocify'; templatePath?: string }
   | { type: 'requestModelData' }
   | { type: 'requestTemplateData' }
@@ -20,6 +21,7 @@ export interface PreviewCommandTarget {
   handleRevealInEditor(id: string): void
   handleSelected(id: string): void
   handleReady(): void
+  handleRendered(): void
   handleRunDocify(): void
   handleRequestModelData(): void
   handleRequestTemplateData(): void
@@ -56,6 +58,11 @@ export class ReadyCmd implements WebviewCommand<{ type: 'ready' }> {
   readonly type = 'ready' as const
   constructor(private p: PreviewCommandTarget) { }
   execute() { this.p.handleReady() }
+}
+export class RenderedCmd implements WebviewCommand<{ type: 'rendered' }> {
+  readonly type = 'rendered' as const
+  constructor(private p: PreviewCommandTarget) { }
+  execute() { this.p.handleRendered() }
 }
 export class RunDocifyCmd implements WebviewCommand<{ type: 'runDocify'; templatePath?: string }> {
   readonly type = 'runDocify' as const

@@ -177,6 +177,8 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
+        "test:integration:compile": "tsc -p test/integration",
+        "test:integration": "npm run build && npm run test:integration:compile && node ./out/integration/runTest.js",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
         "package": "npm run build && npx @vscode/vsce package --no-dependencies",
@@ -184,12 +186,16 @@
     },
     "devDependencies": {
         "@types/markdown-it": "^14.1.2",
+        "@types/mocha": "^10.0.6",
         "@types/svg-pan-zoom": "^3.3.0",
         "@types/vscode": "^1.88.0",
         "@vscode/dts": "^0.4.1",
+        "@vscode/test-electron": "^2.3.9",
         "@vscode/vsce": "^3.7.1",
         "copyfiles": "^2.4.1",
         "eslint-plugin-import": "^2.32.0",
+        "glob": "^10.3.10",
+        "mocha": "^10.2.0",
         "tsup": "^8.4.0"
     },
     "dependencies": {

@@ -12,6 +12,9 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'node',
+        // Integration tests run under @vscode/test-electron (Mocha + real VSCode),
+        // not vitest. Exclude them from the unit-test run.
+        exclude: ['**/node_modules/**', '**/dist/**', '**/out/**', 'test/integration/**'],
         coverage: {
             provider: 'v8',
             ...v8CoverageSettings,

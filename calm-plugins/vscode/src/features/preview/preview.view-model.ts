@@ -38,6 +38,7 @@ export class PreviewViewModel implements PreviewViewModelInterface {
     // Main orchestration emitters
     private activeTabChangedEmitter = new Emitter<'model' | 'template' | 'docify'>()
     private readyStateChangedEmitter = new Emitter<boolean>()
+    private renderedStateChangedEmitter = new Emitter<boolean>()
     private visibilityChangedEmitter = new Emitter<boolean>()
     private versionAnnouncementEmitter = new Emitter<{ version: string; message: string }>()
     private stateChangedEmitter = new Emitter<void>()
@@ -54,12 +55,14 @@ export class PreviewViewModel implements PreviewViewModelInterface {
     private activeTab: 'model' | 'template' | 'docify' = 'model'
     private isVisible = false
     private isReady = false
+    private isRendered = false
     private currentUri: string | undefined
     private extensionVersion: string = ''
 
     // Events
     onActiveTabChanged = this.activeTabChangedEmitter.event
     onReadyStateChanged = this.readyStateChangedEmitter.event
+    onRenderedStateChanged = this.renderedStateChangedEmitter.event
     onVisibilityChanged = this.visibilityChangedEmitter.event
     onVersionAnnouncement = this.versionAnnouncementEmitter.event
     onStateChanged = this.stateChangedEmitter.event
@@ -350,6 +353,31 @@ export class PreviewViewModel implements PreviewViewModelInterface {
         this.setReady(true)
     }
 
+    /**
+     * Handle webview 'rendered' message — posted after 2 rAF ticks, proving
+     * the compositor is producing frames. Used as a paint-level probe for
+     * regressions like issue #2361 where the paint pipeline stalls.
+     */
+    handleRendered(): void {
+        this.setRendered(true)
+    }
+
+    /**
+     * Set rendered state. Must be reset to false when the webview is disposed
+     * so the next panel instance gets a fresh probe — otherwise a stale
+     * rendered=true from a previous panel would mask a new blank-paint bug.
+     */
+    setRendered(rendered: boolean): void {
+        if (this.isRendered !== rendered) {
+            this.isRendered = rendered
+            this.renderedStateChangedEmitter.fire(rendered)
+        }
+    }
+
+    getIsRendered(): boolean {
+        return this.isRendered
+    }
+
     handleToggleLabels(showLabels: boolean): void {
         this.template.setShowLabels(showLabels)
     }
@@ -385,6 +413,7 @@ export class PreviewViewModel implements PreviewViewModelInterface {
         this.docify.dispose()
         this.activeTabChangedEmitter.dispose()
         this.readyStateChangedEmitter.dispose()
+        this.renderedStateChangedEmitter.dispose()
         this.visibilityChangedEmitter.dispose()
         this.versionAnnouncementEmitter.dispose()
         this.stateChangedEmitter.dispose()
