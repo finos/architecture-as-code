@@ -67,6 +67,11 @@ jobs:
             - name: Install workspace
               run: npm ci
 
+            - name: Build workspace dependencies
+              # tsup in the vscode extension needs @finos/calm-shared and
+              # @finos/calm-models pre-built (they're file:../../ workspace deps).
+              run: npm run build:shared
+
             - name: Integration Test VS Code Extension (Xvfb)
               # Xvfb provides a virtual display so @vscode/test-electron can launch
               # a real VSCode instance headlessly. xvfb-run wraps the command.
