@@ -86,7 +86,7 @@ jobs:
               run: pnpm --filter @calmstudio/studio exec playwright install --with-deps chromium
 
             - name: Build
-              run: pnpm -r run build
+              run: pnpm --filter '!calmstudio-docs' -r run build
 
             - name: Run E2E tests
               run: pnpm --filter @calmstudio/studio run test:e2e
