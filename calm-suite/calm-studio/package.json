@@ -18,7 +18,9 @@
     "overrides": {
       "undici": ">=6.24.0",
       "serialize-javascript": ">=7.0.5",
-      "cookie": ">=0.7.0"
+      "cookie": ">=0.7.0",
+      "hono": ">=4.12.14",
+      "follow-redirects": ">=1.16.0"
     }
   },
   "devDependencies": {

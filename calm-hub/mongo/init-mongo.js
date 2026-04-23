@@ -1591,6 +1591,11 @@ if (db.architectures.countDocuments() === 0) {
                                     }
                                 }
                             ],
+                            "adrs": [
+                                "https://github.com/org/project/docs/adr/0001-use-load-balancer.md",
+                                "https://github.com/org/project/docs/adr/0002-use-kubernetes.md",
+                                "/calm/namespaces/workshop/adrs/1"
+                            ],
                             "$schema": "https://calm.finos.org/calm/namespaces/workshop/patterns/1/versions/1.0.0"
                         }
                     }
@@ -2207,8 +2212,56 @@ if (db.adrs.countDocuments() === 0) {
                 },
             ],
         },
+        {
+            namespace: 'workshop',
+            adrs: [
+                {
+                    adrId: NumberInt(1),
+                    revisions: {
+                        1: {
+                            title: 'Use Load Balancer for Traffic Distribution',
+                            status: 'accepted',
+                            creationDateTime: [2025, 3, 15, 10, 30, 0, 0],
+                            updateDateTime: [2025, 3, 20, 14, 0, 0, 0],
+                            contextAndProblemStatement: 'The conference signup system needs to handle variable traffic loads during registration periods. We need a strategy to distribute incoming requests across multiple service instances to ensure availability and performance.',
+                            decisionDrivers: [
+                                'High availability during peak registration periods',
+                                'Horizontal scalability of the attendees service',
+                                'Even distribution of load across service instances',
+                            ],
+                            consideredOptions: [
+                                {
+                                    name: 'DNS Round Robin',
+                                    description: 'Use DNS-based load balancing to distribute traffic across service instances.',
+                                    positiveConsequences: ['Simple to configure', 'No additional infrastructure required'],
+                                    negativeConsequences: ['No health checking', 'Uneven distribution with caching'],
+                                },
+                                {
+                                    name: 'Dedicated Load Balancer',
+                                    description: 'Deploy a dedicated load balancer (e.g. NGINX, HAProxy) in front of service instances.',
+                                    positiveConsequences: ['Health checking and automatic failover', 'Even traffic distribution', 'SSL termination'],
+                                    negativeConsequences: ['Additional infrastructure component', 'Requires configuration management'],
+                                },
+                            ],
+                            decisionOutcome: {
+                                chosenOption: {
+                                    name: 'Dedicated Load Balancer',
+                                    description: 'Deploy a dedicated load balancer in front of the attendees service for health-aware traffic distribution.',
+                                    positiveConsequences: ['Health checking and automatic failover', 'Even traffic distribution', 'SSL termination'],
+                                    negativeConsequences: ['Additional infrastructure component', 'Requires configuration management'],
+                                },
+                                rationale: 'A dedicated load balancer provides health checking and automatic failover which are critical for ensuring availability during peak conference registration periods.',
+                            },
+                            links: [
+                                { rel: 'Conference Signup Architecture', href: '/calm/namespaces/workshop/architectures/1/versions/1-0-0' },
+                            ],
+                        },
+                    },
+                },
+            ],
+        },
     ]);
-    logSuccess("Initialized ADRs for finos namespace");
+    logSuccess("Initialized ADRs for finos and workshop namespaces");
 } else {
     logSkip("ADRs already initialized, skipping...");
 }

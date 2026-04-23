@@ -246,6 +246,7 @@ Your e-commerce architecture should look something like this:
 🎉 **Congratulations!** You've completed the beginner tutorials and can now model complete architectures with CALM.
 
 **Continue Learning:**
+- Continue with the **Intermediate** level tutorials.
 - Explore the [Core Concepts](../../core-concepts/) for deeper understanding
 - Check out [Working with CALM](../../working-with-calm/) for CLI and tooling details
 - Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
