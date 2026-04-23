@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -283,6 +285,94 @@ class TestNitriteSearchStoreShould {
         GroupedSearchResults results = searchStore.search("match");
 
         assertEquals(SearchStore.MAX_RESULTS_PER_TYPE, results.getArchitectures().size());
+    }
+
+    /**
+     * Regression test for PR #2366: namespace-based access filter must run
+     * <em>before</em> the per-type cap so that a user with limited namespace
+     * grants still receives authorised results that may live beyond the
+     * unfiltered cap.
+     */
+    @Test
+    void filter_namespaced_results_by_readable_namespaces_before_cap() {
+        // First namespace document is "secret-ns" and contains MAX+10 matches the
+        // user is NOT allowed to read; second is "finos" with one allowed match.
+        List<Document> secretEntries = new ArrayList<>();
+        for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
+            secretEntries.add(Document.createDocument("architectureId", i)
+                    .put("name", "Match " + i)
+                    .put("description", "desc"));
+        }
+        Document secretNs = Document.createDocument("namespace", "secret-ns")
+                .put("architectures", secretEntries);
+
+        Document allowedEntry = Document.createDocument("architectureId", 999)
+                .put("name", "Allowed Match")
+                .put("description", "desc");
+        Document allowedNs = Document.createDocument("namespace", "finos")
+                .put("architectures", List.of(allowedEntry));
+
+        mockCollectionFind(architectureCollection, List.of(secretNs, allowedNs));
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+
+        GroupedSearchResults results = searchStore.search("match",
+                Optional.of(Set.of("finos")));
+
+        assertEquals(1, results.getArchitectures().size(),
+                "filter must apply before MAX cap so authorised results are not silently dropped");
+        assertEquals("Allowed Match", results.getArchitectures().get(0).getName());
+        assertEquals("finos", results.getArchitectures().get(0).getNamespace());
+    }
+
+    /**
+     * Regression test for PR #2366: controls are scoped by domain, not namespace,
+     * so the readable-namespaces filter must not be applied to them — otherwise
+     * controls would always be filtered out for any authenticated user.
+     */
+    @Test
+    void return_controls_regardless_of_readable_namespaces() {
+        Document controlEntry = Document.createDocument("controlId", 1)
+                .put("name", "API Rate Limiting")
+                .put("description", "Rate limit control");
+        Document domainDoc = Document.createDocument("domain", "api-threats")
+                .put("controls", List.of(controlEntry));
+
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, adrCollection);
+        mockCollectionFind(controlCollection, List.of(domainDoc));
+
+        // The user has no namespace grants but controls must still be returned
+        // because they are domain-scoped.
+        GroupedSearchResults results = searchStore.search("rate", Optional.of(Set.of()));
+
+        assertEquals(1, results.getControls().size());
+        assertEquals("api-threats", results.getControls().get(0).getNamespace());
+    }
+
+    @Test
+    void filter_adrs_by_readable_namespaces() {
+        Document allowedRev = Document.createDocument("title", "Allowed ADR");
+        Document allowedAdr = Document.createDocument("adrId", 1)
+                .put("revisions", Map.of("1", allowedRev));
+        Document allowedNs = Document.createDocument("namespace", "finos")
+                .put("adrs", List.of(allowedAdr));
+
+        Document forbiddenRev = Document.createDocument("title", "Forbidden ADR");
+        Document forbiddenAdr = Document.createDocument("adrId", 2)
+                .put("revisions", Map.of("1", forbiddenRev));
+        Document forbiddenNs = Document.createDocument("namespace", "secret-ns")
+                .put("adrs", List.of(forbiddenAdr));
+
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+        mockCollectionFind(adrCollection, List.of(allowedNs, forbiddenNs));
+
+        GroupedSearchResults results = searchStore.search("ADR",
+                Optional.of(Set.of("finos")));
+
+        assertEquals(1, results.getAdrs().size());
+        assertEquals("Allowed ADR", results.getAdrs().get(0).getName());
     }
 
     private void mockCollectionFind(NitriteCollection collection, List<Document> documents) {

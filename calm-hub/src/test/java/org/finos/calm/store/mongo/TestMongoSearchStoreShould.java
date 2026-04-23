@@ -15,6 +15,8 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -288,6 +290,65 @@ class TestMongoSearchStoreShould {
         GroupedSearchResults results = searchStore.search("match");
 
         assertEquals(SearchStore.MAX_RESULTS_PER_TYPE, results.getArchitectures().size());
+    }
+
+    /**
+     * Regression test for PR #2366: namespace-based access filter must run
+     * <em>before</em> the per-type cap so that a user with limited namespace
+     * grants still receives authorised results that may live beyond the
+     * unfiltered cap.
+     */
+    @Test
+    void filter_namespaced_results_by_readable_namespaces_before_cap() {
+        List<Document> secretEntries = new ArrayList<>();
+        for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
+            secretEntries.add(new Document("architectureId", i)
+                    .append("name", "Match " + i)
+                    .append("description", "desc"));
+        }
+        Document secretNs = new Document("namespace", "secret-ns")
+                .append("architectures", secretEntries);
+
+        Document allowedEntry = new Document("architectureId", 999)
+                .append("name", "Allowed Match")
+                .append("description", "desc");
+        Document allowedNs = new Document("namespace", "finos")
+                .append("architectures", List.of(allowedEntry));
+
+        mockCollectionFind(architectureCollection, List.of(secretNs, allowedNs));
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+
+        GroupedSearchResults results = searchStore.search("match",
+                Optional.of(Set.of("finos")));
+
+        assertEquals(1, results.getArchitectures().size(),
+                "filter must apply before MAX cap so authorised results are not silently dropped");
+        assertEquals("Allowed Match", results.getArchitectures().get(0).getName());
+        assertEquals("finos", results.getArchitectures().get(0).getNamespace());
+    }
+
+    /**
+     * Regression test for PR #2366: controls are scoped by domain, not namespace,
+     * so the readable-namespaces filter must not be applied to them — otherwise
+     * controls would always be filtered out for any authenticated user.
+     */
+    @Test
+    void return_controls_regardless_of_readable_namespaces() {
+        Document controlEntry = new Document("controlId", 1)
+                .append("name", "API Rate Limiting")
+                .append("description", "Rate limit control");
+        Document domainDoc = new Document("domain", "api-threats")
+                .append("controls", List.of(controlEntry));
+
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, adrCollection);
+        mockCollectionFind(controlCollection, List.of(domainDoc));
+
+        GroupedSearchResults results = searchStore.search("rate", Optional.of(Set.of()));
+
+        assertEquals(1, results.getControls().size());
+        assertEquals("api-threats", results.getControls().get(0).getNamespace());
     }
 
     @SuppressWarnings("unchecked")

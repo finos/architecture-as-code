@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * NitriteDB-backed implementation of {@link SearchStore}.
@@ -25,7 +27,8 @@ import java.util.Map;
  * Searches across 7 resource collections by matching the query (case-insensitive)
  * against the {@code name} and {@code description} fields of each resource entry.
  * For ADRs, the {@code title} field of the latest revision is searched.
- * Controls are scoped by domain rather than namespace.
+ * Controls are scoped by domain rather than namespace, so they bypass the
+ * readable-namespaces filter.
  */
 @ApplicationScoped
 @Typed(NitriteSearchStore.class)
@@ -54,28 +57,32 @@ public class NitriteSearchStore implements SearchStore {
     }
 
     @Override
-    public GroupedSearchResults search(String query) {
+    public GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces) {
         String lowerQuery = query.toLowerCase();
 
         return new GroupedSearchResults(
-                searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery),
-                searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery),
-                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery),
-                searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery),
-                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery),
+                searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery, readableNamespaces),
+                searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery, readableNamespaces),
+                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
+                searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
+                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),
-                searchAdrCollection(lowerQuery)
+                searchAdrCollection(lowerQuery, readableNamespaces)
         );
     }
 
     private List<SearchResult> searchNamespacedCollection(NitriteCollection collection,
                                                           String arrayField,
                                                           String idField,
-                                                          String lowerQuery) {
+                                                          String lowerQuery,
+                                                          Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
         for (Document namespaceDoc : collection.find()) {
             String namespace = namespaceDoc.get("namespace", String.class);
+            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
+                continue;
+            }
             TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
             List<Document> entries = wrapper.getList(arrayField);
             if (entries == null) {
@@ -132,11 +139,14 @@ public class NitriteSearchStore implements SearchStore {
     }
 
     @SuppressWarnings("unchecked")
-    private List<SearchResult> searchAdrCollection(String lowerQuery) {
+    private List<SearchResult> searchAdrCollection(String lowerQuery, Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
         for (Document namespaceDoc : adrCollection.find()) {
             String namespace = namespaceDoc.get("namespace", String.class);
+            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
+                continue;
+            }
             TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
             List<Document> adrs = wrapper.getList("adrs");
             if (adrs == null) {
