@@ -1288,4 +1288,23 @@ public class TestFrontControllerResourceShould {
                 .statusCode(400)
                 .body(containsString("Unknown error"));
     }
+
+    @Test
+    void return_404_on_update_when_existing_mapping_has_no_versions() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("orphan").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", "orphan")).thenReturn(existing);
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of());
+
+        String body = "{ \"json\": \"{}\", \"changeType\": \"MINOR\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm/namespaces/finos/orphan")
+                .then()
+                .statusCode(404)
+                .body(containsString("orphan"));
+    }
 }
