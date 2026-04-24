@@ -22,7 +22,6 @@ public class TestNitriteCounterStoreShould {
     private static final String PATTERN_COUNTER = "pattern_counter";
     private static final String ARCHITECTURE_COUNTER = "architecture_counter";
     private static final String ADR_COUNTER = "adr_counter";
-    private static final String FLOW_COUNTER = "flow_counter";
     private static final String DECORATOR_COUNTER = "decorator_counter";
     private static final String INTERFACE_COUNTER = "interface_counter";
 
@@ -91,23 +90,6 @@ public class TestNitriteCounterStoreShould {
         // Assert
         assertThat(result, is(15));
         verify(countersDoc).put(ADR_COUNTER, 15); // Verify the counter was incremented
-        verify(mockCollection).update(countersDoc); // Verify the document was updated
-    }
-
-    @Test
-    public void testGetNextFlowSequenceValue() {
-        // Arrange
-        Document countersDoc = mock(Document.class);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-        when(mockCursor.firstOrNull()).thenReturn(countersDoc);
-        when(countersDoc.get(FLOW_COUNTER, Integer.class)).thenReturn(7); // Current value
-
-        // Act
-        int result = counterStore.getNextFlowSequenceValue();
-
-        // Assert
-        assertThat(result, is(8));
-        verify(countersDoc).put(FLOW_COUNTER, 8); // Verify the counter was incremented
         verify(mockCollection).update(countersDoc); // Verify the document was updated
     }
 

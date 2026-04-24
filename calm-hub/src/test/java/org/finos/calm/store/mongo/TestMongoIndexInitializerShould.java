@@ -48,10 +48,9 @@ class TestMongoIndexInitializerShould {
         verify(mockDatabase).getCollection("namespaces");
         verify(mockDatabase).getCollection("domains");
         verify(mockDatabase).getCollection("schemas");
-        // Namespace-scoped: architectures, patterns, flows, standards, interfaces
+        // Namespace-scoped: architectures, patterns, standards, interfaces
         verify(mockDatabase).getCollection("architectures");
         verify(mockDatabase).getCollection("patterns");
-        verify(mockDatabase).getCollection("flows");
         verify(mockDatabase).getCollection("standards");
         verify(mockDatabase).getCollection("interfaces");
         // Domain-scoped + resource mappings

@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  *   <li>{@code namespaces.name} (unique) — one document per namespace name</li>
  *   <li>{@code domains.name} (unique) — one document per domain name</li>
  *   <li>{@code schemas.version} (unique) — one document per schema version string</li>
- *   <li>{@code architectures.namespace}, {@code patterns.namespace}, {@code flows.namespace},
+ *   <li>{@code architectures.namespace}, {@code patterns.namespace},
  *       {@code standards.namespace}, {@code interfaces.namespace} (unique) — one document
  *       per namespace in each entity collection, containing an array of that entity type</li>
  *   <li>{@code controls.domain} (unique) — one document per domain, containing an array
@@ -88,7 +88,7 @@ public class MongoIndexInitializer {
      * <ol>
      *   <li><b>Top-level entity collections</b> (namespaces, domains, schemas) —
      *       prevent two documents with the same name/version from being inserted.</li>
-     *   <li><b>Namespace-scoped collections</b> (architectures, patterns, flows, standards,
+     *   <li><b>Namespace-scoped collections</b> (architectures, patterns, standards,
      *       interfaces) — ensure exactly one document per namespace. Each document contains
      *       an array of entities; new entities are appended via {@code $push} with upsert.</li>
      *   <li><b>Domain-scoped collection</b> (controls) — ensure exactly one document per
@@ -113,7 +113,7 @@ public class MongoIndexInitializer {
             LOG.info("Ensured unique index on schemas.version");
 
             // Namespace-scoped collections — one document per namespace
-            for (String collection : new String[]{"architectures", "patterns", "flows", "standards", "interfaces"}) {
+            for (String collection : new String[]{"architectures", "patterns", "standards", "interfaces"}) {
                 database.getCollection(collection)
                         .createIndex(new Document("namespace", 1), uniqueIndex);
                 LOG.info("Ensured unique index on {}.namespace", collection);

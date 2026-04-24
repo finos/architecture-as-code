@@ -16,7 +16,6 @@ import org.finos.calm.domain.*;
 import org.finos.calm.domain.Semver;
 import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.*;
-import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.frontcontroller.ChangeType;
 import org.finos.calm.domain.frontcontroller.FrontControllerCreateRequest;
 import org.finos.calm.domain.frontcontroller.FrontControllerUpdateRequest;
@@ -53,7 +52,6 @@ public class FrontControllerResource {
     private final ResourceMappingStore mappingStore;
     private final PatternStore patternStore;
     private final ArchitectureStore architectureStore;
-    private final FlowStore flowStore;
     private final StandardStore standardStore;
     private final InterfaceStore interfaceStore;
 
@@ -64,13 +62,11 @@ public class FrontControllerResource {
     public FrontControllerResource(ResourceMappingStore mappingStore,
                                    PatternStore patternStore,
                                    ArchitectureStore architectureStore,
-                                   FlowStore flowStore,
                                    StandardStore standardStore,
                                    InterfaceStore interfaceStore) {
         this.mappingStore = mappingStore;
         this.patternStore = patternStore;
         this.architectureStore = architectureStore;
-        this.flowStore = flowStore;
         this.standardStore = standardStore;
         this.interfaceStore = interfaceStore;
     }
@@ -127,7 +123,7 @@ public class FrontControllerResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting resource", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
-        } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException | StandardNotFoundException | InterfaceNotFoundException e) {
+        } catch (PatternNotFoundException | ArchitectureNotFoundException | StandardNotFoundException | InterfaceNotFoundException e) {
             return mappingNotFoundResponse(customId);
         } catch (Exception e) {
             logger.error("Error retrieving resource [{}] in namespace [{}]", STRICT_SANITIZATION_POLICY.sanitize(customId), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -158,9 +154,9 @@ public class FrontControllerResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting resource version", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
-        } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException | StandardNotFoundException | InterfaceNotFoundException e) {
+        } catch (PatternNotFoundException | ArchitectureNotFoundException | StandardNotFoundException | InterfaceNotFoundException e) {
             return mappingNotFoundResponse(customId);
-        } catch (PatternVersionNotFoundException | ArchitectureVersionNotFoundException | FlowVersionNotFoundException | StandardVersionNotFoundException | InterfaceVersionNotFoundException e) {
+        } catch (PatternVersionNotFoundException | ArchitectureVersionNotFoundException | StandardVersionNotFoundException | InterfaceVersionNotFoundException e) {
             return invalidVersionResponse(version);
         } catch (Exception e) {
             logger.error("Error retrieving resource [{}] version [{}] in namespace [{}]", STRICT_SANITIZATION_POLICY.sanitize(customId), STRICT_SANITIZATION_POLICY.sanitize(version), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -192,7 +188,7 @@ public class FrontControllerResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when listing resource versions", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
-        } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException | StandardNotFoundException | InterfaceNotFoundException e) {
+        } catch (PatternNotFoundException | ArchitectureNotFoundException | StandardNotFoundException | InterfaceNotFoundException e) {
             return mappingNotFoundResponse(customId);
         } catch (Exception e) {
             logger.error("Error listing versions for [{}] in namespace [{}]", STRICT_SANITIZATION_POLICY.sanitize(customId), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -353,11 +349,6 @@ public class FrontControllerResource {
                 Architecture created = architectureStore.createArchitectureForNamespace(arch);
                 yield created.getId();
             }
-            case FLOW -> {
-                CreateFlowRequest req = new CreateFlowRequest(name, description, json);
-                Flow created = flowStore.createFlowForNamespace(req, namespace);
-                yield created.getId();
-            }
             case STANDARD -> {
                 CreateStandardRequest req = new CreateStandardRequest(name, description, json);
                 Standard created = standardStore.createStandardForNamespace(req, namespace);
@@ -394,15 +385,6 @@ public class FrontControllerResource {
                         .build();
                 architectureStore.createArchitectureForVersion(arch);
             }
-            case FLOW -> {
-                Flow flow = new Flow.FlowBuilder()
-                        .setNamespace(namespace)
-                        .setId(numericId)
-                        .setVersion(version)
-                        .setFlow(json)
-                        .build();
-                flowStore.createFlowForVersion(flow);
-            }
             case STANDARD -> {
                 CreateStandardRequest req = new CreateStandardRequest("", "", json);
                 standardStore.createStandardForVersion(req, namespace, numericId, version);
@@ -433,13 +415,6 @@ public class FrontControllerResource {
                         .build();
                 yield architectureStore.getArchitectureVersions(arch);
             }
-            case FLOW -> {
-                Flow flow = new Flow.FlowBuilder()
-                        .setNamespace(mapping.getNamespace())
-                        .setId(mapping.getNumericId())
-                        .build();
-                yield flowStore.getFlowVersions(flow);
-            }
             case STANDARD -> standardStore.getStandardVersions(mapping.getNamespace(), mapping.getNumericId());
             case INTERFACE -> interfaceStore.getInterfaceVersions(mapping.getNamespace(), mapping.getNumericId());
         };
@@ -465,14 +440,6 @@ public class FrontControllerResource {
                         .setVersion(version)
                         .build();
                 yield architectureStore.getArchitectureForVersion(arch);
-            }
-            case FLOW -> {
-                Flow flow = new Flow.FlowBuilder()
-                        .setNamespace(mapping.getNamespace())
-                        .setId(mapping.getNumericId())
-                        .setVersion(version)
-                        .build();
-                yield flowStore.getFlowForVersion(flow);
             }
             case STANDARD -> standardStore.getStandardForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
             case INTERFACE -> interfaceStore.getInterfaceForVersion(mapping.getNamespace(), mapping.getNumericId(), version);

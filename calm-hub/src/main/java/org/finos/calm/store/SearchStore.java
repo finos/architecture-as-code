@@ -14,7 +14,7 @@ public interface SearchStore {
      * @param query              the user-supplied search query
      * @param readableNamespaces an optional set of namespaces the caller is allowed to read.
      *                           When present, namespace-scoped result types
-     *                           (architectures, patterns, flows, standards, interfaces, ADRs)
+     *                           (architectures, patterns, standards, interfaces, ADRs)
      *                           are filtered to entries belonging to those namespaces
      *                           <em>before</em> the per-type cap is applied. Controls are
      *                           domain-scoped and are not affected by this filter.

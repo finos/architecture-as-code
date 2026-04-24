@@ -137,7 +137,7 @@ public class TestMongoUserAccessStoreShould {
         Document doc = new Document("username", "test")
                 .append("namespace", namespace)
                 .append("permission", Permission.read.name())
-                .append("resourceType", ResourceType.flows.name())
+                .append("resourceType", ResourceType.patterns.name())
                 .append("userAccessId", 111);
 
         DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
@@ -155,7 +155,7 @@ public class TestMongoUserAccessStoreShould {
         assertThat(actual, hasSize(1));
         assertThat(actual.getFirst().getUsername(), is("test"));
         assertThat(actual.getFirst().getPermission(), is(Permission.read));
-        assertThat(actual.getFirst().getResourceType(), is(ResourceType.flows));
+        assertThat(actual.getFirst().getResourceType(), is(ResourceType.patterns));
     }
 
     @Test
@@ -186,7 +186,7 @@ public class TestMongoUserAccessStoreShould {
         Document document = new Document("username", "test")
                 .append("namespace", namespace)
                 .append("permission", Permission.read.name())
-                .append("resourceType", ResourceType.flows.name())
+                .append("resourceType", ResourceType.patterns.name())
                 .append("userAccessId", userAccessId);
 
         DocumentFindIterable mockFindIterable = mock(DocumentFindIterable.class);
@@ -201,7 +201,7 @@ public class TestMongoUserAccessStoreShould {
 
         assertThat(actual.getUsername(), is("test"));
         assertThat(actual.getPermission(), is(Permission.read));
-        assertThat(actual.getResourceType(), is(ResourceType.flows));
+        assertThat(actual.getResourceType(), is(ResourceType.patterns));
         assertThat(actual.getNamespace(), is(namespace));
         assertThat(actual.getUserAccessId(), is(userAccessId));
     }

@@ -68,7 +68,6 @@ public class TestSearchResourceShould {
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of(),
                 List.of()
         );
 
@@ -85,7 +84,6 @@ public class TestSearchResourceShould {
                 .body("architectures[0].namespace", equalTo("finos"))
                 .body("architectures[0].id", equalTo(1))
                 .body("patterns", hasSize(0))
-                .body("flows", hasSize(0))
                 .body("standards", hasSize(0))
                 .body("interfaces", hasSize(0))
                 .body("controls", hasSize(0))
@@ -97,7 +95,7 @@ public class TestSearchResourceShould {
     @Test
     void return_empty_grouped_results_when_no_matches() {
         GroupedSearchResults results = new GroupedSearchResults(
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
         );
 
         when(mockSearchStore.search(eq("nonexistent"), any())).thenReturn(results);
@@ -110,7 +108,6 @@ public class TestSearchResourceShould {
                 .statusCode(200)
                 .body("architectures", hasSize(0))
                 .body("patterns", hasSize(0))
-                .body("flows", hasSize(0))
                 .body("standards", hasSize(0))
                 .body("interfaces", hasSize(0))
                 .body("controls", hasSize(0))
@@ -124,7 +121,6 @@ public class TestSearchResourceShould {
         GroupedSearchResults results = new GroupedSearchResults(
                 List.of(new SearchResult("finos", 1, "Demo Architecture", "demo desc")),
                 List.of(new SearchResult("finos", 2, "Demo Pattern", "pattern desc")),
-                List.of(new SearchResult("finos", 3, "Demo Flow", "flow desc")),
                 List.of(),
                 List.of(),
                 List.of(new SearchResult("api-threats", 1, "Demo Control", "control desc")),
@@ -141,7 +137,6 @@ public class TestSearchResourceShould {
                 .statusCode(200)
                 .body("architectures", hasSize(1))
                 .body("patterns", hasSize(1))
-                .body("flows", hasSize(1))
                 .body("controls", hasSize(1));
 
         verify(mockSearchStore).search(eq("demo"), any());
@@ -152,7 +147,7 @@ public class TestSearchResourceShould {
         String maxQuery = "a".repeat(200);
 
         GroupedSearchResults results = new GroupedSearchResults(
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
         );
 
         when(mockSearchStore.search(eq(maxQuery), any())).thenReturn(results);

@@ -37,9 +37,6 @@ class TestNitriteSearchStoreShould {
     private NitriteCollection patternCollection;
 
     @Mock
-    private NitriteCollection flowCollection;
-
-    @Mock
     private NitriteCollection standardCollection;
 
     @Mock
@@ -58,7 +55,6 @@ class TestNitriteSearchStoreShould {
         MockitoAnnotations.openMocks(this);
         when(db.getCollection("architectures")).thenReturn(architectureCollection);
         when(db.getCollection("patterns")).thenReturn(patternCollection);
-        when(db.getCollection("flows")).thenReturn(flowCollection);
         when(db.getCollection("standards")).thenReturn(standardCollection);
         when(db.getCollection("interfaces")).thenReturn(interfaceCollection);
         when(db.getCollection("controls")).thenReturn(controlCollection);
@@ -75,7 +71,7 @@ class TestNitriteSearchStoreShould {
                 .put("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("payment");
@@ -96,7 +92,7 @@ class TestNitriteSearchStoreShould {
                 .put("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("PAYMENT");
@@ -113,7 +109,7 @@ class TestNitriteSearchStoreShould {
                 .put("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("nonexistent");
@@ -130,7 +126,7 @@ class TestNitriteSearchStoreShould {
                 .put("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("payment");
@@ -146,7 +142,7 @@ class TestNitriteSearchStoreShould {
         Document domainDoc = Document.createDocument("domain", "api-threats")
                 .put("controls", List.of(controlEntry));
 
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, adrCollection);
         mockCollectionFind(controlCollection, List.of(domainDoc));
 
@@ -164,7 +160,7 @@ class TestNitriteSearchStoreShould {
         Document namespaceDoc = Document.createDocument("namespace", "finos")
                 .put("adrs", List.of(adrEntry));
 
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, controlCollection);
         mockCollectionFind(adrCollection, List.of(namespaceDoc));
 
@@ -183,7 +179,7 @@ class TestNitriteSearchStoreShould {
         Document namespaceDoc = Document.createDocument("namespace", "finos")
                 .put("adrs", List.of(adrEntry));
 
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, controlCollection);
         mockCollectionFind(adrCollection, List.of(namespaceDoc));
 
@@ -195,14 +191,13 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void handle_empty_collections() {
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
 
         assertTrue(results.getArchitectures().isEmpty());
         assertTrue(results.getPatterns().isEmpty());
-        assertTrue(results.getFlows().isEmpty());
         assertTrue(results.getStandards().isEmpty());
         assertTrue(results.getInterfaces().isEmpty());
         assertTrue(results.getControls().isEmpty());
@@ -215,7 +210,7 @@ class TestNitriteSearchStoreShould {
                 .put("architectures", null);
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
@@ -232,7 +227,7 @@ class TestNitriteSearchStoreShould {
                 .put("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test.arch");
@@ -250,21 +245,13 @@ class TestNitriteSearchStoreShould {
         Document archDoc = Document.createDocument("namespace", "finos")
                 .put("architectures", List.of(archEntry));
 
-        Document flowEntry = Document.createDocument("flowId", 3)
-                .put("name", "Demo Flow")
-                .put("description", "demo");
-        Document flowDoc = Document.createDocument("namespace", "finos")
-                .put("flows", List.of(flowEntry));
-
         mockCollectionFind(architectureCollection, List.of(archDoc));
-        mockCollectionFind(flowCollection, List.of(flowDoc));
         mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("demo");
 
         assertEquals(1, results.getArchitectures().size());
-        assertEquals(1, results.getFlows().size());
     }
 
     @Test
@@ -279,7 +266,7 @@ class TestNitriteSearchStoreShould {
                 .put("architectures", entries);
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("match");
@@ -313,7 +300,7 @@ class TestNitriteSearchStoreShould {
                 .put("architectures", List.of(allowedEntry));
 
         mockCollectionFind(architectureCollection, List.of(secretNs, allowedNs));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("match",
@@ -338,7 +325,7 @@ class TestNitriteSearchStoreShould {
         Document domainDoc = Document.createDocument("domain", "api-threats")
                 .put("controls", List.of(controlEntry));
 
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, adrCollection);
         mockCollectionFind(controlCollection, List.of(domainDoc));
 
@@ -364,7 +351,7 @@ class TestNitriteSearchStoreShould {
         Document forbiddenNs = Document.createDocument("namespace", "secret-ns")
                 .put("adrs", List.of(forbiddenAdr));
 
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, controlCollection);
         mockCollectionFind(adrCollection, List.of(allowedNs, forbiddenNs));
 

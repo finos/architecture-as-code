@@ -58,7 +58,7 @@ class TestSearchResourceFilteringShould {
 
     private GroupedSearchResults emptyResults() {
         return new GroupedSearchResults(
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
         );
     }
 
@@ -73,7 +73,7 @@ class TestSearchResourceFilteringShould {
 
         GroupedSearchResults storeResults = new GroupedSearchResults(
                 List.of(new SearchResult("finos", 1, "Arch 1", "desc")),
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
+                List.of(), List.of(), List.of(), List.of(), List.of()
         );
         when(mockSearchStore.search(eq("test"), any())).thenReturn(storeResults);
 

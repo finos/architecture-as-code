@@ -1018,110 +1018,6 @@ create_patterns() {
 }
 
 # Function to create flows
-create_flows() {
-    print_status "Creating flows..."
-    
-    # FINOS Flow 1
-    print_status "Creating FINOS flow 1..."
-    curl -s -X POST "$CALM_HUB_URL/calm/namespaces/finos/flows" \
-        -H "$CONTENT_TYPE" \
-        -d '{
-            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-1",
-            "title": "Flow 1",
-            "description": "This is a non-compliant flow document. Just creating something to simulate"
-        }' || print_warning "Failed to create FINOS flow 1"
-
-    # FINOS Flow 2
-    print_status "Creating FINOS flow 2..."
-    curl -s -X POST "$CALM_HUB_URL/calm/namespaces/finos/flows" \
-        -H "$CONTENT_TYPE" \
-        -d '{
-            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-2",
-            "title": "Flow 2",
-            "description": "This is a non-compliant flow document. Just creating something to simulate"
-        }' || print_warning "Failed to create FINOS flow 2"
-
-    # TraderX Flow 1 - Add or Update Account
-    print_status "Creating TraderX flow 1..."
-    curl -s -X POST "$CALM_HUB_URL/calm/namespaces/traderx/flows" \
-        -H "$CONTENT_TYPE" \
-        -d '{
-            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
-            "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
-            "unique-id": "flow-add-update-account",
-            "name": "Add or Update Account",
-            "description": "Flow for adding or updating account information in the database.",
-            "transitions": [
-                {
-                    "relationship-unique-id": "web-gui-process-uses-accounts-service",
-                    "sequence-number": 1,
-                    "summary": "Submit Account Create/Update"
-                },
-                {
-                    "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
-                    "sequence-number": 2,
-                    "summary": "inserts or updates account"
-                },
-                {
-                    "relationship-unique-id": "web-gui-process-uses-accounts-service",
-                    "sequence-number": 3,
-                    "summary": "Returns Account Create/Update Response Status",
-                    "direction": "destination-to-source"
-                }
-            ],
-            "controls": {
-                "add-update-account-sla": {
-                    "description": "Control requirement for flow SLA",
-                    "requirements": [
-                        {
-                            "control-requirement-url": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
-                            "control-config": "https://calm.finos.org/samples/traderx/flows/add-update-account/add-update-account-control-configuration.json"
-                        }
-                    ]
-                }
-            }
-        }' || print_warning "Failed to create TraderX flow 1"
-
-    # TraderX Flow 2 - Load List of Accounts
-    print_status "Creating TraderX flow 2..."
-    curl -s -X POST "$CALM_HUB_URL/calm/namespaces/traderx/flows" \
-        -H "$CONTENT_TYPE" \
-        -d '{
-            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
-            "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
-            "unique-id": "flow-load-list-of-accounts",
-            "name": "Load List of Accounts",
-            "description": "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection.",
-            "transitions": [
-                {
-                    "relationship-unique-id": "web-gui-process-uses-accounts-service",
-                    "sequence-number": 1,
-                    "summary": "Load list of accounts"
-                },
-                {
-                    "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
-                    "sequence-number": 2,
-                    "summary": "Query for all Accounts"
-                },
-                {
-                    "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
-                    "sequence-number": 3,
-                    "summary": "Returns list of accounts",
-                    "direction": "destination-to-source"
-                },
-                {
-                    "relationship-unique-id": "web-gui-process-uses-accounts-service",
-                    "sequence-number": 4,
-                    "summary": "Returns list of accounts",
-                    "direction": "destination-to-source"
-                }
-            ]
-        }' || print_warning "Failed to create TraderX flow 2"
-}
-
-# Function to create architectures
 create_architectures() {
     print_status "Creating architectures..."
     
@@ -1785,7 +1681,6 @@ main() {
     create_namespaces
     create_core_schemas
     create_patterns
-    create_flows
     create_architectures
     create_user_access
     create_standards

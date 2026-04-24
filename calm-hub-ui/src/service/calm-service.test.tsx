@@ -65,27 +65,6 @@ describe('CalmService', () => {
         });
     });
 
-    describe('fetchFlowSummaries', () => {
-        it('should retrieve flow summaries for a namespace', async () => {
-            const expectedSummaries = [
-                { id: 10, name: 'Flow One', description: 'First' },
-                { id: 20, name: 'Flow Two', description: 'Second' },
-            ];
-            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`).reply(200, {
-                values: expectedSummaries,
-            });
-            const actual = await calmService.fetchFlowSummaries(namespace);
-            expect(actual).toEqual(expectedSummaries);
-        });
-
-        it('should throw an error when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`).reply(500, {
-                message: 'Error',
-            });
-            await expect(calmService.fetchFlowSummaries(namespace)).rejects.toThrowError();
-        });
-    });
-
     describe('fetchArchitectureSummaries', () => {
         it('should retrieve architecture summaries for a namespace', async () => {
             const expectedSummaries = [
@@ -125,27 +104,6 @@ describe('CalmService', () => {
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchPatternVersions(namespace, resourceId)
-            ).rejects.toThrowError();
-        });
-    });
-
-    describe('fetchFlowVersions', () => {
-        it('should retrieve versions for a flow', async () => {
-            const expectedVersions = ['1.0.0', '2.0.0'];
-            mock.onGet(`/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(200, {
-                values: expectedVersions,
-            });
-            const actual = await calmService.fetchFlowVersions(namespace, resourceId);
-            expect(actual).toEqual(expectedVersions);
-        });
-
-        it('should throw an error when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(
-                500,
-                { message: 'Error' }
-            );
-            await expect(
-                calmService.fetchFlowVersions(namespace, resourceId)
             ).rejects.toThrowError();
         });
     });
@@ -192,32 +150,6 @@ describe('CalmService', () => {
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchPattern(namespace, resourceId, version)
-            ).rejects.toThrowError();
-        });
-    });
-
-    describe('fetchFlow', () => {
-        it('should retrieve a specific flow', async () => {
-            const responseData = { nodes: [], relationships: [] };
-            mock.onGet(
-                `/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
-            ).reply(200, responseData);
-            const actual = await calmService.fetchFlow(namespace, resourceId, version);
-            expect(actual).toEqual({
-                id: resourceId,
-                version: version,
-                calmType: 'Flows',
-                name: namespace,
-                data: responseData,
-            });
-        });
-
-        it('should throw an error when backend returns error status', async () => {
-            mock.onGet(
-                `/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
-            ).reply(500, { message: 'Error' });
-            await expect(
-                calmService.fetchFlow(namespace, resourceId, version)
             ).rejects.toThrowError();
         });
     });
@@ -383,7 +315,6 @@ describe('CalmService', () => {
         it('should retrieve all mappings for a namespace', async () => {
             const mappings = [
                 { namespace: 'test-namespace', customId: 'api-gateway', resourceType: 'PATTERN', numericId: 1 },
-                { namespace: 'test-namespace', customId: 'main-flow', resourceType: 'FLOW', numericId: 2 },
             ];
             mock.onGet('/calm/namespaces/test-namespace/mappings').reply(200, { values: mappings });
             const actual = await calmService.fetchMappings(namespace);

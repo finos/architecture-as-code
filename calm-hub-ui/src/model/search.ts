@@ -8,7 +8,6 @@ export interface SearchResult {
 export interface GroupedSearchResults {
     architectures: SearchResult[];
     patterns: SearchResult[];
-    flows: SearchResult[];
     standards: SearchResult[];
     interfaces: SearchResult[];
     controls: SearchResult[];

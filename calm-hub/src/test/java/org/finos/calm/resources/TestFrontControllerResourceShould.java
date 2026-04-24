@@ -4,7 +4,6 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.domain.*;
 import org.finos.calm.domain.exception.*;
-import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.standards.CreateStandardRequest;
@@ -34,9 +33,6 @@ public class TestFrontControllerResourceShould {
 
     @InjectMock
     ArchitectureStore mockArchitectureStore;
-
-    @InjectMock
-    FlowStore mockFlowStore;
 
     @InjectMock
     StandardStore mockStandardStore;
@@ -70,32 +66,6 @@ public class TestFrontControllerResourceShould {
                 .header("Location", containsString("/calm/namespaces/finos/api-gateway/versions/1.0.0"));
 
         verify(mockMappingStore).updateMappingNumericId("finos", "api-gateway", 1);
-    }
-
-    @Test
-    void return_201_when_creating_a_new_flow_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "my-flow")).thenThrow(new MappingNotFoundException());
-
-        when(mockMappingStore.createMapping(eq("finos"), eq("my-flow"), eq(ResourceType.FLOW), eq(0)))
-                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
-                        .setNamespace("finos").setCustomId("my-flow").setResourceType(ResourceType.FLOW).setNumericId(0).build());
-
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace("finos").setId(5).setVersion("1.0.0").setFlow("{}").build();
-        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), eq("finos"))).thenReturn(flow);
-
-        String body = "{ \"type\": \"FLOW\", \"json\": \"{}\" }";
-
-        given()
-                .header("Content-Type", "application/json")
-                .body(body)
-                .when()
-                .post("/calm/namespaces/finos/my-flow")
-                .then()
-                .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-flow/versions/1.0.0"));
-
-        verify(mockMappingStore).updateMappingNumericId("finos", "my-flow", 5);
     }
 
     @Test
@@ -677,27 +647,6 @@ public class TestFrontControllerResourceShould {
     }
 
     @Test
-    void return_201_when_updating_an_existing_flow_resource() throws Exception {
-        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("my-flow").setResourceType(ResourceType.FLOW).setNumericId(5).build();
-        when(mockMappingStore.getMapping("finos", "my-flow")).thenReturn(existing);
-        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(List.of("1.0.0"));
-
-        String body = "{ \"json\": \"{}\", \"changeType\": \"MAJOR\" }";
-
-        given()
-                .header("Content-Type", "application/json")
-                .body(body)
-                .when()
-                .post("/calm/namespaces/finos/my-flow")
-                .then()
-                .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-flow/versions/2.0.0"));
-
-        verify(mockFlowStore).createFlowForVersion(any(Flow.class));
-    }
-
-    @Test
     void return_201_when_updating_an_existing_standard_resource() throws Exception {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-standard").setResourceType(ResourceType.STANDARD).setNumericId(3).build();
@@ -758,22 +707,6 @@ public class TestFrontControllerResourceShould {
     }
 
     @Test
-    void return_200_with_latest_flow_version_on_get() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("my-flow").setResourceType(ResourceType.FLOW).setNumericId(5).build();
-        when(mockMappingStore.getMapping("finos", "my-flow")).thenReturn(mapping);
-        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(List.of("1.0.0"));
-        when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenReturn("{ \"flow\": true }");
-
-        given()
-                .when()
-                .get("/calm/namespaces/finos/my-flow")
-                .then()
-                .statusCode(200)
-                .body(containsString("flow"));
-    }
-
-    @Test
     void return_200_with_latest_standard_version_on_get() throws Exception {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-standard").setResourceType(ResourceType.STANDARD).setNumericId(3).build();
@@ -817,21 +750,6 @@ public class TestFrontControllerResourceShould {
         given()
                 .when()
                 .get("/calm/namespaces/finos/my-arch/versions/1.0.0")
-                .then()
-                .statusCode(200)
-                .body(containsString("1.0.0"));
-    }
-
-    @Test
-    void return_200_for_specific_flow_version() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("my-flow").setResourceType(ResourceType.FLOW).setNumericId(5).build();
-        when(mockMappingStore.getMapping("finos", "my-flow")).thenReturn(mapping);
-        when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenReturn("{ \"v\": \"1.0.0\" }");
-
-        given()
-                .when()
-                .get("/calm/namespaces/finos/my-flow/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("1.0.0"));
@@ -882,21 +800,6 @@ public class TestFrontControllerResourceShould {
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2));
-    }
-
-    @Test
-    void return_200_with_flow_version_list() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("my-flow").setResourceType(ResourceType.FLOW).setNumericId(5).build();
-        when(mockMappingStore.getMapping("finos", "my-flow")).thenReturn(mapping);
-        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(List.of("1.0.0"));
-
-        given()
-                .when()
-                .get("/calm/namespaces/finos/my-flow/versions")
-                .then()
-                .statusCode(200)
-                .body("values", hasSize(1));
     }
 
     @Test

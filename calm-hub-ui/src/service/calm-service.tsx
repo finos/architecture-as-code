@@ -54,21 +54,6 @@ export class CalmService {
             });
     }
 
-    public async fetchFlowSummaries(namespace: string): Promise<ResourceSummary[]> {
-        const headers = await getAuthHeaders();
-        return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`, { headers })
-            .then((res) => {
-                return Array.isArray(res.data?.values) ? res.data.values : [];
-            })
-            .catch((error) => {
-                const errorMessage = `Error fetching flows for namespace ${namespace}:`;
-                // arg1 is %s to prevent format string injection from `namespace`.
-                console.error('%s', errorMessage, error);
-                return Promise.reject(new Error(errorMessage));
-            });
-    }
-
     public async fetchArchitectureSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
@@ -92,19 +77,6 @@ export class CalmService {
             .catch((error) => {
                 const errorMessage = `Error fetching versions for pattern ID ${patternID}:`;
                 // arg1 is %s to prevent format string injection from `patternID`.
-                console.error('%s', errorMessage, error);
-                return Promise.reject(new Error(errorMessage));
-            });
-    }
-
-    public async fetchFlowVersions(namespace: string, flowID: string): Promise<string[]> {
-        const headers = await getAuthHeaders();
-        return this.ax
-            .get(`/calm/namespaces/${namespace}/flows/${flowID}/versions`, { headers })
-            .then((res) => res.data.values)
-            .catch((error) => {
-                const errorMessage = `Error fetching versions for flow ID ${flowID}:`;
-                // arg1 is %s to prevent format string injection from `flowID`.
                 console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
@@ -141,27 +113,6 @@ export class CalmService {
             .catch((error) => {
                 const errorMessage = `Error fetching pattern for namespace ${namespace}, pattern ID ${patternID}, version ${version}:`;
                 // arg1 is %s to prevent format string injection from `namespace`, `patternID`, and `version`.
-                console.error('%s', errorMessage, error);
-                return Promise.reject(new Error(errorMessage));
-            });
-    }
-
-    public async fetchFlow(namespace: string, flowID: string, version: string): Promise<Data> {
-        const headers = await getAuthHeaders();
-        return this.ax
-            .get(`/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`, {
-                headers,
-            })
-            .then((res) => ({
-                id: flowID,
-                version: version,
-                calmType: 'Flows',
-                name: namespace,
-                data: res.data,
-            }))
-            .catch((error) => {
-                const errorMessage = `Error fetching flow for namespace ${namespace}, flow ID ${flowID}, version ${version}:`;
-                // arg1 is %s to prevent format string injection from `namespace`, `flowID`, and `version`.
                 console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });

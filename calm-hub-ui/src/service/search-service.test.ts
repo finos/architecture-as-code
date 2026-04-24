@@ -20,7 +20,6 @@ describe('SearchService', () => {
                     { namespace: 'finos', id: 1, name: 'Test Arch', description: 'desc' },
                 ],
                 patterns: [],
-                flows: [],
                 standards: [],
                 interfaces: [],
                 controls: [],
@@ -36,7 +35,6 @@ describe('SearchService', () => {
             const expectedResults = {
                 architectures: [],
                 patterns: [],
-                flows: [],
                 standards: [],
                 interfaces: [],
                 controls: [],
@@ -61,7 +59,6 @@ describe('SearchService', () => {
                 patterns: [
                     { namespace: 'finos', id: 2, name: 'Demo Pattern', description: 'demo' },
                 ],
-                flows: [],
                 standards: [],
                 interfaces: [],
                 controls: [

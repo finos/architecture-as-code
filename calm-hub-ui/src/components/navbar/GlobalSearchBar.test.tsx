@@ -8,7 +8,6 @@ import { GroupedSearchResults } from '../../model/search.js';
 const emptyResults: GroupedSearchResults = {
     architectures: [],
     patterns: [],
-    flows: [],
     standards: [],
     interfaces: [],
     controls: [],
@@ -22,7 +21,6 @@ const mockResults: GroupedSearchResults = {
     patterns: [
         { namespace: 'finos', id: 2, name: 'Test Pattern', description: 'A test pattern' },
     ],
-    flows: [],
     standards: [],
     interfaces: [],
     controls: [],

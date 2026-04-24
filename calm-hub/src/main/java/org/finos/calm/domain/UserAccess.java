@@ -20,7 +20,6 @@ public class UserAccess {
 
     public enum ResourceType {
         patterns,
-        flows,
         adrs,
         architectures,
         all
