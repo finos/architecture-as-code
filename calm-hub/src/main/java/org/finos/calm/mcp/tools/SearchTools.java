@@ -39,7 +39,9 @@ public class SearchTools {
     public ToolResponse searchHub(
             @ToolArg(description = "The search query string (1-200 characters)") String query) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
 
         if (query == null || query.isBlank()) {
             return ToolResponse.error("Error: Search query must not be blank.");
@@ -56,7 +58,7 @@ public class SearchTools {
             return ToolResponse.success("No results found for '" + query + "'.");
         }
 
-        StringBuilder sb = new StringBuilder("Search results for '" + query + "':\n");
+        StringBuilder sb = new StringBuilder().append("Search results for '").append(query).append("':\n");
         for (Map.Entry<String, List<SearchResult>> entry : groups.entrySet()) {
             List<SearchResult> items = entry.getValue();
             if (items.isEmpty()) {

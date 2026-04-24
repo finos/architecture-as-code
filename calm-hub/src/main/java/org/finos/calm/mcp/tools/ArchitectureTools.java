@@ -37,16 +37,20 @@ public class ArchitectureTools {
     public ToolResponse listArchitectures(
             @ToolArg(description = "The namespace to list architectures from (e.g. 'workshop', 'finos')") String namespace) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
 
         try {
             List<NamespaceArchitectureSummary> architectures = architectureStore.getArchitecturesForNamespace(namespace);
             if (architectures.isEmpty()) {
                 return ToolResponse.success("No architectures found in namespace '" + namespace + "'.");
             }
-            StringBuilder sb = new StringBuilder("Architectures in '" + namespace + "':\n");
+            StringBuilder sb = new StringBuilder().append("Architectures in '").append(namespace).append("':\n");
             for (NamespaceArchitectureSummary arch : architectures) {
                 sb.append("- ID: ").append(arch.getId());
                 if (arch.getName() != null) {
@@ -69,11 +73,17 @@ public class ArchitectureTools {
             @ToolArg(description = "The namespace containing the architecture") String namespace,
             @ToolArg(description = "The architecture ID (positive integer)") int architectureId) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validatePositiveId(architectureId, "Architecture ID");
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
 
         try {
             Architecture arch = new Architecture.ArchitectureBuilder()
@@ -84,7 +94,7 @@ public class ArchitectureTools {
             if (versions.isEmpty()) {
                 return ToolResponse.success("No versions found for architecture " + architectureId + " in namespace '" + namespace + "'.");
             }
-            StringBuilder sb = new StringBuilder("Versions for architecture " + architectureId + ":\n");
+            StringBuilder sb = new StringBuilder().append("Versions for architecture ").append(architectureId).append(":\n");
             for (String version : versions) {
                 sb.append("- ").append(version).append("\n");
             }
@@ -104,13 +114,21 @@ public class ArchitectureTools {
             @ToolArg(description = "The architecture ID (positive integer)") int architectureId,
             @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validatePositiveId(architectureId, "Architecture ID");
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateVersion(version);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
 
         try {
             Architecture arch = new Architecture.ArchitectureBuilder()
@@ -138,13 +156,21 @@ public class ArchitectureTools {
             @ToolArg(description = "A description of the architecture") String description,
             @ToolArg(description = "The full CALM architecture JSON content") String architectureJson) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON");
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateJson(architectureJson, "Architecture JSON");
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
 
         try {
             Architecture architecture = new Architecture.ArchitectureBuilder()

@@ -36,16 +36,20 @@ public class ControlTools {
     public ToolResponse listControls(
             @ToolArg(description = "The domain to list controls for (e.g. 'security')") String domain) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateDomain(domain);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
 
         try {
             List<ControlDetail> controls = controlStore.getControlsForDomain(domain);
             if (controls.isEmpty()) {
                 return ToolResponse.success("No controls found in domain '" + domain + "'.");
             }
-            StringBuilder sb = new StringBuilder("Controls in domain '" + domain + "':\n");
+            StringBuilder sb = new StringBuilder().append("Controls in domain '").append(domain).append("':\n");
             for (ControlDetail control : controls) {
                 sb.append("- ID: ").append(control.getId());
                 if (control.getName() != null) {
@@ -69,13 +73,21 @@ public class ControlTools {
             @ToolArg(description = "The control ID (positive integer)") int controlId,
             @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateDomain(domain);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validatePositiveId(controlId, "Control ID");
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateVersion(version);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
 
         try {
             return ToolResponse.success(controlStore.getRequirementForVersion(domain, controlId, version));
@@ -96,18 +108,24 @@ public class ControlTools {
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
             @ToolArg(description = "The control ID (positive integer)") int controlId) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateDomain(domain);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validatePositiveId(controlId, "Control ID");
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
 
         try {
             List<String> versions = controlStore.getRequirementVersions(domain, controlId);
             if (versions.isEmpty()) {
                 return ToolResponse.success("No versions found for control " + controlId + " in domain '" + domain + "'.");
             }
-            StringBuilder sb = new StringBuilder("Versions for control " + controlId + ":\n");
+            StringBuilder sb = new StringBuilder().append("Versions for control ").append(controlId).append(":\n");
             for (String version : versions) {
                 sb.append("- ").append(version).append("\n");
             }

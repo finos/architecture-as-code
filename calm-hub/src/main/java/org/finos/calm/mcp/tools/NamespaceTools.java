@@ -37,7 +37,9 @@ public class NamespaceTools {
     @Tool(description = "List all namespaces available in CalmHub. Returns namespace names and descriptions.")
     public ToolResponse listNamespaces() {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         List<NamespaceInfo> namespaces = namespaceStore.getNamespaces();
         if (namespaces.isEmpty()) {
             return ToolResponse.success("No namespaces found.");
@@ -58,12 +60,18 @@ public class NamespaceTools {
             @ToolArg(description = "Name for the new namespace (alphanumeric with optional hyphens and dotted segments, case-sensitive, e.g. 'my-org.team1')") String name,
             @ToolArg(description = "Optional description of the namespace", required = false) String description) {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         error = McpValidationHelper.validateNamespace(name);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         if (description != null) {
             error = McpValidationHelper.validateDescriptionLength(description, "Description");
-            if (error != null) return ToolResponse.error(error);
+            if (error != null) {
+                return ToolResponse.error(error);
+            }
         }
 
         try {
@@ -79,7 +87,9 @@ public class NamespaceTools {
     @Tool(description = "List all control domains available in CalmHub (e.g. 'security').")
     public ToolResponse listDomains() {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) return ToolResponse.error(error);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
         List<String> domains = domainStore.getDomains();
         if (domains.isEmpty()) {
             return ToolResponse.success("No domains found.");
