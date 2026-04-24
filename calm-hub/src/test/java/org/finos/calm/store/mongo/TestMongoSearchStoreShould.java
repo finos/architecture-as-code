@@ -36,9 +36,6 @@ class TestMongoSearchStoreShould {
     private MongoCollection<Document> patternCollection;
 
     @Mock
-    private MongoCollection<Document> flowCollection;
-
-    @Mock
     private MongoCollection<Document> standardCollection;
 
     @Mock
@@ -57,7 +54,6 @@ class TestMongoSearchStoreShould {
         MockitoAnnotations.openMocks(this);
         when(database.getCollection("architectures")).thenReturn(architectureCollection);
         when(database.getCollection("patterns")).thenReturn(patternCollection);
-        when(database.getCollection("flows")).thenReturn(flowCollection);
         when(database.getCollection("standards")).thenReturn(standardCollection);
         when(database.getCollection("interfaces")).thenReturn(interfaceCollection);
         when(database.getCollection("controls")).thenReturn(controlCollection);
@@ -74,7 +70,7 @@ class TestMongoSearchStoreShould {
                 .append("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("payment");
@@ -96,7 +92,7 @@ class TestMongoSearchStoreShould {
                 .append("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("PAYMENT");
@@ -113,7 +109,7 @@ class TestMongoSearchStoreShould {
                 .append("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("payment");
@@ -130,7 +126,7 @@ class TestMongoSearchStoreShould {
                 .append("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("nonexistent");
@@ -154,7 +150,7 @@ class TestMongoSearchStoreShould {
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(patternCollection, List.of(patternDoc));
-        mockEmptyCollections(flowCollection, standardCollection,
+        mockEmptyCollections(standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("demo");
@@ -172,7 +168,7 @@ class TestMongoSearchStoreShould {
         Document domainDoc = new Document("domain", "api-threats")
                 .append("controls", List.of(controlEntry));
 
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, adrCollection);
         mockCollectionFind(controlCollection, List.of(domainDoc));
 
@@ -192,7 +188,7 @@ class TestMongoSearchStoreShould {
         Document namespaceDoc = new Document("namespace", "finos")
                 .append("adrs", List.of(adrEntry));
 
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, controlCollection);
         mockCollectionFind(adrCollection, List.of(namespaceDoc));
 
@@ -211,7 +207,7 @@ class TestMongoSearchStoreShould {
         Document namespaceDoc = new Document("namespace", "finos")
                 .append("adrs", List.of(adrEntry));
 
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, controlCollection);
         mockCollectionFind(adrCollection, List.of(namespaceDoc));
 
@@ -227,7 +223,7 @@ class TestMongoSearchStoreShould {
                 .append("architectures", null);
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
@@ -237,14 +233,13 @@ class TestMongoSearchStoreShould {
 
     @Test
     void handle_empty_collections_gracefully() {
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
 
         assertTrue(results.getArchitectures().isEmpty());
         assertTrue(results.getPatterns().isEmpty());
-        assertTrue(results.getFlows().isEmpty());
         assertTrue(results.getStandards().isEmpty());
         assertTrue(results.getInterfaces().isEmpty());
         assertTrue(results.getControls().isEmpty());
@@ -260,7 +255,7 @@ class TestMongoSearchStoreShould {
                 .append("architectures", List.of(archEntry));
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         // Searching for "test.arch" should match literal dot as substring
@@ -284,7 +279,7 @@ class TestMongoSearchStoreShould {
                 .append("architectures", entries);
 
         mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("match");
@@ -316,7 +311,7 @@ class TestMongoSearchStoreShould {
                 .append("architectures", List.of(allowedEntry));
 
         mockCollectionFind(architectureCollection, List.of(secretNs, allowedNs));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockEmptyCollections(patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("match",
@@ -341,7 +336,7 @@ class TestMongoSearchStoreShould {
         Document domainDoc = new Document("domain", "api-threats")
                 .append("controls", List.of(controlEntry));
 
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+        mockEmptyCollections(architectureCollection, patternCollection,
                 standardCollection, interfaceCollection, adrCollection);
         mockCollectionFind(controlCollection, List.of(domainDoc));
 

@@ -89,7 +89,6 @@ public class NitriteDBConfig {
         db.getCollection("patterns");
         db.getCollection("namespaces");
         db.getCollection("domains");
-        db.getCollection("flows");
         db.getCollection("schemas");
         db.getCollection("counters");
         db.getCollection("decorators");

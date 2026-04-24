@@ -30,7 +30,6 @@ public class NitriteCounterStore {
     private static final String PATTERN_COUNTER = "pattern_counter";
     private static final String ARCHITECTURE_COUNTER = "architecture_counter";
     private static final String ADR_COUNTER = "adr_counter";
-    private static final String FLOW_COUNTER = "flow_counter";
     private static final String STANDARD_COUNTER = "standard_counter";
     private static final String USER_ACCESS_COUNTER = "user_access_counter";
     private static final String DECORATOR_COUNTER = "decorator_counter";
@@ -64,7 +63,6 @@ public class NitriteCounterStore {
                     .put(PATTERN_COUNTER, 0)
                     .put(ARCHITECTURE_COUNTER, 0)
                     .put(ADR_COUNTER, 0)
-                    .put(FLOW_COUNTER, 0)
                     .put(STANDARD_COUNTER, 0)
                     .put(USER_ACCESS_COUNTER, 0)
                     .put(DECORATOR_COUNTER, 0)
@@ -104,15 +102,7 @@ public class NitriteCounterStore {
     }
 
     /**
-     * Get the next sequence value for flow store.
-     *
-     * @return The next sequence value
-     */
-    public int getNextFlowSequenceValue() {
-        return nextValueForCounter(FLOW_COUNTER);
-    }
 
-    /**
      * Get the next sequence value for standard store.
      *
      * @return The next sequence value

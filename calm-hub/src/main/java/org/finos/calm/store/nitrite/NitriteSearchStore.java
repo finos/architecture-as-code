@@ -24,7 +24,7 @@ import java.util.Set;
 /**
  * NitriteDB-backed implementation of {@link SearchStore}.
  * <p>
- * Searches across 7 resource collections by matching the query (case-insensitive)
+ * Searches across 6 resource collections by matching the query (case-insensitive)
  * against the {@code name} and {@code description} fields of each resource entry.
  * For ADRs, the {@code title} field of the latest revision is searched.
  * Controls are scoped by domain rather than namespace, so they bypass the
@@ -38,7 +38,6 @@ public class NitriteSearchStore implements SearchStore {
 
     private final NitriteCollection architectureCollection;
     private final NitriteCollection patternCollection;
-    private final NitriteCollection flowCollection;
     private final NitriteCollection standardCollection;
     private final NitriteCollection interfaceCollection;
     private final NitriteCollection controlCollection;
@@ -48,7 +47,6 @@ public class NitriteSearchStore implements SearchStore {
     public NitriteSearchStore(@StandaloneQualifier Nitrite db) {
         this.architectureCollection = db.getCollection("architectures");
         this.patternCollection = db.getCollection("patterns");
-        this.flowCollection = db.getCollection("flows");
         this.standardCollection = db.getCollection("standards");
         this.interfaceCollection = db.getCollection("interfaces");
         this.controlCollection = db.getCollection("controls");
@@ -63,7 +61,6 @@ public class NitriteSearchStore implements SearchStore {
         return new GroupedSearchResults(
                 searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),

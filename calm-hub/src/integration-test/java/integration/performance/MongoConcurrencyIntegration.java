@@ -125,44 +125,6 @@ public class MongoConcurrencyIntegration {
         assertNoDataLoss(THREADS, countAfter - countBefore, "Architecture");
     }
 
-    // ======================== FLOWS ========================
-
-    @Test
-    void concurrent_flow_creation_produces_unique_ids_and_no_data_loss() {
-        int countBefore = given()
-                .when().get("/calm/namespaces/finos/flows")
-                .then().statusCode(200)
-                .extract().jsonPath().getList("values").size();
-
-        ConcurrencyResult<Response> result = runConcurrently(THREADS, () ->
-                given()
-                        .contentType(ContentType.JSON)
-                        .body("""
-                                {
-                                    "name": "concurrent-flow",
-                                    "description": "concurrency test",
-                                    "flowJson": "{\\"test\\": true}"
-                                }
-                                """)
-                        .when().post("/calm/namespaces/finos/flows")
-                        .thenReturn()
-        );
-
-        assertTrue(result.allSucceeded(), "Some flow creation requests failed: " + result.errors());
-        assertAllStatusCodes(result.successfulResults(), 201);
-
-        List<Integer> ids = extractIdsFromLocations(result.successfulResults(), "flows/(\\d+)");
-        assertEquals(THREADS, ids.size());
-        assertAllIdsUnique(ids);
-
-        int countAfter = given()
-                .when().get("/calm/namespaces/finos/flows")
-                .then().statusCode(200)
-                .extract().jsonPath().getList("values").size();
-
-        assertNoDataLoss(THREADS, countAfter - countBefore, "Flow");
-    }
-
     // ======================== STANDARDS ========================
 
     @Test

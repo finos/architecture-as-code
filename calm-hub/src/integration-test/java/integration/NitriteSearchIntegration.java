@@ -32,8 +32,7 @@ public class NitriteSearchIntegration {
                 .then()
                 .statusCode(200)
                 .body("architectures", hasSize(0))
-                .body("patterns", hasSize(0))
-                .body("flows", hasSize(0));
+                .body("patterns", hasSize(0));
     }
 
     @Test

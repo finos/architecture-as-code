@@ -6,7 +6,6 @@ package org.finos.calm.domain;
 public enum ResourceType {
     PATTERN,
     ARCHITECTURE,
-    FLOW,
     STANDARD,
     INTERFACE
 }

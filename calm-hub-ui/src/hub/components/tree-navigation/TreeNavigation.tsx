@@ -10,7 +10,6 @@ function mapCalmTypeToResourceType(type: string): string {
     switch (type) {
         case 'Architectures': return 'ARCHITECTURE';
         case 'Patterns': return 'PATTERN';
-        case 'Flows': return 'FLOW';
         case 'Standards': return 'STANDARD';
         default: return '';
     }
@@ -21,8 +20,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { DomainItem } from './DomainItem.js';
 import { InterfaceItem } from './InterfaceItem.js';
 
-type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs' | 'standards' | 'interfaces' | 'controls';
-type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs' | 'Standards' | 'Interfaces' | 'Controls';
+type TypeInUrl = 'architectures' | 'patterns' | 'adrs' | 'standards' | 'interfaces' | 'controls';
+type TypeInUI = 'Architectures' | 'Patterns' | 'ADRs' | 'Standards' | 'Interfaces' | 'Controls';
 type HubParams = {
     namespace: string;
     type: TypeInUrl;
@@ -36,7 +35,6 @@ interface LoadResourceIdsOptions {
     calmService: CalmService;
     setArchitectureSummaries: (summaries: ResourceSummary[]) => void;
     setPatternSummaries: (summaries: ResourceSummary[]) => void;
-    setFlowSummaries: (summaries: ResourceSummary[]) => void;
     setStandardSummaries: (summaries: ResourceSummary[]) => void;
     adrService: AdrService;
     setAdrSummaries: (summaries: AdrSummary[]) => void;
@@ -49,7 +47,6 @@ interface LoadVersionsOptions {
     calmService: CalmService;
     setArchitectureVersions: (versions: string[]) => void;
     setPatternVersions: (versions: string[]) => void;
-    setFlowVersions: (versions: string[]) => void;
     setStandardVersions: (versions: string[]) => void;
     adrService: AdrService;
     setAdrRevisions: (revisions: string[]) => void;
@@ -181,8 +178,6 @@ function mapTypeInUrlToTypeInUI(urlType: TypeInUrl): TypeInUI {
             return 'Architectures';
         case 'patterns':
             return 'Patterns';
-        case 'flows':
-            return 'Flows';
         case 'adrs':
             return 'ADRs';
         case 'standards':
@@ -202,8 +197,6 @@ function mapTypeInUIToTypeInUrl(uiType: TypeInUI): TypeInUrl {
             return 'architectures';
         case 'Patterns':
             return 'patterns';
-        case 'Flows':
-            return 'flows';
         case 'ADRs':
             return 'adrs';
         case 'Standards':
@@ -326,7 +319,7 @@ function NamespaceItem({
     onVersionClick,
     onInterfaceClick,
 }: NamespaceItemProps) {
-    const resourceTypes = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
+    const resourceTypes = ['Architectures', 'Patterns', 'Standards', 'ADRs', 'Interfaces'];
     const isThisSelected = node.namespace !== null && node.namespace === selectedNamespace;
     const hasSelectedDescendant = selectedNamespace.startsWith(node.label + '.');
 
@@ -437,7 +430,6 @@ function loadResourceIds({
     calmService,
     setArchitectureSummaries, 
     setPatternSummaries, 
-    setFlowSummaries, 
     setStandardSummaries,
     adrService, 
     setAdrSummaries 
@@ -446,8 +438,6 @@ function loadResourceIds({
         calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries);
     } else if (type === 'Patterns') {
         calmService.fetchPatternSummaries(namespace).then(setPatternSummaries);
-    } else if (type === 'Flows') {
-        calmService.fetchFlowSummaries(namespace).then(setFlowSummaries);
     } else if (type === 'Standards') {
         calmService.fetchStandardSummaries(namespace).then(setStandardSummaries);
     } else if (type === 'ADRs') {
@@ -460,12 +450,11 @@ function loadVersionsForId(
     type: string,
     namespace: string,
     calmService: CalmService,
-    setVersions: { setArchitectureVersions: (v: string[]) => void; setPatternVersions: (v: string[]) => void; setFlowVersions: (v: string[]) => void; setStandardVersions: (v: string[]) => void; },
+    setVersions: { setArchitectureVersions: (v: string[]) => void; setPatternVersions: (v: string[]) => void; setStandardVersions: (v: string[]) => void; },
 ) {
     if (isSlug(resourceID)) {
         const setter = type === 'Architectures' ? setVersions.setArchitectureVersions
             : type === 'Patterns' ? setVersions.setPatternVersions
-            : type === 'Flows' ? setVersions.setFlowVersions
             : setVersions.setStandardVersions;
         calmService.fetchVersionsByCustomId(namespace, resourceID).then(setter);
     }
@@ -491,7 +480,6 @@ function loadVersions({
     calmService,
     setArchitectureVersions, 
     setPatternVersions, 
-    setFlowVersions, 
     setStandardVersions,
     adrService, 
     setAdrRevisions 
@@ -500,8 +488,6 @@ function loadVersions({
         calmService.fetchArchitectureVersions(namespace, resourceID).then(setArchitectureVersions);
     } else if (type === 'Patterns') {
         calmService.fetchPatternVersions(namespace, resourceID).then(setPatternVersions);
-    } else if (type === 'Flows') {
-        calmService.fetchFlowVersions(namespace, resourceID).then(setFlowVersions);
     } else if (type === 'Standards') {
         calmService.fetchStandardVersions(namespace, resourceID).then(setStandardVersions);
     } else if (type === 'ADRs') {
@@ -525,8 +511,6 @@ function loadResource({
         calmService.fetchArchitecture(namespace, resourceID, version).then(onDataLoad);
     } else if (type === 'Patterns') {
         calmService.fetchPattern(namespace, resourceID, version).then(onDataLoad);
-    } else if (type === 'Flows') {
-        calmService.fetchFlow(namespace, resourceID, version).then(onDataLoad);
     } else if (type === 'Standards') {
         calmService.fetchStandard(namespace, resourceID, version).then(onDataLoad);
     } else if (type === 'ADRs') {
@@ -554,13 +538,11 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
 
     const [architectureSummaries, setArchitectureSummaries] = useState<ResourceSummary[]>([]);
     const [patternSummaries, setPatternSummaries] = useState<ResourceSummary[]>([]);
-    const [flowSummaries, setFlowSummaries] = useState<ResourceSummary[]>([]);
     const [standardSummaries, setStandardSummaries] = useState<ResourceSummary[]>([]);
     const [adrSummaries, setAdrSummaries] = useState<AdrSummary[]>([]);
 
     const [architectureVersions, setArchitectureVersions] = useState<string[]>([]);
     const [patternVersions, setPatternVersions] = useState<string[]>([]);
-    const [flowVersions, setFlowVersions] = useState<string[]>([]);
     const [standardVersions, setStandardVersions] = useState<string[]>([]);
     const [adrRevisions, setAdrRevisions] = useState<string[]>([]);
 
@@ -664,7 +646,6 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 calmService,
                 setArchitectureSummaries,
                 setPatternSummaries,
-                setFlowSummaries,
                 setStandardSummaries,
                 adrService,
                 setAdrSummaries,
@@ -672,7 +653,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             setSelectedResourceID(params.id);
             if (isSlug(params.id)) {
                 loadVersionsForId(params.id, uiType, params.namespace, calmService, {
-                    setArchitectureVersions, setPatternVersions, setFlowVersions, setStandardVersions,
+                    setArchitectureVersions, setPatternVersions, setStandardVersions,
                 });
             } else {
                 loadVersions({
@@ -682,7 +663,6 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                     calmService,
                     setArchitectureVersions,
                     setPatternVersions,
-                    setFlowVersions,
                     setStandardVersions,
                     adrService,
                     setAdrRevisions,
@@ -776,11 +756,9 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             } else {
                 const setter = type === 'Architectures' ? setArchitectureSummaries
                     : type === 'Patterns' ? setPatternSummaries
-                    : type === 'Flows' ? setFlowSummaries
                     : setStandardSummaries;
                 const fetcher = type === 'Architectures' ? calmService.fetchArchitectureSummaries.bind(calmService)
                     : type === 'Patterns' ? calmService.fetchPatternSummaries.bind(calmService)
-                    : type === 'Flows' ? calmService.fetchFlowSummaries.bind(calmService)
                     : calmService.fetchStandardSummaries.bind(calmService);
                 fetcher(selectedNamespace).then((summaries: ResourceSummary[]) => {
                     enrichWithMappings(type, summaries, setter);
@@ -797,7 +775,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
         setSelectedVersion(EMPTY_STR_VALUE);
         if (isSlug(resourceID)) {
             loadVersionsForId(resourceID, type, selectedNamespace, calmService, {
-                setArchitectureVersions, setPatternVersions, setFlowVersions, setStandardVersions,
+                setArchitectureVersions, setPatternVersions, setStandardVersions,
             });
         } else {
             loadVersions({
@@ -807,7 +785,6 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 calmService,
                 setArchitectureVersions,
                 setPatternVersions,
-                setFlowVersions,
                 setStandardVersions,
                 adrService,
                 setAdrRevisions,
@@ -826,8 +803,6 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 return architectureSummaries.map(toId);
             case 'Patterns':
                 return patternSummaries.map(toId);
-            case 'Flows':
-                return flowSummaries.map(toId);
             case 'Standards':
                 return standardSummaries.map(toId);
             case 'ADRs':
@@ -844,8 +819,6 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 return Object.fromEntries(architectureSummaries.map(toEntry));
             case 'Patterns':
                 return Object.fromEntries(patternSummaries.map(toEntry));
-            case 'Flows':
-                return Object.fromEntries(flowSummaries.map(toEntry));
             case 'Standards':
                 return Object.fromEntries(standardSummaries.map(toEntry));
             case 'ADRs':
@@ -863,8 +836,6 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 return architectureVersions;
             case 'Patterns':
                 return patternVersions;
-            case 'Flows':
-                return flowVersions;
             case 'Standards':
                 return standardVersions;
             case 'ADRs':

@@ -45,7 +45,7 @@ public class SearchResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Global Search",
-            description = "Search across all resource types (architectures, patterns, flows, standards, interfaces, controls, ADRs) with results grouped by type"
+            description = "Search across all resource types (architectures, patterns, standards, interfaces, controls, ADRs) with results grouped by type"
     )
     @PermittedScopes({CalmHubScopes.SEARCH_READ})
     public Response search(@QueryParam("q") String query) {

@@ -20,7 +20,7 @@ import java.util.Set;
 /**
  * MongoDB-backed implementation of {@link SearchStore}.
  * <p>
- * Searches across 7 resource collections by matching the query (case-insensitive)
+ * Searches across 6 resource collections by matching the query (case-insensitive)
  * against the {@code name} and {@code description} fields of each resource entry.
  * For ADRs, the {@code title} field of the latest revision is searched instead.
  * Controls are scoped by domain rather than namespace, so they bypass the
@@ -34,7 +34,6 @@ public class MongoSearchStore implements SearchStore {
 
     private final MongoCollection<Document> architectureCollection;
     private final MongoCollection<Document> patternCollection;
-    private final MongoCollection<Document> flowCollection;
     private final MongoCollection<Document> standardCollection;
     private final MongoCollection<Document> interfaceCollection;
     private final MongoCollection<Document> controlCollection;
@@ -43,7 +42,6 @@ public class MongoSearchStore implements SearchStore {
     public MongoSearchStore(MongoDatabase database) {
         this.architectureCollection = database.getCollection("architectures");
         this.patternCollection = database.getCollection("patterns");
-        this.flowCollection = database.getCollection("flows");
         this.standardCollection = database.getCollection("standards");
         this.interfaceCollection = database.getCollection("interfaces");
         this.controlCollection = database.getCollection("controls");
@@ -57,7 +55,6 @@ public class MongoSearchStore implements SearchStore {
         return new GroupedSearchResults(
                 searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),

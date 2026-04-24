@@ -71,16 +71,6 @@ if (db.counters.countDocuments({ _id: "standardStoreCounter" }) === 0) {
 }
 
 
-if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
-    db.counters.insertOne({
-        _id: "flowStoreCounter",
-        sequence_value: 1
-    });
-    logSuccess("Initialized flowStoreCounter with sequence_value 1");
-} else {
-    logSkip("flowStoreCounter already exists, no initialization needed");
-}
-
 if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "userAccessStoreCounter",
@@ -1293,141 +1283,6 @@ if (db.patterns.countDocuments() === 0) {
     logSkip("Patterns already initialized, skipping...");
 }
 
-logSection("Flows");
-if (db.flows.countDocuments() === 0) {
-    db.flows.insertMany([
-        {
-            namespace: "finos",
-            flows: [
-                {
-                    flowId: NumberInt(1),
-                    name: "Flow 1",
-                    description: "This is a non-compliant flow document. Just creating something to simulate",
-                    versions:
-                    {
-                        "1-0-0": {
-                            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-                            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-1",
-                            "title": "Flow 1",
-                            "description": "This is a non-compliant flow document. Just creating something to simulate"
-                        }
-                    }
-                },
-                {
-                    flowId: NumberInt(2),
-                    name: "Flow 2",
-                    description: "This is a non-compliant flow document. Just creating something to simulate",
-                    versions:
-                    {
-                        "1-0-0": {
-                            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-                            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-2",
-                            "title": "Flow 2",
-                            "description": "This is a non-compliant flow document. Just creating something to simulate"
-
-
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            namespace: "traderx",
-            flows: [
-                {
-                    flowId: NumberInt(1),
-                    name: "Add or Update Account",
-                    description: "Flow for adding or updating account information in the database",
-                    versions:
-                    {
-                        "1-0-0": {
-                            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
-                            "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
-                            "unique-id": "flow-add-update-account",
-                            "name": "Add or Update Account",
-                            "description": "Flow for adding or updating account information in the database.",
-                            "transitions": [
-                                {
-                                    "relationship-unique-id": "web-gui-process-uses-accounts-service",
-                                    "sequence-number": 1,
-                                    "summary": "Submit Account Create/Update"
-                                },
-                                {
-                                    "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
-                                    "sequence-number": 2,
-                                    "summary": "inserts or updates account"
-                                },
-                                {
-                                    "relationship-unique-id": "web-gui-process-uses-accounts-service",
-                                    "sequence-number": 3,
-                                    "summary": "Returns Account Create/Update Response Status",
-                                    "direction": "destination-to-source"
-                                }
-                            ],
-                            "controls": {
-                                "add-update-account-sla": {
-                                    "description": "Control requirement for flow SLA",
-                                    "requirements": [
-                                        {
-                                            "control-requirement-url": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
-                                            "control-config": "https://calm.finos.org/samples/traderx/flows/add-update-account/add-update-account-control-configuration.json"
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-
-                    }
-                },
-                {
-                    flowId: NumberInt(2),
-                    name: "Load List of Accounts",
-                    description: "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection",
-                    versions:
-                    {
-                        "1-0-0": {
-                            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
-                            "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
-                            "unique-id": "flow-load-list-of-accounts",
-                            "name": "Load List of Accounts",
-                            "description": "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection.",
-                            "transitions": [
-                                {
-                                    "relationship-unique-id": "web-gui-process-uses-accounts-service",
-                                    "sequence-number": 1,
-                                    "summary": "Load list of accounts"
-                                },
-                                {
-                                    "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
-                                    "sequence-number": 2,
-                                    "summary": "Query for all Accounts"
-                                },
-                                {
-                                    "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
-                                    "sequence-number": 3,
-                                    "summary": "Returns list of accounts",
-                                    "direction": "destination-to-source"
-                                },
-                                {
-                                    "relationship-unique-id": "web-gui-process-uses-accounts-service",
-                                    "sequence-number": 4,
-                                    "summary": "Returns list of accounts",
-                                    "direction": "destination-to-source"
-                                }
-                            ]
-                        }
-
-                    }
-                }
-            ]
-        }
-    ]
-    );
-    logSuccess("Initialized flows for finos and traderx namespaces");
-} else {
-    logSkip("Flows already initialized, skipping...");
-}
-
 logSection("Architectures");
 if (db.architectures.countDocuments() === 0) {
     db.architectures.insertMany([
@@ -2515,11 +2370,7 @@ logSuccess("Created resource_mappings indexes");
 if (db.resource_mappings.countDocuments() === 0) {
     db.resource_mappings.insertMany([
         { namespace: "finos", customId: "api-gateway-pattern", resourceType: "PATTERN", numericId: NumberInt(1) },
-        { namespace: "finos", customId: "flow-1", resourceType: "FLOW", numericId: NumberInt(1) },
-        { namespace: "finos", customId: "flow-2", resourceType: "FLOW", numericId: NumberInt(2) },
         { namespace: "finos", customId: "sample-architecture", resourceType: "ARCHITECTURE", numericId: NumberInt(1) },
-        { namespace: "traderx", customId: "add-update-account", resourceType: "FLOW", numericId: NumberInt(1) },
-        { namespace: "traderx", customId: "load-list-of-accounts", resourceType: "FLOW", numericId: NumberInt(2) },
         { namespace: "traderx", customId: "traderx", resourceType: "ARCHITECTURE", numericId: NumberInt(1) },
         { namespace: "workshop", customId: "conference-signup-pattern", resourceType: "PATTERN", numericId: NumberInt(1) },
         { namespace: "workshop", customId: "conference-secure-signup-pattern", resourceType: "PATTERN", numericId: NumberInt(2) },

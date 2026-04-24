@@ -14,7 +14,6 @@ interface FlatResult {
 const TYPE_LABELS: Record<string, string> = {
     architectures: 'Architectures',
     patterns: 'Patterns',
-    flows: 'Flows',
     standards: 'Standards',
     interfaces: 'Interfaces',
     controls: 'Controls',
@@ -24,7 +23,6 @@ const TYPE_LABELS: Record<string, string> = {
 const TYPE_ROUTES: Record<string, string> = {
     architectures: 'architectures',
     patterns: 'patterns',
-    flows: 'flows',
     standards: 'standards',
     interfaces: 'interfaces',
     controls: 'controls',
@@ -126,9 +124,6 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     break;
                 case 'patterns':
                     versions = await calmService.fetchPatternVersions(namespace, id);
-                    break;
-                case 'flows':
-                    versions = await calmService.fetchFlowVersions(namespace, id);
                     break;
                 case 'standards':
                     versions = await calmService.fetchStandardVersions(namespace, id);

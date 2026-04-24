@@ -10,7 +10,7 @@ import org.bson.Document;
 
 /**
  * Provides atomically-incrementing sequence counters for generating unique integer IDs
- * across all entity types (architectures, patterns, flows, controls, etc.).
+ * across all entity types (architectures, patterns, controls, etc.).
  *
  * <h2>How it works</h2>
  * Each entity type has a dedicated counter document in the {@code counters} collection,
@@ -51,10 +51,6 @@ public class MongoCounterStore {
 
     public int getNextAdrSequenceValue() {
         return nextValueForCounter("adrStoreCounter");
-    }
-
-    public int getNextFlowSequenceValue() {
-        return nextValueForCounter("flowStoreCounter");
     }
 
     public int getNextStandardSequenceValue() {
