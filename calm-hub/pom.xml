@@ -85,6 +85,13 @@
             <artifactId>quarkus-hibernate-validator</artifactId>
         </dependency>
 
+        <!-- MCP Server -->
+        <dependency>
+            <groupId>io.quarkiverse.mcp</groupId>
+            <artifactId>quarkus-mcp-server-http</artifactId>
+            <version>1.12.0</version>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>io.quarkus</groupId>
