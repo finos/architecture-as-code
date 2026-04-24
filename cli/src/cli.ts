@@ -2,8 +2,11 @@ import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, Schema
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions } from './command-helpers/generate-options';
-import * as cliConfig from './cli-config';
 import path from 'path';
+import { findWorkspaceBundlePath } from './workspace-resolver';
+import { setupWorkspaceCommands } from './command-helpers/workspace/commands';
+import { loadManifest } from './command-helpers/workspace/bundle';
+import * as cliConfig from './cli-config';
 import { select } from '@inquirer/prompts';
 
 // Shared options used across multiple commands
@@ -239,6 +242,8 @@ Validation requires:
             await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
+    // Dev commands
+    setupWorkspaceCommands(program);
 }
 
 interface ParseDocumentLoaderOptions {
@@ -268,6 +273,39 @@ export async function parseDocumentLoaderConfig(
         logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
         docLoaderOpts.calmHubUrl = userConfig.calmHubUrl;
     }
+
+    // If a CALM workspace bundle is present in the repository, prefer it for resolving documents
+    try {
+        const workspaceBundle = findWorkspaceBundlePath(process.cwd());
+        if (workspaceBundle) {
+            logger.info('Using workspace bundle for document resolution: ' + workspaceBundle);
+            // Load the bundle manifest and construct a URL->local file map from it
+            try {
+                const manifest = await loadManifest(workspaceBundle);
+                const bundleMap = new Map<string, string>();
+                for (const [id, entry] of Object.entries(manifest)) {
+                    // manifest entries are relative to bundlePath
+                    bundleMap.set(id, path.resolve(workspaceBundle, entry.path));
+                }
+
+                // Merge with any provided urlToLocalMap, allowing bundle entries to override
+                const combined = new Map<string, string>(urlToLocalMap ?? []);
+                for (const [k, v] of bundleMap.entries()) {
+                    combined.set(k, v);
+                }
+
+                docLoaderOpts.urlToLocalMap = combined;
+
+                // Ensure basePath is set so MappedDocumentLoader can resolve relative mappings if needed
+                docLoaderOpts.basePath = docLoaderOpts.basePath ?? workspaceBundle;
+            } catch (err) {
+                logger.debug('Failed to load workspace bundle manifest: ' + (err instanceof Error ? err.message : String(err)));
+            }
+        }
+    } catch (err) {
+        logger.debug('Error while checking for workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
+    }
+
     if (userConfig && userConfig.allowedRemoteHosts && !options.allowedRemoteHosts) {
         logger.info('Using allowed remote hosts from config file');
         docLoaderOpts.allowedRemoteHosts = userConfig.allowedRemoteHosts;

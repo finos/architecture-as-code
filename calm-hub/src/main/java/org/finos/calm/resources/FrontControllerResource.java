@@ -12,6 +12,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.finos.calm.domain.*;
 import org.finos.calm.domain.Semver;
 import org.finos.calm.domain.architecture.ArchitectureRequest;
@@ -82,6 +85,13 @@ public class FrontControllerResource {
     @Operation(
             summary = "Create or update a resource by custom ID",
             description = "First POST creates the resource at version 1.0.0. Subsequent POSTs require a changeType to bump the version."
+    )
+    @RequestBody(
+            description = "For initial creation supply a FrontControllerCreateRequest ('type' and 'json' required, 'name' and 'description' optional). For subsequent updates supply a FrontControllerUpdateRequest ('json' and 'changeType' required).",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(oneOf = {FrontControllerCreateRequest.class, FrontControllerUpdateRequest.class})
+            )
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createOrUpdateResource(

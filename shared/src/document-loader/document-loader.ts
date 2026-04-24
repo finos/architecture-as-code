@@ -6,7 +6,8 @@ import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
 import { MappedDocumentLoader } from './mapped-document-loader';
 
-export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline';
+export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline' | 'interface' | 'flow' | 'adr';
+export const CALM_DOCUMENT_TYPES_LIST: string[] = ['pattern', 'architecture', 'interface', 'flow', 'control', 'schema', 'timeline', 'adr'];
 
 export const CALM_HUB_PROTO = 'calm:';
 
@@ -27,6 +28,8 @@ export type DocumentLoaderOptions = {
     basePath?: string;
     allowedRemoteHosts?: string[];
     debug?: boolean;
+    // If set, DocumentLoader will attempt to load documents from a workspace bundle at this path
+    workspaceBundlePath?: string;
 };
 
 export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): DocumentLoader {
