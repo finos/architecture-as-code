@@ -1213,4 +1213,79 @@ public class TestFrontControllerResourceShould {
                 .statusCode(404)
                 .body(containsString("missing-versions"));
     }
+
+    @Test
+    void return_500_when_unexpected_error_on_get_version() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("err-version").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", "err-version")).thenReturn(mapping);
+        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new RuntimeException("boom"));
+
+        given()
+                .when()
+                .get("/calm/namespaces/finos/err-version/versions/1.0.0")
+                .then()
+                .statusCode(500);
+    }
+
+    @Test
+    void return_500_when_unexpected_error_on_list_versions() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("err-list-versions").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", "err-list-versions")).thenReturn(mapping);
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(new RuntimeException("boom"));
+
+        given()
+                .when()
+                .get("/calm/namespaces/finos/err-list-versions/versions")
+                .then()
+                .statusCode(500);
+    }
+
+    @Test
+    void rollback_mapping_when_resource_creation_fails() throws Exception {
+        when(mockMappingStore.getMapping("finos", "rollback-me")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("rollback-me"), eq(ResourceType.PATTERN), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("rollback-me").setResourceType(ResourceType.PATTERN).setNumericId(0).build());
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos")))
+                .thenThrow(new RuntimeException("store failure"));
+        // Simulate rollback also failing to cover the inner catch
+        doThrow(new RuntimeException("rollback failed"))
+                .when(mockMappingStore).deleteMapping("finos", "rollback-me");
+
+        String body = "{ \"type\": \"PATTERN\", \"json\": \"{}\", \"name\": \"X\", \"description\": \"Y\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm/namespaces/finos/rollback-me")
+                .then()
+                .statusCode(400);
+
+        verify(mockMappingStore).deleteMapping("finos", "rollback-me");
+    }
+
+    @Test
+    void return_400_with_unknown_error_when_update_failure_has_null_message() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("null-msg").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", "null-msg")).thenReturn(mapping);
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
+        // Throw an exception with a null message to exercise the "Unknown error" branch
+        when(mockPatternStore.createPatternForVersion(any(Pattern.class)))
+                .thenThrow(new RuntimeException((String) null));
+
+        String body = "{ \"changeType\": \"PATCH\", \"json\": \"{}\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm/namespaces/finos/null-msg")
+                .then()
+                .statusCode(400)
+                .body(containsString("Unknown error"));
+    }
 }
