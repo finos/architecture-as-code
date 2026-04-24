@@ -1,5 +1,5 @@
 import axios, { Axios, AxiosResponse } from 'axios';
-import { CLIConfig } from "../cli-config";
+import { CLIConfig } from '../cli-config';
 import { CalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
 import * as calmHubUrls from './calm-hub-urls';
 
@@ -23,25 +23,25 @@ export class CalmHubService {
 
     static fromCliConfig(config: CLIConfig): CalmHubService {
         if (!config.calmHubUrl) {
-            throw new Error('No CalmHub instance configured. Please set --calm-hub-url or calmHubUrl in ~/.calm.json!')
+            throw new Error('No CalmHub instance configured. Please set --calm-hub-url or calmHubUrl in ~/.calm.json!');
         }
         return new CalmHubService(config.calmHubUrl);
     }
 
     async getCalmHubResourceVersions(namespace: string, name: string): Promise<string[]> {
         // TODO handle 404s and other errors
-        return await this.ax.get(calmHubUrls.calmHubResourceVersionsUrl(namespace, name))
+        return await this.ax.get(calmHubUrls.calmHubResourceVersionsUrl(namespace, name));
     }
 
     async getCalmHubResourceLatestVersion(namespace: string, name: string): Promise<string[]> {
         // TODO handle 404s and other errors
-        return await this.ax.get(calmHubUrls.calmHubResourceLatestVersionUrl(namespace, name))
+        return await this.ax.get(calmHubUrls.calmHubResourceLatestVersionUrl(namespace, name));
     }
 
     async getCalmHubResourceSpecificVersion(namespace: string, name: string, version: string): Promise<string[]> {
         // TODO handle 404s and other errors
         // TODO validate version string
-        return await this.ax.get(calmHubUrls.calmHubResourceSpecificVersionUrl(namespace, name, version))
+        return await this.ax.get(calmHubUrls.calmHubResourceSpecificVersionUrl(namespace, name, version));
     }
 
     async createNewCalmResource(namespace: string, name: string, type: CalmDocumentType,data: object, description?: string): Promise<boolean> {
@@ -50,7 +50,7 @@ export class CalmHubService {
             json: JSON.stringify(data),
             name,
             description: description || `Created via CALM CLI on ${new Date().toISOString()}`
-        }
+        };
         return await this.ax.post(calmHubUrls.calmHubResourceLatestVersionUrl(namespace, name), createRequest);
     }
     
@@ -66,7 +66,7 @@ export class CalmHubService {
         const updateRequest: FrontControllerUpdateRequest = {
             json: JSON.stringify(data),
             changeType: 'MINOR' // TODO determine change type based on diff between current and new version
-        }
+        };
         const response: AxiosResponse = await this.ax.post(calmHubUrls.calmHubResourceLatestVersionUrl(namespace, name), updateRequest);
         const locationHeader = response.headers['location'] || response.headers['Location'];
         return extractVersionFromLocationHeader(locationHeader);

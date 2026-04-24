@@ -101,7 +101,7 @@ export async function loadManifest(bundlePath: string): Promise<BundleManifest> 
         }
         return manifest;
     } catch (_) {
-        throw new Error("Workspace bundle file at " + bundlePath + " is corrupted.")
+        throw new Error('Workspace bundle file at ' + bundlePath + ' is corrupted.');
     }
 }
 

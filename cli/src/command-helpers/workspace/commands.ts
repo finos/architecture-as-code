@@ -298,9 +298,9 @@ async function enforceOptionPresenceByPrompt(cliInput: string | undefined, promp
         return await select({
             message: prompt,
             choices: choices.map((p: string) => ({ name: p, value: p }))
-        })
+        });
     }
     return await input({
         message: prompt
-    })
+    });
 };
