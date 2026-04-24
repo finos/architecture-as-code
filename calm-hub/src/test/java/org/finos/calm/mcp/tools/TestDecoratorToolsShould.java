@@ -285,6 +285,63 @@ class TestDecoratorToolsShould {
         verifyNoInteractions(decoratorStore);
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1, -42})
+    void reject_non_positive_id_for_get_decorator(int id) {
+        ToolResponse response = decoratorTools.getDecorator("workshop", id);
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Decorator ID"));
+        verifyNoInteractions(decoratorStore);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1, -42})
+    void reject_non_positive_id_for_update_decorator(int id) {
+        ToolResponse response = decoratorTools.updateDecorator("workshop", id, "{\"type\":\"test\"}");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Decorator ID"));
+        verifyNoInteractions(decoratorStore);
+    }
+
+    @Test
+    void reject_invalid_json_for_create_decorator() {
+        ToolResponse response = decoratorTools.createDecorator("workshop", "not-json");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Decorator JSON"));
+        verifyNoInteractions(decoratorStore);
+    }
+
+    @Test
+    void reject_invalid_json_for_update_decorator() {
+        ToolResponse response = decoratorTools.updateDecorator("workshop", 1, "not-json");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Decorator JSON"));
+        verifyNoInteractions(decoratorStore);
+    }
+
+    @Test
+    void return_updated_representation_when_update_succeeds() throws Exception {
+        Decorator updated = new Decorator.DecoratorBuilder()
+                .setUniqueId("updated-decorator")
+                .setType("threat-model")
+                .setTarget(List.of("/calm/ns/1"))
+                .setData("updated-data")
+                .build();
+
+        when(decoratorStore.getDecoratorById("workshop", 1)).thenReturn(Optional.of(updated));
+
+        String result = text(decoratorTools.updateDecorator("workshop", 1, "{\"updated\":true}"));
+
+        assertThat(result, containsString("updated successfully"));
+        assertThat(result, containsString("updated-decorator"));
+        assertThat(result, containsString("threat-model"));
+        assertThat(result, containsString("updated-data"));
+    }
+
     // --- MCP disabled ---
 
     @Test
