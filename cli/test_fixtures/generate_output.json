@@ -44,8 +44,6 @@
     {
       "unique-id": "api-consumer-api-gateway",
       "description": "Issue calculation request",
-      "protocol": "HTTPS",
-      "authentication": "OAuth2",
       "relationship-type": {
         "connects": {
           "source": {
@@ -63,7 +61,6 @@
     {
       "unique-id": "api-gateway-idp",
       "description": "Validate bearer token",
-      "protocol": "HTTPS",
       "relationship-type": {
         "connects": {
           "source": {
@@ -78,7 +75,6 @@
     {
       "unique-id": "api-gateway-api-producer",
       "description": "Forward request",
-      "protocol": "HTTPS",
       "relationship-type": {
         "connects": {
           "source": {
@@ -96,7 +92,6 @@
     {
       "unique-id": "api-consumer-idp",
       "description": "Acquire a bearer token",
-      "protocol": "HTTPS",
       "relationship-type": {
         "connects": {
           "source": {

@@ -166,6 +166,8 @@
       "additionalProperties": true
     },
     "protocol": {
+      "$comment": "'protocol' is deprecated, use node 'interfaces'  instead",
+      "deprecated": true,
       "enum": [
         "HTTP",
         "HTTPS",

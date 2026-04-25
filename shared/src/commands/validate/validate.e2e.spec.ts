@@ -129,6 +129,44 @@ describe('validate E2E', () => {
         expect(response.hasErrors).toBeFalsy();
     });
 
+    it.each(TEST_ALL_SCHEMA)('reports relationship protocol deprecation warning for schema %s', async (schemaVersion) => {
+        const inputArch = setCalmSchema(
+            JSON.parse(readFileSync(path.join(validationPath, 'relationship-protocol-deprecated.json'), 'utf-8')),
+            schemaVersion
+        );
+        const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
+
+        const response = await validate(inputArch, pattern, undefined, schemaDirectory, false);
+        const protocolWarnings = response.spectralSchemaValidationOutputs.filter(
+            output => output.code === 'relationship-protocol-is-deprecated'
+        );
+
+        expect(response.jsonSchemaValidationOutputs).toHaveLength(0);
+        expect(response.hasErrors).toBeFalsy();
+        expect(response.hasWarnings).toBeTruthy();
+        expect(protocolWarnings).toHaveLength(1);
+        expect(protocolWarnings[0].path).toBe('/relationships/0/protocol');
+        expect(protocolWarnings[0].severity).toBe('warning');
+        expect(protocolWarnings[0].message).toContain('\'protocol\' property on relationships is deprecated');
+        expect(protocolWarnings[0].message).toContain('Use node \'interfaces\' instead');
+    });
+
+    it.each(TEST_ALL_SCHEMA)('does not report relationship protocol deprecation warning when protocol is absent for schema %s', async (schemaVersion) => {
+        const inputArch = setCalmSchema(
+            JSON.parse(readFileSync(path.join(validationPath, 'relationship-without-protocol.json'), 'utf-8')),
+            schemaVersion
+        );
+        const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
+
+        const response = await validate(inputArch, pattern, undefined, schemaDirectory, false);
+        const protocolWarnings = response.spectralSchemaValidationOutputs.filter(
+            output => output.code === 'relationship-protocol-is-deprecated'
+        );
+
+        expect(response.hasErrors).toBeFalsy();
+        expect(protocolWarnings).toHaveLength(0);
+    });
+
     describe('applyArchitectureOptionsToPattern', () => {
         it('works with one options relationship', async () => {
             const architecture = JSON.parse(

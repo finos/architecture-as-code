@@ -172,6 +172,19 @@ const architectureRules: RulesetDefinition = {
             then: {
                 function: sequenceNumbersAreUnique
             }
+        },
+
+        'relationship-protocol-is-deprecated': {
+            description: 'The protocol property on relationships is deprecated',
+            message: 'The \'protocol\' property on relationships is deprecated and will be removed in a future version. Use node \'interfaces\' instead.',
+            severity: 'warn',
+            given: '$.relationships[*].protocol',
+            then: {
+                function: pattern,
+                functionOptions: {
+                    notMatch: '.*',
+                },
+            },
         }
     }
 };
