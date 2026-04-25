@@ -147,8 +147,8 @@ describe('validate E2E', () => {
         expect(protocolWarnings).toHaveLength(1);
         expect(protocolWarnings[0].path).toBe('/relationships/0/protocol');
         expect(protocolWarnings[0].severity).toBe('warning');
-        expect(protocolWarnings[0].message).toContain("'protocol' property on relationships is deprecated");
-        expect(protocolWarnings[0].message).toContain("Use node 'interfaces' instead");
+        expect(protocolWarnings[0].message).toContain('\'protocol\' property on relationships is deprecated');
+        expect(protocolWarnings[0].message).toContain('Use node \'interfaces\' instead');
     });
 
     it.each(TEST_ALL_SCHEMA)('does not report relationship protocol deprecation warning when protocol is absent for schema %s', async (schemaVersion) => {
