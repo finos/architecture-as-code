@@ -58,9 +58,7 @@
             ]
           }
         }
-      },
-      "protocol": "HTTPS",
-      "authentication": "OAuth2"
+      }
     },
     {
       "unique-id": "api-gateway-idp",
@@ -74,9 +72,7 @@
             "node": "idp"
           }
         }
-      },
-      "protocol": "HTTPS",
-      "authentication": "OAuth2"
+      }
     },
     {
       "unique-id": "api-gateway-api-producer",
@@ -93,9 +89,7 @@
             ]
           }
         }
-      },
-      "protocol": "HTTPS",
-      "authentication": "OAuth2"
+      }
     },
     {
       "unique-id": "api-consumer-idp",
@@ -109,9 +103,7 @@
             "node": "idp"
           }
         }
-      },
-      "protocol": "HTTPS",
-      "authentication": "OAuth2"
+      }
     }
   ]
 }

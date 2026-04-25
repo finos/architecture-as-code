@@ -154,13 +154,7 @@
                 }
               }
             },
-            "parties": {},
-            "protocol": {
-              "const": "HTTPS"
-            },
-            "authentication": {
-              "const": "OAuth2"
-            }
+            "parties": {}
           }
         },
         {
@@ -183,9 +177,6 @@
                   }
                 }
               }
-            },
-            "protocol": {
-              "const": "HTTPS"
             }
           }
         },
@@ -212,9 +203,6 @@
                   }
                 }
               }
-            },
-            "protocol": {
-              "const": "HTTPS"
             }
           }
         },
@@ -238,9 +226,6 @@
                   }
                 }
               }
-            },
-            "protocol": {
-              "const": "HTTPS"
             }
           }
         }
