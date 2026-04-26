@@ -74,7 +74,7 @@
         "css-what": "7.0.0",
         "express": "5.2.1",
         "nth-check": "2.1.1",
-        "postcss": "8.5.8",
+        "postcss": "8.5.10",
         "rollup": "4.60.1"
     },
     "overrides": {
