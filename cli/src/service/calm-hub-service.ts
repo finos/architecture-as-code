@@ -77,7 +77,7 @@ export function extractVersionFromLocationHeader(locationHeader: string): string
     if (!locationHeader) {
         throw new Error('No Location header returned from CalmHub on update - cannot determine new version');
     }
-    const match = locationHeader.match(/\/versions\/([^\/]+)$/);
+    const match = locationHeader.match(/\/versions\/([^/]+)$/);
     if (!match || match.length < 2) {
         throw new Error('Unexpected Location header format: ' + locationHeader);
     }
