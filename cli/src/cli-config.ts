@@ -1,11 +1,16 @@
 import { initLogger } from '@finos/calm-shared';
 import { readFile, writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
+import { AuthPlugin } from './auth/auth-plugin';
+import { register } from 'ts-node';
+import { pathToFileURL } from 'url';
 
 export interface CLIConfig {
     calmHubUrl?: string
     allowedRemoteHosts?: string[]
+    authPluginPath?: string
 }
 
 export function getUserConfigLocation(): string {
@@ -36,5 +41,44 @@ export async function loadCliConfig(): Promise<CLIConfig | null> {
         }
         logger.error('Unexpected error loading user config: ' + String(err));
         return null;
+    }
+}
+
+export async function loadAuthPlugin(filename: string, debug: boolean): Promise<AuthPlugin> {
+    const logger = initLogger(debug, 'auth-plugin')
+    if (!existsSync(filename)) {
+        logger.error(`❌ Auth plugin file not found: ${filename}`);
+        throw new Error(`❌ Auth plugin file not found: ${filename}`);
+    }
+    if (filename.endsWith('.ts')) {
+        logger.info(`🔍 Loading auth plugin as TypeScript: ${filename}`);
+        register({
+            transpileOnly: true,
+            compilerOptions: {
+                target: 'es2021',
+                module: 'esnext',
+                moduleResolution: 'node',
+                esModuleInterop: true,
+                sourceMap: true,
+                inlineSourceMap: true,
+                inlineSources: true,
+            },
+        });
+    } else if (filename.endsWith('.js')) {
+        logger.info(`🔍 Loading auth plugin as JavaScript: ${filename}`);
+    } else {
+    }
+
+    try {
+        const url = pathToFileURL(filename).href;
+        const mod = await import(/* @vite-ignore */ url);
+        const AuthPluginClass = mod.default;
+        if (typeof AuthPluginClass !== 'function') {
+            throw new Error('❌ AuthPluginClass is not a constructor. Did you forget to export default?');
+        }
+        return new AuthPluginClass() as AuthPlugin;
+    } catch (error) {
+        logger.error(`❌ Error loading auth plugin: ${error}`);
+        throw new Error(`❌ Error loading auth plugin: ${error}`);
     }
 }
