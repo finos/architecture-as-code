@@ -113,13 +113,17 @@ describe('ControlDetailSection', () => {
             });
         });
 
-        it('shows "No configurations" when no config IDs exist', async () => {
+        it('hides the configurations panel when no config IDs exist', async () => {
             setupMocks({ configIds: [] });
             render(<ControlDetailSection controlData={controlData} />);
 
+            // Wait for requirement panel to render, then assert configurations heading is absent
             await waitFor(() => {
-                expect(screen.getByText('No configurations')).toBeInTheDocument();
+                const headings = screen.getAllByRole('heading');
+                expect(headings).toHaveLength(1);
+                expect(headings[0]).toHaveTextContent('Requirement');
             });
+            expect(screen.queryByText('Configurations')).not.toBeInTheDocument();
         });
 
         it('renders two readable JSON views by default (requirement + configuration)', async () => {
