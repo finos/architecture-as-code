@@ -31,7 +31,7 @@
     "@xyflow/svelte": "^1.5.1",
     "elkjs": "^0.11.1",
     "fuse.js": "^7.0.0",
-    "html-to-image": "1.11.11",
+    "html-to-image": "1.11.13",
     "jsonpos": "^4.1.2",
     "nanoid": "^5.0.9",
     "paneforge": "^1.0.2",
