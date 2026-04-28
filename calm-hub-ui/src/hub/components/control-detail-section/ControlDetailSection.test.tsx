@@ -408,6 +408,12 @@ describe('ControlDetailSection', () => {
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
+            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
+            });
+            await user.click(screen.getByRole('tab', { name: '1.0.0' }));
+
             const rawTabs = await screen.findAllByRole('tab', { name: 'Raw JSON' });
             await user.click(rawTabs[1]); // click config panel's Raw JSON tab
 
