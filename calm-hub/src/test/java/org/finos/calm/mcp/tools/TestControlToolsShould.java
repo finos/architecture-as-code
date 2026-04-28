@@ -3,6 +3,8 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.controls.ControlDetail;
+import org.finos.calm.domain.controls.CreateControlConfiguration;
+import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
@@ -22,6 +24,8 @@ import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -233,6 +237,150 @@ class TestControlToolsShould {
         assertThat(text(controlTools.listControls("security")), containsString("disabled"));
         assertThat(text(controlTools.getControl("security", 1, "1.0.0")), containsString("disabled"));
         assertThat(text(controlTools.listControlVersions("security", 1)), containsString("disabled"));
+        assertThat(text(controlTools.createControlRequirement("security", "n", "d", "{}")), containsString("disabled"));
+        assertThat(text(controlTools.createControlConfiguration("security", 1, "{}")), containsString("disabled"));
+        verifyNoInteractions(controlStore);
+    }
+
+    // --- createControlRequirement ---
+
+    @Test
+    void create_control_requirement_successfully() throws Exception {
+        ControlDetail created = new ControlDetail(42, "BOLA", "desc");
+        when(controlStore.createControlRequirement(any(CreateControlRequirement.class), eq("security")))
+                .thenReturn(created);
+
+        ToolResponse response = controlTools.createControlRequirement("security", "BOLA", "desc", "{\"x\":1}");
+
+        assertThat(response.isError(), is(false));
+        assertThat(text(response), containsString("42"));
+        assertThat(text(response), containsString("created successfully"));
+    }
+
+    @Test
+    void return_error_when_domain_missing_on_create_requirement() throws Exception {
+        when(controlStore.createControlRequirement(any(CreateControlRequirement.class), eq("missing")))
+                .thenThrow(new DomainNotFoundException("missing"));
+
+        ToolResponse response = controlTools.createControlRequirement("missing", "n", "d", "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Domain"));
+    }
+
+    @Test
+    void reject_invalid_domain_for_create_requirement() {
+        ToolResponse response = controlTools.createControlRequirement("bad domain", "n", "d", "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void reject_blank_name_for_create_requirement(String name) {
+        ToolResponse response = controlTools.createControlRequirement("security", name, "d", "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void reject_blank_description_for_create_requirement(String description) {
+        ToolResponse response = controlTools.createControlRequirement("security", "n", description, "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void reject_blank_requirement_json(String json) {
+        ToolResponse response = controlTools.createControlRequirement("security", "n", "d", json);
+
+        assertThat(response.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    @Test
+    void reject_invalid_json_for_create_requirement() {
+        ToolResponse response = controlTools.createControlRequirement("security", "n", "d", "not-json");
+
+        assertThat(response.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    // --- createControlConfiguration ---
+
+    @Test
+    void create_control_configuration_successfully() throws Exception {
+        when(controlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq("security"), eq(1)))
+                .thenReturn(7);
+
+        ToolResponse response = controlTools.createControlConfiguration("security", 1, "{\"x\":1}");
+
+        assertThat(response.isError(), is(false));
+        assertThat(text(response), containsString("7"));
+        assertThat(text(response), containsString("created successfully"));
+    }
+
+    @Test
+    void return_error_when_domain_missing_on_create_configuration() throws Exception {
+        when(controlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq("missing"), eq(1)))
+                .thenThrow(new DomainNotFoundException("missing"));
+
+        ToolResponse response = controlTools.createControlConfiguration("missing", 1, "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Domain"));
+    }
+
+    @Test
+    void return_error_when_control_missing_on_create_configuration() throws Exception {
+        when(controlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq("security"), eq(99)))
+                .thenThrow(new ControlNotFoundException());
+
+        ToolResponse response = controlTools.createControlConfiguration("security", 99, "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Control"));
+    }
+
+    @Test
+    void reject_invalid_domain_for_create_configuration() {
+        ToolResponse response = controlTools.createControlConfiguration("bad domain", 1, "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    @Test
+    void reject_non_positive_control_id_for_create_configuration() {
+        ToolResponse response = controlTools.createControlConfiguration("security", 0, "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void reject_blank_configuration_json(String json) {
+        ToolResponse response = controlTools.createControlConfiguration("security", 1, json);
+
+        assertThat(response.isError(), is(true));
+        verifyNoInteractions(controlStore);
+    }
+
+    @Test
+    void reject_invalid_json_for_create_configuration() {
+        ToolResponse response = controlTools.createControlConfiguration("security", 1, "not-json");
+
+        assertThat(response.isError(), is(true));
         verifyNoInteractions(controlStore);
     }
 }

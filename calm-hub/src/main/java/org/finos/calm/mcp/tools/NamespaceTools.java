@@ -8,7 +8,6 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
-import org.finos.calm.store.DomainStore;
 import org.finos.calm.store.NamespaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,8 +15,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * MCP tool provider for namespace and domain resources. Exposes listing and
- * creation of namespaces and listing of control domains via the Quarkiverse MCP server.
+ * MCP tool provider for namespace resources. Exposes listing and
+ * creation of namespaces via the Quarkiverse MCP server.
  */
 @ApplicationScoped
 public class NamespaceTools {
@@ -30,9 +29,6 @@ public class NamespaceTools {
 
     @Inject
     NamespaceStore namespaceStore;
-
-    @Inject
-    DomainStore domainStore;
 
     @Tool(description = "List all namespaces available in CalmHub. Returns namespace names and descriptions.")
     public ToolResponse listNamespaces() {
@@ -84,20 +80,4 @@ public class NamespaceTools {
         }
     }
 
-    @Tool(description = "List all control domains available in CalmHub (e.g. 'security').")
-    public ToolResponse listDomains() {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        List<String> domains = domainStore.getDomains();
-        if (domains.isEmpty()) {
-            return ToolResponse.success("No domains found.");
-        }
-        StringBuilder sb = new StringBuilder("Domains:\n");
-        for (String domain : domains) {
-            sb.append("- ").append(domain).append("\n");
-        }
-        return ToolResponse.success(sb.toString());
-    }
 }

@@ -3,7 +3,6 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
-import org.finos.calm.store.DomainStore;
 import org.finos.calm.store.NamespaceStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,9 +28,6 @@ class TestNamespaceToolsShould {
 
     @Mock
     NamespaceStore namespaceStore;
-
-    @Mock
-    DomainStore domainStore;
 
     @InjectMocks
     NamespaceTools namespaceTools;
@@ -128,27 +124,6 @@ class TestNamespaceToolsShould {
         verifyNoInteractions(namespaceStore);
     }
 
-    // --- listDomains ---
-
-    @Test
-    void return_domains() {
-        when(domainStore.getDomains()).thenReturn(List.of("api-threats", "cloud-security"));
-
-        String result = text(namespaceTools.listDomains());
-
-        assertThat(result, containsString("api-threats"));
-        assertThat(result, containsString("cloud-security"));
-    }
-
-    @Test
-    void return_no_domains_message() {
-        when(domainStore.getDomains()).thenReturn(List.of());
-
-        String result = text(namespaceTools.listDomains());
-
-        assertThat(result, containsString("No domains found"));
-    }
-
     // --- MCP disabled ---
 
     @Test
@@ -157,15 +132,11 @@ class TestNamespaceToolsShould {
 
         ToolResponse listNs = namespaceTools.listNamespaces();
         ToolResponse createNs = namespaceTools.createNamespace("test", "desc");
-        ToolResponse listDomains = namespaceTools.listDomains();
 
         assertThat(listNs.isError(), is(true));
         assertThat(text(listNs), containsString("disabled"));
         assertThat(createNs.isError(), is(true));
         assertThat(text(createNs), containsString("disabled"));
-        assertThat(listDomains.isError(), is(true));
-        assertThat(text(listDomains), containsString("disabled"));
         verifyNoInteractions(namespaceStore);
-        verifyNoInteractions(domainStore);
     }
 }

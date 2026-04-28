@@ -8,6 +8,7 @@ import jakarta.inject.Inject;
 import org.finos.calm.mcp.tools.ArchitectureTools;
 import org.finos.calm.mcp.tools.ControlTools;
 import org.finos.calm.mcp.tools.DecoratorTools;
+import org.finos.calm.mcp.tools.DomainTools;
 import org.finos.calm.mcp.tools.NamespaceTools;
 import org.finos.calm.mcp.tools.SearchTools;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,6 +76,9 @@ public class NitriteMcpIntegration {
     NamespaceTools namespaceTools;
 
     @Inject
+    DomainTools domainTools;
+
+    @Inject
     SearchTools searchTools;
 
     private static String text(ToolResponse r) {
@@ -125,7 +129,7 @@ public class NitriteMcpIntegration {
     @Test
     @Order(5)
     void mcp_list_domains_returns_seeded_domain() {
-        ToolResponse result = namespaceTools.listDomains();
+        ToolResponse result = domainTools.listDomains();
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("security"));
     }

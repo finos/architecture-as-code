@@ -185,9 +185,10 @@ The tool implementations live in
 [`src/main/java/org/finos/calm/mcp/tools`](src/main/java/org/finos/calm/mcp/tools):
 
 - **ArchitectureTools** — list, create and read architectures (and their versions) for a namespace.
-- **ControlTools** — list and read control requirements for a namespace.
+- **ControlTools** — list and read control requirements; create control requirements and control configurations within a domain.
 - **DecoratorTools** — full CRUD over decorators.
-- **NamespaceTools** — create namespaces, list namespaces, list domains.
+- **DomainTools** — list and create control domains.
+- **NamespaceTools** — list and create namespaces.
 - **SearchTools** — global cross-resource search with capped, grouped results.
 
 #### Endpoint
