@@ -86,7 +86,7 @@
     "jsdom": "^28.1.0",
     "license-checker": "^25.0.1",
     "lint-staged": "^16.2.7",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.11",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.2",

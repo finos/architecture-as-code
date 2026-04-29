@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "lib": ["ES2020"],
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "outDir": "../../out/integration",
+        "rootDir": ".",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "sourceMap": true,
+        "types": ["vscode", "node", "mocha"]
+    },
+    "include": ["./**/*.ts"]
+}

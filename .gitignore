@@ -42,6 +42,10 @@ node_modules/
 
 !/.mvn/wrapper/maven-wrapper.jar
 
+# Stray Java compiler output (e.g. from running `javac` outside Maven)
+*.class
+/io/
+
 coverage/
 /cli/test/template-bundles/
 .github/chatmodes

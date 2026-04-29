@@ -2,8 +2,12 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { Data } from '../../../model/calm.js';
+
+const calmServiceMock = {
+    fetchDecoratorValues: vi.fn().mockResolvedValue([]),
+};
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -23,7 +27,7 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(() => ({
-        fetchDecoratorValues: vi.fn().mockResolvedValue([]),
+        fetchDecoratorValues: calmServiceMock.fetchDecoratorValues,
     })),
 }));
 
@@ -44,6 +48,11 @@ const patternData: Data & { calmType: 'Patterns' } = {
 };
 
 describe('DiagramSection', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        calmServiceMock.fetchDecoratorValues.mockResolvedValue([]);
+    });
+
     describe('with architecture data', () => {
         it('renders title with namespace, id, and version', () => {
             render(
@@ -68,6 +77,23 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('drawer')).toBeInTheDocument();
             expect(screen.getByTestId('drawer')).toHaveTextContent('Drawer for test-arch');
         });
+
+        it('uses selected architecture id in deployment decorator target', async () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await screen.findByTestId('drawer');
+
+            expect(calmServiceMock.fetchDecoratorValues).toHaveBeenCalledWith(
+                'arch-namespace',
+                '/calm/namespaces/arch-namespace/architectures/test-arch/versions/1-0-0',
+                'deployment'
+            );
+        });
+
     });
 
     describe('with pattern data', () => {
