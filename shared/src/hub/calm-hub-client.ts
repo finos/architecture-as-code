@@ -130,9 +130,25 @@ export class CalmHubClient {
         const endpoint = `GET /calm/namespaces/${namespace}/architectures`;
         try {
             const response = await this.ax.get(`/calm/namespaces/${namespace}/architectures`);
-            const values: ArchitectureDetail[] = response.data?.values ?? [];
-            return this.groupArchitecturesByIdAndName(values);
+            const items: { id: number; name: string; description?: string }[] =
+                response.data?.values ?? [];
+            const summaries = await Promise.all(
+                items.map(async (item) => {
+                    const versionsEndpoint = `GET /calm/namespaces/${namespace}/architectures/${item.id}/versions`;
+                    try {
+                        const vRes = await this.ax.get(
+                            `/calm/namespaces/${namespace}/architectures/${item.id}/versions`
+                        );
+                        const versions: string[] = vRes.data?.values ?? [];
+                        return { id: item.id, name: item.name, versions };
+                    } catch (err) {
+                        throw this.wrapError(err, versionsEndpoint);
+                    }
+                })
+            );
+            return summaries;
         } catch (err) {
+            if (err instanceof HubClientError) throw err;
             throw this.wrapError(err, endpoint);
         }
     }
@@ -167,20 +183,6 @@ export class CalmHubClient {
         };
     }
 
-    /**
-     * Groups raw per-version architecture records returned by the list endpoint
-     * into a summary array keyed by id+name with a versions array.
-     */
-    private groupArchitecturesByIdAndName(records: ArchitectureDetail[]): ArchitectureSummary[] {
-        const map = new Map<number, ArchitectureSummary>();
-        for (const record of records) {
-            if (!map.has(record.id)) {
-                map.set(record.id, { id: record.id, name: record.name, versions: [] });
-            }
-            map.get(record.id)!.versions.push(record.version);
-        }
-        return Array.from(map.values());
-    }
 
     private wrapError(err: unknown, endpoint: string): HubClientError {
         if (err instanceof HubClientError) return err;

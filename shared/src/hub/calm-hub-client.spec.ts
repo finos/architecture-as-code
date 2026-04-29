@@ -150,14 +150,15 @@ describe('CalmHubClient', () => {
     // ── listArchitectures ────────────────────────────────────────────────────
 
     describe('listArchitectures', () => {
-        it('groups records by id and collects versions', async () => {
+        it('fetches versions per architecture and returns summaries', async () => {
             mock.onGet('/calm/namespaces/finos/architectures').reply(200, {
                 values: [
-                    { id: 1, name: 'arch-a', version: '1.0.0', namespace: 'finos', description: '' },
-                    { id: 1, name: 'arch-a', version: '1.1.0', namespace: 'finos', description: '' },
-                    { id: 2, name: 'arch-b', version: '1.0.0', namespace: 'finos', description: '' }
+                    { id: 1, name: 'arch-a', description: '' },
+                    { id: 2, name: 'arch-b', description: '' }
                 ]
             });
+            mock.onGet('/calm/namespaces/finos/architectures/1/versions').reply(200, { values: ['1.0.0', '1.1.0'] });
+            mock.onGet('/calm/namespaces/finos/architectures/2/versions').reply(200, { values: ['1.0.0'] });
 
             const result = await client.listArchitectures('finos');
             expect(result).toHaveLength(2);
