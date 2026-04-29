@@ -45,6 +45,15 @@ export {
     getFileExtension
 } from './util/file-utils.js';
 export {
+    CalmHubClient,
+    HubClientError,
+    type NamespaceSummary,
+    type ArchitectureSummary,
+    type ArchitectureDetail,
+    type CreateResult,
+    type NamespaceCreateResult
+} from './hub/calm-hub-client.js';
+export {
     enrichWithDocumentPositions,
     parseDocumentWithPositions,
     type ParsedDocumentContext,

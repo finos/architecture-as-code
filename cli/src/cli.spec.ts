@@ -12,6 +12,7 @@ let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
 let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
+let hubCommandsModule: typeof import('./command-helpers/hub-commands');
 let setupCLI: typeof import('./cli').setupCLI;
 let cliConfigModule: typeof import('./cli-config');
 
@@ -433,6 +434,153 @@ describe('CLI Commands', () => {
 
             exitSpy.mockRestore();
             errorSpy.mockRestore();
+        });
+    });
+
+    describe('push architecture command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPushArchitecture').mockResolvedValue(undefined);
+        });
+
+        it('calls runPushArchitecture with correct arguments', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'push', 'architecture', 'arch.json',
+                '--name', 'my-arch',
+                '--namespace', 'finos',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushArchitecture).toHaveBeenCalledWith(expect.objectContaining({
+                file: 'arch.json',
+                name: 'my-arch',
+                namespace: 'finos',
+                calmHubUrl: 'http://hub',
+            }));
+        });
+
+        it('passes --id and --version for versioned push', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'push', 'architecture', 'arch.json',
+                '--name', 'my-arch',
+                '--namespace', 'finos',
+                '--calm-hub-url', 'http://hub',
+                '--id', '42',
+                '--ver', '2.0.0',
+            ]);
+
+            expect(hubCommandsModule.runPushArchitecture).toHaveBeenCalledWith(expect.objectContaining({
+                id: '42',
+                version: '2.0.0',
+            }));
+        });
+    });
+
+    describe('pull architecture command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPullArchitecture').mockResolvedValue(undefined);
+        });
+
+        it('calls runPullArchitecture with correct arguments', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'pull', 'architecture', '1',
+                '--namespace', 'finos',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPullArchitecture).toHaveBeenCalledWith(expect.objectContaining({
+                id: '1',
+                namespace: 'finos',
+                version: '1.0.0',
+                calmHubUrl: 'http://hub',
+            }));
+        });
+
+        it('passes --out when provided', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'pull', 'architecture', '1',
+                '--namespace', 'finos',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+                '--out', 'out.json',
+            ]);
+
+            expect(hubCommandsModule.runPullArchitecture).toHaveBeenCalledWith(expect.objectContaining({
+                out: 'out.json',
+            }));
+        });
+    });
+
+    describe('list architectures command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runListArchitectures').mockResolvedValue(undefined);
+        });
+
+        it('calls runListArchitectures with namespace and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'list', 'architectures',
+                '--namespace', 'finos',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListArchitectures).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'finos',
+                calmHubUrl: 'http://hub',
+            }));
+        });
+
+        it('defaults namespace to "default"', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'list', 'architectures',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListArchitectures).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'default',
+            }));
+        });
+    });
+
+    describe('list namespaces command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runListNamespaces').mockResolvedValue(undefined);
+        });
+
+        it('calls runListNamespaces with hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'list', 'namespaces',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListNamespaces).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubUrl: 'http://hub',
+            }));
+        });
+    });
+
+    describe('create namespace command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runCreateNamespace').mockResolvedValue(undefined);
+        });
+
+        it('calls runCreateNamespace with name and description', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'create', 'namespace',
+                '--name', 'my-org',
+                '--description', 'My organisation',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runCreateNamespace).toHaveBeenCalledWith(expect.objectContaining({
+                name: 'my-org',
+                description: 'My organisation',
+                calmHubUrl: 'http://hub',
+            }));
         });
     });
 
