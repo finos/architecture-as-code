@@ -250,8 +250,9 @@ Validation requires:
     const pushCmd = new Command('push').description('Push a CALM document to CALM Hub');
 
     pushCmd
-        .command('architecture <file>')
+        .command('architecture')
         .description('Push a CALM architecture file to CALM Hub')
+        .option(ARCHITECTURE_OPTION, 'Path to the architecture file to use. May be a file path or a URL.')
         .option('--name <name>', 'Name for the architecture in CALM Hub (required when creating a new architecture)')
         .option('--description <description>', 'Description for the architecture')
         .option(NAMESPACE_OPTION, 'Target namespace', 'default')
@@ -259,9 +260,9 @@ Validation requires:
         .option('--id <id>', 'Existing architecture ID (required when adding a new version)')
         .option('--ver <version>', 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
-        .action(async (file: string, options) => {
+        .action(async (options) => {
             const { runPushArchitecture } = await import('./command-helpers/hub-commands');
-            await runPushArchitecture({ ...options, file, version: options.ver });
+            await runPushArchitecture({ ...options, file: options.architecture, version: options.ver });
         });
 
     program.addCommand(pushCmd);

@@ -445,7 +445,8 @@ describe('CLI Commands', () => {
 
         it('calls runPushArchitecture with correct arguments', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'push', 'architecture', 'arch.json',
+                'node', 'cli.js', 'push', 'architecture',
+                '--architecture', 'arch.json',
                 '--name', 'my-arch',
                 '--namespace', 'finos',
                 '--calm-hub-url', 'http://hub',
@@ -461,7 +462,8 @@ describe('CLI Commands', () => {
 
         it('passes --id and --version for versioned push', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'push', 'architecture', 'arch.json',
+                'node', 'cli.js', 'push', 'architecture',
+                '--architecture', 'arch.json',
                 '--name', 'my-arch',
                 '--namespace', 'finos',
                 '--calm-hub-url', 'http://hub',
