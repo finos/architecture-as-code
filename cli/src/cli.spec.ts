@@ -486,7 +486,8 @@ describe('CLI Commands', () => {
 
         it('calls runPullArchitecture with correct arguments', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'pull', 'architecture', '1',
+                'node', 'cli.js', 'pull', 'architecture',
+                '--id', '1',
                 '--namespace', 'finos',
                 '--ver', '1.0.0',
                 '--calm-hub-url', 'http://hub',
@@ -502,7 +503,8 @@ describe('CLI Commands', () => {
 
         it('passes --out when provided', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'pull', 'architecture', '1',
+                'node', 'cli.js', 'pull', 'architecture',
+                '--id', '1',
                 '--namespace', 'finos',
                 '--ver', '1.0.0',
                 '--calm-hub-url', 'http://hub',

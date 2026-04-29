@@ -272,15 +272,16 @@ Validation requires:
     const pullCmd = new Command('pull').description('Pull a CALM document from CALM Hub');
 
     pullCmd
-        .command('architecture <id>')
+        .command('architecture')
         .description('Pull a specific version of a CALM architecture from CALM Hub')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
         .requiredOption('--ver <version>', 'Version to retrieve')
+        .requiredOption('--id <id>', 'Architecture ID to pull')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option('--out <file>', 'Write output to this file instead of stdout')
-        .action(async (id: string, options) => {
+        .action(async (options) => {
             const { runPullArchitecture } = await import('./command-helpers/hub-commands');
-            await runPullArchitecture({ ...options, id, version: options.ver });
+            await runPullArchitecture({ ...options, version: options.ver });
         });
 
     program.addCommand(pullCmd);
