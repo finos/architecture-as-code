@@ -252,7 +252,7 @@ Validation requires:
     pushCmd
         .command('architecture <file>')
         .description('Push a CALM architecture file to CALM Hub')
-        .requiredOption('--name <name>', 'Name for the architecture in CALM Hub')
+        .option('--name <name>', 'Name for the architecture in CALM Hub (required when creating a new architecture)')
         .option('--description <description>', 'Description for the architecture')
         .option(NAMESPACE_OPTION, 'Target namespace', 'default')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')

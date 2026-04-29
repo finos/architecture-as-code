@@ -136,6 +136,34 @@ describe('hub-commands', () => {
             expect(hubOutput.printError).toHaveBeenCalled();
         });
 
+        it('exits with error when --name is missing and no --id is provided', async () => {
+            const { runPushArchitecture } = await import('./hub-commands');
+            await expect(runPushArchitecture({
+                calmHubUrl: 'http://hub',
+                namespace: 'finos',
+                file: 'arch.json'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalled();
+        });
+
+        it('calls pushArchitectureVersion without --name when --id is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.pushArchitectureVersion).mockResolvedValue({
+                id: 42, version: '2.0.0', location: '/calm/namespaces/finos/architectures/42/versions/2.0.0'
+            });
+
+            const { runPushArchitecture } = await import('./hub-commands');
+            await runPushArchitecture({
+                calmHubUrl: 'http://hub',
+                namespace: 'finos',
+                file: 'arch.json',
+                id: '42',
+                version: '2.0.0'
+            });
+
+            expect(mockClient.pushArchitectureVersion).toHaveBeenCalledWith('finos', 42, '2.0.0', undefined, '', expect.any(String));
+        });
+
         it('exits when file cannot be read', async () => {
             vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
             const { runPushArchitecture } = await import('./hub-commands');

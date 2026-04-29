@@ -20,7 +20,7 @@ export async function resolveHubUrl(options: { calmHubUrl?: string }): Promise<s
 export interface PushArchitectureOptions {
     calmHubUrl?: string;
     namespace: string;
-    name: string;
+    name?: string;
     description?: string;
     file: string;
     id?: string;
@@ -30,6 +30,12 @@ export interface PushArchitectureOptions {
 
 export async function runPushArchitecture(options: PushArchitectureOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.output);
+
+    if (!options.id && !options.name) {
+        printError(0, '--name is required when creating a new architecture', 'push architecture', format);
+        process.exit(1);
+    }
+
     const hubUrl = await resolveHubUrl(options);
     const client = new CalmHubClient(hubUrl);
 
@@ -67,7 +73,7 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
         } else {
             result = await client.pushArchitecture(
                 options.namespace,
-                options.name,
+                options.name!,
                 options.description ?? '',
                 fileContent
             );

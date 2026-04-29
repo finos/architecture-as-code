@@ -109,7 +109,7 @@ export class CalmHubClient {
         namespace: string,
         id: number,
         version: string,
-        name: string,
+        name: string | undefined,
         description: string,
         architectureJson: string
     ): Promise<CreateResult> {
