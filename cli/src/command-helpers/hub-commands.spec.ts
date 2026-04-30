@@ -200,7 +200,7 @@ describe('hub-commands', () => {
                 namespace: 'finos',
                 name: 'my-arch',
                 file: 'arch.json',
-                output: 'table'
+                format: 'table'
             });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
@@ -285,7 +285,7 @@ describe('hub-commands', () => {
             ]);
 
             const { runListArchitectures } = await import('./hub-commands');
-            await runListArchitectures({ calmHubUrl: 'http://hub', namespace: 'finos', output: 'table' });
+            await runListArchitectures({ calmHubUrl: 'http://hub', namespace: 'finos', format: 'table' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
         });
@@ -338,7 +338,7 @@ describe('hub-commands', () => {
             vi.mocked(mockClient.listNamespaces).mockResolvedValue([{ name: 'finos', description: '' }]);
 
             const { runListNamespaces } = await import('./hub-commands');
-            await runListNamespaces({ calmHubUrl: 'http://hub', output: 'table' });
+            await runListNamespaces({ calmHubUrl: 'http://hub', format: 'table' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
         });
