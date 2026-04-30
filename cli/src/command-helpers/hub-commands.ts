@@ -25,11 +25,11 @@ export interface PushArchitectureOptions {
     file: string;
     id?: string;
     version?: string;
-    output?: string;
+    format?: string;
 }
 
 export async function runPushArchitecture(options: PushArchitectureOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.output);
+    const format: OutputFormat = parseOutputFormat(options.format);
 
     if (!options.id && !options.name) {
         printError(0, '--name is required when creating a new architecture', 'push architecture', format);
@@ -130,11 +130,11 @@ export async function runPullArchitecture(options: PullArchitectureOptions): Pro
 export interface ListArchitecturesOptions {
     calmHubUrl?: string;
     namespace: string;
-    output?: string;
+    format?: string;
 }
 
 export async function runListArchitectures(options: ListArchitecturesOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.output);
+    const format: OutputFormat = parseOutputFormat(options.format);
     const hubUrl = await resolveHubUrl(options);
     const client = new CalmHubClient(hubUrl);
 
@@ -164,11 +164,11 @@ export interface CreateNamespaceOptions {
     calmHubUrl?: string;
     name: string;
     description?: string;
-    output?: string;
+    format?: string;
 }
 
 export async function runCreateNamespace(options: CreateNamespaceOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.output);
+    const format: OutputFormat = parseOutputFormat(options.format);
     const hubUrl = await resolveHubUrl(options);
     const client = new CalmHubClient(hubUrl);
 
@@ -196,11 +196,11 @@ export async function runCreateNamespace(options: CreateNamespaceOptions): Promi
 
 export interface ListNamespacesOptions {
     calmHubUrl?: string;
-    output?: string;
+    format?: string;
 }
 
 export async function runListNamespaces(options: ListNamespacesOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.output);
+    const format: OutputFormat = parseOutputFormat(options.format);
     const hubUrl = await resolveHubUrl(options);
     const client = new CalmHubClient(hubUrl);
 

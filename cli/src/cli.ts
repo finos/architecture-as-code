@@ -35,7 +35,7 @@ const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
 
 // Hub command options
 const NAMESPACE_OPTION = '--namespace <namespace>';
-const HUB_OUTPUT_OPTION = '-o, --output <format>';
+const HUB_OUTPUT_OPTION = '-f, --format <format>';
 
 export function setupCLI(program: Command) {
     program
