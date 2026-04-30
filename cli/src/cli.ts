@@ -35,7 +35,6 @@ const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
 
 // Hub command options
 const NAMESPACE_OPTION = '--namespace <namespace>';
-const HUB_OUTPUT_OPTION = '-f, --format <format>';
 
 export function setupCLI(program: Command) {
     program
@@ -245,7 +244,7 @@ Validation requires:
 
     // ── push ──────────────────────────────────────────────────────────────────
 
-    const hubOutputOption = new Option(HUB_OUTPUT_OPTION, 'Output format').choices(['json', 'table']).default('json');
+    const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'table']).default('json');
 
     const pushCmd = new Command('push').description('Push a CALM document to CALM Hub');
 
