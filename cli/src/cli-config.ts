@@ -1,9 +1,8 @@
-import { initLogger } from '@finos/calm-shared';
 import { readFile, writeFile } from 'fs/promises';
+import { initLogger, AuthPlugin } from '@finos/calm-shared';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
-import { AuthPlugin } from './auth/auth-plugin';
 import { register } from 'ts-node';
 import { pathToFileURL } from 'url';
 
