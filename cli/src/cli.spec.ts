@@ -476,6 +476,39 @@ describe('CLI Commands', () => {
                 version: '2.0.0',
             }));
         });
+
+        it('passes --format pretty through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'push', 'architecture',
+                '--architecture', 'arch.json',
+                '--name', 'my-arch',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runPushArchitecture).toHaveBeenCalledWith(expect.objectContaining({
+                format: 'pretty',
+            }));
+        });
+
+        it('rejects --format table', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+                throw new Error('process.exit called');
+            });
+            const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'push', 'architecture',
+                '--architecture', 'arch.json',
+                '--name', 'my-arch',
+                '--format', 'table',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('Allowed choices are json, pretty.'));
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            stderrSpy.mockRestore();
+        });
     });
 
     describe('pull architecture command', () => {
@@ -546,6 +579,17 @@ describe('CLI Commands', () => {
                 namespace: 'default',
             }));
         });
+
+        it('passes --format pretty through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'list', 'architectures',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runListArchitectures).toHaveBeenCalledWith(expect.objectContaining({
+                format: 'pretty',
+            }));
+        });
     });
 
     describe('list namespaces command', () => {
@@ -562,6 +606,17 @@ describe('CLI Commands', () => {
 
             expect(hubCommandsModule.runListNamespaces).toHaveBeenCalledWith(expect.objectContaining({
                 calmHubUrl: 'http://hub',
+            }));
+        });
+
+        it('passes --format pretty through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'list', 'namespaces',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runListNamespaces).toHaveBeenCalledWith(expect.objectContaining({
+                format: 'pretty',
             }));
         });
     });
@@ -584,6 +639,18 @@ describe('CLI Commands', () => {
                 name: 'my-org',
                 description: 'My organisation',
                 calmHubUrl: 'http://hub',
+            }));
+        });
+
+        it('passes --format pretty through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'create', 'namespace',
+                '--name', 'my-org',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runCreateNamespace).toHaveBeenCalledWith(expect.objectContaining({
+                format: 'pretty',
             }));
         });
     });

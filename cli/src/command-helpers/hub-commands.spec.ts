@@ -53,7 +53,7 @@ describe('hub-commands', () => {
         vi.mocked(hubOutput.printJsonSuccess).mockImplementation(() => undefined);
         vi.mocked(hubOutput.printTableSuccess).mockImplementation(() => undefined);
         vi.mocked(hubOutput.printError).mockImplementation(() => undefined);
-        vi.mocked(hubOutput.parseOutputFormat).mockImplementation((v) => v === 'table' ? 'table' : 'json');
+        vi.mocked(hubOutput.parseOutputFormat).mockImplementation((v) => v === 'pretty' ? 'pretty' : 'json');
     });
 
     afterEach(() => {
@@ -188,7 +188,7 @@ describe('hub-commands', () => {
             expect(hubOutput.printError).toHaveBeenCalled();
         });
 
-        it('prints table output when format is table', async () => {
+        it('prints table output when format is pretty', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.pushArchitecture).mockResolvedValue({
                 id: 1, version: '1.0.0', location: '/calm/namespaces/finos/architectures/1/versions/1.0.0'
@@ -200,7 +200,7 @@ describe('hub-commands', () => {
                 namespace: 'finos',
                 name: 'my-arch',
                 file: 'arch.json',
-                format: 'table'
+                format: 'pretty'
             });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
@@ -278,14 +278,14 @@ describe('hub-commands', () => {
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([{ id: 1, name: 'arch-a', versions: ['1.0.0'] }]);
         });
 
-        it('renders table when format is table', async () => {
+        it('renders table when format is pretty', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.listArchitectures).mockResolvedValue([
                 { id: 1, name: 'arch-a', versions: ['1.0.0', '1.1.0'] }
             ]);
 
             const { runListArchitectures } = await import('./hub-commands');
-            await runListArchitectures({ calmHubUrl: 'http://hub', namespace: 'finos', format: 'table' });
+            await runListArchitectures({ calmHubUrl: 'http://hub', namespace: 'finos', format: 'pretty' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
         });
@@ -333,12 +333,12 @@ describe('hub-commands', () => {
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([{ name: 'finos', description: 'FINOS' }]);
         });
 
-        it('renders table when format is table', async () => {
+        it('renders table when format is pretty', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.listNamespaces).mockResolvedValue([{ name: 'finos', description: '' }]);
 
             const { runListNamespaces } = await import('./hub-commands');
-            await runListNamespaces({ calmHubUrl: 'http://hub', format: 'table' });
+            await runListNamespaces({ calmHubUrl: 'http://hub', format: 'pretty' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
         });

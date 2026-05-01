@@ -1,7 +1,7 @@
-export type OutputFormat = 'json' | 'table';
+export type OutputFormat = 'json' | 'pretty';
 
 export function parseOutputFormat(value: string | undefined): OutputFormat {
-    return value === 'table' ? 'table' : 'json';
+    return value === 'pretty' ? 'pretty' : 'json';
 }
 
 export function printJsonSuccess(data: unknown): void {
@@ -48,7 +48,7 @@ export function printTableSuccess(
 /**
  * Prints an error to stderr.
  * JSON mode: `{ "status": N, "error": "...", "request": "..." }`
- * Table mode: plain text.
+ * Pretty mode: plain text.
  */
 export function printError(
     status: number,
@@ -56,7 +56,7 @@ export function printError(
     request: string,
     format: OutputFormat
 ): void {
-    if (format === 'table') {
+    if (format === 'pretty') {
         process.stderr.write(`Error ${status} [${request}]: ${error}\n`);
     } else {
         process.stderr.write(JSON.stringify({ status, error, request }) + '\n');

@@ -244,7 +244,7 @@ Validation requires:
 
     // ── push ──────────────────────────────────────────────────────────────────
 
-    const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'table']).default('json');
+    const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'pretty']).default('json');
 
     const pushCmd = new Command('push').description('Push a CALM document to CALM Hub');
 

@@ -79,7 +79,7 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
             );
         }
 
-        if (format === 'table') {
+        if (format === 'pretty') {
             printTableSuccess(
                 [{ STATUS: 'Created', ID: result.id, VERSION: result.version ?? '', LOCATION: result.location }],
                 [
@@ -141,7 +141,7 @@ export async function runListArchitectures(options: ListArchitecturesOptions): P
     try {
         const architectures = await client.listArchitectures(options.namespace);
 
-        if (format === 'table') {
+        if (format === 'pretty') {
             printTableSuccess(
                 architectures.map(a => ({ ID: a.id, NAME: a.name, VERSIONS: a.versions.join(', ') })),
                 [
@@ -175,7 +175,7 @@ export async function runCreateNamespace(options: CreateNamespaceOptions): Promi
     try {
         const result = await client.createNamespace(options.name, options.description);
 
-        if (format === 'table') {
+        if (format === 'pretty') {
             printTableSuccess(
                 [{ STATUS: 'Created', ID: result.name, LOCATION: result.location }],
                 [
@@ -207,7 +207,7 @@ export async function runListNamespaces(options: ListNamespacesOptions): Promise
     try {
         const namespaces = await client.listNamespaces();
 
-        if (format === 'table') {
+        if (format === 'pretty') {
             printTableSuccess(
                 namespaces.map(n => ({ NAME: n.name, DESCRIPTION: n.description ?? '' })),
                 [
