@@ -183,7 +183,7 @@ public class NitriteMcpIntegration {
     }
 
     @Test
-    @Order(10)
+    @Order(11)
     void mcp_get_control_not_found() {
         ToolResponse result = controlTools.getControl("security", 999, "1.0.0");
         assertThat(result.isError(), is(true));
@@ -191,7 +191,7 @@ public class NitriteMcpIntegration {
     }
 
     @Test
-    @Order(10)
+    @Order(12)
     void mcp_list_control_versions_not_found() {
         ToolResponse result = controlTools.listControlVersions("security", 999);
         assertThat(result.isError(), is(true));
@@ -201,7 +201,7 @@ public class NitriteMcpIntegration {
     // --- Decorator Tools ---
 
     @Test
-    @Order(11)
+    @Order(13)
     void mcp_create_decorator() {
         ToolResponse result = decoratorTools.createDecorator("finos", DECORATOR_JSON);
         assertThat(result.isError(), is(false));
@@ -214,7 +214,7 @@ public class NitriteMcpIntegration {
     }
 
     @Test
-    @Order(12)
+    @Order(14)
     void mcp_get_decorator() {
         ToolResponse result = decoratorTools.getDecorator("finos", createdDecoratorId);
         assertThat(result.isError(), is(false));
@@ -223,7 +223,7 @@ public class NitriteMcpIntegration {
     }
 
     @Test
-    @Order(13)
+    @Order(15)
     void mcp_list_decorators_contains_created() {
         ToolResponse result = decoratorTools.listDecorators("finos", "", "");
         assertThat(result.isError(), is(false));
@@ -231,7 +231,7 @@ public class NitriteMcpIntegration {
     }
 
     @Test
-    @Order(14)
+    @Order(16)
     void mcp_update_decorator() {
         ToolResponse result = decoratorTools.updateDecorator("finos", createdDecoratorId, UPDATED_DECORATOR_JSON);
         assertThat(result.isError(), is(false));
@@ -239,7 +239,7 @@ public class NitriteMcpIntegration {
     }
 
     @Test
-    @Order(15)
+    @Order(17)
     void mcp_get_decorator_after_update() {
         ToolResponse result = decoratorTools.getDecorator("finos", createdDecoratorId);
         assertThat(result.isError(), is(false));
@@ -249,7 +249,7 @@ public class NitriteMcpIntegration {
     // --- Search Tools ---
 
     @Test
-    @Order(17)
+    @Order(18)
     void mcp_search_hub() {
         ToolResponse result = searchTools.searchHub("mcp-nitrite");
         assertThat(result.isError(), is(false));
@@ -258,21 +258,21 @@ public class NitriteMcpIntegration {
     // --- Validation ---
 
     @Test
-    @Order(18)
+    @Order(19)
     void mcp_validation_rejects_invalid_namespace() {
         ToolResponse result = architectureTools.listArchitectures("invalid namespace!");
         assertThat(result.isError(), is(true));
     }
 
     @Test
-    @Order(19)
+    @Order(20)
     void mcp_validation_rejects_invalid_version() {
         ToolResponse result = architectureTools.getArchitecture("finos", 1, "not-a-version!");
         assertThat(result.isError(), is(true));
     }
 
     @Test
-    @Order(20)
+    @Order(21)
     void mcp_validation_rejects_blank_search_query() {
         ToolResponse result = searchTools.searchHub("");
         assertThat(result.isError(), is(true));
@@ -280,7 +280,7 @@ public class NitriteMcpIntegration {
     }
 
     @Test
-    @Order(21)
+    @Order(22)
     void mcp_architecture_not_found_for_nonexistent_namespace() {
         ToolResponse result = architectureTools.listArchitectures("nonexistent");
         assertThat(result.isError(), is(true));
@@ -288,10 +288,26 @@ public class NitriteMcpIntegration {
     }
 
     @Test
-    @Order(22)
+    @Order(23)
     void mcp_get_architecture_version_not_found() {
         ToolResponse result = architectureTools.getArchitecture("finos", createdArchitectureId, "99.99.99");
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    @Order(24)
+    void mcp_validation_rejects_decorator_target_filter_with_spaces() {
+        ToolResponse result = decoratorTools.listDecorators("finos", "/calm/namespaces/finos architectures/1", null);
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Target filter"));
+    }
+
+    @Test
+    @Order(25)
+    void mcp_validation_rejects_decorator_type_filter_with_newline() {
+        ToolResponse result = decoratorTools.listDecorators("finos", null, "deployment\n");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Type filter"));
     }
 }

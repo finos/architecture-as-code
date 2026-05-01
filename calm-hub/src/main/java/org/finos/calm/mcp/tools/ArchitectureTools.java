@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * MCP tool provider for architecture resources. Exposes CRUD operations on
@@ -36,14 +37,10 @@ public class ArchitectureTools {
     @Tool(description = "List all architectures in a CalmHub namespace. Returns architecture IDs, names, and descriptions.")
     public ToolResponse listArchitectures(
             @ToolArg(description = "The namespace to list architectures from (e.g. 'workshop', 'finos')") String namespace) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace));
+        if (err.isPresent()) return err.get();
 
         try {
             List<NamespaceArchitectureSummary> architectures = architectureStore.getArchitecturesForNamespace(namespace);
@@ -72,18 +69,11 @@ public class ArchitectureTools {
     public ToolResponse listArchitectureVersions(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
             @ToolArg(description = "The architecture ID (positive integer)") int architectureId) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validatePositiveId(architectureId, "Architecture ID");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"));
+        if (err.isPresent()) return err.get();
 
         try {
             Architecture arch = new Architecture.ArchitectureBuilder()
@@ -113,22 +103,12 @@ public class ArchitectureTools {
             @ToolArg(description = "The namespace containing the architecture") String namespace,
             @ToolArg(description = "The architecture ID (positive integer)") int architectureId,
             @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validatePositiveId(architectureId, "Architecture ID");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateVersion(version);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateVersion(version));
+        if (err.isPresent()) return err.get();
 
         try {
             Architecture arch = new Architecture.ArchitectureBuilder()
@@ -155,22 +135,14 @@ public class ArchitectureTools {
             @ToolArg(description = "The name of the architecture") String name,
             @ToolArg(description = "A description of the architecture") String description,
             @ToolArg(description = "The full CALM architecture JSON content") String architectureJson) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateJson(architectureJson, "Architecture JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validateMaxLength(name, 200, "Architecture name"),
+                () -> McpValidationHelper.validateDescriptionLength(description, "Architecture description"),
+                () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
+                () -> McpValidationHelper.validateJson(architectureJson, "Architecture JSON"));
+        if (err.isPresent()) return err.get();
 
         try {
             Architecture architecture = new Architecture.ArchitectureBuilder()

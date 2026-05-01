@@ -1,9 +1,14 @@
 package org.finos.calm.mcp.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkiverse.mcp.server.ToolResponse;
+
+import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 /**
@@ -113,5 +118,73 @@ final class McpValidationHelper {
             return "Error: Invalid " + fieldName + " - not valid JSON.";
         }
         return null;
+    }
+
+    /**
+     * Validates an optional filter parameter: accepts null/blank (not supplied), but rejects
+     * values that contain whitespace or characters outside {@code ^[A-Za-z0-9_/.-]+$},
+     * and rejects values that exceed {@code maxLen} characters. This mirrors the
+     * {@code @Pattern(QUERY_PARAM_NO_WHITESPACE_REGEX)} and {@code @Size(max=…)} constraints
+     * applied to equivalent query parameters in the REST resource layer.
+     *
+     * @param value     the filter value to validate (may be null or blank)
+     * @param maxLen    maximum permitted length
+     * @param fieldName human-readable field name for the error message
+     * @return error string, or {@code null} if valid (including null/blank input)
+     */
+    static String validateNoWhitespaceFilter(String value, int maxLen, String fieldName) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        if (value.length() > maxLen) {
+            return "Error: " + fieldName + " must not exceed " + maxLen + " characters.";
+        }
+        if (!value.matches(QUERY_PARAM_NO_WHITESPACE_REGEX)) {
+            return "Error: Invalid " + fieldName + " '" + value + "'. Must match pattern '" + QUERY_PARAM_NO_WHITESPACE_REGEX + "'.";
+        }
+        return null;
+    }
+
+    /**
+     * Validates that an optional string value does not exceed the maximum allowed length.
+     * Null and blank values are accepted (use {@link #validateNotBlank} if blank is forbidden).
+     *
+     * @param value     the value to check (may be null)
+     * @param maxLen    maximum permitted length
+     * @param fieldName human-readable field name for the error message
+     * @return error string, or {@code null} if valid
+     */
+    static String validateMaxLength(String value, int maxLen, String fieldName) {
+        if (value != null && value.length() > maxLen) {
+            return "Error: " + fieldName + " must not exceed " + maxLen + " characters.";
+        }
+        return null;
+    }
+
+    /**
+     * Evaluates each supplier in order and returns an {@link Optional} containing the first
+     * {@link ToolResponse} error encountered, or {@link Optional#empty()} if all checks pass.
+     * Evaluation short-circuits on the first failure, so later suppliers are not invoked.
+     *
+     * <pre>{@code
+     * Optional<ToolResponse> err = McpValidationHelper.firstError(
+     *         () -> McpValidationHelper.checkEnabled(mcpEnabled),
+     *         () -> McpValidationHelper.validateNamespace(namespace),
+     *         () -> McpValidationHelper.validatePositiveId(id, "ID"));
+     * if (err.isPresent()) return err.get();
+     * }</pre>
+     *
+     * @param checks zero or more validation suppliers; each returns an error string or {@code null}
+     * @return an Optional wrapping the first error response, or empty if all checks pass
+     */
+    @SafeVarargs
+    static Optional<ToolResponse> firstError(Supplier<String>... checks) {
+        for (Supplier<String> check : checks) {
+            String error = check.get();
+            if (error != null) {
+                return Optional.of(ToolResponse.error(error));
+            }
+        }
+        return Optional.empty();
     }
 }

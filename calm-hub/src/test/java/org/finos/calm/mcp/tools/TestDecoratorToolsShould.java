@@ -138,6 +138,38 @@ class TestDecoratorToolsShould {
         verifyNoInteractions(decoratorStore);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {" /calm/foo", "/calm/foo bar", "/calm/foo\n"})
+    void reject_target_filter_with_whitespace(String target) {
+        ToolResponse response = decoratorTools.listDecorators("workshop", target, null);
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
+        assertThat(text(response), containsString("Target filter"));
+        verifyNoInteractions(decoratorStore);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"deployment type", "threat model\t", "bad type!"})
+    void reject_type_filter_with_whitespace_or_illegal_chars(String type) {
+        ToolResponse response = decoratorTools.listDecorators("workshop", null, type);
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), startsWith("Error:"));
+        assertThat(text(response), containsString("Type filter"));
+        verifyNoInteractions(decoratorStore);
+    }
+
+    @Test
+    void reject_target_filter_exceeding_max_length() {
+        String longTarget = "/calm/" + "a".repeat(500);
+        ToolResponse response = decoratorTools.listDecorators("workshop", longTarget, null);
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Target filter"));
+        verifyNoInteractions(decoratorStore);
+    }
+
     // --- getDecorator ---
 
     @Test

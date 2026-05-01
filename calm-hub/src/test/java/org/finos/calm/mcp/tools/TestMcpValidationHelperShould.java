@@ -1,9 +1,12 @@
 package org.finos.calm.mcp.tools;
 
+import io.quarkiverse.mcp.server.ToolResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -187,5 +190,96 @@ class TestMcpValidationHelperShould {
         String result = McpValidationHelper.validateJson("[1,2,3]", "TestJson");
         assertThat(result, startsWith("Error:"));
         assertThat(result, containsString("TestJson"));
+    }
+
+    // --- validateNoWhitespaceFilter ---
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void accept_null_or_blank_filter_as_not_supplied(String value) {
+        assertThat(McpValidationHelper.validateNoWhitespaceFilter(value, 100, "MyFilter"), is(nullValue()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"deployment", "threat-model", "/calm/namespaces/finos/architectures/1/versions/1-0-0", "A1_b.c-d"})
+    void accept_valid_no_whitespace_filter(String value) {
+        assertThat(McpValidationHelper.validateNoWhitespaceFilter(value, 500, "MyFilter"), is(nullValue()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {" deployment", "threat model", "type\n", "type\t", "bad value!"})
+    void reject_filter_containing_whitespace_or_illegal_chars(String value) {
+        String result = McpValidationHelper.validateNoWhitespaceFilter(value, 500, "MyFilter");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("MyFilter"));
+    }
+
+    @Test
+    void reject_filter_exceeding_max_length() {
+        String longValue = "a".repeat(501);
+        String result = McpValidationHelper.validateNoWhitespaceFilter(longValue, 500, "MyFilter");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("MyFilter"));
+        assertThat(result, containsString("500"));
+    }
+
+    // --- validateMaxLength ---
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void accept_null_or_empty_for_max_length(String value) {
+        assertThat(McpValidationHelper.validateMaxLength(value, 50, "MyField"), is(nullValue()));
+    }
+
+    @Test
+    void accept_value_within_max_length() {
+        assertThat(McpValidationHelper.validateMaxLength("hello", 10, "MyField"), is(nullValue()));
+        assertThat(McpValidationHelper.validateMaxLength("x".repeat(200), 200, "MyField"), is(nullValue()));
+    }
+
+    @Test
+    void reject_value_exceeding_max_length() {
+        String result = McpValidationHelper.validateMaxLength("x".repeat(201), 200, "MyField");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("MyField"));
+        assertThat(result, containsString("200"));
+    }
+
+    // --- firstError ---
+
+    @Test
+    void return_empty_when_all_checks_pass() {
+        Optional<ToolResponse> result = McpValidationHelper.firstError(
+                () -> null,
+                () -> null,
+                () -> null);
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void return_first_error_and_short_circuit() {
+        boolean[] secondCalled = {false};
+        Optional<ToolResponse> result = McpValidationHelper.firstError(
+                () -> "Error: first failure.",
+                () -> { secondCalled[0] = true; return null; });
+        assertThat(result.isPresent(), is(true));
+        assertThat(result.get().isError(), is(true));
+        assertThat(secondCalled[0], is(false));
+    }
+
+    @Test
+    void return_error_from_second_check_when_first_passes() {
+        Optional<ToolResponse> result = McpValidationHelper.firstError(
+                () -> null,
+                () -> "Error: second failure.");
+        assertThat(result.isPresent(), is(true));
+        assertThat(result.get().isError(), is(true));
+    }
+
+    @Test
+    void return_empty_for_no_checks() {
+        Optional<ToolResponse> result = McpValidationHelper.firstError();
+        assertThat(result.isPresent(), is(false));
     }
 }

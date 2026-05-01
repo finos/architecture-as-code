@@ -38,14 +38,12 @@ public class DecoratorTools {
             @ToolArg(description = "The namespace to list decorators from") String namespace,
             @ToolArg(description = "Filter by target path (e.g. '/calm/namespaces/workshop/architectures/1/versions/1-0-0')", required = false) String target,
             @ToolArg(description = "Filter by decorator type (e.g. 'threat-model', 'deployment')", required = false) String type) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validateNoWhitespaceFilter(target, 500, "Target filter"),
+                () -> McpValidationHelper.validateNoWhitespaceFilter(type, 100, "Type filter"));
+        if (err.isPresent()) return err.get();
 
         try {
             String targetFilter = (target != null && !target.isBlank()) ? target : null;
@@ -75,18 +73,11 @@ public class DecoratorTools {
     public ToolResponse getDecorator(
             @ToolArg(description = "The namespace containing the decorator") String namespace,
             @ToolArg(description = "The decorator numeric ID (positive integer)") int decoratorId) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validatePositiveId(decoratorId, "Decorator ID");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validatePositiveId(decoratorId, "Decorator ID"));
+        if (err.isPresent()) return err.get();
 
         try {
             Optional<Decorator> decorator = decoratorStore.getDecoratorById(namespace, decoratorId);
@@ -111,22 +102,12 @@ public class DecoratorTools {
     public ToolResponse createDecorator(
             @ToolArg(description = "The namespace to create the decorator in") String namespace,
             @ToolArg(description = "The decorator JSON payload (must include $schema, unique-id, type, target, target-type, applies-to, and data fields)") String decoratorJson) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNotBlank(decoratorJson, "Decorator JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateJson(decoratorJson, "Decorator JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validateNotBlank(decoratorJson, "Decorator JSON"),
+                () -> McpValidationHelper.validateJson(decoratorJson, "Decorator JSON"));
+        if (err.isPresent()) return err.get();
 
         try {
             int id = decoratorStore.createDecorator(namespace, decoratorJson);
@@ -143,26 +124,13 @@ public class DecoratorTools {
             @ToolArg(description = "The namespace containing the decorator") String namespace,
             @ToolArg(description = "The decorator numeric ID to update (positive integer)") int decoratorId,
             @ToolArg(description = "The updated decorator JSON payload") String decoratorJson) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNamespace(namespace);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validatePositiveId(decoratorId, "Decorator ID");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNotBlank(decoratorJson, "Decorator JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateJson(decoratorJson, "Decorator JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validatePositiveId(decoratorId, "Decorator ID"),
+                () -> McpValidationHelper.validateNotBlank(decoratorJson, "Decorator JSON"),
+                () -> McpValidationHelper.validateJson(decoratorJson, "Decorator JSON"));
+        if (err.isPresent()) return err.get();
 
         try {
             decoratorStore.updateDecorator(namespace, decoratorId, decoratorJson);

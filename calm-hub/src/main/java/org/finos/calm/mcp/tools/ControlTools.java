@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * MCP tool provider for control requirement resources. Exposes read operations
@@ -37,14 +38,10 @@ public class ControlTools {
     @Tool(description = "List all control requirements in a domain (e.g. 'security'). Returns control IDs, names, and descriptions.")
     public ToolResponse listControls(
             @ToolArg(description = "The domain to list controls for (e.g. 'security')") String domain) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateDomain(domain);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateDomain(domain));
+        if (err.isPresent()) return err.get();
 
         try {
             List<ControlDetail> controls = controlStore.getControlsForDomain(domain);
@@ -74,22 +71,12 @@ public class ControlTools {
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
             @ToolArg(description = "The control ID (positive integer)") int controlId,
             @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateDomain(domain);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validatePositiveId(controlId, "Control ID");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateVersion(version);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateDomain(domain),
+                () -> McpValidationHelper.validatePositiveId(controlId, "Control ID"),
+                () -> McpValidationHelper.validateVersion(version));
+        if (err.isPresent()) return err.get();
 
         try {
             return ToolResponse.success(controlStore.getRequirementForVersion(domain, controlId, version));
@@ -109,18 +96,11 @@ public class ControlTools {
     public ToolResponse listControlVersions(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
             @ToolArg(description = "The control ID (positive integer)") int controlId) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateDomain(domain);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validatePositiveId(controlId, "Control ID");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateDomain(domain),
+                () -> McpValidationHelper.validatePositiveId(controlId, "Control ID"));
+        if (err.isPresent()) return err.get();
 
         try {
             List<String> versions = controlStore.getRequirementVersions(domain, controlId);

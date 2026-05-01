@@ -286,6 +286,26 @@ class TestArchitectureToolsShould {
         verifyNoInteractions(architectureStore);
     }
 
+    @Test
+    void reject_architecture_name_exceeding_max_length() {
+        String longName = "n".repeat(201);
+        ToolResponse result = architectureTools.createArchitecture("workshop", longName, "desc", "{}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Architecture name"));
+        verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void reject_architecture_description_exceeding_max_length() {
+        String longDesc = "d".repeat(1025);
+        ToolResponse result = architectureTools.createArchitecture("workshop", "name", longDesc, "{}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Architecture description"));
+        verifyNoInteractions(architectureStore);
+    }
+
     // --- MCP disabled ---
 
     @Test

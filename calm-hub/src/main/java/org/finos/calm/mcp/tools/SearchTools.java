@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * MCP tool provider for global search across CalmHub. Searches all resource
@@ -38,10 +39,9 @@ public class SearchTools {
     @Tool(description = "Search across all resource types in CalmHub. Performs a global search across architectures, patterns, flows, standards, interfaces, controls, and ADRs. Results are grouped by type.")
     public ToolResponse searchHub(
             @ToolArg(description = "The search query string (1-200 characters)") String query) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled));
+        if (err.isPresent()) return err.get();
 
         if (query == null || query.isBlank()) {
             return ToolResponse.error("Error: Search query must not be blank.");
