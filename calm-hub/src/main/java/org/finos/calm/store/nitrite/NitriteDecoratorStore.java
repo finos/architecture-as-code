@@ -99,7 +99,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
     }
 
     @Override
-    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
+    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
         validateNamespace(namespace);
 
         Document namespaceDoc = fetchNamespaceDocument(namespace);
