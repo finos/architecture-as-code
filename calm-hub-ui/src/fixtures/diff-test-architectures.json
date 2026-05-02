@@ -1,0 +1,764 @@
+{
+  "baseArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Baseline architecture for diff comparisons",
+      "description": "Contains the original set of nodes and relationships used as a reference for all other test architectures"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests"
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      }
+    ]
+  },
+  "additionArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests node and relationship addition detection",
+      "description": "Adds audit-service node and payment-to-audit relationship to base architecture"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests"
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "audit-service",
+        "node-type": "service",
+        "name": "Audit Service",
+        "description": "Logs all payment transactions"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-audit",
+        "description": "Payment service sends events to audit",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "audit-service" }
+          }
+        }
+      }
+    ]
+  },
+  "removalArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests node and relationship removal detection",
+      "description": "Removes user-db node and payment-to-db relationship from base architecture"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests"
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      }
+    ]
+  },
+  "modificationArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests node property modification detection",
+      "description": "Modifies api-gateway node properties (name and description) compared to base architecture"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway v2",
+        "description": "Entry point for all API requests - upgraded"
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      }
+    ]
+  },
+  "renameArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests node rename detection",
+      "description": "Renames payment-service to payment-processor, with corresponding relationship updates"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests"
+      },
+      {
+        "unique-id": "payment-processor",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-processor" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-processor" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      }
+    ]
+  },
+  "relationshipRenameArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests relationship rename detection",
+      "description": "Renames gateway-to-payment relationship to gateway-to-payment-renamed while keeping same structure"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests"
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment-renamed",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      }
+    ]
+  },
+  "ambiguousRenameArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests ambiguous rename scenarios",
+      "description": "Adds multiple similar services (audit-service, logging-service) to test rename matching logic"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests"
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      },
+      {
+        "unique-id": "audit-service",
+        "node-type": "service",
+        "name": "Audit Service",
+        "description": "Logs transactions"
+      },
+      {
+        "unique-id": "logging-service",
+        "node-type": "service",
+        "name": "Logging Service",
+        "description": "Logs transactions"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      },
+      {
+        "unique-id": "new-connection-1",
+        "description": "New connection",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "audit-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "new-connection-2",
+        "description": "New connection",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "logging-service" }
+          }
+        }
+      }
+    ]
+  },
+  "relationshipModificationArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests relationship property modification detection",
+      "description": "Modifies gateway-to-payment relationship description while keeping same structure"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests"
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service (modified)",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      }
+    ]
+  },
+  "metadataChangeArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests metadata/interface changes on nodes",
+      "description": "Adds metadata field to api-gateway node to test metadata change detection"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests",
+        "metadata": {
+          "version": "2.0",
+          "tags": ["web", "api"]
+        }
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      }
+    ]
+  },
+  "duplicateIdArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests duplicate unique-id handling",
+      "description": "Contains duplicate api-gateway unique-id to test Map behavior (last one wins)"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests"
+      },
+      {
+        "unique-id": "api-gateway",
+        "node-type": "service",
+        "name": "Duplicate API Gateway",
+        "description": "This should not happen"
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      }
+    ]
+  },
+  "invalidShapeArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests invalid node shape handling",
+      "description": "Contains a node missing the required unique-id field to test graceful error handling"
+    },
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "Entry point for all API requests"
+      },
+      {
+        "node-type": "service",
+        "name": "Invalid Node",
+        "description": "Missing unique-id"
+      },
+      {
+        "unique-id": "payment-service",
+        "node-type": "service",
+        "name": "Payment Service",
+        "description": "Handles payment processing"
+      },
+      {
+        "unique-id": "user-db",
+        "node-type": "database",
+        "name": "User Database",
+        "description": "Stores user information"
+      },
+      {
+        "unique-id": "trader",
+        "node-type": "actor",
+        "name": "Trader",
+        "description": "Human user"
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "trader-to-gateway",
+        "description": "Trader accesses API",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trader" },
+            "destination": { "node": "api-gateway" }
+          }
+        }
+      },
+      {
+        "unique-id": "gateway-to-payment",
+        "description": "Gateway routes to payment service",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "api-gateway" },
+            "destination": { "node": "payment-service" }
+          }
+        }
+      },
+      {
+        "unique-id": "payment-to-db",
+        "description": "Payment service stores data",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "payment-service" },
+            "destination": { "node": "user-db" }
+          }
+        }
+      }
+    ]
+  }
+}
