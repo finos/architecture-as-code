@@ -1,17 +1,18 @@
+import type { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import { describe, it, expect } from 'vitest';
-import { diffArchitectures, nodeStructureMatches, relationshipStructureMatches } from './diff-service';
-import testArchitectures from '../fixtures/diff-test-architectures.json';
+import { diffArchitectures, nodeStructureMatches, relationshipStructureMatches } from './diff-service.js';
+import testArchitectures from '../fixtures/diff-test-architectures.json' with { type: 'json' };
 
 describe('diff-service', () => {
     describe('nodeStructureMatches', () => {
         it('should return true for identical nodes with different IDs', () => {
-            const node1 = {
+            const node1: CalmNodeSchema = {
                 'unique-id': 'payment-service',
                 'node-type': 'service',
                 name: 'Payment Service',
                 description: 'Handles payments',
             };
-            const node2 = {
+            const node2: CalmNodeSchema = {
                 'unique-id': 'payment-processor',
                 'node-type': 'service',
                 name: 'Payment Service',
@@ -21,12 +22,12 @@ describe('diff-service', () => {
         });
 
         it('should return false for nodes with different properties', () => {
-            const node1 = {
+            const node1: CalmNodeSchema = {
                 'unique-id': 'payment-service',
                 'node-type': 'service',
                 name: 'Payment Service',
             };
-            const node2 = {
+            const node2: CalmNodeSchema = {
                 'unique-id': 'payment-processor',
                 'node-type': 'service',
                 name: 'Different Name',
@@ -37,12 +38,12 @@ describe('diff-service', () => {
 
     describe('relationshipStructureMatches', () => {
         it('should return true for identical relationships with different IDs', () => {
-            const rel1 = {
+            const rel1: CalmRelationshipSchema = {
                 'unique-id': 'rel-1',
                 description: 'connects to payment',
                 'relationship-type': { connects: { source: { node: 'api' }, destination: { node: 'payment' } } },
             };
-            const rel2 = {
+            const rel2: CalmRelationshipSchema = {
                 'unique-id': 'rel-2',
                 description: 'connects to payment',
                 'relationship-type': { connects: { source: { node: 'api' }, destination: { node: 'payment' } } },
@@ -51,12 +52,12 @@ describe('diff-service', () => {
         });
 
         it('should return false for relationships with different destination nodes', () => {
-            const rel1 = {
+            const rel1: CalmRelationshipSchema = {
                 'unique-id': 'rel-1',
                 description: 'connects to payment',
                 'relationship-type': { connects: { source: { node: 'api' }, destination: { node: 'payment' } } },
             };
-            const rel2 = {
+            const rel2: CalmRelationshipSchema = {
                 'unique-id': 'rel-2',
                 description: 'connects to payment',
                 'relationship-type': { connects: { source: { node: 'api' }, destination: { node: 'audit' } } },
@@ -173,7 +174,7 @@ describe('diff-service', () => {
         it('should handle missing arrays gracefully', () => {
             const arch1 = { $schema: 'https://calm.finos.org/release/1.2/meta/calm.json' };
             const arch2 = { $schema: 'https://calm.finos.org/release/1.2/meta/calm.json' };
-            const result = diffArchitectures(arch1 as any, arch2 as any);
+            const result = diffArchitectures(arch1 as CalmArchitectureSchema, arch2 as CalmArchitectureSchema);
 
             expect(result.nodesAdded).toHaveLength(0);
             expect(result.nodesRemoved).toHaveLength(0);
