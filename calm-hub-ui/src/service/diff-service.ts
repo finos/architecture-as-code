@@ -7,6 +7,30 @@ import type {
     RelationshipRenameMapping,
 } from '../model/diff.js';
 
+function normalizeValue(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map(normalizeValue);
+    }
+    if (value !== null && typeof value === 'object') {
+        const normalized: Record<string, unknown> = {};
+        for (const key of Object.keys(value).sort()) {
+            normalized[key] = normalizeValue((value as Record<string, unknown>)[key]);
+        }
+        return normalized;
+    }
+    return value;
+}
+
+function valuesEqual(a: unknown, b: unknown): boolean {
+    return JSON.stringify(normalizeValue(a)) === JSON.stringify(normalizeValue(b));
+}
+
+function omitUniqueId(item: Record<string, unknown>): Record<string, unknown> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { 'unique-id': _unused, ...rest } = item;
+    return rest;
+}
+
 /**
  * Compares two CALM architectures and returns a detailed diff result.
  * Detects additions, removals, modifications, and renames.
@@ -81,7 +105,7 @@ export function diffArchitectures(archA: CalmArchitectureSchema, archB: CalmArch
             continue;
         }
         const nodeB = nodesB.get(id)!;
-        if (JSON.stringify(nodeA) !== JSON.stringify(nodeB)) {
+        if (!valuesEqual(nodeA, nodeB)) {
             nodesModified.push({ original: nodeA, updated: nodeB });
         } else {
             nodesSame.push(nodeA);
@@ -97,7 +121,7 @@ export function diffArchitectures(archA: CalmArchitectureSchema, archB: CalmArch
             continue;
         }
         const edgeB = edgesB.get(id)!;
-        if (JSON.stringify(edgeA) !== JSON.stringify(edgeB)) {
+        if (!valuesEqual(edgeA, edgeB)) {
             edgesModified.push({ original: edgeA, updated: edgeB });
         } else {
             edgesSame.push(edgeA);
@@ -124,11 +148,7 @@ export function diffArchitectures(archA: CalmArchitectureSchema, archB: CalmArch
  * Used to detect renames.
  */
 export function nodeStructureMatches(nodeA: CalmNodeSchema, nodeB: CalmNodeSchema): boolean {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { 'unique-id': _idA, ...propsA } = nodeA;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { 'unique-id': _idB, ...propsB } = nodeB;
-    return JSON.stringify(propsA) === JSON.stringify(propsB);
+    return valuesEqual(omitUniqueId(nodeA as Record<string, unknown>), omitUniqueId(nodeB as Record<string, unknown>));
 }
 
 /**
@@ -136,9 +156,5 @@ export function nodeStructureMatches(nodeA: CalmNodeSchema, nodeB: CalmNodeSchem
  * Used to detect renames.
  */
 export function relationshipStructureMatches(relA: CalmRelationshipSchema, relB: CalmRelationshipSchema): boolean {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { 'unique-id': _relIdA, ...propsA } = relA;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { 'unique-id': _relIdB, ...propsB } = relB;
-    return JSON.stringify(propsA) === JSON.stringify(propsB);
+    return valuesEqual(omitUniqueId(relA as Record<string, unknown>), omitUniqueId(relB as Record<string, unknown>));
 }
