@@ -445,8 +445,8 @@ describe('CLI Commands', () => {
 
         it('calls runPushArchitecture with correct arguments', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'push', 'architecture',
-                '--architecture', 'arch.json',
+                'node', 'cli.js', 'hub', 'push', 'architecture',
+                'arch.json',
                 '--name', 'my-arch',
                 '--namespace', 'finos',
                 '--calm-hub-url', 'http://hub',
@@ -462,8 +462,8 @@ describe('CLI Commands', () => {
 
         it('passes --id and --version for versioned push', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'push', 'architecture',
-                '--architecture', 'arch.json',
+                'node', 'cli.js', 'hub', 'push', 'architecture',
+                'arch.json',
                 '--name', 'my-arch',
                 '--namespace', 'finos',
                 '--calm-hub-url', 'http://hub',
@@ -479,8 +479,8 @@ describe('CLI Commands', () => {
 
         it('passes --format pretty through to the handler', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'push', 'architecture',
-                '--architecture', 'arch.json',
+                'node', 'cli.js', 'hub', 'push', 'architecture',
+                'arch.json',
                 '--name', 'my-arch',
                 '--format', 'pretty',
             ]);
@@ -497,8 +497,8 @@ describe('CLI Commands', () => {
             const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
             await expect(program.parseAsync([
-                'node', 'cli.js', 'push', 'architecture',
-                '--architecture', 'arch.json',
+                'node', 'cli.js', 'hub', 'push', 'architecture',
+                'arch.json',
                 '--name', 'my-arch',
                 '--format', 'table',
             ])).rejects.toThrow('process.exit called');
@@ -519,7 +519,7 @@ describe('CLI Commands', () => {
 
         it('calls runPullArchitecture with correct arguments', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'pull', 'architecture',
+                'node', 'cli.js', 'hub', 'pull', 'architecture',
                 '--id', '1',
                 '--namespace', 'finos',
                 '--ver', '1.0.0',
@@ -536,7 +536,7 @@ describe('CLI Commands', () => {
 
         it('passes --out when provided', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'pull', 'architecture',
+                'node', 'cli.js', 'hub', 'pull', 'architecture',
                 '--id', '1',
                 '--namespace', 'finos',
                 '--ver', '1.0.0',
@@ -558,7 +558,7 @@ describe('CLI Commands', () => {
 
         it('calls runListArchitectures with namespace and hub url', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'list', 'architectures',
+                'node', 'cli.js', 'hub', 'list', 'architectures',
                 '--namespace', 'finos',
                 '--calm-hub-url', 'http://hub',
             ]);
@@ -571,7 +571,7 @@ describe('CLI Commands', () => {
 
         it('defaults namespace to "default"', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'list', 'architectures',
+                'node', 'cli.js', 'hub', 'list', 'architectures',
                 '--calm-hub-url', 'http://hub',
             ]);
 
@@ -582,7 +582,7 @@ describe('CLI Commands', () => {
 
         it('passes --format pretty through to the handler', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'list', 'architectures',
+                'node', 'cli.js', 'hub', 'list', 'architectures',
                 '--format', 'pretty',
             ]);
 
@@ -600,7 +600,7 @@ describe('CLI Commands', () => {
 
         it('calls runListNamespaces with hub url', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'list', 'namespaces',
+                'node', 'cli.js', 'hub', 'list', 'namespaces',
                 '--calm-hub-url', 'http://hub',
             ]);
 
@@ -611,7 +611,7 @@ describe('CLI Commands', () => {
 
         it('passes --format pretty through to the handler', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'list', 'namespaces',
+                'node', 'cli.js', 'hub', 'list', 'namespaces',
                 '--format', 'pretty',
             ]);
 
@@ -629,7 +629,7 @@ describe('CLI Commands', () => {
 
         it('calls runCreateNamespace with name and description', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'create', 'namespace',
+                'node', 'cli.js', 'hub', 'create', 'namespace',
                 '--name', 'my-org',
                 '--description', 'My organisation',
                 '--calm-hub-url', 'http://hub',
@@ -644,7 +644,7 @@ describe('CLI Commands', () => {
 
         it('passes --format pretty through to the handler', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'create', 'namespace',
+                'node', 'cli.js', 'hub', 'create', 'namespace',
                 '--name', 'my-org',
                 '--format', 'pretty',
             ]);

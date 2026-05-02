@@ -242,16 +242,18 @@ Validation requires:
             await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
-    // ── push ──────────────────────────────────────────────────────────────────
+    // ── hub ───────────────────────────────────────────────────────────────────
 
     const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'pretty']).default('json');
 
-    const pushCmd = new Command('push').description('Push a CALM document to CALM Hub');
+    const hubCmd = new Command('hub').description('Interact with CALM Hub');
 
-    pushCmd
-        .command('architecture')
+    // hub push
+    const hubPushCmd = new Command('push').description('Push a CALM document to CALM Hub');
+
+    hubPushCmd
+        .command('architecture <architecture-file>')
         .description('Push a CALM architecture file to CALM Hub')
-        .option(ARCHITECTURE_OPTION, 'Path to the architecture file to use. May be a file path or a URL.')
         .option('--name <name>', 'Name for the architecture in CALM Hub (required when creating a new architecture)')
         .option('--description <description>', 'Description for the architecture')
         .option(NAMESPACE_OPTION, 'Target namespace', 'default')
@@ -259,18 +261,17 @@ Validation requires:
         .option('--id <id>', 'Existing architecture ID (required when adding a new version)')
         .option('--ver <version>', 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
-        .action(async (options) => {
+        .action(async (architectureFile, options) => {
             const { runPushArchitecture } = await import('./command-helpers/hub-commands');
-            await runPushArchitecture({ ...options, file: options.architecture, version: options.ver });
+            await runPushArchitecture({ ...options, file: architectureFile, version: options.ver });
         });
 
-    program.addCommand(pushCmd);
+    hubCmd.addCommand(hubPushCmd);
 
-    // ── pull ──────────────────────────────────────────────────────────────────
+    // hub pull
+    const hubPullCmd = new Command('pull').description('Pull a CALM document from CALM Hub');
 
-    const pullCmd = new Command('pull').description('Pull a CALM document from CALM Hub');
-
-    pullCmd
+    hubPullCmd
         .command('architecture')
         .description('Pull a specific version of a CALM architecture from CALM Hub')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
@@ -283,13 +284,12 @@ Validation requires:
             await runPullArchitecture({ ...options, version: options.ver });
         });
 
-    program.addCommand(pullCmd);
+    hubCmd.addCommand(hubPullCmd);
 
-    // ── list ──────────────────────────────────────────────────────────────────
+    // hub list
+    const hubListCmd = new Command('list').description('List CALM Hub resources');
 
-    const listCmd = new Command('list').description('List CALM Hub resources');
-
-    listCmd
+    hubListCmd
         .command('architectures')
         .description('List architectures in a namespace')
         .option(NAMESPACE_OPTION, 'Target namespace', 'default')
@@ -300,7 +300,7 @@ Validation requires:
             await runListArchitectures(options);
         });
 
-    listCmd
+    hubListCmd
         .command('namespaces')
         .description('List all namespaces')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
@@ -310,13 +310,12 @@ Validation requires:
             await runListNamespaces(options);
         });
 
-    program.addCommand(listCmd);
+    hubCmd.addCommand(hubListCmd);
 
-    // ── create ────────────────────────────────────────────────────────────────
+    // hub create
+    const hubCreateCmd = new Command('create').description('Create CALM Hub resources');
 
-    const createCmd = new Command('create').description('Create CALM Hub resources');
-
-    createCmd
+    hubCreateCmd
         .command('namespace')
         .description('Create a new namespace in CALM Hub')
         .requiredOption('--name <name>', 'Namespace name')
@@ -328,7 +327,9 @@ Validation requires:
             await runCreateNamespace(options);
         });
 
-    program.addCommand(createCmd);
+    hubCmd.addCommand(hubCreateCmd);
+
+    program.addCommand(hubCmd);
 
 }
 
