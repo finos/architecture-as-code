@@ -25,15 +25,19 @@ Build a battle-ready CALM architecture diff experience in `calm-hub-ui` that can
   - relationship modifications beyond destination changes
   - metadata/interface changes on nodes or relationships
   - duplicate `unique-id` handling or invalid shapes
-
-## What is left
+- Polish and UX:
+  - color-code added/removed/modified/renamed elements
 - Integrate with UI:
   - add a `/diff` route in `src/App.tsx`
   - create a `Diff.tsx` container page
   - add `DiffGraphPanel.tsx` for side-by-side architecture graphs
   - add `DiffPanel.tsx` for diff summary and details
   - extend `parseCALMData()` and node/edge rendering to support diff status styling
+
+## What is left
+
+- Add unit tests for UI:
+  - Ensure coverage is comprehensive on both logic and UX.
 - Polish and UX:
-  - color-code added/removed/modified/renamed elements
   - optionally add a toggle to hide unchanged items
   - add a JSON diff/detail view for property-level changes

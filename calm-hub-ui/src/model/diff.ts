@@ -1,4 +1,4 @@
-import type { CalmNode, CalmRelationship } from '@finos/calm-models/types';
+import type { CalmNode, CalmRelationship, CalmNodeSchema, CalmRelationshipSchema, CalmArchitectureSchema } from '@finos/calm-models/types';
 
 /**
  * Represents a change to a node (property modifications)
@@ -77,4 +77,46 @@ export interface DiffNodeMetadata {
 export interface DiffEdgeMetadata {
     diffStatus: EdgeDiffStatus;
     renamedFrom?: string; // Only set if status === 'renamed'
+}
+
+/**
+ * Extended node data with diff status
+ */
+export interface DiffNodeData extends CalmNodeSchema {
+    diffStatus?: 'added' | 'removed' | 'modified' | 'renamed' | 'unchanged';
+    originalId?: string; // For renamed nodes
+}
+
+/**
+ * Extended edge data with diff status
+ */
+export interface DiffEdgeData extends CalmRelationshipSchema {
+    diffStatus?: 'added' | 'removed' | 'modified' | 'renamed' | 'unchanged';
+    originalId?: string; // For renamed edges
+}
+
+/**
+ * Props for the DiffGraph component
+ */
+export interface DiffGraphProps {
+    architecture: CalmArchitectureSchema;
+    diffResult: DiffResult | null;
+    isFirst: boolean;
+}
+
+/**
+ * Props for the DiffGraphPanel component
+ */
+export interface DiffGraphPanelProps {
+    archA: CalmArchitectureSchema | null;
+    archB: CalmArchitectureSchema | null;
+    diffResult: DiffResult | null;
+    onFileLoad: (file: File, isFirst: boolean) => void;
+}
+
+/**
+ * Props for the DiffPanel component
+ */
+export interface DiffPanelProps {
+    diffResult: DiffResult | null;
 }
