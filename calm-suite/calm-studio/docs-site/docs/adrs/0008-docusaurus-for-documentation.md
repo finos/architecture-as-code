@@ -24,5 +24,5 @@ Chosen: **Docusaurus 3.x**, because it is the standard documentation framework f
 ### Consequences
 
 - **Good:** FINOS-aligned — familiar to contributors who have worked on other FINOS projects. TypeDoc plugin generates API reference from TypeScript source. Versioning allows documentation to be pinned to CALM spec versions. Algolia DocSearch available for full-text search. Actively maintained by Meta.
-- **Neutral:** Heavier than lighter alternatives (Starlight, VitePress). React dependency adds to the documentation site's build complexity. pnpm workspace integration requires filter flags for doc-specific commands.
+- **Neutral:** Heavier than lighter alternatives (Starlight, VitePress). React dependency adds to the documentation site's build complexity. npm workspace integration requires `--workspace=@calmstudio/docs-site` flags for doc-specific commands run from the monorepo root.
 - **Bad:** Docusaurus uses React; CalmStudio's app uses Svelte. Contributors working on the documentation site need React familiarity even if they do not touch the app. Build times are slower than Starlight equivalents.

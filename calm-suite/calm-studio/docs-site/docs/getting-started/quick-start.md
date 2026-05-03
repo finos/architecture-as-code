@@ -9,24 +9,23 @@ Get CalmStudio running and draw your first CALM architecture diagram in under 5 
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 20 or later
-- [pnpm](https://pnpm.io/) 9 or later (`npm install -g pnpm`)
+- [Node.js](https://nodejs.org/) 22 or later (required by `engine-strict` in the monorepo)
 - Git
 
 ## Step 1: Clone and Install
 
 ```bash
-git clone https://github.com/finos/calmstudio.git
-cd calmstudio
-pnpm install
+git clone https://github.com/finos/architecture-as-code.git
+cd architecture-as-code
+npm ci
 ```
 
-`pnpm install` sets up the entire monorepo — studio app, packages, and dev dependencies — in one command. This takes about 30–60 seconds on first run.
+`npm ci` sets up the entire monorepo — studio app, packages, and dev dependencies — in one command. This takes about 30–60 seconds on first run.
 
 ## Step 2: Start the Dev Server
 
 ```bash
-pnpm dev
+npm run dev --workspace=@calmstudio/studio
 ```
 
 This starts the SvelteKit dev server. You will see output like:

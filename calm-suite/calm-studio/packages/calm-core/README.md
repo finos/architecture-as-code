@@ -15,8 +15,6 @@ Architecture-as-Code.
 
 ```bash
 npm install @calmstudio/calm-core
-# or
-pnpm add @calmstudio/calm-core
 ```
 
 > **Runtime peer dependency:** `ajv` and `ajv-formats` are required and listed as

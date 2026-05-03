@@ -16,31 +16,30 @@ CalmStudio follows FINOS open-source governance practices. Before contributing, 
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 20 or later
-- [pnpm](https://pnpm.io/) 9 or later (`npm install -g pnpm`)
+- [Node.js](https://nodejs.org/) 22 or later (required by `engine-strict` in the monorepo)
 - Git with DCO sign-off configured (see CONTRIBUTING.md)
 
 ## Setup
 
 ```bash
 # Fork the repository on GitHub, then clone your fork
-git clone https://github.com/YOUR-USERNAME/calmstudio.git
-cd calmstudio
+git clone https://github.com/YOUR-USERNAME/architecture-as-code.git
+cd architecture-as-code
 
 # Install all workspace dependencies (also installs husky hooks)
-pnpm install
+npm ci
 
 # Verify everything works before making changes
-pnpm typecheck
-pnpm test
-pnpm build
+npm run typecheck --workspaces --if-present
+npm run test --workspaces --if-present
+npm run build --workspaces --if-present
 ```
 
 All three commands should exit 0. If they don't, check the [open issues](https://github.com/finos/calmstudio/issues) for known setup problems.
 
 ## Project Structure
 
-CalmStudio is a pnpm monorepo. Each directory has a distinct responsibility:
+CalmStudio is part of the `finos/architecture-as-code` npm workspaces monorepo. Each directory has a distinct responsibility:
 
 ```
 calmstudio/
@@ -80,17 +79,17 @@ Use the same type prefix as your commit message (`feat/`, `fix/`, `docs/`, `chor
 ### Run the Dev Server
 
 ```bash
-# Start the studio app in dev mode
-pnpm dev
+# Start the studio app in dev mode (from repo root)
+npm run dev --workspace=@calmstudio/studio
 
-# Or start only a specific package
-pnpm --filter calmstudio-docs run dev  # documentation site
+# Or start the documentation site
+npm run start --workspace=calmstudio-docs
 ```
 
 ### TypeScript Type Check
 
 ```bash
-pnpm typecheck
+npm run typecheck --workspaces --if-present
 ```
 
 TypeScript strict mode is enabled. There is no `any` allowed. Fix all type errors before opening a PR.
@@ -98,7 +97,7 @@ TypeScript strict mode is enabled. There is no `any` allowed. Fix all type error
 ### Lint
 
 ```bash
-pnpm lint
+npm run lint --workspaces --if-present
 ```
 
 ESLint is configured for TypeScript strict linting. CalmStudio uses Svelte 5 runes (`$state`, `$derived`, `$effect`) — not the legacy Options API.
@@ -119,18 +118,18 @@ CalmStudio follows London School TDD (outside-in). We write tests before impleme
 ### Run Tests
 
 ```bash
-# All tests
-pnpm test
+# All tests (from repo root)
+npm run test --workspaces --if-present
 
 # A specific package
-pnpm --filter @calmstudio/calm-core run test
+npm run test --workspace=@calmstudio/calm-core
 
 # E2E tests (requires dev server running)
-pnpm dev &
-pnpm --filter calmstudio-e2e run test
+npm run dev --workspace=@calmstudio/studio &
+npm run test:e2e --workspace=@calmstudio/studio
 
 # Watch mode during development
-pnpm --filter @calmstudio/calm-core run test --watch
+npm run test --workspace=@calmstudio/calm-core -- --watch
 ```
 
 ## Commit Conventions
@@ -181,10 +180,10 @@ Commitlint runs as a husky hook on every commit and in CI. Non-conforming commit
 
 | Check | What it verifies |
 |-------|----------------|
-| Build | `pnpm build` exits 0 |
-| Lint | `pnpm lint` exits 0 |
-| Typecheck | `pnpm typecheck` exits 0 |
-| Test | `pnpm test` exits 0 |
+| Build | `npm run build --workspaces --if-present` exits 0 |
+| Lint | `npm run lint --workspaces --if-present` exits 0 |
+| Typecheck | `npm run typecheck --workspaces --if-present` exits 0 |
+| Test | `npm run test --workspaces --if-present` exits 0 |
 | DCO | All commits have `Signed-off-by` |
 | REUSE | All files have SPDX license headers |
 | E2E | Playwright tests pass on the built app |
