@@ -20,7 +20,7 @@ CALMGuard is built on Next.js 15 with a multi-agent AI architecture. This page c
 | Charts | Recharts | Compliance gauges, heat maps |
 | State | Zustand | Flat state, SSE event updates |
 | Validation | Zod | CALM parsing + agent output validation |
-| Package Manager | pnpm | Workspace tooling |
+| Package Manager | npm (workspaces) | Root of `finos/architecture-as-code` monorepo |
 
 ## Architecture Diagram
 

@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/FINOS-CALM_1.0--1.2-00A3E0?logo=linux-foundation&logoColor=white" alt="FINOS CALM" />
   <img src="https://img.shields.io/badge/Node-22+-339933?logo=node.js&logoColor=white" alt="Node 22+" />
-  <img src="https://img.shields.io/badge/pnpm-9+-F69220?logo=pnpm&logoColor=white" alt="pnpm" />
+  <img src="https://img.shields.io/badge/npm-10+-CB3837?logo=npm&logoColor=white" alt="npm" />
 </p>
 
 ---
@@ -70,15 +70,17 @@ You could [Access the Presentation ->](https://github.com/finos-labs/dtcch-2026-
 
 ### Prerequisites
 
-- **Node.js 22+** and **pnpm 9+**
+- **Node.js 22+** and **npm 10+**
 - At least one LLM provider API key (Gemini is the default)
 
 ### Setup
 
+CalmGuard is a workspace of the [`finos/architecture-as-code`](https://github.com/finos/architecture-as-code) monorepo. Clone the monorepo and install all workspaces from the root:
+
 ```bash
-git clone https://github.com/finos-labs/dtcch-2026-opsflow-llc.git
-cd dtcch-2026-opsflow-llc
-pnpm install
+git clone https://github.com/finos/architecture-as-code.git
+cd architecture-as-code
+npm ci
 ```
 
 Create a `.env.local` file:
@@ -98,8 +100,16 @@ GITHUB_TOKEN=your-github-token
 
 ### Run
 
+From the monorepo root:
+
 ```bash
-pnpm dev          # Start dev server at http://localhost:3000
+npm run dev --workspace=calmguard          # Start dev server at http://localhost:3000
+```
+
+Or from `calm-suite/calm-guard/`:
+
+```bash
+npm run dev
 ```
 
 Visit the dashboard — click **"Demo Mode"** to see CALMGuard analyze a sample architecture without any API keys.
@@ -377,7 +387,7 @@ Unknown node types (e.g., `lambda`) are mapped to `service` — maximizing compa
 
 ## Documentation
 
-Full documentation is available in [`docs/`](docs/). Run locally with `pnpm docs:dev`, or browse directly on GitHub:
+Full documentation is available in [`docs/`](docs/). Run locally with `npm run docs:dev`, or browse directly on GitHub:
 
 ### Getting Started
 
