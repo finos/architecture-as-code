@@ -32,9 +32,6 @@
     "typedoc-plugin-markdown": "^4.10.0",
     "typescript": "^5.9.3"
   },
-  "engines": {
-    "node": ">=20"
-  },
   "browserslist": {
     "production": [
       ">0.5%",

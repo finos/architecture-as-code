@@ -14,7 +14,11 @@
         "calm-server",
         "docs",
         "calm-hub-ui",
-        "calm-plugins/vscode"
+        "calm-plugins/vscode",
+        "calm-suite/calm-studio",
+        "calm-suite/calm-studio/packages/*",
+        "calm-suite/calm-studio/apps/*",
+        "calm-suite/calm-studio/docs-site"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
@@ -84,7 +88,11 @@
         "@semantic-release/npm": {
             "npm": "11.12.1"
         },
+        "cookie": ">=0.7.0",
+        "follow-redirects": ">=1.16.0",
+        "hono": ">=4.12.14",
         "serialize-javascript": "^7.0.5",
+        "undici": ">=6.24.0",
         "@stoplight/spectral-ruleset-bundler": "1.7.0",
         "eslint": {
             "minimatch": "^3.1.4"
