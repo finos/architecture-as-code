@@ -201,7 +201,7 @@ This file-based integration keeps the MCP server stateless and works reliably ac
 
 ## API Reference
 
-The MCP server's tool schemas are defined in `packages/mcp-server/src/types.ts`. See the [API Reference](/docs/api/) for the full `CalmArchitecture`, `CalmNode`, and `CalmRelationship` type documentation.
+The MCP server's tool schemas are defined in `packages/mcp-server/src/types.ts`. (API reference deferred — see follow-up issue for TypeDoc integration with the main docs site. The source types for `CalmArchitecture`, `CalmNode`, and `CalmRelationship` are in `packages/calm-core/src/`)
 
 ## Links
 

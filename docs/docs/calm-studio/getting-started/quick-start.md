@@ -43,7 +43,7 @@ Navigate to [http://localhost:5173](http://localhost:5173).
 
 You will see the CalmStudio interface: a large canvas area in the centre, a node palette on the left, and a CALM JSON editor panel on the right.
 
-![CalmStudio interface showing canvas, palette, and JSON editor](/img/calmstudio01.png)
+![CalmStudio interface showing canvas, palette, and JSON editor](/img/calmstudio/calmstudio01.png)
 
 **Canvas area** — the main diagram workspace where you drag, connect, and arrange nodes.
 
