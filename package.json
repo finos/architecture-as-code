@@ -17,8 +17,7 @@
         "calm-plugins/vscode",
         "calm-suite/calm-studio",
         "calm-suite/calm-studio/packages/*",
-        "calm-suite/calm-studio/apps/*",
-        "calm-suite/calm-studio/docs-site"
+        "calm-suite/calm-studio/apps/*"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
