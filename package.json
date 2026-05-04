@@ -14,7 +14,9 @@
         "calm-server",
         "docs",
         "calm-hub-ui",
-        "calm-plugins/vscode"
+        "calm-plugins/vscode",
+        "calm-suite/calm-guard",
+        "calm-suite/calm-guard/docs"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
