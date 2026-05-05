@@ -19,6 +19,17 @@ export class CalmHubService {
                 }
             });
         }
+
+        if (process.env.CALM_DEBUG) {
+            this.ax.interceptors.request.use((config) => {
+                const url = `${config.baseURL ?? ''}${config.url ?? ''}`;
+                console.debug(`[CalmHub] ${config.method?.toUpperCase()} ${url}`);
+                if (config.data) {
+                    console.debug('[CalmHub] body:', config.data);
+                }
+                return config;
+            });
+        }
     }
 
     static fromCliConfig(config: CLIConfig): CalmHubService {
