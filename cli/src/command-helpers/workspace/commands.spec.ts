@@ -14,9 +14,12 @@ const mocks = vi.hoisted(() => {
         printBundleTree: vi.fn(async () => { }),
         populateWorkspaceBundle: vi.fn(async () => { }),
         createNewDocument: vi.fn(async () => '/fake/repo/com.example-architecture-my-arch.json'),
+        getTemplatesForType: vi.fn(async () => ['empty']),
         pushWorkspaceToHub: vi.fn(async () => { }),
-        findWorkspaceBundlePath: vi.fn(() => '/fake/bundle'),
+        findWorkspaceManifestPath: vi.fn(() => '/fake/bundle'),
         findGitRoot: vi.fn(() => '/fake/repo'),
+        loadManifest: vi.fn(async () => ({})),
+        removeDocumentFromManifest: vi.fn(async () => true),
         loadCliConfig: vi.fn(async () => ({ calmHubUrl: 'https://calmhub.example.com' })),
         CalmHubService: vi.fn(() => ({ isMockService: true })),
         select: vi.fn(async () => 'architecture'),
@@ -37,6 +40,11 @@ vi.mock('./workspace', () => ({
 vi.mock('./bundle', () => ({
     addFileToBundle: mocks.addFileToBundle,
     printBundleTree: mocks.printBundleTree,
+    loadManifest: mocks.loadManifest,
+}));
+
+vi.mock('./rm', () => ({
+    removeDocumentFromManifest: mocks.removeDocumentFromManifest,
 }));
 
 vi.mock('./populate', () => ({
@@ -45,6 +53,7 @@ vi.mock('./populate', () => ({
 
 vi.mock('./new', () => ({
     createNewDocument: mocks.createNewDocument,
+    getTemplatesForType: mocks.getTemplatesForType,
 }));
 
 vi.mock('./push', () => ({
@@ -52,7 +61,7 @@ vi.mock('./push', () => ({
 }));
 
 vi.mock('../../workspace-resolver', () => ({
-    findWorkspaceBundlePath: mocks.findWorkspaceBundlePath,
+    findWorkspaceManifestPath: mocks.findWorkspaceManifestPath,
     findGitRoot: mocks.findGitRoot,
 }));
 
@@ -156,7 +165,7 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('should exit when no workspace bundle found', async () => {
-            mocks.findWorkspaceBundlePath.mockReturnValueOnce(null);
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
             await expect(
                 program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json', '--type', 'architecture', '--id', 'test'])
             ).rejects.toThrow();
@@ -197,7 +206,7 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('should exit when no workspace bundle found', async () => {
-            mocks.findWorkspaceBundlePath.mockReturnValueOnce(null);
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
             await expect(program.parseAsync(['node', 'test', 'workspace', 'tree'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
@@ -236,15 +245,25 @@ describe('setupWorkspaceCommands', () => {
     });
 
     describe('workspace show', () => {
-        it('should call getActiveWorkspace', async () => {
+        it('should call getActiveWorkspace and load the manifest', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
             await program.parseAsync(['node', 'test', 'workspace', 'show']);
             expect(mocks.getActiveWorkspace).toHaveBeenCalledWith('/fake/repo');
+            expect(mocks.loadManifest).toHaveBeenCalledWith('/fake/bundle');
         });
 
         it('should handle no active workspace', async () => {
             mocks.getActiveWorkspace.mockResolvedValueOnce(null);
             await program.parseAsync(['node', 'test', 'workspace', 'show']);
-            expect(mocks.getActiveWorkspace).toHaveBeenCalled();
+            expect(mocks.loadManifest).not.toHaveBeenCalled();
+        });
+
+        it('should skip manifest when no bundle path is found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await program.parseAsync(['node', 'test', 'workspace', 'show']);
+            expect(mocks.loadManifest).not.toHaveBeenCalled();
         });
 
         it('should exit when no git root found', async () => {
@@ -256,6 +275,41 @@ describe('setupWorkspaceCommands', () => {
         it('should exit on error', async () => {
             mocks.getActiveWorkspace.mockRejectedValueOnce(new Error('show failed'));
             await expect(program.parseAsync(['node', 'test', 'workspace', 'show'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace rm', () => {
+        it('removes a document by ID when provided', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
+            await program.parseAsync(['node', 'test', 'workspace', 'rm', 'doc-a']);
+            expect(mocks.removeDocumentFromManifest).toHaveBeenCalledWith('/fake/bundle', 'doc-a');
+        });
+
+        it('prompts for ID when not provided', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
+            mocks.select.mockResolvedValueOnce('doc-a');
+            await program.parseAsync(['node', 'test', 'workspace', 'rm']);
+            expect(mocks.select).toHaveBeenCalled();
+            expect(mocks.removeDocumentFromManifest).toHaveBeenCalledWith('/fake/bundle', 'doc-a');
+        });
+
+        it('does nothing when the bundle is empty', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({});
+            await program.parseAsync(['node', 'test', 'workspace', 'rm', 'doc-a']);
+            expect(mocks.removeDocumentFromManifest).not.toHaveBeenCalled();
+        });
+
+        it('exits when no workspace bundle found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'rm', 'doc-a'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits on error', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
+            mocks.removeDocumentFromManifest.mockRejectedValueOnce(new Error('rm failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'rm', 'doc-a'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
     });
@@ -317,7 +371,7 @@ describe('setupWorkspaceCommands', () => {
     describe('workspace new', () => {
         it('creates a document and registers it with its namespace', async () => {
             await program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'com.example', 'my-arch']);
-            expect(mocks.createNewDocument).toHaveBeenCalledWith('com.example', 'my-arch', 'architecture');
+            expect(mocks.createNewDocument).toHaveBeenCalledWith('com.example', 'my-arch', 'architecture', 'empty');
             expect(mocks.addFileToBundle).toHaveBeenCalledWith(
                 '/fake/bundle',
                 '/fake/repo/com.example-architecture-my-arch.json',
@@ -326,7 +380,7 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('exits when no workspace bundle is found', async () => {
-            mocks.findWorkspaceBundlePath.mockReturnValueOnce(null);
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
             await expect(
                 program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'com.example', 'my-arch'])
             ).rejects.toThrow();
@@ -358,7 +412,7 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('exits when no workspace bundle is found', async () => {
-            mocks.findWorkspaceBundlePath.mockReturnValueOnce(null);
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
             await expect(program.parseAsync(['node', 'test', 'workspace', 'push'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });

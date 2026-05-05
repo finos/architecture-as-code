@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../../../shared/src/document-loader/document-loader';
-import { findWorkspaceBundlePath } from '../../workspace-resolver';
+import { findWorkspaceManifestPath } from '../../workspace-resolver';
 import { addObjectToBundle, loadManifest, extractAllReferences } from './bundle';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 
@@ -90,7 +90,7 @@ export async function populateReferencesFromBundle(bundlePath: string, docLoader
  * @param docLoaderOpts Optional DocumentLoaderOptions to configure the document loader.
  */
 export async function populateWorkspaceBundle(bundlePath?: string, docLoaderOpts?: DocumentLoaderOptions): Promise<void> {
-    const bp = bundlePath || findWorkspaceBundlePath(process.cwd());
+    const bp = bundlePath || findWorkspaceManifestPath(process.cwd());
     if (!bp) {
         throw new Error('No CALM workspace bundle found.');
     }

@@ -54,15 +54,16 @@ export function extractAllReferences(json: object): string[] {
     return Array.from(new Set(allRefs));
 }
 
-export type BundleDocumentType = CalmDocumentType | 'unknown';
+export type WorkspaceDocumentType = CalmDocumentType | 'unknown';
 
-export type BundleManifestEntry = {
+export type WorkspaceManifestEntry = {
     path: string;
-    type: BundleDocumentType;
+    type: WorkspaceDocumentType;
     namespace?: string;
+    calmHubId?: string;
 };
 
-export type BundleManifest = Record<string, BundleManifestEntry>;
+export type WorkspaceManifest = Record<string, WorkspaceManifestEntry>;
 
 export type DependencyGraph = {
     nodes: string[]; // ids
@@ -79,13 +80,13 @@ const FILES_DIRNAME = 'files';
  * @param bundlePath Absolute path to the bundle directory
  * @returns A mapping of document id -> relative file path within the bundle
  */
-export async function loadManifest(bundlePath: string): Promise<BundleManifest> {
+export async function loadManifest(bundlePath: string): Promise<WorkspaceManifest> {
     const manifestPath = path.join(bundlePath, MANIFEST_FILENAME);
     if (!existsSync(manifestPath)) return {};
     try {
         const content = await readFile(manifestPath, 'utf8');
         const raw = JSON.parse(content) as Record<string, unknown>;
-        const manifest: BundleManifest = {};
+        const manifest: WorkspaceManifest = {};
         for (const [id, value] of Object.entries(raw)) {
             if (typeof value === 'string') {
                 // Migrate old format: plain string path -> entry with unknown type
@@ -94,9 +95,9 @@ export async function loadManifest(bundlePath: string): Promise<BundleManifest> 
                 value &&
                 typeof value === 'object' &&
                 'path' in value &&
-                typeof (value as BundleManifestEntry).path === 'string'
+                typeof (value as WorkspaceManifestEntry).path === 'string'
             ) {
-                manifest[id] = value as BundleManifestEntry;
+                manifest[id] = value as WorkspaceManifestEntry;
             }
         }
         return manifest;
@@ -110,7 +111,7 @@ export async function loadManifest(bundlePath: string): Promise<BundleManifest> 
  * @param bundlePath Absolute path to the bundle directory
  * @param manifest The manifest mapping to write
  */
-export async function saveManifest(bundlePath: string, manifest: BundleManifest): Promise<void> {
+export async function saveManifest(bundlePath: string, manifest: WorkspaceManifest): Promise<void> {
     const manifestPath = path.join(bundlePath, MANIFEST_FILENAME);
     await writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
 }
@@ -157,7 +158,7 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
 export async function addFileToBundle(
     bundlePath: string,
     srcPath: string,
-    opts?: { id?: string; destName?: string; copy?: boolean; type?: BundleDocumentType; namespace?: string }
+    opts?: { id?: string; destName?: string; copy?: boolean; type?: WorkspaceDocumentType; namespace?: string }
 ): Promise<{ id: string; destPath: string; rel: string }> {
 
     const id = await determineDocumentId(srcPath, opts?.id);
@@ -196,7 +197,7 @@ export async function addObjectToBundle(
     bundlePath: string,
     obj: object,
     explicitId?: string,
-    type?: BundleDocumentType,
+    type?: WorkspaceDocumentType,
     namespace?: string
 ): Promise<{ id: string; destPath: string; rel: string }> {
     // We will determine id using the same logic but since we don't have a source file,

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { resolveWorkspaceBundlePathFromEnv, findGitRoot, findWorkspaceBundlePath } from './workspace-resolver';
+import { resolveWorkspaceBundlePathFromEnv, findGitRoot, findWorkspaceManifestPath } from './workspace-resolver';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import path from 'path';
 
@@ -100,12 +100,12 @@ describe('workspace-resolver', () => {
             const bundleDir = path.join(wsDir, 'bundles', 'default');
             await mkdir(bundleDir, { recursive: true });
 
-            expect(findWorkspaceBundlePath(repo)).toBe(envDir);
+            expect(findWorkspaceManifestPath(repo)).toBe(envDir);
         });
 
         it('should return null when no git root and no env var', () => {
             delete process.env.CALM_WORKSPACE_BUNDLE;
-            expect(findWorkspaceBundlePath('/tmp')).toBeNull();
+            expect(findWorkspaceManifestPath('/tmp')).toBeNull();
         });
 
         it('should return null when git root has no .calm-workspace', async () => {
@@ -113,7 +113,7 @@ describe('workspace-resolver', () => {
             const repo = path.join(testDir, 'repo-no-ws');
             await mkdir(path.join(repo, '.git'), { recursive: true });
 
-            expect(findWorkspaceBundlePath(repo)).toBeNull();
+            expect(findWorkspaceManifestPath(repo)).toBeNull();
         });
 
         it('should return null when bundle directory does not exist', async () => {
@@ -123,7 +123,7 @@ describe('workspace-resolver', () => {
             // Create .calm-workspace but no bundles/default directory
             await mkdir(path.join(repo, '.calm-workspace'), { recursive: true });
 
-            expect(findWorkspaceBundlePath(repo)).toBeNull();
+            expect(findWorkspaceManifestPath(repo)).toBeNull();
         });
 
         it('should return bundle path when workspace and bundle directory exist', async () => {
@@ -134,7 +134,7 @@ describe('workspace-resolver', () => {
             const bundleDir = path.join(wsDir, 'bundles', 'default');
             await mkdir(bundleDir, { recursive: true });
 
-            expect(findWorkspaceBundlePath(repo)).toBe(bundleDir);
+            expect(findWorkspaceManifestPath(repo)).toBe(bundleDir);
         });
 
         it('should use workspace name from workspace.json', async () => {
@@ -146,7 +146,7 @@ describe('workspace-resolver', () => {
             await mkdir(bundleDir, { recursive: true });
             await writeFile(path.join(wsDir, 'workspace.json'), JSON.stringify({ name: 'custom' }));
 
-            expect(findWorkspaceBundlePath(repo)).toBe(bundleDir);
+            expect(findWorkspaceManifestPath(repo)).toBe(bundleDir);
         });
 
         it('should fallback to "default" when workspace.json has invalid JSON', async () => {
@@ -158,7 +158,7 @@ describe('workspace-resolver', () => {
             await mkdir(bundleDir, { recursive: true });
             await writeFile(path.join(wsDir, 'workspace.json'), 'not valid json{{{');
 
-            expect(findWorkspaceBundlePath(repo)).toBe(bundleDir);
+            expect(findWorkspaceManifestPath(repo)).toBe(bundleDir);
         });
     });
 });

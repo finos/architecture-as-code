@@ -89,8 +89,10 @@ describe('CalmHubService', () => {
     });
 
     describe('createNewCalmResource', () => {
+        const locationUrl = '/calm/namespaces/com.example/my-arch/versions/1.0.0';
+
         it('calls POST with a FrontControllerCreateRequest body', async () => {
-            ax.post.mockResolvedValue({ status: 201 });
+            ax.post.mockResolvedValue({ status: 201, headers: { location: locationUrl } });
             const data = { $id: 'my-arch', version: '1.0.0' };
 
             await service.createNewCalmResource('com.example', 'my-arch', 'architecture', data);
@@ -105,8 +107,20 @@ describe('CalmHubService', () => {
             );
         });
 
+        it('returns the Location URL of the created resource', async () => {
+            ax.post.mockResolvedValue({ status: 201, headers: { location: locationUrl } });
+            const result = await service.createNewCalmResource('com.example', 'my-arch', 'architecture', {});
+            expect(result).toBe(locationUrl);
+        });
+
+        it('throws when no Location header is returned', async () => {
+            ax.post.mockResolvedValue({ status: 201, headers: {} });
+            await expect(service.createNewCalmResource('com.example', 'my-arch', 'architecture', {}))
+                .rejects.toThrow('No Location header');
+        });
+
         it('includes a generated description when none is provided', async () => {
-            ax.post.mockResolvedValue({ status: 201 });
+            ax.post.mockResolvedValue({ status: 201, headers: { location: locationUrl } });
             await service.createNewCalmResource('com.example', 'my-arch', 'architecture', {});
             const body = ax.post.mock.calls[0][1];
             expect(typeof body.description).toBe('string');
@@ -114,7 +128,7 @@ describe('CalmHubService', () => {
         });
 
         it('uses a custom description when provided', async () => {
-            ax.post.mockResolvedValue({ status: 201 });
+            ax.post.mockResolvedValue({ status: 201, headers: { location: locationUrl } });
             await service.createNewCalmResource('com.example', 'my-arch', 'architecture', {}, 'My custom desc');
             const body = ax.post.mock.calls[0][1];
             expect(body.description).toBe('My custom desc');
@@ -122,13 +136,12 @@ describe('CalmHubService', () => {
     });
 
     describe('updateCalmResource', () => {
-        it('calls POST with a FrontControllerUpdateRequest body and returns the new version', async () => {
-            ax.post.mockResolvedValue({
-                headers: { location: '/calm/namespaces/com.example/my-arch/versions/1.1.0' }
-            });
+        it('calls POST with a FrontControllerUpdateRequest body and returns the Location URL', async () => {
+            const locationUrl = '/calm/namespaces/com.example/my-arch/versions/1.1.0';
+            ax.post.mockResolvedValue({ headers: { location: locationUrl } });
             const data = { $id: 'my-arch', version: '2.0.0' };
 
-            const version = await service.updateCalmResource('com.example', 'my-arch', data);
+            const result = await service.updateCalmResource('com.example', 'my-arch', data);
 
             expect(ax.post).toHaveBeenCalledWith(
                 '/calm/namespaces/com.example/my-arch',
@@ -137,15 +150,14 @@ describe('CalmHubService', () => {
                     changeType: 'MINOR',
                 })
             );
-            expect(version).toBe('1.1.0');
+            expect(result).toBe(locationUrl);
         });
 
         it('handles a capitalised Location header', async () => {
-            ax.post.mockResolvedValue({
-                headers: { Location: '/calm/namespaces/com.example/my-arch/versions/2.3.4' }
-            });
-            const version = await service.updateCalmResource('com.example', 'my-arch', {});
-            expect(version).toBe('2.3.4');
+            const locationUrl = '/calm/namespaces/com.example/my-arch/versions/2.3.4';
+            ax.post.mockResolvedValue({ headers: { Location: locationUrl } });
+            const result = await service.updateCalmResource('com.example', 'my-arch', {});
+            expect(result).toBe(locationUrl);
         });
 
         it('throws when no Location header is returned', async () => {

@@ -54,7 +54,7 @@ function getDefaultWorkspaceName(workspaceRoot: string): string {
 }
 
 // Public resolver: try env var, then workspace config under git root
-export function findWorkspaceBundlePath(startPath?: string): string | null {
+export function findWorkspaceManifestPath(startPath?: string): string | null {
     const fromEnv = resolveWorkspaceBundlePathFromEnv();
     if (fromEnv) return fromEnv;
 
@@ -62,9 +62,9 @@ export function findWorkspaceBundlePath(startPath?: string): string | null {
     if (!workspaceRoot) return null;
 
     const workspaceName = getDefaultWorkspaceName(workspaceRoot);
-    const bundlePath = join(workspaceRoot, 'bundles', workspaceName);
-    if (existsSync(bundlePath) && statSync(bundlePath).isDirectory()) {
-        return bundlePath;
+    const manifestPath = join(workspaceRoot, 'bundles', workspaceName);
+    if (existsSync(manifestPath) && statSync(manifestPath).isDirectory()) {
+        return manifestPath;
     }
     return null;
 }

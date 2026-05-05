@@ -1,7 +1,7 @@
 import path from 'path';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest } from './bundle';
+import { loadManifest, saveManifest } from './bundle';
 import { CalmHubService } from '../../service/calm-hub-service';
 import { CalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
@@ -60,15 +60,19 @@ export async function pushWorkspaceToHub(bundlePath: string, service: CalmHubSer
 
         if (remoteJson === null) {
             try {
-                await service.createNewCalmResource(namespace, id, entry.type as CalmDocumentType, localJson);
-                logger.info(`Created '${id}' in namespace '${namespace}'`);
+                const calmHubId = await service.createNewCalmResource(namespace, id, entry.type as CalmDocumentType, localJson);
+                manifest[id] = { ...entry, calmHubId };
+                await saveManifest(bundlePath, manifest);
+                logger.info(`Created '${id}' -> ${calmHubId}`);
             } catch (e) {
                 logger.error(`Failed to create '${id}': ${e instanceof Error ? e.message : String(e)}`);
             }
         } else if (minifyJson(localJson) !== minifyJson(remoteJson)) {
             try {
-                const newVersion = await service.updateCalmResource(namespace, id, localJson);
-                logger.info(`Updated '${id}' to version ${newVersion}`);
+                const calmHubId = await service.updateCalmResource(namespace, id, localJson);
+                manifest[id] = { ...entry, calmHubId };
+                await saveManifest(bundlePath, manifest);
+                logger.info(`Updated '${id}' -> ${calmHubId}`);
             } catch (e) {
                 logger.error(`Failed to update '${id}': ${e instanceof Error ? e.message : String(e)}`);
             }

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { pushWorkspaceToHub } from './push';
-import { saveManifest } from './bundle';
+import { loadManifest, saveManifest } from './bundle';
 import { CalmHubService } from '../../service/calm-hub-service';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import path from 'path';
@@ -8,8 +8,8 @@ import { existsSync } from 'fs';
 
 const makeService = (overrides: Partial<{ [K in keyof CalmHubService]: CalmHubService[K] }> = {}): CalmHubService => ({
     getCalmHubResourceLatestVersion: vi.fn(),
-    createNewCalmResource: vi.fn(async () => true),
-    updateCalmResource: vi.fn(async () => '1.1.0'),
+    createNewCalmResource: vi.fn(async () => '/calm/namespaces/com.example/doc/versions/1.0.0'),
+    updateCalmResource: vi.fn(async () => '/calm/namespaces/com.example/doc/versions/1.1.0'),
     ...overrides,
 } as unknown as CalmHubService);
 
@@ -82,14 +82,16 @@ describe('pushWorkspaceToHub', () => {
         expect(service.getCalmHubResourceLatestVersion).not.toHaveBeenCalled();
     });
 
-    it('creates a resource when CalmHub returns 404', async () => {
+    it('creates a resource when CalmHub returns 404 and saves the Location URL to the manifest', async () => {
         await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
         await saveManifest(bundlePath, {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
         });
         const notFound = Object.assign(new Error('Not Found'), { response: { status: 404 } });
+        const locationUrl = '/calm/namespaces/com.example/doc-a/versions/1.0.0';
         const service = makeService({
             getCalmHubResourceLatestVersion: vi.fn().mockRejectedValue(notFound),
+            createNewCalmResource: vi.fn().mockResolvedValue(locationUrl),
         });
 
         await pushWorkspaceToHub(bundlePath, service as never);
@@ -98,6 +100,9 @@ describe('pushWorkspaceToHub', () => {
             'com.example', 'doc-a', 'architecture', docA
         );
         expect(service.updateCalmResource).not.toHaveBeenCalled();
+
+        const manifest = await loadManifest(bundlePath);
+        expect(manifest['doc-a'].calmHubId).toBe(locationUrl);
     });
 
     it('skips update when local and remote content are identical', async () => {
@@ -116,20 +121,25 @@ describe('pushWorkspaceToHub', () => {
         expect(service.createNewCalmResource).not.toHaveBeenCalled();
     });
 
-    it('updates when local and remote content differ', async () => {
+    it('updates when local and remote content differ and saves the new Location URL to the manifest', async () => {
         const localDoc = { ...docA, version: '2.0.0' };
         await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(localDoc));
         await saveManifest(bundlePath, {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
         });
+        const locationUrl = '/calm/namespaces/com.example/doc-a/versions/1.1.0';
         const service = makeService({
             getCalmHubResourceLatestVersion: vi.fn().mockResolvedValue({ data: docA }),
+            updateCalmResource: vi.fn().mockResolvedValue(locationUrl),
         });
 
         await pushWorkspaceToHub(bundlePath, service as never);
 
         expect(service.updateCalmResource).toHaveBeenCalledWith('com.example', 'doc-a', localDoc);
         expect(service.createNewCalmResource).not.toHaveBeenCalled();
+
+        const manifest = await loadManifest(bundlePath);
+        expect(manifest['doc-a'].calmHubId).toBe(locationUrl);
     });
 
     it('treats extra whitespace in local file as equal to minified remote', async () => {
@@ -160,7 +170,7 @@ describe('pushWorkspaceToHub', () => {
             getCalmHubResourceLatestVersion: vi.fn().mockRejectedValue(notFound),
             createNewCalmResource: vi.fn()
                 .mockRejectedValueOnce(new Error('create failed'))
-                .mockResolvedValueOnce(true),
+                .mockResolvedValueOnce('/calm/namespaces/com.example/doc-b/versions/1.0.0'),
         });
 
         await expect(pushWorkspaceToHub(bundlePath, service as never)).resolves.not.toThrow();
@@ -181,7 +191,7 @@ describe('pushWorkspaceToHub', () => {
                 .mockResolvedValue({ data: docA }),  // older version for both
             updateCalmResource: vi.fn()
                 .mockRejectedValueOnce(new Error('update failed'))
-                .mockResolvedValueOnce('1.1.0'),
+                .mockResolvedValueOnce('/calm/namespaces/com.example/doc-b/versions/1.1.0'),
         });
 
         await expect(pushWorkspaceToHub(bundlePath, service as never)).resolves.not.toThrow();

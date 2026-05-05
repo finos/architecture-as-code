@@ -44,32 +44,40 @@ export class CalmHubService {
         return await this.ax.get(calmHubUrls.calmHubResourceSpecificVersionUrl(namespace, name, version));
     }
 
-    async createNewCalmResource(namespace: string, name: string, type: CalmDocumentType,data: object, description?: string): Promise<boolean> {
-        const createRequest : FrontControllerCreateRequest = {
+    /**
+     * Create a new CALM resource in CalmHub.
+     * @returns The Location URL of the newly created resource (e.g. /calm/namespaces/ns/name/versions/1.0.0)
+     */
+    async createNewCalmResource(namespace: string, name: string, type: CalmDocumentType, data: object, description?: string): Promise<string> {
+        const createRequest: FrontControllerCreateRequest = {
             type: type.toUpperCase(),
             json: JSON.stringify(data),
             name,
             description: description || `Created via CALM CLI on ${new Date().toISOString()}`
         };
-        return await this.ax.post(calmHubUrls.calmHubResourceLatestVersionUrl(namespace, name), createRequest);
+        const response: AxiosResponse = await this.ax.post(calmHubUrls.calmHubResourceLatestVersionUrl(namespace, name), createRequest);
+        const locationHeader = response.headers['location'] || response.headers['Location'];
+        if (!locationHeader) {
+            throw new Error('No Location header returned from CalmHub on create');
+        }
+        return locationHeader;
     }
-    
+
     /**
-     * Update an existing CALM Front Controller resource. 
-     * Currently always does a MINOR version bump.
-     * @param namespace Namespace of resource to update
-     * @param name Name of Front Controller resource to update
-     * @param data Object to update with. Note this is not an upsert but will replace the data.
-     * @returns The version of the new resource created.
+     * Update an existing CALM resource. Currently always does a MINOR version bump.
+     * @returns The Location URL of the new version (e.g. /calm/namespaces/ns/name/versions/1.1.0)
      */
     async updateCalmResource(namespace: string, name: string, data: object): Promise<string> {
         const updateRequest: FrontControllerUpdateRequest = {
             json: JSON.stringify(data),
-            changeType: 'MINOR' // TODO determine change type based on diff between current and new version
+            changeType: 'MINOR'
         };
         const response: AxiosResponse = await this.ax.post(calmHubUrls.calmHubResourceLatestVersionUrl(namespace, name), updateRequest);
         const locationHeader = response.headers['location'] || response.headers['Location'];
-        return extractVersionFromLocationHeader(locationHeader);
+        if (!locationHeader) {
+            throw new Error('No Location header returned from CalmHub on update - cannot determine new version');
+        }
+        return locationHeader;
     }
 }
 

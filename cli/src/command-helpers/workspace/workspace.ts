@@ -4,14 +4,20 @@ import { existsSync } from 'fs';
 import { MANIFEST_FILENAME } from './bundle';
 
 /**
+ * Return the absolute path to a named workspace bundle directory.
+ * Centralises the path formula so it is defined in exactly one place.
+ */
+export function getWorkspaceBundlePath(gitRoot: string, workspaceName: string): string {
+    return path.join(gitRoot, '.calm-workspace', 'bundles', workspaceName);
+}
+
+/**
  * Ensure the workspace bundle exists at the given target directory and workspace name.
  * Creates .calm-workspace/bundles/<workspaceName> and writes workspace.json.
  * Returns the absolute path to the bundle directory.
  */
 export async function ensureWorkspaceBundle(targetDir: string, workspaceName: string): Promise<string> {
-    const calmWorkspacePath = path.join(targetDir, '.calm-workspace');
-    const bundlesPath = path.join(calmWorkspacePath, 'bundles');
-    const bundleDir = path.join(bundlesPath, workspaceName);
+    const bundleDir = getWorkspaceBundlePath(targetDir, workspaceName);
 
     await mkdir(bundleDir, { recursive: true });
 
@@ -56,7 +62,7 @@ export async function setActiveWorkspace(targetDir: string, workspaceName: strin
  * The workspace bundle directory itself is preserved.
  */
 export async function cleanWorkspaceBundle(targetDir: string, workspaceName: string): Promise<void> {
-    const bundlePath = path.join(targetDir, '.calm-workspace', 'bundles', workspaceName);
+    const bundlePath = getWorkspaceBundlePath(targetDir, workspaceName);
     if (existsSync(bundlePath)) {
         // Delete the files directory
         const filesPath = path.join(bundlePath, 'files');

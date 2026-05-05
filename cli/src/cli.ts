@@ -3,7 +3,7 @@ import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions } from './command-helpers/generate-options';
 import path from 'path';
-import { findWorkspaceBundlePath } from './workspace-resolver';
+import { findWorkspaceManifestPath } from './workspace-resolver';
 import { setupWorkspaceCommands } from './command-helpers/workspace/commands';
 import { loadManifest } from './command-helpers/workspace/bundle';
 import * as cliConfig from './cli-config';
@@ -276,7 +276,7 @@ export async function parseDocumentLoaderConfig(
 
     // If a CALM workspace bundle is present in the repository, prefer it for resolving documents
     try {
-        const workspaceBundle = findWorkspaceBundlePath(process.cwd());
+        const workspaceBundle = findWorkspaceManifestPath(process.cwd());
         if (workspaceBundle) {
             logger.info('Using workspace bundle for document resolution: ' + workspaceBundle);
             // Load the bundle manifest and construct a URL->local file map from it
