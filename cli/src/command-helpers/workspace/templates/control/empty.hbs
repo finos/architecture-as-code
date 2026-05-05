@@ -1,7 +1,12 @@
 {
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "{{{id}}}",
   "title": "{{{name}}}",
   "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control-requirement.json"
+    }
+  ],
   "properties": {}
 }

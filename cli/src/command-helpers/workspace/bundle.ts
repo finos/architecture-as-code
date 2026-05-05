@@ -174,9 +174,10 @@ export async function addFileToBundle(
         await copyFile(srcPath, destPath);
         rel = path.relative(bundlePath, destPath);
     } else {
-        // reference the original file
+        // reference the original file using its absolute path so it remains resolvable
+        // regardless of where the bundle directory sits
         destPath = srcPath;
-        rel = path.relative(bundlePath, srcPath);
+        rel = srcPath;
     }
 
     const manifest = await loadManifest(bundlePath);

@@ -31,11 +31,11 @@ export async function getTemplatesForType(type: string): Promise<string[]> {
  * @returns The absolute path to the newly created file
  */
 export async function createNewDocument(namespace: string, name: string, type: string, templateName = 'empty'): Promise<string> {
-    const id = `${namespace}-${type}-${name}`;
+    const id = `${name}`;
     const templatePath = path.join(TEMPLATES_DIR, type, `${templateName}.hbs`);
     const source = await readFile(templatePath, 'utf8');
     const content = Handlebars.compile(source)({ id, name });
-    const filename = `${id}.json`;
+    const filename = `${id}.${type}.json`;
     const filePath = path.join(process.cwd(), filename);
     await writeFile(filePath, content, 'utf8');
     return filePath;

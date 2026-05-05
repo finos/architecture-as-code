@@ -3,6 +3,9 @@ import { CLIConfig } from '../cli-config';
 import { CalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
 import * as calmHubUrls from './calm-hub-urls';
 
+
+// TODO: add support for controls to calmhub resource server
+
 export class CalmHubService {
     private readonly ax: Axios;
 
@@ -28,6 +31,19 @@ export class CalmHubService {
                     console.debug('[CalmHub] body:', config.data);
                 }
                 return config;
+            });
+            this.ax.interceptors.response.use((response) => {
+                const url = `${response.config.baseURL ?? ''}${response.config.url ?? ''}`;
+                console.debug(`[CalmHub] Response from ${url}:`, response.status, response.data);
+                return response;
+            }, (error) => {
+                if (error.config) {
+                    const url = `${error.config.baseURL ?? ''}${error.config.url ?? ''}`;
+                    console.error(`[CalmHub] Error response from ${url}:`, error.response?.status, error.response?.data);
+                } else {
+                    console.error('[CalmHub] Axios error without config:', error);
+                }
+                return Promise.reject(error);
             });
         }
     }

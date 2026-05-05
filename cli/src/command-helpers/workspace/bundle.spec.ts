@@ -189,10 +189,10 @@ describe('bundle', () => {
 
             expect(result.id).toBe('source-doc');
             expect(result.destPath).toBe(srcFile);
-            expect(result.rel).toBe(path.relative(bundlePath, srcFile));
+            expect(result.rel).toBe(srcFile);
 
             const manifest = await loadManifest(bundlePath);
-            expect(manifest['source-doc'].path).toBe(result.rel);
+            expect(manifest['source-doc'].path).toBe(srcFile);
             expect(manifest['source-doc'].type).toBe('unknown');
         });
 
