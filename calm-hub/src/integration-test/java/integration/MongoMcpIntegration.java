@@ -350,4 +350,34 @@ public class MongoMcpIntegration {
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("Type filter"));
     }
+
+    // --- updateArchitecture ---
+
+    @Test
+    @Order(26)
+    void mcp_update_architecture_publishes_new_version() {
+        ToolResponse result = architectureTools.updateArchitecture(
+                "finos", createdArchitectureId, "1.1.0", "{\"name\": \"mcp-test-architecture-updated\"}");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("updated successfully"));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(27)
+    void mcp_list_architecture_versions_includes_updated_version() {
+        ToolResponse result = architectureTools.listArchitectureVersions("finos", createdArchitectureId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(28)
+    void mcp_update_architecture_returns_error_for_nonexistent_architecture() {
+        ToolResponse result = architectureTools.updateArchitecture(
+                "finos", 999999, "1.1.0", "{\"name\": \"ghost\"}");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
 }
