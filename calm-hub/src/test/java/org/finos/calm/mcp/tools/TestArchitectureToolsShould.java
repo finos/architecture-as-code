@@ -306,6 +306,93 @@ class TestArchitectureToolsShould {
         verifyNoInteractions(architectureStore);
     }
 
+    // --- updateArchitecture ---
+
+    @Test
+    void update_architecture_version_successfully() throws Exception {
+        Architecture arch = new Architecture.ArchitectureBuilder()
+                .setNamespace("workshop")
+                .setId(1)
+                .setVersion("1.1.0")
+                .build();
+        when(architectureStore.updateArchitectureForVersion(any())).thenReturn(arch);
+
+        ToolResponse result = architectureTools.updateArchitecture("workshop", 1, "1.1.0", "{\"nodes\":[]}");
+
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1"));
+        assertThat(text(result), containsString("1.1.0"));
+        assertThat(text(result), containsString("workshop"));
+    }
+
+    @Test
+    void return_error_when_namespace_not_found_for_update_architecture() throws Exception {
+        when(architectureStore.updateArchitectureForVersion(any()))
+                .thenThrow(new NamespaceNotFoundException());
+
+        ToolResponse result = architectureTools.updateArchitecture("missing", 1, "1.1.0", "{}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Namespace"));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    void return_error_when_architecture_not_found_for_update() throws Exception {
+        when(architectureStore.updateArchitectureForVersion(any()))
+                .thenThrow(new ArchitectureNotFoundException());
+
+        ToolResponse result = architectureTools.updateArchitecture("workshop", 99, "1.1.0", "{}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Architecture"));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    void reject_invalid_namespace_for_update_architecture() {
+        ToolResponse result = architectureTools.updateArchitecture("bad ns", 1, "1.1.0", "{}");
+
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void reject_non_positive_id_for_update_architecture() {
+        ToolResponse result = architectureTools.updateArchitecture("workshop", 0, "1.1.0", "{}");
+
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void reject_invalid_version_for_update_architecture() {
+        ToolResponse result = architectureTools.updateArchitecture("workshop", 1, "not-a-version", "{}");
+
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void return_error_for_invalid_json_on_update_architecture() {
+        ToolResponse result = architectureTools.updateArchitecture("workshop", 1, "1.1.0", "not-json");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Invalid"));
+        verifyNoInteractions(architectureStore);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void reject_blank_json_for_update_architecture(String json) {
+        ToolResponse result = architectureTools.updateArchitecture("workshop", 1, "1.1.0", json);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Architecture JSON"));
+        verifyNoInteractions(architectureStore);
+    }
+
     // --- MCP disabled ---
 
     @Test
@@ -316,6 +403,7 @@ class TestArchitectureToolsShould {
         assertThat(text(architectureTools.listArchitectureVersions("workshop", 1)), containsString("disabled"));
         assertThat(text(architectureTools.getArchitecture("workshop", 1, "1.0.0")), containsString("disabled"));
         assertThat(text(architectureTools.createArchitecture("workshop", "n", "d", "{}")), containsString("disabled"));
+        assertThat(text(architectureTools.updateArchitecture("workshop", 1, "1.1.0", "{}")), containsString("disabled"));
         verifyNoInteractions(architectureStore);
     }
 }

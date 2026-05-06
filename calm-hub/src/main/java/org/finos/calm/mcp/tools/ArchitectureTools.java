@@ -129,6 +129,40 @@ public class ArchitectureTools {
         }
     }
 
+    @Tool(description = "Publish a new version of an existing architecture. Use this to add a new semantic version (e.g. '1.1.0') against an existing architecture ID without allocating a new identity.")
+    public ToolResponse updateArchitecture(
+            @ToolArg(description = "The namespace containing the architecture") String namespace,
+            @ToolArg(description = "The architecture ID to publish a new version for (positive integer)") int architectureId,
+            @ToolArg(description = "The new version string to publish (e.g. '1.1.0')") String version,
+            @ToolArg(description = "The full CALM architecture JSON content for this version") String architectureJson) {
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateVersion(version),
+                () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
+                () -> McpValidationHelper.validateJson(architectureJson, "Architecture JSON"));
+        if (err.isPresent()) return err.get();
+
+        try {
+            Architecture architecture = new Architecture.ArchitectureBuilder()
+                    .setNamespace(namespace)
+                    .setId(architectureId)
+                    .setVersion(version)
+                    .setArchitecture(architectureJson)
+                    .build();
+            architectureStore.updateArchitectureForVersion(architecture);
+            logger.info("Architecture [{}] updated with version [{}] in namespace [{}]", architectureId, version, namespace);
+            return ToolResponse.success("Architecture " + architectureId + " updated successfully with version '" + version + "' in namespace '" + namespace + "'.");
+        } catch (NamespaceNotFoundException e) {
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+        } catch (ArchitectureNotFoundException e) {
+            logger.warn("Architecture [{}] not found in namespace [{}]", architectureId, namespace, e);
+            return ToolResponse.error("Error: Architecture " + architectureId + " not found in namespace '" + namespace + "'.");
+        }
+    }
+
     @Tool(description = "Create a new architecture in a namespace. Returns the allocated architecture ID and version.")
     public ToolResponse createArchitecture(
             @ToolArg(description = "The namespace to create the architecture in") String namespace,
