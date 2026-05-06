@@ -5,12 +5,14 @@ import io.quarkiverse.mcp.server.ToolResponse;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
+import org.finos.calm.mcp.tools.AdrTools;
 import org.finos.calm.mcp.tools.ArchitectureTools;
 import org.finos.calm.mcp.tools.ControlTools;
 import org.finos.calm.mcp.tools.DecoratorTools;
 import org.finos.calm.mcp.tools.DomainTools;
 import org.finos.calm.mcp.tools.NamespaceTools;
 import org.finos.calm.mcp.tools.SearchTools;
+import org.finos.calm.mcp.tools.StandardTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -38,6 +40,19 @@ public class NitriteMcpIntegration {
 
     private static final String ARCHITECTURE_JSON = "{\"name\": \"mcp-nitrite-architecture\"}";
 
+    private static final String STANDARD_JSON = "{\"$schema\": \"https://calm.finos.org/schema\", \"name\": \"mcp-nitrite-standard\"}";
+
+    private static final String ADR_JSON = """
+            {
+              "title": "Use NitriteDB for testing",
+              "contextAndProblemStatement": "We need an in-memory store for tests",
+              "decisionDrivers": ["test speed"],
+              "consideredOptions": [],
+              "decisionOutcome": {"chosenOption": {"name": "NitriteDB"}, "rationale": "No external dependencies"},
+              "links": []
+            }
+            """;
+
     private static final String DECORATOR_JSON = """
             {
                 "unique-id": "mcp-nitrite-decorator",
@@ -62,6 +77,8 @@ public class NitriteMcpIntegration {
 
     private static int createdArchitectureId;
     private static int createdDecoratorId;
+    private static int createdStandardId;
+    private static int createdAdrId;
 
     @Inject
     ArchitectureTools architectureTools;
@@ -80,6 +97,12 @@ public class NitriteMcpIntegration {
 
     @Inject
     SearchTools searchTools;
+
+    @Inject
+    StandardTools standardTools;
+
+    @Inject
+    AdrTools adrTools;
 
     private static String text(ToolResponse r) {
         return ((TextContent) r.firstContent()).text();
@@ -309,5 +332,155 @@ public class NitriteMcpIntegration {
         ToolResponse result = decoratorTools.listDecorators("finos", null, "deployment\n");
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("Type filter"));
+    }
+
+    // --- Standard Tools ---
+
+    @Test
+    @Order(26)
+    void mcp_create_standard() {
+        ToolResponse result = standardTools.createStandard("finos", "mcp-nitrite-standard", "Integration test standard", STANDARD_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+
+        Matcher matcher = ID_PATTERN.matcher(text(result));
+        assertThat("Response should contain standard ID", matcher.find());
+        createdStandardId = Integer.parseInt(matcher.group(1));
+        logger.info("Created standard with ID: {}", createdStandardId);
+    }
+
+    @Test
+    @Order(27)
+    void mcp_list_standards_contains_created() {
+        ToolResponse result = standardTools.listStandards("finos");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("mcp-nitrite-standard"));
+    }
+
+    @Test
+    @Order(28)
+    void mcp_list_standard_versions() {
+        ToolResponse result = standardTools.listStandardVersions("finos", createdStandardId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+    }
+
+    @Test
+    @Order(29)
+    void mcp_get_standard() {
+        ToolResponse result = standardTools.getStandard("finos", createdStandardId, "1.0.0");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("mcp-nitrite-standard"));
+    }
+
+    @Test
+    @Order(30)
+    void mcp_create_standard_new_version() {
+        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", STANDARD_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(31)
+    void mcp_list_standard_versions_after_new_version() {
+        ToolResponse result = standardTools.listStandardVersions("finos", createdStandardId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(32)
+    void mcp_create_duplicate_standard_version_returns_error() {
+        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.0.0", STANDARD_JSON);
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("already exists"));
+    }
+
+    @Test
+    @Order(33)
+    void mcp_list_standards_for_nonexistent_namespace_returns_error() {
+        ToolResponse result = standardTools.listStandards("nonexistent");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    // --- ADR Tools ---
+
+    @Test
+    @Order(34)
+    void mcp_create_adr() {
+        ToolResponse result = adrTools.createAdr("finos", ADR_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+
+        Matcher matcher = ID_PATTERN.matcher(text(result));
+        assertThat("Response should contain ADR ID", matcher.find());
+        createdAdrId = Integer.parseInt(matcher.group(1));
+        logger.info("Created ADR with ID: {}", createdAdrId);
+    }
+
+    @Test
+    @Order(35)
+    void mcp_list_adrs_contains_created() {
+        ToolResponse result = adrTools.listAdrs("finos");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("Use NitriteDB for testing"));
+    }
+
+    @Test
+    @Order(36)
+    void mcp_get_adr() {
+        ToolResponse result = adrTools.getAdr("finos", createdAdrId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("NitriteDB"));
+    }
+
+    @Test
+    @Order(37)
+    void mcp_list_adr_revisions() {
+        ToolResponse result = adrTools.listAdrRevisions("finos", createdAdrId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1"));
+    }
+
+    @Test
+    @Order(38)
+    void mcp_get_adr_revision() {
+        ToolResponse result = adrTools.getAdrRevision("finos", createdAdrId, 1);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("NitriteDB"));
+    }
+
+    @Test
+    @Order(39)
+    void mcp_update_adr_creates_new_revision() {
+        ToolResponse result = adrTools.updateAdr("finos", createdAdrId, ADR_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("revision 2"));
+    }
+
+    @Test
+    @Order(40)
+    void mcp_list_adr_revisions_after_update() {
+        ToolResponse result = adrTools.listAdrRevisions("finos", createdAdrId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("2"));
+    }
+
+    @Test
+    @Order(41)
+    void mcp_update_adr_status() {
+        ToolResponse result = adrTools.updateAdrStatus("finos", createdAdrId, "accepted");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("accepted"));
+    }
+
+    @Test
+    @Order(42)
+    void mcp_list_adrs_for_nonexistent_namespace_returns_error() {
+        ToolResponse result = adrTools.listAdrs("nonexistent");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
     }
 }
