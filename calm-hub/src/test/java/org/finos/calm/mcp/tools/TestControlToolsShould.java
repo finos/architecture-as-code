@@ -388,13 +388,13 @@ class TestControlToolsShould {
 
     @Test
     void reject_oversized_name_for_create_requirement() {
-        String name = "x".repeat(201);
+        String name = "x".repeat(McpValidationHelper.MAX_NAME_LENGTH + 1);
 
         ToolResponse response = controlTools.createControlRequirement("security", name, "d", "{\"x\":1}");
 
         assertThat(response.isError(), is(true));
         assertThat(text(response), containsString("Name"));
-        assertThat(text(response), containsString("200"));
+        assertThat(text(response), containsString(String.valueOf(McpValidationHelper.MAX_NAME_LENGTH)));
         verifyNoInteractions(controlStore);
     }
 

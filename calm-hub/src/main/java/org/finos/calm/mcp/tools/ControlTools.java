@@ -131,7 +131,7 @@ public class ControlTools {
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateDomain(domain),
                 () -> McpValidationHelper.validateNotBlank(name, "Name"),
-                () -> McpValidationHelper.validateMaxLength(name, 200, "Name"),
+                () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Name"),
                 () -> McpValidationHelper.validateNotBlank(description, "Description"),
                 () -> McpValidationHelper.validateDescriptionLength(description, "Description"),
                 () -> McpValidationHelper.validateNotBlank(requirementJson, "Requirement JSON"),

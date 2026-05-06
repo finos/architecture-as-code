@@ -20,6 +20,8 @@ final class McpValidationHelper {
     static final String MCP_DISABLED_MESSAGE =
             "Error: MCP tools are currently disabled. Set the environment variable CALM_MCP_ENABLED=true to enable.";
 
+    static final int MAX_NAME_LENGTH = 200;
+
     private static final int MAX_DESCRIPTION_LENGTH = 1024;
 
     /**
