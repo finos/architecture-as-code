@@ -1,0 +1,34 @@
+{
+  "controlId": 12,
+  "name": "AIR-OP-020 — Reputational Risk",
+  "description": "Controls to proactively manage and mitigate reputational risks arising from AI failures, inappropriate outputs, or misuse in customer-facing and decision-critical financial services applications.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-020",
+      "name": "Reputational Risk",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-20_reputational-risk.html",
+      "summary": "AI failures or misuse—especially in customer-facing systems—can quickly escalate into public incidents that damage a firm's reputation and erode trust. Because AI systems can scale errors rapidly, each AI-driven decision reflects directly on brand and conduct.",
+      "requirements": [
+        "Establish an AI incident response plan including public communications playbooks for AI-related failures.",
+        "Implement content moderation and output filtering on all customer-facing AI systems.",
+        "Conduct pre-launch red-team testing to identify outputs that could cause reputational harm.",
+        "Monitor social media and customer feedback channels for AI-related complaints or incidents.",
+        "Define reputational risk thresholds for AI systems and include AI risk in enterprise risk appetite statements.",
+        "Ensure AI-generated content complies with marketing, conduct, and disclosure regulations before publication."
+      ],
+      "contributing_factors": [
+        "Customer-facing AI generating offensive, misleading, or unfair outputs at scale.",
+        "Rapid error propagation: AI flaws can affect thousands of customers simultaneously.",
+        "Public visibility of AI failures through social media and press coverage.",
+        "Regulatory scrutiny of AI-related conduct failures generating additional reputational damage."
+      ],
+      "references": [
+        "https://www.bbc.co.uk/news/technology-68025677"
+      ]
+    }
+  },
+  "configurations": []
+}

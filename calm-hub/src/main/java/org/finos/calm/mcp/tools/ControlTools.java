@@ -7,6 +7,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.controls.ControlDetail;
+import org.finos.calm.domain.controls.CreateControlConfiguration;
+import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
@@ -110,6 +112,88 @@ public class ControlTools {
                 sb.append("- ").append(version).append("\n");
             }
             return ToolResponse.success(sb.toString());
+        } catch (DomainNotFoundException e) {
+            logger.warn("Domain not found [{}]", domain, e);
+            return ToolResponse.error("Error: Domain '" + domain + "' not found.");
+        } catch (ControlNotFoundException e) {
+            logger.warn("Control [{}] not found in domain [{}]", controlId, domain, e);
+            return ToolResponse.error("Error: Control " + controlId + " not found in domain '" + domain + "'.");
+        }
+    }
+
+    @Tool(description = "Create a new control requirement in a domain. The requirement is created with an initial version 1.0.0 from the supplied requirement JSON. Returns the assigned control ID.")
+    public ToolResponse createControlRequirement(
+            @ToolArg(description = "The domain to create the control requirement in (e.g. 'security')") String domain,
+            @ToolArg(description = "The name of the control requirement") String name,
+            @ToolArg(description = "A description of the control requirement") String description,
+            @ToolArg(description = "The full control requirement JSON content") String requirementJson) {
+        String error = McpValidationHelper.checkEnabled(mcpEnabled);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+        error = McpValidationHelper.validateDomain(domain);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+        error = McpValidationHelper.validateNotBlank(name, "Name");
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+        error = McpValidationHelper.validateNotBlank(description, "Description");
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+        error = McpValidationHelper.validateNotBlank(requirementJson, "Requirement JSON");
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+        error = McpValidationHelper.validateJson(requirementJson, "Requirement JSON");
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+
+        try {
+            CreateControlRequirement request = new CreateControlRequirement(name, description, requirementJson);
+            ControlDetail created = controlStore.createControlRequirement(request, domain);
+            logger.info("Control requirement created with ID [{}] in domain [{}]", created.getId(), domain);
+            return ToolResponse.success("Control requirement created successfully with ID: " + created.getId() + " in domain '" + domain + "'.");
+        } catch (DomainNotFoundException e) {
+            logger.warn("Domain not found [{}]", domain, e);
+            return ToolResponse.error("Error: Domain '" + domain + "' not found.");
+        }
+    }
+
+    @Tool(description = "Create a new control configuration for an existing control requirement. The configuration is created with an initial version 1.0.0 from the supplied configuration JSON. Returns the assigned configuration ID.")
+    public ToolResponse createControlConfiguration(
+            @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
+            @ToolArg(description = "The control ID (positive integer) to create a configuration for") int controlId,
+            @ToolArg(description = "The full control configuration JSON content") String configurationJson) {
+        String error = McpValidationHelper.checkEnabled(mcpEnabled);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+        error = McpValidationHelper.validateDomain(domain);
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+        error = McpValidationHelper.validatePositiveId(controlId, "Control ID");
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+        error = McpValidationHelper.validateNotBlank(configurationJson, "Configuration JSON");
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+        error = McpValidationHelper.validateJson(configurationJson, "Configuration JSON");
+        if (error != null) {
+            return ToolResponse.error(error);
+        }
+
+        try {
+            CreateControlConfiguration request = new CreateControlConfiguration(configurationJson);
+            int configurationId = controlStore.createControlConfiguration(request, domain, controlId);
+            logger.info("Control configuration created with ID [{}] for control [{}] in domain [{}]", configurationId, controlId, domain);
+            return ToolResponse.success("Control configuration created successfully with ID: " + configurationId + " for control " + controlId + " in domain '" + domain + "'.");
         } catch (DomainNotFoundException e) {
             logger.warn("Domain not found [{}]", domain, e);
             return ToolResponse.error("Error: Domain '" + domain + "' not found.");

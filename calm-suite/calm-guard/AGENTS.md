@@ -11,7 +11,7 @@ Built for the DTCC/FINOS Innovate.DTCC AI Hackathon (Feb 23-27, 2026).
 | Layer | Choice | Notes |
 |-------|--------|-------|
 | Framework | Next.js 14+ (App Router) | `src/app/` routing, API routes for SSE |
-| Package Manager | pnpm | Use `pnpm` for all package operations |
+| Package Manager | npm (workspaces) | CalmGuard is a workspace of the monorepo root. Run `npm` commands from the repo root or use `--workspace=calmguard`. The docs sub-package is `calmguard-docs`. |
 | Language | TypeScript (strict mode) | No `any` types. Use Zod for runtime validation |
 | LLM SDK | Vercel AI SDK (`ai`) | `generateObject` with Zod schemas for all agent outputs |
 | Default LLM | Google Gemini | `@ai-sdk/google`. Multi-provider: also supports Anthropic, OpenAI, Ollama, Grok |
@@ -136,11 +136,19 @@ examples/                       # Demo CALM architecture JSON files
 
 ## Key Commands
 
+Run from monorepo root (preferred) or from `calm-suite/calm-guard/` (drop the `--workspace=calmguard` flag).
+
 ```bash
-pnpm dev          # Start dev server
-pnpm build        # Production build
-pnpm lint         # ESLint
-pnpm typecheck    # TypeScript strict check
+# From monorepo root
+npm ci                                       # Install all workspaces (one-time / on lockfile change)
+npm run dev --workspace=calmguard            # Start dev server
+npm run build --workspace=calmguard          # Production build
+npm run lint --workspace=calmguard           # ESLint
+npm run typecheck --workspace=calmguard      # TypeScript strict check
+npm run test:run --workspace=calmguard       # Vitest single run
+
+# Docs site (Docusaurus)
+npm run docs:dev                             # From calm-suite/calm-guard/
 ```
 
 ## Environment Variables
