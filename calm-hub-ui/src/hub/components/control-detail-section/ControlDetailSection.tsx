@@ -99,8 +99,8 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
             <div className="flex-1 min-h-0 bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
                 {/* Requirement breadcrumb header */}
                 <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
-                    <h2 className="text-sm font-bold flex items-center gap-2">
-                        <IoShieldCheckmarkOutline className="text-accent" />
+                    <h2 className="text-sm font-bold flex items-center gap-2 text-blue-700">
+                        <IoShieldCheckmarkOutline className="text-blue-700" />
                         <span>{controlData.controlName}</span>
                         <span className="text-gray-400">/</span>
                         <span>Requirement</span>
@@ -115,14 +115,14 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                     <div role="tablist" className="tabs tabs-boxed tabs-xs bg-base-100">
                         <button
                             role="tab"
-                            className={`tab ${reqViewMode === 'readable' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            className={`tab ${reqViewMode === 'readable' ? 'tab-active !bg-blue-700 !text-white' : ''}`}
                             onClick={() => setReqViewMode('readable')}
                         >
                             Readable
                         </button>
                         <button
                             role="tab"
-                            className={`tab ${reqViewMode === 'raw' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            className={`tab ${reqViewMode === 'raw' ? 'tab-active !bg-blue-700 !text-white' : ''}`}
                             onClick={() => setReqViewMode('raw')}
                         >
                             Raw JSON
@@ -138,7 +138,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                                 <button
                                     key={v}
                                     role="tab"
-                                    className={`tab gap-1 rounded-lg ${selectedReqVersion === v ? 'tab-active !bg-accent !text-white' : ''}`}
+                                    className={`tab gap-1 rounded-lg ${selectedReqVersion === v ? 'tab-active !bg-blue-700 !text-white' : ''}`}
                                     onClick={() => handleReqVersionClick(v)}
                                 >
                                     {v}
@@ -158,8 +158,9 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                 </div>
             </div>
 
-            {/* Bottom section: Configurations */}
-            <div className="flex-1 min-h-0 bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
+            {/* Bottom section: Configurations (only shown if any exist) */}
+            {configIds.length > 0 && (
+                <div className="flex-1 min-h-0 bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
                 {/* Configuration breadcrumb header */}
                 <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
                     <h2 className="text-sm font-bold flex items-center gap-2">
@@ -213,9 +214,6 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                                 Config {cid}
                             </button>
                         ))}
-                        {configIds.length === 0 && (
-                            <span className="text-base-content/60 text-sm px-2 py-1">No configurations</span>
-                        )}
                     </div>
 
                     {/* Config version tabs (shown when a config is selected) */}
@@ -246,7 +244,8 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                         <JsonRenderer json={configJson} />
                     )}
                 </div>
-            </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,0 +1,32 @@
+{
+  "controlId": 10,
+  "name": "AIR-OP-018 — Model Overreach / Expanded Use",
+  "description": "Controls to prevent AI systems from being deployed or used beyond their validated and authorised scope, mitigating risks from model overreach, anthropomorphism, and overreliance.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-018",
+      "name": "Model Overreach / Expanded Use",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-18_model-overreach-expanded-use.html",
+      "summary": "Model overreach occurs when AI systems are used beyond their intended purpose, often due to overconfidence in their capabilities. This can lead to poor-quality, non-compliant, or misleading outputs, especially when users apply AI to high-stakes tasks without proper validation or oversight.",
+      "requirements": [
+        "Define and publish an approved use case register for each AI system, with clearly stated scope boundaries.",
+        "Require formal change management approval before repurposing an AI model to new use cases.",
+        "Implement technical guardrails (e.g., topic classifiers, scope filters) that reject out-of-scope queries.",
+        "Train staff on the limitations of AI systems, discouraging anthropomorphism and overreliance.",
+        "Conduct periodic use case audits to detect unauthorised or scope-creeping applications of AI systems.",
+        "Establish escalation paths for queries that fall outside the AI system's authorised scope."
+      ],
+      "contributing_factors": [
+        "Overconfidence in AI capabilities leading to scope creep without validation.",
+        "Anthropomorphism causing users to treat AI outputs as authoritative expert advice.",
+        "Absence of technical enforcement of use case boundaries.",
+        "Insufficient change management processes for AI system repurposing."
+      ],
+      "references": []
+    }
+  },
+  "configurations": []
+}

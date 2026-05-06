@@ -1,0 +1,36 @@
+{
+  "controlId": 7,
+  "name": "AIR-OP-014 — Inadequate System Alignment",
+  "description": "Controls to ensure AI systems remain aligned with their intended business purpose, preventing response misalignment, scope boundary violations, and prompt injection via retrieved content.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-014",
+      "name": "Inadequate System Alignment",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-14_inadequate-system-alignment.html",
+      "summary": "LLM-powered RAG systems may generate responses that diverge from their intended business purpose, producing outputs that appear relevant but contain inaccurate financial advice, biased recommendations, or inappropriate tone for the financial context.",
+      "requirements": [
+        "Define and document the authorised scope of each AI system, including prohibited use cases.",
+        "Implement system prompt guardrails that constrain outputs to the intended domain and tone.",
+        "Establish continuous alignment monitoring using automated evaluation against golden datasets.",
+        "Conduct regular knowledge base hygiene reviews to remove outdated, biased, or conflicting content.",
+        "Perform prompt injection testing on retrieved content within RAG pipelines.",
+        "Implement alignment drift detection to trigger re-evaluation when response quality degrades."
+      ],
+      "contributing_factors": [
+        "Retrieval-response disconnect where LLM contradicts or misinterprets retrieved documents.",
+        "Context window limitations causing truncation of critical regulatory caveats.",
+        "Domain knowledge gaps filled with plausible but incorrect training-data knowledge.",
+        "Scope boundary violations providing advice beyond the system's authorised remit.",
+        "Prompt injection via maliciously formatted knowledge base content."
+      ],
+      "references": [
+        "https://arxiv.org/abs/2402.18540",
+        "https://arxiv.org/abs/2402.17358"
+      ]
+    }
+  },
+  "configurations": []
+}

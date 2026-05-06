@@ -1,0 +1,40 @@
+{
+  "controlId": 8,
+  "name": "AIR-OP-016 — Bias and Discrimination",
+  "description": "Controls to detect, prevent and remediate bias and discrimination in AI systems used in financial services, ensuring fairness and compliance with anti-discrimination regulations.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-016",
+      "name": "Bias and Discrimination",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-16_bias-and-discrimination.html",
+      "summary": "AI systems can systematically disadvantage protected groups through biased training data, flawed design, or proxy variables that correlate with sensitive characteristics. In financial services, this manifests as discriminatory credit decisions, unfair fraud detection, or biased customer service.",
+      "requirements": [
+        "Conduct bias audits on training data and model outputs prior to deployment and at regular intervals.",
+        "Test AI systems for disparate impact across protected characteristics (race, gender, age, etc.) using statistical fairness metrics.",
+        "Remove or mitigate proxy variables that correlate with protected characteristics from model inputs.",
+        "Establish a bias incident response process including customer remediation procedures.",
+        "Maintain audit trails of AI-assisted decisions to support regulatory review.",
+        "Provide bias and fairness training for AI development and oversight teams."
+      ],
+      "contributing_factors": [
+        "Data Bias: training datasets reflecting historical societal biases or underrepresenting certain populations.",
+        "Algorithmic Bias: model architecture or optimisation functions inadvertently amplifying bias.",
+        "Proxy Discrimination: neutral data points acting as proxies for protected characteristics.",
+        "Feedback Loops: biased outputs fed back into training cycles amplifying existing bias."
+      ],
+      "regulatory_references": [
+        "Equal Credit Opportunity Act (ECOA)",
+        "Fair Housing Act (FHA)",
+        "EU AI Act — High Risk AI Systems",
+        "ISO 42001"
+      ],
+      "references": [
+        "https://en.wikipedia.org/wiki/Disparate_impact"
+      ]
+    }
+  },
+  "configurations": []
+}
