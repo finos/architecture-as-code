@@ -2,6 +2,7 @@
     "name": "@finos/calm-workspace",
     "version": "0.0.0",
     "private": true,
+    "packageManager": "npm@11.12.1",
     "engines": {
         "node": "^22.14.0 || >=24.10.0"
     },
@@ -14,7 +15,9 @@
         "calm-server",
         "docs",
         "calm-hub-ui",
-        "calm-plugins/vscode"
+        "calm-plugins/vscode",
+        "calm-suite/calm-guard",
+        "calm-suite/calm-guard/docs"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",

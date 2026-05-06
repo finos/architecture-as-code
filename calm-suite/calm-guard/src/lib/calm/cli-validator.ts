@@ -33,10 +33,21 @@ interface CalmCliIssue {
 /**
  * Resolve the path to the calm-cli dist/index.js using require.resolve.
  * This works in both local dev and Vercel (no PATH lookup needed).
+ *
+ * Note: The module specifier comes from a runtime expression (`process.env`
+ * fallback) rather than a string literal. This is required to defeat webpack's
+ * static analysis of `require.resolve`. Without it, webpack traces into the
+ * bundled CLI dist and fails on transitive deps (uri-js submodules) that npm
+ * hoists differently than pnpm. `serverExternalPackages` alone is insufficient
+ * because the static `require.resolve(<literal>)` triggers tracing during build.
+ *
+ * `CALM_CLI_MODULE` is also a useful escape hatch: deployments can point
+ * `require.resolve` at an alternate copy of the CLI without code changes.
  */
 function resolveCalmCliPath(): string {
   const require = createRequire(import.meta.url);
-  return require.resolve('@finos/calm-cli/dist/index.js');
+  const moduleId = process.env.CALM_CLI_MODULE ?? '@finos/calm-cli/dist/index.js';
+  return require.resolve(moduleId);
 }
 
 /**
