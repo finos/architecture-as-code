@@ -383,4 +383,51 @@ class TestControlToolsShould {
         assertThat(response.isError(), is(true));
         verifyNoInteractions(controlStore);
     }
+
+    // --- max-length validation ---
+
+    @Test
+    void reject_oversized_name_for_create_requirement() {
+        String name = "x".repeat(McpValidationHelper.MAX_NAME_LENGTH + 1);
+
+        ToolResponse response = controlTools.createControlRequirement("security", name, "d", "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Name"));
+        assertThat(text(response), containsString(String.valueOf(McpValidationHelper.MAX_NAME_LENGTH)));
+        verifyNoInteractions(controlStore);
+    }
+
+    @Test
+    void reject_oversized_description_for_create_requirement() {
+        String description = "x".repeat(1025);
+
+        ToolResponse response = controlTools.createControlRequirement("security", "n", description, "{\"x\":1}");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Description"));
+        verifyNoInteractions(controlStore);
+    }
+
+    @Test
+    void reject_oversized_requirement_json() {
+        String json = "{\"x\":\"" + "y".repeat(McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH) + "\"}";
+
+        ToolResponse response = controlTools.createControlRequirement("security", "n", "d", json);
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Requirement JSON"));
+        verifyNoInteractions(controlStore);
+    }
+
+    @Test
+    void reject_oversized_configuration_json() {
+        String json = "{\"x\":\"" + "y".repeat(McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH) + "\"}";
+
+        ToolResponse response = controlTools.createControlConfiguration("security", 1, json);
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Configuration JSON"));
+        verifyNoInteractions(controlStore);
+    }
 }
