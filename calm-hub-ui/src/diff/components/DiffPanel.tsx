@@ -1,4 +1,4 @@
-import { DiffPanelProps } from '../../model/diff.js';
+import { DiffPanelProps, DiffSectionProps } from '../../model/diff.js';
 import { getRelationshipTypeDisplayString } from '../../visualizer/components/reactflow/utils/calmHelpers.js';
 import '../Diff.css';
 
@@ -104,7 +104,7 @@ export function DiffPanel({ diffResult }: DiffPanelProps) {
                 <DiffSection
                     title="Relationships Renamed"
                     items={diffResult.edgesRenamed}
-                    renderItem={(rename) => `${rename.oldId} → ${rename.newId} (${rename.relationship['relationship-type']})`}
+                    renderItem={(rename) => `${rename.oldId} → ${rename.newId} (${getRelationshipTypeDisplayString(rename.relationship['relationship-type'])})`}
                     className="diff-item-renamed"
                 />
 
@@ -122,7 +122,7 @@ export function DiffPanel({ diffResult }: DiffPanelProps) {
                         <DiffSection
                             title="Unchanged Relationships"
                             items={diffResult.edgesSame}
-                            renderItem={(edge) => `${edge['unique-id']} (${edge['relationship-type']})`}
+                            renderItem={(edge) => `${edge['unique-id']} (${getRelationshipTypeDisplayString(edge['relationship-type'])})`}
                             className="diff-item-unchanged"
                         />
                     </details>
@@ -130,13 +130,6 @@ export function DiffPanel({ diffResult }: DiffPanelProps) {
             </div>
         </div>
     );
-}
-
-interface DiffSectionProps<T> {
-    title: string;
-    items: T[];
-    renderItem: (item: T) => string;
-    className: string;
 }
 
 function DiffSection<T>({ title, items, renderItem, className }: DiffSectionProps<T>) {

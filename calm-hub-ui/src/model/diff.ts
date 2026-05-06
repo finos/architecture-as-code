@@ -105,6 +105,16 @@ export interface DiffGraphProps {
 }
 
 /**
+ * Props for the DiffPanel component
+ */
+export interface DiffSectionProps<T> {
+    title: string;
+    items: T[];
+    renderItem: (item: T) => string;
+    className: string;
+}
+
+/**
  * Props for the DiffGraphPanel component
  */
 export interface DiffGraphPanelProps {
