@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -21,13 +21,13 @@ export function DiffGraph({ architecture, diffResult, isFirst }: DiffGraphProps)
         return parseCALMDataWithDiff(architecture, diffResult, isFirst);
     }, [architecture, diffResult, isFirst]);
 
-    const reactFlowNodesState = useNodesState(initialNodes);
-    const reactFlowEdgesState = useEdgesState(initialEdges);
+    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-    const nodes = reactFlowNodesState[0];
-    const edges = reactFlowEdgesState[0];
-    const onNodesChange = reactFlowNodesState[2];
-    const onEdgesChange = reactFlowEdgesState[2];
+    useEffect(() => {
+        setNodes(initialNodes);
+        setEdges(initialEdges);
+    }, [initialNodes, initialEdges, setNodes, setEdges]);
 
     return (
         <div style={{ height: '100%', width: '100%' }}>
