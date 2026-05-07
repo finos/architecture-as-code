@@ -172,7 +172,7 @@ public class ArchitectureTools {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validateMaxLength(name, 200, "Architecture name"),
+                () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Architecture name"),
                 () -> McpValidationHelper.validateDescriptionLength(description, "Architecture description"),
                 () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
                 () -> McpValidationHelper.validateJson(architectureJson, "Architecture JSON"));

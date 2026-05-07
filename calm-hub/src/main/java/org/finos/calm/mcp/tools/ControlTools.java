@@ -127,30 +127,17 @@ public class ControlTools {
             @ToolArg(description = "The name of the control requirement") String name,
             @ToolArg(description = "A description of the control requirement") String description,
             @ToolArg(description = "The full control requirement JSON content") String requirementJson) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateDomain(domain);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNotBlank(name, "Name");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNotBlank(description, "Description");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNotBlank(requirementJson, "Requirement JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateJson(requirementJson, "Requirement JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateDomain(domain),
+                () -> McpValidationHelper.validateNotBlank(name, "Name"),
+                () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Name"),
+                () -> McpValidationHelper.validateNotBlank(description, "Description"),
+                () -> McpValidationHelper.validateDescriptionLength(description, "Description"),
+                () -> McpValidationHelper.validateNotBlank(requirementJson, "Requirement JSON"),
+                () -> McpValidationHelper.validateMaxLength(requirementJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Requirement JSON"),
+                () -> McpValidationHelper.validateJson(requirementJson, "Requirement JSON"));
+        if (err.isPresent()) return err.get();
 
         try {
             CreateControlRequirement request = new CreateControlRequirement(name, description, requirementJson);
@@ -168,26 +155,14 @@ public class ControlTools {
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
             @ToolArg(description = "The control ID (positive integer) to create a configuration for") int controlId,
             @ToolArg(description = "The full control configuration JSON content") String configurationJson) {
-        String error = McpValidationHelper.checkEnabled(mcpEnabled);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateDomain(domain);
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validatePositiveId(controlId, "Control ID");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateNotBlank(configurationJson, "Configuration JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
-        error = McpValidationHelper.validateJson(configurationJson, "Configuration JSON");
-        if (error != null) {
-            return ToolResponse.error(error);
-        }
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateDomain(domain),
+                () -> McpValidationHelper.validatePositiveId(controlId, "Control ID"),
+                () -> McpValidationHelper.validateNotBlank(configurationJson, "Configuration JSON"),
+                () -> McpValidationHelper.validateMaxLength(configurationJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Configuration JSON"),
+                () -> McpValidationHelper.validateJson(configurationJson, "Configuration JSON"));
+        if (err.isPresent()) return err.get();
 
         try {
             CreateControlConfiguration request = new CreateControlConfiguration(configurationJson);
