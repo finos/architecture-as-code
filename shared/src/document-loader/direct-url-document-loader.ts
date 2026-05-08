@@ -105,7 +105,10 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             if (!this.allowedRemoteHosts.has(normalizedHost)) {
                 throw new DocumentLoadError({
                     name: 'UNKNOWN',
-                    message: `Direct URL loading is restricted to approved hosts. Host '${parsedUrl.hostname}' is not allowlisted.`,
+                    message: `Direct URL loading is restricted to approved hosts. Host '${parsedUrl.hostname}' is not allowlisted.\n\n`
+                        + 'To allow this host, run:\n\n'
+                        + `  calm init-config --allowed-remote-hosts ${parsedUrl.hostname}\n\n`
+                        + 'Only add hosts you trust.',
                 });
             }
             if (parsedUrl.username || parsedUrl.password) {

@@ -114,10 +114,12 @@ describe('direct-url-document-loader', () => {
             .rejects.not.toThrow('private or internal network addresses are not allowed');
     });
 
-    it('rejects non-allowlisted public hosts', async () => {
+    it('rejects non-allowlisted public hosts with helpful guidance', async () => {
         const url = 'https://example.com/public-schema.json';
         await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
             .rejects.toThrow('is not allowlisted');
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('calm init-config --allowed-remote-hosts example.com');
     });
 
     it('allows loading from configured allowlisted host', async () => {
