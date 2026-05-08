@@ -1,6 +1,6 @@
 import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO } from './document-loader';
+import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO, assertJsonObject } from './document-loader';
 import { initLogger, Logger } from '../logger';
 
 export class CalmHubDocumentLoader implements DocumentLoader {
@@ -68,6 +68,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         // TODO gracefully handle 404s and other errors
         const response = await this.ax.get(path);
         const document = response.data;
+        assertJsonObject(document, documentId);
         this.logger.debug('Successfully loaded document from CALMHub with id ' + documentId);
         return document;
     }

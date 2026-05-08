@@ -53,4 +53,22 @@ describe('calmhub-document-loader', () => {
         await expect(calmHubDocumentLoader.loadMissingDocument(maliciousUrl, 'schema'))
             .rejects.toThrow('disallowed characters');
     });
+
+    it('throws when response is a string instead of an object', async () => {
+        mock.onGet('/schemas/2025-03/meta/string-response.json').reply(200, 'just a string');
+        await expect(calmHubDocumentLoader.loadMissingDocument('calm:/schemas/2025-03/meta/string-response.json', 'schema'))
+            .rejects.toThrow('Expected a JSON object');
+    });
+
+    it('throws when response is null', async () => {
+        mock.onGet('/schemas/2025-03/meta/null-response.json').reply(200, null);
+        await expect(calmHubDocumentLoader.loadMissingDocument('calm:/schemas/2025-03/meta/null-response.json', 'schema'))
+            .rejects.toThrow('Expected a JSON object');
+    });
+
+    it('throws when response is an array', async () => {
+        mock.onGet('/schemas/2025-03/meta/array-response.json').reply(200, [{ '$id': 'foo' }]);
+        await expect(calmHubDocumentLoader.loadMissingDocument('calm:/schemas/2025-03/meta/array-response.json', 'schema'))
+            .rejects.toThrow('Expected a JSON object');
+    });
 });

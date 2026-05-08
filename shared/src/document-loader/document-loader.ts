@@ -64,6 +64,15 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
     return new MultiStrategyDocumentLoader(loaders, debug);
 }
 
+export function assertJsonObject(data: unknown, source: string): asserts data is object {
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        throw new DocumentLoadError({
+            name: 'UNKNOWN',
+            message: `Expected a JSON object from ${source} but received: ${typeof data}`
+        });
+    }
+}
+
 type ErrorName = 'OPERATION_NOT_IMPLEMENTED' | 'UNKNOWN';
 
 export class DocumentLoadError extends Error {
