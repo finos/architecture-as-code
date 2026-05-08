@@ -66,9 +66,10 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
 
 export function assertJsonObject(data: unknown, source: string): asserts data is object {
     if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        const kind = data === null ? 'null' : Array.isArray(data) ? 'array' : typeof data;
         throw new DocumentLoadError({
             name: 'UNKNOWN',
-            message: `Expected a JSON object from ${source} but received: ${typeof data}`
+            message: `Expected a JSON object from ${source} but received: ${kind}`
         });
     }
 }
