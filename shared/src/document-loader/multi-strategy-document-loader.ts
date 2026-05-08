@@ -42,10 +42,10 @@ export class MultiStrategyDocumentLoader implements DocumentLoader {
         }
         this.logger.error(`All document loaders failed to load document: ${documentId}. See report below:`);
         this.printErrorMessages(errors);
+        const lastError = errors[errors.length - 1].error;
         throw new DocumentLoadError({
             name: 'UNKNOWN',
-            message: `All document loaders failed to load document: ${documentId}`,
-            cause: errors[errors.length - 1].error
+            message: lastError?.message ?? `Failed to load document: ${documentId}`,
         });
     }
 
@@ -54,7 +54,7 @@ export class MultiStrategyDocumentLoader implements DocumentLoader {
         for (const { loaderName, error } of errors) {
             report += `Loader ${loaderName} FAILED with error: ${error?.message}\n`;
         }
-        this.logger.error(report);
+        this.logger.debug(report);
     }
 
     resolvePath(reference: string): string | undefined {
