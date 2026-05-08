@@ -34,6 +34,15 @@ describe('AIGF Mappings', () => {
     expect(result.risks).toHaveLength(0);
   });
 
+  it("getAIGFForNodeType('ai:mcp-server') returns AIR-SEC-025 with mi-19 and mi-21", () => {
+    const result = getAIGFForNodeType('ai:mcp-server');
+    const riskIds = result.risks.map((r) => r.id);
+    const mitigationIds = result.mitigations.map((m) => m.id);
+    expect(riskIds).toEqual(['AIR-SEC-025']);
+    expect(mitigationIds).toContain('mi-19');
+    expect(mitigationIds).toContain('mi-21');
+  });
+
   it("getAIGFForNodeType('service') returns empty (non-AI node)", () => {
     const result = getAIGFForNodeType('service');
     expect(result.risks).toHaveLength(0);

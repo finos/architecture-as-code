@@ -33,4 +33,6 @@ export const aiIcons: Record<string, string> = {
   'knowledge-base': `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 3h10v10H3Z" rx="1"/><path d="M6 3v10M3 6h10M3 9h10" stroke-linecap="round"/></svg>`,
 
   'eval-monitor': `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="5.5"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 2.5v1M8 12.5v1M2.5 8h1M12.5 8h1" stroke-linecap="round"/></svg>`,
+
+  'mcp-server': `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="3" width="9" height="4" rx="1"/><rect x="2" y="9" width="9" height="4" rx="1"/><circle cx="4" cy="5" r="0.6" fill="currentColor" stroke="none"/><circle cx="4" cy="11" r="0.6" fill="currentColor" stroke="none"/><path d="M11 5h2.5M11 11h2.5M13.5 5v6" stroke-linecap="round"/></svg>`,
 };
