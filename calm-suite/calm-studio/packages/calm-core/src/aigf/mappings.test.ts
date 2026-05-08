@@ -43,6 +43,20 @@ describe('AIGF Mappings', () => {
     expect(mitigationIds).toContain('mi-21');
   });
 
+  it("getAIGFForNodeType('ai:observability') returns empty risks and mitigations (observability IS the mitigation)", () => {
+    const result = getAIGFForNodeType('ai:observability');
+    expect(result.risks).toHaveLength(0);
+    expect(result.mitigations).toHaveLength(0);
+  });
+
+  it("aigfNodeRiskMappings explicitly contains an entry for ai:observability", async () => {
+    const { aigfNodeRiskMappings } = await import('./mappings.js');
+    const entry = aigfNodeRiskMappings.find((m) => m.nodeTypePattern === 'ai:observability');
+    expect(entry).toBeDefined();
+    expect(entry?.applicableRisks).toEqual([]);
+    expect(entry?.recommendedMitigations).toEqual([]);
+  });
+
   it("getAIGFForNodeType('service') returns empty (non-AI node)", () => {
     const result = getAIGFForNodeType('service');
     expect(result.risks).toHaveLength(0);

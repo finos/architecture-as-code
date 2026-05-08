@@ -36,6 +36,13 @@ describe('aiPack', () => {
 		expect(entry?.icon.trim().length).toBeGreaterThan(0);
 	});
 
+	it('aiPack contains ai:observability entry', () => {
+		const entry = aiPack.nodes.find((n) => n.typeId === 'ai:observability');
+		expect(entry).toBeDefined();
+		expect(entry?.label).toBe('Observability');
+		expect(entry?.icon.trim().length).toBeGreaterThan(0);
+	});
+
 	describe('after initAllPacks()', () => {
 		beforeEach(() => {
 			resetRegistry();
@@ -46,6 +53,12 @@ describe('aiPack', () => {
 			const entry = resolvePackNode('ai:mcp-server');
 			expect(entry).not.toBeNull();
 			expect(entry?.typeId).toBe('ai:mcp-server');
+		});
+
+		it('resolvePackNode("ai:observability") returns the entry from aiPack', () => {
+			const entry = resolvePackNode('ai:observability');
+			expect(entry).not.toBeNull();
+			expect(entry?.typeId).toBe('ai:observability');
 		});
 	});
 });

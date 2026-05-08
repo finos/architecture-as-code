@@ -87,6 +87,11 @@ export const aigfNodeRiskMappings: AIGFNodeRiskMapping[] = [
     applicableRisks: ['AIR-SEC-025'],
     recommendedMitigations: ['mi-19', 'mi-21'],
   },
+  {
+    nodeTypePattern: 'ai:observability',
+    applicableRisks: [],
+    recommendedMitigations: [],
+  },
 ];
 
 /**

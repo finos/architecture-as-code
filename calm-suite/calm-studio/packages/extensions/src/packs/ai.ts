@@ -48,5 +48,6 @@ export const aiPack: PackDefinition = {
     node('ai:knowledge-base', 'Knowledge Base', 'knowledge-base', 'Structured domain knowledge repository for AI'),
     node('ai:eval-monitor', 'Eval Monitor', 'eval-monitor', 'Evaluation and quality monitoring for AI outputs'),
     node('ai:mcp-server', 'MCP Server', 'mcp-server', 'Model Context Protocol server exposing tools and resources to AI agents'),
+    node('ai:observability', 'Observability', 'observability', 'Telemetry, tracing, and metrics for AI workloads'),
   ],
 };
