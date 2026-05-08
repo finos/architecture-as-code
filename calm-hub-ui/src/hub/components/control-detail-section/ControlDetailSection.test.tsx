@@ -113,13 +113,17 @@ describe('ControlDetailSection', () => {
             });
         });
 
-        it('shows "No configurations" when no config IDs exist', async () => {
+        it('hides the configurations panel when no config IDs exist', async () => {
             setupMocks({ configIds: [] });
             render(<ControlDetailSection controlData={controlData} />);
 
+            // Wait for requirement panel to render, then assert configurations heading is absent
             await waitFor(() => {
-                expect(screen.getByText('No configurations')).toBeInTheDocument();
+                const headings = screen.getAllByRole('heading');
+                expect(headings).toHaveLength(1);
+                expect(headings[0]).toHaveTextContent('Requirement');
             });
+            expect(screen.queryByText('Configurations')).not.toBeInTheDocument();
         });
 
         it('renders two readable JSON views by default (requirement + configuration)', async () => {
@@ -403,6 +407,12 @@ describe('ControlDetailSection', () => {
             setupMocks();
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
+
+            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
+            });
+            await user.click(screen.getByRole('tab', { name: '1.0.0' }));
 
             const rawTabs = await screen.findAllByRole('tab', { name: 'Raw JSON' });
             await user.click(rawTabs[1]); // click config panel's Raw JSON tab

@@ -1,0 +1,35 @@
+{
+  "controlId": 6,
+  "name": "AIR-OP-007 — Availability of Foundational Model",
+  "description": "Controls to ensure availability and resilience of foundation model infrastructure, mitigating risks from Denial of Wallet attacks, TSP outages, and VRAM exhaustion.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-007",
+      "name": "Availability of Foundational Model",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-7_availability-of-foundational-model.html",
+      "summary": "Foundation models often rely on GPU-heavy infrastructure hosted by third-party providers, introducing risks related to service availability and performance. Key threats include Denial of Wallet (DoW), TSP outages, and VRAM exhaustion.",
+      "requirements": [
+        "Implement API rate limiting and token budget controls to prevent Denial of Wallet (DoW) scenarios.",
+        "Define SLAs with model providers and monitor compliance; establish escalation procedures for breaches.",
+        "Design failover strategies including fallback to alternative model providers or degraded-mode operation.",
+        "Monitor VRAM usage and implement auto-scaling or circuit breakers to prevent exhaustion.",
+        "Conduct regular business continuity tests for AI infrastructure outage scenarios.",
+        "Apply prompt length controls and chunking strategies to prevent excessive token consumption."
+      ],
+      "contributing_factors": [
+        "Denial of Wallet: excessive token usage leading to cost spikes or throttling.",
+        "TSP operational immaturity causing unexpected outages.",
+        "Tight coupling to a single proprietary model provider limiting failover options.",
+        "VRAM exhaustion due to memory leaks, caching strategies, or configuration changes."
+      ],
+      "references": [
+        "https://www.prompt.security/blog/denial-of-wallet-on-genai-apps-ddow",
+        "https://ithandbook.ffiec.gov/"
+      ]
+    }
+  },
+  "configurations": []
+}

@@ -12,18 +12,20 @@ CALMGuard is an open-source project built for the DTCC/FINOS Innovate Hackathon 
 ### Prerequisites
 
 - Node.js 22+
-- pnpm 9+
+- npm 10+
 - A Gemini API key (free tier works for development)
 
 ### Installation
 
+CalmGuard lives in the [`finos/architecture-as-code`](https://github.com/finos/architecture-as-code) monorepo as the `calmguard` npm workspace.
+
 ```bash
-git clone https://github.com/finos/dtcch-2026-opsflow-llc.git
-cd dtcch-2026-opsflow-llc
-pnpm install
-cp .env.example .env.local
+git clone https://github.com/finos/architecture-as-code.git
+cd architecture-as-code
+npm ci
+cp calm-suite/calm-guard/.env.example calm-suite/calm-guard/.env.local
 # Edit .env.local and add your GOOGLE_GENERATIVE_AI_API_KEY
-pnpm dev
+npm run dev --workspace=calmguard
 ```
 
 ## Project Structure
@@ -68,11 +70,11 @@ See the [System Overview](/architecture/system-overview) for a full directory br
 
 ## Testing
 
-Run the test suite:
+Run the test suite (from monorepo root):
 
 ```bash
-pnpm test        # Watch mode
-pnpm test:run    # Single run
+npm run test --workspace=calmguard        # Watch mode
+npm run test:run --workspace=calmguard    # Single run
 ```
 
 Tests use Vitest with jsdom for component testing.
@@ -88,12 +90,12 @@ Tests use Vitest with jsdom for component testing.
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/my-feature`
 3. Make your changes with tests
-4. Run the full check suite:
+4. Run the full check suite (from monorepo root):
    ```bash
-   pnpm typecheck
-   pnpm lint
-   pnpm test:run
-   pnpm build
+   npm run typecheck --workspace=calmguard
+   npm run lint --workspace=calmguard
+   npm run test:run --workspace=calmguard
+   npm run build --workspace=calmguard
    ```
 5. Commit with DCO sign-off: `git commit -s -m "feat: add my feature"`
 6. Push and open a Pull Request

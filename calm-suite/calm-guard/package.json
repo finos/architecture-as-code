@@ -12,7 +12,6 @@
     "url": "https://github.com/finos-labs/dtcch-2026-opsflow-llc/issues"
   },
   "license": "Apache-2.0",
-  "packageManager": "pnpm@10.23.0",
   "author": "OpsFlow LLC",
   "keywords": [
     "calm",
@@ -31,8 +30,8 @@
     "test:run": "vitest run",
     "license-check": "license-checker --failOn 'GPL-2.0;GPL-3.0;AGPL-3.0'",
     "prepare": "husky",
-    "docs:dev": "cd docs && pnpm start",
-    "docs:build": "cd docs && pnpm build",
+    "docs:dev": "npm run start --workspace=calmguard-docs",
+    "docs:build": "npm run build --workspace=calmguard-docs",
     "docs:api": "tsx scripts/generate-api-docs.ts"
   },
   "dependencies": {
@@ -86,7 +85,7 @@
     "jsdom": "^28.1.0",
     "license-checker": "^25.0.1",
     "lint-staged": "^16.2.7",
-    "postcss": "^8.5.11",
+    "postcss": "^8.5.13",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.2",
