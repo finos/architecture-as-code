@@ -2,12 +2,15 @@ package org.finos.calm.domain.frontcontroller;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import java.util.Objects;
 
 public class FrontControllerUpdateRequest {
     @NotBlank(message = "JSON must not be blank")
+    @Schema(description = "The updated CALM document JSON content.", required = true)
     private String json;
     @NotNull(message = "Change type must not be null")
+    @Schema(description = "Semver bump to apply: MAJOR, MINOR, or PATCH.", required = true, example = "MINOR")
     private ChangeType changeType;
 
     public FrontControllerUpdateRequest() {

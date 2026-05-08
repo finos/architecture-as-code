@@ -15,12 +15,13 @@
         "calm": "dist/index.js"
     },
     "scripts": {
-        "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates && npm run copy-widgets && npm run copy-ai-tools",
+        "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates && npm run copy-widgets && npm run copy-ai-tools && npm run copy-workspace-templates",
         "watch": "node watch.mjs",
         "copy-calm-schema": "copyfiles \"../calm/release/**/meta/*\" \"../calm/draft/**/meta/*\" dist/calm/",
         "copy-docify-templates": "copyfiles \"../shared/dist/template-bundles/**/*\" dist --up 3",
         "copy-widgets": "copyfiles \"../calm-widgets/dist/cli/widgets/**/*\" dist --up 4",
         "copy-ai-tools": "copyfiles \"../calm-ai/tools/**/*\" \"../calm-ai/ai-assistants/**/*\" \"../calm-ai/templates/**/*\" dist/calm-ai/ --up 2",
+        "copy-workspace-templates": "copyfiles \"src/command-helpers/workspace/templates/**/*\" dist/ --up 3",
         "test": "vitest run",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
@@ -44,6 +45,7 @@
         "copyfiles": "^2.4.1",
         "execa": "^9.6.0",
         "mkdirp": "^3.0.1",
+        "tree-dump": "^1.1.0",
         "ts-node": "10.9.2"
     },
     "devDependencies": {

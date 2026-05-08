@@ -1,14 +1,19 @@
 package org.finos.calm.domain.frontcontroller;
 
 import jakarta.validation.constraints.NotBlank;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import java.util.Objects;
 
 public class FrontControllerCreateRequest {
     @NotBlank(message = "Type must not be blank")
+    @Schema(description = "Resource type (e.g. PATTERN, ARCHITECTURE, FLOW, STANDARD, INTERFACE). Required for initial creation.", required = true, example = "ARCHITECTURE")
     private String type;
     @NotBlank(message = "JSON must not be blank")
+    @Schema(description = "The CALM document JSON content.", required = true)
     private String json;
+    @Schema(description = "Human-readable name for the resource (optional).")
     private String name;
+    @Schema(description = "Description of the resource (optional).")
     private String description;
 
     public FrontControllerCreateRequest() {

@@ -418,3 +418,250 @@ and
 
 This differs:
 {{ block-architecture render-node-type-shapes=false }}
+```
+
+## CALM Workspace
+
+The `calm workspace` commands give you a local development environment for working with a set of CALM documents. A workspace tracks which documents you care about, keeps copies (or references) of those files in a single bundle directory, and can sync them to a CalmHub instance.
+
+### Concepts
+
+**Workspace** — a named collection of CALM documents living inside a git repository. Metadata lives under `.calm-workspace/` at the repository root; the active workspace is recorded in `.calm-workspace/workspace.json`.
+
+**Bundle** — the on-disk directory for a workspace (`<repo-root>/.calm-workspace/bundles/<name>/`). It contains:
+- `workspace-manifest.json` — an index of every tracked document, keyed by document ID, with each entry recording its file path, document type, and (optionally) its CalmHub namespace.
+- `files/` — documents copied into the bundle (when `--copy` is used). Referenced documents are stored at their original location.
+
+**Document ID** — the key used to identify a document within a workspace. Resolved in order: `--id` flag → `title` field in the JSON → user prompt.
+
+### Commands
+
+#### `calm workspace init <name>`
+
+Create or update a workspace. Creates the bundle directory and sets it as the active workspace.
+
+```
+calm workspace init <name> [--dir <path>]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--dir <path>` | Directory in which to create the workspace. Defaults to the repository root (detected via git). |
+
+```shell
+calm workspace init my-system
+# Workspace 'my-system' created/updated at .calm-workspace
+# Bundle directory ensured at .calm-workspace/bundles/my-system
+```
+
+#### `calm workspace add <file>`
+
+Register a CALM document with the active workspace. By default the file is referenced at its current location on disk (no copying). Prompts interactively for document type and name if they cannot be determined automatically.
+
+```
+calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] [--copy]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--id <id>` | Explicit document ID. Overrides all automatic resolution. |
+| `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `architecture`, `pattern`, `schema`, `interface`, `timeline`. |
+| `--namespace <namespace>` | CalmHub namespace to associate with this file (used by `push`). |
+| `--copy` | Copy the file into the bundle's `files/` directory instead of referencing it in place. |
+
+**Name resolution** (when `--id` is not given):
+1. The `title` field from the JSON file, if present.
+2. Interactive prompt.
+
+```shell
+# Interactive — prompts for type and name
+calm workspace add ./architectures/payment-service.json
+
+# Fully specified
+calm workspace add ./architectures/payment-service.json \
+  --type architecture \
+  --namespace com.example \
+  --copy
+```
+
+#### `calm workspace new [type] [namespace] [name]`
+
+Create a new stub CALM document in the current directory, then register it with the active workspace. Any argument not provided on the command line is requested interactively.
+
+TODO: instantiate a starter document from a simple template.
+
+```
+calm workspace new [type] [namespace] [name]
+```
+
+The created file is named `<namespace>-<type>-<name>.json` and contains a minimal document with `$id` and `version` fields. The namespace is stored in the manifest so the document can be pushed to CalmHub without extra flags.
+
+```shell
+# Fully interactive
+calm workspace new
+
+# Partially specified
+calm workspace new architecture com.example payment-gateway
+```
+
+#### `calm workspace populate`
+
+Scan every document currently in the workspace for external references (`$ref`, `$schema`, `requirement-url`, `config-url`) and fetch any HTTP(S) URLs that are not already tracked, adding them to the bundle.
+
+```
+calm workspace populate [--verbose]
+```
+
+Useful after adding an architecture that references remote patterns or schemas you also want available locally.
+
+```shell
+calm workspace populate --verbose
+```
+
+#### `calm workspace push`
+
+Push every document in the workspace manifest to a CalmHub instance, creating or updating resources as needed. Only files that have a namespace recorded in the manifest are pushed; others are skipped with a warning.
+
+NOTE: Currently this pushes every document that's been changed; if you want to lock a file that is currently not supported. 
+
+```
+calm workspace push [--calm-hub-url <url>]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--calm-hub-url <url>` | CalmHub base URL. If omitted, falls back to `calmHubUrl` in `~/.calm.json`. |
+
+For each tracked document:
+- **Not found on CalmHub** → creates a new resource.
+- **Found, content differs** → pushes a new minor version.
+- **Found, content identical** → skipped.
+
+Content comparison ignores whitespace by minifying both the local and remote JSON before diffing.
+
+```shell
+# Using URL from ~/.calm.json
+calm workspace push
+
+# Overriding the URL
+calm workspace push --calm-hub-url https://calmhub.example.com
+```
+
+#### `calm workspace tree`
+
+Print the dependency tree of documents in the active workspace, showing how documents reference one another.
+
+```
+calm workspace tree
+```
+
+```
+payment-service (architecture)
+├── payment-pattern (pattern)
+│   └── https://calm.finos.org/draft/2025-03/meta/core.json (schema)
+└── https://calm.finos.org/draft/2025-03/meta/interface.json (schema)
+```
+
+#### `calm workspace list`
+
+List all workspaces in the current repository. The active workspace is marked with `*`.
+
+```
+calm workspace list
+```
+
+```
+* my-system
+  legacy-platform
+  experimental
+```
+
+#### `calm workspace show`
+
+Print the name of the currently active workspace.
+
+```
+calm workspace show
+```
+
+#### `calm workspace switch <name>`
+
+Switch the active workspace.
+
+```
+calm workspace switch <name>
+```
+
+```shell
+calm workspace switch legacy-platform
+# Switched to workspace 'legacy-platform'.
+```
+
+#### `calm workspace clean`
+
+Remove downloaded files from a workspace bundle and reset its manifest. The bundle directory itself is preserved.
+
+```
+calm workspace clean [--all]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--all` | Clean all workspaces and reset `workspace.json`. |
+
+```shell
+# Clean the active workspace
+calm workspace clean
+
+# Clean everything
+calm workspace clean --all
+```
+
+### Example workflow
+
+Below is an end-to-end example: creating a workspace, adding documents, pulling in dependencies, and syncing to CalmHub.
+
+```shell
+# 1. Initialise a workspace in the current git repo
+calm workspace init payments
+
+# 2. Create a new architecture stub — prompts for type/namespace/name if omitted
+calm workspace new architecture com.example payment-gateway
+
+# 3. After editing payment-gateway.json, add an existing pattern you depend on
+calm workspace add ./patterns/microservice-pattern.json \
+  --type pattern \
+  --namespace com.example
+
+# 4. Fetch all remote schemas and patterns referenced inside tracked documents
+calm workspace populate
+
+# 5. Inspect the resulting dependency graph
+calm workspace tree
+
+# 6. Push everything to CalmHub (namespace comes from each file's manifest entry)
+calm workspace push --calm-hub-url https://calmhub.example.com
+```
+
+If you work across multiple concerns in the same repo, you can maintain separate workspaces:
+
+```shell
+calm workspace init platform
+calm workspace switch platform
+calm workspace add ./platform/infra.json --type architecture --namespace com.example
+calm workspace push
+
+calm workspace switch payments   # back to the original
+```
+
+### CalmHub integration
+
+To avoid passing `--calm-hub-url` every time, add the URL to `~/.calm.json`:
+
+```json
+{
+  "calmHubUrl": "https://calmhub.example.com"
+}
+```
+
+For `push` to work, each document must have a namespace recorded in the manifest. This is set automatically by `new`. For files added with `add`, pass `--namespace <ns>` at add time. Any file without a namespace is skipped during push with a message explaining how to fix it.
