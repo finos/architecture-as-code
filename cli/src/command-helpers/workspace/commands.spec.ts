@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => {
         createNewDocument: vi.fn(async () => '/fake/repo/com.example-architecture-my-arch.json'),
         getTemplatesForType: vi.fn(async () => ['empty']),
         pushWorkspaceToHub: vi.fn(async () => { }),
+        updateWorkspaceRefs: vi.fn(async () => []),
         findWorkspaceManifestPath: vi.fn(() => '/fake/bundle'),
         findGitRoot: vi.fn(() => '/fake/repo'),
         loadManifest: vi.fn(async () => ({})),
@@ -58,6 +59,10 @@ vi.mock('./new', () => ({
 
 vi.mock('./push', () => ({
     pushWorkspaceToHub: mocks.pushWorkspaceToHub,
+}));
+
+vi.mock('./update-refs', () => ({
+    updateWorkspaceRefs: mocks.updateWorkspaceRefs,
 }));
 
 vi.mock('../../workspace-resolver', () => ({
@@ -426,6 +431,41 @@ describe('setupWorkspaceCommands', () => {
         it('exits on pushWorkspaceToHub error', async () => {
             mocks.pushWorkspaceToHub.mockRejectedValueOnce(new Error('push failed'));
             await expect(program.parseAsync(['node', 'test', 'workspace', 'push'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace update-refs', () => {
+        it('calls updateWorkspaceRefs with the bundle path', async () => {
+            mocks.updateWorkspaceRefs.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'update-refs']);
+            expect(mocks.updateWorkspaceRefs).toHaveBeenCalledWith('/fake/bundle', { dryRun: undefined });
+        });
+
+        it('passes dryRun: true when --dry-run is provided', async () => {
+            mocks.updateWorkspaceRefs.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'update-refs', '--dry-run']);
+            expect(mocks.updateWorkspaceRefs).toHaveBeenCalledWith('/fake/bundle', { dryRun: true });
+        });
+
+        it('logs "no references needed" when there are no changes', async () => {
+            mocks.updateWorkspaceRefs.mockResolvedValueOnce([
+                { docId: 'doc-a', filePath: '/fake/bundle/files/doc-a.json', changeCount: 0 },
+            ]);
+            await program.parseAsync(['node', 'test', 'workspace', 'update-refs']);
+            // No error thrown — success path
+            expect(mocks.updateWorkspaceRefs).toHaveBeenCalled();
+        });
+
+        it('exits when no workspace bundle is found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'update-refs'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits on updateWorkspaceRefs error', async () => {
+            mocks.updateWorkspaceRefs.mockRejectedValueOnce(new Error('update failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'update-refs'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
     });

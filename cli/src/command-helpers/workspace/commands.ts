@@ -7,13 +7,13 @@ import { removeDocumentFromManifest } from './rm';
 import { populateWorkspaceBundle } from './populate';
 import { createNewDocument, getTemplatesForType } from './new';
 import { pushWorkspaceToHub } from './push';
+import { updateWorkspaceRefs } from './update-refs';
 import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 import { select, input } from '@inquirer/prompts';
 import { CALM_DOCUMENT_TYPES_LIST } from '@finos/calm-shared/src/document-loader/document-loader';
 import { CalmHubService } from '../../service/calm-hub-service';
 import { loadCliConfig } from '../../cli-config';
-import { removeDocumentFromManifest } from './rm';
 
 const logger: Logger = initLogger(false, 'workspace');
 
@@ -63,6 +63,7 @@ export function setupWorkspaceCommands(program: Command) {
                 const srcPath = path.resolve(file);
 
                 const type = await enforceOptionPresenceByPrompt(options.type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
+                const namespace = await enforceOptionPresenceByPrompt(options.namespace, 'Enter a namespace for this document:');
 
                 let id = options.id;
                 if (!id) {
@@ -83,7 +84,7 @@ export function setupWorkspaceCommands(program: Command) {
                     id,
                     copy: options.copy,
                     type: type as WorkspaceDocumentType | undefined,
-                    namespace: options.namespace
+                    namespace: namespace.trim()
                 });
 
                 if (options.copy) {
@@ -332,6 +333,35 @@ export function setupWorkspaceCommands(program: Command) {
                 await pushWorkspaceToHub(bundlePath, service);
             } catch (err) {
                 logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('update-refs')
+        .description('Update references in tracked documents to use current CalmHub IDs. Replaces bare document IDs and stale versioned paths/URLs with the latest CalmHub location for each document.')
+        .option('--dry-run', 'Preview changes without writing files')
+        .action(async (options: { dryRun?: boolean }) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                const results = await updateWorkspaceRefs(bundlePath, { dryRun: options.dryRun });
+                const totalChanges = results.reduce((sum, r) => sum + r.changeCount, 0);
+                const changedFiles = results.filter(r => r.changeCount > 0).length;
+
+                if (totalChanges === 0) {
+                    logger.info('No references needed updating.');
+                } else if (options.dryRun) {
+                    logger.info(`Dry run: ${totalChanges} reference(s) across ${changedFiles} file(s) would be updated.`);
+                } else {
+                    logger.info(`Updated ${totalChanges} reference(s) across ${changedFiles} file(s).`);
+                }
+            } catch (err) {
+                logger.error('Failed to update refs: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
