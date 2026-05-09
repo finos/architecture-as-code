@@ -1,5 +1,5 @@
 import { initLogger } from '@finos/calm-shared';
-import { readFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { homedir } from 'os';
 import { join } from 'path';
 
@@ -8,9 +8,15 @@ export interface CLIConfig {
     allowedRemoteHosts?: string[]
 }
 
-function getUserConfigLocation(): string {
+export function getUserConfigLocation(): string {
     const homeDir = homedir();
     return join(homeDir, '.calm.json');
+}
+
+export async function saveCliConfig(config: CLIConfig): Promise<void> {
+    const configFilePath = getUserConfigLocation();
+    const json = JSON.stringify(config, null, 2) + '\n';
+    await writeFile(configFilePath, json, 'utf8');
 }
 
 export async function loadCliConfig(): Promise<CLIConfig | null> {
