@@ -1,0 +1,36 @@
+{
+  "controlId": 14,
+  "name": "AIR-SEC-002 — Information Leaked to Vector Store",
+  "description": "Controls to prevent sensitive data leakage through vector stores, embeddings, prompt logs, and other AI pipeline components in LLM-powered applications.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-SEC-002",
+      "name": "Information Leaked to Vector Store",
+      "category": "Security",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-2_information-leaked-to-vector-store.html",
+      "summary": "LLM applications pose data leakage risks across all components handling derived data—vector stores, embeddings, prompt logs, and caches. These representations can expose sensitive information via inversion or inference attacks when enterprise-grade security controls are absent.",
+      "requirements": [
+        "Apply role-based access control (RBAC) to vector stores, restricting retrieval to data the requesting user is authorised to access.",
+        "Encrypt embeddings and vector store data at rest using approved encryption standards.",
+        "Implement audit logging for all vector store queries, capturing user identity, query content, and retrieved documents.",
+        "Classify data before ingestion into vector stores and enforce classification-based access policies.",
+        "Conduct regular penetration testing targeting embedding inversion and membership inference attack vectors.",
+        "Validate that source document access controls are preserved and enforced at retrieval time."
+      ],
+      "contributing_factors": [
+        "Embedding inversion: attacks can reconstruct sensitive information from stored embeddings.",
+        "Membership inference: adversaries can determine if specific sensitive data exists in the vector store.",
+        "Misconfigured access controls permitting unauthorised embedding retrieval.",
+        "Encryption failures exposing embedding data to storage-layer access.",
+        "Data poisoning via injection of malicious embeddings into the vector store."
+      ],
+      "references": [
+        "https://arxiv.org/abs/2310.06816",
+        "https://arxiv.org/abs/2402.12090"
+      ]
+    }
+  },
+  "configurations": []
+}

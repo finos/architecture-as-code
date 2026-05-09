@@ -1,0 +1,35 @@
+{
+  "controlId": 4,
+  "name": "AIR-OP-005 — Foundation Model Versioning",
+  "description": "Controls to manage instability and unpredictable behavioural changes arising from foundation model version updates, silent model changes, and provider-side modifications.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-005",
+      "name": "Foundation Model Versioning",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-5_foundation-model-versioning.html",
+      "summary": "Foundation model instability refers to unpredictable changes in model behavior over time due to external factors like version updates, system prompt modifications, or provider changes. Such variability can undermine testing, reliability, and trust when no version control or change notification mechanisms are in place.",
+      "requirements": [
+        "Pin foundation model versions in production deployments; only upgrade after explicit testing and sign-off.",
+        "Maintain a model version registry documenting deployed versions, change dates, and test results.",
+        "Establish contractual obligations with Technology Service Providers (TSPs) for advance notification of model changes.",
+        "Implement automated regression test suites that run on model version changes to detect behavioural drift.",
+        "Define and enforce a model change management policy including rollback procedures.",
+        "Monitor production outputs continuously to detect unexpected behavioural shifts post-deployment."
+      ],
+      "contributing_factors": [
+        "Silent model updates by providers without customer notification.",
+        "Lack of version pinning mechanisms in model APIs.",
+        "Prompt perturbation sensitivity causing output variability from minor phrasing changes.",
+        "Infrastructure-level changes (hardware, quantization) altering inference behaviour."
+      ],
+      "references": [
+        "https://www.arxiv.org/abs/2408.14595",
+        "https://arxiv.org/abs/2402.07179"
+      ]
+    }
+  },
+  "configurations": []
+}

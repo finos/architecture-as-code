@@ -239,6 +239,31 @@ Validation requires:
             await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
+    program
+        .command('init-config')
+        .description('Create or update the CALM CLI configuration file (~/.calm.json).')
+        .option('--allowed-remote-hosts <hosts>', 'Comma-separated list of trusted remote hosts to allow for direct URL loading')
+        .option('--calm-hub-url <url>', 'URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents')
+        .action(async (options) => {
+            const existingConfig = await cliConfig.loadCliConfig() ?? {};
+
+            if (options.allowedRemoteHosts) {
+                const newHosts = (options.allowedRemoteHosts as string).split(',').map((h: string) => h.trim()).filter(Boolean);
+                const existingHosts = existingConfig.allowedRemoteHosts ?? [];
+                const merged = [...new Set([...existingHosts, ...newHosts])];
+                existingConfig.allowedRemoteHosts = merged;
+            }
+
+            if (options.calmHubUrl) {
+                existingConfig.calmHubUrl = options.calmHubUrl;
+            }
+
+            const configPath = cliConfig.getUserConfigLocation();
+            await cliConfig.saveCliConfig(existingConfig);
+            console.log(`✅ Configuration saved to ${configPath}`);
+            console.log(JSON.stringify(existingConfig, null, 2));
+        });
+
 }
 
 interface ParseDocumentLoaderOptions {

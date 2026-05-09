@@ -13,6 +13,7 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.mcp.tools.ArchitectureTools;
 import org.finos.calm.mcp.tools.ControlTools;
 import org.finos.calm.mcp.tools.DecoratorTools;
+import org.finos.calm.mcp.tools.DomainTools;
 import org.finos.calm.mcp.tools.NamespaceTools;
 import org.finos.calm.mcp.tools.SearchTools;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,8 +66,25 @@ public class MongoMcpIntegration {
             }
             """;
 
+    private static final String CONTROL_REQUIREMENT_JSON = """
+            {
+                "control-id": "mcp-test-control",
+                "name": "MCP Test Control",
+                "description": "Integration test control requirement"
+            }
+            """;
+
+    private static final String CONTROL_CONFIGURATION_JSON = """
+            {
+                "control-id": "mcp-test-control",
+                "value": "enforced",
+                "environment": "integration-test"
+            }
+            """;
+
     private static int createdArchitectureId;
     private static int createdDecoratorId;
+    private static int createdControlId;
 
     @Inject
     ArchitectureTools architectureTools;
@@ -79,6 +97,9 @@ public class MongoMcpIntegration {
 
     @Inject
     NamespaceTools namespaceTools;
+
+    @Inject
+    DomainTools domainTools;
 
     @Inject
     SearchTools searchTools;
@@ -165,7 +186,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(5)
     void mcp_list_domains_returns_seeded_domain() {
-        ToolResponse result = namespaceTools.listDomains();
+        ToolResponse result = domainTools.listDomains();
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("security"));
     }
@@ -345,5 +366,71 @@ public class MongoMcpIntegration {
         ToolResponse result = decoratorTools.listDecorators("finos", null, "deployment\n");
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("Type filter"));
+    }
+
+    // --- Control Tools (create paths) ---
+
+    @Test
+    @Order(26)
+    void mcp_create_control_requirement() {
+        ToolResponse result = controlTools.createControlRequirement(
+                "security", "MCP Test Control", "Integration test control requirement", CONTROL_REQUIREMENT_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+
+        Matcher matcher = ID_PATTERN.matcher(text(result));
+        assertThat("Response should contain control ID", matcher.find());
+        createdControlId = Integer.parseInt(matcher.group(1));
+        logger.info("Created control with ID: {}", createdControlId);
+    }
+
+    @Test
+    @Order(27)
+    void mcp_list_controls_contains_created() {
+        ToolResponse result = controlTools.listControls("security");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("MCP Test Control"));
+    }
+
+    @Test
+    @Order(28)
+    void mcp_list_control_versions_after_create() {
+        ToolResponse result = controlTools.listControlVersions("security", createdControlId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+    }
+
+    @Test
+    @Order(29)
+    void mcp_get_control_after_create() {
+        ToolResponse result = controlTools.getControl("security", createdControlId, "1.0.0");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("mcp-test-control"));
+    }
+
+    @Test
+    @Order(30)
+    void mcp_create_control_configuration() {
+        ToolResponse result = controlTools.createControlConfiguration(
+                "security", createdControlId, CONTROL_CONFIGURATION_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+    }
+
+    @Test
+    @Order(31)
+    void mcp_create_control_configuration_for_missing_control_returns_error() {
+        ToolResponse result = controlTools.createControlConfiguration(
+                "security", 99999, CONTROL_CONFIGURATION_JSON);
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    @Order(32)
+    void mcp_create_control_requirement_rejects_invalid_json() {
+        ToolResponse result = controlTools.createControlRequirement(
+                "security", "Bad", "desc", "not-json");
+        assertThat(result.isError(), is(true));
     }
 }
