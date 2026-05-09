@@ -12,6 +12,7 @@ let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
 let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
+let diffModule: typeof import('./command-helpers/diff');
 let setupCLI: typeof import('./cli').setupCLI;
 let cliConfigModule: typeof import('./cli-config');
 
@@ -27,6 +28,7 @@ describe('CLI Commands', () => {
         validateModule = await import('./command-helpers/validate');
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
+        diffModule = await import('./command-helpers/diff');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -34,6 +36,8 @@ describe('CLI Commands', () => {
 
         vi.spyOn(validateModule, 'runValidate').mockResolvedValue(undefined);
         vi.spyOn(validateModule, 'checkValidateOptions').mockResolvedValue(undefined);
+
+        vi.spyOn(diffModule, 'runDiffCommand').mockResolvedValue(undefined);
 
         vi.spyOn(templateModule, 'getUrlToLocalFileMap').mockReturnValue(new Map());
 
@@ -90,6 +94,38 @@ describe('CLI Commands', () => {
             expect(validateModule.runValidate).toHaveBeenCalledWith(expect.objectContaining({
                 patternPath: 'pattern.json',
                 architecturePath: 'arch.json',
+            }));
+        });
+    });
+
+    describe('Diff Command', () => {
+        it('should call runDiffCommand with correct options', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'diff',
+                '-a', 'before.json',
+                '-b', 'after.json',
+                '--format', 'summary',
+                '--exit-code',
+            ]);
+
+            expect(diffModule.runDiffCommand).toHaveBeenCalledWith(expect.objectContaining({
+                architectureAPath: 'before.json',
+                architectureBPath: 'after.json',
+                outputFormat: 'summary',
+                exitCode: true,
+            }));
+        });
+
+        it('should default to json format and not exit on changes', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'diff',
+                '-a', 'before.json',
+                '-b', 'after.json',
+            ]);
+
+            expect(diffModule.runDiffCommand).toHaveBeenCalledWith(expect.objectContaining({
+                outputFormat: 'json',
+                exitCode: false,
             }));
         });
     });
