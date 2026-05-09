@@ -9,4 +9,5 @@ export type {
     RelationshipChange,
     RenameMapping,
     RelationshipRenameMapping,
+    InvalidDiffItems,
 } from './diff-types.js';

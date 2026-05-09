@@ -5,13 +5,15 @@ import path from 'node:path';
 import { runDiff, formatDiff, hasChanges } from './diff.js';
 import type { DiffResult } from '@finos/calm-models/diff';
 
+const loggerMock = {
+    info: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+};
+
 vi.mock('../../logger', () => ({
-    initLogger: () => ({
-        info: () => {},
-        debug: () => {},
-        error: () => {},
-        warn: () => {},
-    }),
+    initLogger: () => loggerMock,
 }));
 
 const archA = {
@@ -62,6 +64,7 @@ describe('runDiff', () => {
 
     beforeEach(() => {
         workDir = mkdtempSync(path.join(tmpdir(), 'calm-diff-'));
+        loggerMock.warn.mockClear();
     });
 
     afterEach(() => {
@@ -111,6 +114,18 @@ describe('runDiff', () => {
         expect(formatted).toContain('Nodes added:');
         expect(formatted).toContain('  - c');
     });
+
+    it('logs a warning when invalid items are detected and treats them as changes', async () => {
+        const a = writeArch('a.json', archA);
+        const b = writeArch('b-with-invalid.json', {
+            ...archA,
+            nodes: [...archA.nodes, { 'node-type': 'service', name: 'no id' }],
+        });
+        const result = await runDiff(a, b);
+        expect(loggerMock.warn).toHaveBeenCalledTimes(1);
+        expect(loggerMock.warn.mock.calls[0][0]).toMatch(/missing a unique-id/);
+        expect(result.hasChanges).toBe(true);
+    });
 });
 
 describe('hasChanges', () => {
@@ -131,6 +146,22 @@ describe('hasChanges', () => {
         const r: DiffResult = { ...emptyResult, [key]: [{ placeholder: true }] as never };
         expect(hasChanges(r)).toBe(true);
     });
+
+    it('returns true when only invalid nodes are present', () => {
+        const r: DiffResult = {
+            ...emptyResult,
+            invalidItems: { nodes: [{ name: 'no id' }], relationships: [] },
+        };
+        expect(hasChanges(r)).toBe(true);
+    });
+
+    it('returns true when only invalid relationships are present', () => {
+        const r: DiffResult = {
+            ...emptyResult,
+            invalidItems: { nodes: [], relationships: [{ description: 'no id' }] },
+        };
+        expect(hasChanges(r)).toBe(true);
+    });
 });
 
 describe('formatDiff', () => {
@@ -143,5 +174,14 @@ describe('formatDiff', () => {
         const out = formatDiff(emptyResult, 'summary');
         expect(out).toContain('CALM architecture diff');
         expect(out).not.toContain('Nodes added:');
+    });
+
+    it('surfaces invalid item counts in the summary view', () => {
+        const r: DiffResult = {
+            ...emptyResult,
+            invalidItems: { nodes: [{ a: 1 }], relationships: [{ b: 2 }, { c: 3 }] },
+        };
+        const out = formatDiff(r, 'summary');
+        expect(out).toContain('Invalid items: 1 node(s) + 2 relationship(s)');
     });
 });

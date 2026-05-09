@@ -56,10 +56,24 @@ export function diffArchitectures(
     archA: CalmArchitectureSchema,
     archB: CalmArchitectureSchema,
 ): DiffResult {
-    const validNodesA = (archA.nodes ?? []).filter((n) => n['unique-id']);
-    const validNodesB = (archB.nodes ?? []).filter((n) => n['unique-id']);
-    const validEdgesA = (archA.relationships ?? []).filter((r) => r['unique-id']);
-    const validEdgesB = (archB.relationships ?? []).filter((r) => r['unique-id']);
+    const allNodesA = archA.nodes ?? [];
+    const allNodesB = archB.nodes ?? [];
+    const allEdgesA = archA.relationships ?? [];
+    const allEdgesB = archB.relationships ?? [];
+
+    const validNodesA = allNodesA.filter((n) => n['unique-id']);
+    const validNodesB = allNodesB.filter((n) => n['unique-id']);
+    const validEdgesA = allEdgesA.filter((r) => r['unique-id']);
+    const validEdgesB = allEdgesB.filter((r) => r['unique-id']);
+
+    const invalidNodes = [
+        ...allNodesA.filter((n) => !n['unique-id']),
+        ...allNodesB.filter((n) => !n['unique-id']),
+    ];
+    const invalidEdges = [
+        ...allEdgesA.filter((r) => !r['unique-id']),
+        ...allEdgesB.filter((r) => !r['unique-id']),
+    ];
 
     const nodesA = new Map(validNodesA.map((n) => [n['unique-id'] as string, n]));
     const nodesB = new Map(validNodesB.map((n) => [n['unique-id'] as string, n]));
@@ -149,5 +163,9 @@ export function diffArchitectures(
         edgesModified,
         edgesSame,
         edgesRenamed,
+        invalidItems: {
+            nodes: invalidNodes,
+            relationships: invalidEdges,
+        },
     };
 }

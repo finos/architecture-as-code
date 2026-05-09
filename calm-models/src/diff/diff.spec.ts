@@ -203,7 +203,7 @@ describe('diff', () => {
             expect(result.edgesRemoved.some((e) => e['unique-id'] === 'gateway-to-payment')).toBe(true);
         });
 
-        it('skips relationships missing unique-id', () => {
+        it('skips relationships missing unique-id but surfaces them via invalidItems', () => {
             const arch = {
                 ...testArchitectures.baseArchitecture,
                 relationships: [
@@ -218,6 +218,8 @@ describe('diff', () => {
                     result.edgesModified.length +
                     result.edgesRenamed.length,
             ).toBe(0);
+            expect(result.invalidItems?.relationships).toHaveLength(1);
+            expect(result.invalidItems?.nodes).toHaveLength(0);
         });
 
         it('marks ambiguous matches as added rather than guessing renames', () => {
@@ -269,7 +271,7 @@ describe('diff', () => {
             expect(result.nodesModified[0].updated.metadata).toEqual({ version: '2.0', tags: ['web', 'api'] });
         });
 
-        it('skips nodes missing unique-id', () => {
+        it('skips nodes missing unique-id but surfaces them via invalidItems', () => {
             const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.invalidShapeArchitecture);
             expect(
                 result.nodesAdded.length +
@@ -277,6 +279,24 @@ describe('diff', () => {
                     result.nodesModified.length +
                     result.nodesRenamed.length,
             ).toBe(0);
+            expect(result.invalidItems?.nodes.length ?? 0).toBeGreaterThan(0);
+        });
+
+        it('reports invalid items found in either side of the diff', () => {
+            const archA = {
+                ...testArchitectures.baseArchitecture,
+                nodes: [...testArchitectures.baseArchitecture.nodes, { 'node-type': 'service', name: 'no id A' }],
+            } as CalmArchitectureSchema;
+            const archB = {
+                ...testArchitectures.baseArchitecture,
+                relationships: [
+                    ...testArchitectures.baseArchitecture.relationships,
+                    { description: 'no id B' },
+                ],
+            } as CalmArchitectureSchema;
+            const result = diffArchitectures(archA, archB);
+            expect(result.invalidItems?.nodes).toHaveLength(1);
+            expect(result.invalidItems?.relationships).toHaveLength(1);
         });
     });
 

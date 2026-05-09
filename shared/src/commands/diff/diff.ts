@@ -31,7 +31,9 @@ export function hasChanges(diff: DiffResult): boolean {
         diff.edgesAdded.length > 0 ||
         diff.edgesRemoved.length > 0 ||
         diff.edgesModified.length > 0 ||
-        diff.edgesRenamed.length > 0
+        diff.edgesRenamed.length > 0 ||
+        (diff.invalidItems?.nodes.length ?? 0) > 0 ||
+        (diff.invalidItems?.relationships.length ?? 0) > 0
     );
 }
 
@@ -39,13 +41,18 @@ export function formatDiff(diff: DiffResult, format: DiffOutputFormat): string {
     if (format === 'json') {
         return JSON.stringify(diff, null, 2);
     }
+    const invalidNodes = diff.invalidItems?.nodes.length ?? 0;
+    const invalidEdges = diff.invalidItems?.relationships.length ?? 0;
     const lines = [
         'CALM architecture diff',
         '----------------------',
         `Nodes:         +${diff.nodesAdded.length}  -${diff.nodesRemoved.length}  ~${diff.nodesModified.length}  ↔${diff.nodesRenamed.length}  =${diff.nodesSame.length}`,
         `Relationships: +${diff.edgesAdded.length}  -${diff.edgesRemoved.length}  ~${diff.edgesModified.length}  ↔${diff.edgesRenamed.length}  =${diff.edgesSame.length}`,
-        '',
     ];
+    if (invalidNodes + invalidEdges > 0) {
+        lines.push(`Invalid items: ${invalidNodes} node(s) + ${invalidEdges} relationship(s) skipped (missing unique-id)`);
+    }
+    lines.push('');
     const list = (label: string, ids: string[]) => {
         if (ids.length === 0) return;
         lines.push(label);
@@ -82,6 +89,17 @@ export async function runDiff(
     const archB = readArchitecture(archBPath);
 
     const diff = diffArchitectures(archA, archB);
+
+    const invalidNodeCount = diff.invalidItems?.nodes.length ?? 0;
+    const invalidEdgeCount = diff.invalidItems?.relationships.length ?? 0;
+    if (invalidNodeCount + invalidEdgeCount > 0) {
+        logger.warn(
+            `Skipped ${invalidNodeCount} node(s) and ${invalidEdgeCount} relationship(s) ` +
+                'because they were missing a unique-id. These items are reported under ' +
+                'invalidItems and contribute to hasChanges so --exit-code does not pass on them silently.',
+        );
+    }
+
     const formatted = formatDiff(diff, format);
 
     if (options.outputPath) {

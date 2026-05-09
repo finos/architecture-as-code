@@ -25,6 +25,17 @@ export interface RelationshipRenameMapping {
     relationship: CalmRelationshipSchema;
 }
 
+/**
+ * Items that were skipped because they lacked a `unique-id`.
+ * Surfaced so consumers can flag invalid input rather than silently
+ * dropping it from the diff (which would otherwise produce a false
+ * "no changes" result).
+ */
+export interface InvalidDiffItems {
+    nodes: unknown[];
+    relationships: unknown[];
+}
+
 export interface DiffResult {
     nodesAdded: CalmNodeSchema[];
     nodesRemoved: CalmNodeSchema[];
@@ -37,4 +48,6 @@ export interface DiffResult {
     edgesModified: RelationshipChange[];
     edgesSame: CalmRelationshipSchema[];
     edgesRenamed: RelationshipRenameMapping[];
+
+    invalidItems?: InvalidDiffItems;
 }
