@@ -12,28 +12,32 @@ Get CALMGuard running locally in under 5 minutes.
 | Requirement | Minimum Version | Notes |
 |------------|-----------------|-------|
 | Node.js | 22+ | LTS recommended |
-| pnpm | 9+ | `npm install -g pnpm` |
+| npm | 10+ | Ships with Node 22 |
 | Git | Any | For cloning |
 | Google Gemini API key | — | Free tier sufficient for demo |
 
+CalmGuard is the `calmguard` workspace inside the [`finos/architecture-as-code`](https://github.com/finos/architecture-as-code) monorepo. All commands run from the monorepo root.
+
 ## Installation
 
-### 1. Clone the repository
+### 1. Clone the monorepo
 
 ```bash
-git clone https://github.com/finos/dtcch-2026-opsflow-llc.git
-cd dtcch-2026-opsflow-llc
+git clone https://github.com/finos/architecture-as-code.git
+cd architecture-as-code
 ```
 
 ### 2. Install dependencies
 
 ```bash
-pnpm install
+npm ci
 ```
+
+This installs all workspaces (calm-guard, calm-studio, cli, server, etc.) from the root `package-lock.json`.
 
 ### 3. Configure environment variables
 
-Create a `.env.local` file in the project root:
+Create a `.env.local` file in `calm-suite/calm-guard/`:
 
 ```bash
 # Required — Gemini is the default LLM provider
@@ -51,8 +55,10 @@ OPENAI_API_KEY=your-openai-key
 
 ### 4. Start the development server
 
+From the monorepo root:
+
 ```bash
-pnpm dev
+npm run dev --workspace=calmguard
 ```
 
 The app will be available at [http://localhost:3000](http://localhost:3000).

@@ -1,0 +1,36 @@
+{
+  "controlId": 11,
+  "name": "AIR-OP-019 — Data Quality and Drift",
+  "description": "Controls to maintain the accuracy, freshness and integrity of data used in AI systems, preventing performance degradation and compliance failures due to data drift and stale training data.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-019",
+      "name": "Data Quality and Drift",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-19_data-quality-and-drift.html",
+      "summary": "Generative AI systems rely heavily on the quality and freshness of their training data. Outdated or poor-quality data can lead to inaccurate, biased, or irrelevant outputs, including flawed risk assessments and compliance failures due to data or concept drift.",
+      "requirements": [
+        "Establish a data governance framework defining quality standards, ownership, and lifecycle management for AI training and inference data.",
+        "Implement automated data quality checks (accuracy, completeness, consistency, timeliness) at ingestion and pre-training stages.",
+        "Monitor statistical properties of input data in production to detect data drift and trigger model retraining where thresholds are breached.",
+        "Define data freshness requirements per AI use case and enforce scheduled refresh cycles.",
+        "Conduct periodic data audits to identify and remediate embedded biases in training datasets.",
+        "Maintain data lineage records to support auditability and reproducibility of model behaviour."
+      ],
+      "contributing_factors": [
+        "Stale training data failing to reflect current market conditions, regulations, or customer behaviour.",
+        "Data drift: statistical properties of input data changing over time without model retraining.",
+        "Embedded biases in historical training data amplified at scale by generative systems.",
+        "Absence of data governance frameworks specifically addressing AI system data lifecycles."
+      ],
+      "regulatory_references": [
+        "ISO 42001: Quality of data for AI systems",
+        "ISO 42001: Data for development and enhancement of AI system"
+      ],
+      "references": []
+    }
+  },
+  "configurations": []
+}

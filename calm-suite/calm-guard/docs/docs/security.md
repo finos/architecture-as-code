@@ -140,10 +140,10 @@ We follow responsible disclosure and will credit reporters in our changelog.
 
 ## Dependencies
 
-Security-relevant dependencies are audited with `pnpm audit`. Run:
+Security-relevant dependencies are audited with `npm audit`. Run from the monorepo root:
 
 ```bash
-pnpm audit
+npm audit
 ```
 
 Known issues will be tracked in GitHub Issues with the `security` label.
@@ -151,7 +151,7 @@ Known issues will be tracked in GitHub Issues with the `security` label.
 License compliance is checked with:
 
 ```bash
-pnpm license-check
+npm run license-check --workspace=calmguard
 ```
 
 This fails on GPL/AGPL dependencies to ensure no copyleft code enters the project.

@@ -6,7 +6,7 @@ title: API Reference
 # API Reference
 
 > This page is auto-generated from Zod schema source files by `scripts/generate-api-docs.ts`.
-> Run `pnpm docs:api` to regenerate.
+> Run `npm run docs:api --workspace=calmguard` to regenerate.
 
 *Generated: 2026-02-24T08:36:31.355Z*
 
