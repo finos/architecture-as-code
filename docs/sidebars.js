@@ -104,6 +104,14 @@ const sidebars = {
         },
         {
           type: 'category',
+          label: '🟠 Advanced',
+          link: {type: 'doc', id: 'tutorials/advanced/advanced-tutorials'},
+          items: [
+            'tutorials/advanced/architecture-discovery-skill',
+          ],
+        },
+        {
+          type: 'category',
           label: '🛠️ Practitioner',
           link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
           items: [

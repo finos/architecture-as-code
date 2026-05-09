@@ -41,6 +41,10 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 │   └── Multi-Pattern Validation                                              │
 │                          │                                                  │
 │                          ▼                                                  │
+│   ADVANCED TUTORIALS                                                        │
+│   └── Architecture Discovery Skill                                          │
+│                          │                                                  │
+│                          ▼                                                  │
 │   🛠️ PRACTITIONER TUTORIAL                                                  │
 │   ├── Tool Setup                                                            │
 │   ├── Understand the Business Context                                       │
@@ -134,6 +138,22 @@ By completing all intermediate tutorials, you'll be able to:
 ✅ **Enforce** compliance through multi-pattern validation  
 
 [Start Intermediate Tutorials →](./intermediate/)
+
+---
+
+## Start Here: Advanced
+
+### Advanced Tutorials
+
+**Advanced CALM knowledge recommended**
+
+Explore deeper CALM workflows and AI-assisted architecture practices.
+
+### Getting Started
+
+1. **[Start with Architecture Discovery Skill](./advanced/architecture-discovery-skill)** — Placeholder for the first advanced tutorial
+
+[Start Advanced Tutorials →](./advanced/)
 
 ---
 
