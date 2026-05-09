@@ -1,0 +1,356 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "unique-id": "finos-calm-monorepo",
+    "name": "FINOS Architecture as Code Monorepo",
+    "description": "The FINOS CALM monorepo containing the Common Architecture Language Model specification and all associated tooling, including the CLI, validation server, CALM Hub backend and UI, CALMGuard AI compliance platform, CalmStudio desktop IDE, MCP server, and VSCode extension.",
+    "nodes": [
+        {
+            "unique-id": "developer",
+            "node-type": "actor",
+            "name": "Developer / Architect",
+            "description": "Human developer or architect using CALM tooling to create, validate, and manage architecture models"
+        },
+        {
+            "unique-id": "calm-cli",
+            "node-type": "service",
+            "name": "CALM CLI",
+            "description": "Command-line tool (calm) for generating, validating, and docifying CALM architectures; optionally connects to a CALM Hub instance for remote document loading",
+            "interfaces": [
+                {
+                    "unique-id": "calm-cli-executable",
+                    "path": "/usr/local/bin/calm"
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-server",
+            "node-type": "service",
+            "name": "CALM Validation Server",
+            "description": "Standalone Express HTTP server exposing GET /health and POST /calm/validate endpoints for CALM architecture validation",
+            "interfaces": [
+                {
+                    "unique-id": "calm-server-http",
+                    "host": "127.0.0.1",
+                    "port": 3000
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-hub-backend",
+            "node-type": "service",
+            "name": "CALM Hub Backend",
+            "description": "Java/Quarkus REST API backend managing CALM artifacts (namespaces, patterns, architectures, flows, standards, ADRs, decorators) under /calm/namespaces/* on port 8080",
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-backend-api",
+                    "host": "localhost",
+                    "port": 8080
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-hub-ui",
+            "node-type": "webclient",
+            "name": "CALM Hub UI",
+            "description": "React SPA for browsing CALM namespaces, patterns, architectures, flows, and standards; served as static assets from the Quarkus server in production",
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-ui-url",
+                    "url": "https://calm-hub.finos.org"
+                }
+            ]
+        },
+        {
+            "unique-id": "mongodb",
+            "node-type": "database",
+            "name": "MongoDB",
+            "description": "Persistent document store for CALM Hub artifacts, accessed via the MongoDB Java driver",
+            "interfaces": [
+                {
+                    "unique-id": "mongodb-connection",
+                    "host": "localhost",
+                    "port": 27017
+                }
+            ]
+        },
+        {
+            "unique-id": "keycloak",
+            "node-type": "ecosystem",
+            "name": "Keycloak",
+            "description": "OIDC identity provider used for authentication and JWT token validation in CALM Hub's secure deployment profile",
+            "interfaces": [
+                {
+                    "unique-id": "keycloak-oidc",
+                    "host": "calm-hub.finos.org",
+                    "port": 9443
+                }
+            ]
+        },
+        {
+            "unique-id": "calmguard",
+            "node-type": "service",
+            "name": "CALMGuard",
+            "description": "Next.js 15 AI-powered compliance analysis platform; streams compliance findings via SSE (POST /api/analyze), validates CALM documents (POST /api/calm/validate), and generates CI/CD pipelines",
+            "interfaces": [
+                {
+                    "unique-id": "calmguard-analyze",
+                    "url": "https://calmguard.vercel.app/api/analyze",
+                    "method": "POST"
+                },
+                {
+                    "unique-id": "calmguard-validate",
+                    "url": "https://calmguard.vercel.app/api/calm/validate",
+                    "method": "POST"
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-studio-desktop",
+            "node-type": "webclient",
+            "name": "CalmStudio Desktop",
+            "description": "Tauri/SvelteKit desktop application for authoring CALM architectures with an embedded IDE and bundled MCP sidecar"
+        },
+        {
+            "unique-id": "calmstudio-mcp",
+            "node-type": "service",
+            "name": "CalmStudio MCP Server",
+            "description": "Model Context Protocol server enabling AI assistants to read, write, and validate CALM files; supports stdio and HTTP transports",
+            "interfaces": [
+                {
+                    "unique-id": "calmstudio-mcp-http",
+                    "host": "localhost",
+                    "port": 3100
+                }
+            ]
+        },
+        {
+            "unique-id": "vscode-extension",
+            "node-type": "service",
+            "name": "CALM VSCode Extension",
+            "description": "VSCode extension for authoring, previewing (Docify), and validating CALM architecture files with tree-view navigation and inline diagnostics"
+        },
+        {
+            "unique-id": "llm-providers",
+            "node-type": "ecosystem",
+            "name": "LLM Providers",
+            "description": "External AI provider APIs (Google Gemini, Anthropic Claude, OpenAI GPT, Grok/xAI) invoked by CALMGuard via the Vercel AI SDK for structured compliance analysis",
+            "interfaces": [
+                {
+                    "unique-id": "llm-providers-api",
+                    "url": "https://generativelanguage.googleapis.com"
+                }
+            ]
+        },
+        {
+            "unique-id": "github",
+            "node-type": "ecosystem",
+            "name": "GitHub",
+            "description": "GitHub platform API used by CALMGuard to fetch CALM architecture JSON files from public repositories",
+            "interfaces": [
+                {
+                    "unique-id": "github-api",
+                    "url": "https://api.github.com"
+                }
+            ]
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "developer → calm-cli",
+            "description": "Runs generate, validate, docify, and template commands using",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": ["calm-cli"]
+                }
+            }
+        },
+        {
+            "unique-id": "developer → calm-hub-ui",
+            "description": "Browses namespaces, patterns, architectures, and flows in",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": ["calm-hub-ui"]
+                }
+            }
+        },
+        {
+            "unique-id": "developer → calmguard",
+            "description": "Uploads and analyzes CALM architectures for AI-powered compliance using",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": ["calmguard"]
+                }
+            }
+        },
+        {
+            "unique-id": "developer → calm-studio-desktop",
+            "description": "Authors and edits CALM architectures using",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": ["calm-studio-desktop"]
+                }
+            }
+        },
+        {
+            "unique-id": "developer → vscode-extension",
+            "description": "Authors, previews, and validates CALM architectures in VSCode using",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": ["vscode-extension"]
+                }
+            }
+        },
+        {
+            "unique-id": "developer → calm-server",
+            "description": "Sends architecture validation requests directly to",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": ["calm-server"]
+                }
+            }
+        },
+        {
+            "unique-id": "calm-cli → calm-hub-backend",
+            "description": "Loads remote CALM documents from when --calm-hub-url is configured",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-cli"
+                    },
+                    "destination": {
+                        "node": "calm-hub-backend",
+                        "interfaces": ["calm-hub-backend-api"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-ui → calm-hub-backend",
+            "description": "Fetches namespaces, patterns, architectures, flows, and standards from via REST API",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-ui",
+                        "interfaces": ["calm-hub-ui-url"]
+                    },
+                    "destination": {
+                        "node": "calm-hub-backend",
+                        "interfaces": ["calm-hub-backend-api"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-ui → keycloak",
+            "description": "Performs OIDC authentication flow against when secure mode is enabled",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-ui"
+                    },
+                    "destination": {
+                        "node": "keycloak",
+                        "interfaces": ["keycloak-oidc"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-backend → mongodb",
+            "description": "Reads and writes CALM artifacts to via MongoDB Java driver",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-backend",
+                        "interfaces": ["calm-hub-backend-api"]
+                    },
+                    "destination": {
+                        "node": "mongodb",
+                        "interfaces": ["mongodb-connection"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-backend → keycloak",
+            "description": "Validates OIDC bearer tokens against when the secure Quarkus profile is active",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-backend"
+                    },
+                    "destination": {
+                        "node": "keycloak",
+                        "interfaces": ["keycloak-oidc"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calmguard → llm-providers",
+            "description": "Sends CALM analysis requests to via Vercel AI SDK generateObject for structured agent output",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calmguard"
+                    },
+                    "destination": {
+                        "node": "llm-providers",
+                        "interfaces": ["llm-providers-api"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calmguard → github",
+            "description": "Fetches CALM architecture JSON files from via GitHub Contents API",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calmguard"
+                    },
+                    "destination": {
+                        "node": "github",
+                        "interfaces": ["github-api"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calmguard → calm-cli",
+            "description": "Spawns as a subprocess for CALM document validation",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calmguard"
+                    },
+                    "destination": {
+                        "node": "calm-cli",
+                        "interfaces": ["calm-cli-executable"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-studio-desktop → calmstudio-mcp",
+            "description": "Launches and communicates with the bundled MCP sidecar binary via stdio",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-studio-desktop"
+                    },
+                    "destination": {
+                        "node": "calmstudio-mcp",
+                        "interfaces": ["calmstudio-mcp-http"]
+                    }
+                }
+            }
+        }
+    ]
+}
