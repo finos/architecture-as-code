@@ -16,6 +16,10 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./test-fixtures": {
+      "types": "./test-fixtures/index.ts",
+      "import": "./test-fixtures/index.ts"
     }
   },
   "files": [

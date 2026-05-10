@@ -118,6 +118,47 @@ const sidebars = {
       ],
     },
   ],
+
+  // CALM Studio sidebar — migrated from calm-suite/calm-studio/docs-site/sidebars.ts
+  calmStudioSidebar: [
+    'calm-studio/intro',
+    {
+      type: 'category',
+      label: 'Getting Started',
+      items: ['calm-studio/getting-started/quick-start'],
+    },
+    {
+      type: 'category',
+      label: 'User Guide',
+      items: ['calm-studio/user-guide/architecture-overview'],
+    },
+    {
+      type: 'category',
+      label: 'Developer Guide',
+      items: [
+        'calm-studio/developer-guide/extension-packs',
+        'calm-studio/developer-guide/mcp-server',
+        'calm-studio/developer-guide/contributing',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'ADRs',
+      items: [
+        'calm-studio/adrs/index',
+        'calm-studio/adrs/use-svelte-5-over-react',
+        'calm-studio/adrs/use-svelte-flow-as-canvas',
+        'calm-studio/adrs/use-elk-for-auto-layout',
+        'calm-studio/adrs/domain-oriented-control-keys',
+        'calm-studio/adrs/defer-calmscript-dsl',
+        'calm-studio/adrs/extension-pack-system',
+        'calm-studio/adrs/mcp-server-as-primary-ai-integration',
+        'calm-studio/adrs/docusaurus-for-documentation',
+        'calm-studio/adrs/tsup-for-calm-core-packaging',
+        'calm-studio/adrs/github-pages-hosting',
+      ],
+    },
+  ],
 };
 
 export default sidebars;

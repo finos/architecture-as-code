@@ -5,10 +5,18 @@ import path from 'path';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { svelteTesting } from '@testing-library/svelte/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit(), svelteTesting()],
+	server: {
+		fs: {
+			// npm-workspaces installs some deps (e.g. @sveltejs/kit) into
+			// calm-suite/calm-studio/node_modules, outside Vite's default
+			// allow root at apps/studio. Allow up to the repo root.
+			allow: [path.resolve('../../../..')],
+		},
+	},
 	resolve: {
 		alias: {
 			// Allow tests to import @calmstudio/calm-core/test-fixtures directly from source.
