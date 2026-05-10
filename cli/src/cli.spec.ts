@@ -534,18 +534,18 @@ describe('CLI Commands', () => {
             }));
         });
 
-        it('passes --out when provided', async () => {
+        it('passes --output when provided', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'hub', 'pull', 'architecture',
                 '--id', '1',
                 '--namespace', 'finos',
                 '--ver', '1.0.0',
                 '--calm-hub-url', 'http://hub',
-                '--out', 'out.json',
+                '--output', 'out.json',
             ]);
 
             expect(hubCommandsModule.runPullArchitecture).toHaveBeenCalledWith(expect.objectContaining({
-                out: 'out.json',
+                output: 'out.json',
             }));
         });
     });

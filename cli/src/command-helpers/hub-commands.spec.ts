@@ -240,12 +240,12 @@ describe('hub-commands', () => {
             consoleSpy.mockRestore();
         });
 
-        it('writes to file when --out is provided', async () => {
+        it('writes to file when --output is provided', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.pullArchitecture).mockResolvedValue({ id: 1 });
 
             const { runPullArchitecture } = await import('./hub-commands');
-            await runPullArchitecture({ calmHubUrl: 'http://hub', namespace: 'finos', id: '1', version: '1.0.0', out: 'out.json' });
+            await runPullArchitecture({ calmHubUrl: 'http://hub', namespace: 'finos', id: '1', version: '1.0.0', output: 'out.json' });
 
             expect(fs.writeFile).toHaveBeenCalledWith('out.json', expect.any(String), 'utf-8');
         });

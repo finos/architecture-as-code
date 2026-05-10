@@ -303,7 +303,7 @@ Validation requires:
         .requiredOption('--ver <version>', 'Version to retrieve')
         .requiredOption('--id <id>', 'Architecture ID to pull')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option('--out <file>', 'Write output to this file instead of stdout')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
             const { runPullArchitecture } = await import('./command-helpers/hub-commands');
             await runPullArchitecture({ ...options, version: options.ver });

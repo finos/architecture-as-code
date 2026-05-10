@@ -104,7 +104,7 @@ export interface PullArchitectureOptions {
     namespace: string;
     id: string;
     version: string;
-    out?: string;
+    output?: string;
 }
 
 export async function runPullArchitecture(options: PullArchitectureOptions): Promise<void> {
@@ -115,8 +115,8 @@ export async function runPullArchitecture(options: PullArchitectureOptions): Pro
         const result = await client.pullArchitecture(options.namespace, parseInt(options.id, 10), options.version);
         const pretty = JSON.stringify(result, null, 2);
 
-        if (options.out) {
-            await writeFile(options.out, pretty, 'utf-8');
+        if (options.output) {
+            await writeFile(options.output, pretty, 'utf-8');
         } else {
             console.log(pretty);
         }
