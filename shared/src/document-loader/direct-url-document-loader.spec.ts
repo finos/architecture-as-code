@@ -155,19 +155,22 @@ describe('direct-url-document-loader', () => {
 
     it('throws when response is a string instead of an object', async () => {
         mock.onGet('/string-response.json').reply(200, 'just a string');
-        await expect(directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/string-response.json', 'schema'))
-            .rejects.toThrow('Expected a JSON object');
+        const promise = directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/string-response.json', 'schema');
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toThrow('Expected a JSON object');
     });
 
     it('throws when response is null', async () => {
         mock.onGet('/null-response.json').reply(200, null);
-        await expect(directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/null-response.json', 'schema'))
-            .rejects.toThrow('Expected a JSON object');
+        const promise = directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/null-response.json', 'schema');
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toThrow('Expected a JSON object');
     });
 
     it('throws when response is an array', async () => {
         mock.onGet('/array-response.json').reply(200, [{ '$id': 'foo' }]);
-        await expect(directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/array-response.json', 'schema'))
-            .rejects.toThrow('Expected a JSON object');
+        const promise = directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/array-response.json', 'schema');
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toThrow('Expected a JSON object');
     });
 });
