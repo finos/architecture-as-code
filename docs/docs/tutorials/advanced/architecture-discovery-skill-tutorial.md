@@ -243,6 +243,11 @@ I now have enough information to produce the full output. Let me create the sand
 ```
 
 #### Report discovered nodes and relationships with Key Observations
+
+Once discovery is completed, the AI Assistant display this warning...
+
+![](./images/discovery-warning-message.png)
+
 ```
 
 > ⚠️ This is an initial discovery of potential CALM nodes and relationships based on static analysis of the codebase by an LLM. It may contain inaccuracies or omissions. Please review and validate each item before using it in your CALM architecture model.
@@ -387,6 +392,13 @@ Ran terminal command:  cat > /Users/jim/Desktop/finos/discovery-skill-tutorial/s
 ```
 
 #### Save discovered architecture and Key Observations to file
+
+Before writing the discoverd architecture and key observations file, the AI Assistant will request permission to create the destination directory if it does not already exist.  
+
+![](./images/prompt-to-create-output-directory.png)
+
+Allow the AI Assistant to create the directory.
+
 ```
 
 > ⚠️ This is an initial discovery of potential CALM nodes and relationships based on static analysis of the codebase by an LLM. It may contain inaccuracies or omissions. Please review and validate each item before using it in your CALM architecture model.
