@@ -152,4 +152,25 @@ describe('direct-url-document-loader', () => {
         await expect(directUrlDocumentLoader.loadMissingDocument('https://user:secret@calm.finos.org/core.json', 'schema'))
             .rejects.toThrow('Credentials in URL are not allowed');
     });
+
+    it('throws when response is a string instead of an object', async () => {
+        mock.onGet('/string-response.json').reply(200, 'just a string');
+        const promise = directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/string-response.json', 'schema');
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toThrow('Expected a JSON object');
+    });
+
+    it('throws when response is null', async () => {
+        mock.onGet('/null-response.json').reply(200, null);
+        const promise = directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/null-response.json', 'schema');
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toThrow('Expected a JSON object');
+    });
+
+    it('throws when response is an array', async () => {
+        mock.onGet('/array-response.json').reply(200, [{ '$id': 'foo' }]);
+        const promise = directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/array-response.json', 'schema');
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toThrow('Expected a JSON object');
+    });
 });
