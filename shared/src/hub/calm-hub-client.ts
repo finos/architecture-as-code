@@ -1,17 +1,17 @@
 import axios, { Axios } from 'axios';
 
-export interface NamespaceSummary {
+export interface HubNamespaceSummary {
     name: string;
     description?: string;
 }
 
-export interface ArchitectureSummary {
+export interface HubArchitectureSummary {
     id: number;
     name: string;
     versions: string[];
 }
 
-export interface ArchitectureDetail {
+export interface HubArchitectureDetail {
     namespace: string;
     id: number;
     name: string;
@@ -20,13 +20,13 @@ export interface ArchitectureDetail {
     architecture: string;
 }
 
-export interface CreateResult {
+export interface HubCreateResult {
     id: number;
     version?: string;
     location: string;
 }
 
-export interface NamespaceCreateResult {
+export interface HubNamespaceCreateResult {
     name: string;
     location: string;
 }
@@ -61,7 +61,7 @@ export class CalmHubClient {
 
     // ── Namespaces ───────────────────────────────────────────────────────────
 
-    async createNamespace(name: string, description?: string): Promise<NamespaceCreateResult> {
+    async createNamespace(name: string, description?: string): Promise<HubNamespaceCreateResult> {
         const endpoint = 'POST /calm/namespaces';
         try {
             const response = await this.ax.post('/calm/namespaces', { name, description: description ?? '' });
@@ -72,11 +72,11 @@ export class CalmHubClient {
         }
     }
 
-    async listNamespaces(): Promise<NamespaceSummary[]> {
+    async listNamespaces(): Promise<HubNamespaceSummary[]> {
         const endpoint = 'GET /calm/namespaces';
         try {
             const response = await this.ax.get('/calm/namespaces');
-            const values: NamespaceSummary[] = response.data?.values ?? [];
+            const values: HubNamespaceSummary[] = response.data?.values ?? [];
             return values;
         } catch (err) {
             throw this.wrapError(err, endpoint);
@@ -90,7 +90,7 @@ export class CalmHubClient {
         name: string,
         description: string,
         architectureJson: string
-    ): Promise<CreateResult> {
+    ): Promise<HubCreateResult> {
         const endpoint = `POST /calm/namespaces/${namespace}/architectures`;
         try {
             const response = await this.ax.post(`/calm/namespaces/${namespace}/architectures`, {
@@ -112,7 +112,7 @@ export class CalmHubClient {
         name: string | undefined,
         description: string,
         architectureJson: string
-    ): Promise<CreateResult> {
+    ): Promise<HubCreateResult> {
         const endpoint = `POST /calm/namespaces/${namespace}/architectures/${id}/versions/${version}`;
         try {
             const response = await this.ax.post(
@@ -126,7 +126,7 @@ export class CalmHubClient {
         }
     }
 
-    async listArchitectures(namespace: string): Promise<ArchitectureSummary[]> {
+    async listArchitectures(namespace: string): Promise<HubArchitectureSummary[]> {
         const endpoint = `GET /calm/namespaces/${namespace}/architectures`;
         try {
             const response = await this.ax.get(`/calm/namespaces/${namespace}/architectures`);
@@ -171,7 +171,7 @@ export class CalmHubClient {
      * Parses id and version from a Location header of the form
      * /calm/namespaces/{ns}/{resource-type}/{id}/versions/{version}
      */
-    private parseVersionedLocation(location: string, endpoint: string): CreateResult {
+    private parseVersionedLocation(location: string, endpoint: string): HubCreateResult {
         const match = /\/(\d+)\/versions\/([^/]+)$/.exec(location);
         if (!match) {
             throw new HubClientError(0, `Could not parse location header: ${location}`, endpoint);
