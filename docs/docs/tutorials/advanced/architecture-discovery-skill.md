@@ -19,7 +19,9 @@ A full tutorial about agent skills is beyond the scope of this tutorial.  The in
 
 ## Skill Setup
 
-Click here to see the <a href="/calm-skills/architecture-discovery-skill.md" target="_blank">architecture discovery skill</a> and then copy to the clipboard. Follow instructions in the next part for your specific CALM AI Assistant on where to save the skill definition in the clipboard.
+A pre-requisite is to setup up the CALM AI Assistant support.  See [here](../../working-with-calm/calm-ai-tools.md) for instructions on how to do this.
+
+Click here to copy the <a href="/calm-skills/architecture-discovery-skill.md" target="_blank">architecture discovery skill</a> to the clipboard. Follow instructions in the next part for your specific CALM AI Assistant on where to save the skill definition in the clipboard.
 
 Click on the tab for you CALM AI Assistant.
 
@@ -32,7 +34,7 @@ Click on the tab for you CALM AI Assistant.
 
 2. Create a file `.github/skills/calm-architecture-discovery/SKILL.md`
 
-3. Past copied skill definition from clipboard into `Skill.md` and save the file.
+3. Paste copied skill definition from clipboard into `Skill.md` and save the file.
 
 4. Restart VSCode.
 
@@ -45,9 +47,9 @@ For additional information see [VSCode Agent Skills](https://code.visualstudio.c
 
 1. Create this subdirectory structure `.kiro/skills/calm-architecture-discovery`
 
-2. Create a file `.github/skills/calm-architecture-discovery/SKILL.md`
+2. Create a file `.kiro/skills/calm-architecture-discovery/SKILL.md`
 
-3. Past copied skill definition from clipboard into `Skill.md` and save the file.
+3. Paste copied skill definition from clipboard into `Skill.md` and save the file.
 
 4. Restart KIRO.
 
@@ -62,7 +64,7 @@ For additional information see [KIRO Agent Skills](https://kiro.dev/docs/skills/
 
 2. Create a file `.claude/skills/calm-architecture-discovery/SKILL.md`
 
-3. Past copied skill definition from clipboard into `Skill.md` and save the file.
+3. Paste copied skill definition from clipboard into `Skill.md` and save the file.
 
 
 For additional information see [Claude Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview).
@@ -70,13 +72,13 @@ For additional information see [Claude Agent Skills](https://platform.claude.com
   </TabItem>
   <TabItem value="codex" label="Codex">
 
-### Codexs Skill Setup
+### Codex Skill Setup
 
 1. Create this subdirectory structure `.agents/skills/calm-architecture-discovery`
 
 2. Create a file `.agents/skills/calm-architecture-discovery/SKILL.md`
 
-3. Past copied skill definition from clipboard into `Skill.md` and save the file.
+3. Paste copied skill definition from clipboard into `Skill.md` and save the file.
 
 4. If you are using Codex within an IDE, restart the IDE.
 
@@ -163,7 +165,7 @@ Either in command line or via VSCode Codex Chat function:
 
 For this example, we will use the agent skill to discover the CALM architecture for CALM itself, i.e., we will be doing discovery on the [CALM project's `architecture-as-code` repo](https://github.com/finos/architecture-as-code). 
 
-Since the CALM project has an official CALM architecture, we will compare our discovered architecture with the official version.
+Since the CALM project has an official CALM architecture, as a representation of our desired architecture representation.
 
 This run uses VSCode with Github Copilot and the Claude Sonnet 4.6 Model.
 
@@ -464,8 +466,8 @@ As noted earlier, the discovered architecture may have inaccuracies.  The archit
 To illustrate this process, let's assume the architect has this image in his or her mind that the discovered architecture should represent. 
 
 <figure>
-  <img src="/img/correct-architecture-representation.png" alt="Assumed Correct Architecture Reprsentation" />
-  <figcaption>**Desired Architecture Representation**</figcaption>
+  <img src="/img/correct-architecture-representation.png" alt="Assumed Correct Architecture Reprsentation"/>
+  <figcaption><strong>Desired Architecture Representation</strong></figcaption>
 </figure>
 
 
@@ -473,7 +475,7 @@ when we compare this to the <a href="/calm-discovered-artifacts/copilot-discover
 
 <figure>
   <img src="/img/initial-discovered-architecture-representation.png" alt="Assumed Correct Architecture Reprsentation" />
-  <figcaption>**Initial Discovered Architecture**</figcaption>
+  <figcaption><strong>Initial Discovered Architecture</strong></figcaption>
 </figure>
 
 we make the following observations:
@@ -487,15 +489,15 @@ we make the following observations:
 ### Refine the Discovered Architecture
 
 We now use CALM's AI Assistant to help us refine the discovered architecture with the following prompts:
-- Remove the following nodes and their related relationships: CalmGuard, LLM Providers, Github, CalmStudio MCP Server, CalmStudio Desktop, CALM Validation Server and Keycloak
-- Add a system node called "CALM Hub System" and a composed-of relationship with container "CALM Hub Systems" and nodes: CALM Hub UI, CALM Hub Backend, and MongoDB.
-- Add a service node called "Visual Studio Code" and a deployed-in relationship with container "Visual Studio Code" and nodes: VSCode Extension 
+- `Remove the following nodes and their related relationships: CalmGuard, LLM Providers, Github, CalmStudio MCP Server, CalmStudio Desktop, CALM Validation Server and Keycloak`
+- `Add a system node called "CALM Hub System" and a composed-of relationship with container "CALM Hub Systems" and nodes: CALM Hub UI, CALM Hub Backend, and MongoDB.`
+- `Add a service node called "Visual Studio Code" and a deployed-in relationship with container "Visual Studio Code" and nodes: VSCode Extension`
 
-With this three simple prompts to CALM AI Assistant, we are able to refine the discovered architecture to its <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.json" target="_blank">desired representation</a>,
+With these three simple prompts to CALM AI Assistant, we are able to refine the discovered architecture to its <a href="/calm-discovered-artifacts/refined-discovered-calm-architecture.json" target="_blank">desired representation</a>.
 
 <figure>
   <img src="/img/refined-discovered-architecture-representation.png" alt="Desired Architecture Representation" />
-  <figcaption>**Refined Architecture Representation**</figcaption>
+  <figcaption><strong>Refined Architecture Representation</strong></figcaption>
 </figure>
 
 ### Additional Review and Refinement
@@ -581,7 +583,7 @@ Here are the key takeaways from this architecture discovery skill tutorial:
 1. **AI-Assisted Architecture Discovery Accelerates Modeling**  
 Using agent skills with the CALM AI Assistant can quickly generate an initial architecture model from source code, providing a strong starting point for architects. While the output may not be perfect, it significantly reduces manual effort and helps teams focus on refinement rather than starting from scratch.
 
-2. **Review, Validate, and Refine the Output**  
+2. **Review, Refine, and Validate the Output**  
 The discovered architecture is a draft and may contain mistakes or omissions. Use the CALM AI Assistant to make corrections to nodes and relationships.  Remember to validate the generated model using the CALM CLI (`calm validate`). 
 
 3. **Skill Definition Is Customizable for Your Organization**  

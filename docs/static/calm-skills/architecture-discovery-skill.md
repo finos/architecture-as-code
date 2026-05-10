@@ -1,6 +1,3 @@
-Copy and paste the following into the `SKILL.md` file.
-
-
 ---
 name: calm-architecture-discovery
 description: Use when asked to scan a codebase to generate a CALM architecture from application source code. Identifies CALM nodes and relationships for a FINOS CALM architecture model, which serves as a starting point for further refinement and validation by architects and engineers.
@@ -83,8 +80,7 @@ Except for the actor node type, collect technical information about the endpoint
 - A node should be identified as a distinct architectural component only if there is evidence of it being a separate deployable unit, runtime process, command line, or external system.  For example, two services defined in the same codebase but running as separate processes would be two nodes, while two classes in the same service would not.
 - DO NOT define `composed-of` and `deployed-in` relationships.  Focus on `connects` and `interacts` relationships that indicate actual communication or interaction patterns between nodes.
 - For relationships, DO NOT capture protocols, this has been deprecated.
-- When forming the unique-id for relationships, use format `source-node-id → destination-node-id` to clearly indicate direction of the relationship.
-- DO NOT write the nodes and relationships to a CALM architecture model to a file.
+- When forming the unique-id for relationships, use format `<source-node-id>-to-<destination-node-id>` to clearly indicate direction of the relationship.
 - Present information about the nodes and relationships as stated in the `Output Format` section.
 
 
@@ -118,7 +114,7 @@ Display the following message: "Saving the discovered nodes and relationships to
 
 Create a CALM architecture model in JSON format containing only the discovered nodes and relationships, adhering to the CALM schema version 1.2. 
 
-Form `key-obs-file` name by replacing ending `arch-file`  ".json" with "key-observations.md"
+Form `key-obs-file` name by replacing ".json" ending of `arch-file` with "-key-observations.md"
 
 Display the message: "Saving key observations about the architecture to `key-obs-file`."
 
