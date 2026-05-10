@@ -140,7 +140,7 @@ export { monitoringPack } from './packs/monitoring.js';
 Start the dev server and check the palette:
 
 ```bash
-pnpm dev
+npm run dev --workspace=@calmstudio/studio
 ```
 
 Open [http://localhost:5173](http://localhost:5173) and scroll the left palette to find the **Monitoring** section. You should see Prometheus, Grafana, and AlertManager nodes available to drag onto the canvas.
