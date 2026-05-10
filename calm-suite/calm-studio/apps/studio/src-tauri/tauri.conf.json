@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "identifier": "app.calmstudio.studio",
   "build": {
-    "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../build"
   },

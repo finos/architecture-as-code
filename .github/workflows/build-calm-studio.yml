@@ -5,23 +5,19 @@ permissions:
 
 on:
     pull_request:
-        branches:
-            - 'main'
-            - 'release*'
+        branches: ['main', 'release*']
         paths:
             - 'calm-suite/calm-studio/**'
             - '.github/workflows/build-calm-studio.yml'
+            - 'package.json'
+            - 'package-lock.json'
     push:
-        branches:
-            - 'main'
-            - 'release*'
+        branches: ['main', 'release*']
         paths:
             - 'calm-suite/calm-studio/**'
             - '.github/workflows/build-calm-studio.yml'
-
-defaults:
-    run:
-        working-directory: calm-suite/calm-studio
+            - 'package.json'
+            - 'package-lock.json'
 
 jobs:
     build-lint-test:
@@ -31,33 +27,46 @@ jobs:
             - name: Checkout
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-            - name: Setup pnpm
-              uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-              with:
-                  version: 9
-
             - name: Setup Node.js
-              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
               with:
                   node-version: 24
-                  cache: pnpm
-                  cache-dependency-path: calm-suite/calm-studio/pnpm-lock.yaml
+                  cache: npm
+                  cache-dependency-path: package-lock.json
 
             - name: Install dependencies
-              run: pnpm install --frozen-lockfile
+              run: npm ci
 
-            - name: Build
-              run: pnpm --filter '!calmstudio-docs' -r run build
+            - name: Build (in dep order)
+              run: |
+                  npm run build --if-present --workspace=@calmstudio/calm-core
+                  npm run build --if-present --workspace=@calmstudio/extensions
+                  npm run build --if-present --workspace=@calmstudio/mcp
+                  npm run build --if-present --workspace=@calmstudio/diagram
+                  npm run build --if-present --workspace=@calmstudio/studio
+                  npm run build --if-present --workspace=calmstudio
+                  npm run build --if-present --workspace=@calmstudio/github-action
 
             - name: Lint
-              run: pnpm --filter '!calmstudio-docs' -r run lint
+              run: |
+                  npm run lint --if-present --workspace=@calmstudio/calm-core
+                  npm run lint --if-present --workspace=@calmstudio/extensions
+                  npm run lint --if-present --workspace=@calmstudio/mcp
+                  npm run lint --if-present --workspace=@calmstudio/studio
+
+            - name: Typecheck
+              run: |
+                  npm run typecheck --if-present --workspace=@calmstudio/calm-core
+                  npm run typecheck --if-present --workspace=@calmstudio/extensions
+                  npm run typecheck --if-present --workspace=@calmstudio/mcp
+                  npm run typecheck --if-present --workspace=@calmstudio/github-action
 
             - name: Test
               run: |
-                  pnpm --filter @calmstudio/calm-core run test
-                  pnpm --filter @calmstudio/extensions run test
-                  pnpm --filter @calmstudio/mcp-server run test
-                  pnpm --filter @calmstudio/studio run test
+                  npm run test --if-present --workspace=@calmstudio/calm-core
+                  npm run test --if-present --workspace=@calmstudio/extensions
+                  npm run test --if-present --workspace=@calmstudio/mcp
+                  npm run test --if-present --workspace=@calmstudio/studio
 
     e2e-tests:
         name: E2E Tests
@@ -67,26 +76,28 @@ jobs:
             - name: Checkout
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-            - name: Setup pnpm
-              uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-              with:
-                  version: 9
-
             - name: Setup Node.js
-              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
               with:
                   node-version: 24
-                  cache: pnpm
-                  cache-dependency-path: calm-suite/calm-studio/pnpm-lock.yaml
+                  cache: npm
+                  cache-dependency-path: package-lock.json
 
             - name: Install dependencies
-              run: pnpm install --frozen-lockfile
+              run: npm ci
 
             - name: Install Playwright browsers
-              run: pnpm --filter @calmstudio/studio exec playwright install --with-deps chromium
+              run: npm exec --workspace=@calmstudio/studio -- playwright install --with-deps chromium
 
             - name: Build
-              run: pnpm --filter '!calmstudio-docs' -r run build
+              run: |
+                  npm run build --if-present --workspace=@calmstudio/calm-core
+                  npm run build --if-present --workspace=@calmstudio/extensions
+                  npm run build --if-present --workspace=@calmstudio/mcp
+                  npm run build --if-present --workspace=@calmstudio/diagram
+                  npm run build --if-present --workspace=@calmstudio/studio
+                  npm run build --if-present --workspace=calmstudio
+                  npm run build --if-present --workspace=@calmstudio/github-action
 
             - name: Run E2E tests
-              run: pnpm --filter @calmstudio/studio run test:e2e
+              run: npm run test:e2e --workspace=@calmstudio/studio

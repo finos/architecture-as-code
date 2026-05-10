@@ -19,7 +19,7 @@ CalmStudio is a visual editor for CALM documents. Every visual change produces v
 
 ## The Interface
 
-![CalmStudio interface showing the canvas, node palette, and CALM JSON editor](/img/calmstudio01.png)
+![CalmStudio interface showing the canvas, node palette, and CALM JSON editor](/img/calmstudio/calmstudio01.png)
 
 CalmStudio has three main areas:
 
