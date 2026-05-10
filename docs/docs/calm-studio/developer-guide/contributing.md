@@ -62,7 +62,7 @@ When making changes:
 - **New node types** → `packages/extensions/src/packs/`
 - **CALM types or validation** → `packages/calm-core/src/`
 - **New MCP tools** → `packages/mcp-server/src/tools/`
-- **Documentation** → `docs-site/docs/`
+- **Documentation** → `docs/docs/calm-studio/`
 
 ## Development Workflow
 

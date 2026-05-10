@@ -87,6 +87,12 @@ const config = {
                         position: 'left',
                     },
                     {
+                        type: 'docSidebar',
+                        sidebarId: 'calmStudioSidebar',
+                        label: 'CALM Studio',
+                        position: 'left',
+                    },
+                    {
                         to: '/talks/',
                         label: '🎤 Talks',
                         position: 'left',
@@ -143,6 +149,7 @@ const config = {
             prism: {
                 theme: prismThemes.github,
                 darkTheme: prismThemes.dracula,
+                additionalLanguages: ['typescript', 'json', 'bash'],
             },
             algolia: {
                 // The application ID provided by Algolia
