@@ -1,0 +1,197 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "unique-id": "finos-calm-monorepo",
+    "name": "FINOS Architecture as Code Monorepo",
+    "description": "The FINOS CALM monorepo containing the Common Architecture Language Model specification and all associated tooling, including the CLI, validation server, CALM Hub backend and UI, CALMGuard AI compliance platform, CalmStudio desktop IDE, MCP server, and VSCode extension.",
+    "nodes": [
+        {
+            "unique-id": "developer",
+            "node-type": "actor",
+            "name": "Developer / Architect",
+            "description": "Human developer or architect using CALM tooling to create, validate, and manage architecture models"
+        },
+        {
+            "unique-id": "calm-cli",
+            "node-type": "service",
+            "name": "CALM CLI",
+            "description": "Command-line tool (calm) for generating, validating, and docifying CALM architectures; optionally connects to a CALM Hub instance for remote document loading",
+            "interfaces": [
+                {
+                    "unique-id": "calm-cli-executable",
+                    "path": "/usr/local/bin/calm"
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-hub-backend",
+            "node-type": "service",
+            "name": "CALM Hub Backend",
+            "description": "Java/Quarkus REST API backend managing CALM artifacts (namespaces, patterns, architectures, flows, standards, ADRs, decorators) under /calm/namespaces/* on port 8080",
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-backend-api",
+                    "host": "localhost",
+                    "port": 8080
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-hub-ui",
+            "node-type": "webclient",
+            "name": "CALM Hub UI",
+            "description": "React SPA for browsing CALM namespaces, patterns, architectures, flows, and standards; served as static assets from the Quarkus server in production",
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-ui-url",
+                    "url": "https://calm-hub.finos.org"
+                }
+            ]
+        },
+        {
+            "unique-id": "mongodb",
+            "node-type": "database",
+            "name": "MongoDB",
+            "description": "Persistent document store for CALM Hub artifacts, accessed via the MongoDB Java driver",
+            "interfaces": [
+                {
+                    "unique-id": "mongodb-connection",
+                    "host": "localhost",
+                    "port": 27017
+                }
+            ]
+        },
+        {
+            "unique-id": "vscode-extension",
+            "node-type": "service",
+            "name": "CALM VSCode Extension",
+            "description": "VSCode extension for authoring, previewing (Docify), and validating CALM architecture files with tree-view navigation and inline diagnostics"
+        },
+        {
+            "unique-id": "calm-hub-system",
+            "node-type": "system",
+            "name": "CALM Hub System",
+            "description": "Logical grouping of all CALM Hub runtime components including the UI, backend API, and persistent data store"
+        },
+        {
+            "unique-id": "vscode",
+            "node-type": "service",
+            "name": "Visual Studio Code",
+            "description": "Microsoft Visual Studio Code IDE that hosts the CALM VSCode Extension"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "developer \u2192 calm-cli",
+            "description": "Runs generate, validate, docify, and template commands using",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": [
+                        "calm-cli"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "developer \u2192 calm-hub-ui",
+            "description": "Browses namespaces, patterns, architectures, and flows in",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": [
+                        "calm-hub-ui"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "developer \u2192 vscode-extension",
+            "description": "Authors, previews, and validates CALM architectures in VSCode using",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": [
+                        "vscode-extension"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "calm-cli \u2192 calm-hub-backend",
+            "description": "Loads remote CALM documents from when --calm-hub-url is configured",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-cli"
+                    },
+                    "destination": {
+                        "node": "calm-hub-backend",
+                        "interfaces": [
+                            "calm-hub-backend-api"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-ui \u2192 calm-hub-backend",
+            "description": "Fetches namespaces, patterns, architectures, flows, and standards from via REST API",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-ui",
+                        "interfaces": [
+                            "calm-hub-ui-url"
+                        ]
+                    },
+                    "destination": {
+                        "node": "calm-hub-backend",
+                        "interfaces": [
+                            "calm-hub-backend-api"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-backend \u2192 mongodb",
+            "description": "Reads and writes CALM artifacts to via MongoDB Java driver",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-backend",
+                        "interfaces": [
+                            "calm-hub-backend-api"
+                        ]
+                    },
+                    "destination": {
+                        "node": "mongodb",
+                        "interfaces": [
+                            "mongodb-connection"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-system-composed-of",
+            "description": "Comprises the UI, backend API, and database that together form the CALM Hub",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "calm-hub-system",
+                    "nodes": ["calm-hub-ui", "calm-hub-backend", "mongodb"]
+                }
+            }
+        },
+        {
+            "unique-id": "vscode-deployed-in",
+            "description": "The CALM VSCode Extension is deployed inside Visual Studio Code",
+            "relationship-type": {
+                "deployed-in": {
+                    "container": "vscode",
+                    "nodes": ["vscode-extension"]
+                }
+            }
+        }
+    ]
+}

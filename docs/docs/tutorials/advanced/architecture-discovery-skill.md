@@ -17,13 +17,9 @@ The discovered architecture will likely contain some mistakes and omissions, as 
 
 A full tutorial about agent skills is beyond the scope of this tutorial.  The interested reader can find an [explanation of agent skills at this site](https://agentskills.io/home).
 
-## Architecture Discovery Skill Definition
-
-Click here to see the <a href="/calm-skills/architecture-discovery-skill.md" target="_blank">architecture discovery skill</a> and then copy to the clipboard.  Instructions in the `Skill Setup` section provides guidance on where to save the skill definition in the clipboard to the location for your specific CALM AI Assistant.
-
-
-
 ## Skill Setup
+
+Click here to see the <a href="/calm-skills/architecture-discovery-skill.md" target="_blank">architecture discovery skill</a> and then copy to the clipboard. Follow instructions in the next part for your specific CALM AI Assistant on where to save the skill definition in the clipboard.
 
 Click on the tab for you CALM AI Assistant.
 
@@ -92,6 +88,10 @@ For additional information see [Codex Agent Skills](https://developers.openai.co
 After saving `Skill.md` the beginning part of the file should look like this....
 
 ![](./images/skill-frontmatter-image.png)
+
+:::tip
+Architects are encouraged to experiment with revising the skill definition itself. By adjusting the prompts, parameters, or logic in the skill, you can influence the discovery process and tailor the generated architecture to better fit your organization's needs. Iterative refinement of the skill can lead to more accurate and useful architecture models.
+:::
 
 ## Using the Skill
 
@@ -437,7 +437,7 @@ The full <a href="/calm-discovered-artifacts/copilot-discovered-calm-architectur
 The discovered <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.key-observations.md" target="_blank">key observations</a>.
 
 
-### Validate the discovered architecture
+### CALM Validate the Discovered Architecture
 
 ```
 $ calm validate -a sandbox/copilot-discovered-calm-architecture.json -f pretty
@@ -453,8 +453,115 @@ Summary
 
 No issues found.
 ```
+This shows the generated architecture JSON complies with the CALM Schema.
 
-## Modify the Skill
+## Review and Refine The Discovered Architecture
+
+### Review the Discovered Architecture
+
+As noted earlier, the discovered architecture may have inaccuracies.  The architect now has to review the discovered architecture and refine it as needed to accurately reflect state of the system.
+
+To illustrate this process, let's assume the architect has this image in his or her mind that the discovered architecture should represent. 
+
+<figure>
+  <img src="/img/correct-architecture-representation.png" alt="Assumed Correct Architecture Reprsentation" />
+  <figcaption>**Desired Architecture Representation**</figcaption>
+</figure>
+
+
+when we compare this to the <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.json" target="_blank">actual discovered architecture representation</a>,
+
+<figure>
+  <img src="/img/initial-discovered-architecture-representation.png" alt="Assumed Correct Architecture Reprsentation" />
+  <figcaption>**Initial Discovered Architecture**</figcaption>
+</figure>
+
+we make the following observations:
+
+- Accounting for slight differences in names and descriptions, the discovered architecture contains all nodes and relationships that are found in the desired architecture representation.
+- The desired architecture combines several nodes into logical groups, such as the `CALM Hub System`
+- The discovered architecture contains more nodes and relationships than expected.
+  - Several of the nodes represent work-in-progress
+  - `Keycloak` node is a tool used for testing
+
+### Refine the Discovered Architecture
+
+We now use CALM's AI Assistant to help us refine the discovered architecture with the following prompts:
+- Remove the following nodes and their related relationships: CalmGuard, LLM Providers, Github, CalmStudio MCP Server, CalmStudio Desktop, CALM Validation Server and Keycloak
+- Add a system node called "CALM Hub System" and a composed-of relationship with container "CALM Hub Systems" and nodes: CALM Hub UI, CALM Hub Backend, and MongoDB.
+- Add a service node called "Visual Studio Code" and a deployed-in relationship with container "Visual Studio Code" and nodes: VSCode Extension 
+
+With this three simple prompts to CALM AI Assistant, we are able to refine the discovered architecture to its <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.json" target="_blank">desired representation</a>,
+
+<figure>
+  <img src="/img/refined-discovered-architecture-representation.png" alt="Desired Architecture Representation" />
+  <figcaption>**Refined Architecture Representation**</figcaption>
+</figure>
+
+### Additional Review and Refinement
+
+The two prior sections involved correcting structural issues with the discovered architecture.  
+
+Names and relationships can be revised as needed.
+
+The architect should review lower level CALM data, such as
+- Interface specifications
+- Metadata
+
+Add as needed:
+- CALM Controls
+- CALM Standards
+
+Changes required for all of these can be accomplished with the help of the CALM AI Assistant.
+
+## Skill Modifications
+
+As noted earlier the architect should consider modifying  <a href="/calm-skills/architecture-discovery-skill.md" target="_blank">the skill</a> to account for situations unique to their organization or software development process.  Here are some sections in the skill that could be modified:
+
+```
+#### Package manifests & build files (pick what applies)
+| Ecosystem | Files |
+|-----------|-------|
+| JavaScript / TypeScript | `package.json`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` |
+| Java / Kotlin / Scala | `pom.xml`, `build.gradle`, `build.gradle.kts`, `settings.gradle` |
+| Python | `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile`, `poetry.lock` |
+| C / C++ | `CMakeLists.txt`, `Makefile`, `conanfile.txt`, `vcpkg.json` |
+| C# / .NET | `*.csproj`, `*.sln`, `nuget.config`, `packages.config` |
+| Go | `go.mod`, `go.sum` |
+| Rust | `Cargo.toml`, `Cargo.lock` |
+| Ruby | `Gemfile`, `Gemfile.lock`, `*.gemspec` |
+| PHP | `composer.json`, `composer.lock` |
+| Swift / Objective-C | `Package.swift`, `Podfile`, `*.xcodeproj` |
+| Elixir / Erlang | `mix.exs`, `rebar.config` |
+```
+
+```
+#### Source code signals
+- **Route / endpoint definitions**: Express `app.get/post`, FastAPI `@router`, Spring `@RestController`/`@RequestMapping`, Django `urls.py`, ASP.NET `[Route]`, Go `http.HandleFunc`, Gin `r.GET`, gRPC `.proto` files
+- **Database clients**: JDBC URLs, SQLAlchemy `create_engine`, Mongoose `connect`, Entity Framework `DbContext`, GORM `Open`, Diesel schema
+- **Message queues / event streams**: Kafka producers/consumers, RabbitMQ channels, SQS/SNS client instantiation, Azure Service Bus, NATS
+- **HTTP clients**: `axios`, `fetch`, `requests`, `HttpClient`, `RestTemplate`, `WebClient`, `urllib`, `curl` wrappers — especially where base URLs are configured
+- **Auth / identity**: OIDC/OAuth config, `passport`, `spring-security`, `django-allauth`, Keycloak adapters, JWT validation, API key headers
+- **Service discovery / config**: Consul, Eureka, etcd, Zookeeper client setup; environment-injected hostnames
+
+#### Architecture hints
+- OpenAPI / Swagger specs: `openapi.yaml`, `swagger.json`, `*.oas.yaml`
+- AsyncAPI specs: `asyncapi.yaml`
+```
+
+```
+## IMPORTANT NOTES
+- DO NOT rely on documentation or comments as primary evidence for identifying nodes and relationships.  They can be out of date or inaccurate.  Examples include `README.md`, `ARCHITECTURE.md`, code comments, and even architecture diagrams.  Instead, focus on executable code and configuration that indicates the presence of nodes and relationships.
+- When identifying nodes and relationship, make sure to the node or relationship is actively used in executable code and not inferred by a reference in a comment or existence of an unused constant or variable.
+- A node should be identified as a distinct architectural component only if there is evidence of it being a separate deployable unit, runtime process, command line, or external system.  For example, two services defined in the same codebase but running as separate processes would be two nodes, while two classes in the same service would not.
+- DO NOT define `composed-of` and `deployed-in` relationships.  Focus on `connects` and `interacts` relationships that indicate actual communication or interaction patterns between nodes.
+- For relationships, DO NOT capture protocols, this has been deprecated.
+- When forming the unique-id for relationships, use format `source-node-id → destination-node-id` to clearly indicate direction of the relationship.
+- DO NOT write the nodes and relationships to a CALM architecture model to a file.
+- Present information about the nodes and relationships as stated in the `Output Format` section.
+```
+
+The above are only suggestions.  The architect should feel free to modify any part of the skill definition to meet his or her needs.
 
 ## Observed Peculiarities
 
@@ -467,4 +574,23 @@ The fix for that is to edit the CALM architecture JSON and remove the parenthesi
 ![](./images/calm-preview-error-fixed.png)
 
 
-## Closing Thoughts
+## Key Takeaways
+
+Here are the key takeaways from this architecture discovery skill tutorial:
+
+1. **AI-Assisted Architecture Discovery Accelerates Modeling**  
+Using agent skills with the CALM AI Assistant can quickly generate an initial architecture model from source code, providing a strong starting point for architects. While the output may not be perfect, it significantly reduces manual effort and helps teams focus on refinement rather than starting from scratch.
+
+2. **Review, Validate, and Refine the Output**  
+The discovered architecture is a draft and may contain mistakes or omissions. Use the CALM AI Assistant to make corrections to nodes and relationships.  Remember to validate the generated model using the CALM CLI (`calm validate`). 
+
+3. **Skill Definition Is Customizable for Your Organization**  
+Architects are encouraged to experiment with and revise the skill definition. By adjusting prompts, parameters, and logic—including package detection and source code signals—the discovery process can be tailored to better fit organizational needs and technology stacks.
+
+4. **Skill Setup Is Platform-Specific but Straightforward**  
+Setting up the architecture discovery skill involves creating a specific directory and file structure depending on the AI assistant platform (Copilot, KIRO, Claude, or Codex). Clear instructions are provided for each, making it easy to get started.
+
+5. **Common Pitfalls and Peculiarities Are Documented**  
+The tutorial highlights known issues, such as problems with node names containing parentheses causing preview errors, and provides practical fixes. This helps users avoid common mistakes and ensures smoother adoption of the tool.
+
+These takeaways summarize the main lessons and best practices for using and refining the CALM architecture discovery skill.
