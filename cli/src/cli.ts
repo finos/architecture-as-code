@@ -35,6 +35,10 @@ const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
 
 // Hub command options
 const NAMESPACE_OPTION = '--namespace <namespace>';
+const NAME_OPTION = '--name <name>';
+const DESCRIPTION_OPTION = '--description <description>';
+const ID_OPTION = '--id <id>';
+const HUB_VERSION_OPTION = '--ver <version>'; // --version conflicts with Commander's built-in version flag
 
 export function setupCLI(program: Command) {
     program
@@ -279,12 +283,12 @@ Validation requires:
     hubPushCmd
         .command('architecture <architecture-file>')
         .description('Push a CALM architecture file to CALM Hub')
-        .option('--name <name>', 'Name for the architecture in CALM Hub (required when creating a new architecture)')
-        .option('--description <description>', 'Description for the architecture')
+        .option(NAME_OPTION, 'Name for the architecture in CALM Hub (required when creating a new architecture)')
+        .option(DESCRIPTION_OPTION, 'Description for the architecture')
         .option(NAMESPACE_OPTION, 'Target namespace', 'default')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option('--id <id>', 'Existing architecture ID (required when adding a new version)')
-        .option('--ver <version>', 'Semver version to create (required when --id is provided)')
+        .option(ID_OPTION, 'Existing architecture ID (required when adding a new version)')
+        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
         .action(async (architectureFile, options) => {
             const { runPushArchitecture } = await import('./command-helpers/hub-commands');
@@ -300,8 +304,8 @@ Validation requires:
         .command('architecture')
         .description('Pull a specific version of a CALM architecture from CALM Hub')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
-        .requiredOption('--ver <version>', 'Version to retrieve')
-        .requiredOption('--id <id>', 'Architecture ID to pull')
+        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .requiredOption(ID_OPTION, 'Architecture ID to pull')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
@@ -343,8 +347,8 @@ Validation requires:
     hubCreateCmd
         .command('namespace')
         .description('Create a new namespace in CALM Hub')
-        .requiredOption('--name <name>', 'Namespace name')
-        .option('--description <description>', 'Namespace description')
+        .requiredOption(NAME_OPTION, 'Namespace name')
+        .option(DESCRIPTION_OPTION, 'Namespace description')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
