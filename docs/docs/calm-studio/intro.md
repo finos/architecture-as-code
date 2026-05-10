@@ -33,7 +33,7 @@ CalmStudio is built on FINOS CALM and integrates with the broader FINOS open sou
 
 ## Getting Started
 
-- **New to CalmStudio?** Start with the [Quick Start Guide](/docs/getting-started/quick-start) — you'll have an architecture drawn and exported in 5 minutes.
-- **Integrating with AI?** See the [MCP Server Guide](/docs/developer-guide/mcp-server).
-- **Building extension packs?** See the [Extension Packs Guide](/docs/developer-guide/extension-packs).
-- **Contributing?** See the [Contributor Guide](/docs/developer-guide/contributing).
+- **New to CalmStudio?** Start with the [Quick Start Guide](/calm-studio/getting-started/quick-start) — you'll have an architecture drawn and exported in 5 minutes.
+- **Integrating with AI?** See the [MCP Server Guide](/calm-studio/developer-guide/mcp-server).
+- **Building extension packs?** See the [Extension Packs Guide](/calm-studio/developer-guide/extension-packs).
+- **Contributing?** See the [Contributor Guide](/calm-studio/developer-guide/contributing).
