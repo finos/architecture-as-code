@@ -10,4 +10,4 @@ Advanced tutorials will cover deeper CALM workflows and AI-assisted architecture
 
 ## Tutorials
 
-- [Architecture Discovery Skill](./architecture-discovery-skill)
+- [Architecture Discovery Skill](./architecture-discovery-skill-tutorial)

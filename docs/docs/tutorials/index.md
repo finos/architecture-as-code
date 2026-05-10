@@ -151,7 +151,7 @@ Explore deeper CALM workflows and AI-assisted architecture practices.
 
 ### Getting Started
 
-1. **[Start with Architecture Discovery Skill](./advanced/architecture-discovery-skill)** — Placeholder for the first advanced tutorial
+1. **[Start with Architecture Discovery Skill](./advanced/architecture-discovery-skill-tutorial)** — Placeholder for the first advanced tutorial
 
 [Start Advanced Tutorials →](./advanced/)
 

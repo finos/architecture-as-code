@@ -1,5 +1,5 @@
 ---
-id: architecture-discovery-skill
+id: architecture-discovery-skill-tutorial
 title: Architecture Discovery Skill
 sidebar_position: 2
 ---
@@ -462,7 +462,7 @@ CALM architecture discovery complete. Please review the discovered nodes, relati
 
 The full <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.json" target="_blank">unmodified discovered architecture json</a>.
 
-The discovered <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.key-observations.md" target="_blank">key observations</a>.
+The discovered <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture-key-observations.md" target="_blank">key observations</a>.
 
 
 ### CALM Validate the Discovered Architecture
@@ -726,11 +726,11 @@ Architects should monitor actual runtime behavior in their own environments and 
 
 ### Write to /dev/null
 
-When the CALM AI Assistant (Copilot) is using the skill to discover nodes and relationships, it will some times us an OS command like `find` or `cat` with redirection to `/dev/null`.  The AI Assistant will ask for permission because this operation involves writing to a device.
+When the CALM AI Assistant (Copilot) is using the skill to discover nodes and relationships, it some times use an OS command like `find` or `cat` with redirection to `/dev/null`.  The AI Assistant will ask for permission because this operation involves writing to a device.
 
 ![](./images/write-to-dev-null.png)
 
-If this occurs, just give it permission because writing to `/dev/null` does not affect repo content.
+If this occurs, give it permission because writing to `/dev/null` does not affect repo content.
 
 :::warning
 Whenever the AI Assistant ask permission to do some action, the architect should review carefully what the AI Assistant is requesting and it is safe to perform the action.

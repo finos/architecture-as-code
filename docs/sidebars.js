@@ -107,7 +107,7 @@ const sidebars = {
           label: '🟠 Advanced',
           link: {type: 'doc', id: 'tutorials/advanced/advanced-tutorials'},
           items: [
-            'tutorials/advanced/architecture-discovery-skill',
+            'tutorials/advanced/architecture-discovery-skill-tutorial',
           ],
         },
         {
