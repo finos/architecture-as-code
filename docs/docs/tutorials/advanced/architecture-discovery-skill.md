@@ -9,11 +9,14 @@ import TabItem from '@theme/TabItem';
 
 # Architecture Discovery Skill
 
+
 ## Introduction
 
-This lesson illustrates one approach—using agent skills—to leverage the CALM AI Assistant for generating a CALM architecture from source code. It is not meant to be prescriptive; rather, it demonstrates how the Assistant, through agent skills, can help architects quickly produce an initial architecture model for a legacy application. The objective is to provide a strong starting point (typically 80–90% complete) that the architect can review, refine, and expand.
+This lesson demonstrates a practical approach to using agent skills with the CALM AI Assistant for architecture discovery. By leveraging these skills, architects can quickly generate an initial CALM architecture model directly from source code, accelerating the modeling process for legacy or unfamiliar systems. The approach is intentionally flexible and not prescriptive—its purpose is to provide a strong draft (typically 80–90% complete) that architects and engineers can collaboratively review, validate, and refine.
 
-The discovered architecture will likely contain some mistakes and omissions, as source code alone rarely captures the full picture. Important details such as runtime behavior, external dependencies, business intent, security controls, operational ownership, or infrastructure defined outside the repository may be missed. The AI Assistant may also infer relationships that require human validation. Use the generated CALM architecture as a draft to accelerate your work—review it with engineers and architects, validate it against the running system, and refine it with your team's unique context and expertise.
+It is important to recognize that source code alone rarely captures the full architectural picture. The discovered model may contain mistakes or omissions, especially regarding runtime behavior, external dependencies, business intent, security controls, operational ownership, or infrastructure defined outside the repository. Some relationships may be inferred by the AI Assistant and require human validation. Treat the generated CALM architecture as a starting point: review it with your team, validate it against the running system, and iteratively refine it to reflect your organization’s unique context and requirements.
+
+This tutorial also provides Field Notes and Troubleshooting, documenting practical fixes and real-world issues encountered during the discovery process—such as handling preview errors, permission prompts, and the probabilistic nature of LLM output—so you can avoid common pitfalls and make the most of the CALM AI Assistant’s capabilities. Experimenting with and refining the skill definition itself is encouraged, enabling you to tailor the discovery process to your technology stack and organizational needs.
 
 A full tutorial about agent skills is beyond the scope of this tutorial.  The interested reader can find an [explanation of agent skills at this site](https://agentskills.io/home).
 
@@ -186,50 +189,73 @@ During the discovery process the agent may want to run OS commands to discover c
 
 The following chat log was edited to remove repetitive messages.
 
+#### Start discovery process
 ```
 GitHub Copilot: Loading FINOS CALM instructions...  
 
-Ran terminal command:  find /Users/jim/Desktop/finos/discovery-skill-tutorial -maxdepth 1 -type d | sort
+Ran terminal command:  find /Users/jim/Desktop/finos/discovery-skill-tutorial -maxdepth 1 -mindepth 1 -type d | sort
+
+Fetched 4 resources
+
+Ran terminal command:  
+# Scan key source directories for architecture signals
+echo "=== PACKAGE.JSON FILES ===" && find /Users/jim/Desktop/finos/discovery-skill-tutorial -name "package.json" -not -path "*/node_modules/*" -not -path "*/.git/*" | sort | head -40
+
+echo "=== POM FILES ===" && find /Users/jim/Desktop/finos/discovery-skill-tutorial -name "pom.xml" -not -path "*/node_modules/*" | sort | head -20
+
+echo "=== DOCKER FILES ===" && find /Users/jim/Desktop/finos/discovery-skill-tutorial -name "Dockerfile*" -o -name "docker-compose*.yml" | grep -v node_modules | sort | head -20
 
 
+Ran terminal command:  
+echo "=== calm-guard pipeline route ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src/app/api/pipeline/route.ts | head -40
+echo ""
+echo "=== calm-guard .env or .env.example ===" && find /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard -name ".env*" | head -5 && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/.env.example 2>/dev/null || cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/.env.local.example 2>/dev/null | head -30
 
-Fetched 5 resources
+<<<DELETED LINES>>>
 
-Now let me scan the key subdirectories for architectural evidence: 
+Fetched [resource](file:///Users/jim/Library/Application Support/Code/User/workspaceStorage/fed09138354c75a35a12171025ba3bae/GitHub.copilot-chat/chat-session-resources/f259f57c-4346-4c6d-a83f-028043f58f09/toolu_01X4yEsZGHziDtqKmGCoWZj3__vscode-1778406861372/content.txt)
 
-Ran terminal command:  cat /Users/jim/Desktop/finos/discovery-skill-tutorial/package.json
+Ran terminal command:  
+echo "=== calm-guard AI orchestrator ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src/lib/agents/orchestrator.ts 2>/dev/null | head -40
 
-Ran terminal command:  ls /Users/jim/Desktop/finos/discovery-skill-tutorial/ && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/package.json 2>/dev/null || echo "NO ROOT PACKAGE.JSON"
+echo ""
+echo "=== calm-guard lib github client ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src/lib/github/client.ts 2>/dev/null | head -30
 
-Ran terminal command:  cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-hub/pom.xml | grep -E "<artifactId>|<groupId>|<version>" | head -30
+echo ""
+echo "=== calm-guard lib ai streaming ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src/lib/ai/streaming.ts 2>/dev/null | head -30
 
-Ran terminal command:  ls /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-hub/ && ls /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-server/ && ls /Users/jim/Desktop/finos/discovery-skill-tutorial/cli/
+echo ""
+echo "=== docs/package.json ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/docs/package.json | head -20
 
-Ran terminal command:  cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-server/package.json
-```
-#### DELETED LINES
-```
-Ran terminal command:  ls /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-ai/ 2>/dev/null && ls /Users/jim/Desktop/finos/discovery-skill-tutorial/conferences/ 2>/dev/null
 
-Run in Terminal
+Ran terminal command:  
+echo "=== calm-guard AI agent - which LLM? ===" && grep -r "openai\|anthropic\|claude\|gpt\|llm\|OPENAI\|ANTHROPIC" /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src --include="*.ts" --include="*.tsx" -l | head -10
+echo ""
+echo "=== calm-guard AI agent detail ===" && grep -r "openai\|anthropic\|claude\|gpt\|OPENAI_API_KEY\|ANTHROPIC_API_KEY" /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src --include="*.ts" --include="*.tsx" | head -20
 
-Continue to iterate?
-[object Object]
+echo ""
+echo "=== calm-guard next.config ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/next.config.* 2>/dev/null | head -30
 
-User: @agent Continue: "Continue to iterate?"
 
-GitHub Copilot: Ran terminal command:  du -sh /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-ai 2>/dev/null && du -sh /Users/jim/Desktop/finos/discovery-skill-tutorial/conferences 2>/dev/null
-
-Ran terminal command:  find /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-ai -type f | head -20 && echo "---" && find /Users/jim/Desktop/finos/discovery-skill-tutorial/conferences -type f | head -10
-
-I now have comprehensive understanding of the architecture. Let me present the findings and create the output files.
+I now have enough information to produce the full output. Let me create the sandbox directory and write the files.
 
 ---
+```
+
+#### Report discovered nodes and relationships with Key Observations
+```
 
 > ⚠️ This is an initial discovery of potential CALM nodes and relationships based on static analysis of the codebase by an LLM. It may contain inaccuracies or omissions. Please review and validate each item before using it in your CALM architecture model.
 
-Scanned the following top-level subdirectories for the CALM nodes and relationships:
+---
 
+**Scanned the following top-level subdirectories for the CALM nodes and relationships:**
+
+- .devcontainer
+- .flox
+- .github
+- .husky
+- .mvn
 - advent-of-calm
 - brand
 - calm
@@ -255,19 +281,20 @@ Scanned the following top-level subdirectories for the CALM nodes and relationsh
 
 | `unique-id` | `node-type` | `name` | `description` |
 |---|---|---|---|
-| `developer` | `actor` | Developer / Architect | Human developer or architect using CALM tooling to create, validate, and manage architecture models |
-| `calm-cli` | `service` | CALM CLI | Command-line tool (calm) for generating, validating, and docifying CALM architectures; optionally connects to a CALM Hub instance for remote document loading |
-| calm-server | `service` | CALM Validation Server | Standalone Express HTTP server exposing `GET /health` and `POST /calm/validate` endpoints on port 3000 |
-| `calm-hub-backend` | `service` | CALM Hub Backend | Java/Quarkus REST API backend managing CALM artifacts (namespaces, patterns, architectures, flows, standards, ADRs) at `GET/POST /calm/namespaces/*` on port 8080 |
-| calm-hub-ui | `webclient` | CALM Hub UI | React SPA for browsing CALM namespaces, patterns, architectures, flows, and standards; served as static assets from the Quarkus server in production |
-| `mongodb` | `database` | MongoDB | Persistent document store for CALM Hub artifacts, used via the MongoDB Java driver on port 27017 |
-| `keycloak` | `ecosystem` | Keycloak | OIDC identity provider (Keycloak) used for authentication and token validation in CALM Hub's secure deployment profile |
-| `calmguard` | `service` | CALMGuard | Next.js 15 AI-powered compliance analysis platform; streams compliance findings via SSE (`POST /api/analyze`), validates CALM docs (`POST /api/calm/validate`), and generates CI/CD pipelines |
-| `calm-studio-desktop` | `webclient` | CalmStudio Desktop | Tauri/SvelteKit desktop application for authoring CALM architectures with an embedded IDE and integrated MCP sidecar |
-| `calmstudio-mcp` | `service` | CalmStudio MCP Server | Model Context Protocol server (`calmstudio-mcp`) enabling AI assistants to read, write, and validate CALM files; supports stdio and HTTP (port 3100) transports |
-| `vscode-extension` | `service` | CALM VSCode Extension | VSCode extension for authoring, previewing (Docify), and validating CALM architecture files with tree-view navigation and diagnostics |
-| `llm-providers` | `ecosystem` | LLM Providers | External AI provider APIs (Google Gemini, Anthropic Claude, OpenAI GPT, Grok/xAI) invoked by CALMGuard via the Vercel AI SDK |
-| `github` | `ecosystem` | GitHub | GitHub platform API used by CALMGuard to fetch CALM architecture files from public repositories |
+| `architect` | `actor` | Architect / Developer | Software architect or developer who uses CALM tooling to model, validate, and manage architectural artifacts. |
+| calm-hub | `service` | CALM Hub | Quarkus/Java REST API backend for storing, retrieving, and serving CALM namespaces, architectures, patterns, flows, standards, and controls; also exposes an embedded MCP endpoint at `/mcp`. |
+| calm-hub-ui | `webclient` | CALM Hub UI | React SPA for browsing, visualizing, and managing CALM architectures; built and served as static resources embedded inside CALM Hub. |
+| calm-server | `service` | CALM Server | Express/Node.js REST API exposing CALM document validation (`POST /calm/validate`) and a health check (`GET /health`) as a standalone service. |
+| `calm-cli` | `service` | CALM CLI | Node.js command-line tool providing `generate`, `validate`, `template`, `docify`, and `init-ai` commands for working with CALM architecture files. |
+| `mongodb` | `database` | MongoDB | Document database storing CALM namespaces, architectures, patterns, standards, flows, controls, decorators, and user-access records. |
+| `keycloak` | `ecosystem` | Keycloak | Keycloak OIDC/OAuth2 identity provider that issues and signs JWT tokens for authenticating users of CALM Hub. |
+| `calm-guard` | `service` | CALM Guard | Next.js DevSecOps compliance web application that fetches CALM architectures from GitHub, validates them via calm-cli, and runs parallel AI analysis agents for compliance mapping, pipeline generation, and risk scoring. |
+| `calm-studio` | `service` | CALM Studio | Tauri-based cross-platform desktop application for authoring and visualizing CALM architecture models with a graphical editor. |
+| `calm-studio-mcp-server` | `service` | CALM Studio MCP Server | Standalone Model Context Protocol (MCP) server exposing CALM node, relationship, and architecture tools to AI agent clients via stdio or HTTP. |
+| `vscode-extension` | `service` | CALM VS Code Extension | VS Code extension providing CALM architecture authoring, live validation, diagnostics, and graph visualization within the editor. |
+| `github-api` | `ecosystem` | GitHub API | External GitHub REST API (`api.github.com`) used by CALM Guard to fetch CALM architecture JSON files from repositories and create pull requests. |
+| `anthropic-claude` | `ecosystem` | Anthropic Claude | External Anthropic AI API providing the Claude Sonnet language model for AI-powered CALM architecture analysis in CALM Guard. |
+| `openai-gpt` | `ecosystem` | OpenAI GPT | External OpenAI API providing GPT-4o as an alternative AI provider for CALM architecture analysis in CALM Guard. |
 
 ---
 
@@ -275,173 +302,163 @@ Scanned the following top-level subdirectories for the CALM nodes and relationsh
 
 | `unique-id` | `relationship-type` | `source → destination` | `description` |
 |---|---|---|---|
-| `developer → calm-cli` | `interacts` | developer → calm-cli | Runs generate, validate, docify, and template commands using |
-| `developer → calm-hub-ui` | `interacts` | developer → calm-hub-ui | Browses namespaces, patterns, architectures, and flows in |
-| `developer → calmguard` | `interacts` | developer → calmguard | Uploads and analyzes CALM architectures for AI-powered compliance using |
-| `developer → calm-studio-desktop` | `interacts` | developer → calm-studio-desktop | Authors and edits CALM architectures using |
-| `developer → vscode-extension` | `interacts` | developer → vscode-extension | Authors, previews, and validates CALM architectures in VSCode using |
-| `developer → calm-server` | `interacts` | developer → calm-server | Sends architecture validation requests directly to |
-| `calm-cli → calm-hub-backend` | `connects` | calm-cli → calm-hub-backend | Loads remote CALM documents from when `--calm-hub-url` is configured |
-| `calm-hub-ui → calm-hub-backend` | `connects` | calm-hub-ui → calm-hub-backend | Fetches namespaces, patterns, architectures, flows, and standards from via REST API |
-| `calm-hub-ui → keycloak` | `connects` | calm-hub-ui → keycloak | Performs OIDC authentication flow against when secure mode is enabled |
-| `calm-hub-backend → mongodb` | `connects` | calm-hub-backend → mongodb | Reads and writes CALM artifacts to via MongoDB Java driver |
-| `calm-hub-backend → keycloak` | `connects` | calm-hub-backend → keycloak | Validates OIDC bearer tokens against when the secure Quarkus profile is active |
-| `calmguard → llm-providers` | `connects` | calmguard → llm-providers | Sends CALM analysis requests to via Vercel AI SDK `generateObject` for structured agent output |
-| `calmguard → github` | `connects` | calmguard → github | Fetches CALM architecture JSON files from via GitHub Contents API |
-| `calmguard → calm-cli` | `connects` | calmguard → calm-cli | Spawns as a subprocess for CALM document validation (`@finos/calm-cli` is a server-external package) |
-| `calm-studio-desktop → calmstudio-mcp` | `connects` | calm-studio-desktop → calmstudio-mcp | Launches and communicates with the bundled MCP sidecar binary via stdio |
+| `architect-to-calm-tooling` | `interacts` | `architect` → calm-hub-ui, `calm-cli`, `vscode-extension`, `calm-guard`, `calm-studio` | Architects and developers interact with CALM tooling to author, validate, visualize, and manage architecture models. |
+| `calm-hub-ui-to-calm-hub` | `connects` | calm-hub-ui → calm-hub | Sends HTTP REST requests to read and write namespaces, patterns, architectures, flows, decorators, and ADRs. |
+| `calm-hub-ui-to-keycloak` | `connects` | calm-hub-ui → `keycloak` | Performs the OIDC authorization code flow to authenticate users when secure mode is enabled. |
+| `calm-hub-to-mongodb` | `connects` | calm-hub → `mongodb` | Reads and writes all CALM namespace data, architectures, patterns, standards, flows, controls, and user-access records. |
+| `calm-hub-to-keycloak` | `connects` | calm-hub → `keycloak` | Retrieves OIDC public keys (JWKS) to validate JWT bearer tokens on incoming authenticated requests. |
+| `calm-guard-to-github-api` | `connects` | `calm-guard` → `github-api` | Fetches CALM architecture JSON files from GitHub repositories for compliance analysis and creates pull requests with remediation changes. |
+| `calm-guard-to-anthropic-claude` | `connects` | `calm-guard` → `anthropic-claude` | Sends CALM architecture content to Claude Sonnet for AI-powered compliance mapping, pipeline generation, cloud infrastructure planning, and risk scoring. |
+| `calm-guard-to-openai-gpt` | `connects` | `calm-guard` → `openai-gpt` | Sends CALM architecture content to GPT-4o as an alternative AI provider when Anthropic is not configured. |
+| `calm-guard-to-calm-cli` | `connects` | `calm-guard` → `calm-cli` | Invokes calm-cli as a child process to validate CALM JSON documents server-side. |
+| `calm-cli-to-calm-hub` | `connects` | `calm-cli` → calm-hub | Fetches remote CALM patterns and schemas from CALM Hub when a `--calm-hub-url` is supplied. |
+| `calm-server-to-calm-hub` | `connects` | calm-server → calm-hub | Optionally loads remote CALM schemas from CALM Hub for use in document validation when `--calm-hub-url` is configured. |
 
 ---
 
 ## Key Observations
 
-**Deployment Boundaries**
-- CALM Hub Backend (JVM/Quarkus) and CALM Hub UI are separately developed packages but co-deployed: the UI's production build is copied directly into Quarkus's `META-INF/resources` directory, meaning both are served from a single process on port 8080.
-- CALM Server is a completely standalone Node.js/Express process with no relationship to CALM Hub; it provides a simpler HTTP validation API without any artifact storage.
-- CalmStudio is distributed as a native Tauri desktop binary; the MCP server is bundled as a compiled sidecar binary inside the Tauri app but is also separately publishable as `calmstudio-mcp`.
-- CALMGuard targets Vercel deployment (Next.js App Router with 300 s timeout for SSE streaming).
+**Deployment boundaries**
+- calm-hub and `mongodb` are co-deployed (Docker Compose in local-dev and deploy) — they form the core persistence tier.
+- calm-hub-ui is built into calm-hub's static resources (resources) via `npm run prod`; at runtime it is served by the same JVM process on port 8080.
+- calm-server (Node.js/Express, port 3000) is a separately deployable validation microservice with no database dependency.
+- `calm-guard` (Next.js, separate deployment) is an independent DevSecOps product; it invokes `calm-cli` as a subprocess and calls GitHub and LLM APIs.
+- `calm-studio` and `calm-studio-mcp-server` originate from the calm-studio sub-project, which has its own `pnpm` workspace and separate release lifecycle.
 
-**Authentication / Trust Boundaries**
-- CALM Hub's security is profile-gated: the default profile has no authentication; the `secure` Quarkus profile adds Keycloak OIDC JWT validation. Both calm-hub-ui (OIDC client) and calm-hub-backend (token validator) must be configured to point at Keycloak.
-- CALM Server explicitly warns in code when bound to a non-localhost address and has no authentication controls — it is not safe to expose publicly.
-- CALMGuard uses LLM API keys injected via environment variables; there is no user authentication layer in the CALMGuard application itself.
+**Authentication / trust boundaries**
+- OIDC is **disabled by default** in calm-hub (`quarkus.oidc.tenant-enabled=false`). When enabled (production/secure profile), both calm-hub (server-side JWKS validation) and calm-hub-ui (OIDC redirect) connect to Keycloak on port 9443.
+- calm-server has **no authentication or authorization** (explicitly warned in source code when bound to non-localhost interfaces).
+- `calm-guard`'s GitHub integration uses an optional `GITHUB_TOKEN` env var; LLM calls require `ANTHROPIC_API_KEY` and/or `OPENAI_API_KEY`.
 
-**External Dependencies**
-- MongoDB is the production data store for CALM Hub; an embedded NitriteDB can substitute it in standalone mode (same JVM process — not a separate node).
-- Keycloak is an optional external dependency; the CALM Hub deployment is functional without it in the default profile.
-- LLM Providers (Gemini as default, plus Anthropic, OpenAI, Grok) are hard runtime dependencies for CALMGuard's compliance analysis — unavailable LLM API keys will prevent analysis from running.
-- GitHub API is used by CALMGuard for fetching CALM files from public repos; no authentication is required for public repos, but rate limits apply.
+**External dependencies**
+- `calm-guard` supports two LLM providers (Anthropic Claude Sonnet, OpenAI GPT-4o) selected at runtime by whichever API key is present; both providers process potentially sensitive architectural data.
+- `calm-guard` calls `api.github.com` directly from the server side to avoid exposing `GITHUB_TOKEN` to the browser.
+- calm-hub supports a **dual storage backend**: MongoDB (default production mode) or NitriteDB (embedded standalone mode). NitriteDB runs in-process and is not a separate deployable node.
 
-**Nodes Worth Drilling Into**
-- **`calm-hub-backend`**: Substantial sub-architecture — ~15 REST resource classes, dual storage implementations (MongoDB / NitriteDB), OIDC access-control filter, MCP integration, and a front-controller resource for custom-ID-based access. Deserves its own architecture model.
-- **`calmguard`**: Multi-agent AI system with a parallel Phase 1 (Scout + Ranger + Arsenal + Cloud Infra agents) and sequential Phase 2 (Sniper risk scorer), all streaming SSE to the dashboard. Orchestrator, agent registry, skill loader, and provider abstraction are all worth modelling.
-- **`calm-studio-desktop`**: The CalmStudio monorepo (calm-studio) contains several independently publishable packages — `calm-core`, `extensions`, `calmscript`, `mcp-server`, `github-action`, `web-component`, and `vscode-extension` — each a potential sub-architecture.
+**Nodes worth drilling into**
+- **calm-hub** has 14+ REST resource classes (`ArchitectureResource`, `PatternResource`, `FlowResource`, `DecoratorResource`, `SearchResource`, `UserAccessResource`, etc.) and an embedded MCP server — a detailed sub-architecture would clarify its internal domain boundaries.
+- **`calm-guard`** has a 4-agent AI orchestration layer (Architecture Analyzer, Compliance Mapper, Pipeline Generator, Risk Scorer) that is a significant sub-architecture.
+- **`calm-studio`** bundles the `calm-studio-mcp-server` as a sidecar binary — their interaction protocol deserves its own detailed architecture.
 
 ---
 
-Saving the discovered nodes and relationships to a CALM architecture model in JSON format, adhering to the CALM schema version 1.2, to `sandbox/copilot-discovered-calm-architecture.json`. 
+Saving the discovered nodes and relationships to a CALM architecture model in JSON format, adhering to the CALM schema version 1.2 to `sandbox/copilot-discovered-calm-architecture.json`. 
 
 Ran terminal command:  mkdir -p /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox
 
-Ran terminal command:  cat > /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json << 'CALM_EOF'
+Ran terminal command:  cat > /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json << 'CALM_JSON_EOF'
 {
     "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "unique-id": "finos-calm-monorepo",
-    "name": "FINOS Architecture as Code Monorepo",
-    "description": "The FINOS CALM monorepo containing the Common Architecture Language Model specification and all associated tooling, including the CLI, validation server, CALM Hub backend and UI, CALMGuard AI compliance platform, CalmStudio desktop IDE, MCP server, and VSCode extension.",
+    "name": "FINOS Architecture as Code (CALM) Monorepo",
+    "description": "Architecture of the FINOS CALM (Common Architecture Language Model) open-source monorepo, including the CALM Hub backend, UI, CLI tooling, validation server, DevSecOps compliance platform, and desktop studio.",
     "nodes": [
-```
-#### DELETED LINES
-```
-
-
         {
-            "unique-id": "calm-studio-desktop → calmstudio-mcp",
-            "description": "Launches and communicates with the bundled MCP sidecar binary via stdio",
+            "unique-id": "architect",
+            "node-type": "actor",
+            "name": "Architect / Developer",
+            "description": "Software architect or developer who uses CALM tooling to model, validate, and manage architectural artifacts."
+        },
+<<<DELETED LINES>>>
+        },
+        {
+            "unique-id": "calm-server-to-calm-hub",
+            "description": "Optionally loads remote CALM schemas from CALM Hub for document validation when --calm-hub-url is configured.",
             "relationship-type": {
                 "connects": {
                     "source": {
-                        "node": "calm-studio-desktop"
+                        "node": "calm-server"
                     },
                     "destination": {
-                        "node": "calmstudio-mcp",
-                        "interfaces": ["calmstudio-mcp-http"]
+                        "node": "calm-hub",
+                        "interfaces": ["calm-hub-rest-api"]
                     }
                 }
             }
         }
     ]
 }
-CALM_EOF
-echo "Architecture file written successfully"
+CALM_JSON_EOF
 
-Saving key observations about the architecture to `sandbox/copilot-discovered-calm-architecture.key-observations.md`.  
+Saving key observations about the architecture to `sandbox/copilot-discovered-calm-architecture-key-observations.md`. 
 
-Ran terminal command:  cat > /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.key-observations.md << 'OBS_EOF'
-# Key Architectural Observations — FINOS Architecture as Code Monorepo
+Ran terminal command:  cat > /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture-key-observations.md << 'EOF'
+# CALM Architecture Discovery — Key Observations
+```
 
-> Generated by CALM architecture discovery on 2026-05-09
+#### Save discovered architecture and Key Observations to file
+```
 
----
+> ⚠️ This is an initial discovery of potential CALM nodes and relationships based on static analysis of the codebase by an LLM. It may contain inaccuracies or omissions. Please review and validate each item before using it in your CALM architecture model.
 
 ## Deployment Boundaries
 
-- **CALM Hub Backend + UI co-deployed in production.** Although `calm-hub-ui` and `calm-hub-backend` are developed as separate packages, the production build pipeline (`npm run prod` in calm-hub-ui) copies the compiled React SPA static assets directly into the Quarkus server's `META-INF/resources` directory, resulting in a single deployable process on port 8080. During development they run as separate processes.
-
-- **CALM Server is an independent HTTP process.** The `calm-server` (Express/Node.js) is a completely separate runtime from CALM Hub. It provides only validation endpoints (`GET /health`, `POST /calm/validate`) with no artifact storage or authentication. It is explicitly documented as safe only for localhost binding.
-
-- **CalmStudio MCP server is a dual-mode sidecar.** The `calmstudio-mcp` binary is bundled as a compiled Tauri sidecar inside the CalmStudio desktop app and launched as a subprocess (stdio), but is also separately publishable as a standalone CLI (`calmstudio-mcp --http --port 3100`).
-
-- **CALMGuard targets Vercel cloud deployment.** The Next.js App Router is configured with `export const maxDuration = 300` for SSE streaming on Vercel Fluid Compute. It is the only component in the monorepo targeting a cloud-hosted deployment.
-
-- **CALM CLI and CALM Server share core validation logic.** Both delegate to `@finos/calm-shared` for schema loading and validation, so they have no direct runtime dependency on each other.
-
----
+- **`calm-hub` + `mongodb`** are co-deployed as a pair (evidenced by `calm-hub/local-dev/docker-compose.yml` and `calm-hub/deploy/docker-compose.yml`). They form the core persistence tier of the platform.
+- **`calm-hub-ui`** is not separately deployed at runtime. Its `prod` npm script (`rsync -a build/* ../calm-hub/src/main/resources/META-INF/resources`) embeds the React SPA into calm-hub's JAR as static resources. Both are served by the same JVM process on port 8080.
+- **`calm-server`** (Express/Node.js, port 3000) is a separately deployable validation microservice with no persistent storage. It is a lightweight alternative to calm-hub's validation capability.
+- **`calm-guard`** (Next.js) is an independent DevSecOps product with its own deployment lifecycle (located in `calm-suite/calm-guard`). It invokes `calm-cli` as a subprocess and calls GitHub and LLM APIs directly from the server.
+- **`calm-studio`** and **`calm-studio-mcp-server`** originate from `calm-suite/calm-studio`, which has its own `pnpm` workspace, and are released independently of the main npm monorepo.
+- **`calm-cli`** is distributed as the npm package `@finos/calm-cli` and runs as a local command-line process. It has no persistent state of its own.
+- **`vscode-extension`** runs within the VS Code extension host process — it is not a standalone service but is a distinct runtime process boundary.
 
 ## Authentication / Trust Boundaries
 
-- **CALM Hub has a profile-gated security model.** The default Quarkus profile has no authentication. The `secure` profile activates Keycloak OIDC integration, requiring both the backend (token validation via `AccessControlFilter`) and the UI (OIDC login flow in `authService.tsx`) to be configured with matching Keycloak realm URLs. `AUTH_SERVICE_OIDC_ENABLE` defaults to `false` in the UI codebase.
-
-- **CALM Server has no authentication or authorization.** Source code explicitly warns at startup when binding to a non-localhost address. It should not be exposed on a public network without an external reverse proxy or API gateway handling auth.
-
-- **CALMGuard uses LLM API keys via environment variables.** The Vercel AI SDK provider configuration relies on `GOOGLE_GENERATIVE_AI_API_KEY`, `ANTHROPIC_API_KEY`, or `OPENAI_API_KEY` environment variables. There is no user-facing authentication layer in CALMGuard itself.
-
-- **CALM Hub uses scoped OAuth2 access control.** Endpoints are annotated with `@PermittedScopes` (e.g., `architectures:read`, `adrs:all`), with scopes checked against the validated JWT. The scope definitions live in `CalmHubScopes.java`.
-
----
+- **OIDC is disabled by default** in calm-hub (`quarkus.oidc.tenant-enabled=false` in `application.properties`). It is only enabled in a dedicated secure deployment profile.
+- When OIDC is enabled, **both** calm-hub-ui (OIDC redirect via `oidc-client-ts`) and calm-hub (server-side JWKS key retrieval via `quarkus-oidc`) connect to Keycloak on port 9443.
+- **`calm-server` has no authentication or authorization** — this is explicitly warned in the source code: the process logs a warning if bound to any non-localhost interface.
+- **`calm-guard`**'s GitHub integration uses an optional `GITHUB_TOKEN` environment variable; calls to `api.github.com` are made server-side to prevent the token from reaching the browser.
+- **LLM API keys** (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) are consumed server-side in calm-guard and are never exposed to the browser.
 
 ## External Dependencies
 
-- **MongoDB** is the production data store for CALM Hub. It can be replaced by the embedded NitriteDB (`calm.database.mode=standalone`) which runs in-process with the JVM — not a separate deployable node. Docker Compose and Kubernetes manifests are provided in `calm-hub/local-dev/` and `calm-hub/k8s/`.
+- **`calm-guard`** has a hard runtime dependency on at least one of `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` being set — if neither is present, the AI analysis will fail at startup.
+- Both Anthropic Claude Sonnet and OpenAI GPT-4o are alternative providers in calm-guard; Anthropic is preferred if both keys are set. A Google Generative AI and xAI option also exist in the provider configuration but are not the primary providers.
+- **GitHub API** calls from calm-guard include fetching file contents (rate-limited at 60 req/hr unauthenticated, higher with a token) and creating pull requests (requires write access).
+- **`calm-cli`** can optionally connect to a remote CALM Hub instance for pattern and schema resolution, but works entirely offline with bundled schemas by default.
+- **`calm-server`** similarly can optionally connect to CALM Hub via `--calm-hub-url`, but defaults to using bundled schemas.
 
-- **Keycloak** is an optional external dependency. CALM Hub is fully functional in the default (non-secure) profile without it.
+## Nodes with Sub-Architectures Worth Drilling Into
 
-- **LLM Providers** (Google Gemini as default, Anthropic Claude, OpenAI GPT, Grok/xAI) are required runtime dependencies for CALMGuard's compliance analysis pipeline. Missing API keys cause analysis agents to fail.
+- **`calm-hub`** — Has 14+ REST resource classes (`ArchitectureResource`, `PatternResource`, `FlowResource`, `DecoratorResource`, `SearchResource`, `StandardResource`, `ControlResource`, `UserAccessResource`, `FrontControllerResource`, etc.) and an embedded MCP server (`quarkus-mcp-server-http`). Also supports **dual storage**: MongoDB (default) or NitriteDB (embedded standalone mode, no separate process). A detailed calm-hub sub-architecture would clarify its internal domain boundaries.
+- **`calm-guard`** — Contains a 4-agent AI orchestration layer (`orchestrator.ts`) running agents in parallel: Architecture Analyzer, Compliance Mapper, Pipeline Generator, Cloud Infra Generator, with a sequential Risk Scorer phase. Each agent is a significant sub-component worth its own architectural definition.
+- **`calm-studio`** — Bundles the `calm-studio-mcp-server` as a sidecar binary. The interaction between the Tauri desktop app and the MCP server (using Tauri's shell plugin to spawn/communicate with the process) is a non-trivial relationship that deserves a dedicated sub-architecture.
 
-- **GitHub API** is used by CALMGuard's `/api/github/fetch-calm` route to retrieve CALM JSON files from public repos. No authentication token is required for public repositories, but API rate limits apply.
+## Additional Notes
 
-- **`@finos/calm-cli`** is an npm package dependency of CALMGuard and is invoked as a child process (`serverExternalPackages: ['@finos/calm-cli']` in `next.config.ts`) for CALM validation — it must be available on the server's PATH or node_modules at runtime.
+- **NitriteDB** (embedded document store used in calm-hub standalone mode) is not represented as a separate node because it runs in-process within calm-hub and is not a distinct deployable unit or runtime process.
+- The **`calm-hub-ui-to-keycloak`** and **`calm-hub-to-keycloak`** relationships are conditional — they only apply when calm-hub is deployed with a secure/production profile. In the default development profile, these connections do not occur.
+- The **`calm-guard-to-calm-cli`** relationship is a subprocess invocation (Node.js `child_process`) rather than a network call; calm-cli is listed as `serverExternalPackages` in calm-guard's `next.config.ts`.
+EOF
 
----
+Both files have been written. Let me verify them: 
 
-## Nodes That Likely Have Sub-Architectures Worth Drilling Into
-
-- **`calm-hub-backend`** — Substantial internal sub-architecture: ~15 JAX-RS resource classes, dual storage implementations (MongoDB and NitriteDB with interface segregation), OIDC security filter layer, MCP resource endpoint, a front-controller for custom-ID-based resource access, and a search layer. The domain model covers namespaces, patterns, architectures, flows, ADRs, standards, controls, interfaces, decorators, and user access. Warrants its own detailed architecture model.
-
-- **`calmguard`** — Multi-agent AI system with an orchestrated execution model: Phase 1 runs Scout (architecture analyzer), Ranger (compliance mapper), Arsenal (CI/CD pipeline generator), and Cloud Infra generator in parallel (`Promise.all`); Phase 2 runs Sniper (risk scorer) sequentially on aggregated results. Agent definitions are YAML files; compliance knowledge is loaded from Markdown skill files at runtime. The SSE streaming architecture, Zustand state store, and LLM provider abstraction are all worth modelling independently.
-
-- **`calm-suite/calm-studio`** — The CalmStudio monorepo contains multiple independently publishable sub-packages: `calm-core` (CALM model logic), `extensions` (plugin system), `calmscript` (DSL), `mcp-server` (MCP protocol adapter), `github-action` (CI/CD integration), `web-component` (embeddable widget), and `vscode-extension` (separate from the main `calm-plugins/vscode` extension). Each is a potential candidate for its own architecture model.
-
-- **`calm-plugins/vscode`** — The VSCode extension uses an MVVM + Hexagonal + Mediator architecture pattern with a Zustand application store, a tree-view feature module, a Docify preview panel (Webview), editor integrations (hover, CodeLens), and a diagnostics service. It has no HTTP connections to external services but relies on `@finos/calm-shared` for validation logic.
-OBS_EOF
-echo "Key observations file written successfully"
-
-Ran terminal command:  ls -la /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/
-
-Ran terminal command:  ls /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/
-
-Ran terminal command:  ls /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox && echo "done"
-
-Ran terminal command: import os; print(os.listdir('/Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox'))
-
-Both files are confirmed written. Let me verify the JSON is valid: 
-
-Ran terminal command: import json; data = json.load(open('/Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json')); print(f'Valid JSON. Nodes: {len(data["nodes"])}, Relationships: {len(data["relationships"])}')
+Ran terminal command:  echo "=== Files written ===" && ls -la /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/ && echo "" && echo "=== JSON valid ===" && node -e "JSON.parse(require('fs').readFileSync('/Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json','utf8')); console.log('JSON is valid')"
 
 CALM architecture discovery complete. Please review the discovered nodes, relationships, and key observations before using them in your CALM architecture model.
 
 ---
 
-Both output files have been saved:
-- copilot-discovered-calm-architecture.json — CALM 1.2 architecture model (13 nodes, 15 relationships)
-- copilot-discovered-calm-architecture.key-observations.md — Key architectural observations
+**Summary of what was produced:**
 
-**Summary of what was found:**
+- copilot-discovered-calm-architecture.json — CALM 1.2 architecture with **14 nodes** and **11 relationships**
+- copilot-discovered-calm-architecture-key-observations.md — Key observations about deployment, auth, and external dependencies
 
-The monorepo contains **4 distinct runtime services** (CLI, Validation Server, CALM Hub Backend, CALMGuard), **2 browser/desktop UIs** (CALM Hub UI, CalmStudio Desktop), **2 CLI-style services** (CalmStudio MCP, VSCode Extension), **2 databases** (MongoDB), **3 external ecosystems** (Keycloak, LLM Providers, GitHub), and **1 actor** (Developer/Architect).
-
-The most architecturally significant finding is that **CALM Hub Backend, CALMGuard, and CalmStudio** each warrant their own detailed sub-architecture models due to their internal complexity. CALM Server and CALM Hub Backend are distinct runtimes often confused with each other — the former is unauthenticated and validation-only; the latter is the full CALM artifact registry.
+**Evidence used** (no documentation or comments relied upon):
+- pom.xml → Quarkus, MongoDB, Keycloak OIDC, NitriteDB, MCP server dependencies
+- application.properties → port 8080, OIDC tenant disabled by default, MongoDB connection string
+- docker-compose.yml + docker-compose.yml → deployment pairing with MongoDB
+- docker-compose.yml → Keycloak on port 9443
+- authService.tsx → `oidc-client-ts`, Keycloak authority URL, `AUTH_SERVICE_OIDC_ENABLE=false`
+- calm-service.tsx → `axios` calls to `/calm/namespaces/*`
+- index.ts + `server.ts` + `routes.ts` → Express, port 3000, `/calm/validate`, `/health`
+- provider.ts → Anthropic Claude Sonnet + OpenAI GPT-4o
+- client.ts → `https://api.github.com`
+- route.ts → `validateWithCalmCli` subprocess call
+- next.config.ts → `serverExternalPackages: ['@finos/calm-cli']`
+- index.ts → MCP server, stdio/HTTP port 3100
+- cli.ts → `--calm-hub-url` option for remote schema/pattern fetching
 ```
+
 
 The full <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.json" target="_blank">unmodified discovered architecture json</a>.
 
@@ -470,7 +487,7 @@ WARN  issues:
     101 |             "unique-id": "calm-studio-mcp-server",
         |                          ^^^^^^^^^^^^^^^^^^^^^^^^
 ```
-This shows the generated architecture JSON complies with the CALM Schema.
+This shows the generated architecture JSON complies with the CALM Schema.  The warning message should be reviewed by the architect.
 
 ## Review and Refine The Discovered Architecture
 
@@ -478,7 +495,7 @@ This shows the generated architecture JSON complies with the CALM Schema.
 
 As noted earlier, the discovered architecture may have inaccuracies.  The architect now has to review the discovered architecture and refine it as needed to accurately reflect state of the system.
 
-To illustrate this process, let's assume the architect has this image in his or her mind that the discovered architecture should represent. 
+To illustrate this process, let's **assume the architect has this image in his or her mind** that the discovered architecture should represent. 
 
 <figure>
   <img src="/img/desired-architecture-representation.png" alt="Desired Architecture Representation"/>
@@ -495,7 +512,7 @@ when we compare this to the <a href="/calm-discovered-artifacts/copilot-discover
 
 we make the following observations:
 
-- Accounting for slight differences in names and descriptions, the discovered architecture contains all nodes and relationships that are found in the desired architecture representation.
+- Accounting for slight differences in names and descriptions, **the discovered architecture contains all nodes and relationships that should be in the desired architecture representation**.
 - The desired architecture combines several nodes into logical groups, such as the `CALM Hub System`
 - As reported by the `calm validate` output, there is a node with no relationships.
 - The discovered architecture contains more nodes and relationships than expected.
@@ -508,6 +525,84 @@ We now use CALM's AI Assistant to help us refine the discovered architecture wit
 - `Remove the following nodes and their related relationships: Calm Guard, OpenAI GPT, Github API, Anthropic Claude, CalmStudio, Calm Studio, CALM Studio MCP Server, CALM Server and Keycloak`
 - `Add a system node called "CALM Hub System" and a composed-of relationship with container "CALM Hub Systems" and nodes: CALM Hub UI, CALM Hub, and MongoDB.`
 - `Add a service node called "Visual Studio Code" and a deployed-in relationship with container "Visual Studio Code" and nodes: CALM VS Code Extension`
+
+### Chat log for making the corrections
+
+**Prompt**: `Remove the following nodes and their related relationships: Calm Guard, OpenAI GPT, Github API, Anthropic Claude, CalmStudio, Calm Studio, CALM Studio MCP Server, CALM Server and Keycloak`
+```
+GitHub Copilot: 
+
+Fetched [resource](file:///Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
+
+Ran terminal command:  cat > /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json << 'CALM_JSON_EOF'
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "unique-id": "finos-calm-monorepo",
+    "name": "FINOS Architecture as Code (CALM) Monorepo",
+    "description": "Architecture of the FINOS CALM (Common Architecture Language Model) open-source monorepo, including the CALM Hub backend, UI, CLI tooling, and VS Code extension.",
+    "nodes": [
+        {
+            "unique-id": "architect",
+            "node-type": "actor",
+            "name": "Architect / Developer",
+            "description": "Software architect or developer who uses CALM tooling to model, validate, and manage architectural artifacts."
+        },
+<<<DELETED LINES>>>
+        {
+            "unique-id": "calm-cli-to-calm-hub",
+            "description": "Fetches remote CALM patterns and schemas from CALM Hub when a --calm-hub-url is supplied.",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-cli"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interfaces": ["calm-hub-rest-api"]
+                    }
+                }
+            }
+        }
+    ]
+}
+CALM_JSON_EOF
+
+Done. The file now contains **6 nodes** and **4 relationships**:
+
+**Nodes retained:** `architect`, calm-hub, calm-hub-ui, `calm-cli`, `mongodb`, `vscode-extension`
+
+**Removed nodes:** `calm-guard`, `openai-gpt`, `github-api`, `anthropic-claude`, `calm-studio`, `calm-studio-mcp-server`, calm-server, `keycloak`
+
+**Relationships retained:** `architect-to-calm-tooling` (updated — `calm-guard` and `calm-studio` removed from its nodes list), `calm-hub-ui-to-calm-hub`, `calm-hub-to-mongodb`, `calm-cli-to-calm-hub`
+
+**Relationships removed:** `calm-hub-ui-to-keycloak`, `calm-hub-to-keycloak`, `calm-guard-to-github-api`, `calm-guard-to-anthropic-claude`, `calm-guard-to-openai-gpt`, `calm-guard-to-calm-cli`, `calm-server-to-calm-hub`
+```
+
+**Prompt**: `Add a system node called "CALM Hub System" and a composed-of relationship with container "CALM Hub Systems" and nodes: CALM Hub UI, CALM Hub, and MongoDB.`
+```
+GitHub Copilot: Replacing 24 lines with 40 lines in [](file:///Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
+
+Added:
+
+- **Node** `calm-hub-system` (type: `system`, name: "CALM Hub System")
+- **Relationship** `calm-hub-system-composed-of` — `composed-of` with container `calm-hub-system` and nodes calm-hub-ui, calm-hub, `mongodb`
+
+Made changes.
+```
+
+**Prompt**: `Add a service node called "Visual Studio Code" and a deployed-in relationship with container "Visual Studio Code" and nodes: CALM VS Code Extension`
+```
+GitHub Copilot: Replacing 19 lines with 35 lines in [](file:///Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
+
+Added:
+
+- **Node** `visual-studio-code` (type: `service`, name: "Visual Studio Code")
+- **Relationship** `vscode-extension-deployed-in-vscode` — `deployed-in` with container `visual-studio-code` and nodes `vscode-extension`
+
+Made changes.
+```
+
+### Updated architecture
 
 With these three simple prompts to CALM AI Assistant, we are able to refine the discovered architecture to its <a href="/calm-discovered-artifacts/refined-discovered-calm-architecture.json" target="_blank">desired representation</a>.
 
@@ -591,18 +686,19 @@ As noted earlier the architect should consider modifying  <a href="/calm-skills/
 - A node should be identified as a distinct architectural component only if there is evidence of it being a separate deployable unit, runtime process, command line, or external system.  For example, two services defined in the same codebase but running as separate processes would be two nodes, while two classes in the same service would not.
 - DO NOT define `composed-of` and `deployed-in` relationships.  Focus on `connects` and `interacts` relationships that indicate actual communication or interaction patterns between nodes.
 - For relationships, DO NOT capture protocols, this has been deprecated.
-- When forming the unique-id for relationships, use format `source-node-id → destination-node-id` to clearly indicate direction of the relationship.
-- DO NOT write the nodes and relationships to a CALM architecture model to a file.
+- When forming the unique-id for relationships, use format `<source-node-id>-to-<destination-node-id>` to clearly indicate direction of the relationship.
 - Present information about the nodes and relationships as stated in the `Output Format` section.
 ```
 
 The above are only suggestions.  The architect should feel free to modify any part of the skill definition to meet his or her needs.
 
-## Observed Peculiarities
+## Field Notes and Troubleshooting
 
 ### Multiple discovery runs
 
-The
+Multiple runs of `/calm-architecture-discovery` with the same model specification will return slightly different discovered architectures.  These differences are due to probabilistic output nature of large language models.  However, all will have a large overlap of discovered nodes and relationships with some differences in names and descriptions.
+
+Given this probabilistic output, the discovery skill should only be used to create an initial draft version that will be refined to a correct representation.  The discovery skill is not intended to be used to maintain a CALM architecture.
 
 ### CALM Tool Preview Fails
 
@@ -612,13 +708,46 @@ If the discovery skill creates a node name with parenthesis, this will cause the
 The fix for that is to edit the CALM architecture JSON and remove the parenthesis from the node `name` property.
 ![](./images/calm-preview-error-fixed.png)
 
-### Continue Execution Message (ADD Content)
+### Continue Execution Message
 
+With default Github Copilot settings and the long running nature of the discovery skill, you may see a message like this 
 
-### Write to /dev/null (ADD Content)
-)
+![](./images/continue-execution-prompt.png)
 
-### Fetch local Gitub Copilot Chat Cache (ADD Content)
+When this occurs, just allow the agent to continue execution.
+
+:::note
+The FINOS `architecture-as-code` repo used for this tutorial contains approximately 151K files and around 2.7 GB of content. Runtime for the `/calm-architecture-discovery` skill using a medium- or high-reasoning model was typically between 3 and 5 minutes. 
+:::
+
+:::warning
+Architects should monitor actual runtime behavior in their own environments and exercise judgment on whether execution should continue or whether the discovery approach, repository scope, or selected LLM should be reassessed.
+:::
+
+### Write to /dev/null
+
+When the CALM AI Assistant (Copilot) is using the skill to discover nodes and relationships, it will some times us an OS command like `find` or `cat` with redirection to `/dev/null`.  The AI Assistant will ask for permission because this operation involves writing to a device.
+
+![](./images/write-to-dev-null.png)
+
+If this occurs, just give it permission because writing to `/dev/null` does not affect repo content.
+
+:::warning
+Whenever the AI Assistant ask permission to do some action, the architect should review carefully what the AI Assistant is requesting and it is safe to perform the action.
+:::
+
+### Fetch local Gitub Copilot Chat Cache
+
+Periodically the CALM AI Assistant (Copilot) may ask to `fetch` content from a VSCode local file.
+
+![](./images/fetch-local-vscode-copilot-chat-cache.png)
+
+This appears to be content generated by the AI Assistant using the discovery skill.  Because this is a local file that is part of the Copilot Chat cache and not an external web site, permission was given to do the `fetch`.
+
+:::warning
+Whenever the AI Assistant ask permission to do some action, the architect should review carefully what the AI Assistant is requesting and it is safe to perform the action.
+:::
+
 
 
 ## Key Takeaways
@@ -637,7 +766,7 @@ Architects are encouraged to experiment with and revise the skill definition. By
 4. **Skill Setup Is Platform-Specific but Straightforward**  
 Setting up the architecture discovery skill involves creating a specific directory and file structure depending on the AI assistant platform (Copilot, KIRO, Claude, or Codex). Clear instructions are provided for each, making it easy to get started.
 
-5. **Common Pitfalls and Peculiarities Are Documented**  
-The tutorial highlights known issues, such as problems with node names containing parentheses causing preview errors, and provides practical fixes. This helps users avoid common mistakes and ensures smoother adoption of the tool.
+5. **Field Notes and Troubleshooting Are Documented**  
+The tutorial documents a range of field notes and troubleshooting tips, such as preview errors from node names with parentheses, permission prompts for writing to `/dev/null`, Copilot Chat cache fetches, and the probabilistic nature of discovery results. Each issue is paired with practical fixes or guidance, helping users avoid common mistakes and ensuring smoother adoption of the tool.
 
 These takeaways summarize the main lessons and best practices for using and refining the CALM architecture discovery skill.
