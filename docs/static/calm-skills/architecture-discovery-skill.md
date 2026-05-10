@@ -28,6 +28,8 @@ Present the discovered nodes and relationships as described in the `Output forma
 
 Except for the actor node type, collect technical information about the endpoints the node exposes, such as port number, protocol, method and path.
 
+If there is code that references, through an api call, an external service for authentication/authorization, monitoring or logging, create a node and connects relationship for that external service.
+
 ### Relationships — for each pair of nodes, identify:
 - **connects** — direct point-to-point calls (HTTP, HTTPS, JDBC, gRPC, WebSocket, AMQP, TCP, etc.)
 - **interacts** — actor-to-system interactions (user uses UI, external system calls API)

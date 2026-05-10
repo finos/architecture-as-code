@@ -100,7 +100,7 @@ Architects are encouraged to experiment with revising the skill definition itsel
 Within your particular CALM AI Assistant setup, designate the model you want to use with architecture discovery skill. 
 
 :::note
-During development of this tutorial, Claude Sonnet 4.6 and GPT-5.5 were used successfully.   These models support different levels of "reasoning" effort.  This tutorial used "Medium" or higher settings.
+During development of this tutorial, Claude Sonnet 4.6 and GPT-5.5 were used successfully.   These models support different levels of "reasoning" effort.  This tutorial used "Medium" or higher settings.  Higher reasoning models will increase run time for the discovery process.
 
 Since other models could support discovery, the reader is encouraged to experiment with different models.
 :::
@@ -174,6 +174,15 @@ This run uses VSCode with Github Copilot and the Claude Sonnet 4.6 Model.
 **Prompt**: `/calm-architecture-discovery . sandbox/copilot-discovered-calm-architecture.json`
 
 This prompt says to run architecture discovery on the current working directory ("`.`") and to save the discovered architecture in "`sandbox/copilot-discovered-calm-architecture.json`".
+
+Skill execution time will be several minutes.  For Github Copilot, with default settings, you may be asked allow continued execution of the agent skill run and prompted to allow creating two output files:
+- `sandbox/copilot-discovered-calm-architecture.json`: the discovered CALM architecture for the repo
+- `sandbox/copiliot-discovered-calm-architecture-key-observations.md`: Markdown report of the key observations noted during discovery of the nodes and relationships.  This is informational.  The architect can use this help in understanding the discovered architecture.
+
+:::warning
+During the discovery process the agent may want to run OS commands to discover content.  When prompted for permission to run these commands, make sure to review the command to ensure it is not going to modify content.   Some commands will write to `/dev/null`, which is OK because it is not affecting any repo content.
+:::
+
 
 The following chat log was edited to remove repetitive messages.
 
@@ -443,17 +452,23 @@ The discovered <a href="/calm-discovered-artifacts/copilot-discovered-calm-archi
 
 ```
 $ calm validate -a sandbox/copilot-discovered-calm-architecture.json -f pretty
-(node:27701) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(node:33241) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
 info [calm-cli]:     Using CALMHub URL from config file: http://localhost:8080
 info [calmhub-document-loader]:     Configuring CALMHub document loader with base URL: http://localhost:8080
 info [calm-validate]:     Formatting output as pretty
 Summary
 - Errors: no (0)
-- Warnings: no (0)
+- Warnings: yes (1)
 - Info/Hints: 0
 
-No issues found.
+WARN  issues:
+- In copilot-discovered-calm-architecture.json (/Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json):
+  WARN  architecture-nodes-must-be-referenced: Node with ID 'calm-studio-mcp-server' is not referenced by any relationships.
+    path: /nodes/calm-studio-mcp-server/unique-id
+    at line 101, col 26 (/Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
+    101 |             "unique-id": "calm-studio-mcp-server",
+        |                          ^^^^^^^^^^^^^^^^^^^^^^^^
 ```
 This shows the generated architecture JSON complies with the CALM Schema.
 
@@ -466,7 +481,7 @@ As noted earlier, the discovered architecture may have inaccuracies.  The archit
 To illustrate this process, let's assume the architect has this image in his or her mind that the discovered architecture should represent. 
 
 <figure>
-  <img src="/img/correct-architecture-representation.png" alt="Assumed Correct Architecture Reprsentation"/>
+  <img src="/img/desired-architecture-representation.png" alt="Desired Architecture Representation"/>
   <figcaption><strong>Desired Architecture Representation</strong></figcaption>
 </figure>
 
@@ -474,7 +489,7 @@ To illustrate this process, let's assume the architect has this image in his or 
 when we compare this to the <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.json" target="_blank">actual discovered architecture representation</a>,
 
 <figure>
-  <img src="/img/initial-discovered-architecture-representation.png" alt="Assumed Correct Architecture Reprsentation" />
+  <img src="/img/initial-discovered-architecture-representation.png" alt="Assumed Correct Architecture Representation" />
   <figcaption><strong>Initial Discovered Architecture</strong></figcaption>
 </figure>
 
@@ -482,6 +497,7 @@ we make the following observations:
 
 - Accounting for slight differences in names and descriptions, the discovered architecture contains all nodes and relationships that are found in the desired architecture representation.
 - The desired architecture combines several nodes into logical groups, such as the `CALM Hub System`
+- As reported by the `calm validate` output, there is a node with no relationships.
 - The discovered architecture contains more nodes and relationships than expected.
   - Several of the nodes represent work-in-progress
   - `Keycloak` node is a tool used for testing
@@ -489,9 +505,9 @@ we make the following observations:
 ### Refine the Discovered Architecture
 
 We now use CALM's AI Assistant to help us refine the discovered architecture with the following prompts:
-- `Remove the following nodes and their related relationships: CalmGuard, LLM Providers, Github, CalmStudio MCP Server, CalmStudio Desktop, CALM Validation Server and Keycloak`
-- `Add a system node called "CALM Hub System" and a composed-of relationship with container "CALM Hub Systems" and nodes: CALM Hub UI, CALM Hub Backend, and MongoDB.`
-- `Add a service node called "Visual Studio Code" and a deployed-in relationship with container "Visual Studio Code" and nodes: VSCode Extension`
+- `Remove the following nodes and their related relationships: Calm Guard, OpenAI GPT, Github API, Anthropic Claude, CalmStudio, Calm Studio, CALM Studio MCP Server, CALM Server and Keycloak`
+- `Add a system node called "CALM Hub System" and a composed-of relationship with container "CALM Hub Systems" and nodes: CALM Hub UI, CALM Hub, and MongoDB.`
+- `Add a service node called "Visual Studio Code" and a deployed-in relationship with container "Visual Studio Code" and nodes: CALM VS Code Extension`
 
 With these three simple prompts to CALM AI Assistant, we are able to refine the discovered architecture to its <a href="/calm-discovered-artifacts/refined-discovered-calm-architecture.json" target="_blank">desired representation</a>.
 
@@ -499,6 +515,23 @@ With these three simple prompts to CALM AI Assistant, we are able to refine the 
   <img src="/img/refined-discovered-architecture-representation.png" alt="Desired Architecture Representation" />
   <figcaption><strong>Refined Architecture Representation</strong></figcaption>
 </figure>
+
+The architecture validation reports no errors or warnings.
+
+```
+$ calm validate -a sandbox/refined-discovered-calm-architecture.json -f pretty
+(node:66947) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+info [calm-cli]:     Using CALMHub URL from config file: http://localhost:8080
+info [calmhub-document-loader]:     Configuring CALMHub document loader with base URL: http://localhost:8080
+info [calm-validate]:     Formatting output as pretty
+Summary
+- Errors: no (0)
+- Warnings: no (0)
+- Info/Hints: 0
+
+No issues found.
+```
 
 ### Additional Review and Refinement
 
@@ -567,6 +600,10 @@ The above are only suggestions.  The architect should feel free to modify any pa
 
 ## Observed Peculiarities
 
+### Multiple discovery runs
+
+The
+
 ### CALM Tool Preview Fails
 
 If the discovery skill creates a node name with parenthesis, this will cause the CALM Tools Preview function to generate an error.
@@ -574,6 +611,14 @@ If the discovery skill creates a node name with parenthesis, this will cause the
 
 The fix for that is to edit the CALM architecture JSON and remove the parenthesis from the node `name` property.
 ![](./images/calm-preview-error-fixed.png)
+
+### Continue Execution Message (ADD Content)
+
+
+### Write to /dev/null (ADD Content)
+)
+
+### Fetch local Gitub Copilot Chat Cache (ADD Content)
 
 
 ## Key Takeaways
