@@ -1,0 +1,209 @@
+{
+  "nodes": [
+    {
+      "unique-id": "user",
+      "node-type": "actor",
+      "name": "End User",
+      "description": "Human interacting with the multi-agent application"
+    },
+    {
+      "unique-id": "web-app",
+      "node-type": "webclient",
+      "name": "Web Application",
+      "description": "Browser-based front-end serving the agentic experience"
+    },
+    {
+      "unique-id": "api-gateway",
+      "node-type": "ai:api-gateway",
+      "name": "Agent Gateway",
+      "description": "Entry point for all agentic requests; auth, rate limiting, request routing"
+    },
+    {
+      "unique-id": "input-guardrail",
+      "node-type": "ai:guardrail",
+      "name": "Input Guardrail",
+      "description": "Validates and filters incoming user prompts before they reach the orchestrator"
+    },
+    {
+      "unique-id": "orchestrator",
+      "node-type": "ai:orchestrator",
+      "name": "Agent Orchestrator",
+      "description": "Coordinates the trader and risk agents, enforces task hand-off semantics"
+    },
+    {
+      "unique-id": "trader-agent",
+      "node-type": "ai:agent",
+      "name": "Trader Agent",
+      "description": "Autonomous agent that proposes trades using market data and tools"
+    },
+    {
+      "unique-id": "risk-agent",
+      "node-type": "ai:agent",
+      "name": "Risk Agent",
+      "description": "Autonomous agent that evaluates proposed trades against risk policy"
+    },
+    {
+      "unique-id": "vector-store",
+      "node-type": "ai:vector-store",
+      "name": "Vector Store",
+      "description": "Embedding-indexed retrieval store for semantic search over historical trades"
+    },
+    {
+      "unique-id": "knowledge-base",
+      "node-type": "ai:knowledge-base",
+      "name": "Risk Policy Knowledge Base",
+      "description": "Structured policy documents, regulatory rules, and trading limits"
+    },
+    {
+      "unique-id": "inference-llm",
+      "node-type": "ai:llm",
+      "name": "Inference LLM",
+      "description": "Foundation model serving completions for the agent layer"
+    },
+    {
+      "unique-id": "embedding-model",
+      "node-type": "ai:embedding-model",
+      "name": "Embedding Model",
+      "description": "Generates vectors for semantic indexing and retrieval"
+    },
+    {
+      "unique-id": "mcp-tools",
+      "node-type": "ai:mcp-server",
+      "name": "MCP Tool Server",
+      "description": "Model Context Protocol server exposing trade execution and market data tools"
+    },
+    {
+      "unique-id": "execution-tool",
+      "node-type": "ai:tool",
+      "name": "Execution Tool",
+      "description": "External callable that places orders against an execution venue"
+    },
+    {
+      "unique-id": "eval-monitor",
+      "node-type": "ai:eval-monitor",
+      "name": "Evaluation Monitor",
+      "description": "Continuously scores agent outputs against quality and safety metrics"
+    },
+    {
+      "unique-id": "observability",
+      "node-type": "ai:observability",
+      "name": "Observability Plane",
+      "description": "Telemetry, tracing, and metrics collection for the entire agentic stack"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "user-to-web",
+      "relationship-type": "interacts",
+      "source": "user",
+      "destination": "web-app",
+      "description": "User opens the web application"
+    },
+    {
+      "unique-id": "web-to-gateway",
+      "relationship-type": "connects",
+      "source": "web-app",
+      "destination": "api-gateway",
+      "protocol": "HTTPS",
+      "description": "Browser issues authenticated requests to the agent gateway"
+    },
+    {
+      "unique-id": "gateway-to-guardrail",
+      "relationship-type": "interacts",
+      "source": "api-gateway",
+      "destination": "input-guardrail",
+      "description": "Inbound prompts pass through input validation"
+    },
+    {
+      "unique-id": "guardrail-to-orchestrator",
+      "relationship-type": "interacts",
+      "source": "input-guardrail",
+      "destination": "orchestrator",
+      "description": "Validated prompts are dispatched to the orchestrator"
+    },
+    {
+      "unique-id": "orchestrator-to-trader",
+      "relationship-type": "interacts",
+      "source": "orchestrator",
+      "destination": "trader-agent",
+      "description": "Orchestrator delegates trade proposal tasks to the trader agent"
+    },
+    {
+      "unique-id": "orchestrator-to-risk",
+      "relationship-type": "interacts",
+      "source": "orchestrator",
+      "destination": "risk-agent",
+      "description": "Orchestrator delegates risk evaluation tasks to the risk agent"
+    },
+    {
+      "unique-id": "trader-to-llm",
+      "relationship-type": "interacts",
+      "source": "trader-agent",
+      "destination": "inference-llm",
+      "description": "Trader agent calls the LLM for reasoning and tool selection"
+    },
+    {
+      "unique-id": "trader-to-vector-store",
+      "relationship-type": "interacts",
+      "source": "trader-agent",
+      "destination": "vector-store",
+      "description": "Trader agent retrieves comparable historical trades via semantic search"
+    },
+    {
+      "unique-id": "trader-to-mcp",
+      "relationship-type": "interacts",
+      "source": "trader-agent",
+      "destination": "mcp-tools",
+      "description": "Trader agent invokes execution-side tools via MCP"
+    },
+    {
+      "unique-id": "risk-to-llm",
+      "relationship-type": "interacts",
+      "source": "risk-agent",
+      "destination": "inference-llm",
+      "description": "Risk agent uses the LLM to reason over policy text"
+    },
+    {
+      "unique-id": "risk-to-knowledge",
+      "relationship-type": "interacts",
+      "source": "risk-agent",
+      "destination": "knowledge-base",
+      "description": "Risk agent looks up policy rules in the structured knowledge base"
+    },
+    {
+      "unique-id": "vector-to-embedding",
+      "relationship-type": "interacts",
+      "source": "vector-store",
+      "destination": "embedding-model",
+      "description": "Vector store generates embeddings for inbound documents on the fly"
+    },
+    {
+      "unique-id": "mcp-to-tool",
+      "relationship-type": "composed-of",
+      "source": "mcp-tools",
+      "destination": "execution-tool",
+      "description": "MCP server exposes the execution tool to authorised agents"
+    },
+    {
+      "unique-id": "orchestrator-to-eval",
+      "relationship-type": "interacts",
+      "source": "orchestrator",
+      "destination": "eval-monitor",
+      "description": "Orchestrator emits run summaries to the evaluation monitor"
+    },
+    {
+      "unique-id": "orchestrator-to-observability",
+      "relationship-type": "interacts",
+      "source": "orchestrator",
+      "destination": "observability",
+      "description": "Orchestrator emits traces and metrics for the run"
+    },
+    {
+      "unique-id": "llm-to-observability",
+      "relationship-type": "interacts",
+      "source": "inference-llm",
+      "destination": "observability",
+      "description": "LLM emits inference latency and token-cost metrics"
+    }
+  ]
+}

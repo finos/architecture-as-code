@@ -28,6 +28,11 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Guides',
+      items: ['guides/convert-arb-to-calm'],
+    },
+    {
+      type: 'category',
       label: 'Developer Guide',
       items: [
         'developer-guide/extension-packs',
