@@ -20,6 +20,9 @@ final class McpValidationHelper {
     static final String MCP_DISABLED_MESSAGE =
             "Error: MCP tools are currently disabled. Set the environment variable CALM_MCP_ENABLED=true to enable.";
 
+    static final String MCP_MUTATIONS_DISABLED_MESSAGE =
+            "Error: Mutation operations are not permitted. Set allow.put.operations=true to enable write operations.";
+
     static final int MAX_NAME_LENGTH = 200;
 
     private static final int MAX_DESCRIPTION_LENGTH = 1024;
@@ -38,6 +41,10 @@ final class McpValidationHelper {
 
     static String checkEnabled(boolean mcpEnabled) {
         return mcpEnabled ? null : MCP_DISABLED_MESSAGE;
+    }
+
+    static String checkMutationAllowed(boolean allowPutOperations) {
+        return allowPutOperations ? null : MCP_MUTATIONS_DISABLED_MESSAGE;
     }
 
     static String validateNamespace(String namespace) {

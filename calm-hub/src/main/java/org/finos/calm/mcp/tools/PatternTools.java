@@ -34,6 +34,10 @@ public class PatternTools {
     boolean mcpEnabled;
 
     @Inject
+    @ConfigProperty(name = "allow.put.operations", defaultValue = "false")
+    boolean allowPutOperations;
+
+    @Inject
     PatternStore patternStore;
 
     @Tool(description = "List all patterns in a CalmHub namespace. Returns pattern IDs, names, and descriptions.")
@@ -143,6 +147,7 @@ public class PatternTools {
                 () -> McpValidationHelper.validateMaxLength(name, 200, "Pattern name"),
                 () -> McpValidationHelper.validateDescriptionLength(description, "Pattern description"),
                 () -> McpValidationHelper.validateNotBlank(patternJson, "Pattern JSON"),
+                () -> McpValidationHelper.validateMaxLength(patternJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Pattern JSON"),
                 () -> McpValidationHelper.validateJson(patternJson, "Pattern JSON"));
         if (err.isPresent()) return err.get();
 
@@ -169,6 +174,7 @@ public class PatternTools {
                 () -> McpValidationHelper.validatePositiveId(patternId, "Pattern ID"),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(patternJson, "Pattern JSON"),
+                () -> McpValidationHelper.validateMaxLength(patternJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Pattern JSON"),
                 () -> McpValidationHelper.validateJson(patternJson, "Pattern JSON"));
         if (err.isPresent()) return err.get();
 
@@ -202,10 +208,12 @@ public class PatternTools {
             @ToolArg(description = "The updated CALM pattern JSON content") String patternJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.checkMutationAllowed(allowPutOperations),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> McpValidationHelper.validatePositiveId(patternId, "Pattern ID"),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(patternJson, "Pattern JSON"),
+                () -> McpValidationHelper.validateMaxLength(patternJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Pattern JSON"),
                 () -> McpValidationHelper.validateJson(patternJson, "Pattern JSON"));
         if (err.isPresent()) return err.get();
 

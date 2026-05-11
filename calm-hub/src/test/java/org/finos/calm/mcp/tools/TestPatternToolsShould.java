@@ -41,6 +41,7 @@ class TestPatternToolsShould {
     @BeforeEach
     void setup() {
         patternTools.mcpEnabled = true;
+        patternTools.allowPutOperations = true;
     }
 
     private static String text(ToolResponse r) {
@@ -294,6 +295,16 @@ class TestPatternToolsShould {
         verifyNoInteractions(patternStore);
     }
 
+    @Test
+    void reject_oversized_json_for_create_pattern() {
+        String hugeJson = "{\"x\":\"" + "a".repeat(100_001) + "\"}";
+        ToolResponse result = patternTools.createPattern("workshop", "name", "desc", hugeJson);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Pattern JSON"));
+        verifyNoInteractions(patternStore);
+    }
+
     // --- createPatternVersion ---
 
     @Test
@@ -376,6 +387,16 @@ class TestPatternToolsShould {
         verifyNoInteractions(patternStore);
     }
 
+    @Test
+    void reject_oversized_json_for_create_pattern_version() {
+        String hugeJson = "{\"x\":\"" + "a".repeat(100_001) + "\"}";
+        ToolResponse result = patternTools.createPatternVersion("workshop", 1, "1.1.0", hugeJson);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Pattern JSON"));
+        verifyNoInteractions(patternStore);
+    }
+
     // --- updatePattern ---
 
     @Test
@@ -447,6 +468,27 @@ class TestPatternToolsShould {
 
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("Invalid"));
+        verifyNoInteractions(patternStore);
+    }
+
+    @Test
+    void return_error_when_mutations_disabled_for_update_pattern() {
+        patternTools.allowPutOperations = false;
+
+        ToolResponse result = patternTools.updatePattern("workshop", 1, "1.0.0", "{}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Mutation"));
+        verifyNoInteractions(patternStore);
+    }
+
+    @Test
+    void reject_oversized_json_for_update_pattern() {
+        String hugeJson = "{\"x\":\"" + "a".repeat(100_001) + "\"}";
+        ToolResponse result = patternTools.updatePattern("workshop", 1, "1.0.0", hugeJson);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Pattern JSON"));
         verifyNoInteractions(patternStore);
     }
 

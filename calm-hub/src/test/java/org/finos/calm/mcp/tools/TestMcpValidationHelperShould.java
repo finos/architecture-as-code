@@ -123,6 +123,20 @@ class TestMcpValidationHelperShould {
         assertThat(result, containsString("CALM_MCP_ENABLED"));
     }
 
+    // --- checkMutationAllowed ---
+
+    @Test
+    void return_null_when_mutations_are_allowed() {
+        assertThat(McpValidationHelper.checkMutationAllowed(true), is(nullValue()));
+    }
+
+    @Test
+    void return_error_when_mutations_are_disabled() {
+        String result = McpValidationHelper.checkMutationAllowed(false);
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("allow.put.operations"));
+    }
+
     // --- validatePositiveId ---
 
     @Test
