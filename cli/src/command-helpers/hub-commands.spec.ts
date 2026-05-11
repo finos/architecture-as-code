@@ -76,10 +76,16 @@ describe('hub-commands', () => {
             expect(url).toBe('http://from-config.example.com');
         });
 
-        it('exits when no hub URL is available', async () => {
+        it('throws when no hub URL is available', async () => {
             const { resolveHubUrl } = await import('./hub-commands');
-            await expect(resolveHubUrl({})).rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalled();
+            await expect(resolveHubUrl({})).rejects.toMatchObject({
+                name: 'HubCommandError',
+                status: 0,
+                error: 'No CALM Hub URL provided. Use --calm-hub-url or set calmHubUrl in ~/.calm.json',
+                request: 'resolve hub URL'
+            });
+            expect(hubOutput.printError).not.toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
         });
     });
 
@@ -266,6 +272,18 @@ describe('hub-commands', () => {
     // ── runListArchitectures ───────────────────────────────────────────────
 
     describe('runListArchitectures', () => {
+        it('prints pretty error when no hub URL is available and format is pretty', async () => {
+            const { runListArchitectures } = await import('./hub-commands');
+            await expect(runListArchitectures({ namespace: 'finos', format: 'pretty' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                'No CALM Hub URL provided. Use --calm-hub-url or set calmHubUrl in ~/.calm.json',
+                'resolve hub URL',
+                'pretty'
+            );
+        });
+
         it('prints JSON array of architectures', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.listArchitectures).mockResolvedValue([
@@ -321,6 +339,17 @@ describe('hub-commands', () => {
     // ── runListNamespaces ──────────────────────────────────────────────────
 
     describe('runListNamespaces', () => {
+        it('prints JSON error when no hub URL is available by default', async () => {
+            const { runListNamespaces } = await import('./hub-commands');
+            await expect(runListNamespaces({})).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                'No CALM Hub URL provided. Use --calm-hub-url or set calmHubUrl in ~/.calm.json',
+                'resolve hub URL',
+                'json'
+            );
+        });
+
         it('prints JSON list of namespaces', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.listNamespaces).mockResolvedValue([
