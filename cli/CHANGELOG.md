@@ -5,6 +5,47 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.41.0] - 2026-05-11
+
+## [1.41.0](https://github.com/finos/architecture-as-code/compare/cli-v1.40.0...cli-v1.41.0) (2026-05-11)
+
+* Merge branch 'main' into feat/input-validation ([](https://github.com/finos/architecture-as-code/commit/410b01794ccb5fb585352477bc9f1d16d8abd89f))
+* Merge branch 'main' into feat/input-validation ([](https://github.com/finos/architecture-as-code/commit/d44e25cc2456bfe929705d820258a600ae5160e9))
+* Merge remote-tracking branch 'origin/main' into chore/calm-suite-merge-docs-into-main ([](https://github.com/finos/architecture-as-code/commit/90282874b06afb49dd7d60ff08a45170c0c115c3))
+
+### chore
+
+* **calm-studio:** allow Vite to serve workspace deps for e2e ([](https://github.com/finos/architecture-as-code/commit/4c9538b3c639d00b699f49a28040b1685c37e1b6))
+* **calm-studio:** use npm run dev in playwright webServer ([](https://github.com/finos/architecture-as-code/commit/dce67cdf3686c2996d94909c1e505f5247c2d85d))
+* **calm-suite:** migrate calm-studio to npm workspaces ([](https://github.com/finos/architecture-as-code/commit/d4465224cf10009894d903a8d8bf886494c0ff2f)), closes [#2407](https://github.com/finos/architecture-as-code/issues/2407) [#2407](https://github.com/finos/architecture-as-code/issues/2407) [#2328](https://github.com/finos/architecture-as-code/issues/2328)
+* **calm-suite:** remove docs-site workspace after merge ([](https://github.com/finos/architecture-as-code/commit/6785a2e72719ba80b596865eedc1802f2df7e4d6)), closes [#2408](https://github.com/finos/architecture-as-code/issues/2408) [#2331](https://github.com/finos/architecture-as-code/issues/2331)
+* **deps:** bump fast-uri from 3.1.0 to 3.1.2 in the npm_and_yarn group across 1 directory ([](https://github.com/finos/architecture-as-code/commit/146a02736ec80453a36744ffd76c900690928409))
+* **deps:** bump fast-uri in the npm_and_yarn group across 1 directory ([](https://github.com/finos/architecture-as-code/commit/358527bcbb961871e2dbdf1386c7cc7ffd618f1a))
+* **deps:** update actions/labeler digest to f27b608 ([](https://github.com/finos/architecture-as-code/commit/e7bb3abdf5cdcb7a2304163527b62cb3cafebd57))
+* **deps:** update actions/labeler digest to f27b608 ([](https://github.com/finos/architecture-as-code/commit/257c875a50d83a6a8ac0b2e197016ac6800a4be1))
+* **deps:** update actions/setup-node digest to 48b55a0 ([](https://github.com/finos/architecture-as-code/commit/efffeb01ad5d14b0af7dcd3b06baaf5010614c19))
+* **deps:** update actions/setup-node digest to 48b55a0 ([](https://github.com/finos/architecture-as-code/commit/44e66dd1dfeb37d940521d231afd2c07e1298026))
+* **deps:** update aws-actions/configure-aws-credentials digest to d979d5b ([](https://github.com/finos/architecture-as-code/commit/1b69240ab71bba8d60f4437aac02bd45afe51f78))
+* **deps:** update aws-actions/configure-aws-credentials digest to d979d5b ([](https://github.com/finos/architecture-as-code/commit/0ba9c1bbd38e9ee0be13ebed7200dec698e72687))
+* **deps:** update semgrep/semgrep docker digest to 326e5f4 ([](https://github.com/finos/architecture-as-code/commit/b5b91da1fb420d17fab865f9a63a09ef732d1fe1))
+* **deps:** update semgrep/semgrep docker digest to 326e5f4 ([](https://github.com/finos/architecture-as-code/commit/3b3e2157fdaead7aa50ca52fa013ac14e297ebc9))
+
+### docs
+
+* **calm-suite:** instruct npm usage instead of pnpm in calm-studio docs ([](https://github.com/finos/architecture-as-code/commit/c1b28304204b7587dba91801e309eb021de5782e))
+
+### feat
+
+* **docs:** merge calm-studio docs into main docs site (#2331) ([](https://github.com/finos/architecture-as-code/commit/2b62804b8545a8fde1b85124286c0044db5fb7d5)), closes [#2331](https://github.com/finos/architecture-as-code/issues/2331)
+* **docs:** merge calm-studio docs into main docs site (#2331) ([](https://github.com/finos/architecture-as-code/commit/43a9f82bde9f513e9786cc0fa91d08e7da860519)), closes [#2331](https://github.com/finos/architecture-as-code/issues/2331)
+* **shared:** refine error message ([](https://github.com/finos/architecture-as-code/commit/549912908286bf143733998b04903ca0fd1d9b7e))
+* **shared:** validate response data is JSON object ([](https://github.com/finos/architecture-as-code/commit/43c04b36744eb5641cfbbaa27f812f4e43f76d2b))
+* **shared:** validate response data is JSON object ([](https://github.com/finos/architecture-as-code/commit/ab9606c3cce828dfea18f2b9eadd18a4b7ec583a))
+
+### test
+
+* **shared:** pin new response-type tests to DocumentLoadError ([](https://github.com/finos/architecture-as-code/commit/bfe8cb81040880f1ea4169641f114033f6972657))
+
 ## [1.40.0] - 2026-05-08
 
 ### Changed
