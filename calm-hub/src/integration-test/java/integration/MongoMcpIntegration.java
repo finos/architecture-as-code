@@ -577,4 +577,157 @@ public class MongoMcpIntegration {
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("not found"));
     }
+
+    @Test
+    @Order(48)
+    void mcp_create_standard() {
+        ToolResponse result = standardTools.createStandard("finos", "MCP Test Standard", "Integration test standard", STANDARD_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+        Matcher matcher = ID_PATTERN.matcher(text(result));
+        assertThat(matcher.find(), is(true));
+        createdStandardId = Integer.parseInt(matcher.group(1));
+        logger.info("Created standard with ID: {}", createdStandardId);
+    }
+
+    @Test
+    @Order(49)
+    void mcp_list_standards_contains_created() {
+        ToolResponse result = standardTools.listStandards("finos");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("MCP Test Standard"));
+    }
+
+    @Test
+    @Order(50)
+    void mcp_list_standard_versions() {
+        ToolResponse result = standardTools.listStandardVersions("finos", createdStandardId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+    }
+
+    @Test
+    @Order(51)
+    void mcp_get_standard() {
+        ToolResponse result = standardTools.getStandard("finos", createdStandardId, "1.0.0");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("mcp-test-standard"));
+    }
+
+    @Test
+    @Order(52)
+    void mcp_create_standard_new_version() {
+        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{"name": "mcp-test-standard-v2"}");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(53)
+    void mcp_standard_version_preserves_name() {
+        ToolResponse result = standardTools.listStandards("finos");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("MCP Test Standard"));
+    }
+
+    @Test
+    @Order(54)
+    void mcp_list_standard_versions_after_new_version() {
+        ToolResponse result = standardTools.listStandardVersions("finos", createdStandardId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(55)
+    void mcp_create_duplicate_standard_version_returns_error() {
+        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{"name": "duplicate"}");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("already exists"));
+    }
+
+    @Test
+    @Order(56)
+    void mcp_list_standards_for_nonexistent_namespace_returns_error() {
+        ToolResponse result = standardTools.listStandards("nonexistent");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    @Order(57)
+    void mcp_create_adr() {
+        ToolResponse result = adrTools.createAdr("finos", ADR_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+        Matcher matcher = ID_PATTERN.matcher(text(result));
+        assertThat(matcher.find(), is(true));
+        createdAdrId = Integer.parseInt(matcher.group(1));
+        logger.info("Created ADR with ID: {}", createdAdrId);
+    }
+
+    @Test
+    @Order(58)
+    void mcp_list_adrs_contains_created() {
+        ToolResponse result = adrTools.listAdrs("finos");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("Use MongoDB for persistence"));
+    }
+
+    @Test
+    @Order(59)
+    void mcp_get_adr() {
+        ToolResponse result = adrTools.getAdr("finos", createdAdrId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("MongoDB"));
+    }
+
+    @Test
+    @Order(60)
+    void mcp_list_adr_revisions() {
+        ToolResponse result = adrTools.listAdrRevisions("finos", createdAdrId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1"));
+    }
+
+    @Test
+    @Order(61)
+    void mcp_get_adr_revision() {
+        ToolResponse result = adrTools.getAdrRevision("finos", createdAdrId, 1);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("MongoDB"));
+    }
+
+    @Test
+    @Order(62)
+    void mcp_update_adr_creates_new_revision() {
+        ToolResponse result = adrTools.updateAdr("finos", createdAdrId, ADR_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("revision 2"));
+    }
+
+    @Test
+    @Order(63)
+    void mcp_list_adr_revisions_after_update() {
+        ToolResponse result = adrTools.listAdrRevisions("finos", createdAdrId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("2"));
+    }
+
+    @Test
+    @Order(64)
+    void mcp_update_adr_status() {
+        ToolResponse result = adrTools.updateAdrStatus("finos", createdAdrId, "accepted");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("accepted"));
+    }
+
+    @Test
+    @Order(65)
+    void mcp_list_adrs_for_nonexistent_namespace_returns_error() {
+        ToolResponse result = adrTools.listAdrs("nonexistent");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
 }
