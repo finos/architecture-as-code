@@ -1,6 +1,6 @@
 # CalmStudio
 
-Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, pnpm monorepo.
+Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, npm workspaces monorepo.
 
 ## Structure
 - `packages/calm-core/` — CALM types, validation
@@ -10,7 +10,7 @@ Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, pnpm m
 - `apps/studio/src/lib/` — canvas, editor, io, layout, palette, properties, stores, validation, governance, templates
 
 ## Commands
-`pnpm dev` | `pnpm build` | `pnpm test` | `pnpm typecheck` | `pnpm lint`
+`npm run dev --workspace=@calmstudio/studio` | `npm run build --workspace=@calmstudio/studio` | `npm run test --workspace=@calmstudio/studio` | `npm run typecheck --workspace=@calmstudio/studio` (from repo root)
 
 ## CALM 1.2 Rules
 
