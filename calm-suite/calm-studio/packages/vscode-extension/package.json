@@ -56,7 +56,7 @@
     "package": "vsce package --no-dependencies"
   },
   "dependencies": {
-    "@calmstudio/mcp": "workspace:*"
+    "@calmstudio/mcp": "file:../mcp-server"
   },
   "devDependencies": {
     "@types/vscode": "^1.99.0",

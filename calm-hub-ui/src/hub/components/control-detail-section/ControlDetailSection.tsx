@@ -99,8 +99,8 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
             <div className="flex-1 min-h-0 bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
                 {/* Requirement breadcrumb header */}
                 <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
-                    <h2 className="text-sm font-bold flex items-center gap-2 text-blue-700">
-                        <IoShieldCheckmarkOutline className="text-blue-700" />
+                    <h2 className="text-sm font-bold flex items-center gap-2 text-primary">
+                        <IoShieldCheckmarkOutline className="text-primary" />
                         <span>{controlData.controlName}</span>
                         <span className="text-gray-400">/</span>
                         <span>Requirement</span>
@@ -115,14 +115,14 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                     <div role="tablist" className="tabs tabs-boxed tabs-xs bg-base-100">
                         <button
                             role="tab"
-                            className={`tab ${reqViewMode === 'readable' ? 'tab-active !bg-blue-700 !text-white' : ''}`}
+                            className={`tab ${reqViewMode === 'readable' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
                             onClick={() => setReqViewMode('readable')}
                         >
                             Readable
                         </button>
                         <button
                             role="tab"
-                            className={`tab ${reqViewMode === 'raw' ? 'tab-active !bg-blue-700 !text-white' : ''}`}
+                            className={`tab ${reqViewMode === 'raw' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
                             onClick={() => setReqViewMode('raw')}
                         >
                             Raw JSON
@@ -138,7 +138,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                                 <button
                                     key={v}
                                     role="tab"
-                                    className={`tab gap-1 rounded-lg ${selectedReqVersion === v ? 'tab-active !bg-blue-700 !text-white' : ''}`}
+                                    className={`tab gap-1 rounded-lg ${selectedReqVersion === v ? 'tab-active !bg-primary !text-primary-content' : ''}`}
                                     onClick={() => handleReqVersionClick(v)}
                                 >
                                     {v}
@@ -185,14 +185,14 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                     <div role="tablist" className="tabs tabs-boxed tabs-xs bg-base-100">
                         <button
                             role="tab"
-                            className={`tab ${cfgViewMode === 'readable' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            className={`tab ${cfgViewMode === 'readable' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
                             onClick={() => setCfgViewMode('readable')}
                         >
                             Readable
                         </button>
                         <button
                             role="tab"
-                            className={`tab ${cfgViewMode === 'raw' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            className={`tab ${cfgViewMode === 'raw' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
                             onClick={() => setCfgViewMode('raw')}
                         >
                             Raw JSON
@@ -208,7 +208,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                             <button
                                 key={cid}
                                 role="tab"
-                                className={`tab gap-1 rounded-lg ${selectedConfigId === cid ? 'tab-active !bg-accent !text-white' : ''}`}
+                                className={`tab gap-1 rounded-lg ${selectedConfigId === cid ? 'tab-active !bg-primary !text-primary-content' : ''}`}
                                 onClick={() => handleConfigClick(cid)}
                             >
                                 Config {cid}
@@ -225,7 +225,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                                     <button
                                         key={v}
                                         role="tab"
-                                        className={`tab gap-1 rounded-lg ${selectedConfigVersion === v ? 'tab-active !bg-accent !text-white' : ''}`}
+                                        className={`tab gap-1 rounded-lg ${selectedConfigVersion === v ? 'tab-active !bg-primary !text-primary-content' : ''}`}
                                         onClick={() => handleConfigVersionClick(v)}
                                     >
                                         {v}

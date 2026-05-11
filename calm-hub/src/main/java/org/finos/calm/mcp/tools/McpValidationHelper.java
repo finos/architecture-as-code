@@ -20,7 +20,17 @@ final class McpValidationHelper {
     static final String MCP_DISABLED_MESSAGE =
             "Error: MCP tools are currently disabled. Set the environment variable CALM_MCP_ENABLED=true to enable.";
 
+    static final int MAX_NAME_LENGTH = 200;
+
     private static final int MAX_DESCRIPTION_LENGTH = 1024;
+
+    /**
+     * Default upper bound for JSON payloads accepted by MCP create tools.
+     * Sized for typical CALM control / decorator / architecture documents
+     * while preventing an authenticated client from storing unbounded blobs.
+     */
+    static final int MAX_JSON_PAYLOAD_LENGTH = 100_000;
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private McpValidationHelper() {
