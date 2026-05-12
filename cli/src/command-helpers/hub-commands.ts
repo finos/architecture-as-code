@@ -87,6 +87,12 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
                 process.exit(1);
             }
 
+            const parsedId = parseInt(options.id, 10);
+            if (!Number.isFinite(parsedId)) {
+                printError(0, '--id must be a valid integer', 'push architecture', format);
+                process.exit(1);
+            }
+
             let resolvedName = options.name;
             let resolvedDescription = options.description;
 
@@ -97,7 +103,7 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
                 } catch (err) {
                     handleHubError(err, format);
                 }
-                const existing = architectures.find(a => a.id === parseInt(options.id!, 10));
+                const existing = architectures.find(a => a.id === parsedId);
                 if (!existing) {
                     printError(0, `Architecture with id ${options.id} not found in namespace ${options.namespace}`, 'push architecture', format);
                     process.exit(1);
@@ -108,7 +114,7 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
 
             result = await client.pushArchitectureVersion(
                 options.namespace,
-                parseInt(options.id, 10),
+                parsedId,
                 options.version,
                 resolvedName,
                 resolvedDescription,
@@ -160,8 +166,14 @@ export async function runPullArchitecture(options: PullArchitectureOptions): Pro
     }
     const client = new CalmHubClient(hubUrl);
 
+    const parsedId = parseInt(options.id, 10);
+    if (!Number.isFinite(parsedId)) {
+        printError(0, '--id must be a valid integer', 'pull architecture', 'json');
+        process.exit(1);
+    }
+
     try {
-        const result = await client.pullArchitecture(options.namespace, parseInt(options.id, 10), options.version);
+        const result = await client.pullArchitecture(options.namespace, parsedId, options.version);
         const pretty = JSON.stringify(result, null, 2);
 
         if (options.output) {

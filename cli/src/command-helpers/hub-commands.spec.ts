@@ -143,6 +143,25 @@ describe('hub-commands', () => {
             expect(hubOutput.printError).toHaveBeenCalled();
         });
 
+        it('exits with error when --id is not a valid integer', async () => {
+            const { runPushArchitecture } = await import('./hub-commands');
+            await expect(runPushArchitecture({
+                calmHubUrl: 'http://hub',
+                namespace: 'finos',
+                name: 'my-arch',
+                description: 'desc',
+                file: 'arch.json',
+                id: 'abc',
+                version: '1.0.0'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                '--id must be a valid integer',
+                'push architecture',
+                expect.any(String)
+            );
+        });
+
         it('exits with error when --name is missing and no --id is provided', async () => {
             const { runPushArchitecture } = await import('./hub-commands');
             await expect(runPushArchitecture({
@@ -291,6 +310,18 @@ describe('hub-commands', () => {
             await expect(runPullArchitecture({ calmHubUrl: 'http://hub', namespace: 'finos', id: '99', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Not found', expect.any(String), 'json');
+        });
+
+        it('exits with error when --id is not a valid integer', async () => {
+            const { runPullArchitecture } = await import('./hub-commands');
+            await expect(runPullArchitecture({ calmHubUrl: 'http://hub', namespace: 'finos', id: 'not-a-number', version: '1.0.0' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                '--id must be a valid integer',
+                'pull architecture',
+                'json'
+            );
         });
     });
 
