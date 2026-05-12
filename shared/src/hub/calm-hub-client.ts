@@ -12,15 +12,6 @@ export interface HubArchitectureSummary {
     versions: string[];
 }
 
-export interface HubArchitectureDetail {
-    namespace: string;
-    id: number;
-    name: string;
-    description?: string;
-    version: string;
-    architecture: string;
-}
-
 export interface HubCreateResult {
     id: number;
     version?: string;
