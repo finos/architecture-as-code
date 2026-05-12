@@ -1,4 +1,4 @@
-import { initLogger, Logger } from "@finos/calm-shared";
+import { initLogger, Logger } from "../logger";
 import { AuthPlugin } from "./auth-plugin";
 
 export class NoAuthPlugin implements AuthPlugin {
