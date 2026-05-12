@@ -78,7 +78,7 @@ If there is code that references, through an api call, an external service for a
 
 ## IMPORTANT NOTES
 - DO NOT rely on documentation or comments as primary evidence for identifying nodes and relationships.  They can be out of date or inaccurate.  Examples include `README.md`, `ARCHITECTURE.md`, code comments, and even architecture diagrams.  Instead, focus on executable code and configuration that indicates the presence of nodes and relationships.
-- When identifying nodes and relationship, make sure to the node or relationship is actively used in executable code and not inferred by a reference in a comment or existence of an unused constant or variable.
+- When identifying nodes and relationship, make sure the node or relationship is actively used in executable code and not inferred by a reference in a comment or existence of an unused constant or variable.
 - A node should be identified as a distinct architectural component only if there is evidence of it being a separate deployable unit, runtime process, command line, or external system.  For example, two services defined in the same codebase but running as separate processes would be two nodes, while two classes in the same service would not.
 - DO NOT define `composed-of` and `deployed-in` relationships.  Focus on `connects` and `interacts` relationships that indicate actual communication or interaction patterns between nodes.
 - For relationships, DO NOT capture protocols, this has been deprecated.

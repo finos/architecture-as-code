@@ -26,7 +26,7 @@ A pre-requisite is to setup up the CALM AI Assistant support.  See [here](../../
 
 Click here to copy the <a href="/calm-skills/architecture-discovery-skill.md" target="_blank">architecture discovery skill</a> to the clipboard. Follow instructions in the next part for your specific CALM AI Assistant on where to save the skill definition in the clipboard.
 
-Click on the tab for you CALM AI Assistant.
+Click on the tab for your CALM AI Assistant.
 
 <Tabs>
   <TabItem value="copilot" label="Copilot" default>
@@ -37,7 +37,7 @@ Click on the tab for you CALM AI Assistant.
 
 2. Create a file `.github/skills/calm-architecture-discovery/SKILL.md`
 
-3. Paste copied skill definition from clipboard into `Skill.md` and save the file.
+3. Paste copied skill definition from clipboard into `SKILL.md` and save the file.
 
 4. Restart VSCode.
 
@@ -52,7 +52,7 @@ For additional information see [VSCode Agent Skills](https://code.visualstudio.c
 
 2. Create a file `.kiro/skills/calm-architecture-discovery/SKILL.md`
 
-3. Paste copied skill definition from clipboard into `Skill.md` and save the file.
+3. Paste copied skill definition from clipboard into `SKILL.md` and save the file.
 
 4. Restart KIRO.
 
@@ -67,7 +67,7 @@ For additional information see [KIRO Agent Skills](https://kiro.dev/docs/skills/
 
 2. Create a file `.claude/skills/calm-architecture-discovery/SKILL.md`
 
-3. Paste copied skill definition from clipboard into `Skill.md` and save the file.
+3. Paste copied skill definition from clipboard into `SKILL.md` and save the file.
 
 
 For additional information see [Claude Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview).
@@ -81,7 +81,7 @@ For additional information see [Claude Agent Skills](https://platform.claude.com
 
 2. Create a file `.agents/skills/calm-architecture-discovery/SKILL.md`
 
-3. Paste copied skill definition from clipboard into `Skill.md` and save the file.
+3. Paste copied skill definition from clipboard into `SKILL.md` and save the file.
 
 4. If you are using Codex within an IDE, restart the IDE.
 
@@ -90,7 +90,7 @@ For additional information see [Codex Agent Skills](https://developers.openai.co
   </TabItem>
 </Tabs>
 
-After saving `Skill.md` the beginning part of the file should look like this....
+After saving `SKILL.md` the beginning part of the file should look like this....
 
 ![](./images/skill-frontmatter-image.png)
 
@@ -694,7 +694,7 @@ As noted earlier the architect should consider modifying  <a href="/calm-skills/
 ```
 ## IMPORTANT NOTES
 - DO NOT rely on documentation or comments as primary evidence for identifying nodes and relationships.  They can be out of date or inaccurate.  Examples include `README.md`, `ARCHITECTURE.md`, code comments, and even architecture diagrams.  Instead, focus on executable code and configuration that indicates the presence of nodes and relationships.
-- When identifying nodes and relationship, make sure to the node or relationship is actively used in executable code and not inferred by a reference in a comment or existence of an unused constant or variable.
+- When identifying nodes and relationship, make sure the node or relationship is actively used in executable code and not inferred by a reference in a comment or existence of an unused constant or variable.
 - A node should be identified as a distinct architectural component only if there is evidence of it being a separate deployable unit, runtime process, command line, or external system.  For example, two services defined in the same codebase but running as separate processes would be two nodes, while two classes in the same service would not.
 - DO NOT define `composed-of` and `deployed-in` relationships.  Focus on `connects` and `interacts` relationships that indicate actual communication or interaction patterns between nodes.
 - For relationships, DO NOT capture protocols, this has been deprecated.
@@ -738,14 +738,14 @@ Architects should monitor actual runtime behavior in their own environments and 
 
 ### Write to /dev/null
 
-When the CALM AI Assistant (Copilot) is using the skill to discover nodes and relationships, it some times use an OS command like `find` or `cat` with redirection to `/dev/null`.  The AI Assistant will ask for permission because this operation involves writing to a device.
+When the CALM AI Assistant (Copilot) is using the skill to discover nodes and relationships, it sometimes uses an OS command like `find` or `cat` with redirection to `/dev/null`.  The AI Assistant will ask for permission because this operation involves writing to a device.
 
 ![](./images/write-to-dev-null.png)
 
 If this occurs, give it permission because writing to `/dev/null` does not affect repo content.
 
 :::warning
-Whenever the AI Assistant ask permission to do some action, the architect should review carefully what the AI Assistant is requesting and it is safe to perform the action.
+Whenever the AI Assistant asks permission to do some action, the architect should review carefully what the AI Assistant is requesting and whether it is safe to perform the action.
 :::
 
 ### Fetch local Gitub Copilot Chat Cache
@@ -757,7 +757,7 @@ Periodically the CALM AI Assistant (Copilot) may ask to `fetch` content from a V
 This appears to be content generated by the AI Assistant using the discovery skill.  Because this is a local file that is part of the Copilot Chat cache and not an external web site, permission was given to do the `fetch`.
 
 :::warning
-Whenever the AI Assistant ask permission to do some action, the architect should review carefully what the AI Assistant is requesting and it is safe to perform the action.
+Whenever the AI Assistant asks permission to do some action, the architect should review carefully what the AI Assistant is requesting and whether it is safe to perform the action.
 :::
 
 

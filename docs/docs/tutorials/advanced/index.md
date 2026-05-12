@@ -8,6 +8,8 @@ sidebar_position: 1
 
 Advanced tutorials will cover deeper CALM workflows and AI-assisted architecture practices.
 
-## Tutorials
+## What You'll Learn
 
-- [Architecture Discovery Skill](./architecture-discovery-skill-tutorial)
+| Tutorial | What You'll Master |
+|----------|-------------------|
+| [Architecture Discovery Skill](./architecture-discovery-skill-tutorial) | Use CALM AI Assistant with an agent skill to create a CALM architecture from source code. |
