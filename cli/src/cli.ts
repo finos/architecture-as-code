@@ -348,7 +348,7 @@ Validation requires:
         .command('namespace')
         .description('Create a new namespace in CALM Hub')
         .requiredOption(NAME_OPTION, 'Namespace name')
-        .option(DESCRIPTION_OPTION, 'Namespace description')
+        .requiredOption(DESCRIPTION_OPTION, 'Namespace description')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {

@@ -61,10 +61,10 @@ export class CalmHubClient {
 
     // ── Namespaces ───────────────────────────────────────────────────────────
 
-    async createNamespace(name: string, description?: string): Promise<HubNamespaceCreateResult> {
+    async createNamespace(name: string, description: string): Promise<HubNamespaceCreateResult> {
         const endpoint = 'POST /calm/namespaces';
         try {
-            const response = await this.ax.post('/calm/namespaces', { name, description: description ?? '' });
+            const response = await this.ax.post('/calm/namespaces', { name, description });
             const location = (response.headers['location'] as string | undefined) ?? `/calm/namespaces/${name}`;
             return { name, location };
         } catch (err) {

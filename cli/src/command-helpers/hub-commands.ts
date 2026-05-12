@@ -192,7 +192,7 @@ export async function runListArchitectures(options: ListArchitecturesOptions): P
 export interface CreateNamespaceOptions {
     calmHubUrl?: string;
     name: string;
-    description?: string;
+    description: string;
     format?: string;
 }
 

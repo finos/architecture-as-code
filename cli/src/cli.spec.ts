@@ -646,6 +646,7 @@ describe('CLI Commands', () => {
             await program.parseAsync([
                 'node', 'cli.js', 'hub', 'create', 'namespace',
                 '--name', 'my-org',
+                '--description', 'My organisation',
                 '--format', 'pretty',
             ]);
 

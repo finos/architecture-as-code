@@ -29,14 +29,14 @@ describe('CalmHubClient', () => {
         it('falls back to constructed location when header is absent', async () => {
             mock.onPost('/calm/namespaces').reply(201, null, {});
 
-            const result = await client.createNamespace('my-org');
+            const result = await client.createNamespace('my-org', 'My organisation');
             expect(result.location).toBe('/calm/namespaces/my-org');
         });
 
         it('throws HubClientError(409) on conflict', async () => {
             mock.onPost('/calm/namespaces').reply(409, { error: 'Namespace already exists' });
 
-            await expect(client.createNamespace('my-org')).rejects.toMatchObject({
+            await expect(client.createNamespace('my-org', 'My organisation')).rejects.toMatchObject({
                 status: 409,
                 error: 'Namespace already exists',
                 request: 'POST /calm/namespaces'
@@ -46,7 +46,7 @@ describe('CalmHubClient', () => {
         it('throws HubClientError on network failure', async () => {
             mock.onPost('/calm/namespaces').networkError();
 
-            await expect(client.createNamespace('my-org')).rejects.toBeInstanceOf(HubClientError);
+            await expect(client.createNamespace('my-org', 'My organisation')).rejects.toBeInstanceOf(HubClientError);
         });
     });
 
