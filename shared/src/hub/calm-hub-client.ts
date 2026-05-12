@@ -8,6 +8,7 @@ export interface HubNamespaceSummary {
 export interface HubArchitectureSummary {
     id: number;
     name: string;
+    description?: string;
     versions: string[];
 }
 
@@ -109,7 +110,7 @@ export class CalmHubClient {
         namespace: string,
         id: number,
         version: string,
-        name: string | undefined,
+        name: string,
         description: string,
         architectureJson: string
     ): Promise<HubCreateResult> {
@@ -140,7 +141,7 @@ export class CalmHubClient {
                             `/calm/namespaces/${namespace}/architectures/${item.id}/versions`
                         );
                         const versions: string[] = vRes.data?.values ?? [];
-                        return { id: item.id, name: item.name, versions };
+                        return { id: item.id, name: item.name, description: item.description, versions };
                     } catch (err) {
                         throw this.wrapError(err, versionsEndpoint);
                     }

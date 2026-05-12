@@ -122,12 +122,13 @@ describe('hub-commands', () => {
                 calmHubUrl: 'http://hub',
                 namespace: 'finos',
                 name: 'my-arch',
+                description: 'desc',
                 file: 'arch.json',
                 id: '42',
                 version: '2.0.0'
             });
 
-            expect(mockClient.pushArchitectureVersion).toHaveBeenCalledWith('finos', 42, '2.0.0', 'my-arch', '', expect.any(String));
+            expect(mockClient.pushArchitectureVersion).toHaveBeenCalledWith('finos', 42, '2.0.0', 'my-arch', 'desc', expect.any(String));
         });
 
         it('exits with error when --id is given but --version is missing', async () => {
@@ -152,8 +153,27 @@ describe('hub-commands', () => {
             expect(hubOutput.printError).toHaveBeenCalled();
         });
 
-        it('calls pushArchitectureVersion without --name when --id is provided', async () => {
+        it('exits with error when --description is missing and no --id is provided', async () => {
+            const { runPushArchitecture } = await import('./hub-commands');
+            await expect(runPushArchitecture({
+                calmHubUrl: 'http://hub',
+                namespace: 'finos',
+                name: 'my-arch',
+                file: 'arch.json'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                '--description is required when creating a new architecture',
+                'push architecture',
+                expect.any(String)
+            );
+        });
+
+        it('auto-fetches name and description from Hub when --id is provided and they are omitted', async () => {
             const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listArchitectures).mockResolvedValue([
+                { id: 42, name: 'my-arch', description: 'fetched desc', versions: ['1.0.0'] }
+            ]);
             vi.mocked(mockClient.pushArchitectureVersion).mockResolvedValue({
                 id: 42, version: '2.0.0', location: '/calm/namespaces/finos/architectures/42/versions/2.0.0'
             });
@@ -167,7 +187,8 @@ describe('hub-commands', () => {
                 version: '2.0.0'
             });
 
-            expect(mockClient.pushArchitectureVersion).toHaveBeenCalledWith('finos', 42, '2.0.0', undefined, '', expect.any(String));
+            expect(mockClient.listArchitectures).toHaveBeenCalledWith('finos');
+            expect(mockClient.pushArchitectureVersion).toHaveBeenCalledWith('finos', 42, '2.0.0', 'my-arch', 'fetched desc', expect.any(String));
         });
 
         it('exits when file cannot be read', async () => {
@@ -177,6 +198,7 @@ describe('hub-commands', () => {
                 calmHubUrl: 'http://hub',
                 namespace: 'finos',
                 name: 'my-arch',
+                description: 'desc',
                 file: 'missing.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
@@ -189,6 +211,7 @@ describe('hub-commands', () => {
                 calmHubUrl: 'http://hub',
                 namespace: 'finos',
                 name: 'my-arch',
+                description: 'desc',
                 file: 'bad.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
@@ -205,6 +228,7 @@ describe('hub-commands', () => {
                 calmHubUrl: 'http://hub',
                 namespace: 'finos',
                 name: 'my-arch',
+                description: 'desc',
                 file: 'arch.json',
                 format: 'pretty'
             });
@@ -224,6 +248,7 @@ describe('hub-commands', () => {
                 calmHubUrl: 'http://hub',
                 namespace: 'finos',
                 name: 'my-arch',
+                description: 'desc',
                 file: 'arch.json'
             })).rejects.toThrow('process.exit');
 

@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, HubClientError } from '@finos/calm-shared';
+import { CalmHubClient, HubArchitectureSummary, HubClientError } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -50,6 +50,11 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
         process.exit(1);
     }
 
+    if (!options.id && !options.description) {
+        printError(0, '--description is required when creating a new architecture', 'push architecture', format);
+        process.exit(1);
+    }
+
     let hubUrl: string;
     try {
         hubUrl = await resolveHubUrl(options);
@@ -81,19 +86,39 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
                 printError(0, '--version is required when --id is provided', 'push architecture', format);
                 process.exit(1);
             }
+
+            let resolvedName = options.name;
+            let resolvedDescription = options.description;
+
+            if (!resolvedName || resolvedDescription === undefined) {
+                let architectures: HubArchitectureSummary[] = [];
+                try {
+                    architectures = await client.listArchitectures(options.namespace);
+                } catch (err) {
+                    handleHubError(err, format);
+                }
+                const existing = architectures.find(a => a.id === parseInt(options.id!, 10));
+                if (!existing) {
+                    printError(0, `Architecture with id ${options.id} not found in namespace ${options.namespace}`, 'push architecture', format);
+                    process.exit(1);
+                }
+                resolvedName ??= existing.name;
+                resolvedDescription ??= existing.description ?? '';
+            }
+
             result = await client.pushArchitectureVersion(
                 options.namespace,
                 parseInt(options.id, 10),
                 options.version,
-                options.name,
-                options.description ?? '',
+                resolvedName,
+                resolvedDescription,
                 fileContent
             );
         } else {
             result = await client.pushArchitecture(
                 options.namespace,
                 options.name!,
-                options.description ?? '',
+                options.description!,
                 fileContent
             );
         }

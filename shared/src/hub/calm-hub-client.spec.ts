@@ -162,8 +162,8 @@ describe('CalmHubClient', () => {
 
             const result = await client.listArchitectures('finos');
             expect(result).toHaveLength(2);
-            expect(result[0]).toEqual({ id: 1, name: 'arch-a', versions: ['1.0.0', '1.1.0'] });
-            expect(result[1]).toEqual({ id: 2, name: 'arch-b', versions: ['1.0.0'] });
+            expect(result[0]).toEqual({ id: 1, name: 'arch-a', description: '', versions: ['1.0.0', '1.1.0'] });
+            expect(result[1]).toEqual({ id: 2, name: 'arch-b', description: '', versions: ['1.0.0'] });
         });
 
         it('returns empty array when no architectures exist', async () => {
