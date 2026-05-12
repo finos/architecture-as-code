@@ -229,12 +229,15 @@ export async function runListArchitectures(options: ListArchitecturesOptions): P
 export interface CreateNamespaceOptions {
     calmHubUrl?: string;
     name: string;
-    description: string;
+    description?: string;
     format?: string;
 }
 
 export async function runCreateNamespace(options: CreateNamespaceOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
+    if (!options.description?.trim()) {
+        handleHubError(new Error('--description is required and must not be blank'), format);
+    }
     let hubUrl: string;
     try {
         hubUrl = await resolveHubUrl(options);

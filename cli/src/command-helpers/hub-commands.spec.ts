@@ -386,9 +386,33 @@ describe('hub-commands', () => {
             );
 
             const { runCreateNamespace } = await import('./hub-commands');
-            await expect(runCreateNamespace({ calmHubUrl: 'http://hub', name: 'my-org' }))
+            await expect(runCreateNamespace({ calmHubUrl: 'http://hub', name: 'my-org', description: 'My org' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(409, 'Namespace already exists', expect.any(String), 'json');
+        });
+
+        it('exits when description is missing', async () => {
+            const { runCreateNamespace } = await import('./hub-commands');
+            await expect(runCreateNamespace({ calmHubUrl: 'http://hub', name: 'my-org' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                '--description is required and must not be blank',
+                'unknown',
+                'json'
+            );
+        });
+
+        it('exits when description is blank', async () => {
+            const { runCreateNamespace } = await import('./hub-commands');
+            await expect(runCreateNamespace({ calmHubUrl: 'http://hub', name: 'my-org', description: '   ' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                '--description is required and must not be blank',
+                'unknown',
+                'json'
+            );
         });
     });
 
