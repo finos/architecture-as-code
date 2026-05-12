@@ -72,7 +72,7 @@ describe('DocumentLoader', () => {
 
         buildDocumentLoader(docLoaderOpts);
 
-        expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false);
+        expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false, undefined);
     });
 
     it('should pass allowedRemoteHosts to DirectUrlDocumentLoader when provided', () => {

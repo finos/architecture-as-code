@@ -3,6 +3,7 @@ import AxiosMockAdapter from 'axios-mock-adapter';
 import { CalmHubDocumentLoader } from './calmhub-document-loader';
 import { DocumentLoadError } from './document-loader';
 import { SchemaDirectory } from '../schema-directory';
+import { AuthPlugin } from '..';
 
 const calmHubBaseUrl = 'http://local-calmhub';
 
@@ -18,7 +19,7 @@ describe('calmhub-document-loader', () => {
     let calmHubDocumentLoader: CalmHubDocumentLoader;
     let schemaDirectory: SchemaDirectory;
     beforeEach(() => {
-        calmHubDocumentLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, ax);
+        calmHubDocumentLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, null, ax);
         calmHubDocumentLoader.initialise(schemaDirectory);
     });
 
@@ -29,6 +30,20 @@ describe('calmhub-document-loader', () => {
             '$id': 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
             'value': 'test'
         });
+    });
+    
+    it('calls configured auth plugin if provided', async () => {
+        const authPlugin: AuthPlugin = {
+            getAuthHeaders: vi.fn().mockResolvedValue({ 'Authorization': 'Bearer test-token' })
+        }; 
+        calmHubDocumentLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, authPlugin, ax);
+        const calmHubUrl = 'calm:/schemas/2025-03/meta/core.json';
+        const document = await calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema');
+        expect(document).toEqual({
+            '$id': 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
+            'value': 'test'
+        });
+        expect(authPlugin.getAuthHeaders).toHaveBeenCalledWith('http://local-calmhub/schemas/2025-03/meta/core.json', undefined);
     });
 
     it('throws an error when the document is not found', async () => {
