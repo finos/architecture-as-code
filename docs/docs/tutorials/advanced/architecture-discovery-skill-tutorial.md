@@ -18,15 +18,15 @@ It is important to recognize that source code alone rarely captures the full arc
 
 This tutorial also provides Field Notes and Troubleshooting, documenting practical fixes and real-world issues encountered during the discovery process—such as handling preview errors, permission prompts, and the probabilistic nature of LLM output—so you can avoid common pitfalls and make the most of the CALM AI Assistant’s capabilities. Experimenting with and refining the skill definition itself is encouraged, enabling you to tailor the discovery process to your technology stack and organizational needs.
 
-A full tutorial about agent skills is beyond the scope of this tutorial.  The interested reader can find an [explanation of agent skills at this site](https://agentskills.io/home).
+A full tutorial about agent skills is beyond the scope of this tutorial. The interested reader can find an [explanation of agent skills at this site](https://agentskills.io/home).
 
 ## Skill Setup
 
-A pre-requisite is to setup up the CALM AI Assistant support.  See [here](../../working-with-calm/calm-ai-tools.md) for instructions on how to do this.
+A prerequisite is to set up the CALM AI Assistant support. See [here](../../working-with-calm/calm-ai-tools.md) for instructions on how to do this.
 
 Click here to copy the <a href="/calm-skills/architecture-discovery-skill.md" target="_blank">architecture discovery skill</a> to the clipboard. Follow instructions in the next part for your specific CALM AI Assistant on where to save the skill definition in the clipboard.
 
-Click on the tab for your CALM AI Assistant.
+Click the tab for your CALM AI Assistant.
 
 <Tabs>
   <TabItem value="copilot" label="Copilot" default>
@@ -37,7 +37,7 @@ Click on the tab for your CALM AI Assistant.
 
 2. Create a file `.github/skills/calm-architecture-discovery/SKILL.md`
 
-3. Paste copied skill definition from clipboard into `SKILL.md` and save the file.
+3. Paste the copied skill definition from the clipboard into `SKILL.md` and save the file.
 
 4. Restart VSCode.
 
@@ -52,7 +52,7 @@ For additional information see [VSCode Agent Skills](https://code.visualstudio.c
 
 2. Create a file `.kiro/skills/calm-architecture-discovery/SKILL.md`
 
-3. Paste copied skill definition from clipboard into `SKILL.md` and save the file.
+3. Paste the copied skill definition from the clipboard into `SKILL.md` and save the file.
 
 4. Restart KIRO.
 
@@ -67,7 +67,7 @@ For additional information see [KIRO Agent Skills](https://kiro.dev/docs/skills/
 
 2. Create a file `.claude/skills/calm-architecture-discovery/SKILL.md`
 
-3. Paste copied skill definition from clipboard into `SKILL.md` and save the file.
+3. Paste the copied skill definition from the clipboard into `SKILL.md` and save the file.
 
 
 For additional information see [Claude Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview).
@@ -81,7 +81,7 @@ For additional information see [Claude Agent Skills](https://platform.claude.com
 
 2. Create a file `.agents/skills/calm-architecture-discovery/SKILL.md`
 
-3. Paste copied skill definition from clipboard into `SKILL.md` and save the file.
+3. Paste copied the skill definition from the clipboard into `SKILL.md` and save the file.
 
 4. If you are using Codex within an IDE, restart the IDE.
 
@@ -90,7 +90,7 @@ For additional information see [Codex Agent Skills](https://developers.openai.co
   </TabItem>
 </Tabs>
 
-After saving `SKILL.md` the beginning part of the file should look like this....
+After saving `SKILL.md`, the beginning part of the file should look like this:
 
 ![](./images/skill-frontmatter-image.png)
 
@@ -100,24 +100,24 @@ Architects are encouraged to experiment with revising the skill definition itsel
 
 ## Using the Skill
 
-Within your particular CALM AI Assistant setup, designate the model you want to use with architecture discovery skill. 
+Within your particular CALM AI Assistant setup, designate the model you want to use with the architecture discovery skill. 
 
 :::note
 During development of this tutorial, Claude Sonnet 4.6 and GPT-5.5 were used successfully.   These models support different levels of "reasoning" effort.  This tutorial used "Medium" or higher settings.  Higher reasoning models will increase run time for the discovery process.
 
-Since other models could support discovery, the reader is encouraged to experiment with different models.
+Since other models could support discovery, readers are encouraged to experiment with different models.
 :::
 
 The skill requires two parameters:
 
-- `root_dir` is the top-level directory for the source code.  The CALM AI Assistant will scan all contents within this top-level directory for source code.  A single dot, i.e., "`.`" will indicate to use the current working directory as the top-level directory.
+- `root_dir` is the top-level directory for the source code.  The CALM AI Assistant will scan all contents within this top-level directory for source code.  A single dot, i.e., "`.`", will indicate to use the current working directory as the top-level directory.
 - `arch_file` specifies the file to save the discovered CALM architecture.
 
 :::warning
-If both parameters are not provided, the CALM AI Assistant will ask for values.
+If both parameters are not provided, the CALM AI Assistant will prompt you for values.
 :::
 
-Click on the tab for you CALM AI Assistant.
+Click the tab for you CALM AI Assistant.
 
 <Tabs>
   <TabItem value="copilot" label="Copilot" default>
@@ -126,7 +126,7 @@ Click on the tab for you CALM AI Assistant.
 
 1. Select `CALM` for the agent mode.
 
-2. In the chat type in `/calm-architecture-discovery <root_dir> <arch_file>`
+2. In the chat, type in `/calm-architecture-discovery <root_dir> <arch_file>`
 
   </TabItem>
   <TabItem value="kiro" label="KIRO">
@@ -135,9 +135,9 @@ Click on the tab for you CALM AI Assistant.
 
 1. Select `Vibe` Coding
 
-2. Enable the CALM agent mode by typing in the chat prompt `/CALM.chatmode`
+2. Enable the CALM agent mode by typing `/CALM.chatmode` in the chat prompt.
 
-2. In the chat type in `/calm-architecture-discovery <root_dir> <arch_file>`
+2. In the chat, type `/calm-architecture-discovery <root_dir> <arch_file>`
 
   </TabItem>
   <TabItem value="claude" label="Claude">
@@ -148,7 +148,7 @@ Start Claude CLI
 
 1. Enable CALM support by typing in `/calm`
 
-2. Once the CALM support is enabled, type `/calm-architecture-discovery <root_dir> <arch_file>`
+2. Once CALM support is enabled, type `/calm-architecture-discovery <root_dir> <arch_file>`
 
   </TabItem>
   <TabItem value="codex" label="Codex">
@@ -159,7 +159,7 @@ Either in command line or via VSCode Codex Chat function:
 
 1. Enable CALM support by typing in `$calm`
 
-2. Once the CALM support is enabled, type `$calm-architecture-discovery <root_dir> <arch_file>`
+2. Once CALM support is enabled, type `$calm-architecture-discovery <root_dir> <arch_file>`
 
   </TabItem>
 </Tabs>
@@ -176,9 +176,9 @@ This run uses VSCode with Github Copilot and the Claude Sonnet 4.6 (High Reasoni
 
 **Prompt**: `/calm-architecture-discovery . sandbox/copilot-discovered-calm-architecture.json`
 
-This prompt says to run architecture discovery on the current working directory ("`.`") and to save the discovered architecture in "`sandbox/copilot-discovered-calm-architecture.json`".
+This prompt runs architecture discovery on the current working directory ("`.`") and saves the discovered architecture in "`sandbox/copilot-discovered-calm-architecture.json`".
 
-Skill execution time will be several minutes.  For Github Copilot, with default settings, you may be asked allow continued execution of the agent skill run and prompted to allow creating two output files:
+Skill execution time will be several minutes.  For GitHub Copilot, with default settings, you may be asked to allow continued execution of the agent skill run and prompted to allow creation of two output files:
 - `sandbox/copilot-discovered-calm-architecture.json`: the discovered CALM architecture for the repo
 - `sandbox/copiliot-discovered-calm-architecture-key-observations.md`: Markdown report of the key observations noted during discovery of the nodes and relationships.  This is informational.  The architect can use this help in understanding the discovered architecture.
 
