@@ -180,14 +180,14 @@ This prompt runs architecture discovery on the current working directory ("`.`")
 
 Skill execution time will be several minutes.  For GitHub Copilot, with default settings, you may be asked to allow continued execution of the agent skill run and prompted to allow creation of two output files:
 - `sandbox/copilot-discovered-calm-architecture.json`: the discovered CALM architecture for the repo
-- `sandbox/copiliot-discovered-calm-architecture-key-observations.md`: Markdown report of the key observations noted during discovery of the nodes and relationships.  This is informational.  The architect can use this help in understanding the discovered architecture.
+- `sandbox/copilot-discovered-calm-architecture-key-observations.md`: Markdown report of the key observations noted during discovery of the nodes and relationships.  This is informational.  The architect can use this to help understand the discovered architecture.
 
 :::warning
-During the discovery process the agent may want to run OS commands to discover content.  When prompted for permission to run these commands, make sure to review the command to ensure it is not going to modify content.   Some commands will write to `/dev/null`, which is OK because it is not affecting any repo content.
+During the discovery process, the agent may want to run OS commands to discover content.  When prompted for permission to run these commands, make sure to review the command to ensure it will not modify content.   Some commands will write to `/dev/null`, which is OK because it does not affect any repo content.
 :::
 
 
-The following chat log was edited to remove repetitive messages.
+The following chat log has been edited to remove repetitive messages.
 
 #### Start discovery process
 ```
@@ -244,7 +244,7 @@ I now have enough information to produce the full output. Let me create the sand
 
 #### Report discovered nodes and relationships with Key Observations
 
-Once discovery is completed, the AI Assistant display this warning...
+Once discovery is completed, the AI Assistant displays this warning:
 
 ![](./images/discovery-warning-message.png)
 
@@ -499,13 +499,13 @@ WARN  issues:
     101 |             "unique-id": "calm-studio-mcp-server",
         |                          ^^^^^^^^^^^^^^^^^^^^^^^^
 ```
-This shows the generated architecture JSON complies with the CALM Schema.  The warning message should be reviewed by the architect.
+This shows the generated architecture JSON complies with the CALM Schema.  The architect should review the warning message.
 
 ## Review and Refine The Discovered Architecture
 
 ### Review the Discovered Architecture
 
-As noted earlier, the discovered architecture may have inaccuracies.  The architect now has to review the discovered architecture and refine it as needed to accurately reflect state of the system.
+As noted earlier, the discovered architecture may have inaccuracies.  The architect now has to review the discovered architecture and refine it as needed to accurately reflect the state of the system.
 
 To illustrate this process, let's **assume the architect has this image in his or her mind** that the discovered architecture should represent. 
 
@@ -515,7 +515,7 @@ To illustrate this process, let's **assume the architect has this image in his o
 </figure>
 
 
-when we compare this to the <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.json" target="_blank">actual discovered architecture representation</a>,
+When we compare this to the <a href="/calm-discovered-artifacts/copilot-discovered-calm-architecture.json" target="_blank">actual discovered architecture representation</a>,
 
 <figure>
   <img src="/img/initial-discovered-architecture-representation.png" alt="Assumed Correct Architecture Representation" />
@@ -526,14 +526,14 @@ we make the following observations:
 
 - Accounting for slight differences in names and descriptions, **the discovered architecture contains all nodes and relationships that should be in the desired architecture representation**.
 - The desired architecture combines several nodes into logical groups, such as the `CALM Hub System`
-- As reported by the `calm validate` output, there is a node with no relationships.
+- As reported by the `calm validate` output, the "CALM Studio MCP Server" node is not part of any relationship.
 - The discovered architecture contains more nodes and relationships than expected.
-  - Several of the nodes represent work-in-progress
-  - `Keycloak` node is a tool used for testing
+  - Several of the nodes represent work in progress
+  - The `Keycloak` node is a tool used for testing
 
 ### Refine the Discovered Architecture
 
-We now use CALM's AI Assistant to help us refine the discovered architecture with the following prompts:
+We now use the CALM AI Assistant to help us refine the discovered architecture with the following prompts:
 - `Remove the following nodes and their related relationships: Calm Guard, OpenAI GPT, Github API, Anthropic Claude, CalmStudio, Calm Studio, CALM Studio MCP Server, CALM Server and Keycloak`
 - `Add a system node called "CALM Hub System" and a composed-of relationship with container "CALM Hub Systems" and nodes: CALM Hub UI, CALM Hub, and MongoDB.`
 - `Add a service node called "Visual Studio Code" and a deployed-in relationship with container "Visual Studio Code" and nodes: CALM VS Code Extension`
@@ -616,7 +616,7 @@ Made changes.
 
 ### Updated architecture
 
-With these three simple prompts to CALM AI Assistant, we are able to refine the discovered architecture to its <a href="/calm-discovered-artifacts/refined-discovered-calm-architecture.json" target="_blank">desired representation</a>.
+With these three simple prompts to the CALM AI Assistant, we are able to refine the discovered architecture to its <a href="/calm-discovered-artifacts/refined-discovered-calm-architecture.json" target="_blank">desired representation</a>.
 
 <figure>
   <img src="/img/refined-discovered-architecture-representation.png" alt="Desired Architecture Representation" />
@@ -642,23 +642,22 @@ No issues found.
 
 ### Additional Review and Refinement
 
-The two prior sections involved correcting structural issues with the discovered architecture.  
+The prior changes corrected structural issues with the discovered architecture.  
 
-Names and relationships can be revised as needed.
+Other potential refinements:
+- Revise names and relationships as needed.
+- Review lower-level CALM data, such as
+  - Interface specifications
+  - Metadata
+- Add as needed:
+  - CALM Controls
+  - CALM Standards
 
-The architect should review lower level CALM data, such as
-- Interface specifications
-- Metadata
-
-Add as needed:
-- CALM Controls
-- CALM Standards
-
-Changes required for all of these can be accomplished with the help of the CALM AI Assistant.
+All of these changes can be accomplished with the help of the CALM AI Assistant.
 
 ## Skill Modifications
 
-As noted earlier the architect should consider modifying  <a href="/calm-skills/architecture-discovery-skill.md" target="_blank">the skill</a> to account for situations unique to their organization or software development process.  Here are some sections in the skill that could be modified:
+As noted earlier, the architect should consider modifying  <a href="/calm-skills/architecture-discovery-skill.md" target="_blank">the skill</a> to account for situations unique to their organization or software development process. Here are some sections in the skill that could be modified:
 
 ```
 #### Package manifests & build files (pick what applies)
@@ -702,22 +701,22 @@ As noted earlier the architect should consider modifying  <a href="/calm-skills/
 - Present information about the nodes and relationships as stated in the `Output Format` section.
 ```
 
-The above are only suggestions.  The architect should feel free to modify any part of the skill definition to meet his or her needs.
+The above are only suggestions. The architect should feel free to modify any part of the skill definition to meet their needs.
 
 ## Field Notes and Troubleshooting
 
 ### Multiple discovery runs
 
-Multiple runs of `/calm-architecture-discovery` with the same model specification will return slightly different discovered architectures.  These differences are due to probabilistic output nature of large language models.  However, all will have a large overlap of discovered nodes and relationships with some differences in names and descriptions.
+Multiple runs of `/calm-architecture-discovery` with the same model specification will return slightly different discovered architectures.  These differences are due to the probabilistic output nature of large language models.  However, all runs will have a large overlap of discovered nodes and relationships with some differences in names and descriptions.
 
-Given this probabilistic output, the discovery skill should only be used to create an initial draft version that will be refined to a correct representation.  The discovery skill is not intended to be used to maintain a CALM architecture.
+Given this probabilistic output, the discovery skill should only be used to create an initial draft version that will be refined to a correct representation. The discovery skill is not intended to be used to maintain a CALM architecture.
 
 ### CALM Tool Preview Fails
 
-If the discovery skill creates a node name with parenthesis, this will cause the CALM Tools Preview function to generate an error.
+If the discovery skill creates a node name with parentheses, this will cause the CALM Tools Preview function to generate an error.
 ![](./images/calm-preview-error-cause.png)
 
-The fix for that is to edit the CALM architecture JSON and remove the parenthesis from the node `name` property.
+The fix for that is to edit the CALM architecture JSON and remove the parentheses from the node `name` property.
 ![](./images/calm-preview-error-fixed.png)
 
 ### Continue Execution Message
@@ -726,33 +725,33 @@ With default Github Copilot settings and the long running nature of the discover
 
 ![](./images/continue-execution-prompt.png)
 
-When this occurs, just allow the agent to continue execution.
+When this occurs, simply allow the agent to continue execution.
 
 :::note
-The FINOS `architecture-as-code` repo used for this tutorial contains approximately 151K files and around 2.7 GB of content. Runtime for the `/calm-architecture-discovery` skill using a medium- or high-reasoning model was typically between 3 and 5 minutes. 
+The FINOS `architecture-as-code` repo used for this tutorial contains approximately 151K files and around 2.7 GB of content. Runtime for the `/calm-architecture-discovery` skill using a medium- or high-reasoning model was typically between 3 and 5 minutes.
 :::
 
 :::warning
-Architects should monitor actual runtime behavior in their own environments and exercise judgment on whether execution should continue or whether the discovery approach, repository scope, or selected LLM should be reassessed.
+Architects should monitor actual runtime behavior in their own environments and exercise judgment on whether execution should continue, or whether the discovery approach, repository scope, or selected LLM should be reassessed.
 :::
 
 ### Requesting Permission for using OS tools and other programs for discovery
 
-This is not an exhaustive list but merely an illustration of the type of messages you may receive from CALM AI Assistant during discovery.
+This is not an exhaustive list, but merely an illustration of the types of messages you may receive from the CALM AI Assistant during discovery.
 
 <Tabs>
   <TabItem value="copilot" label="Copilot" default>
 
-When the CALM AI Assistant (Copilot) is using the skill to discover nodes and relationships, it sometimes uses an OS command like `find` or `cat` with redirection to `/dev/null`.  The AI Assistant will ask for permission because this operation involves writing to a device.
+When the CALM AI Assistant (Copilot) is using the skill to discover nodes and relationships, it sometimes uses an OS command like `find` or `cat` with redirection to `/dev/null`. The AI Assistant will ask for permission because this operation involves writing to a device.
 
 ![](./images/write-to-dev-null.png)
 
-If this occurs, give it permission because writing to `/dev/null` does not affect repo content.
+If this occurs, give it permission because writing to `/dev/null` does not affect repository content.
 
   </TabItem>
   <TabItem value="kiro" label="KIRO">
 
-Request to create output directory `sandbox`. 
+Request to create the output directory `sandbox`. 
 
 ![](./images/prompt-create-output-directory-kiro.png)
 
@@ -760,7 +759,7 @@ Request to create output directory `sandbox`.
   </TabItem>
   <TabItem value="claude" label="Claude">
 
-This small snippet of Python code does read-only operations. 
+This small snippet of Python code performs read-only operations. 
 
 ![](./images/claude-run-python3.png)
 
@@ -768,30 +767,30 @@ This small snippet of Python code does read-only operations.
 </Tabs>
 
 :::warning
-Whenever the AI Assistant asks permission to do some action, the architect should review carefully what the AI Assistant is requesting and whether it is safe to perform the action.
+Whenever the AI Assistant asks for permission to do some action, the architect should carefully review what the AI Assistant is requesting and whether it is safe to perform the action.
 :::
 
 ### Fetch local Gitub Copilot Chat Cache
 
-Periodically the CALM AI Assistant (Copilot) may ask to `fetch` content from a VSCode local file.
+Periodically, the CALM AI Assistant (Copilot) may ask to `fetch` content from a VSCode local file.
 
 ![](./images/fetch-local-vscode-copilot-chat-cache.png)
 
-This appears to be content generated by the AI Assistant using the discovery skill.  Because this is a local file that is part of the Copilot Chat cache and not an external web site, permission was given to do the `fetch`.
+This appears to be content generated by the AI Assistant using the discovery skill.  Because this is a local file that is part of the Copilot Chat cache and not an external website, permission was given to perform the `fetch`.
 
 :::warning
-Whenever the AI Assistant asks permission to do some action, the architect should review carefully what the AI Assistant is requesting and whether it is safe to perform the action.
+Whenever the AI Assistant asks for permission to do some action, the architect should carefully review what the AI Assistant is requesting and whether it is safe to perform the action.
 :::
 
 ### KIRO did not create the key observations markdown file
 
-After creating the CALM architecture file `sandbox/kiro-discovered-calm-architecture.json`, the skill has instructions to save the key observations in `sandbox/kiro-discovered-calm-architecture-key-observations.md` file.
+After creating the CALM architecture file `sandbox/kiro-discovered-calm-architecture.json`, the skill has instructions to save the key observations in the `sandbox/kiro-discovered-calm-architecture-key-observations.md` file.
 
-The key observations file was not automatically saved.  A prompt had to be manually entered to save the file.
+The key observations file was not automatically saved. A prompt had to be manually entered to save the file.
 
 ![](./images/kiro-manual-prompt-to-save-key-observations.png)
 
-With all other CALM AI Assistants using Github Copilot, Claude and Codex, the key observations were automatically saved.
+With all other CALM AI Assistants using GitHub Copilot, Claude, and Codex, the key observations were automatically saved.
 
 
 ### Discovered Architecture for Claude, Codex and KIRO
@@ -799,7 +798,7 @@ With all other CALM AI Assistants using Github Copilot, Claude and Codex, the ke
 <Tabs>
   <TabItem value="kiro" label="KIRO" default>
 
-Model used: Claude Sonnet 4.5 
+Model used: Claude Sonnet 4.5
 
 ![](./images/discovered-calm-architecture-by-kiro.png)
 
@@ -836,7 +835,7 @@ Here are the key takeaways from this architecture discovery skill tutorial:
 Using agent skills with the CALM AI Assistant can quickly generate an initial architecture model from source code, providing a strong starting point for architects. While the output may not be perfect, it significantly reduces manual effort and helps teams focus on refinement rather than starting from scratch.
 
 2. **Review, Refine, and Validate the Output**  
-The discovered architecture is a draft and may contain mistakes or omissions. Use the CALM AI Assistant to make corrections to nodes and relationships.  Remember to validate the generated model using the CALM CLI (`calm validate`). 
+The discovered architecture is a draft and may contain mistakes or omissions. Use the CALM AI Assistant to make corrections to nodes and relationships.  Remember to validate the generated model using the CALM CLI (`calm validate`).
 
 3. **Skill Definition Is Customizable for Your Organization**  
 Architects are encouraged to experiment with and revise the skill definition. By adjusting prompts, parameters, and logic—including package detection and source code signals—the discovery process can be tailored to better fit organizational needs and technology stacks.
