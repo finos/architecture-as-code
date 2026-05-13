@@ -13,7 +13,8 @@ vi.mock('os', () => ({
 
 const exampleConfig = {
     calmHubUrl: 'https://example.com/calmhub',
-    allowedRemoteHosts: ['schemas.example.com']
+    allowedRemoteHosts: ['schemas.example.com'],
+    authPluginPath: './auth-plugin.js'
 };
 
 

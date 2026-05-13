@@ -1,3 +1,4 @@
+import { AuthPlugin } from '../auth/auth-plugin';
 import { CALM_META_SCHEMA_DIRECTORY } from '../consts';
 import { buildDocumentLoader, DocumentLoaderOptions } from './document-loader';
 
@@ -73,6 +74,22 @@ describe('DocumentLoader', () => {
         buildDocumentLoader(docLoaderOpts);
 
         expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false, undefined);
+    });
+    
+    it('should pass authplugin to CalmHubDocumentLoader', () => {
+
+        const mockAuthPlugin: AuthPlugin = {
+            getAuthHeaders: vi.fn()
+        }
+
+        const docLoaderOpts: DocumentLoaderOptions = {
+            calmHubUrl: 'https://example.com',
+            authPlugin: mockAuthPlugin
+        };
+
+        buildDocumentLoader(docLoaderOpts);
+
+        expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false, mockAuthPlugin);
     });
 
     it('should pass allowedRemoteHosts to DirectUrlDocumentLoader when provided', () => {
