@@ -42,6 +42,93 @@ export interface PushArchitectureOptions {
     format?: string;
 }
 
+export interface PushArchitectureResult {
+    id: number;
+    version?: string;
+    location: string;
+}
+
+export function printPushResult(result: PushArchitectureResult, format: OutputFormat): void {
+    if (format === 'pretty') {
+        printTableSuccess(
+            [{ STATUS: 'Created', ID: result.id, VERSION: result.version ?? '', LOCATION: result.location }],
+            [
+                { key: 'STATUS', header: 'STATUS' },
+                { key: 'ID', header: 'ID' },
+                { key: 'VERSION', header: 'VERSION' },
+                { key: 'LOCATION', header: 'LOCATION' }
+            ]
+        );
+    } else {
+        printJsonSuccess(result);
+    }
+}
+
+export async function resolveVersionedMetadata(
+    client: CalmHubClient,
+    namespace: string,
+    parsedId: number,
+    name: string | undefined,
+    description: string | undefined,
+    format: OutputFormat
+): Promise<{ name: string; description: string }> {
+    if (name && description !== undefined) {
+        return { name, description };
+    }
+
+    let architectures: HubArchitectureSummary[] = [];
+    try {
+        architectures = await client.listArchitectures(namespace);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+    const existing = architectures.find(a => a.id === parsedId);
+    if (!existing) {
+        printError(0, `Architecture with id ${parsedId} not found in namespace ${namespace}`, 'push architecture', format);
+        process.exit(1);
+    }
+    return {
+        name: name ?? existing.name,
+        description: description ?? existing.description ?? ''
+    };
+}
+
+export async function pushVersioned(
+    client: CalmHubClient,
+    options: PushArchitectureOptions,
+    fileContent: string,
+    format: OutputFormat
+): Promise<PushArchitectureResult> {
+    if (!options.version) {
+        printError(0, '--version is required when --id is provided', 'push architecture', format);
+        process.exit(1);
+    }
+
+    const parsedId = parseInt(options.id!, 10);
+    if (!Number.isFinite(parsedId)) {
+        printError(0, '--id must be a valid integer', 'push architecture', format);
+        process.exit(1);
+    }
+
+    const { name, description } = await resolveVersionedMetadata(
+        client,
+        options.namespace,
+        parsedId,
+        options.name,
+        options.description,
+        format
+    );
+
+    return client.pushArchitectureVersion(
+        options.namespace,
+        parsedId,
+        options.version,
+        name,
+        description,
+        fileContent
+    );
+}
+
 export async function runPushArchitecture(options: PushArchitectureOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -80,68 +167,10 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
     }
 
     try {
-        let result;
-        if (options.id) {
-            if (!options.version) {
-                printError(0, '--version is required when --id is provided', 'push architecture', format);
-                process.exit(1);
-            }
-
-            const parsedId = parseInt(options.id, 10);
-            if (!Number.isFinite(parsedId)) {
-                printError(0, '--id must be a valid integer', 'push architecture', format);
-                process.exit(1);
-            }
-
-            let resolvedName = options.name;
-            let resolvedDescription = options.description;
-
-            if (!resolvedName || resolvedDescription === undefined) {
-                let architectures: HubArchitectureSummary[] = [];
-                try {
-                    architectures = await client.listArchitectures(options.namespace);
-                } catch (err) {
-                    handleHubError(err, format);
-                }
-                const existing = architectures.find(a => a.id === parsedId);
-                if (!existing) {
-                    printError(0, `Architecture with id ${options.id} not found in namespace ${options.namespace}`, 'push architecture', format);
-                    process.exit(1);
-                }
-                resolvedName ??= existing.name;
-                resolvedDescription ??= existing.description ?? '';
-            }
-
-            result = await client.pushArchitectureVersion(
-                options.namespace,
-                parsedId,
-                options.version,
-                resolvedName,
-                resolvedDescription,
-                fileContent
-            );
-        } else {
-            result = await client.pushArchitecture(
-                options.namespace,
-                options.name!,
-                options.description!,
-                fileContent
-            );
-        }
-
-        if (format === 'pretty') {
-            printTableSuccess(
-                [{ STATUS: 'Created', ID: result.id, VERSION: result.version ?? '', LOCATION: result.location }],
-                [
-                    { key: 'STATUS', header: 'STATUS' },
-                    { key: 'ID', header: 'ID' },
-                    { key: 'VERSION', header: 'VERSION' },
-                    { key: 'LOCATION', header: 'LOCATION' }
-                ]
-            );
-        } else {
-            printJsonSuccess(result);
-        }
+        const result = options.id
+            ? await pushVersioned(client, options, fileContent, format)
+            : await client.pushArchitecture(options.namespace, options.name!, options.description!, fileContent);
+        printPushResult(result, format);
     } catch (err) {
         handleHubError(err, format);
     }

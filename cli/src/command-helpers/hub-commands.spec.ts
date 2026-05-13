@@ -452,4 +452,166 @@ describe('hub-commands', () => {
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
         });
     });
+
+    // ── printPushResult ────────────────────────────────────────────────────
+
+    describe('printPushResult', () => {
+        it('calls printTableSuccess with correct columns when format is pretty', async () => {
+            const { printPushResult } = await import('./hub-commands');
+            printPushResult({ id: 1, version: '1.0.0', location: '/calm/namespaces/finos/architectures/1/versions/1.0.0' }, 'pretty');
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ STATUS: 'Created', ID: 1, VERSION: '1.0.0', LOCATION: '/calm/namespaces/finos/architectures/1/versions/1.0.0' }],
+                [
+                    { key: 'STATUS', header: 'STATUS' },
+                    { key: 'ID', header: 'ID' },
+                    { key: 'VERSION', header: 'VERSION' },
+                    { key: 'LOCATION', header: 'LOCATION' }
+                ]
+            );
+            expect(hubOutput.printJsonSuccess).not.toHaveBeenCalled();
+        });
+
+        it('defaults version to empty string when version is undefined', async () => {
+            const { printPushResult } = await import('./hub-commands');
+            printPushResult({ id: 2, location: '/calm/namespaces/finos/architectures/2' }, 'pretty');
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [expect.objectContaining({ VERSION: '' })],
+                expect.any(Array)
+            );
+        });
+
+        it('calls printJsonSuccess when format is json', async () => {
+            const { printPushResult } = await import('./hub-commands');
+            const result = { id: 1, version: '1.0.0', location: '/loc' };
+            printPushResult(result, 'json');
+
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(result);
+            expect(hubOutput.printTableSuccess).not.toHaveBeenCalled();
+        });
+    });
+
+    // ── resolveVersionedMetadata ───────────────────────────────────────────
+
+    describe('resolveVersionedMetadata', () => {
+        it('returns provided name and description without fetching when both are supplied', async () => {
+            const { mockClient } = await getSharedMocks();
+            const { resolveVersionedMetadata } = await import('./hub-commands');
+
+            const result = await resolveVersionedMetadata(mockClient, 'finos', 1, 'my-arch', 'my-desc', 'json');
+
+            expect(result).toEqual({ name: 'my-arch', description: 'my-desc' });
+            expect(mockClient.listArchitectures).not.toHaveBeenCalled();
+        });
+
+        it('fetches from Hub when name is absent', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listArchitectures).mockResolvedValue([
+                { id: 1, name: 'fetched-arch', description: 'fetched-desc', versions: ['1.0.0'] }
+            ]);
+            const { resolveVersionedMetadata } = await import('./hub-commands');
+
+            const result = await resolveVersionedMetadata(mockClient, 'finos', 1, undefined, 'my-desc', 'json');
+
+            expect(mockClient.listArchitectures).toHaveBeenCalledWith('finos');
+            expect(result).toEqual({ name: 'fetched-arch', description: 'my-desc' });
+        });
+
+        it('fetches from Hub when description is absent', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listArchitectures).mockResolvedValue([
+                { id: 1, name: 'fetched-arch', description: 'fetched-desc', versions: ['1.0.0'] }
+            ]);
+            const { resolveVersionedMetadata } = await import('./hub-commands');
+
+            const result = await resolveVersionedMetadata(mockClient, 'finos', 1, 'my-arch', undefined, 'json');
+
+            expect(mockClient.listArchitectures).toHaveBeenCalledWith('finos');
+            expect(result).toEqual({ name: 'my-arch', description: 'fetched-desc' });
+        });
+
+        it('exits when architecture ID is not found in namespace', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listArchitectures).mockResolvedValue([
+                { id: 99, name: 'other-arch', description: 'other', versions: ['1.0.0'] }
+            ]);
+            const { resolveVersionedMetadata } = await import('./hub-commands');
+
+            await expect(resolveVersionedMetadata(mockClient, 'finos', 1, undefined, undefined, 'json'))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                'Architecture with id 1 not found in namespace finos',
+                'push architecture',
+                'json'
+            );
+        });
+
+        it('exits when listArchitectures throws a HubClientError', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.listArchitectures).mockRejectedValue(
+                new shared.HubClientError(500, 'Server error', 'GET /calm/namespaces/finos/architectures')
+            );
+            const { resolveVersionedMetadata } = await import('./hub-commands');
+
+            await expect(resolveVersionedMetadata(mockClient, 'finos', 1, undefined, undefined, 'json'))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(500, 'Server error', expect.any(String), 'json');
+        });
+    });
+
+    // ── pushVersioned ──────────────────────────────────────────────────────
+
+    describe('pushVersioned', () => {
+        it('exits when --version is missing', async () => {
+            const { mockClient } = await getSharedMocks();
+            const { pushVersioned } = await import('./hub-commands');
+
+            await expect(pushVersioned(
+                mockClient,
+                { namespace: 'finos', file: 'arch.json', id: '1' },
+                '{}',
+                'json'
+            )).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, '--version is required when --id is provided', 'push architecture', 'json'
+            );
+        });
+
+        it('exits when --id is not a valid integer', async () => {
+            const { mockClient } = await getSharedMocks();
+            const { pushVersioned } = await import('./hub-commands');
+
+            await expect(pushVersioned(
+                mockClient,
+                { namespace: 'finos', file: 'arch.json', id: 'not-a-number', version: '1.0.0' },
+                '{}',
+                'json'
+            )).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, '--id must be a valid integer', 'push architecture', 'json'
+            );
+        });
+
+        it('calls pushArchitectureVersion with resolved metadata and returns result', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.pushArchitectureVersion).mockResolvedValue({
+                id: 5, version: '2.0.0', location: '/calm/namespaces/finos/architectures/5/versions/2.0.0'
+            });
+            const { pushVersioned } = await import('./hub-commands');
+
+            const result = await pushVersioned(
+                mockClient,
+                { namespace: 'finos', file: 'arch.json', id: '5', version: '2.0.0', name: 'my-arch', description: 'desc' },
+                '{"nodes":[]}',
+                'json'
+            );
+
+            expect(mockClient.pushArchitectureVersion).toHaveBeenCalledWith(
+                'finos', 5, '2.0.0', 'my-arch', 'desc', '{"nodes":[]}'
+            );
+            expect(result).toEqual({ id: 5, version: '2.0.0', location: '/calm/namespaces/finos/architectures/5/versions/2.0.0' });
+        });
+    });
 });
