@@ -80,7 +80,7 @@ describe('DocumentLoader', () => {
 
         const mockAuthPlugin: AuthPlugin = {
             getAuthHeaders: vi.fn()
-        }
+        };
 
         const docLoaderOpts: DocumentLoaderOptions = {
             calmHubUrl: 'https://example.com',

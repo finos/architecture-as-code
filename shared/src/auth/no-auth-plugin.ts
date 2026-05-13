@@ -1,5 +1,5 @@
-import { initLogger, Logger } from "../logger";
-import { AuthPlugin } from "./auth-plugin";
+import { initLogger, Logger } from '../logger';
+import { AuthPlugin } from './auth-plugin';
 
 export class NoAuthPlugin implements AuthPlugin {
     private readonly logger: Logger;
@@ -9,7 +9,7 @@ export class NoAuthPlugin implements AuthPlugin {
         this.logger.debug('No auth plugin provided. Instantiating NoAuthPlugin');
     }
 
-    async getAuthHeaders(url: string, requestBody: any): Promise<Record<string, string>> {
+    async getAuthHeaders(_url: string, _requestBody: unknown): Promise<Record<string, string>> {
         this.logger.debug('Skipping auth request as no plugin provided.');
         return {};
     }
