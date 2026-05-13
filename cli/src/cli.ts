@@ -278,7 +278,7 @@ Validation requires:
     const hubCmd = new Command('hub').description('Interact with CALM Hub');
 
     // hub push
-    const hubPushCmd = new Command('push').description('Push a CALM document to CALM Hub');
+    const hubPushCmd = hubCmd.command('push').description('Push a CALM document to CALM Hub');
 
     hubPushCmd
         .command('architecture <architecture-file>')
@@ -295,10 +295,8 @@ Validation requires:
             await runPushArchitecture({ ...options, file: architectureFile, version: options.ver });
         });
 
-    hubCmd.addCommand(hubPushCmd);
-
     // hub pull
-    const hubPullCmd = new Command('pull').description('Pull a CALM document from CALM Hub');
+    const hubPullCmd = hubCmd.command('pull').description('Pull a CALM document from CALM Hub');
 
     hubPullCmd
         .command('architecture')
@@ -313,10 +311,8 @@ Validation requires:
             await runPullArchitecture({ ...options, version: options.ver });
         });
 
-    hubCmd.addCommand(hubPullCmd);
-
     // hub list
-    const hubListCmd = new Command('list').description('List CALM Hub resources');
+    const hubListCmd = hubCmd.command('list').description('List CALM Hub resources');
 
     hubListCmd
         .command('architectures')
@@ -339,10 +335,8 @@ Validation requires:
             await runListNamespaces(options);
         });
 
-    hubCmd.addCommand(hubListCmd);
-
     // hub create
-    const hubCreateCmd = new Command('create').description('Create CALM Hub resources');
+    const hubCreateCmd = hubCmd.command('create').description('Create CALM Hub resources');
 
     hubCreateCmd
         .command('namespace')
@@ -355,8 +349,6 @@ Validation requires:
             const { runCreateNamespace } = await import('./command-helpers/hub-commands');
             await runCreateNamespace(options);
         });
-
-    hubCmd.addCommand(hubCreateCmd);
 
     program.addCommand(hubCmd);
 
