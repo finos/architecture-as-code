@@ -43,8 +43,18 @@ export async function loadCliConfig(): Promise<CLIConfig | null> {
     }
 }
 
+export function resolveHomeDir(path: string): string {
+    if (path.startsWith('~')) {
+        return join(homedir(), path.slice(1));
+    }
+    return path;
+}
+
 export async function loadAuthPlugin(filename: string, debug: boolean): Promise<AuthPlugin> {
     const logger = initLogger(debug, 'auth-plugin');
+
+    filename = resolveHomeDir(filename);
+    
     if (!existsSync(filename)) {
         logger.error(`❌ Auth plugin file not found: ${filename}`);
         throw new Error(`❌ Auth plugin file not found: ${filename}`);
