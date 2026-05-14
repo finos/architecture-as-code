@@ -26,7 +26,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
+    "test": "vitest run",
     "test:run": "vitest run",
     "license-check": "license-checker --failOn 'GPL-2.0;GPL-3.0;AGPL-3.0'",
     "prepare": "husky",
