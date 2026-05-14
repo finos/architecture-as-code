@@ -27,7 +27,6 @@ const exampleConfig = {
 
 const FIXTURES_DIR = resolve(__dirname, '../test_fixtures');
 const JS_FIXTURE = resolve(FIXTURES_DIR, 'test-auth-plugin.js');
-const TS_FIXTURE = resolve(FIXTURES_DIR, 'test-auth-plugin.ts');
 
 describe('cli-config', () => {
     beforeEach(() => {
@@ -86,20 +85,6 @@ describe('cli-config', () => {
         expect(authPlugin.getAuthHeaders).toBeDefined();
     });
 
-    it('loads TypeScript auth plugin from absolute path', async () => {
-        vol.fromJSON({
-            '/home/user/.calm.json': JSON.stringify({ authPluginPath: TS_FIXTURE }),
-            // just register this file exists. the actual loading mechanism, import(), will be handled by ts-node which is mocked in the test environment to return a valid auth plugin.
-            [TS_FIXTURE]: '',
-        });
-
-        const config = await loadCliConfig();
-        expect(config).toEqual({ authPluginPath: TS_FIXTURE });
-
-        const authPlugin = await loadAuthPlugin(config!.authPluginPath!, false);
-        expect(authPlugin.getAuthHeaders).toBeDefined();
-    });
-
     it('loads JavaScript auth plugin with tilde path', async () => {
         // Point homedir at FIXTURES_DIR so ~/test-auth-plugin.js resolves to the real fixture file
         vi.mocked(homedir).mockReturnValue(FIXTURES_DIR);
@@ -116,19 +101,4 @@ describe('cli-config', () => {
         expect(authPlugin.getAuthHeaders).toBeDefined();
     });
 
-    it('loads TypeScript auth plugin with tilde path', async () => {
-        // Point homedir at FIXTURES_DIR so ~/test-auth-plugin.ts resolves to the real fixture file
-        vi.mocked(homedir).mockReturnValue(FIXTURES_DIR);
-
-        vol.fromJSON({
-            [resolve(FIXTURES_DIR, '.calm.json')]: JSON.stringify({ authPluginPath: '~/test-auth-plugin.ts' }),
-            [TS_FIXTURE]: '',
-        });
-
-        const config = await loadCliConfig();
-        expect(config).toEqual({ authPluginPath: '~/test-auth-plugin.ts' });
-
-        const authPlugin = await loadAuthPlugin(config!.authPluginPath!, false);
-        expect(authPlugin.getAuthHeaders).toBeDefined();
-    });
 });

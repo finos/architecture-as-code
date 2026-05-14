@@ -426,11 +426,9 @@ The CLI supports an external authentication plugin to allow authentication to Ca
 
 ### Writing an authentication plugin
 
-Authentication plugins can be written in either TypeScript or JavaScript. 
-You can find examples for [TypeScript](./test_fixtures/test-auth-plugin.ts) and [JavaScript](./test_fixtures/test-auth-plugin.js) in the test fixtures of the CLI project.
+Authentication plugins are JavaScript files. You can find an example in [the test fixtures](./test_fixtures/test-auth-plugin.js).
 
-Plugins should implement the [`AuthPlugin`](../shared/src/auth/auth-plugin.ts) interface. 
-If you want to write a plugin in TypeScript you should ensure your project depends on `@finos/calm-shared` as this is the package that exports that interface.
+Plugins must export a default class implementing the [`AuthPlugin`](../shared/src/auth/auth-plugin.ts) interface, i.e. a `getAuthHeaders(url, requestBody)` method that returns a `Promise<Record<string, string>>`.
 
 The function `getAuthHeaders` will be invoked with the request URL and body for every request made to CalmHub by the CLI.
 
@@ -441,5 +439,5 @@ To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fash
 ```
 {
   "calmHubUrl": "http://calmhub.com",
-  "authPluginPath": "~/plugins/auth-plugin.ts"
+  "authPluginPath": "~/plugins/auth-plugin.js"
 }
