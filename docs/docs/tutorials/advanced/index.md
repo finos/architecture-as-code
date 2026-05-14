@@ -12,4 +12,4 @@ Advanced tutorials will cover deeper CALM workflows and AI-assisted architecture
 
 | Tutorial | What You'll Master |
 |----------|-------------------|
-| [Architecture Discovery Skill](./architecture-discovery-skill-tutorial) | Use CALM AI Assistant with an agent skill to create a CALM architecture from source code. |
+| [Architecture Discovery Skill](./architecture-discovery-skill-tutorial) | Use CALM AI Assistant with an agent skill to create a CALM architecture from source code. Time Commitment: 20 to 30 minutes.|
