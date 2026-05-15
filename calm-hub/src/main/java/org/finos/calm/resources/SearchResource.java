@@ -6,8 +6,11 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.search.GroupedSearchResults;
@@ -31,14 +34,20 @@ public class SearchResource {
     private final SearchStore searchStore;
     private final Instance<UserAccessValidator> userAccessValidatorInstance;
     private final Instance<JsonWebToken> jwtInstance;
+    private final String proxyUsernameHeader;
+
+    @Context
+    HttpHeaders httpHeaders;
 
     @Inject
     public SearchResource(SearchStore searchStore,
                           Instance<UserAccessValidator> userAccessValidatorInstance,
-                          Instance<JsonWebToken> jwtInstance) {
+                          Instance<JsonWebToken> jwtInstance,
+                          @ConfigProperty(name = "calm.security.proxy.username-header", defaultValue = "Proxy-Remote-User") String proxyUsernameHeader) {
         this.searchStore = searchStore;
         this.userAccessValidatorInstance = userAccessValidatorInstance;
         this.jwtInstance = jwtInstance;
+        this.proxyUsernameHeader = proxyUsernameHeader;
     }
 
     @GET
@@ -76,13 +85,20 @@ public class SearchResource {
     /**
      * Returns the set of namespaces the current caller is permitted to read, or
      * {@link Optional#empty()} when no namespace-based filtering should be applied
-     * (i.e. the secure profile is not active or the JWT has no username).
+     * (i.e. the secure profile is not active or the JWT has no username in the event of JWT validation, or
+     * simply no remote user header for the proxy profile.)
      */
     private Optional<Set<String>> resolveReadableNamespaces() {
-        if (!userAccessValidatorInstance.isResolvable() || !jwtInstance.isResolvable()) {
+        if (!userAccessValidatorInstance.isResolvable()) {
             return Optional.empty();
         }
-        String username = jwtInstance.get().getClaim("preferred_username");
+        String username = null;
+        if (jwtInstance.isResolvable()) {
+            username = jwtInstance.get().getClaim("preferred_username");
+        }
+        if (username == null && httpHeaders != null) {
+            username = httpHeaders.getHeaderString(proxyUsernameHeader);
+        }
         if (username == null) {
             return Optional.empty();
         }

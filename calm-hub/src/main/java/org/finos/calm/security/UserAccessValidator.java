@@ -1,7 +1,6 @@
 package org.finos.calm.security;
 
 import io.netty.util.internal.StringUtil;
-import io.quarkus.arc.profile.IfBuildProfile;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
@@ -17,10 +16,9 @@ import java.util.stream.Collectors;
  * Validates whether a user is authorized to access a particular resource based on
  * their assigned permissions and namespaces.
  * <p>
- * This validator is active only when the 'secure' profile is enabled.
+ * This validator has no effext unless the 'secure' or 'proxy' profile is enabled.
  */
 @ApplicationScoped
-@IfBuildProfile("secure")
 public class UserAccessValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(UserAccessValidator.class);
