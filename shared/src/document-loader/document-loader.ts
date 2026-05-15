@@ -5,6 +5,7 @@ import { FileSystemDocumentLoader } from './file-system-document-loader';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
 import { MappedDocumentLoader } from './mapped-document-loader';
+import { AuthPlugin } from '..';
 
 export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline';
 
@@ -22,6 +23,7 @@ export interface DocumentLoader {
 
 export type DocumentLoaderOptions = {
     calmHubUrl?: string;
+    authPlugin?: AuthPlugin;
     schemaDirectoryPath?: string;
     urlToLocalMap?: Map<string, string>;
     basePath?: string;
@@ -45,7 +47,7 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
     }
 
     if (docLoaderOpts.calmHubUrl) {
-        loaders.push(new CalmHubDocumentLoader(docLoaderOpts.calmHubUrl, debug));
+        loaders.push(new CalmHubDocumentLoader(docLoaderOpts.calmHubUrl, debug, docLoaderOpts.authPlugin));
     }
 
     // Always configure FileSystemDocumentLoader with CALM_META_SCHEMA_DIRECTORY
