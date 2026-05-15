@@ -1,11 +1,14 @@
-import { initLogger } from '@finos/calm-shared';
 import { readFile, writeFile } from 'fs/promises';
+import { initLogger, AuthPlugin } from '@finos/calm-shared';
+import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
+import { pathToFileURL } from 'url';
 
 export interface CLIConfig {
     calmHubUrl?: string
     allowedRemoteHosts?: string[]
+    authPluginPath?: string
 }
 
 export function getUserConfigLocation(): string {
@@ -36,5 +39,45 @@ export async function loadCliConfig(): Promise<CLIConfig | null> {
         }
         logger.error('Unexpected error loading user config: ' + String(err));
         return null;
+    }
+}
+
+export function resolveHomeDir(path: string): string {
+    if (path.startsWith('~')) {
+        return join(homedir(), path.slice(1));
+    }
+    return path;
+}
+
+export async function loadAuthPlugin(filename: string, debug: boolean): Promise<AuthPlugin> {
+    const logger = initLogger(debug, 'auth-plugin');
+
+    filename = resolveHomeDir(filename);
+    
+    if (!existsSync(filename)) {
+        logger.error(`❌ Auth plugin file not found: ${filename}`);
+        throw new Error(`❌ Auth plugin file not found: ${filename}`);
+    }
+    if (!filename.endsWith('.js')) {
+        logger.error(`❌ Auth plugin file must have a .js extension: ${filename}`);
+        throw new Error(`❌ Auth plugin file must have a .js extension: ${filename}`);
+    }
+    logger.info(`🔍 Loading auth plugin: ${filename}`);
+
+    try {
+        const url = pathToFileURL(filename).href;
+        const mod = await import(/* @vite-ignore */ url);
+        const AuthPluginClass = mod.default;
+        if (typeof AuthPluginClass !== 'function') {
+            throw new Error('❌ Auth plugin must export a default class. Did you forget to export default?');
+        }
+        const instance = new AuthPluginClass() as AuthPlugin;
+        if (typeof instance.getAuthHeaders !== 'function') {
+            throw new Error('❌ Auth plugin class must implement getAuthHeaders(url, requestBody): Promise<Record<string, string>>');
+        }
+        return instance;
+    } catch (error) {
+        logger.error(`❌ Error loading auth plugin: ${error}`);
+        throw new Error(`❌ Error loading auth plugin: ${error}`);
     }
 }
