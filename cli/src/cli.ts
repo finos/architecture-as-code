@@ -240,6 +240,31 @@ Validation requires:
         });
 
     program
+        .command('diff')
+        .description('Compare two CALM architecture JSON files and report what changed.')
+        .requiredOption('-a, --architecture-a <file>', 'Path to the first (baseline) architecture file.')
+        .requiredOption('-b, --architecture-b <file>', 'Path to the second architecture file to compare against the baseline.')
+        .addOption(
+            new Option('-f, --format <format>', 'Output format')
+                .choices(['json', 'summary'])
+                .default('json')
+        )
+        .option(OUTPUT_OPTION, 'Path location at which to write the diff output. If omitted, prints to stdout.')
+        .option('--exit-code', 'Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.', false)
+        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .action(async (options) => {
+            const { runDiffCommand } = await import('./command-helpers/diff');
+            await runDiffCommand({
+                architectureAPath: options.architectureA,
+                architectureBPath: options.architectureB,
+                outputFormat: options.format,
+                outputPath: options.output,
+                exitCode: !!options.exitCode,
+                verbose: !!options.verbose,
+            });
+        });
+
+    program
         .command('init-config')
         .description('Create or update the CALM CLI configuration file (~/.calm.json).')
         .option('--allowed-remote-hosts <hosts>', 'Comma-separated list of trusted remote hosts to allow for direct URL loading')

@@ -8,6 +8,14 @@ export {
 export { OutputFormat, ValidateOutputFormat } from './commands/validate/validate.js';
 export { runGenerate } from './commands/generate/generate.js';
 export {
+    runDiff,
+    formatDiff,
+    hasChanges as diffHasChanges,
+    type DiffOutputFormat,
+    type DiffRunOptions,
+    type DiffRunResult,
+} from './commands/diff/diff.js';
+export {
     extractOptions,
     selectChoices,
     CalmChoice,
