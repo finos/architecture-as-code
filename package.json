@@ -18,7 +18,6 @@
         "calm-plugins/vscode",
         "calm-suite/calm-guard",
         "calm-suite/calm-guard/docs",
-        "calm-suite/calm-studio",
         "calm-suite/calm-studio/packages/*",
         "calm-suite/calm-studio/apps/*"
     ],
