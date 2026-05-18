@@ -96,7 +96,7 @@ describe('hub-commands', () => {
             const opts = await resolveCalmHubOptions({});
             expect(cliConfig.loadAuthPlugin).toHaveBeenCalledWith('./auth-plugin.js', false);
             expect(opts.authPlugin).toBe(plugin);
-        })
+        });
     });
 
     // ── runPushArchitecture ────────────────────────────────────────────────
