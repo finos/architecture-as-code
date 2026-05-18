@@ -87,6 +87,16 @@ describe('hub-commands', () => {
             expect(hubOutput.printError).not.toHaveBeenCalled();
             expect(exitSpy).not.toHaveBeenCalled();
         });
+        
+        it('loads plugin when configured', async () => {
+            vi.mocked(cliConfig.loadCliConfig).mockResolvedValue({ calmHubUrl: 'http://from-config.example.com', authPluginPath: './auth-plugin.js' });
+            const plugin = { getAuthHeaders: vi.fn().mockResolvedValue({ 'Authorization': 'Bearer token' }) };
+            vi.mocked(cliConfig.loadAuthPlugin).mockResolvedValue(plugin);
+
+            const opts = await resolveCalmHubOptions({});
+            expect(cliConfig.loadAuthPlugin).toHaveBeenCalledWith('./auth-plugin.js', false);
+            expect(opts.authPlugin).toBe(plugin);
+        })
     });
 
     // ── runPushArchitecture ────────────────────────────────────────────────
