@@ -80,7 +80,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^9.18.0",
-    "eslint-config-next": "^15.5.0",
+    "eslint-config-next": "^15.5.18",
     "husky": "^9.1.7",
     "jsdom": "^28.1.0",
     "license-checker": "^25.0.1",
