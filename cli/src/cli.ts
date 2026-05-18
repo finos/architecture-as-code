@@ -33,6 +33,13 @@ const AI_DIRECTORY_OPTION = '-d, --directory <path>';
 const AI_PROVIDER_OPTION = '-p, --provider <provider>';
 const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
 
+// Hub command options
+const NAMESPACE_OPTION = '--namespace <namespace>';
+const NAME_OPTION = '--name <name>';
+const DESCRIPTION_OPTION = '--description <description>';
+const ID_OPTION = '--id <id>';
+const HUB_VERSION_OPTION = '--ver <version>'; // --version conflicts with Commander's built-in version flag
+
 export function setupCLI(program: Command) {
     program
         .name('calm')
@@ -263,6 +270,87 @@ Validation requires:
             console.log(`✅ Configuration saved to ${configPath}`);
             console.log(JSON.stringify(existingConfig, null, 2));
         });
+
+    // ── hub ───────────────────────────────────────────────────────────────────
+
+    const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'pretty']).default('json');
+
+    const hubCmd = new Command('hub').description('Interact with CALM Hub');
+
+    // hub push
+    const hubPushCmd = hubCmd.command('push').description('Push a CALM document to CALM Hub');
+
+    hubPushCmd
+        .command('architecture <architecture-file>')
+        .description('Push a CALM architecture file to CALM Hub')
+        .option(NAME_OPTION, 'Name for the architecture in CALM Hub (required when creating a new architecture)')
+        .option(DESCRIPTION_OPTION, 'Description for the architecture')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(ID_OPTION, 'Existing architecture ID (required when adding a new version)')
+        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
+        .addOption(hubOutputOption)
+        .action(async (architectureFile, options) => {
+            const { runPushArchitecture } = await import('./command-helpers/hub-commands');
+            await runPushArchitecture({ ...options, file: architectureFile, version: options.ver });
+        });
+
+    // hub pull
+    const hubPullCmd = hubCmd.command('pull').description('Pull a CALM document from CALM Hub');
+
+    hubPullCmd
+        .command('architecture')
+        .description('Pull a specific version of a CALM architecture from CALM Hub')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .requiredOption(ID_OPTION, 'Architecture ID to pull')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const { runPullArchitecture } = await import('./command-helpers/hub-commands');
+            await runPullArchitecture({ ...options, version: options.ver });
+        });
+
+    // hub list
+    const hubListCmd = hubCmd.command('list').description('List CALM Hub resources');
+
+    hubListCmd
+        .command('architectures')
+        .description('List architectures in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const { runListArchitectures } = await import('./command-helpers/hub-commands');
+            await runListArchitectures(options);
+        });
+
+    hubListCmd
+        .command('namespaces')
+        .description('List all namespaces')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const { runListNamespaces } = await import('./command-helpers/hub-commands');
+            await runListNamespaces(options);
+        });
+
+    // hub create
+    const hubCreateCmd = hubCmd.command('create').description('Create CALM Hub resources');
+
+    hubCreateCmd
+        .command('namespace')
+        .description('Create a new namespace in CALM Hub')
+        .requiredOption(NAME_OPTION, 'Namespace name')
+        .requiredOption(DESCRIPTION_OPTION, 'Namespace description')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const { runCreateNamespace } = await import('./command-helpers/hub-commands');
+            await runCreateNamespace(options);
+        });
+
+    program.addCommand(hubCmd);
 
 }
 
