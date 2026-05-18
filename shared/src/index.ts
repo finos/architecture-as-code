@@ -60,7 +60,8 @@ export {
     type HubNamespaceSummary,
     type HubArchitectureSummary,
     type HubCreateResult,
-    type HubNamespaceCreateResult
+    type HubNamespaceCreateResult,
+    type CalmHubOptions
 } from './hub/calm-hub-client.js';
 export {
     enrichWithDocumentPositions,

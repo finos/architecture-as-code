@@ -5,6 +5,7 @@ import { promptUserForOptions } from './command-helpers/generate-options';
 import * as cliConfig from './cli-config';
 import path from 'path';
 import { select } from '@inquirer/prompts';
+import { CreateNamespaceOptions, ListArchitecturesOptions, ListNamespacesOptions, PullArchitectureOptions, PushArchitectureOptions, runCreateNamespace, runListArchitectures, runListNamespaces, runPullArchitecture, runPushArchitecture } from './command-helpers/hub-commands';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -318,8 +319,17 @@ Validation requires:
         .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
         .action(async (architectureFile, options) => {
-            const { runPushArchitecture } = await import('./command-helpers/hub-commands');
-            await runPushArchitecture({ ...options, file: architectureFile, version: options.ver });
+            const pushOptions: PushArchitectureOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                name: options.name,
+                description: options.description,
+                file: architectureFile,
+                id: options.id,
+                version: options.ver,
+                format: options.format
+            };
+            await runPushArchitecture(pushOptions);
         });
 
     // hub pull
@@ -334,8 +344,14 @@ Validation requires:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const { runPullArchitecture } = await import('./command-helpers/hub-commands');
-            await runPullArchitecture({ ...options, version: options.ver });
+            const pullOptions: PullArchitectureOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                id: options.id,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullArchitecture(pullOptions);
         });
 
     // hub list
@@ -348,8 +364,12 @@ Validation requires:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const { runListArchitectures } = await import('./command-helpers/hub-commands');
-            await runListArchitectures(options);
+            const listOptions: ListArchitecturesOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListArchitectures(listOptions);
         });
 
     hubListCmd
@@ -358,8 +378,11 @@ Validation requires:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const { runListNamespaces } = await import('./command-helpers/hub-commands');
-            await runListNamespaces(options);
+            const listOptions: ListNamespacesOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                format: options.format
+            };
+            await runListNamespaces(listOptions);
         });
 
     // hub create
@@ -373,8 +396,13 @@ Validation requires:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const { runCreateNamespace } = await import('./command-helpers/hub-commands');
-            await runCreateNamespace(options);
+            const createOptions: CreateNamespaceOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                name: options.name,
+                description: options.description,
+                format: options.format
+            };
+            await runCreateNamespace(createOptions);
         });
 
     program.addCommand(hubCmd);
