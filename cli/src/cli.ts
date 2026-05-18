@@ -295,6 +295,36 @@ Validation requires:
             await runPushArchitecture({ ...options, file: architectureFile, version: options.ver });
         });
 
+    hubPushCmd
+        .command('pattern <pattern-file>')
+        .description('Push a CALM pattern file to CALM Hub')
+        .option(NAME_OPTION, 'Name for the pattern in CALM Hub (required when creating a new pattern)')
+        .option(DESCRIPTION_OPTION, 'Description for the pattern')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(ID_OPTION, 'Existing pattern ID (required when adding a new version)')
+        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
+        .addOption(hubOutputOption)
+        .action(async (patternFile, options) => {
+            const { runPushPattern } = await import('./command-helpers/hub-commands');
+            await runPushPattern({ ...options, file: patternFile, version: options.ver });
+        });
+
+    hubPushCmd
+        .command('standard <standard-file>')
+        .description('Push a CALM standard file to CALM Hub')
+        .option(NAME_OPTION, 'Name for the standard in CALM Hub (required when creating a new standard)')
+        .option(DESCRIPTION_OPTION, 'Description for the standard')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(ID_OPTION, 'Existing standard ID (required when adding a new version)')
+        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
+        .addOption(hubOutputOption)
+        .action(async (standardFile, options) => {
+            const { runPushStandard } = await import('./command-helpers/hub-commands');
+            await runPushStandard({ ...options, file: standardFile, version: options.ver });
+        });
+
     // hub pull
     const hubPullCmd = hubCmd.command('pull').description('Pull a CALM document from CALM Hub');
 
@@ -309,6 +339,32 @@ Validation requires:
         .action(async (options) => {
             const { runPullArchitecture } = await import('./command-helpers/hub-commands');
             await runPullArchitecture({ ...options, version: options.ver });
+        });
+
+    hubPullCmd
+        .command('pattern')
+        .description('Pull a specific version of a CALM pattern from CALM Hub')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .requiredOption(ID_OPTION, 'Pattern ID to pull')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const { runPullPattern } = await import('./command-helpers/hub-commands');
+            await runPullPattern({ ...options, version: options.ver });
+        });
+
+    hubPullCmd
+        .command('standard')
+        .description('Pull a specific version of a CALM standard from CALM Hub')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .requiredOption(ID_OPTION, 'Standard ID to pull')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const { runPullStandard } = await import('./command-helpers/hub-commands');
+            await runPullStandard({ ...options, version: options.ver });
         });
 
     // hub list
@@ -333,6 +389,28 @@ Validation requires:
         .action(async (options) => {
             const { runListNamespaces } = await import('./command-helpers/hub-commands');
             await runListNamespaces(options);
+        });
+
+    hubListCmd
+        .command('patterns')
+        .description('List patterns in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const { runListPatterns } = await import('./command-helpers/hub-commands');
+            await runListPatterns(options);
+        });
+
+    hubListCmd
+        .command('standards')
+        .description('List standards in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const { runListStandards } = await import('./command-helpers/hub-commands');
+            await runListStandards(options);
         });
 
     // hub create

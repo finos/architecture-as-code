@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, HubArchitectureSummary, HubClientError } from '@finos/calm-shared';
+import { CalmHubClient, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -325,6 +325,403 @@ export async function runListNamespaces(options: ListNamespacesOptions): Promise
             );
         } else {
             printJsonSuccess(namespaces);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── push pattern ──────────────────────────────────────────────────────────────
+
+export interface PushPatternOptions {
+    calmHubUrl?: string;
+    namespace: string;
+    name?: string;
+    description?: string;
+    file: string;
+    id?: string;
+    version?: string;
+    format?: string;
+}
+
+export async function resolvePatternMetadata(
+    client: CalmHubClient,
+    namespace: string,
+    parsedId: number,
+    name: string | undefined,
+    description: string | undefined,
+    format: OutputFormat
+): Promise<{ name: string; description: string }> {
+    if (name && description !== undefined) {
+        return { name, description };
+    }
+
+    let patterns: HubPatternSummary[] = [];
+    try {
+        patterns = await client.listPatterns(namespace);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+    const existing = patterns.find(p => p.id === parsedId);
+    if (!existing) {
+        printError(0, `Pattern with id ${parsedId} not found in namespace ${namespace}`, 'push pattern', format);
+        process.exit(1);
+    }
+    return {
+        name: name ?? existing.name,
+        description: description ?? existing.description ?? ''
+    };
+}
+
+export async function pushPatternVersioned(
+    client: CalmHubClient,
+    options: PushPatternOptions,
+    fileContent: string,
+    format: OutputFormat
+): Promise<PushArchitectureResult> {
+    if (!options.version) {
+        printError(0, '--ver is required when --id is provided', 'push pattern', format);
+        process.exit(1);
+    }
+
+    const parsedId = parseInt(options.id!, 10);
+    if (!Number.isFinite(parsedId)) {
+        printError(0, '--id must be a valid integer', 'push pattern', format);
+        process.exit(1);
+    }
+
+    const { name, description } = await resolvePatternMetadata(
+        client,
+        options.namespace,
+        parsedId,
+        options.name,
+        options.description,
+        format
+    );
+
+    return client.pushPatternVersion(
+        options.namespace,
+        parsedId,
+        options.version,
+        name,
+        description,
+        fileContent
+    );
+}
+
+export async function runPushPattern(options: PushPatternOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+
+    if (!options.id && !options.name) {
+        printError(0, '--name is required when creating a new pattern', 'push pattern', format);
+        process.exit(1);
+    }
+
+    if (!options.id && !options.description) {
+        printError(0, '--description is required when creating a new pattern', 'push pattern', format);
+        process.exit(1);
+    }
+
+    let hubUrl: string;
+    try {
+        hubUrl = await resolveHubUrl(options);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+    const client = new CalmHubClient(hubUrl);
+
+    let fileContent: string;
+    try {
+        fileContent = await readFile(options.file, 'utf-8');
+    } catch {
+        printError(0, `Could not read file: ${options.file}`, `push pattern ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        JSON.parse(fileContent);
+    } catch {
+        printError(0, `File is not valid JSON: ${options.file}`, `push pattern ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        const result = options.id
+            ? await pushPatternVersioned(client, options, fileContent, format)
+            : await client.pushPattern(options.namespace, options.name!, options.description!, fileContent);
+        printPushResult(result, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── pull pattern ──────────────────────────────────────────────────────────────
+
+export interface PullPatternOptions {
+    calmHubUrl?: string;
+    namespace: string;
+    id: string;
+    version: string;
+    output?: string;
+}
+
+export async function runPullPattern(options: PullPatternOptions): Promise<void> {
+    let hubUrl: string;
+    try {
+        hubUrl = await resolveHubUrl(options);
+    } catch (err) {
+        handleHubError(err, 'json');
+    }
+    const client = new CalmHubClient(hubUrl);
+
+    const parsedId = parseInt(options.id, 10);
+    if (!Number.isFinite(parsedId)) {
+        printError(0, '--id must be a valid integer', 'pull pattern', 'json');
+        process.exit(1);
+    }
+
+    try {
+        const result = await client.pullPattern(options.namespace, parsedId, options.version);
+        const pretty = JSON.stringify(result, null, 2);
+
+        if (options.output) {
+            await writeFile(options.output, pretty, 'utf-8');
+        } else {
+            console.log(pretty);
+        }
+    } catch (err) {
+        handleHubError(err, 'json');
+    }
+}
+
+// ── list patterns ─────────────────────────────────────────────────────────────
+
+export interface ListPatternsOptions {
+    calmHubUrl?: string;
+    namespace: string;
+    format?: string;
+}
+
+export async function runListPatterns(options: ListPatternsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    let hubUrl: string;
+    try {
+        hubUrl = await resolveHubUrl(options);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+    const client = new CalmHubClient(hubUrl);
+
+    try {
+        const patterns = await client.listPatterns(options.namespace);
+
+        if (format === 'pretty') {
+            printTableSuccess(
+                patterns.map(p => ({ ID: p.id, NAME: p.name, VERSIONS: p.versions.join(', ') })),
+                [
+                    { key: 'ID', header: 'ID' },
+                    { key: 'NAME', header: 'NAME' },
+                    { key: 'VERSIONS', header: 'VERSIONS' }
+                ]
+            );
+        } else {
+            printJsonSuccess(patterns);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── push standard ─────────────────────────────────────────────────────────────
+
+export interface PushStandardOptions {
+    calmHubUrl?: string;
+    namespace: string;
+    name?: string;
+    description?: string;
+    file: string;
+    id?: string;
+    version?: string;
+    format?: string;
+}
+
+export async function resolveStandardMetadata(
+    client: CalmHubClient,
+    namespace: string,
+    parsedId: number,
+    name: string | undefined,
+    description: string | undefined,
+    format: OutputFormat
+): Promise<{ name: string; description: string }> {
+    if (name && description !== undefined) {
+        return { name, description };
+    }
+
+    let standards: HubStandardSummary[] = [];
+    try {
+        standards = await client.listStandards(namespace);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+    const existing = standards.find(s => s.id === parsedId);
+    if (!existing) {
+        printError(0, `Standard with id ${parsedId} not found in namespace ${namespace}`, 'push standard', format);
+        process.exit(1);
+    }
+    return {
+        name: name ?? existing.name,
+        description: description ?? existing.description ?? ''
+    };
+}
+
+export async function pushStandardVersioned(
+    client: CalmHubClient,
+    options: PushStandardOptions,
+    fileContent: string,
+    format: OutputFormat
+): Promise<PushArchitectureResult> {
+    if (!options.version) {
+        printError(0, '--ver is required when --id is provided', 'push standard', format);
+        process.exit(1);
+    }
+
+    const parsedId = parseInt(options.id!, 10);
+    if (!Number.isFinite(parsedId)) {
+        printError(0, '--id must be a valid integer', 'push standard', format);
+        process.exit(1);
+    }
+
+    const { name, description } = await resolveStandardMetadata(
+        client,
+        options.namespace,
+        parsedId,
+        options.name,
+        options.description,
+        format
+    );
+
+    return client.pushStandardVersion(
+        options.namespace,
+        parsedId,
+        options.version,
+        name,
+        description,
+        fileContent
+    );
+}
+
+export async function runPushStandard(options: PushStandardOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+
+    if (!options.id && !options.name) {
+        printError(0, '--name is required when creating a new standard', 'push standard', format);
+        process.exit(1);
+    }
+
+    if (!options.id && !options.description) {
+        printError(0, '--description is required when creating a new standard', 'push standard', format);
+        process.exit(1);
+    }
+
+    let hubUrl: string;
+    try {
+        hubUrl = await resolveHubUrl(options);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+    const client = new CalmHubClient(hubUrl);
+
+    let fileContent: string;
+    try {
+        fileContent = await readFile(options.file, 'utf-8');
+    } catch {
+        printError(0, `Could not read file: ${options.file}`, `push standard ${options.file}`, format);
+        process.exit(1);
+    }
+
+    // Standards send raw file content as a string — no JSON validation
+    try {
+        const result = options.id
+            ? await pushStandardVersioned(client, options, fileContent, format)
+            : await client.pushStandard(options.namespace, options.name!, options.description!, fileContent);
+        printPushResult(result, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── pull standard ─────────────────────────────────────────────────────────────
+
+export interface PullStandardOptions {
+    calmHubUrl?: string;
+    namespace: string;
+    id: string;
+    version: string;
+    output?: string;
+}
+
+export async function runPullStandard(options: PullStandardOptions): Promise<void> {
+    let hubUrl: string;
+    try {
+        hubUrl = await resolveHubUrl(options);
+    } catch (err) {
+        handleHubError(err, 'json');
+    }
+    const client = new CalmHubClient(hubUrl);
+
+    const parsedId = parseInt(options.id, 10);
+    if (!Number.isFinite(parsedId)) {
+        printError(0, '--id must be a valid integer', 'pull standard', 'json');
+        process.exit(1);
+    }
+
+    try {
+        const result = await client.pullStandard(options.namespace, parsedId, options.version);
+        const pretty = JSON.stringify(result, null, 2);
+
+        if (options.output) {
+            await writeFile(options.output, pretty, 'utf-8');
+        } else {
+            console.log(pretty);
+        }
+    } catch (err) {
+        handleHubError(err, 'json');
+    }
+}
+
+// ── list standards ────────────────────────────────────────────────────────────
+
+export interface ListStandardsOptions {
+    calmHubUrl?: string;
+    namespace: string;
+    format?: string;
+}
+
+export async function runListStandards(options: ListStandardsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    let hubUrl: string;
+    try {
+        hubUrl = await resolveHubUrl(options);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+    const client = new CalmHubClient(hubUrl);
+
+    try {
+        const standards = await client.listStandards(options.namespace);
+
+        if (format === 'pretty') {
+            printTableSuccess(
+                standards.map(s => ({ ID: s.id, NAME: s.name, DESCRIPTION: s.description ?? '', VERSIONS: s.versions.join(', ') })),
+                [
+                    { key: 'ID', header: 'ID' },
+                    { key: 'NAME', header: 'NAME' },
+                    { key: 'DESCRIPTION', header: 'DESCRIPTION' },
+                    { key: 'VERSIONS', header: 'VERSIONS' }
+                ]
+            );
+        } else {
+            printJsonSuccess(standards);
         }
     } catch (err) {
         handleHubError(err, format);

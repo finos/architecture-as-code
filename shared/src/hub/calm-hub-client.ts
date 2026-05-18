@@ -12,6 +12,20 @@ export interface HubArchitectureSummary {
     versions: string[];
 }
 
+export interface HubPatternSummary {
+    id: number;
+    name: string;
+    description?: string;
+    versions: string[];
+}
+
+export interface HubStandardSummary {
+    id: number;
+    name: string;
+    description?: string;
+    versions: string[];
+}
+
 export interface HubCreateResult {
     id: number;
     version?: string;
@@ -150,6 +164,170 @@ export class CalmHubClient {
         try {
             const response = await this.ax.get(
                 `/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`
+            );
+            return response.data as object;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    // ── Patterns ─────────────────────────────────────────────────────────────
+
+    async pushPattern(
+        namespace: string,
+        name: string,
+        description: string,
+        patternJson: string
+    ): Promise<HubCreateResult> {
+        const endpoint = `POST /calm/namespaces/${namespace}/patterns`;
+        try {
+            const response = await this.ax.post(`/calm/namespaces/${namespace}/patterns`, {
+                name,
+                description,
+                patternJson
+            });
+            const location = response.headers['location'] as string;
+            return this.parseVersionedLocation(location, endpoint);
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async pushPatternVersion(
+        namespace: string,
+        id: number,
+        version: string,
+        name: string,
+        description: string,
+        patternJson: string
+    ): Promise<HubCreateResult> {
+        const endpoint = `POST /calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
+        try {
+            const response = await this.ax.post(
+                `/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`,
+                { name, description, patternJson }
+            );
+            const location = response.headers['location'] as string;
+            return this.parseVersionedLocation(location, endpoint);
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async listPatterns(namespace: string): Promise<HubPatternSummary[]> {
+        const endpoint = `GET /calm/namespaces/${namespace}/patterns`;
+        try {
+            const response = await this.ax.get(`/calm/namespaces/${namespace}/patterns`);
+            const items: { id: number; name: string; description?: string }[] =
+                response.data?.values ?? [];
+            const summaries = await Promise.all(
+                items.map(async (item) => {
+                    const versionsEndpoint = `GET /calm/namespaces/${namespace}/patterns/${item.id}/versions`;
+                    try {
+                        const vRes = await this.ax.get(
+                            `/calm/namespaces/${namespace}/patterns/${item.id}/versions`
+                        );
+                        const versions: string[] = vRes.data?.values ?? [];
+                        return { id: item.id, name: item.name, description: item.description, versions };
+                    } catch (err) {
+                        throw this.wrapError(err, versionsEndpoint);
+                    }
+                })
+            );
+            return summaries;
+        } catch (err) {
+            if (err instanceof HubClientError) throw err;
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async pullPattern(namespace: string, id: number, version: string): Promise<object> {
+        const endpoint = `GET /calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
+        try {
+            const response = await this.ax.get(
+                `/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`
+            );
+            return response.data as object;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    // ── Standards ─────────────────────────────────────────────────────────────
+
+    async pushStandard(
+        namespace: string,
+        name: string,
+        description: string,
+        standardJson: string
+    ): Promise<HubCreateResult> {
+        const endpoint = `POST /calm/namespaces/${namespace}/standards`;
+        try {
+            const response = await this.ax.post(`/calm/namespaces/${namespace}/standards`, {
+                name,
+                description,
+                standardJson
+            });
+            const location = response.headers['location'] as string;
+            return this.parseVersionedLocation(location, endpoint);
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async pushStandardVersion(
+        namespace: string,
+        id: number,
+        version: string,
+        name: string,
+        description: string,
+        standardJson: string
+    ): Promise<HubCreateResult> {
+        const endpoint = `POST /calm/namespaces/${namespace}/standards/${id}/versions/${version}`;
+        try {
+            const response = await this.ax.post(
+                `/calm/namespaces/${namespace}/standards/${id}/versions/${version}`,
+                { name, description, standardJson }
+            );
+            const location = response.headers['location'] as string;
+            return this.parseVersionedLocation(location, endpoint);
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async listStandards(namespace: string): Promise<HubStandardSummary[]> {
+        const endpoint = `GET /calm/namespaces/${namespace}/standards`;
+        try {
+            const response = await this.ax.get(`/calm/namespaces/${namespace}/standards`);
+            const items: { id: number; name: string; description?: string }[] =
+                response.data?.values ?? [];
+            const summaries = await Promise.all(
+                items.map(async (item) => {
+                    const versionsEndpoint = `GET /calm/namespaces/${namespace}/standards/${item.id}/versions`;
+                    try {
+                        const vRes = await this.ax.get(
+                            `/calm/namespaces/${namespace}/standards/${item.id}/versions`
+                        );
+                        const versions: string[] = vRes.data?.values ?? [];
+                        return { id: item.id, name: item.name, description: item.description, versions };
+                    } catch (err) {
+                        throw this.wrapError(err, versionsEndpoint);
+                    }
+                })
+            );
+            return summaries;
+        } catch (err) {
+            if (err instanceof HubClientError) throw err;
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async pullStandard(namespace: string, id: number, version: string): Promise<object> {
+        const endpoint = `GET /calm/namespaces/${namespace}/standards/${id}/versions/${version}`;
+        try {
+            const response = await this.ax.get(
+                `/calm/namespaces/${namespace}/standards/${id}/versions/${version}`
             );
             return response.data as object;
         } catch (err) {
