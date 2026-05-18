@@ -43,7 +43,7 @@ public class SearchResource {
     public SearchResource(SearchStore searchStore,
                           Instance<UserAccessValidator> userAccessValidatorInstance,
                           Instance<JsonWebToken> jwtInstance,
-                          @ConfigProperty(name = "calm.security.proxy.username-header", defaultValue = "Proxy-Remote-User") String proxyUsernameHeader) {
+                          @ConfigProperty(name = "calm.security.proxy.username-header", defaultValue = "Remote-User") String proxyUsernameHeader) {
         this.searchStore = searchStore;
         this.userAccessValidatorInstance = userAccessValidatorInstance;
         this.jwtInstance = jwtInstance;

@@ -31,7 +31,7 @@ public class TestProxyAccessControlFilterShould {
 
     private ProxyAccessControlFilter filter;
 
-    private static final String TEST_HEADER = "Proxy-Remote-User";
+    private static final String TEST_HEADER = "Remote-User";
 
     @BeforeEach
     void setup() {

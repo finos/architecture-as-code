@@ -27,7 +27,7 @@ public class ProxyAccessControlFilter implements ContainerRequestFilter {
 
     public ProxyAccessControlFilter(ResourceInfo resourceInfo,
                                     UserAccessValidator userAccessValidator,
-                                    @ConfigProperty(name = "calm.security.proxy.username-header", defaultValue = "Proxy-Remote-User") String usernameHeader) {
+                                    @ConfigProperty(name = "calm.security.proxy.username-header", defaultValue = "Remote-User") String usernameHeader) {
         this.resourceInfo = resourceInfo;
         this.userAccessValidator = userAccessValidator;
         this.usernameHeader = usernameHeader;

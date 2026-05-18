@@ -127,7 +127,7 @@ The two modes are slightly different:
 - `secure`: Enables JWT-based authentication using Quarkus' OAuth 2 libraries.
   - User identities will be extracted from the provided JWT which will be validated against the Authorization Server's Json Web Key Set (JWKS.)
 - `proxy`: Assumes CalmHub will be deployed behind an additional proxy component, such as `nginx` or `apache`, that performs OAuth 2 (or other) authentication for you.
-  - User identity is expected to be passed via a header; by default this is `Proxy-Remote-User`.
+  - User identity is expected to be passed via a header; by default this is `Remote-User`.
 
 #### Proxy profile
 

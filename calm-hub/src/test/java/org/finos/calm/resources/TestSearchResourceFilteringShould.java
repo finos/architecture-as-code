@@ -77,7 +77,7 @@ class TestSearchResourceFilteringShould {
         );
         when(mockSearchStore.search(eq("test"), any())).thenReturn(storeResults);
 
-        SearchResource resource = new SearchResource(mockSearchStore, mockValidatorInstance, mockJwtInstance, "Proxy-Remote-User");
+        SearchResource resource = new SearchResource(mockSearchStore, mockValidatorInstance, mockJwtInstance, "Remote-User");
         var response = resource.search("test");
 
         assertEquals(200, response.getStatus());
@@ -95,7 +95,7 @@ class TestSearchResourceFilteringShould {
 
         when(mockSearchStore.search(eq("test"), any())).thenReturn(emptyResults());
 
-        SearchResource resource = new SearchResource(mockSearchStore, mockValidatorInstance, mockJwtInstance, "Proxy-Remote-User");
+        SearchResource resource = new SearchResource(mockSearchStore, mockValidatorInstance, mockJwtInstance, "Remote-User");
         resource.search("test");
 
         ArgumentCaptor<Optional<Set<String>>> captor = namespacesCaptor();
@@ -112,7 +112,7 @@ class TestSearchResourceFilteringShould {
 
         when(mockSearchStore.search(eq("test"), any())).thenReturn(emptyResults());
 
-        SearchResource resource = new SearchResource(mockSearchStore, mockValidatorInstance, mockJwtInstance, "Proxy-Remote-User");
+        SearchResource resource = new SearchResource(mockSearchStore, mockValidatorInstance, mockJwtInstance, "Remote-User");
         resource.search("test");
 
         ArgumentCaptor<Optional<Set<String>>> captor = namespacesCaptor();
@@ -131,7 +131,7 @@ class TestSearchResourceFilteringShould {
 
         when(mockSearchStore.search(eq("test"), any())).thenReturn(emptyResults());
 
-        SearchResource resource = new SearchResource(mockSearchStore, mockValidatorInstance, mockJwtInstance, "Proxy-Remote-User");
+        SearchResource resource = new SearchResource(mockSearchStore, mockValidatorInstance, mockJwtInstance, "Remote-User");
         resource.search("test");
 
         ArgumentCaptor<Optional<Set<String>>> captor = namespacesCaptor();
