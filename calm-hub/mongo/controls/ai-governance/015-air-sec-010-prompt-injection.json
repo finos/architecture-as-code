@@ -1,0 +1,35 @@
+{
+  "controlId": 15,
+  "name": "AIR-SEC-010 — Prompt Injection",
+  "description": "Controls to detect and prevent prompt injection attacks that attempt to manipulate AI system behaviour through malicious inputs embedded in user queries or retrieved content.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-SEC-010",
+      "name": "Prompt Injection",
+      "category": "Security",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-10_prompt-injection.html",
+      "summary": "Prompt injection attacks manipulate AI systems by embedding malicious instructions in user inputs or retrieved content, causing the model to bypass safety guardrails, leak sensitive information, or perform unauthorised actions.",
+      "requirements": [
+        "Implement AI firewall solutions to detect and block prompt injection patterns in user inputs.",
+        "Sanitise and validate all external content (retrieved documents, tool outputs, user inputs) before inclusion in LLM prompts.",
+        "Apply strict system prompt separation and instruction hierarchy to prevent user inputs overriding system-level instructions.",
+        "Conduct regular red-team exercises specifically targeting prompt injection attack vectors.",
+        "Monitor model outputs for indicators of successful prompt injection (e.g., data exfiltration patterns, instruction echoing).",
+        "Limit the actions an AI system can take autonomously; require human approval for high-risk operations."
+      ],
+      "contributing_factors": [
+        "Insufficient separation between trusted system instructions and untrusted user inputs.",
+        "Indirect prompt injection via maliciously crafted content in retrieved documents or tool outputs.",
+        "Overly permissive system prompts that can be overridden by user instructions.",
+        "Lack of output validation allowing injected instructions to manifest as harmful actions."
+      ],
+      "references": [
+        "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+        "https://attack.mitre.org/"
+      ]
+    }
+  },
+  "configurations": []
+}

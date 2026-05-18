@@ -15,8 +15,6 @@ Architecture-as-Code.
 
 ```bash
 npm install @calmstudio/calm-core
-# or
-pnpm add @calmstudio/calm-core
 ```
 
 > **Runtime peer dependency:** `ajv` and `ajv-formats` are required and listed as
@@ -146,7 +144,7 @@ All types follow the [CALM 1.2 specification](https://calm.finos.org/release/1.2
 
 ## Full Documentation
 
-Full documentation at [CalmStudio Docs](https://finos.github.io/calmstudio/)
+Full documentation at [CalmStudio Docs](https://calm.finos.org/calm-studio/intro)
 
 ---
 

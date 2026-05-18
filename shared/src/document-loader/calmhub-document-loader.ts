@@ -1,14 +1,16 @@
 import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO } from './document-loader';
+import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO, assertJsonObject } from './document-loader';
 import { initLogger, Logger } from '../logger';
+import { AuthPlugin } from '../auth/auth-plugin';
 
 export class CalmHubDocumentLoader implements DocumentLoader {
     private static readonly SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_\-.]+(\.json)?$/;
     private readonly ax: Axios;
     private readonly logger: Logger;
+    private readonly authPlugin?: AuthPlugin;
 
-    constructor(private calmHubUrl: string, debug: boolean, axiosInstance?: Axios) {
+    constructor(private calmHubUrl: string, debug: boolean, authPlugin?: AuthPlugin, axiosInstance?: Axios) {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
@@ -18,6 +20,16 @@ export class CalmHubDocumentLoader implements DocumentLoader {
                 headers: {
                     'Content-Type': 'application/json'
                 }
+            });
+        }
+        this.authPlugin = authPlugin;
+        
+        if (this.authPlugin) {
+            this.ax.interceptors.request.use(async (config) => {
+                const fullUrl = (config.baseURL || '') + (config.url || '');
+                const authHeaders = await this.authPlugin!.getAuthHeaders(fullUrl, config.data);
+                Object.assign(config.headers, authHeaders);
+                return config;
             });
         }
 
@@ -68,6 +80,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         // TODO gracefully handle 404s and other errors
         const response = await this.ax.get(path);
         const document = response.data;
+        assertJsonObject(document, documentId);
         this.logger.debug('Successfully loaded document from CALMHub with id ' + documentId);
         return document;
     }

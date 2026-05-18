@@ -1,0 +1,438 @@
+package integration;
+
+import io.quarkiverse.mcp.server.TextContent;
+import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
+import org.finos.calm.mcp.tools.ArchitectureTools;
+import org.finos.calm.mcp.tools.ControlTools;
+import org.finos.calm.mcp.tools.DecoratorTools;
+import org.finos.calm.mcp.tools.DomainTools;
+import org.finos.calm.mcp.tools.NamespaceTools;
+import org.finos.calm.mcp.tools.SearchTools;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+
+@QuarkusTest
+@TestProfile(NitriteIntegrationTestProfile.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class NitriteMcpIntegration {
+
+    private static final Logger logger = LoggerFactory.getLogger(NitriteMcpIntegration.class);
+
+    private static final Pattern ID_PATTERN = Pattern.compile("ID: (\\d+)");
+
+    private static final String ARCHITECTURE_JSON = "{\"name\": \"mcp-nitrite-architecture\"}";
+
+    private static final String DECORATOR_JSON = """
+            {
+                "unique-id": "mcp-nitrite-decorator",
+                "type": "deployment",
+                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target-type": ["architecture"],
+                "applies-to": ["nitrite-test-node"],
+                "data": {"status": "deployed", "environment": "nitrite-test"}
+            }
+            """;
+
+    private static final String UPDATED_DECORATOR_JSON = """
+            {
+                "unique-id": "mcp-nitrite-decorator",
+                "type": "deployment",
+                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target-type": ["architecture"],
+                "applies-to": ["nitrite-test-node"],
+                "data": {"status": "completed", "environment": "nitrite-test"}
+            }
+            """;
+
+    private static final String CONTROL_REQUIREMENT_JSON = """
+            {
+                "control-id": "mcp-nitrite-control",
+                "name": "MCP Nitrite Control",
+                "description": "Nitrite integration test control requirement"
+            }
+            """;
+
+    private static final String CONTROL_CONFIGURATION_JSON = """
+            {
+                "control-id": "mcp-nitrite-control",
+                "value": "enforced",
+                "environment": "nitrite-test"
+            }
+            """;
+
+    private static int createdArchitectureId;
+    private static int createdDecoratorId;
+    private static int createdControlId;
+
+    @Inject
+    ArchitectureTools architectureTools;
+
+    @Inject
+    ControlTools controlTools;
+
+    @Inject
+    DecoratorTools decoratorTools;
+
+    @Inject
+    NamespaceTools namespaceTools;
+
+    @Inject
+    DomainTools domainTools;
+
+    @Inject
+    SearchTools searchTools;
+
+    private static String text(ToolResponse r) {
+        return ((TextContent) r.firstContent()).text();
+    }
+
+    @BeforeEach
+    public void setup() {
+        NitriteSetup.namespaceSetup();
+        NitriteSetup.domainSetup();
+    }
+
+    // --- Namespace Tools ---
+
+    @Test
+    @Order(1)
+    void mcp_list_namespaces_returns_seeded_namespace() {
+        ToolResponse result = namespaceTools.listNamespaces();
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("finos"));
+    }
+
+    @Test
+    @Order(2)
+    void mcp_create_namespace() {
+        ToolResponse result = namespaceTools.createNamespace("mcp-nitrite", "MCP Nitrite integration test namespace");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+    }
+
+    @Test
+    @Order(3)
+    void mcp_list_namespaces_includes_created_namespace() {
+        ToolResponse result = namespaceTools.listNamespaces();
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("finos"));
+        assertThat(text(result), containsString("mcp-nitrite"));
+    }
+
+    @Test
+    @Order(4)
+    void mcp_create_duplicate_namespace_returns_error() {
+        ToolResponse result = namespaceTools.createNamespace("finos", "duplicate");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("already exists"));
+    }
+
+    @Test
+    @Order(5)
+    void mcp_list_domains_returns_seeded_domain() {
+        ToolResponse result = domainTools.listDomains();
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("security"));
+    }
+
+    // --- Architecture Tools ---
+
+    @Test
+    @Order(6)
+    void mcp_create_architecture() {
+        ToolResponse result = architectureTools.createArchitecture("finos", "MCP Nitrite Arch", "Nitrite integration test architecture", ARCHITECTURE_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+
+        Matcher matcher = ID_PATTERN.matcher(text(result));
+        assertThat("Response should contain architecture ID", matcher.find());
+        createdArchitectureId = Integer.parseInt(matcher.group(1));
+        logger.info("Created architecture with ID: {}", createdArchitectureId);
+    }
+
+    @Test
+    @Order(7)
+    void mcp_list_architectures_contains_created() {
+        ToolResponse result = architectureTools.listArchitectures("finos");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("MCP Nitrite Arch"));
+    }
+
+    @Test
+    @Order(8)
+    void mcp_list_architecture_versions() {
+        ToolResponse result = architectureTools.listArchitectureVersions("finos", createdArchitectureId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+    }
+
+    @Test
+    @Order(9)
+    void mcp_get_architecture() {
+        ToolResponse result = architectureTools.getArchitecture("finos", createdArchitectureId, "1.0.0");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("mcp-nitrite-architecture"));
+    }
+
+    // --- Control Tools ---
+
+    @Test
+    @Order(10)
+    void mcp_list_controls_for_domain() {
+        ToolResponse result = controlTools.listControls("security");
+        assertThat(result.isError(), is(false));
+    }
+
+    @Test
+    @Order(11)
+    void mcp_get_control_not_found() {
+        ToolResponse result = controlTools.getControl("security", 999, "1.0.0");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    @Order(12)
+    void mcp_list_control_versions_not_found() {
+        ToolResponse result = controlTools.listControlVersions("security", 999);
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    // --- Decorator Tools ---
+
+    @Test
+    @Order(13)
+    void mcp_create_decorator() {
+        ToolResponse result = decoratorTools.createDecorator("finos", DECORATOR_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+
+        Matcher matcher = ID_PATTERN.matcher(text(result));
+        assertThat("Response should contain decorator ID", matcher.find());
+        createdDecoratorId = Integer.parseInt(matcher.group(1));
+        logger.info("Created decorator with ID: {}", createdDecoratorId);
+    }
+
+    @Test
+    @Order(14)
+    void mcp_get_decorator() {
+        ToolResponse result = decoratorTools.getDecorator("finos", createdDecoratorId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("mcp-nitrite-decorator"));
+        assertThat(text(result), containsString("deployment"));
+    }
+
+    @Test
+    @Order(15)
+    void mcp_list_decorators_contains_created() {
+        ToolResponse result = decoratorTools.listDecorators("finos", "", "");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("mcp-nitrite-decorator"));
+    }
+
+    @Test
+    @Order(16)
+    void mcp_update_decorator() {
+        ToolResponse result = decoratorTools.updateDecorator("finos", createdDecoratorId, UPDATED_DECORATOR_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("updated successfully"));
+    }
+
+    @Test
+    @Order(17)
+    void mcp_get_decorator_after_update() {
+        ToolResponse result = decoratorTools.getDecorator("finos", createdDecoratorId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("completed"));
+    }
+
+    // --- Search Tools ---
+
+    @Test
+    @Order(18)
+    void mcp_search_hub() {
+        ToolResponse result = searchTools.searchHub("mcp-nitrite");
+        assertThat(result.isError(), is(false));
+    }
+
+    // --- Validation ---
+
+    @Test
+    @Order(19)
+    void mcp_validation_rejects_invalid_namespace() {
+        ToolResponse result = architectureTools.listArchitectures("invalid namespace!");
+        assertThat(result.isError(), is(true));
+    }
+
+    @Test
+    @Order(20)
+    void mcp_validation_rejects_invalid_version() {
+        ToolResponse result = architectureTools.getArchitecture("finos", 1, "not-a-version!");
+        assertThat(result.isError(), is(true));
+    }
+
+    @Test
+    @Order(21)
+    void mcp_validation_rejects_blank_search_query() {
+        ToolResponse result = searchTools.searchHub("");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("must not be blank"));
+    }
+
+    @Test
+    @Order(22)
+    void mcp_architecture_not_found_for_nonexistent_namespace() {
+        ToolResponse result = architectureTools.listArchitectures("nonexistent");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    @Order(23)
+    void mcp_get_architecture_version_not_found() {
+        ToolResponse result = architectureTools.getArchitecture("finos", createdArchitectureId, "99.99.99");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    @Order(24)
+    void mcp_validation_rejects_decorator_target_filter_with_spaces() {
+        ToolResponse result = decoratorTools.listDecorators("finos", "/calm/namespaces/finos architectures/1", null);
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Target filter"));
+    }
+
+    @Test
+    @Order(25)
+    void mcp_validation_rejects_decorator_type_filter_with_newline() {
+        ToolResponse result = decoratorTools.listDecorators("finos", null, "deployment\n");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Type filter"));
+    }
+
+    // --- updateArchitecture ---
+
+    @Test
+    @Order(26)
+    void mcp_update_architecture_publishes_new_version() {
+        ToolResponse result = architectureTools.updateArchitecture(
+                "finos", createdArchitectureId, "1.1.0", "{\"name\": \"mcp-nitrite-architecture-updated\"}", null, null);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("updated successfully"));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(27)
+    void mcp_list_architecture_versions_includes_updated_version() {
+        ToolResponse result = architectureTools.listArchitectureVersions("finos", createdArchitectureId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(28)
+    void mcp_list_architectures_preserves_name_after_update() {
+        // Regression guard: prior to this change updateArchitecture silently nulled the
+        // architecture's name and description, so listArchitectures would fall back to
+        // "Architecture <id>" instead of the original "MCP Nitrite Arch".
+        ToolResponse result = architectureTools.listArchitectures("finos");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("MCP Nitrite Arch"));
+        assertThat(text(result), containsString("Nitrite integration test architecture"));
+    }
+
+    @Test
+    @Order(29)
+    void mcp_update_architecture_returns_error_for_nonexistent_architecture() {
+        ToolResponse result = architectureTools.updateArchitecture(
+                "finos", 999999, "1.1.0", "{\"name\": \"ghost\"}", null, null);
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    // --- Control Tools (create paths) ---
+
+    @Test
+    @Order(30)
+    void mcp_create_control_requirement() {
+        ToolResponse result = controlTools.createControlRequirement(
+                "security", "MCP Nitrite Control", "Nitrite integration test control requirement", CONTROL_REQUIREMENT_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+
+        Matcher matcher = ID_PATTERN.matcher(text(result));
+        assertThat("Response should contain control ID", matcher.find());
+        createdControlId = Integer.parseInt(matcher.group(1));
+        logger.info("Created control with ID: {}", createdControlId);
+    }
+
+    @Test
+    @Order(31)
+    void mcp_list_controls_contains_created() {
+        ToolResponse result = controlTools.listControls("security");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("MCP Nitrite Control"));
+    }
+
+    @Test
+    @Order(32)
+    void mcp_list_control_versions_after_create() {
+        ToolResponse result = controlTools.listControlVersions("security", createdControlId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+    }
+
+    @Test
+    @Order(33)
+    void mcp_get_control_after_create() {
+        ToolResponse result = controlTools.getControl("security", createdControlId, "1.0.0");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("mcp-nitrite-control"));
+    }
+
+    @Test
+    @Order(34)
+    void mcp_create_control_configuration() {
+        ToolResponse result = controlTools.createControlConfiguration(
+                "security", createdControlId, CONTROL_CONFIGURATION_JSON);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+    }
+
+    @Test
+    @Order(35)
+    void mcp_create_control_configuration_for_missing_control_returns_error() {
+        ToolResponse result = controlTools.createControlConfiguration(
+                "security", 99999, CONTROL_CONFIGURATION_JSON);
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    @Order(36)
+    void mcp_create_control_requirement_rejects_invalid_json() {
+        ToolResponse result = controlTools.createControlRequirement(
+                "security", "Bad", "desc", "not-json");
+        assertThat(result.isError(), is(true));
+    }
+}

@@ -239,6 +239,31 @@ Validation requires:
             await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
+    program
+        .command('init-config')
+        .description('Create or update the CALM CLI configuration file (~/.calm.json).')
+        .option('--allowed-remote-hosts <hosts>', 'Comma-separated list of trusted remote hosts to allow for direct URL loading')
+        .option('--calm-hub-url <url>', 'URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents')
+        .action(async (options) => {
+            const existingConfig = await cliConfig.loadCliConfig() ?? {};
+
+            if (options.allowedRemoteHosts) {
+                const newHosts = (options.allowedRemoteHosts as string).split(',').map((h: string) => h.trim()).filter(Boolean);
+                const existingHosts = existingConfig.allowedRemoteHosts ?? [];
+                const merged = [...new Set([...existingHosts, ...newHosts])];
+                existingConfig.allowedRemoteHosts = merged;
+            }
+
+            if (options.calmHubUrl) {
+                existingConfig.calmHubUrl = options.calmHubUrl;
+            }
+
+            const configPath = cliConfig.getUserConfigLocation();
+            await cliConfig.saveCliConfig(existingConfig);
+            console.log(`✅ Configuration saved to ${configPath}`);
+            console.log(JSON.stringify(existingConfig, null, 2));
+        });
+
 }
 
 interface ParseDocumentLoaderOptions {
@@ -268,6 +293,19 @@ export async function parseDocumentLoaderConfig(
         logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
         docLoaderOpts.calmHubUrl = userConfig.calmHubUrl;
     }
+    
+    // if we have an auth plugin and we have calmHub configured
+    if (userConfig && userConfig.authPluginPath) {
+        logger.info('Loading auth plugin from config file: ' + userConfig.authPluginPath);
+        try {
+            const authPlugin = await cliConfig.loadAuthPlugin(userConfig.authPluginPath, !!options.verbose);
+            docLoaderOpts.authPlugin = authPlugin;
+            logger.debug('Auth plugin loaded successfully');
+        } catch (err) {
+            logger.error('Failed to load auth plugin: ' + (err instanceof Error ? err.message : String(err)));
+        }
+    }
+
     if (userConfig && userConfig.allowedRemoteHosts && !options.allowedRemoteHosts) {
         logger.info('Using allowed remote hosts from config file');
         docLoaderOpts.allowedRemoteHosts = userConfig.allowedRemoteHosts;

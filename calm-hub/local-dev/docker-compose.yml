@@ -7,8 +7,10 @@ services:
     volumes:
       - ../mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
       - ../../calm:/calm:ro
+      - ../mongo/controls:/controls:ro
     environment:
       - CALM_SCHEMA_BASE_PATH=/calm
+      - CALM_CONTROLS_BASE_PATH=/controls
     networks:
       - calm-net
 networks:

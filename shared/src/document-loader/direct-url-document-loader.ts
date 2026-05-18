@@ -1,8 +1,7 @@
 import axios, { Axios } from 'axios';
 import { isIP } from 'net';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader } from './document-loader';
-import { DocumentLoadError } from './document-loader';
+import { CalmDocumentType, DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { Logger, initLogger } from '../logger';
 
 const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
@@ -106,7 +105,10 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             if (!this.allowedRemoteHosts.has(normalizedHost)) {
                 throw new DocumentLoadError({
                     name: 'UNKNOWN',
-                    message: `Direct URL loading is restricted to approved hosts. Host '${parsedUrl.hostname}' is not allowlisted.`,
+                    message: `Direct URL loading is restricted to approved hosts. Host '${parsedUrl.hostname}' is not allowlisted.\n\n`
+                        + 'To allow this host, run:\n\n'
+                        + `  calm init-config --allowed-remote-hosts ${parsedUrl.hostname}\n\n`
+                        + 'Only add hosts you trust.',
                 });
             }
             if (parsedUrl.username || parsedUrl.password) {
@@ -122,6 +124,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 maxRedirects: 0,
                 allowAbsoluteUrls: false
             });
+            assertJsonObject(response.data, documentId);
             return response.data;
         } catch (error) {
             if (error instanceof DocumentLoadError) {

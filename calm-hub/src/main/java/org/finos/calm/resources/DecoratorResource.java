@@ -130,9 +130,6 @@ public class DecoratorResource {
             return decoratorStore.getDecoratorById(namespace, id)
                     .map(decorator -> Response.ok(decorator).build())
                     .orElse(CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id));
-        } catch (DecoratorNotFoundException e) {
-            logger.error("Decorator [{}] not found in namespace [{}]", id, namespace, e);
-            return CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving decorator with id [{}]", namespace, id, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

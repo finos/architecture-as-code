@@ -1,0 +1,34 @@
+{
+  "controlId": 16,
+  "name": "AIR-SEC-024 — Agent Action Authorization Bypass",
+  "description": "Controls to prevent AI agent actions from being executed without proper authorisation, mitigating risks from agentic systems performing unauthorised operations in financial services environments.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-SEC-024",
+      "name": "Agent Action Authorization Bypass",
+      "category": "Security",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-24_agent-action-authorization-bypass.html",
+      "summary": "Agentic AI systems may execute actions beyond their authorised scope due to inadequate authorisation controls, malicious instruction injection, or privilege escalation vulnerabilities.",
+      "requirements": [
+        "Enforce least-privilege principles: AI agents must only have permissions required for their specific, defined tasks.",
+        "Implement explicit human-in-the-loop approval gates for irreversible or high-risk agent actions.",
+        "Validate all agent actions against a defined authorisation policy before execution.",
+        "Log all agent actions with sufficient detail to support post-incident forensic analysis.",
+        "Implement agent action sandboxing to limit blast radius of unauthorised action attempts.",
+        "Regularly review and recertify agent permission sets as part of access governance processes."
+      ],
+      "contributing_factors": [
+        "Overly permissive agent privilege assignments enabling unintended action scope.",
+        "Prompt injection attacks redirecting agent actions toward unauthorised operations.",
+        "Absence of human oversight gates for high-risk or irreversible actions.",
+        "Insufficient logging preventing detection of unauthorised agent activities."
+      ],
+      "references": [
+        "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+      ]
+    }
+  },
+  "configurations": []
+}

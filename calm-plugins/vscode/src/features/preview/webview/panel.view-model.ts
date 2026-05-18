@@ -122,10 +122,18 @@ export class PanelViewModel {
      * Initialize the panel
      */
     initialize(): void {
-        // Signal that webview is ready
+        // Signal that webview is ready (JS has executed).
         this.vscode.postMessage({ type: 'ready' })
 
         // Request initial docify data
         this.vscode.postMessage({ type: 'runDocify' })
+
+        // Paint probe: after 2 rAF ticks, post 'rendered'. rAF only fires
+        // when the compositor is producing frames, so this is a live signal
+        // that paint is actually happening — a guard against regressions like
+        // issue #2361 where the pane stays blank despite JS running.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            this.vscode.postMessage({ type: 'rendered' })
+        }))
     }
 }

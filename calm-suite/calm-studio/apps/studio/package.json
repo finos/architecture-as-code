@@ -14,8 +14,8 @@
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
-    "@calmstudio/calm-core": "workspace:*",
-    "@calmstudio/extensions": "workspace:*",
+    "@calmstudio/calm-core": "file:../../packages/calm-core",
+    "@calmstudio/extensions": "file:../../packages/extensions",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lint": "^6.9.5",
     "@codemirror/state": "^6.5.4",
@@ -31,7 +31,7 @@
     "@xyflow/svelte": "^1.5.1",
     "elkjs": "^0.11.1",
     "fuse.js": "^7.0.0",
-    "html-to-image": "1.11.11",
+    "html-to-image": "1.11.13",
     "jsonpos": "^4.1.2",
     "nanoid": "^5.0.9",
     "paneforge": "^1.0.2",
@@ -46,7 +46,7 @@
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/adapter-vercel": "^6.3.3",
     "@sveltejs/kit": "^2.53.4",
-    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/vite": "^4.2.1",
     "@tauri-apps/cli": "^2.10.1",
     "@testing-library/svelte": "^5.2.7",

@@ -5,6 +5,26 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.40.0] - 2026-05-08
+
+### Changed
+- Manual release triggered
+
+## [1.39.1] - 2026-05-05
+
+### Changed
+- Manual release triggered
+
+## [1.39.0] - 2026-05-02
+
+### Changed
+- Manual release triggered
+
+## [1.38.0] - 2026-04-29
+
+### Changed
+- Manual release triggered
+
 ## [1.37.0] - 2026-04-01
 
 ## [1.37.0](https://github.com/finos/architecture-as-code/compare/cli-v1.36.0...cli-v1.37.0) (2026-04-01)

@@ -1,0 +1,34 @@
+{
+  "controlId": 5,
+  "name": "AIR-OP-006 — Non-Deterministic Behaviour",
+  "description": "Controls to manage the risks arising from non-deterministic LLM behaviour, where identical inputs may produce differing outputs due to probabilistic sampling.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-006",
+      "name": "Non-Deterministic Behaviour",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-6_non-deterministic-behaviour.html",
+      "summary": "LLMs exhibit non-deterministic behaviour, meaning they can generate different outputs for the same input due to probabilistic sampling and internal variability. This unpredictability can lead to inconsistent user experiences, undermine trust, and complicate testing, debugging, and performance evaluation.",
+      "requirements": [
+        "Set deterministic decoding parameters (e.g., temperature=0, fixed random seeds) for consistency-critical applications.",
+        "Define acceptable output variance thresholds and alert when outputs deviate beyond defined bounds.",
+        "Use ensemble approaches or majority-voting across multiple runs for high-stakes decisions.",
+        "Design test suites that account for output variability, using statistical sampling rather than exact-match assertions.",
+        "Document and communicate non-determinism risks to end users and business stakeholders.",
+        "Avoid relying on AI outputs as sole decision inputs where consistency is a regulatory or contractual requirement."
+      ],
+      "contributing_factors": [
+        "Probabilistic sampling: models sample from token probability distributions introducing randomness.",
+        "Temperature and top-p settings amplifying output variability.",
+        "GPU floating-point precision variations affecting inference.",
+        "Context length and prompt position effects on model behaviour."
+      ],
+      "references": [
+        "https://arxiv.org/abs/2308.02828"
+      ]
+    }
+  },
+  "configurations": []
+}
