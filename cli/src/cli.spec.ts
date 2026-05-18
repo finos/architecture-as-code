@@ -38,7 +38,7 @@ describe('CLI Commands', () => {
         vi.spyOn(validateModule, 'runValidate').mockResolvedValue(undefined);
         vi.spyOn(validateModule, 'checkValidateOptions').mockResolvedValue(undefined);
 
-        vi.spyOn(diffModule, 'runDiffCommand').mockResolvedValue(undefined);
+        vi.spyOn(diffModule, 'runDiffCommand').mockResolvedValue(false);
 
         vi.spyOn(templateModule, 'getUrlToLocalFileMap').mockReturnValue(new Map());
 
@@ -113,11 +113,10 @@ describe('CLI Commands', () => {
                 architectureAPath: 'before.json',
                 architectureBPath: 'after.json',
                 outputFormat: 'summary',
-                exitCode: true,
             }));
         });
 
-        it('should default to json format and not exit on changes', async () => {
+        it('should default to json format', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'diff',
                 '-a', 'before.json',
@@ -126,8 +125,53 @@ describe('CLI Commands', () => {
 
             expect(diffModule.runDiffCommand).toHaveBeenCalledWith(expect.objectContaining({
                 outputFormat: 'json',
-                exitCode: false,
             }));
+        });
+
+        it('should exit 1 when --exit-code is set and runDiffCommand reports changes', async () => {
+            vi.mocked(diffModule.runDiffCommand).mockResolvedValueOnce(true);
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+                throw new Error('process.exit called');
+            });
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'diff',
+                '-a', 'before.json',
+                '-b', 'after.json',
+                '--exit-code',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            exitSpy.mockRestore();
+        });
+
+        it('should not exit when --exit-code is set but no changes were reported', async () => {
+            vi.mocked(diffModule.runDiffCommand).mockResolvedValueOnce(false);
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'diff',
+                '-a', 'before.json',
+                '-b', 'after.json',
+                '--exit-code',
+            ]);
+
+            expect(exitSpy).not.toHaveBeenCalled();
+            exitSpy.mockRestore();
+        });
+
+        it('should not exit when changes are detected but --exit-code is not set', async () => {
+            vi.mocked(diffModule.runDiffCommand).mockResolvedValueOnce(true);
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'diff',
+                '-a', 'before.json',
+                '-b', 'after.json',
+            ]);
+
+            expect(exitSpy).not.toHaveBeenCalled();
+            exitSpy.mockRestore();
         });
     });
 

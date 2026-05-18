@@ -261,14 +261,16 @@ Validation requires:
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { runDiffCommand } = await import('./command-helpers/diff');
-            await runDiffCommand({
+            const hasChanges = await runDiffCommand({
                 architectureAPath: options.architectureA,
                 architectureBPath: options.architectureB,
                 outputFormat: options.format,
                 outputPath: options.output,
-                exitCode: !!options.exitCode,
                 verbose: !!options.verbose,
             });
+            if (options.exitCode && hasChanges) {
+                process.exit(1);
+            }
         });
 
     program

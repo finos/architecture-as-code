@@ -5,11 +5,10 @@ export interface DiffCommandOptions {
     architectureBPath: string;
     outputFormat: DiffOutputFormat;
     outputPath?: string;
-    exitCode: boolean;
     verbose: boolean;
 }
 
-export async function runDiffCommand(options: DiffCommandOptions): Promise<void> {
+export async function runDiffCommand(options: DiffCommandOptions): Promise<boolean> {
     const logger = initLogger(options.verbose, 'calm-diff');
     try {
         const result = await runDiff(options.architectureAPath, options.architectureBPath, {
@@ -23,9 +22,7 @@ export async function runDiffCommand(options: DiffCommandOptions): Promise<void>
             if (!result.formatted.endsWith('\n')) process.stdout.write('\n');
         }
 
-        if (options.exitCode && result.hasChanges) {
-            process.exit(1);
-        }
+        return result.hasChanges;
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         logger.error('An error occurred while diffing architectures: ' + message);

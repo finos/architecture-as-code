@@ -32,7 +32,6 @@ const baseOptions = {
     architectureBPath: 'b.json',
     outputFormat: 'json' as const,
     outputPath: undefined,
-    exitCode: false,
     verbose: false,
 };
 
@@ -44,11 +43,12 @@ describe('runDiffCommand', () => {
             hasChanges: false,
         });
 
-        await runDiffCommand({ ...baseOptions });
+        const hasChanges = await runDiffCommand({ ...baseOptions });
 
         expect(runDiff).toHaveBeenCalledWith('a.json', 'b.json', expect.objectContaining({ format: 'json' }));
         expect(mocks.stdoutWrite).toHaveBeenCalledWith('{"nodesAdded":[]}');
         expect(mocks.processExit).not.toHaveBeenCalled();
+        expect(hasChanges).toBe(false);
     });
 
     it('does not print to stdout when an output path is provided (runDiff handles the write)', async () => {
@@ -68,27 +68,29 @@ describe('runDiffCommand', () => {
         expect(mocks.stdoutWrite).not.toHaveBeenCalled();
     });
 
-    it('exits 1 when --exit-code is set and changes were detected', async () => {
+    it('returns true when changes were detected so the CLI wrapper can exit non-zero', async () => {
         (runDiff as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
             diff: {},
             formatted: '{}',
             hasChanges: true,
         });
 
-        await runDiffCommand({ ...baseOptions, exitCode: true });
+        const hasChanges = await runDiffCommand({ ...baseOptions });
 
-        expect(mocks.processExit).toHaveBeenCalledWith(1);
+        expect(hasChanges).toBe(true);
+        expect(mocks.processExit).not.toHaveBeenCalled();
     });
 
-    it('does not exit when --exit-code is set but no changes were detected', async () => {
+    it('returns false when no changes were detected', async () => {
         (runDiff as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
             diff: {},
             formatted: '{}',
             hasChanges: false,
         });
 
-        await runDiffCommand({ ...baseOptions, exitCode: true });
+        const hasChanges = await runDiffCommand({ ...baseOptions });
 
+        expect(hasChanges).toBe(false);
         expect(mocks.processExit).not.toHaveBeenCalled();
     });
 
