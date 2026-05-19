@@ -38,6 +38,7 @@ class TestDecoratorToolsShould {
     @BeforeEach
     void setup() {
         decoratorTools.mcpEnabled = true;
+        decoratorTools.allowPutOperations = true;
     }
 
     private static String text(ToolResponse r) {
@@ -393,6 +394,39 @@ class TestDecoratorToolsShould {
         assertThat(text(createDec), containsString("disabled"));
         assertThat(updateDec.isError(), is(true));
         assertThat(text(updateDec), containsString("disabled"));
+        verifyNoInteractions(decoratorStore);
+    }
+
+    @Test
+    void return_error_when_put_operations_disabled_for_update_decorator() {
+        decoratorTools.allowPutOperations = false;
+
+        ToolResponse response = decoratorTools.updateDecorator("workshop", 1, "{\"type\":\"test\"}");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("allow.put.operations"));
+        verifyNoInteractions(decoratorStore);
+    }
+
+    @Test
+    void reject_oversized_json_for_create_decorator() {
+        String hugeJson = "{\"x\":\"" + "a".repeat(100_001) + "\"}";
+
+        ToolResponse response = decoratorTools.createDecorator("workshop", hugeJson);
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Decorator JSON"));
+        verifyNoInteractions(decoratorStore);
+    }
+
+    @Test
+    void reject_oversized_json_for_update_decorator() {
+        String hugeJson = "{\"x\":\"" + "a".repeat(100_001) + "\"}";
+
+        ToolResponse response = decoratorTools.updateDecorator("workshop", 1, hugeJson);
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("Decorator JSON"));
         verifyNoInteractions(decoratorStore);
     }
 }

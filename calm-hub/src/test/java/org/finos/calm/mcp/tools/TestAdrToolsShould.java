@@ -43,6 +43,7 @@ class TestAdrToolsShould {
     @BeforeEach
     void setup() {
         adrTools.mcpEnabled = true;
+        adrTools.allowPutOperations = true;
     }
 
     private static String text(ToolResponse r) {
@@ -613,6 +614,28 @@ class TestAdrToolsShould {
 
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("disabled"));
+        verifyNoInteractions(adrStore);
+    }
+
+    @Test
+    void return_error_when_put_operations_disabled_for_update_adr() {
+        adrTools.allowPutOperations = false;
+
+        ToolResponse result = adrTools.updateAdr("finos", 1, VALID_ADR_JSON);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("allow.put.operations"));
+        verifyNoInteractions(adrStore);
+    }
+
+    @Test
+    void return_error_when_put_operations_disabled_for_update_adr_status() {
+        adrTools.allowPutOperations = false;
+
+        ToolResponse result = adrTools.updateAdrStatus("finos", 1, "accepted");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("allow.put.operations"));
         verifyNoInteractions(adrStore);
     }
 

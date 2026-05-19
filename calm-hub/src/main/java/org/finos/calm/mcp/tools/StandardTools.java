@@ -46,24 +46,13 @@ public class StandardTools {
 
         try {
             List<NamespaceStandardSummary> standards = standardStore.getStandardsForNamespace(namespace);
-            if (standards.isEmpty()) {
-                return ToolResponse.success("No standards found in namespace '" + namespace + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("Standards in '").append(namespace).append("':\n");
-            for (NamespaceStandardSummary s : standards) {
-                sb.append("- ID: ").append(s.getId());
-                if (s.getName() != null) {
-                    sb.append(", Name: ").append(s.getName());
-                }
-                if (s.getDescription() != null) {
-                    sb.append(", Description: ").append(s.getDescription());
-                }
-                sb.append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            List<McpResponseFormatter.ResourceSummary> summaries = standards.stream()
+                    .map(s -> new McpResponseFormatter.ResourceSummary(s.getId(), s.getName(), s.getDescription()))
+                    .toList();
+            return McpResponseFormatter.formatResourceList("standard", namespace, summaries);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         }
     }
 
@@ -79,20 +68,13 @@ public class StandardTools {
 
         try {
             List<String> versions = standardStore.getStandardVersions(namespace, standardId);
-            if (versions.isEmpty()) {
-                return ToolResponse.success("No versions found for standard " + standardId + " in namespace '" + namespace + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("Versions for standard ").append(standardId).append(":\n");
-            for (String version : versions) {
-                sb.append("- ").append(version).append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            return McpResponseFormatter.formatVersionList("standard", standardId, namespace, versions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         } catch (StandardNotFoundException e) {
             logger.warn("Standard [{}] not found in namespace [{}]", standardId, namespace, e);
-            return ToolResponse.error("Error: Standard " + standardId + " not found in namespace '" + namespace + "'.");
+            return McpResponseFormatter.entityNotFound("standard", standardId, namespace);
         }
     }
 
@@ -112,13 +94,13 @@ public class StandardTools {
             return ToolResponse.success(standardStore.getStandardForVersion(namespace, standardId, version));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         } catch (StandardNotFoundException e) {
             logger.warn("Standard [{}] not found in namespace [{}]", standardId, namespace, e);
-            return ToolResponse.error("Error: Standard " + standardId + " not found in namespace '" + namespace + "'.");
+            return McpResponseFormatter.entityNotFound("standard", standardId, namespace);
         } catch (StandardVersionNotFoundException e) {
             logger.warn("Version [{}] not found for standard [{}] in namespace [{}]", version, standardId, namespace, e);
-            return ToolResponse.error("Error: Version '" + version + "' not found for standard " + standardId + ".");
+            return McpResponseFormatter.versionNotFound("standard", standardId, version);
         }
     }
 
@@ -131,7 +113,7 @@ public class StandardTools {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validateMaxLength(name, 200, "Standard name"),
+                () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Standard name"),
                 () -> McpValidationHelper.validateDescriptionLength(description, "Standard description"),
                 () -> McpValidationHelper.validateNotBlank(standardJson, "Standard JSON"),
                 () -> McpValidationHelper.validateMaxLength(standardJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Standard JSON"),
@@ -145,7 +127,7 @@ public class StandardTools {
             return ToolResponse.success("Standard created successfully with ID: " + result.getId() + " (version " + result.getVersion() + ") in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         }
     }
 
@@ -182,10 +164,10 @@ public class StandardTools {
             return ToolResponse.success("Standard " + standardId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         } catch (StandardNotFoundException e) {
             logger.warn("Standard [{}] not found in namespace [{}]", standardId, namespace, e);
-            return ToolResponse.error("Error: Standard " + standardId + " not found in namespace '" + namespace + "'.");
+            return McpResponseFormatter.entityNotFound("standard", standardId, namespace);
         } catch (StandardVersionExistsException e) {
             logger.warn("Version [{}] already exists for standard [{}] in namespace [{}]", version, standardId, namespace, e);
             return ToolResponse.error("Error: Version '" + version + "' already exists for standard " + standardId + ".");

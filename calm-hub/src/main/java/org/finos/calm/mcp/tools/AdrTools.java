@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * MCP tool provider for ADR (Architecture Decision Record) resources.
@@ -40,6 +41,10 @@ public class AdrTools {
     boolean mcpEnabled;
 
     @Inject
+    @ConfigProperty(name = "allow.put.operations", defaultValue = "false")
+    boolean allowPutOperations;
+
+    @Inject
     AdrStore adrStore;
 
     @Tool(description = "List all ADRs in a CalmHub namespace. Returns ADR IDs, titles, and current status.")
@@ -52,17 +57,10 @@ public class AdrTools {
 
         try {
             var adrs = adrStore.getAdrsForNamespace(namespace);
-            if (adrs.isEmpty()) {
-                return ToolResponse.success("No ADRs found in namespace '" + namespace + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("ADRs in '").append(namespace).append("':\n");
-            for (var summary : adrs) {
-                sb.append("- ID: ").append(summary.getId())
-                  .append(", Title: ").append(summary.getTitle())
-                  .append(", Status: ").append(summary.getStatus())
-                  .append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            List<McpResponseFormatter.AdrSummary> summaries = adrs.stream()
+                    .map(a -> new McpResponseFormatter.AdrSummary(a.getId(), a.getTitle(), a.getStatus()))
+                    .collect(Collectors.toList());
+            return McpResponseFormatter.formatAdrList(namespace, summaries);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
@@ -122,14 +120,7 @@ public class AdrTools {
 
         try {
             List<Integer> revisions = adrStore.getAdrRevisions(adrMeta);
-            if (revisions.isEmpty()) {
-                return ToolResponse.success("No revisions found for ADR " + adrId + " in namespace '" + namespace + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("Revisions for ADR ").append(adrId).append(":\n");
-            for (Integer revision : revisions) {
-                sb.append("- ").append(revision).append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            return McpResponseFormatter.formatRevisionList("ADR", adrId, namespace, revisions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
@@ -229,6 +220,7 @@ public class AdrTools {
             @ToolArg(description = "The updated ADR content as JSON (NewAdrRequest structure)") String adrJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.checkMutationAllowed(allowPutOperations),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> McpValidationHelper.validatePositiveId(adrId, "ADR ID"),
                 () -> McpValidationHelper.validateNotBlank(adrJson, "ADR JSON"),
@@ -276,17 +268,14 @@ public class AdrTools {
             @ToolArg(description = "The new status (draft, proposed, accepted, superseded, rejected, deprecated)") String status) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.checkMutationAllowed(allowPutOperations),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> McpValidationHelper.validatePositiveId(adrId, "ADR ID"),
-                () -> McpValidationHelper.validateNotBlank(status, "Status"));
+                () -> McpValidationHelper.validateNotBlank(status, "Status"),
+                () -> McpValidationHelper.validateEnum(status, Status.class, "status"));
         if (err.isPresent()) return err.get();
 
-        Status adrStatus;
-        try {
-            adrStatus = Status.valueOf(status.toLowerCase());
-        } catch (IllegalArgumentException e) {
-            return ToolResponse.error("Error: Invalid status '" + status + "'. Valid values: draft, proposed, accepted, superseded, rejected, deprecated.");
-        }
+        Status adrStatus = McpValidationHelper.parseEnum(status, Status.class);
 
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)

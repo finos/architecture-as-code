@@ -600,7 +600,7 @@ public class NitriteMcpIntegration {
     @Test
     @Order(52)
     void mcp_create_standard_new_version() {
-        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{"name": "mcp-nitrite-standard-v2"}");
+        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{\"name\": \"mcp-nitrite-standard-v2\"}");
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("created successfully"));
         assertThat(text(result), containsString("1.1.0"));
@@ -625,7 +625,7 @@ public class NitriteMcpIntegration {
     @Test
     @Order(55)
     void mcp_create_duplicate_standard_version_returns_error() {
-        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{"name": "duplicate"}");
+        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{\"name\": \"duplicate\"}");
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("already exists"));
     }

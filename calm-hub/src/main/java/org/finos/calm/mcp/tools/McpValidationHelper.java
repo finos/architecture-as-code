@@ -3,8 +3,10 @@ package org.finos.calm.mcp.tools;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkiverse.mcp.server.ToolResponse;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
@@ -39,14 +41,34 @@ final class McpValidationHelper {
     private McpValidationHelper() {
     }
 
+    /**
+     * Returns {@code null} when MCP tools are enabled; returns an error message otherwise.
+     *
+     * @param mcpEnabled the value of the {@code calm.mcp.enabled} configuration property
+     * @return error string, or {@code null} if enabled
+     */
     static String checkEnabled(boolean mcpEnabled) {
         return mcpEnabled ? null : MCP_DISABLED_MESSAGE;
     }
 
+    /**
+     * Returns {@code null} when write operations are permitted; returns an error message otherwise.
+     *
+     * @param allowPutOperations the value of the {@code allow.put.operations} configuration property
+     * @return error string, or {@code null} if mutations are allowed
+     */
     static String checkMutationAllowed(boolean allowPutOperations) {
         return allowPutOperations ? null : MCP_MUTATIONS_DISABLED_MESSAGE;
     }
 
+    /**
+     * Validates that {@code namespace} is non-blank and matches the CalmHub namespace format
+     * (alphanumeric with optional hyphens and dotted segments). Mirrors the
+     * {@code @Pattern(NAMESPACE_REGEX)} constraint applied in the REST resource layer.
+     *
+     * @param namespace the namespace string to validate
+     * @return error string, or {@code null} if valid
+     */
     static String validateNamespace(String namespace) {
         if (namespace == null || namespace.isBlank()) {
             return "Error: Namespace must not be blank.";
@@ -57,6 +79,13 @@ final class McpValidationHelper {
         return null;
     }
 
+    /**
+     * Validates that {@code version} is non-blank and matches semantic version format (e.g. {@code 1.0.0}).
+     * Mirrors the {@code @Pattern(VERSION_REGEX)} constraint applied in the REST resource layer.
+     *
+     * @param version the version string to validate
+     * @return error string, or {@code null} if valid
+     */
     static String validateVersion(String version) {
         if (version == null || version.isBlank()) {
             return "Error: Version must not be blank.";
@@ -67,6 +96,14 @@ final class McpValidationHelper {
         return null;
     }
 
+    /**
+     * Validates that {@code domain} is non-blank and matches the CalmHub domain name format
+     * (alphanumeric with optional hyphens). Mirrors the {@code @Pattern(DOMAIN_NAME_REGEX)}
+     * constraint applied in the REST resource layer.
+     *
+     * @param domain the domain string to validate
+     * @return error string, or {@code null} if valid
+     */
     static String validateDomain(String domain) {
         if (domain == null || domain.isBlank()) {
             return "Error: Domain must not be blank.";
@@ -77,6 +114,13 @@ final class McpValidationHelper {
         return null;
     }
 
+    /**
+     * Validates that {@code value} is non-null and non-blank.
+     *
+     * @param value     the value to check
+     * @param fieldName human-readable field name for the error message
+     * @return error string, or {@code null} if valid
+     */
     static String validateNotBlank(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             return "Error: " + fieldName + " must not be blank.";
@@ -85,7 +129,33 @@ final class McpValidationHelper {
     }
 
     /**
-     * Validates that {@code id} is a positive integer (> 0).
+     * Validates that the lower-cased {@code value} corresponds to a constant name in {@code enumClass}.
+     * Accepts {@code null} and blank values (use {@link #validateNotBlank} if blank is forbidden).
+     * Comparison is case-insensitive: {@code "DRAFT"}, {@code "Draft"}, and {@code "draft"} all match
+     * an enum constant named {@code draft}.
+     *
+     * @param value     the string to check (may be null)
+     * @param enumClass the target enum type
+     * @param fieldName human-readable field name for the error message
+     * @param <E>       enum type
+     * @return error string listing valid values, or {@code null} if valid
+     */
+    static <E extends Enum<E>> String validateEnum(String value, Class<E> enumClass, String fieldName) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        for (E constant : enumClass.getEnumConstants()) {
+            if (constant.name().equalsIgnoreCase(value)) {
+                return null;
+            }
+        }
+        String validValues = Arrays.stream(enumClass.getEnumConstants())
+                .map(Enum::name)
+                .collect(Collectors.joining(", "));
+        return "Error: Invalid " + fieldName + " '" + value + "'. Valid values: " + validValues + ".";
+    }
+
+    /**
      *
      * @param id        the numeric ID to check
      * @param fieldName human-readable field name for the error message
@@ -176,6 +246,23 @@ final class McpValidationHelper {
             return "Error: " + fieldName + " must not exceed " + maxLen + " characters.";
         }
         return null;
+    }
+
+    /**
+     * Returns the enum constant whose name matches {@code value} case-insensitively.
+     * Must only be called after {@link #validateEnum} has confirmed the value is valid,
+     * so the {@code orElseThrow} path is unreachable in normal flow.
+     *
+     * @param value     the string to look up
+     * @param enumClass the target enum type
+     * @param <E>       enum type
+     * @return the matched enum constant
+     */
+    static <E extends Enum<E>> E parseEnum(String value, Class<E> enumClass) {
+        return Arrays.stream(enumClass.getEnumConstants())
+                .filter(c -> c.name().equalsIgnoreCase(value))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No enum constant for: " + value));
     }
 
     /**

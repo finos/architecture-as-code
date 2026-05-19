@@ -15,8 +15,10 @@ import org.finos.calm.mcp.tools.ControlTools;
 import org.finos.calm.mcp.tools.DecoratorTools;
 import org.finos.calm.mcp.tools.DomainTools;
 import org.finos.calm.mcp.tools.NamespaceTools;
+import org.finos.calm.mcp.tools.AdrTools;
 import org.finos.calm.mcp.tools.PatternTools;
 import org.finos.calm.mcp.tools.SearchTools;
+import org.finos.calm.mcp.tools.StandardTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -83,10 +85,25 @@ public class MongoMcpIntegration {
             }
             """;
 
+    private static final String STANDARD_JSON = "{\"$schema\": \"https://calm.finos.org/schema\", \"name\": \"mcp-test-standard\"}";
+
+    private static final String ADR_JSON = """
+            {
+              "title": "Use MongoDB for persistence",
+              "contextAndProblemStatement": "We need a document store",
+              "decisionDrivers": ["scalability"],
+              "consideredOptions": [],
+              "decisionOutcome": {"chosenOption": {"name": "MongoDB"}, "rationale": "Document storage"},
+              "links": []
+            }
+            """;
+
     private static int createdArchitectureId;
     private static int createdDecoratorId;
     private static int createdControlId;
     private static int createdPatternId;
+    private static int createdStandardId;
+    private static int createdAdrId;
 
     @Inject
     ArchitectureTools architectureTools;
@@ -108,6 +125,12 @@ public class MongoMcpIntegration {
 
     @Inject
     SearchTools searchTools;
+
+    @Inject
+    StandardTools standardTools;
+
+    @Inject
+    AdrTools adrTools;
 
     private static String text(ToolResponse r) {
         return ((TextContent) r.firstContent()).text();
@@ -617,7 +640,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(52)
     void mcp_create_standard_new_version() {
-        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{"name": "mcp-test-standard-v2"}");
+        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{\"name\": \"mcp-test-standard-v2\"}");
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("created successfully"));
         assertThat(text(result), containsString("1.1.0"));
@@ -642,7 +665,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(55)
     void mcp_create_duplicate_standard_version_returns_error() {
-        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{"name": "duplicate"}");
+        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{\"name\": \"duplicate\"}");
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("already exists"));
     }

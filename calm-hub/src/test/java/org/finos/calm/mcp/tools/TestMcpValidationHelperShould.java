@@ -1,6 +1,7 @@
 package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.ToolResponse;
+import org.finos.calm.domain.adr.Status;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -295,5 +296,29 @@ class TestMcpValidationHelperShould {
     void return_empty_for_no_checks() {
         Optional<ToolResponse> result = McpValidationHelper.firstError();
         assertThat(result.isPresent(), is(false));
+    }
+
+    // --- validateEnum ---
+
+    @Test
+    void return_null_when_enum_value_matches_case_insensitively() {
+        assertThat(McpValidationHelper.validateEnum("ACCEPTED", Status.class, "Status"), is(nullValue()));
+        assertThat(McpValidationHelper.validateEnum("accepted", Status.class, "Status"), is(nullValue()));
+        assertThat(McpValidationHelper.validateEnum("draft", Status.class, "Status"), is(nullValue()));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void return_null_when_enum_value_is_blank(String value) {
+        assertThat(McpValidationHelper.validateEnum(value, Status.class, "Status"), is(nullValue()));
+    }
+
+    @Test
+    void return_error_when_enum_value_is_invalid() {
+        String result = McpValidationHelper.validateEnum("invalid-status", Status.class, "Status");
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("Status"));
+        assertThat(result, containsString("draft"));
     }
 }

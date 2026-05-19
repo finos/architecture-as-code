@@ -50,24 +50,13 @@ public class PatternTools {
 
         try {
             List<NamespacePatternSummary> patterns = patternStore.getPatternsForNamespace(namespace);
-            if (patterns.isEmpty()) {
-                return ToolResponse.success("No patterns found in namespace '" + namespace + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("Patterns in '").append(namespace).append("':\n");
-            for (NamespacePatternSummary p : patterns) {
-                sb.append("- ID: ").append(p.getId());
-                if (p.getName() != null) {
-                    sb.append(", Name: ").append(p.getName());
-                }
-                if (p.getDescription() != null) {
-                    sb.append(", Description: ").append(p.getDescription());
-                }
-                sb.append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            List<McpResponseFormatter.ResourceSummary> summaries = patterns.stream()
+                    .map(p -> new McpResponseFormatter.ResourceSummary(p.getId(), p.getName(), p.getDescription()))
+                    .toList();
+            return McpResponseFormatter.formatResourceList("pattern", namespace, summaries);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         }
     }
 
@@ -87,20 +76,13 @@ public class PatternTools {
                     .setId(patternId)
                     .build();
             List<String> versions = patternStore.getPatternVersions(pattern);
-            if (versions.isEmpty()) {
-                return ToolResponse.success("No versions found for pattern " + patternId + " in namespace '" + namespace + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("Versions for pattern ").append(patternId).append(":\n");
-            for (String version : versions) {
-                sb.append("- ").append(version).append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            return McpResponseFormatter.formatVersionList("pattern", patternId, namespace, versions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         } catch (PatternNotFoundException e) {
             logger.warn("Pattern [{}] not found in namespace [{}]", patternId, namespace, e);
-            return ToolResponse.error("Error: Pattern " + patternId + " not found in namespace '" + namespace + "'.");
+            return McpResponseFormatter.entityNotFound("pattern", patternId, namespace);
         }
     }
 
@@ -125,13 +107,13 @@ public class PatternTools {
             return ToolResponse.success(patternStore.getPatternForVersion(pattern));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         } catch (PatternNotFoundException e) {
             logger.warn("Pattern [{}] not found in namespace [{}]", patternId, namespace, e);
-            return ToolResponse.error("Error: Pattern " + patternId + " not found in namespace '" + namespace + "'.");
+            return McpResponseFormatter.entityNotFound("pattern", patternId, namespace);
         } catch (PatternVersionNotFoundException e) {
             logger.warn("Version [{}] not found for pattern [{}] in namespace [{}]", version, patternId, namespace, e);
-            return ToolResponse.error("Error: Version '" + version + "' not found for pattern " + patternId + ".");
+            return McpResponseFormatter.versionNotFound("pattern", patternId, version);
         }
     }
 
@@ -144,7 +126,7 @@ public class PatternTools {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validateMaxLength(name, 200, "Pattern name"),
+                () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Pattern name"),
                 () -> McpValidationHelper.validateDescriptionLength(description, "Pattern description"),
                 () -> McpValidationHelper.validateNotBlank(patternJson, "Pattern JSON"),
                 () -> McpValidationHelper.validateMaxLength(patternJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Pattern JSON"),
@@ -158,7 +140,7 @@ public class PatternTools {
             return ToolResponse.success("Pattern created successfully with ID: " + result.getId() + " (version " + result.getDotVersion() + ") in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         }
     }
 
@@ -190,10 +172,10 @@ public class PatternTools {
             return ToolResponse.success("Pattern " + patternId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         } catch (PatternNotFoundException e) {
             logger.warn("Pattern [{}] not found in namespace [{}]", patternId, namespace, e);
-            return ToolResponse.error("Error: Pattern " + patternId + " not found in namespace '" + namespace + "'.");
+            return McpResponseFormatter.entityNotFound("pattern", patternId, namespace);
         } catch (PatternVersionExistsException e) {
             logger.warn("Version [{}] already exists for pattern [{}] in namespace [{}]", version, patternId, namespace, e);
             return ToolResponse.error("Error: Version '" + version + "' already exists for pattern " + patternId + ".");
@@ -229,10 +211,10 @@ public class PatternTools {
             return ToolResponse.success("Pattern " + patternId + " version '" + version + "' updated successfully in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         } catch (PatternNotFoundException e) {
             logger.warn("Pattern [{}] not found in namespace [{}]", patternId, namespace, e);
-            return ToolResponse.error("Error: Pattern " + patternId + " not found in namespace '" + namespace + "'.");
+            return McpResponseFormatter.entityNotFound("pattern", patternId, namespace);
         }
     }
 }
