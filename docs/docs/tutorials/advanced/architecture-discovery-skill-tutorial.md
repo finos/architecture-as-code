@@ -137,7 +137,7 @@ Click the tab for you CALM AI Assistant.
 
 2. Enable the CALM agent mode by typing `/CALM.chatmode` in the chat prompt.
 
-2. In the chat, type `/calm-architecture-discovery <root_dir> <arch_file>`
+3. In the chat, type `/calm-architecture-discovery <root_dir> <arch_file>`
 
   </TabItem>
   <TabItem value="claude" label="Claude">
@@ -187,54 +187,54 @@ During the discovery process, the agent may want to run OS commands to discover 
 :::
 
 
-The following chat log has been edited to remove repetitive messages.
+The following chat log has been edited to remove repetitive messages.  The string `<full_path_root_dir_parent>` represents the fully qualified file path for the parent directory of `<root_dir>`.
 
 #### Start discovery process
 ```
 GitHub Copilot: Loading FINOS CALM instructions...  
 
-Ran terminal command:  find /Users/jim/Desktop/finos/discovery-skill-tutorial -maxdepth 1 -mindepth 1 -type d | sort
+Ran terminal command:  find <full_path_root_dir_parent>/discovery-skill-tutorial -maxdepth 1 -mindepth 1 -type d | sort
 
 Fetched 4 resources
 
 Ran terminal command:  
 # Scan key source directories for architecture signals
-echo "=== PACKAGE.JSON FILES ===" && find /Users/jim/Desktop/finos/discovery-skill-tutorial -name "package.json" -not -path "*/node_modules/*" -not -path "*/.git/*" | sort | head -40
+echo "=== PACKAGE.JSON FILES ===" && find <full_path_root_dir_parent>/discovery-skill-tutorial -name "package.json" -not -path "*/node_modules/*" -not -path "*/.git/*" | sort | head -40
 
-echo "=== POM FILES ===" && find /Users/jim/Desktop/finos/discovery-skill-tutorial -name "pom.xml" -not -path "*/node_modules/*" | sort | head -20
+echo "=== POM FILES ===" && find <full_path_root_dir_parent>/discovery-skill-tutorial -name "pom.xml" -not -path "*/node_modules/*" | sort | head -20
 
-echo "=== DOCKER FILES ===" && find /Users/jim/Desktop/finos/discovery-skill-tutorial -name "Dockerfile*" -o -name "docker-compose*.yml" | grep -v node_modules | sort | head -20
+echo "=== DOCKER FILES ===" && find <full_path_root_dir_parent>/discovery-skill-tutorial -name "Dockerfile*" -o -name "docker-compose*.yml" | grep -v node_modules | sort | head -20
 
 
 Ran terminal command:  
-echo "=== calm-guard pipeline route ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src/app/api/pipeline/route.ts | head -40
+echo "=== calm-guard pipeline route ===" && cat <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard/src/app/api/pipeline/route.ts | head -40
 echo ""
-echo "=== calm-guard .env or .env.example ===" && find /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard -name ".env*" | head -5 && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/.env.example 2>/dev/null || cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/.env.local.example 2>/dev/null | head -30
+echo "=== calm-guard .env or .env.example ===" && find <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard -name ".env*" | head -5 && cat <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard/.env.example 2>/dev/null || cat <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard/.env.local.example 2>/dev/null | head -30
 
 <<<DELETED LINES>>>
 
-Fetched [resource](file:///Users/jim/Library/Application Support/Code/User/workspaceStorage/fed09138354c75a35a12171025ba3bae/GitHub.copilot-chat/chat-session-resources/f259f57c-4346-4c6d-a83f-028043f58f09/toolu_01X4yEsZGHziDtqKmGCoWZj3__vscode-1778406861372/content.txt)
+Fetched [resource](file://~/Library/Application Support/Code/User/workspaceStorage/fed09138354c75a35a12171025ba3bae/GitHub.copilot-chat/chat-session-resources/f259f57c-4346-4c6d-a83f-028043f58f09/toolu_01X4yEsZGHziDtqKmGCoWZj3__vscode-1778406861372/content.txt)
 
 Ran terminal command:  
-echo "=== calm-guard AI orchestrator ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src/lib/agents/orchestrator.ts 2>/dev/null | head -40
+echo "=== calm-guard AI orchestrator ===" && cat <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard/src/lib/agents/orchestrator.ts 2>/dev/null | head -40
 
 echo ""
-echo "=== calm-guard lib github client ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src/lib/github/client.ts 2>/dev/null | head -30
+echo "=== calm-guard lib github client ===" && cat <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard/src/lib/github/client.ts 2>/dev/null | head -30
 
 echo ""
-echo "=== calm-guard lib ai streaming ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src/lib/ai/streaming.ts 2>/dev/null | head -30
+echo "=== calm-guard lib ai streaming ===" && cat <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard/src/lib/ai/streaming.ts 2>/dev/null | head -30
 
 echo ""
-echo "=== docs/package.json ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/docs/package.json | head -20
+echo "=== docs/package.json ===" && cat <full_path_root_dir_parent>/discovery-skill-tutorial/docs/package.json | head -20
 
 
 Ran terminal command:  
-echo "=== calm-guard AI agent - which LLM? ===" && grep -r "openai\|anthropic\|claude\|gpt\|llm\|OPENAI\|ANTHROPIC" /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src --include="*.ts" --include="*.tsx" -l | head -10
+echo "=== calm-guard AI agent - which LLM? ===" && grep -r "openai\|anthropic\|claude\|gpt\|llm\|OPENAI\|ANTHROPIC" <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard/src --include="*.ts" --include="*.tsx" -l | head -10
 echo ""
-echo "=== calm-guard AI agent detail ===" && grep -r "openai\|anthropic\|claude\|gpt\|OPENAI_API_KEY\|ANTHROPIC_API_KEY" /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/src --include="*.ts" --include="*.tsx" | head -20
+echo "=== calm-guard AI agent detail ===" && grep -r "openai\|anthropic\|claude\|gpt\|OPENAI_API_KEY\|ANTHROPIC_API_KEY" <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard/src --include="*.ts" --include="*.tsx" | head -20
 
 echo ""
-echo "=== calm-guard next.config ===" && cat /Users/jim/Desktop/finos/discovery-skill-tutorial/calm-suite/calm-guard/next.config.* 2>/dev/null | head -30
+echo "=== calm-guard next.config ===" && cat <full_path_root_dir_parent>/discovery-skill-tutorial/calm-suite/calm-guard/next.config.* 2>/dev/null | head -30
 
 
 I now have enough information to produce the full output. Let me create the sandbox directory and write the files.
@@ -349,9 +349,9 @@ Once discovery is completed, the AI Assistant displays this warning:
 
 Saving the discovered nodes and relationships to a CALM architecture model in JSON format, adhering to the CALM schema version 1.2 to `sandbox/copilot-discovered-calm-architecture.json`. 
 
-Ran terminal command:  mkdir -p /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox
+Ran terminal command:  mkdir -p <full_path_root_dir_parent>/discovery-skill-tutorial/sandbox
 
-Ran terminal command:  cat > /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json << 'CALM_JSON_EOF'
+Ran terminal command:  cat > <full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json << 'CALM_JSON_EOF'
 {
     "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "unique-id": "finos-calm-monorepo",
@@ -387,7 +387,7 @@ CALM_JSON_EOF
 
 Saving key observations about the architecture to `sandbox/copilot-discovered-calm-architecture-key-observations.md`. 
 
-Ran terminal command:  cat > /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture-key-observations.md << 'EOF'
+Ran terminal command:  cat > <full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture-key-observations.md << 'EOF'
 # CALM Architecture Discovery — Key Observations
 ```
 
@@ -444,7 +444,7 @@ EOF
 
 Both files have been written. Let me verify them: 
 
-Ran terminal command:  echo "=== Files written ===" && ls -la /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/ && echo "" && echo "=== JSON valid ===" && node -e "JSON.parse(require('fs').readFileSync('/Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json','utf8')); console.log('JSON is valid')"
+Ran terminal command:  echo "=== Files written ===" && ls -la <full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/ && echo "" && echo "=== JSON valid ===" && node -e "JSON.parse(require('fs').readFileSync('<full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json','utf8')); console.log('JSON is valid')"
 
 CALM architecture discovery complete. Please review the discovered nodes, relationships, and key observations before using them in your CALM architecture model.
 
@@ -492,10 +492,10 @@ Summary
 - Info/Hints: 0
 
 WARN  issues:
-- In copilot-discovered-calm-architecture.json (/Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json):
+- In copilot-discovered-calm-architecture.json (<full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json):
   WARN  architecture-nodes-must-be-referenced: Node with ID 'calm-studio-mcp-server' is not referenced by any relationships.
     path: /nodes/calm-studio-mcp-server/unique-id
-    at line 101, col 26 (/Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
+    at line 101, col 26 (<full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
     101 |             "unique-id": "calm-studio-mcp-server",
         |                          ^^^^^^^^^^^^^^^^^^^^^^^^
 ```
@@ -544,9 +544,9 @@ We now use the CALM AI Assistant to help us refine the discovered architecture w
 ```
 GitHub Copilot: 
 
-Fetched [resource](file:///Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
+Fetched [resource](file://<full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
 
-Ran terminal command:  cat > /Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json << 'CALM_JSON_EOF'
+Ran terminal command:  cat > <full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json << 'CALM_JSON_EOF'
 {
     "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "unique-id": "finos-calm-monorepo",
@@ -592,7 +592,7 @@ Done. The file now contains **6 nodes** and **4 relationships**:
 
 **Prompt**: `Add a system node called "CALM Hub System" and a composed-of relationship with container "CALM Hub Systems" and nodes: CALM Hub UI, CALM Hub, and MongoDB.`
 ```
-GitHub Copilot: Replacing 24 lines with 40 lines in [](file:///Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
+GitHub Copilot: Replacing 24 lines with 40 lines in [](file://<full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
 
 Added:
 
@@ -604,7 +604,7 @@ Made changes.
 
 **Prompt**: `Add a service node called "Visual Studio Code" and a deployed-in relationship with container "Visual Studio Code" and nodes: CALM VS Code Extension`
 ```
-GitHub Copilot: Replacing 19 lines with 35 lines in [](file:///Users/jim/Desktop/finos/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
+GitHub Copilot: Replacing 19 lines with 35 lines in [](file://<full_path_root_dir_parent>/discovery-skill-tutorial/sandbox/copilot-discovered-calm-architecture.json)
 
 Added:
 
