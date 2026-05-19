@@ -53,6 +53,7 @@ const sidebars = {
         'working-with-calm/generate',
         'working-with-calm/validate',
         'working-with-calm/docify',
+        'working-with-calm/hub',
         'working-with-calm/validation-server',
         'working-with-calm/calm-ai-tools',
         'working-with-calm/voice-mode'
@@ -100,6 +101,14 @@ const sidebars = {
             'tutorials/intermediate/18-standards',
             'tutorials/intermediate/19-enforcing-standards',
             'tutorials/intermediate/20-multi-pattern-validation',
+          ],
+        },
+        {
+          type: 'category',
+          label: '🟠 Advanced',
+          link: {type: 'doc', id: 'tutorials/advanced/advanced-tutorials'},
+          items: [
+            'tutorials/advanced/architecture-discovery-skill-tutorial',
           ],
         },
         {

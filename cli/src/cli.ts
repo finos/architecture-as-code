@@ -5,6 +5,7 @@ import { promptUserForOptions } from './command-helpers/generate-options';
 import * as cliConfig from './cli-config';
 import path from 'path';
 import { select } from '@inquirer/prompts';
+import { CreateNamespaceOptions, ListArchitecturesOptions, ListNamespacesOptions, PullArchitectureOptions, PushArchitectureOptions, runCreateNamespace, runListArchitectures, runListNamespaces, runPullArchitecture, runPushArchitecture } from './command-helpers/hub-commands';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -32,6 +33,13 @@ const CLEAR_OUTPUT_DIRECTORY_OPTION = '--clear-output-directory';
 const AI_DIRECTORY_OPTION = '-d, --directory <path>';
 const AI_PROVIDER_OPTION = '-p, --provider <provider>';
 const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
+
+// Hub command options
+const NAMESPACE_OPTION = '--namespace <namespace>';
+const NAME_OPTION = '--name <name>';
+const DESCRIPTION_OPTION = '--description <description>';
+const ID_OPTION = '--id <id>';
+const HUB_VERSION_OPTION = '--ver <version>'; // --version conflicts with Commander's built-in version flag
 
 export function setupCLI(program: Command) {
     program
@@ -264,6 +272,114 @@ Validation requires:
             console.log(JSON.stringify(existingConfig, null, 2));
         });
 
+    // ── hub ───────────────────────────────────────────────────────────────────
+
+    const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'pretty']).default('json');
+
+    const hubCmd = new Command('hub').description('Interact with CALM Hub');
+
+    // hub push
+    const hubPushCmd = hubCmd.command('push').description('Push a CALM document to CALM Hub');
+
+    hubPushCmd
+        .command('architecture <architecture-file>')
+        .description('Push a CALM architecture file to CALM Hub')
+        .option(NAME_OPTION, 'Name for the architecture in CALM Hub (required when creating a new architecture)')
+        .option(DESCRIPTION_OPTION, 'Description for the architecture')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(ID_OPTION, 'Existing architecture ID (required when adding a new version)')
+        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
+        .addOption(hubOutputOption)
+        .action(async (architectureFile, options) => {
+            const pushOptions: PushArchitectureOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                name: options.name,
+                description: options.description,
+                file: architectureFile,
+                id: options.id,
+                version: options.ver,
+                format: options.format
+            };
+            await runPushArchitecture(pushOptions);
+        });
+
+    // hub pull
+    const hubPullCmd = hubCmd.command('pull').description('Pull a CALM document from CALM Hub');
+
+    hubPullCmd
+        .command('architecture')
+        .description('Pull a specific version of a CALM architecture from CALM Hub')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .requiredOption(ID_OPTION, 'Architecture ID to pull')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const pullOptions: PullArchitectureOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                id: options.id,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullArchitecture(pullOptions);
+        });
+
+    // hub list
+    const hubListCmd = hubCmd.command('list').description('List CALM Hub resources');
+
+    hubListCmd
+        .command('architectures')
+        .description('List architectures in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listOptions: ListArchitecturesOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListArchitectures(listOptions);
+        });
+
+    hubListCmd
+        .command('namespaces')
+        .description('List all namespaces')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listOptions: ListNamespacesOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                format: options.format
+            };
+            await runListNamespaces(listOptions);
+        });
+
+    // hub create
+    const hubCreateCmd = hubCmd.command('create').description('Create CALM Hub resources');
+
+    hubCreateCmd
+        .command('namespace')
+        .description('Create a new namespace in CALM Hub')
+        .requiredOption(NAME_OPTION, 'Namespace name')
+        .requiredOption(DESCRIPTION_OPTION, 'Namespace description')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const createOptions: CreateNamespaceOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                name: options.name,
+                description: options.description,
+                format: options.format
+            };
+            await runCreateNamespace(createOptions);
+        });
+
+    program.addCommand(hubCmd);
+
 }
 
 interface ParseDocumentLoaderOptions {
@@ -293,6 +409,19 @@ export async function parseDocumentLoaderConfig(
         logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
         docLoaderOpts.calmHubUrl = userConfig.calmHubUrl;
     }
+    
+    // if we have an auth plugin and we have calmHub configured
+    if (userConfig && userConfig.authPluginPath) {
+        logger.info('Loading auth plugin from config file: ' + userConfig.authPluginPath);
+        try {
+            const authPlugin = await cliConfig.loadAuthPlugin(userConfig.authPluginPath, !!options.verbose);
+            docLoaderOpts.authPlugin = authPlugin;
+            logger.debug('Auth plugin loaded successfully');
+        } catch (err) {
+            logger.error('Failed to load auth plugin: ' + (err instanceof Error ? err.message : String(err)));
+        }
+    }
+
     if (userConfig && userConfig.allowedRemoteHosts && !options.allowedRemoteHosts) {
         logger.info('Using allowed remote hosts from config file');
         docLoaderOpts.allowedRemoteHosts = userConfig.allowedRemoteHosts;
