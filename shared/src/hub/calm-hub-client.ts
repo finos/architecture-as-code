@@ -214,15 +214,15 @@ export class CalmHubClient {
         namespace: string,
         id: number,
         version: string,
-        name: string,
-        description: string,
+        _name: string,
+        _description: string,
         patternJson: string
     ): Promise<HubCreateResult> {
         const endpoint = `POST /calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
         try {
             const response = await this.ax.post(
                 `/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`,
-                { name, description, patternJson }
+                patternJson
             );
             const location = response.headers['location'] as string;
             return this.parseVersionedLocation(location, endpoint);

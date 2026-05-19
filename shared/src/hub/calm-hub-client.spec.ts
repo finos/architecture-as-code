@@ -355,6 +355,18 @@ describe('CalmHubClient', () => {
             expect(result).toEqual({ id: 10, version: '2.0.0', location: '/calm/namespaces/finos/patterns/10/versions/2.0.0' });
         });
 
+        it('sends raw pattern JSON as the request body', async () => {
+            let capturedBody: unknown;
+            mock.onPost('/calm/namespaces/finos/patterns/10/versions/2.0.0').reply((config) => {
+                capturedBody = JSON.parse(config.data as string);
+                return [201, null, { location: '/calm/namespaces/finos/patterns/10/versions/2.0.0' }];
+            });
+
+            await client.pushPatternVersion('finos', 10, '2.0.0', 'my-pattern', 'desc', patternJson);
+
+            expect(capturedBody).toEqual({ nodes: [] });
+        });
+
         it('throws HubClientError(409) on duplicate version', async () => {
             mock.onPost('/calm/namespaces/finos/patterns/10/versions/1.0.0').reply(409, 'Version already exists');
             await expect(client.pushPatternVersion('finos', 10, '1.0.0', 'p', '', patternJson)).rejects.toMatchObject({ status: 409 });
