@@ -134,7 +134,7 @@ The two modes are slightly different:
 To launch CalmHub with the proxy auth mode enabled:
 
 ```bash
-`../mvnw quarkus:dev -Dquarkus.profile=proxy`
+../mvnw quarkus:dev -Dquarkus.profile=proxy
 ```
 
 **Important notes**:

@@ -16,9 +16,10 @@ import java.util.stream.Collectors;
  * Validates whether a user is authorized to access a particular resource based on
  * their assigned permissions and namespaces.
  * <p>
- * This validator has no effext unless the 'secure' or 'proxy' profile is enabled.
+ * This validator has no effect unless the 'secure' or 'proxy' profile is enabled.
  */
 @ApplicationScoped
+@IfBuildProfile({"secure", "proxy"})
 public class UserAccessValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(UserAccessValidator.class);
