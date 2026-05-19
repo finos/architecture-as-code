@@ -254,6 +254,10 @@ cd calm-hub && ../mvnw verify  # Java tests with coverage (JaCoCo enabled by def
 npm test                    # TypeScript packages (runs vitest run in each workspace)
 cd calm-hub && ../mvnw test # Java unit tests (still collects coverage data)
 
+# Run tests for just one class
+# NB you must be in the right project to run that file, because you need vitest.config.ts for tests to run
+npx vitest run ${TEST FILE}
+
 # Package-specific tests (from repository root using workspaces)
 npm test --workspace cli
 npm test --workspace calm-plugins/vscode
