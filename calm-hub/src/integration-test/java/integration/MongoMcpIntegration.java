@@ -85,7 +85,7 @@ public class MongoMcpIntegration {
             }
             """;
 
-    private static final String STANDARD_JSON = "{\"$schema\": \"https://calm.finos.org/schema\", \"name\": \"mcp-test-standard\"}";
+    private static final String STANDARD_JSON = "{\"name\": \"mcp-test-standard\"}";
 
     private static final String ADR_JSON = """
             {
@@ -604,7 +604,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(48)
     void mcp_create_standard() {
-        ToolResponse result = standardTools.createStandard("finos", "MCP Test Standard", "Integration test standard", STANDARD_JSON);
+        ToolResponse result = standardTools.createStandard("mcp-integration", "MCP Test Standard", "Integration test standard", STANDARD_JSON);
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("created successfully"));
         Matcher matcher = ID_PATTERN.matcher(text(result));
@@ -616,7 +616,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(49)
     void mcp_list_standards_contains_created() {
-        ToolResponse result = standardTools.listStandards("finos");
+        ToolResponse result = standardTools.listStandards("mcp-integration");
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("MCP Test Standard"));
     }
@@ -624,7 +624,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(50)
     void mcp_list_standard_versions() {
-        ToolResponse result = standardTools.listStandardVersions("finos", createdStandardId);
+        ToolResponse result = standardTools.listStandardVersions("mcp-integration", createdStandardId);
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("1.0.0"));
     }
@@ -632,7 +632,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(51)
     void mcp_get_standard() {
-        ToolResponse result = standardTools.getStandard("finos", createdStandardId, "1.0.0");
+        ToolResponse result = standardTools.getStandard("mcp-integration", createdStandardId, "1.0.0");
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("mcp-test-standard"));
     }
@@ -640,7 +640,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(52)
     void mcp_create_standard_new_version() {
-        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{\"name\": \"mcp-test-standard-v2\"}");
+        ToolResponse result = standardTools.createStandardVersion("mcp-integration", createdStandardId, "1.1.0", "{\"name\": \"mcp-test-standard-v2\"}");
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("created successfully"));
         assertThat(text(result), containsString("1.1.0"));
@@ -649,7 +649,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(53)
     void mcp_standard_version_preserves_name() {
-        ToolResponse result = standardTools.listStandards("finos");
+        ToolResponse result = standardTools.listStandards("mcp-integration");
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("MCP Test Standard"));
     }
@@ -657,7 +657,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(54)
     void mcp_list_standard_versions_after_new_version() {
-        ToolResponse result = standardTools.listStandardVersions("finos", createdStandardId);
+        ToolResponse result = standardTools.listStandardVersions("mcp-integration", createdStandardId);
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("1.1.0"));
     }
@@ -665,7 +665,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(55)
     void mcp_create_duplicate_standard_version_returns_error() {
-        ToolResponse result = standardTools.createStandardVersion("finos", createdStandardId, "1.1.0", "{\"name\": \"duplicate\"}");
+        ToolResponse result = standardTools.createStandardVersion("mcp-integration", createdStandardId, "1.1.0", "{\"name\": \"duplicate\"}");
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("already exists"));
     }
