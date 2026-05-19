@@ -1,4 +1,10 @@
 import axios, { Axios } from 'axios';
+import { AuthPlugin } from '../auth/auth-plugin';
+
+export interface CalmHubOptions {
+    calmHubUrl?: string;
+    authPlugin?: AuthPlugin;
+}
 
 export interface HubNamespaceSummary {
     name: string;
@@ -37,7 +43,9 @@ export class HubClientError extends Error {
 export class CalmHubClient {
     private readonly ax: Axios;
 
-    constructor(baseUrl: string, axiosInstance?: Axios) {
+    constructor(options: CalmHubOptions, axiosInstance?: Axios) {
+        const baseUrl = options.calmHubUrl;
+       
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
@@ -47,6 +55,15 @@ export class CalmHubClient {
                 headers: {
                     'Content-Type': 'application/json'
                 }
+            });
+        }
+        
+        if (options.authPlugin) {
+            this.ax.interceptors.request.use(async (config) => {
+                const fullUrl = (config.baseURL || '') + (config.url || '');
+                const authHeaders = await options.authPlugin.getAuthHeaders(fullUrl, config.data);
+                Object.assign(config.headers, authHeaders);
+                return config;
             });
         }
     }
