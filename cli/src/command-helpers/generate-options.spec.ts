@@ -87,6 +87,36 @@ describe('loadChoicesFromInput', () => {
         expect(() => loadChoicesFromInput('not-json', pattern))
             .toThrow('Failed to parse option choices:');
     });
+
+    it('should resolve multiple choices for an anyOf option when given a string array', () => {
+        mocks.existsSync.mockReturnValue(false);
+        const result = loadChoicesFromInput('{"option-a": ["Option A", "Option B"]}', pattern);
+        expect(result).toEqual([choiceA, choiceB]);
+    });
+
+    it('should resolve a single-element string array for an anyOf option', () => {
+        mocks.existsSync.mockReturnValue(false);
+        const result = loadChoicesFromInput('{"option-a": ["Option A"]}', pattern);
+        expect(result).toEqual([choiceA]);
+    });
+
+    it('should resolve mixed string and string array values', () => {
+        mocks.existsSync.mockReturnValue(false);
+        const result = loadChoicesFromInput('{"option-1": "Option 1", "option-a": ["Option A", "Option B"]}', pattern);
+        expect(result).toEqual([choice1, choiceA, choiceB]);
+    });
+
+    it('should throw when a string array is supplied for a oneOf option', () => {
+        mocks.existsSync.mockReturnValue(false);
+        expect(() => loadChoicesFromInput('{"option-1": ["Option 1", "Option 2"]}', pattern))
+            .toThrow('The option [option-1] is a oneOf option and only accepts a single choice, not an array.');
+    });
+
+    it('should throw when a choice description in an array is not valid for the option', () => {
+        mocks.existsSync.mockReturnValue(false);
+        expect(() => loadChoicesFromInput('{"option-a": ["Option A", "Invalid Choice"]}', pattern))
+            .toThrow('The choice of [Invalid Choice] is not a valid choice for option [option-a].');
+    });
 });
 
 describe('promptUserForOptions', () => {
@@ -134,5 +164,18 @@ describe('promptUserForOptions', () => {
         mocks.select.mockReturnValue(Promise.resolve('Invalid Option'));
 
         await expect(promptUserForOptions(pattern)).rejects.toThrow('The choice of [Invalid Option] is not a valid choice in the pattern.');
+    });
+
+    it('should return all selected choices when checkbox returns multiple answers for an anyOf option', async () => {
+        mocks.extractOptions.mockReturnValue([{
+            optionType: 'anyOf',
+            optionId: 'option-a',
+            prompt: 'Select any of these options:',
+            choices: [choiceA, choiceB]
+        }]);
+        mocks.checkbox.mockReturnValue(Promise.resolve(['Option A', 'Option B']));
+
+        const expectedChoices: CalmChoice[] = [choiceA, choiceB];
+        await expect(promptUserForOptions(pattern)).resolves.toEqual(expectedChoices);
     });
 });

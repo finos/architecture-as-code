@@ -51,24 +51,28 @@ For each options relationship in the pattern, the CLI will ask you to select a c
 
 ### Pre-defining choices non-interactively
 
-You can skip the interactive prompts by passing `--option-choices` with a JSON object that maps each option's `unique-id` to the chosen description:
+You can skip the interactive prompts by passing `--option-choices` with a JSON object that maps each option's `unique-id` to the chosen description(s).
+
+- For **`oneOf`** options, supply a **string** (exactly one choice).
+- For **`anyOf`** options, supply a **string** or an **array of strings** (one or more choices).
 
 ```shell
+# oneOf option — single string
 calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C"}'
+
+# anyOf option — array of strings
+calm generate -p pattern.json --option-choices '{"node-options": ["Node 1", "Node 2"]}'
+
+# Mixed oneOf and anyOf
+calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C", "node-options": ["Node 1", "Node 2"]}'
 ```
 
-To supply choices for multiple options, include all of them in the same object:
-
-```shell
-calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C", "node-options": "Use Node 1"}'
-```
-
-You can also save the choices to a file - in the same JSON format - and pass the path instead:
+You can also save the choices to a file in the same JSON format and pass the path instead:
 
 ```json
 {
   "connection-options": "Application A connects to Application C",
-  "node-options": "Use Node 1"
+  "node-options": ["Node 1", "Node 2"]
 }
 ```
 
@@ -76,7 +80,15 @@ You can also save the choices to a file - in the same JSON format - and pass the
 calm generate -p pattern.json --option-choices choices.json
 ```
 
-The keys in the object must match the `unique-id` of the options relationship in the pattern. The values must match the `description` of one of the available choices within that option.
+The keys in the object must match the `unique-id` of the options relationship in the pattern. The values must match the `description` of one or more of the available choices within that option.
+
+:::tip
+After running `calm generate` interactively, the CLI prints your selections in the `--option-choices` format so you can save them for later use:
+
+```
+info: Selected choices (reusable with --option-choices): {"connection-options":"Application A connects to Application C","node-options":["Node 1","Node 2"]}
+```
+:::
 
 ## URL to Local File Mapping
 
