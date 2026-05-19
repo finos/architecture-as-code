@@ -626,7 +626,7 @@ describe('hub-commands', () => {
 
             const { runPushPattern } = await import('./hub-commands');
             await runPushPattern({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-pattern',
                 description: 'desc',
@@ -645,7 +645,7 @@ describe('hub-commands', () => {
 
             const { runPushPattern } = await import('./hub-commands');
             await runPushPattern({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-pattern',
                 description: 'desc',
@@ -668,7 +668,7 @@ describe('hub-commands', () => {
 
             const { runPushPattern } = await import('./hub-commands');
             await runPushPattern({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 file: 'pattern.json',
                 id: '10',
@@ -682,7 +682,7 @@ describe('hub-commands', () => {
         it('exits with error when --name is missing for new pattern', async () => {
             const { runPushPattern } = await import('./hub-commands');
             await expect(runPushPattern({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 file: 'pattern.json'
             })).rejects.toThrow('process.exit');
@@ -694,7 +694,7 @@ describe('hub-commands', () => {
         it('exits with error when --description is missing for new pattern', async () => {
             const { runPushPattern } = await import('./hub-commands');
             await expect(runPushPattern({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-pattern',
                 file: 'pattern.json'
@@ -707,7 +707,7 @@ describe('hub-commands', () => {
         it('exits with error when --ver is missing with --id', async () => {
             const { runPushPattern } = await import('./hub-commands');
             await expect(runPushPattern({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-pattern',
                 description: 'desc',
@@ -723,7 +723,7 @@ describe('hub-commands', () => {
             vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
             const { runPushPattern } = await import('./hub-commands');
             await expect(runPushPattern({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-pattern',
                 description: 'desc',
@@ -736,7 +736,7 @@ describe('hub-commands', () => {
             vi.mocked(fs.readFile).mockResolvedValue('not json' as unknown as Uint8Array);
             const { runPushPattern } = await import('./hub-commands');
             await expect(runPushPattern({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-pattern',
                 description: 'desc',
@@ -753,7 +753,7 @@ describe('hub-commands', () => {
 
             const { runPushPattern } = await import('./hub-commands');
             await expect(runPushPattern({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-pattern',
                 description: 'desc',
@@ -772,7 +772,7 @@ describe('hub-commands', () => {
             const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
             const { runPullPattern } = await import('./hub-commands');
-            await runPullPattern({ calmHubUrl: 'http://hub', namespace: 'finos', id: '10', version: '1.0.0' });
+            await runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '10', version: '1.0.0' });
 
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"id": 10'));
             consoleSpy.mockRestore();
@@ -783,14 +783,14 @@ describe('hub-commands', () => {
             vi.mocked(mockClient.pullPattern).mockResolvedValue({ id: 10 });
 
             const { runPullPattern } = await import('./hub-commands');
-            await runPullPattern({ calmHubUrl: 'http://hub', namespace: 'finos', id: '10', version: '1.0.0', output: 'out.json' });
+            await runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '10', version: '1.0.0', output: 'out.json' });
 
             expect(fs.writeFile).toHaveBeenCalledWith('out.json', expect.any(String), 'utf-8');
         });
 
         it('exits with error when --id is not a valid integer', async () => {
             const { runPullPattern } = await import('./hub-commands');
-            await expect(runPullPattern({ calmHubUrl: 'http://hub', namespace: 'finos', id: 'bad', version: '1.0.0' }))
+            await expect(runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: 'bad', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0, '--id must be a valid integer', 'pull pattern', 'json'
@@ -804,7 +804,7 @@ describe('hub-commands', () => {
             );
 
             const { runPullPattern } = await import('./hub-commands');
-            await expect(runPullPattern({ calmHubUrl: 'http://hub', namespace: 'finos', id: '99', version: '1.0.0' }))
+            await expect(runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '99', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Pattern not found', expect.any(String), 'json');
         });
@@ -820,7 +820,7 @@ describe('hub-commands', () => {
             ]);
 
             const { runListPatterns } = await import('./hub-commands');
-            await runListPatterns({ calmHubUrl: 'http://hub', namespace: 'finos' });
+            await runListPatterns({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos' });
 
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([{ id: 1, name: 'pattern-a', versions: ['1.0.0'] }]);
         });
@@ -832,7 +832,7 @@ describe('hub-commands', () => {
             ]);
 
             const { runListPatterns } = await import('./hub-commands');
-            await runListPatterns({ calmHubUrl: 'http://hub', namespace: 'finos', format: 'pretty' });
+            await runListPatterns({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', format: 'pretty' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
                 [{ ID: 1, NAME: 'pattern-a', VERSIONS: '1.0.0, 2.0.0' }],
@@ -846,7 +846,7 @@ describe('hub-commands', () => {
 
         it('exits when no hub URL is available', async () => {
             const { runListPatterns } = await import('./hub-commands');
-            await expect(runListPatterns({ namespace: 'finos' })).rejects.toThrow('process.exit');
+            await expect(runListPatterns({ calmHubOptions: {}, namespace: 'finos' })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
         });
     });
@@ -862,7 +862,7 @@ describe('hub-commands', () => {
 
             const { runPushStandard } = await import('./hub-commands');
             await runPushStandard({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
@@ -882,7 +882,7 @@ describe('hub-commands', () => {
 
             const { runPushStandard } = await import('./hub-commands');
             await runPushStandard({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
@@ -901,7 +901,7 @@ describe('hub-commands', () => {
 
             const { runPushStandard } = await import('./hub-commands');
             await runPushStandard({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
@@ -924,7 +924,7 @@ describe('hub-commands', () => {
 
             const { runPushStandard } = await import('./hub-commands');
             await runPushStandard({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 file: 'standard.txt',
                 id: '20',
@@ -938,7 +938,7 @@ describe('hub-commands', () => {
         it('exits with error when --name is missing for new standard', async () => {
             const { runPushStandard } = await import('./hub-commands');
             await expect(runPushStandard({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 file: 'standard.txt'
             })).rejects.toThrow('process.exit');
@@ -950,7 +950,7 @@ describe('hub-commands', () => {
         it('exits with error when --description is missing for new standard', async () => {
             const { runPushStandard } = await import('./hub-commands');
             await expect(runPushStandard({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-standard',
                 file: 'standard.txt'
@@ -963,7 +963,7 @@ describe('hub-commands', () => {
         it('exits with error when --ver is missing with --id', async () => {
             const { runPushStandard } = await import('./hub-commands');
             await expect(runPushStandard({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
@@ -979,7 +979,7 @@ describe('hub-commands', () => {
             vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
             const { runPushStandard } = await import('./hub-commands');
             await expect(runPushStandard({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
@@ -996,7 +996,7 @@ describe('hub-commands', () => {
 
             const { runPushStandard } = await import('./hub-commands');
             await expect(runPushStandard({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
@@ -1015,7 +1015,7 @@ describe('hub-commands', () => {
             const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
             const { runPullStandard } = await import('./hub-commands');
-            await runPullStandard({ calmHubUrl: 'http://hub', namespace: 'finos', id: '20', version: '1.0.0' });
+            await runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '20', version: '1.0.0' });
 
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"id": 20'));
             consoleSpy.mockRestore();
@@ -1026,14 +1026,14 @@ describe('hub-commands', () => {
             vi.mocked(mockClient.pullStandard).mockResolvedValue({ id: 20 });
 
             const { runPullStandard } = await import('./hub-commands');
-            await runPullStandard({ calmHubUrl: 'http://hub', namespace: 'finos', id: '20', version: '1.0.0', output: 'out.txt' });
+            await runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '20', version: '1.0.0', output: 'out.txt' });
 
             expect(fs.writeFile).toHaveBeenCalledWith('out.txt', expect.any(String), 'utf-8');
         });
 
         it('exits with error when --id is not a valid integer', async () => {
             const { runPullStandard } = await import('./hub-commands');
-            await expect(runPullStandard({ calmHubUrl: 'http://hub', namespace: 'finos', id: 'bad', version: '1.0.0' }))
+            await expect(runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: 'bad', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0, '--id must be a valid integer', 'pull standard', 'json'
@@ -1047,7 +1047,7 @@ describe('hub-commands', () => {
             );
 
             const { runPullStandard } = await import('./hub-commands');
-            await expect(runPullStandard({ calmHubUrl: 'http://hub', namespace: 'finos', id: '99', version: '1.0.0' }))
+            await expect(runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '99', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Standard not found', expect.any(String), 'json');
         });
@@ -1063,7 +1063,7 @@ describe('hub-commands', () => {
             ]);
 
             const { runListStandards } = await import('./hub-commands');
-            await runListStandards({ calmHubUrl: 'http://hub', namespace: 'finos' });
+            await runListStandards({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos' });
 
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([{ id: 1, name: 'standard-a', description: 'desc-a', versions: ['1.0.0'] }]);
         });
@@ -1075,7 +1075,7 @@ describe('hub-commands', () => {
             ]);
 
             const { runListStandards } = await import('./hub-commands');
-            await runListStandards({ calmHubUrl: 'http://hub', namespace: 'finos', format: 'pretty' });
+            await runListStandards({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', format: 'pretty' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
                 [{ ID: 1, NAME: 'standard-a', DESCRIPTION: 'desc-a', VERSIONS: '1.0.0' }],
@@ -1090,7 +1090,7 @@ describe('hub-commands', () => {
 
         it('exits when no hub URL is available', async () => {
             const { runListStandards } = await import('./hub-commands');
-            await expect(runListStandards({ namespace: 'finos' })).rejects.toThrow('process.exit');
+            await expect(runListStandards({ calmHubOptions: {}, namespace: 'finos' })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
         });
     });

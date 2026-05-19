@@ -5,7 +5,7 @@ import { promptUserForOptions } from './command-helpers/generate-options';
 import * as cliConfig from './cli-config';
 import path from 'path';
 import { select } from '@inquirer/prompts';
-import { CreateNamespaceOptions, ListArchitecturesOptions, ListNamespacesOptions, PullArchitectureOptions, PushArchitectureOptions, runCreateNamespace, runListArchitectures, runListNamespaces, runPullArchitecture, runPushArchitecture } from './command-helpers/hub-commands';
+import { CreateNamespaceOptions, ListArchitecturesOptions, ListNamespacesOptions, ListPatternsOptions, ListStandardsOptions, PullArchitectureOptions, PullPatternOptions, PullStandardOptions, PushArchitectureOptions, PushPatternOptions, PushStandardOptions, runCreateNamespace, runListArchitectures, runListNamespaces, runListPatterns, runListStandards, runPullArchitecture, runPullPattern, runPullStandard, runPushArchitecture, runPushPattern, runPushStandard } from './command-helpers/hub-commands';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -316,8 +316,17 @@ Validation requires:
         .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
         .action(async (patternFile, options) => {
-            const { runPushPattern } = await import('./command-helpers/hub-commands');
-            await runPushPattern({ ...options, file: patternFile, version: options.ver });
+            const pushPatternOptions: PushPatternOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                name: options.name,
+                description: options.description,
+                file: patternFile,
+                id: options.id,
+                version: options.ver,
+                format: options.format
+            };
+            await runPushPattern(pushPatternOptions);
         });
 
     hubPushCmd
@@ -331,8 +340,17 @@ Validation requires:
         .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
         .action(async (standardFile, options) => {
-            const { runPushStandard } = await import('./command-helpers/hub-commands');
-            await runPushStandard({ ...options, file: standardFile, version: options.ver });
+            const pushStandardOptions: PushStandardOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                name: options.name,
+                description: options.description,
+                file: standardFile,
+                id: options.id,
+                version: options.ver,
+                format: options.format
+            };
+            await runPushStandard(pushStandardOptions);
         });
 
     // hub pull
@@ -366,8 +384,14 @@ Validation requires:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const { runPullPattern } = await import('./command-helpers/hub-commands');
-            await runPullPattern({ ...options, version: options.ver });
+            const pullPatternOptions: PullPatternOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                id: options.id,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullPattern(pullPatternOptions);
         });
 
     hubPullCmd
@@ -379,8 +403,14 @@ Validation requires:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const { runPullStandard } = await import('./command-helpers/hub-commands');
-            await runPullStandard({ ...options, version: options.ver });
+            const pullStandardOptions: PullStandardOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                id: options.id,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullStandard(pullStandardOptions);
         });
 
     // hub list
@@ -421,8 +451,12 @@ Validation requires:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const { runListPatterns } = await import('./command-helpers/hub-commands');
-            await runListPatterns(options);
+            const listPatternsOptions: ListPatternsOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListPatterns(listPatternsOptions);
         });
 
     hubListCmd
@@ -432,8 +466,12 @@ Validation requires:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const { runListStandards } = await import('./command-helpers/hub-commands');
-            await runListStandards(options);
+            const listStandardsOptions: ListStandardsOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListStandards(listStandardsOptions);
         });
 
     // hub create

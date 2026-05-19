@@ -330,7 +330,7 @@ export async function runListNamespaces(options: ListNamespacesOptions): Promise
 // ── push pattern ──────────────────────────────────────────────────────────────
 
 export interface PushPatternOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     namespace: string;
     name?: string;
     description?: string;
@@ -418,13 +418,8 @@ export async function runPushPattern(options: PushPatternOptions): Promise<void>
         process.exit(1);
     }
 
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
 
     let fileContent: string;
     try {
@@ -454,7 +449,7 @@ export async function runPushPattern(options: PushPatternOptions): Promise<void>
 // ── pull pattern ──────────────────────────────────────────────────────────────
 
 export interface PullPatternOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     namespace: string;
     id: string;
     version: string;
@@ -462,13 +457,8 @@ export interface PullPatternOptions {
 }
 
 export async function runPullPattern(options: PullPatternOptions): Promise<void> {
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, 'json');
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
+    const client = new CalmHubClient(calmHubOptions);
 
     const parsedId = parseInt(options.id, 10);
     if (!Number.isFinite(parsedId)) {
@@ -493,20 +483,15 @@ export async function runPullPattern(options: PullPatternOptions): Promise<void>
 // ── list patterns ─────────────────────────────────────────────────────────────
 
 export interface ListPatternsOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     namespace: string;
     format?: string;
 }
 
 export async function runListPatterns(options: ListPatternsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
 
     try {
         const patterns = await client.listPatterns(options.namespace);
@@ -531,7 +516,7 @@ export async function runListPatterns(options: ListPatternsOptions): Promise<voi
 // ── push standard ─────────────────────────────────────────────────────────────
 
 export interface PushStandardOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     namespace: string;
     name?: string;
     description?: string;
@@ -619,13 +604,8 @@ export async function runPushStandard(options: PushStandardOptions): Promise<voi
         process.exit(1);
     }
 
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
 
     let fileContent: string;
     try {
@@ -649,7 +629,7 @@ export async function runPushStandard(options: PushStandardOptions): Promise<voi
 // ── pull standard ─────────────────────────────────────────────────────────────
 
 export interface PullStandardOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     namespace: string;
     id: string;
     version: string;
@@ -657,13 +637,8 @@ export interface PullStandardOptions {
 }
 
 export async function runPullStandard(options: PullStandardOptions): Promise<void> {
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, 'json');
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
+    const client = new CalmHubClient(calmHubOptions);
 
     const parsedId = parseInt(options.id, 10);
     if (!Number.isFinite(parsedId)) {
@@ -688,20 +663,15 @@ export async function runPullStandard(options: PullStandardOptions): Promise<voi
 // ── list standards ────────────────────────────────────────────────────────────
 
 export interface ListStandardsOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     namespace: string;
     format?: string;
 }
 
 export async function runListStandards(options: ListStandardsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
 
     try {
         const standards = await client.listStandards(options.namespace);
