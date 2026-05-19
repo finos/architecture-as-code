@@ -456,7 +456,7 @@ describe('CLI Commands', () => {
                 file: 'arch.json',
                 name: 'my-arch',
                 namespace: 'finos',
-                calmHubUrl: 'http://hub',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));
         });
 
@@ -530,7 +530,7 @@ describe('CLI Commands', () => {
                 id: '1',
                 namespace: 'finos',
                 version: '1.0.0',
-                calmHubUrl: 'http://hub',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));
         });
 
@@ -565,7 +565,7 @@ describe('CLI Commands', () => {
 
             expect(hubCommandsModule.runListArchitectures).toHaveBeenCalledWith(expect.objectContaining({
                 namespace: 'finos',
-                calmHubUrl: 'http://hub',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));
         });
 
@@ -605,7 +605,7 @@ describe('CLI Commands', () => {
             ]);
 
             expect(hubCommandsModule.runListNamespaces).toHaveBeenCalledWith(expect.objectContaining({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));
         });
 
@@ -638,7 +638,7 @@ describe('CLI Commands', () => {
             expect(hubCommandsModule.runCreateNamespace).toHaveBeenCalledWith(expect.objectContaining({
                 name: 'my-org',
                 description: 'My organisation',
-                calmHubUrl: 'http://hub',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));
         });
 

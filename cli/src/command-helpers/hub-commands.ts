@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -16,23 +16,36 @@ class HubCommandError extends Error {
     }
 }
 
-export async function resolveHubUrl(options: { calmHubUrl?: string }): Promise<string> {
-    if (options.calmHubUrl) return options.calmHubUrl;
-
+/**
+ * Fully resolve the calmhub options. If we have CLI params, prefer those, and fill in any missing values from the config file if present.
+ * @param options The options to populate
+ * @returns Fully-resolved options with config file options set.
+ */
+export async function resolveCalmHubOptions(inputOptions: CalmHubOptions): Promise<CalmHubOptions> {
+    const options = { ...inputOptions };
     const config = await cliConfig.loadCliConfig();
-    if (config?.calmHubUrl) return config.calmHubUrl;
+    // set the options from config if they are not already set from command line
+    if (config && config.calmHubUrl && !options.calmHubUrl) {
+        options.calmHubUrl = config.calmHubUrl;
+    }
+    if (config && config.authPluginPath && !options.authPlugin) {
+        options.authPlugin = await cliConfig.loadAuthPlugin(config.authPluginPath, false); // TODO logging
+    }
 
-    throw new HubCommandError(
-        0,
-        'No CALM Hub URL provided. Use --calm-hub-url or set calmHubUrl in ~/.calm.json',
-        'resolve hub URL'
-    );
+    if (!options.calmHubUrl) {
+        throw new HubCommandError(
+            0,
+            'No CALM Hub URL provided. Use --calm-hub-url or set calmHubUrl in ~/.calm.json',
+            'resolve hub URL'
+        );
+    }
+    return options;
 }
 
 // ── push architecture ─────────────────────────────────────────────────────────
 
 export interface PushArchitectureOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     namespace: string;
     name?: string;
     description?: string;
@@ -129,6 +142,14 @@ export async function pushVersioned(
     );
 }
 
+async function handleOptionsLoadError(opts: CalmHubOptions, format: OutputFormat = 'json'): Promise<CalmHubOptions> {
+    try {
+        return await resolveCalmHubOptions(opts);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
 export async function runPushArchitecture(options: PushArchitectureOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -142,13 +163,8 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
         process.exit(1);
     }
 
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
 
     let fileContent: string;
     try {
@@ -179,7 +195,7 @@ export async function runPushArchitecture(options: PushArchitectureOptions): Pro
 // ── pull architecture ─────────────────────────────────────────────────────────
 
 export interface PullArchitectureOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     namespace: string;
     id: string;
     version: string;
@@ -187,13 +203,8 @@ export interface PullArchitectureOptions {
 }
 
 export async function runPullArchitecture(options: PullArchitectureOptions): Promise<void> {
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, 'json');
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions);
+    const client = new CalmHubClient(calmHubOptions);
 
     const parsedId = parseInt(options.id, 10);
     if (!Number.isFinite(parsedId)) {
@@ -218,20 +229,15 @@ export async function runPullArchitecture(options: PullArchitectureOptions): Pro
 // ── list architectures ────────────────────────────────────────────────────────
 
 export interface ListArchitecturesOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     namespace: string;
     format?: string;
 }
 
 export async function runListArchitectures(options: ListArchitecturesOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
 
     try {
         const architectures = await client.listArchitectures(options.namespace);
@@ -256,7 +262,7 @@ export async function runListArchitectures(options: ListArchitecturesOptions): P
 // ── create namespace ──────────────────────────────────────────────────────────
 
 export interface CreateNamespaceOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     name: string;
     description?: string;
     format?: string;
@@ -267,13 +273,8 @@ export async function runCreateNamespace(options: CreateNamespaceOptions): Promi
     if (!options.description?.trim()) {
         handleHubError(new Error('--description is required and must not be blank'), format);
     }
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
 
     try {
         const result = await client.createNamespace(options.name, options.description);
@@ -298,19 +299,14 @@ export async function runCreateNamespace(options: CreateNamespaceOptions): Promi
 // ── list namespaces ───────────────────────────────────────────────────────────
 
 export interface ListNamespacesOptions {
-    calmHubUrl?: string;
+    calmHubOptions: CalmHubOptions;
     format?: string;
 }
 
 export async function runListNamespaces(options: ListNamespacesOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
-    let hubUrl: string;
-    try {
-        hubUrl = await resolveHubUrl(options);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const client = new CalmHubClient(hubUrl);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
 
     try {
         const namespaces = await client.listNamespaces();

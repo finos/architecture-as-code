@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { CalmHubClient, HubClientError } from './calm-hub-client';
@@ -10,7 +10,7 @@ describe('CalmHubClient', () => {
     beforeEach(() => {
         const ax = axios.create({ baseURL: 'http://localhost:8080' });
         mock = new AxiosMockAdapter(ax);
-        client = new CalmHubClient('http://localhost:8080', ax);
+        client = new CalmHubClient({ calmHubUrl: 'http://localhost:8080' }, ax);
     });
 
     // ── createNamespace ──────────────────────────────────────────────────────
@@ -199,6 +199,106 @@ describe('CalmHubClient', () => {
         it('throws HubClientError(404) when not found', async () => {
             mock.onGet('/calm/namespaces/finos/architectures/99/versions/1.0.0').reply(404, 'Invalid architecture provided: 99');
             await expect(client.pullArchitecture('finos', 99, '1.0.0')).rejects.toMatchObject({ status: 404 });
+        });
+    });
+
+    // ── auth plugin ──────────────────────────────────────────────────────────
+
+    describe('auth plugin', () => {
+        let authClient: CalmHubClient;
+        let authMock: AxiosMockAdapter;
+        let getAuthHeaders: ReturnType<typeof vi.fn>;
+
+        beforeEach(() => {
+            getAuthHeaders = vi.fn().mockResolvedValue({ Authorization: 'Bearer test-token' });
+            const ax = axios.create({ baseURL: 'http://localhost:8080' });
+            authMock = new AxiosMockAdapter(ax);
+            authClient = new CalmHubClient(
+                { calmHubUrl: 'http://localhost:8080', authPlugin: { getAuthHeaders } },
+                ax
+            );
+        });
+
+        it('injects auth headers on createNamespace', async () => {
+            authMock.onPost('/calm/namespaces').reply(201, null, { location: '/calm/namespaces/my-org' });
+
+            await authClient.createNamespace('my-org', 'My org');
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            const [url] = getAuthHeaders.mock.calls[0];
+            expect(url).toContain('/calm/namespaces');
+            expect(authMock.history.post[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers on listNamespaces', async () => {
+            authMock.onGet('/calm/namespaces').reply(200, { values: [] });
+
+            await authClient.listNamespaces();
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            expect(authMock.history.get[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers on pushArchitecture', async () => {
+            authMock.onPost('/calm/namespaces/finos/architectures').reply(201, null, {
+                location: '/calm/namespaces/finos/architectures/1/versions/1.0.0'
+            });
+
+            await authClient.pushArchitecture('finos', 'arch', 'desc', '{}');
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            expect(authMock.history.post[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers on pushArchitectureVersion', async () => {
+            authMock.onPost('/calm/namespaces/finos/architectures/1/versions/2.0.0').reply(201, null, {
+                location: '/calm/namespaces/finos/architectures/1/versions/2.0.0'
+            });
+
+            await authClient.pushArchitectureVersion('finos', 1, '2.0.0', 'arch', 'desc', '{}');
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            expect(authMock.history.post[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers on listArchitectures (including version sub-requests)', async () => {
+            authMock.onGet('/calm/namespaces/finos/architectures').reply(200, {
+                values: [{ id: 1, name: 'arch-a', description: '' }]
+            });
+            authMock.onGet('/calm/namespaces/finos/architectures/1/versions').reply(200, { values: ['1.0.0'] });
+
+            await authClient.listArchitectures('finos');
+
+            expect(getAuthHeaders).toHaveBeenCalledTimes(2);
+            expect(authMock.history.get[0].headers?.Authorization).toBe('Bearer test-token');
+            expect(authMock.history.get[1].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers on pullArchitecture', async () => {
+            authMock.onGet('/calm/namespaces/finos/architectures/1/versions/1.0.0').reply(200, { nodes: [] });
+
+            await authClient.pullArchitecture('finos', 1, '1.0.0');
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            expect(authMock.history.get[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('does not call getAuthHeaders when no auth plugin is configured', async () => {
+            mock.onGet('/calm/namespaces').reply(200, { values: [] });
+
+            await client.listNamespaces();
+
+            expect(getAuthHeaders).not.toHaveBeenCalled();
+        });
+
+        it('passes the request body to getAuthHeaders', async () => {
+            const body = { name: 'my-org', description: 'My org' };
+            authMock.onPost('/calm/namespaces').reply(201, null, { location: '/calm/namespaces/my-org' });
+
+            await authClient.createNamespace('my-org', 'My org');
+
+            const [, requestBody] = getAuthHeaders.mock.calls[0];
+            expect(requestBody).toMatchObject(body);
         });
     });
 

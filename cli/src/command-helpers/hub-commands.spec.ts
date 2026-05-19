@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs/promises';
 import * as cliConfig from '../cli-config';
 import * as hubOutput from './hub-output';
+import { runCreateNamespace, runListArchitectures, runListNamespaces, 
+    runPullArchitecture, runPushArchitecture,  printPushResult, pushVersioned, 
+    resolveCalmHubOptions, resolveVersionedMetadata  } from './hub-commands';
 
 // We stub the entire @finos/calm-shared module so no real HTTP is made
 vi.mock('@finos/calm-shared', () => {
@@ -70,23 +73,20 @@ describe('hub-commands', () => {
 
     // ── resolveHubUrl ──────────────────────────────────────────────────────
 
-    describe('resolveHubUrl', () => {
+    describe('resolveCalmHubOptions', () => {
         it('uses options.calmHubUrl when provided', async () => {
-            const { resolveHubUrl } = await import('./hub-commands');
-            const url = await resolveHubUrl({ calmHubUrl: 'http://hub.example.com' });
-            expect(url).toBe('http://hub.example.com');
+            const opts = await resolveCalmHubOptions({ calmHubUrl: 'http://hub.example.com' });
+            expect(opts.calmHubUrl).toBe('http://hub.example.com');
         });
 
         it('falls back to ~/.calm.json calmHubUrl', async () => {
             vi.mocked(cliConfig.loadCliConfig).mockResolvedValue({ calmHubUrl: 'http://from-config.example.com' });
-            const { resolveHubUrl } = await import('./hub-commands');
-            const url = await resolveHubUrl({});
-            expect(url).toBe('http://from-config.example.com');
+            const opts = await resolveCalmHubOptions({});
+            expect(opts.calmHubUrl).toBe('http://from-config.example.com');
         });
 
         it('throws when no hub URL is available', async () => {
-            const { resolveHubUrl } = await import('./hub-commands');
-            await expect(resolveHubUrl({})).rejects.toMatchObject({
+            await expect(resolveCalmHubOptions({})).rejects.toMatchObject({
                 name: 'HubCommandError',
                 status: 0,
                 error: 'No CALM Hub URL provided. Use --calm-hub-url or set calmHubUrl in ~/.calm.json',
@@ -94,6 +94,16 @@ describe('hub-commands', () => {
             });
             expect(hubOutput.printError).not.toHaveBeenCalled();
             expect(exitSpy).not.toHaveBeenCalled();
+        });
+        
+        it('loads plugin when configured', async () => {
+            vi.mocked(cliConfig.loadCliConfig).mockResolvedValue({ calmHubUrl: 'http://from-config.example.com', authPluginPath: './auth-plugin.js' });
+            const plugin = { getAuthHeaders: vi.fn().mockResolvedValue({ 'Authorization': 'Bearer token' }) };
+            vi.mocked(cliConfig.loadAuthPlugin).mockResolvedValue(plugin);
+
+            const opts = await resolveCalmHubOptions({});
+            expect(cliConfig.loadAuthPlugin).toHaveBeenCalledWith('./auth-plugin.js', false);
+            expect(opts.authPlugin).toBe(plugin);
         });
     });
 
@@ -106,9 +116,10 @@ describe('hub-commands', () => {
                 id: 1, version: '1.0.0', location: '/calm/namespaces/finos/architectures/1/versions/1.0.0'
             });
 
-            const { runPushArchitecture } = await import('./hub-commands');
             await runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -125,9 +136,10 @@ describe('hub-commands', () => {
                 id: 42, version: '2.0.0', location: '/calm/namespaces/finos/architectures/42/versions/2.0.0'
             });
 
-            const { runPushArchitecture } = await import('./hub-commands');
             await runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub',
+                },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -140,9 +152,10 @@ describe('hub-commands', () => {
         });
 
         it('exits with error when --id is given but --version is missing', async () => {
-            const { runPushArchitecture } = await import('./hub-commands');
             await expect(runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 name: 'my-arch',
                 file: 'arch.json',
@@ -152,9 +165,10 @@ describe('hub-commands', () => {
         });
 
         it('exits with error when --id is not a valid integer', async () => {
-            const { runPushArchitecture } = await import('./hub-commands');
             await expect(runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -171,9 +185,10 @@ describe('hub-commands', () => {
         });
 
         it('exits with error when --name is missing and no --id is provided', async () => {
-            const { runPushArchitecture } = await import('./hub-commands');
             await expect(runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 file: 'arch.json'
             })).rejects.toThrow('process.exit');
@@ -181,9 +196,10 @@ describe('hub-commands', () => {
         });
 
         it('exits with error when --description is missing and no --id is provided', async () => {
-            const { runPushArchitecture } = await import('./hub-commands');
             await expect(runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 name: 'my-arch',
                 file: 'arch.json'
@@ -205,9 +221,10 @@ describe('hub-commands', () => {
                 id: 42, version: '2.0.0', location: '/calm/namespaces/finos/architectures/42/versions/2.0.0'
             });
 
-            const { runPushArchitecture } = await import('./hub-commands');
             await runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 file: 'arch.json',
                 id: '42',
@@ -220,9 +237,10 @@ describe('hub-commands', () => {
 
         it('exits when file cannot be read', async () => {
             vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
-            const { runPushArchitecture } = await import('./hub-commands');
             await expect(runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -233,9 +251,10 @@ describe('hub-commands', () => {
 
         it('exits when file is not valid JSON', async () => {
             vi.mocked(fs.readFile).mockResolvedValue('not json' as unknown as Uint8Array);
-            const { runPushArchitecture } = await import('./hub-commands');
             await expect(runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -250,9 +269,10 @@ describe('hub-commands', () => {
                 id: 1, version: '1.0.0', location: '/calm/namespaces/finos/architectures/1/versions/1.0.0'
             });
 
-            const { runPushArchitecture } = await import('./hub-commands');
             await runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -270,9 +290,10 @@ describe('hub-commands', () => {
                 new shared.HubClientError(409, 'Version already exists', 'POST /calm/namespaces/finos/architectures')
             );
 
-            const { runPushArchitecture } = await import('./hub-commands');
             await expect(runPushArchitecture({
-                calmHubUrl: 'http://hub',
+                calmHubOptions: {
+                    calmHubUrl: 'http://hub'
+                },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -291,8 +312,7 @@ describe('hub-commands', () => {
             vi.mocked(mockClient.pullArchitecture).mockResolvedValue({ id: 1, architecture: '{}' });
             const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
-            const { runPullArchitecture } = await import('./hub-commands');
-            await runPullArchitecture({ calmHubUrl: 'http://hub', namespace: 'finos', id: '1', version: '1.0.0' });
+            await runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '1', version: '1.0.0' });
 
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"id": 1'));
             consoleSpy.mockRestore();
@@ -302,8 +322,7 @@ describe('hub-commands', () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.pullArchitecture).mockResolvedValue({ id: 1 });
 
-            const { runPullArchitecture } = await import('./hub-commands');
-            await runPullArchitecture({ calmHubUrl: 'http://hub', namespace: 'finos', id: '1', version: '1.0.0', output: 'out.json' });
+            await runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '1', version: '1.0.0', output: 'out.json' });
 
             expect(fs.writeFile).toHaveBeenCalledWith('out.json', expect.any(String), 'utf-8');
         });
@@ -314,15 +333,13 @@ describe('hub-commands', () => {
                 new shared.HubClientError(404, 'Not found', 'GET /calm/namespaces/finos/architectures/99/versions/1.0.0')
             );
 
-            const { runPullArchitecture } = await import('./hub-commands');
-            await expect(runPullArchitecture({ calmHubUrl: 'http://hub', namespace: 'finos', id: '99', version: '1.0.0' }))
+            await expect(runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '99', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Not found', expect.any(String), 'json');
         });
 
         it('exits with error when --id is not a valid integer', async () => {
-            const { runPullArchitecture } = await import('./hub-commands');
-            await expect(runPullArchitecture({ calmHubUrl: 'http://hub', namespace: 'finos', id: 'not-a-number', version: '1.0.0' }))
+            await expect(runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: 'not-a-number', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0,
@@ -337,8 +354,7 @@ describe('hub-commands', () => {
 
     describe('runListArchitectures', () => {
         it('prints pretty error when no hub URL is available and format is pretty', async () => {
-            const { runListArchitectures } = await import('./hub-commands');
-            await expect(runListArchitectures({ namespace: 'finos', format: 'pretty' }))
+            await expect(runListArchitectures({ calmHubOptions: {}, namespace: 'finos', format: 'pretty' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0,
@@ -354,8 +370,7 @@ describe('hub-commands', () => {
                 { id: 1, name: 'arch-a', versions: ['1.0.0'] }
             ]);
 
-            const { runListArchitectures } = await import('./hub-commands');
-            await runListArchitectures({ calmHubUrl: 'http://hub', namespace: 'finos' });
+            await runListArchitectures({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos' });
 
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([{ id: 1, name: 'arch-a', versions: ['1.0.0'] }]);
         });
@@ -366,8 +381,7 @@ describe('hub-commands', () => {
                 { id: 1, name: 'arch-a', versions: ['1.0.0', '1.1.0'] }
             ]);
 
-            const { runListArchitectures } = await import('./hub-commands');
-            await runListArchitectures({ calmHubUrl: 'http://hub', namespace: 'finos', format: 'pretty' });
+            await runListArchitectures({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', format: 'pretty' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
         });
@@ -380,8 +394,7 @@ describe('hub-commands', () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.createNamespace).mockResolvedValue({ name: 'my-org', location: '/calm/namespaces/my-org' });
 
-            const { runCreateNamespace } = await import('./hub-commands');
-            await runCreateNamespace({ calmHubUrl: 'http://hub', name: 'my-org', description: 'My org' });
+            await runCreateNamespace({ calmHubOptions: { calmHubUrl: 'http://hub' }, name: 'my-org', description: 'My org' });
 
             expect(mockClient.createNamespace).toHaveBeenCalledWith('my-org', 'My org');
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith({ name: 'my-org', location: '/calm/namespaces/my-org' });
@@ -393,15 +406,13 @@ describe('hub-commands', () => {
                 new shared.HubClientError(409, 'Namespace already exists', 'POST /calm/namespaces')
             );
 
-            const { runCreateNamespace } = await import('./hub-commands');
-            await expect(runCreateNamespace({ calmHubUrl: 'http://hub', name: 'my-org', description: 'My org' }))
+            await expect(runCreateNamespace({ calmHubOptions: { calmHubUrl: 'http://hub' }, name: 'my-org', description: 'My org' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(409, 'Namespace already exists', expect.any(String), 'json');
         });
 
         it('exits when description is missing', async () => {
-            const { runCreateNamespace } = await import('./hub-commands');
-            await expect(runCreateNamespace({ calmHubUrl: 'http://hub', name: 'my-org' }))
+            await expect(runCreateNamespace({ calmHubOptions: { calmHubUrl: 'http://hub' }, name: 'my-org' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0,
@@ -412,8 +423,7 @@ describe('hub-commands', () => {
         });
 
         it('exits when description is blank', async () => {
-            const { runCreateNamespace } = await import('./hub-commands');
-            await expect(runCreateNamespace({ calmHubUrl: 'http://hub', name: 'my-org', description: '   ' }))
+            await expect(runCreateNamespace({ calmHubOptions: { calmHubUrl: 'http://hub' }, name: 'my-org', description: '   ' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0,
@@ -428,8 +438,7 @@ describe('hub-commands', () => {
 
     describe('runListNamespaces', () => {
         it('prints JSON error when no hub URL is available by default', async () => {
-            const { runListNamespaces } = await import('./hub-commands');
-            await expect(runListNamespaces({})).rejects.toThrow('process.exit');
+            await expect(runListNamespaces({ calmHubOptions: {} })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0,
                 'No CALM Hub URL provided. Use --calm-hub-url or set calmHubUrl in ~/.calm.json',
@@ -444,8 +453,7 @@ describe('hub-commands', () => {
                 { name: 'finos', description: 'FINOS' }
             ]);
 
-            const { runListNamespaces } = await import('./hub-commands');
-            await runListNamespaces({ calmHubUrl: 'http://hub' });
+            await runListNamespaces({ calmHubOptions: { calmHubUrl: 'http://hub' } });
 
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([{ name: 'finos', description: 'FINOS' }]);
         });
@@ -454,8 +462,7 @@ describe('hub-commands', () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.listNamespaces).mockResolvedValue([{ name: 'finos', description: '' }]);
 
-            const { runListNamespaces } = await import('./hub-commands');
-            await runListNamespaces({ calmHubUrl: 'http://hub', format: 'pretty' });
+            await runListNamespaces({ calmHubOptions: { calmHubUrl: 'http://hub' }, format: 'pretty' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
         });
@@ -465,7 +472,6 @@ describe('hub-commands', () => {
 
     describe('printPushResult', () => {
         it('calls printTableSuccess with correct columns when format is pretty', async () => {
-            const { printPushResult } = await import('./hub-commands');
             printPushResult({ id: 1, version: '1.0.0', location: '/calm/namespaces/finos/architectures/1/versions/1.0.0' }, 'pretty');
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
@@ -481,7 +487,6 @@ describe('hub-commands', () => {
         });
 
         it('defaults version to empty string when version is undefined', async () => {
-            const { printPushResult } = await import('./hub-commands');
             printPushResult({ id: 2, location: '/calm/namespaces/finos/architectures/2' }, 'pretty');
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
@@ -491,7 +496,6 @@ describe('hub-commands', () => {
         });
 
         it('calls printJsonSuccess when format is json', async () => {
-            const { printPushResult } = await import('./hub-commands');
             const result = { id: 1, version: '1.0.0', location: '/loc' };
             printPushResult(result, 'json');
 
@@ -505,8 +509,6 @@ describe('hub-commands', () => {
     describe('resolveVersionedMetadata', () => {
         it('returns provided name and description without fetching when both are supplied', async () => {
             const { mockClient } = await getSharedMocks();
-            const { resolveVersionedMetadata } = await import('./hub-commands');
-
             const result = await resolveVersionedMetadata(mockClient, 'finos', 1, 'my-arch', 'my-desc', 'json');
 
             expect(result).toEqual({ name: 'my-arch', description: 'my-desc' });
@@ -518,8 +520,6 @@ describe('hub-commands', () => {
             vi.mocked(mockClient.listArchitectures).mockResolvedValue([
                 { id: 1, name: 'fetched-arch', description: 'fetched-desc', versions: ['1.0.0'] }
             ]);
-            const { resolveVersionedMetadata } = await import('./hub-commands');
-
             const result = await resolveVersionedMetadata(mockClient, 'finos', 1, undefined, 'my-desc', 'json');
 
             expect(mockClient.listArchitectures).toHaveBeenCalledWith('finos');
@@ -531,8 +531,6 @@ describe('hub-commands', () => {
             vi.mocked(mockClient.listArchitectures).mockResolvedValue([
                 { id: 1, name: 'fetched-arch', description: 'fetched-desc', versions: ['1.0.0'] }
             ]);
-            const { resolveVersionedMetadata } = await import('./hub-commands');
-
             const result = await resolveVersionedMetadata(mockClient, 'finos', 1, 'my-arch', undefined, 'json');
 
             expect(mockClient.listArchitectures).toHaveBeenCalledWith('finos');
@@ -544,8 +542,6 @@ describe('hub-commands', () => {
             vi.mocked(mockClient.listArchitectures).mockResolvedValue([
                 { id: 99, name: 'other-arch', description: 'other', versions: ['1.0.0'] }
             ]);
-            const { resolveVersionedMetadata } = await import('./hub-commands');
-
             await expect(resolveVersionedMetadata(mockClient, 'finos', 1, undefined, undefined, 'json'))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
@@ -561,7 +557,6 @@ describe('hub-commands', () => {
             vi.mocked(mockClient.listArchitectures).mockRejectedValue(
                 new shared.HubClientError(500, 'Server error', 'GET /calm/namespaces/finos/architectures')
             );
-            const { resolveVersionedMetadata } = await import('./hub-commands');
 
             await expect(resolveVersionedMetadata(mockClient, 'finos', 1, undefined, undefined, 'json'))
                 .rejects.toThrow('process.exit');
@@ -574,11 +569,10 @@ describe('hub-commands', () => {
     describe('pushVersioned', () => {
         it('exits when --version is missing', async () => {
             const { mockClient } = await getSharedMocks();
-            const { pushVersioned } = await import('./hub-commands');
 
             await expect(pushVersioned(
                 mockClient,
-                { namespace: 'finos', file: 'arch.json', id: '1' },
+                { calmHubOptions: {}, namespace: 'finos', file: 'arch.json', id: '1' },
                 '{}',
                 'json'
             )).rejects.toThrow('process.exit');
@@ -589,11 +583,10 @@ describe('hub-commands', () => {
 
         it('exits when --id is not a valid integer', async () => {
             const { mockClient } = await getSharedMocks();
-            const { pushVersioned } = await import('./hub-commands');
 
             await expect(pushVersioned(
                 mockClient,
-                { namespace: 'finos', file: 'arch.json', id: 'not-a-number', version: '1.0.0' },
+                { calmHubOptions: {}, namespace: 'finos', file: 'arch.json', id: 'not-a-number', version: '1.0.0' },
                 '{}',
                 'json'
             )).rejects.toThrow('process.exit');
@@ -607,11 +600,10 @@ describe('hub-commands', () => {
             vi.mocked(mockClient.pushArchitectureVersion).mockResolvedValue({
                 id: 5, version: '2.0.0', location: '/calm/namespaces/finos/architectures/5/versions/2.0.0'
             });
-            const { pushVersioned } = await import('./hub-commands');
 
             const result = await pushVersioned(
                 mockClient,
-                { namespace: 'finos', file: 'arch.json', id: '5', version: '2.0.0', name: 'my-arch', description: 'desc' },
+                { calmHubOptions: {}, namespace: 'finos', file: 'arch.json', id: '5', version: '2.0.0', name: 'my-arch', description: 'desc' },
                 '{"nodes":[]}',
                 'json'
             );
