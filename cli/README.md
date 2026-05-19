@@ -418,3 +418,26 @@ and
 
 This differs:
 {{ block-architecture render-node-type-shapes=false }}
+```
+
+## Authentication plugins
+
+The CLI supports an external authentication plugin to allow authentication to CalmHub in enterprise environments, where seamless auth will likely require specific logic.
+
+### Writing an authentication plugin
+
+Authentication plugins are JavaScript files. You can find an example in [the test fixtures](./test_fixtures/test-auth-plugin.js).
+
+Plugins must export a default class implementing the [`AuthPlugin`](../shared/src/auth/auth-plugin.ts) interface, i.e. a `getAuthHeaders(url, requestBody)` method that returns a `Promise<Record<string, string>>`.
+
+The function `getAuthHeaders` will be invoked with the request URL and body for every request made to CalmHub by the CLI.
+
+### Using an authentication plugin
+
+To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fashion as configuring a CalmHub URL:
+
+```
+{
+  "calmHubUrl": "http://calmhub.com",
+  "authPluginPath": "~/plugins/auth-plugin.js"
+}

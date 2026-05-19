@@ -1,0 +1,12 @@
+{
+  "nodes": [
+    {
+      "unique-id": "node-1",
+      "node-type": "service",
+      "name": "API Gateway",
+      "description": "Entry point for all client requests",
+      "interfaces": []
+    }
+  ],
+  "relationships": []
+}

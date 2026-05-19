@@ -31,6 +31,16 @@ public class ArchitectureTools {
     @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
     boolean mcpEnabled;
 
+    /**
+     * Mirrors the gate applied to {@code PUT /architectures/{id}/versions/{version}}
+     * in {@link org.finos.calm.resources.ArchitectureResource}. When false, the
+     * MCP {@code updateArchitecture} tool refuses to overwrite an existing version,
+     * matching the deployment's REST mutation posture.
+     */
+    @Inject
+    @ConfigProperty(name = "allow.put.operations", defaultValue = "false")
+    boolean allowPutOperations;
+
     @Inject
     ArchitectureStore architectureStore;
 
@@ -129,6 +139,95 @@ public class ArchitectureTools {
         }
     }
 
+    @Tool(description = "Publish or overwrite an architecture version against an existing architecture ID. " +
+            "This is an upsert: if the supplied version already exists for the architecture it will be replaced, " +
+            "otherwise it is added as a new version. Provided primarily for legacy/backwards-compatibility flows " +
+            "that retain a stable architecture ID across versions. Disabled by default - requires the deployment " +
+            "to set 'allow.put.operations=true' (the same flag that gates the equivalent REST PUT). " +
+            "If 'name' or 'description' are omitted, the architecture's existing values are preserved; " +
+            "supplying them will overwrite the stored values for that architecture ID.")
+    public ToolResponse updateArchitecture(
+            @ToolArg(description = "The namespace containing the architecture") String namespace,
+            @ToolArg(description = "The architecture ID to publish a new version for (positive integer)") int architectureId,
+            @ToolArg(description = "The version string to publish or overwrite (e.g. '1.1.0')") String version,
+            @ToolArg(description = "The full CALM architecture JSON content for this version") String architectureJson,
+            @ToolArg(description = "Optional new architecture name. When omitted the existing name is preserved.", required = false) String name,
+            @ToolArg(description = "Optional new architecture description. When omitted the existing description is preserved.", required = false) String description) {
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateVersion(version),
+                () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
+                () -> McpValidationHelper.validateMaxLength(architectureJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Architecture JSON"),
+                () -> McpValidationHelper.validateJson(architectureJson, "Architecture JSON"),
+                () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Architecture name"),
+                () -> McpValidationHelper.validateDescriptionLength(description, "Architecture description"));
+        if (err.isPresent()) return err.get();
+
+        if (!allowPutOperations) {
+            return ToolResponse.error("Error: Updating architecture versions is disabled on this CalmHub. " +
+                    "Set 'allow.put.operations=true' to enable overwriting an existing architecture version.");
+        }
+
+        try {
+            // Preserve existing name/description when caller does not supply them, otherwise the
+            // store's unconditional $set on architectures.$.name and architectures.$.description
+            // would silently null them out (causing list output to fall back to "Architecture <id>").
+            String resolvedName = name;
+            String resolvedDescription = description;
+            if (resolvedName == null || resolvedDescription == null) {
+                NamespaceArchitectureSummary existing = findArchitectureSummary(namespace, architectureId);
+                if (existing != null) {
+                    if (resolvedName == null) {
+                        resolvedName = existing.getName();
+                    }
+                    if (resolvedDescription == null) {
+                        resolvedDescription = existing.getDescription();
+                    }
+                }
+            }
+
+            Architecture architecture = new Architecture.ArchitectureBuilder()
+                    .setNamespace(namespace)
+                    .setId(architectureId)
+                    .setVersion(version)
+                    .setName(resolvedName)
+                    .setDescription(resolvedDescription)
+                    .setArchitecture(architectureJson)
+                    .build();
+            architectureStore.updateArchitectureForVersion(architecture);
+            logger.info("Architecture [{}] updated with version [{}] in namespace [{}]", architectureId, version, namespace);
+            return ToolResponse.success("Architecture " + architectureId + " updated successfully with version '" + version + "' in namespace '" + namespace + "'.");
+        } catch (NamespaceNotFoundException e) {
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+        } catch (ArchitectureNotFoundException e) {
+            logger.warn("Architecture [{}] not found in namespace [{}]", architectureId, namespace, e);
+            return ToolResponse.error("Error: Architecture " + architectureId + " not found in namespace '" + namespace + "'.");
+        }
+    }
+
+    /**
+     * Looks up the existing summary (name/description) for an architecture so that the
+     * update tool can preserve them when the caller does not supply replacements.
+     * Returns {@code null} if the namespace cannot be loaded or the architecture is absent;
+     * downstream {@code updateArchitectureForVersion} will surface those errors with the
+     * correct user-facing message.
+     */
+    private NamespaceArchitectureSummary findArchitectureSummary(String namespace, int architectureId) {
+        try {
+            for (NamespaceArchitectureSummary summary : architectureStore.getArchitecturesForNamespace(namespace)) {
+                if (summary.getId() != null && summary.getId() == architectureId) {
+                    return summary;
+                }
+            }
+        } catch (NamespaceNotFoundException e) {
+            logger.debug("Namespace [{}] not found while resolving existing architecture summary", namespace);
+        }
+        return null;
+    }
+
     @Tool(description = "Create a new architecture in a namespace. Returns the allocated architecture ID and version.")
     public ToolResponse createArchitecture(
             @ToolArg(description = "The namespace to create the architecture in") String namespace,
@@ -141,6 +240,7 @@ public class ArchitectureTools {
                 () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Architecture name"),
                 () -> McpValidationHelper.validateDescriptionLength(description, "Architecture description"),
                 () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
+                () -> McpValidationHelper.validateMaxLength(architectureJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Architecture JSON"),
                 () -> McpValidationHelper.validateJson(architectureJson, "Architecture JSON"));
         if (err.isPresent()) return err.get();
 

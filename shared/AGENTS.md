@@ -10,6 +10,8 @@ The `shared` package contains common utilities, helpers, and core logic used acr
 
 ## Critical Development Rules
 
+Also include all rules from [../AGENTS.md](the root level AGENTS.md.)
+
 ### 1. Impact Analysis
 **WARNING**: Changes in this package affect multiple downstream projects.
 - **ALWAYS** run the full test suite (`npm run test` from root) after making changes here.
@@ -26,6 +28,9 @@ npm test --workspace shared
 
 # Run tests for ALL packages (REQUIRED before PR)
 npm test
+
+# If you want to test just one file run this. Make sure you're in the shared directory so it can resolve vitest.config.ts.
+npx vitest run ${TEST FILE}
 ```
 
 ## Key Components
