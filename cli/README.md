@@ -3,6 +3,19 @@
 A command line interface to interact with the CALM schema.
 You can use these tools to create an architecture from a CALM pattern, or validate that an architecture conforms to a given pattern.
 
+## Config file reference
+
+The CLI will load user config from `~/.calm.json` to allow profile-level config of CalmHub and other details.
+These properties can also be loaded from environment variables; if set they will override the config file.
+
+Note that if they're set on the command line, e.g. `--calm-hub-url`, this will override both the file and env vars.
+
+| Config file property | Environment variable        | Description  |
+| -------------------- | --------------------------- | ------------ |
+| `allowedRemoteHosts` | `CALM_ALLOWED_REMOTE_HOSTS` | List of allowed hosts to use when loading files directly from raw URLs. Note that in env variable form this should be a comma-separated list. | 
+| `authPluginPath`     | `CALM_AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
+| `calmHubUrl`         | `CALM_HUB_URL`              | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
+
 ## Using the CLI
 
 ### Getting Started
