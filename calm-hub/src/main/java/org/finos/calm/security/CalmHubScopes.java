@@ -13,6 +13,7 @@ public class CalmHubScopes {
      * Allows read operations on Flows, Patterns, Namespaces, and Architectures resources.
      */
     public static final String ARCHITECTURES_READ = "architectures:read";
+    public static final String ARCHITECTURES_WRITE = "architectures:write";
 
     /**
      * Allows full access (read, write, delete) on Flows, Patterns, Namespaces, and Architectures resources.

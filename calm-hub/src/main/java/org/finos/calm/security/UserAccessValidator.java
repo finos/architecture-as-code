@@ -1,6 +1,7 @@
 package org.finos.calm.security;
 
 import io.netty.util.internal.StringUtil;
+import io.quarkus.arc.profile.IfBuildProfile;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
  * This validator has no effect unless the 'secure' or 'proxy' profile is enabled.
  */
 @ApplicationScoped
-@IfBuildProfile({"secure", "proxy"})
+@IfBuildProfile(anyOf = {"secure", "proxy-auth"})
 public class UserAccessValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(UserAccessValidator.class);
@@ -37,50 +38,50 @@ public class UserAccessValidator {
     public UserAccessValidator(UserAccessStore userAccessStore) {
         this.userAccessStore = userAccessStore;
     }
+//
+//    /**
+//     * Determines whether the user is authorized to perform an action based on their request attributes.
+//     *
+//     * <p>If the user does not have any access entries or an exception is thrown during validation,
+//     * access is denied and the method returns {@code false}.
+//     *
+//     * @param userRequestAttributes encapsulates the HTTP method, username, resource path, and namespace
+//     * @return {@code true} if the user is authorized to perform the action; {@code false} otherwise
+//     */
+//    public boolean isUserAuthorized(UserRequestAttributes userRequestAttributes) {
+//        String action = mapHttpMethodToPermission(userRequestAttributes.requestMethod());
+//        if (isDefaultAccessibleResource(userRequestAttributes)) {
+//            logger.debug("The GET /calm/namespaces endpoint is accessible by default to all authenticated users");
+//            return true;
+//        }
+//        try {
+//            return hasAccessForActionOnResource(userRequestAttributes, action);
+//        } catch (UserAccessNotFoundException ex) {
+//            logger.error("No access permissions assigned to the user: [{}]", userRequestAttributes.username(), ex);
+//            return false;
+//        }
+//    }
 
-    /**
-     * Determines whether the user is authorized to perform an action based on their request attributes.
-     *
-     * <p>If the user does not have any access entries or an exception is thrown during validation,
-     * access is denied and the method returns {@code false}.
-     *
-     * @param userRequestAttributes encapsulates the HTTP method, username, resource path, and namespace
-     * @return {@code true} if the user is authorized to perform the action; {@code false} otherwise
-     */
-    public boolean isUserAuthorized(UserRequestAttributes userRequestAttributes) {
-        String action = mapHttpMethodToPermission(userRequestAttributes.requestMethod());
-        if (isDefaultAccessibleResource(userRequestAttributes)) {
-            logger.debug("The GET /calm/namespaces endpoint is accessible by default to all authenticated users");
-            return true;
-        }
-        try {
-            return hasAccessForActionOnResource(userRequestAttributes, action);
-        } catch (UserAccessNotFoundException ex) {
-            logger.error("No access permissions assigned to the user: [{}]", userRequestAttributes.username(), ex);
-            return false;
-        }
-    }
-
-    /**
-     * Determines whether the user has sufficient access to perform the specified action
-     * on a resource, based on the user's access grants, request path, and namespace.
-     *
-     * @param requestAttributes the user request attributes, including username, request path, and namespace
-     * @param action            the action the user is attempting to perform (e.g., "read", "write".)
-     * @return true if the user has valid access for the action on the requested resource, false otherwise
-     * @throws UserAccessNotFoundException if the user has no associated access records in the system
-     */
-    private boolean hasAccessForActionOnResource(UserRequestAttributes requestAttributes, String action) throws UserAccessNotFoundException {
-        List<UserAccess> userAccesses = userAccessStore.getUserAccessForUsername(requestAttributes.username());
-        return userAccesses.stream().anyMatch(userAccess -> {
-            boolean resourceMatches = (UserAccess.ResourceType.all == userAccess.getResourceType())
-                    || requestAttributes.path().contains(userAccess.getResourceType().name());
-            boolean permissionSufficient = permissionAllows(userAccess.getPermission(), action);
-            boolean namespaceMatches = !StringUtil.isNullOrEmpty(requestAttributes.namespace())
-                    && requestAttributes.namespace().equals(userAccess.getNamespace());
-            return resourceMatches && permissionSufficient && namespaceMatches;
-        });
-    }
+//    /**
+//     * Determines whether the user has sufficient access to perform the specified action
+//     * on a resource, based on the user's access grants, request path, and namespace.
+//     *
+//     * @param requestAttributes the user request attributes, including username, request path, and namespace
+//     * @param action            the action the user is attempting to perform (e.g., "read", "write".)
+//     * @return true if the user has valid access for the action on the requested resource, false otherwise
+//     * @throws UserAccessNotFoundException if the user has no associated access records in the system
+//     */
+//    private boolean hasAccessForActionOnResource(UserRequestAttributes requestAttributes, String action) throws UserAccessNotFoundException {
+//        List<UserAccess> userAccesses = userAccessStore.getUserAccessForUsername(requestAttributes.username());
+//        return userAccesses.stream().anyMatch(userAccess -> {
+//            boolean resourceMatches = (UserAccess.ResourceType.all == userAccess.getResourceType())
+//                    || requestAttributes.path().contains(userAccess.getResourceType().name());
+//            boolean permissionSufficient = permissionAllows(userAccess.getPermission(), action);
+//            boolean namespaceMatches = !StringUtil.isNullOrEmpty(requestAttributes.namespace())
+//                    && requestAttributes.namespace().equals(userAccess.getNamespace());
+//            return resourceMatches && permissionSufficient && namespaceMatches;
+//        });
+//    }
 
     /**
      * Returns the set of namespaces that the given user has read access to,
@@ -101,44 +102,44 @@ public class UserAccessValidator {
         }
     }
 
-    /**
-     * Checks whether the request targets a default-accessible endpoint.
-     *
-     * @param userRequestAttributes the attributes of the incoming user request
-     * @return true if the endpoint is accessible by default, false otherwise
-     */
-    private boolean isDefaultAccessibleResource(UserRequestAttributes userRequestAttributes) {
-        //TODO: How to protect GET - /calm/namespaces endpoint, by maintaining namespace specific user grants.
-        String path = userRequestAttributes.path();
-        String method = userRequestAttributes.requestMethod();
-        return "get".equalsIgnoreCase(method) &&
-                ("/calm/namespaces".equals(path) || "/calm/search".equals(path));
-    }
+//    /**
+//     * Checks whether the request targets a default-accessible endpoint.
+//     *
+//     * @param userRequestAttributes the attributes of the incoming user request
+//     * @return true if the endpoint is accessible by default, false otherwise
+//     */
+//    private boolean isDefaultAccessibleResource(UserRequestAttributes userRequestAttributes) {
+//        //TODO: How to protect GET - /calm/namespaces endpoint, by maintaining namespace specific user grants.
+//        String path = userRequestAttributes.path();
+//        String method = userRequestAttributes.requestMethod();
+//        return "get".equalsIgnoreCase(method) &&
+//                ("/calm/namespaces".equals(path) || "/calm/search".equals(path));
+//    }
 
-    /**
-     * Maps HTTP methods to access permissions.
-     *
-     * @param method the HTTP method
-     * @return "write" for modifying methods, "read" otherwise
-     */
-    private String mapHttpMethodToPermission(String method) {
-        return switch (method) {
-            case "POST", "PUT", "PATCH", "DELETE" -> WRITE_ACTION;
-            default -> READ_ACTION;
-        };
-    }
+//    /**
+//     * Maps HTTP methods to access permissions.
+//     *
+//     * @param method the HTTP method
+//     * @return "write" for modifying methods, "read" otherwise
+//     */
+//    private String mapHttpMethodToPermission(String method) {
+//        return switch (method) {
+//            case "POST", "PUT", "PATCH", "DELETE" -> WRITE_ACTION;
+//            default -> READ_ACTION;
+//        };
+//    }
 
-    /**
-     * Checks whether the user's permission level allows the requested action.
-     *
-     * @param userPermission  the user's assigned permission
-     * @param requestedAction the action the user is attempting to perform
-     * @return true if the permission is sufficient, false otherwise
-     */
-    private boolean permissionAllows(UserAccess.Permission userPermission, String requestedAction) {
-        return switch (userPermission) {
-            case write -> WRITE_ACTION.equals(requestedAction) || READ_ACTION.equals(requestedAction);
-            case read -> READ_ACTION.equals(requestedAction);
-        };
-    }
+//    /**
+//     * Checks whether the user's permission level allows the requested action.
+//     *
+//     * @param userPermission  the user's assigned permission
+//     * @param requestedAction the action the user is attempting to perform
+//     * @return true if the permission is sufficient, false otherwise
+//     */
+//    private boolean permissionAllows(UserAccess.Permission userPermission, String requestedAction) {
+//        return switch (userPermission) {
+//            case write -> WRITE_ACTION.equals(requestedAction) || READ_ACTION.equals(requestedAction);
+//            case read -> READ_ACTION.equals(requestedAction);
+//        };
+//    }
 }

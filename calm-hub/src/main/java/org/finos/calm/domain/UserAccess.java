@@ -15,7 +15,8 @@ public class UserAccess {
 
     public enum Permission {
         read,
-        write
+        write,
+        admin
     }
 
     public enum ResourceType {

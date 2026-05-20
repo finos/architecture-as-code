@@ -126,7 +126,7 @@ Using either will enable entitlements driven by the database.
 The two modes are slightly different:
 - `secure`: Enables JWT-based authentication using Quarkus' OAuth 2 libraries.
   - User identities will be extracted from the provided JWT which will be validated against the Authorization Server's Json Web Key Set (JWKS.)
-- `proxy`: Assumes CalmHub will be deployed behind an additional proxy component, such as `nginx` or `apache`, that performs OAuth 2 (or other) authentication for you.
+- `proxy-auth`: Assumes CalmHub will be deployed behind an additional proxy component, such as `nginx` or `apache`, that performs OAuth 2 (or other) authentication for you.
   - User identity is expected to be passed via a header; by default this is `Remote-User`.
 
 #### Proxy profile
@@ -134,7 +134,7 @@ The two modes are slightly different:
 To launch CalmHub with the proxy auth mode enabled:
 
 ```bash
-../mvnw quarkus:dev -Dquarkus.profile=proxy
+../mvnw quarkus:dev -Dquarkus.profile=proxy-auth
 ```
 
 **Important notes**:
