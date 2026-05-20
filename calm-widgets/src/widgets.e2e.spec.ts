@@ -386,5 +386,34 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const result = compiled(context);
             expectToBeSameIgnoringLineEndings(result, expected);
         });
+
+        it('renders node names containing parentheses without breaking Mermaid syntax', () => {
+            const context = {
+                nodes: [
+                    { 'unique-id': 'ui', 'node-type': 'service', name: 'UI', description: 'User Interface' },
+                    { 'unique-id': 'user', 'node-type': 'actor', name: 'User (Human)', description: 'A user' },
+                ],
+                relationships: [
+                    {
+                        'unique-id': 'r1',
+                        'relationship-type': {
+                            connects: { source: { node: 'user' }, destination: { node: 'ui' } },
+                        },
+                        description: 'Web browser',
+                    },
+                ],
+                metadata: {},
+                controls: {},
+                flows: [],
+                adrs: [],
+            };
+            const template = '{{block-architecture this}}\n{{block-architecture this render-node-type-shapes=true}}';
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            // Parentheses must be escaped to avoid breaking Mermaid node label syntax
+            expect(result).toContain('User #40;Human#41;');
+            // Raw parentheses must not appear inside a node label
+            expect(result).not.toMatch(/\["[^"]*\([^"]*"/);
+        });
     });
 });
