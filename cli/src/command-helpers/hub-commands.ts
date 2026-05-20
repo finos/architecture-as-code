@@ -615,7 +615,13 @@ export async function runPushStandard(options: PushStandardOptions): Promise<voi
         process.exit(1);
     }
 
-    // Standards send raw file content as a string — no JSON validation
+    try {
+        JSON.parse(fileContent);
+    } catch {
+        printError(0, `File is not valid JSON: ${options.file}`, `push standard ${options.file}`, format);
+        process.exit(1);
+    }
+
     try {
         const result = options.id
             ? await pushStandardVersioned(client, options, fileContent, format)

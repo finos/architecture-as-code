@@ -873,24 +873,23 @@ describe('hub-commands', () => {
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ id: 20, version: '1.0.0' }));
         });
 
-        it('does NOT validate the standard file as JSON (raw content is allowed)', async () => {
+        it('exits when the standard file is not valid JSON', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(fs.readFile).mockResolvedValue('not valid json content' as unknown as Uint8Array);
-            vi.mocked(mockClient.pushStandard).mockResolvedValue({
-                id: 20, version: '1.0.0', location: '/calm/namespaces/finos/standards/20/versions/1.0.0'
-            });
 
             const { runPushStandard } = await import('./hub-commands');
-            await runPushStandard({
+            await expect(runPushStandard({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
                 file: 'standard.txt'
-            });
+            })).rejects.toThrow('process.exit');
 
-            // Should NOT exit with error — raw content is valid for standards
-            expect(mockClient.pushStandard).toHaveBeenCalledWith('finos', 'my-standard', 'desc', 'not valid json content');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, 'File is not valid JSON: standard.txt', 'push standard standard.txt', 'json'
+            );
+            expect(mockClient.pushStandard).not.toHaveBeenCalled();
         });
 
         it('calls pushStandardVersion when --id is provided', async () => {
