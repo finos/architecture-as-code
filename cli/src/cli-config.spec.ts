@@ -20,13 +20,6 @@ vi.mock('os', () => ({
     
 }));
 
-vi.mock('process', () => ({
-    env: {
-        CALM_HUB_URL: undefined,
-        CALM_ALLOWED_REMOTE_HOSTS: undefined,
-        CALM_AUTH_PLUGIN_PATH: undefined,
-    }
-}));
 
 const exampleConfig = {
     calmHubUrl: 'https://example.com/calmhub',
@@ -45,6 +38,7 @@ describe('cli-config', () => {
     afterEach(() => {
         vol.reset();
         vi.mocked(homedir).mockReturnValue('/home/user');
+        vi.unstubAllEnvs();
     });
 
     it('loads user config from .calm.json in home dir', async () => {
@@ -55,16 +49,16 @@ describe('cli-config', () => {
         expect(config).toEqual(exampleConfig);
     });
 
-    it('returns null when .calm.json does not exist', async () => {
+    it('returns empty config when .calm.json does not exist', async () => {
         const config = await loadCliConfig();
-        expect(config).toBeNull();
+        expect(config).toEqual({ calmHubUrl: undefined, allowedRemoteHosts: undefined, authPluginPath: undefined });
     });
 
-    it('return undefined when .calm.json is invalid JSON', async () => {
+    it('returns empty config when .calm.json is invalid JSON', async () => {
         vol.fromJSON({
             '/home/user/.calm.json': 'invalid json'
         });
-        await expect(loadCliConfig()).resolves.toBeNull();
+        await expect(loadCliConfig()).resolves.toEqual({ calmHubUrl: undefined, allowedRemoteHosts: undefined, authPluginPath: undefined });
     });
 
     it('replaces homedir in auth plugin path', async () => {
@@ -111,9 +105,9 @@ describe('cli-config', () => {
     });
     
     it('loads config props from environment variables', async () => {
-        process.env.CALM_HUB_URL = 'https://env-var.com/calmhub';
-        process.env.CALM_ALLOWED_REMOTE_HOSTS = 'env1.example.com,env2.example.com';
-        process.env.CALM_AUTH_PLUGIN_PATH = './env-auth-plugin.js';
+        vi.stubEnv('CALM_HUB_URL', 'https://env-var.com/calmhub');
+        vi.stubEnv('CALM_ALLOWED_REMOTE_HOSTS', 'env1.example.com,env2.example.com');
+        vi.stubEnv('CALM_AUTH_PLUGIN_PATH', './env-auth-plugin.js');
 
         vol.fromJSON({
             '/home/user/.calm.json': '{}'
@@ -126,11 +120,24 @@ describe('cli-config', () => {
             authPluginPath: './env-auth-plugin.js'
         });
     });
+    
+    it('loads config props from environment variables when config file is missing', async () => {
+        vi.stubEnv('CALM_HUB_URL', 'https://env-var.com/calmhub');
+        vi.stubEnv('CALM_ALLOWED_REMOTE_HOSTS', 'env1.example.com,env2.example.com');
+        vi.stubEnv('CALM_AUTH_PLUGIN_PATH', './env-auth-plugin.js');
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({
+            calmHubUrl: 'https://env-var.com/calmhub',
+            allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
+            authPluginPath: './env-auth-plugin.js'
+        });
+    });
 
     it('overrides config file with config props from environment variables', async () => {
-        process.env.CALM_HUB_URL = 'https://env-var.com/calmhub';
-        process.env.CALM_ALLOWED_REMOTE_HOSTS = 'env1.example.com,env2.example.com';
-        process.env.CALM_AUTH_PLUGIN_PATH = './env-auth-plugin.js';
+        vi.stubEnv('CALM_HUB_URL', 'https://env-var.com/calmhub');
+        vi.stubEnv('CALM_ALLOWED_REMOTE_HOSTS', 'env1.example.com,env2.example.com');
+        vi.stubEnv('CALM_AUTH_PLUGIN_PATH', './env-auth-plugin.js');
 
         vol.fromJSON({
             '/home/user/.calm.json': JSON.stringify({

@@ -22,7 +22,7 @@ export async function saveCliConfig(config: CLIConfig): Promise<void> {
     await writeFile(configFilePath, json, 'utf8');
 }
 
-export async function loadCliConfig(): Promise<CLIConfig | null> {
+export async function loadCliConfig(): Promise<CLIConfig> {
     const logger = initLogger(false, 'calm-cli');
 
     const configFilePath = getUserConfigLocation();
@@ -35,10 +35,10 @@ export async function loadCliConfig(): Promise<CLIConfig | null> {
     catch (err) {
         if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
             logger.debug('No config file found at ' + configFilePath);
-            return null;
+        } else {
+            logger.error('Unexpected error loading user config: ' + String(err));
         }
-        logger.error('Unexpected error loading user config: ' + String(err));
-        return null;
+        return mergeWithEnvVars({});
     }
 }
 

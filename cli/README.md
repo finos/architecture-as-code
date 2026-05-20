@@ -10,11 +10,11 @@ These properties can also be loaded from environment variables; if set they will
 
 Note that if they're set on the command line, e.g. `--calm-hub-url`, this will override both the file and env vars.
 
-| Config file property | Environment variable   | Description              |
-| -------------------- | ---------------------- | ---------- |
-| `calmHubUrl`         | `CALM_HUB_URL`         | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
-| `authPluginPath`     | `AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
-| `allowedRemoteHosts` | `ALLOWED_REMOTE_HOSTS` | List of allowed hosts to use when loading files directly from raw URLs. Note that in env variable form this should be a comma-separated list. | 
+| Config file property | Environment variable        | Description  |
+| -------------------- | --------------------------- | ------------ |
+| `calmHubUrl`         | `CALM_HUB_URL`              | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
+| `authPluginPath`     | `CALM_AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
+| `allowedRemoteHosts` | `CALM_ALLOWED_REMOTE_HOSTS` | List of allowed hosts to use when loading files directly from raw URLs. Note that in env variable form this should be a comma-separated list. | 
 
 ## Using the CLI
 
