@@ -16,13 +16,13 @@ public final class McpResponseFormatter {
      * Lightweight projection used to pass resource metadata to the formatter,
      * decoupled from any specific domain type.
      */
-    public record ResourceSummary(int id, String name, String description) {}
+    public record ResourceSummary(Integer id, String name, String description) {}
 
     /**
      * Lightweight projection for ADR list entries, carrying the status field
      * that distinguishes ADRs from generic name/description resources.
      */
-    public record AdrSummary(int id, String title, String status) {}
+    public record AdrSummary(Integer id, String title, String status) {}
 
     /**
      * Formats a list of resource summaries for a namespace. Delegates to the
