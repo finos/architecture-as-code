@@ -34,7 +34,7 @@ jobs:
               run: npm run lint --workspace=calm-hub-ui
 
             - name: Build workspace
-              run: npm run build --workspace=calm-hub-ui
+              run: npm run build:calm-hub-ui
 
             - name: Run tests for Shared
               run: npm run test --workspace=calm-hub-ui
