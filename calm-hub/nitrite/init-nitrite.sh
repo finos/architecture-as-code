@@ -1932,6 +1932,15 @@ create_domains_and_controls() {
 create_ai_governance_architecture() {
     print_status "Creating ai-governance-v2 architecture..."
 
+    # The architecture's control $refs are rewritten using the IDs assigned when the
+    # ai-governance controls were created. If that map is empty (e.g. the controls base
+    # path was missing so create_domains_and_controls bailed out), the refs cannot be
+    # resolved, so skip rather than post an architecture with dangling references.
+    if [[ -z "$AI_GOVERNANCE_CONTROL_MAP" || "$AI_GOVERNANCE_CONTROL_MAP" == "{}" ]]; then
+        print_warning "No ai-governance control map available, skipping ai-governance-v2 architecture"
+        return
+    fi
+
     local doc
     doc=$(cat <<'CALMDOC'
 {
@@ -2419,14 +2428,18 @@ show_help() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -h, --help              Show this help message"
-    echo "  -u, --url URL           Set CalmHub URL (default: http://localhost:8080)"
-    echo "  -s, --schema-path PATH  Set the calm/ base path for schema loading"
+    echo "  -h, --help               Show this help message"
+    echo "  -u, --url URL            Set CalmHub URL (default: http://localhost:8080)"
+    echo "  -s, --schema-path PATH   Set the calm/ base path for schema loading"
+    echo "  -c, --controls-path PATH Set the base path for domain control requirements"
     echo ""
     echo "Environment Variables:"
     echo "  CALM_HUB_URL            CalmHub base URL (default: http://localhost:8080)"
     echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing release/ and draft/ subdirectories"
     echo "                          (default: auto-detected relative to this script)"
+    echo "  CALM_CONTROLS_BASE_PATH Path to the controls directory containing one subdirectory per domain,"
+    echo "                          each holding control requirement JSON files"
+    echo "                          (default: auto-detected as ../mongo/controls relative to this script)"
     echo ""
     echo "Examples:"
     echo "  $0                                    # Use default URL"
@@ -2447,6 +2460,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -s|--schema-path)
             CALM_SCHEMA_BASE_PATH="$2"
+            shift 2
+            ;;
+        -c|--controls-path)
+            CALM_CONTROLS_BASE_PATH="$2"
             shift 2
             ;;
         *)
