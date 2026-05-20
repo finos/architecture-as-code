@@ -55,6 +55,7 @@ Options:
   -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
   -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
   -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
+  --option-choices <choices>    Pre-defined option choices as a JSON object mapping option unique-ids to choice descriptions. Skips interactive prompts.
   -v, --verbose                 Enable verbose logging. (default: false)
   -h, --help                    display help for command
 ```
@@ -63,6 +64,30 @@ The most simple way to use this command is to call it with only the pattern opti
 
 ```shell
 % calm generate -p ./conferences/osff-ln-2025/workshop/conference-signup.pattern.json
+```
+
+#### Pattern options
+
+Some CALM patterns define **options** — decision points where the architecture can vary. When a pattern contains options, the `generate` command will prompt you interactively to make your selections. At the end of the prompts, the CLI prints the choices you made in a format you can save and reuse:
+
+```
+info: Selected choices (reusable with --option-choices): {"connection-options":"Application A connects to Application C","node-options":["Node 1","Node 2"]}
+```
+
+To skip the interactive prompts, pass your choices via `--option-choices` as an inline JSON string or a path to a JSON file.
+
+- For a **`oneOf`** option (pick exactly one), supply a string value.
+- For an **`anyOf`** option (pick one or more), supply a string or an array of strings.
+
+```shell
+# Inline JSON — single oneOf choice
+% calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C"}'
+
+# Inline JSON — mixed oneOf and anyOf
+% calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C", "node-options": ["Node 1", "Node 2"]}'
+
+# From a saved choices file
+% calm generate -p pattern.json --option-choices ./my-choices.json
 ```
 
 ### Validating a CALM architecture
