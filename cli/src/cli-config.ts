@@ -30,7 +30,7 @@ export async function loadCliConfig(): Promise<CLIConfig | null> {
         const config = await readFile(configFilePath, 'utf8');
         const parsed = JSON.parse(config) as CLIConfig;
         logger.debug('Parsed user config: ' + config);
-        return parsed;
+        return mergeWithEnvVars(parsed);
     }
     catch (err) {
         if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
@@ -40,6 +40,19 @@ export async function loadCliConfig(): Promise<CLIConfig | null> {
         logger.error('Unexpected error loading user config: ' + String(err));
         return null;
     }
+}
+
+/**
+ * Merge the loaded config with environment variables, giving precedence to environment variables if they are set. This allows users to override config file values with environment variables, which can be useful for CI/CD or temporary overrides without modifying the config file.
+ * @param config The config to merge with environment variables.
+ * @returns The merged config.
+ */
+export function mergeWithEnvVars(config: CLIConfig): CLIConfig {
+    return {
+        calmHubUrl: process.env.CALM_HUB_URL || config.calmHubUrl,
+        allowedRemoteHosts: process.env.CALM_ALLOWED_REMOTE_HOSTS ? process.env.CALM_ALLOWED_REMOTE_HOSTS.split(',') : config.allowedRemoteHosts,
+        authPluginPath: process.env.CALM_AUTH_PLUGIN_PATH || config.authPluginPath,
+    };
 }
 
 export function resolveHomeDir(path: string): string {

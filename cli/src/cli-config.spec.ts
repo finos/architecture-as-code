@@ -16,7 +16,16 @@ vi.mock('fs', async () => {
 });
 
 vi.mock('os', () => ({
-    homedir: vi.fn(() => '/home/user')
+    homedir: vi.fn(() => '/home/user'),
+    
+}));
+
+vi.mock('process', () => ({
+    env: {
+        CALM_HUB_URL: undefined,
+        CALM_ALLOWED_REMOTE_HOSTS: undefined,
+        CALM_AUTH_PLUGIN_PATH: undefined,
+    }
 }));
 
 const exampleConfig = {
@@ -100,5 +109,42 @@ describe('cli-config', () => {
         const authPlugin = await loadAuthPlugin(config!.authPluginPath!, false);
         expect(authPlugin.getAuthHeaders).toBeDefined();
     });
+    
+    it('loads config props from environment variables', async () => {
+        process.env.CALM_HUB_URL = 'https://env-var.com/calmhub';
+        process.env.CALM_ALLOWED_REMOTE_HOSTS = 'env1.example.com,env2.example.com';
+        process.env.CALM_AUTH_PLUGIN_PATH = './env-auth-plugin.js';
 
+        vol.fromJSON({
+            '/home/user/.calm.json': '{}'
+        });
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({
+            calmHubUrl: 'https://env-var.com/calmhub',
+            allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
+            authPluginPath: './env-auth-plugin.js'
+        });
+    });
+
+    it('overrides config file with config props from environment variables', async () => {
+        process.env.CALM_HUB_URL = 'https://env-var.com/calmhub';
+        process.env.CALM_ALLOWED_REMOTE_HOSTS = 'env1.example.com,env2.example.com';
+        process.env.CALM_AUTH_PLUGIN_PATH = './env-auth-plugin.js';
+
+        vol.fromJSON({
+            '/home/user/.calm.json': JSON.stringify({
+                calmHubUrl: 'https://example.com/wrong-calmhub-url',
+                allowedRemoteHosts: ['wrong.example.com'],
+                authPluginPath: './bad-auth-plugin.js'
+            })
+        });
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({
+            calmHubUrl: 'https://env-var.com/calmhub',
+            allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
+            authPluginPath: './env-auth-plugin.js'
+        });
+    });
 });
