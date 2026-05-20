@@ -1,0 +1,150 @@
+.diff-container {
+    display: flex;
+    height: 100%;
+}
+
+.diff-graph-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #e5e7eb;
+}
+
+.diff-panel {
+    width: 400px;
+    background: white;
+    border-left: 1px solid #e5e7eb;
+    overflow-y: auto;
+}
+
+.file-upload-area {
+    padding: 20px;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    text-align: center;
+    margin: 20px;
+    transition: border-color 0.2s;
+}
+
+.file-upload-area:hover {
+    border-color: #9ca3af;
+}
+
+.file-upload-area.drag-active {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.file-upload-input {
+    display: none;
+}
+
+.file-upload-label {
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.file-upload-label:hover {
+    color: #374151;
+}
+
+.architectures-container {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.architecture-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #e5e7eb;
+}
+
+.architecture-panel:last-child {
+    border-right: none;
+}
+
+.architecture-header {
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-weight: 600;
+    color: #374151;
+}
+
+.architecture-graph {
+    flex: 1;
+    min-height: 0;
+}
+
+.diff-summary {
+    padding: 16px;
+}
+
+.diff-section {
+    margin-bottom: 24px;
+}
+
+.diff-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.diff-item {
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.diff-item-added {
+    background-color: #dcfce7;
+    border-left: 3px solid #16a34a;
+}
+
+.diff-item-removed {
+    background-color: #fef2f2;
+    border-left: 3px solid #dc2626;
+}
+
+.diff-item-modified {
+    background-color: #fef3c7;
+    border-left: 3px solid #d97706;
+}
+
+.diff-item-renamed {
+    background-color: #e0e7ff;
+    border-left: 3px solid #6366f1;
+}
+
+.diff-item-unchanged {
+    background-color: #f3f4f6;
+    border-left: 3px solid #9ca3af;
+    opacity: 0.7;
+}
+
+.diff-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.diff-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.diff-stat-number {
+    font-weight: 600;
+    color: #374151;
+}

@@ -35,6 +35,7 @@ public class MongoStandardIntegration {
     private static final String NAMESPACE = "finos";
     private static final String NAME = "Test Standard";
     private static final String DESCRIPTION = "Test Standard Description";
+    private static int createdStandardId;
 
     @BeforeEach
     public void setupStandards() {
@@ -80,20 +81,30 @@ public class MongoStandardIntegration {
     @Test
     @Order(2)
     void end_to_end_create_a_standard() {
-        given()
+        var response = given()
                 .body(createStandardRequest)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("calm/namespaces/finos/standards/1"));
+                .header("Location", containsString("calm/namespaces/finos/standards/"))
+                .extract();
+
+        String location = response.header("Location");
+        String[] parts = location.split("/");
+        for (int i = 0; i < parts.length; i++) {
+            if ("standards".equals(parts[i]) && i + 1 < parts.length) {
+                createdStandardId = Integer.parseInt(parts[i + 1]);
+                break;
+            }
+        }
     }
 
     @Test
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/standards/1/versions")
+                .when().get("/calm/namespaces/finos/standards/" + createdStandardId + "/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -104,7 +115,7 @@ public class MongoStandardIntegration {
     @Order(4)
     void end_to_end_verify_standard() {
         given()
-                .when().get("/calm/namespaces/finos/standards/1/versions/1.0.0")
+                .when().get("/calm/namespaces/finos/standards/" + createdStandardId + "/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{}"));
@@ -118,10 +129,10 @@ public class MongoStandardIntegration {
         given()
                 .body(createStandardRequest)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/standards/1/versions/2.0.0")
+                .when().post("/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("calm/namespaces/finos/standards/1/versions/2.0.0"));
+                .header("Location", containsString("calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0"));
     }
 
     @Test
@@ -130,7 +141,7 @@ public class MongoStandardIntegration {
         setupTestStandardForPersistenceRetrieval();
 
         given()
-                .when().get("/calm/namespaces/finos/standards/1/versions/2.0.0")
+                .when().get("/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{}"));
@@ -142,7 +153,7 @@ public class MongoStandardIntegration {
         setupTestStandardForPersistenceRetrieval();
 
         Map<String, Object> expected = new HashMap<>();
-        expected.put("id", 1);
+        expected.put("id", createdStandardId);
         expected.put("name", "New Name");
         expected.put("description", "New Description");
 
