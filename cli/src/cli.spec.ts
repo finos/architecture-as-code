@@ -656,6 +656,255 @@ describe('CLI Commands', () => {
         });
     });
 
+    describe('create domain command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runCreateDomain').mockResolvedValue(undefined);
+        });
+
+        it('calls runCreateDomain with name and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'create', 'domain',
+                '--name', 'risk',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runCreateDomain).toHaveBeenCalledWith(expect.objectContaining({
+                name: 'risk',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes --format pretty through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'create', 'domain',
+                '--name', 'risk',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runCreateDomain).toHaveBeenCalledWith(expect.objectContaining({
+                format: 'pretty',
+            }));
+        });
+    });
+
+    describe('create control command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runCreateControl').mockResolvedValue(undefined);
+        });
+
+        it('calls runCreateControl with domain, name, description and file', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'create', 'control', 'req.json',
+                '--domain', 'risk',
+                '--name', 'my-control',
+                '--description', 'A control',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runCreateControl).toHaveBeenCalledWith(expect.objectContaining({
+                domain: 'risk',
+                name: 'my-control',
+                description: 'A control',
+                file: 'req.json',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+    });
+
+    describe('list domains command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runListDomains').mockResolvedValue(undefined);
+        });
+
+        it('calls runListDomains with hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'domains',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListDomains).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes --format pretty through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'domains',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runListDomains).toHaveBeenCalledWith(expect.objectContaining({
+                format: 'pretty',
+            }));
+        });
+    });
+
+    describe('list controls command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runListControls').mockResolvedValue(undefined);
+        });
+
+        it('calls runListControls with domain and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'controls',
+                '--domain', 'risk',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListControls).toHaveBeenCalledWith(expect.objectContaining({
+                domain: 'risk',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes --format pretty through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'controls',
+                '--domain', 'risk',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runListControls).toHaveBeenCalledWith(expect.objectContaining({
+                format: 'pretty',
+            }));
+        });
+    });
+
+    describe('push control-requirement command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPushControlRequirement').mockResolvedValue(undefined);
+        });
+
+        it('calls runPushControlRequirement with domain, controlId, version and file', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'control-requirement', 'req.json',
+                '--domain', 'risk',
+                '--control-id', '1',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushControlRequirement).toHaveBeenCalledWith(expect.objectContaining({
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                file: 'req.json',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+    });
+
+    describe('pull control-requirement command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPullControlRequirement').mockResolvedValue(undefined);
+        });
+
+        it('calls runPullControlRequirement with domain, controlId and version', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'control-requirement',
+                '--domain', 'risk',
+                '--control-id', '1',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPullControlRequirement).toHaveBeenCalledWith(expect.objectContaining({
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes --output through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'control-requirement',
+                '--domain', 'risk',
+                '--control-id', '1',
+                '--ver', '1.0.0',
+                '--output', 'out.json',
+            ]);
+
+            expect(hubCommandsModule.runPullControlRequirement).toHaveBeenCalledWith(expect.objectContaining({
+                output: 'out.json',
+            }));
+        });
+    });
+
+    describe('push control-config command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPushControlConfig').mockResolvedValue(undefined);
+        });
+
+        it('calls runPushControlConfig with domain, controlId, configId, version and file', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'control-config', 'cfg.json',
+                '--domain', 'risk',
+                '--control-id', '1',
+                '--config-id', 'cfg-1',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushControlConfig).toHaveBeenCalledWith(expect.objectContaining({
+                domain: 'risk',
+                controlId: '1',
+                configId: 'cfg-1',
+                version: '1.0.0',
+                file: 'cfg.json',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+    });
+
+    describe('pull control-config command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPullControlConfig').mockResolvedValue(undefined);
+        });
+
+        it('calls runPullControlConfig with domain, controlId, configId and version', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'control-config',
+                '--domain', 'risk',
+                '--control-id', '1',
+                '--config-id', 'cfg-1',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPullControlConfig).toHaveBeenCalledWith(expect.objectContaining({
+                domain: 'risk',
+                controlId: '1',
+                configId: 'cfg-1',
+                version: '1.0.0',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes --output through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'control-config',
+                '--domain', 'risk',
+                '--control-id', '1',
+                '--config-id', 'cfg-1',
+                '--ver', '1.0.0',
+                '--output', 'out.json',
+            ]);
+
+            expect(hubCommandsModule.runPullControlConfig).toHaveBeenCalledWith(expect.objectContaining({
+                output: 'out.json',
+            }));
+        });
+    });
+
 });
 
 describe('parseDocumentLoaderConfig', () => {

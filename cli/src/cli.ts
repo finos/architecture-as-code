@@ -5,7 +5,7 @@ import { promptUserForOptions } from './command-helpers/generate-options';
 import * as cliConfig from './cli-config';
 import path from 'path';
 import { select } from '@inquirer/prompts';
-import { CreateNamespaceOptions, ListArchitecturesOptions, ListNamespacesOptions, ListPatternsOptions, ListStandardsOptions, PullArchitectureOptions, PullPatternOptions, PullStandardOptions, PushArchitectureOptions, PushPatternOptions, PushStandardOptions, runCreateNamespace, runListArchitectures, runListNamespaces, runListPatterns, runListStandards, runPullArchitecture, runPullPattern, runPullStandard, runPushArchitecture, runPushPattern, runPushStandard } from './command-helpers/hub-commands';
+import { CreateNamespaceOptions, ListArchitecturesOptions, ListNamespacesOptions, ListPatternsOptions, ListStandardsOptions, PullArchitectureOptions, PullPatternOptions, PullStandardOptions, PushArchitectureOptions, PushPatternOptions, PushStandardOptions, runCreateNamespace, runListArchitectures, runListNamespaces, runListPatterns, runListStandards, runPullArchitecture, runPullPattern, runPullStandard, runPushArchitecture, runPushPattern, runPushStandard, CreateDomainOptions, ListDomainsOptions, CreateControlOptions, ListControlsOptions, PushControlRequirementOptions, PullControlRequirementOptions, PushControlConfigOptions, PullControlConfigOptions, runCreateDomain, runListDomains, runCreateControl, runListControls, runPushControlRequirement, runPullControlRequirement, runPushControlConfig, runPullControlConfig } from './command-helpers/hub-commands';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -40,6 +40,9 @@ const NAME_OPTION = '--name <name>';
 const DESCRIPTION_OPTION = '--description <description>';
 const ID_OPTION = '--id <id>';
 const HUB_VERSION_OPTION = '--ver <version>'; // --version conflicts with Commander's built-in version flag
+const DOMAIN_OPTION = '--domain <domain>';
+const CONTROL_ID_OPTION = '--control-id <controlId>';
+const CONFIG_ID_OPTION = '--config-id <configId>';
 
 export function setupCLI(program: Command) {
     program
@@ -353,6 +356,48 @@ Validation requires:
             await runPushStandard(pushStandardOptions);
         });
 
+    hubPushCmd
+        .command('control-requirement <requirement-file>')
+        .description('Push a control requirement version to CALM Hub')
+        .requiredOption(DOMAIN_OPTION, 'Target domain')
+        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
+        .requiredOption(HUB_VERSION_OPTION, 'Semver version to create')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (requirementFile, options) => {
+            const pushOptions: PushControlRequirementOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                domain: options.domain,
+                controlId: options.controlId,
+                version: options.ver,
+                file: requirementFile,
+                format: options.format
+            };
+            await runPushControlRequirement(pushOptions);
+        });
+
+    hubPushCmd
+        .command('control-config <config-file>')
+        .description('Push a control configuration version to CALM Hub')
+        .requiredOption(DOMAIN_OPTION, 'Target domain')
+        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
+        .requiredOption(CONFIG_ID_OPTION, 'Configuration ID')
+        .requiredOption(HUB_VERSION_OPTION, 'Semver version to create')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (configFile, options) => {
+            const pushOptions: PushControlConfigOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                domain: options.domain,
+                controlId: options.controlId,
+                configId: options.configId,
+                version: options.ver,
+                file: configFile,
+                format: options.format
+            };
+            await runPushControlConfig(pushOptions);
+        });
+
     // hub pull
     const hubPullCmd = hubCmd.command('pull').description('Pull a CALM document from CALM Hub');
 
@@ -411,6 +456,46 @@ Validation requires:
                 output: options.output
             };
             await runPullStandard(pullStandardOptions);
+        });
+
+    hubPullCmd
+        .command('control-requirement')
+        .description('Pull a control requirement version from CALM Hub')
+        .requiredOption(DOMAIN_OPTION, 'Source domain')
+        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
+        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const pullOptions: PullControlRequirementOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                domain: options.domain,
+                controlId: options.controlId,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullControlRequirement(pullOptions);
+        });
+
+    hubPullCmd
+        .command('control-config')
+        .description('Pull a control configuration version from CALM Hub')
+        .requiredOption(DOMAIN_OPTION, 'Source domain')
+        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
+        .requiredOption(CONFIG_ID_OPTION, 'Configuration ID')
+        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const pullOptions: PullControlConfigOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                domain: options.domain,
+                controlId: options.controlId,
+                configId: options.configId,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullControlConfig(pullOptions);
         });
 
     // hub list
@@ -474,6 +559,34 @@ Validation requires:
             await runListStandards(listStandardsOptions);
         });
 
+    hubListCmd
+        .command('domains')
+        .description('List all domains')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listOptions: ListDomainsOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                format: options.format
+            };
+            await runListDomains(listOptions);
+        });
+
+    hubListCmd
+        .command('controls')
+        .description('List controls in a domain')
+        .requiredOption(DOMAIN_OPTION, 'Target domain')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listOptions: ListControlsOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                domain: options.domain,
+                format: options.format
+            };
+            await runListControls(listOptions);
+        });
+
     // hub create
     const hubCreateCmd = hubCmd.command('create').description('Create CALM Hub resources');
 
@@ -492,6 +605,41 @@ Validation requires:
                 format: options.format
             };
             await runCreateNamespace(createOptions);
+        });
+
+    hubCreateCmd
+        .command('domain')
+        .description('Create a new domain in CALM Hub')
+        .requiredOption(NAME_OPTION, 'Domain name')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const createOptions: CreateDomainOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                name: options.name,
+                format: options.format
+            };
+            await runCreateDomain(createOptions);
+        });
+
+    hubCreateCmd
+        .command('control <control-file>')
+        .description('Create a new control in CALM Hub')
+        .requiredOption(DOMAIN_OPTION, 'Target domain')
+        .requiredOption(NAME_OPTION, 'Control name')
+        .requiredOption(DESCRIPTION_OPTION, 'Control description')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (controlFile, options) => {
+            const createOptions: CreateControlOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                domain: options.domain,
+                name: options.name,
+                description: options.description,
+                file: controlFile,
+                format: options.format
+            };
+            await runCreateControl(createOptions);
         });
 
     program.addCommand(hubCmd);

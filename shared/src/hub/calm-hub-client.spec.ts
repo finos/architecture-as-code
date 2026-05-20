@@ -537,4 +537,260 @@ describe('CalmHubClient', () => {
             await expect(client.pullStandard('finos', 99, '1.0.0')).rejects.toMatchObject({ status: 404 });
         });
     });
+
+    // ── createDomain ─────────────────────────────────────────────────────────
+
+    describe('createDomain', () => {
+        it('returns id and location on 201', async () => {
+            mock.onPost('/calm/domains').reply(201, null, {
+                location: '/calm/domains/7'
+            });
+
+            const result = await client.createDomain('risk');
+            expect(result).toEqual({ id: 7, location: '/calm/domains/7' });
+        });
+
+        it('falls back to constructed location when header is absent', async () => {
+            mock.onPost('/calm/domains').reply(201, null, {});
+
+            const result = await client.createDomain('risk');
+            expect(result.location).toBe('/calm/domains/risk');
+        });
+
+        it('throws HubClientError(409) on conflict', async () => {
+            mock.onPost('/calm/domains').reply(409, { error: 'Domain already exists' });
+
+            await expect(client.createDomain('risk')).rejects.toMatchObject({
+                status: 409,
+                error: 'Domain already exists',
+                request: 'POST /calm/domains'
+            });
+        });
+    });
+
+    // ── listDomains ──────────────────────────────────────────────────────────
+
+    describe('listDomains', () => {
+        it('returns array of domain summaries', async () => {
+            mock.onGet('/calm/domains').reply(200, {
+                values: [{ name: 'risk' }, { name: 'compliance' }]
+            });
+
+            const result = await client.listDomains();
+            expect(result).toHaveLength(2);
+            expect(result[0].name).toBe('risk');
+        });
+
+        it('returns empty array when values is absent', async () => {
+            mock.onGet('/calm/domains').reply(200, {});
+            const result = await client.listDomains();
+            expect(result).toEqual([]);
+        });
+    });
+
+    // ── createControl ─────────────────────────────────────────────────────────
+
+    describe('createControl', () => {
+        const reqJson = JSON.stringify({ type: 'control-requirement', requirements: [] });
+
+        it('returns id and location on 201', async () => {
+            mock.onPost('/calm/domains/risk/controls').reply(201, null, {
+                location: '/calm/domains/risk/controls/42'
+            });
+
+            const result = await client.createControl('risk', 'my-control', 'A control', reqJson);
+            expect(result).toEqual({ id: 42, location: '/calm/domains/risk/controls/42' });
+        });
+
+        it('sends correct body fields including requirementJson', async () => {
+            let capturedBody: unknown;
+            mock.onPost('/calm/domains/risk/controls').reply((config) => {
+                capturedBody = JSON.parse(config.data as string);
+                return [201, null, { location: '/calm/domains/risk/controls/1' }];
+            });
+
+            await client.createControl('risk', 'my-control', 'A control', reqJson);
+            expect(capturedBody).toMatchObject({ name: 'my-control', description: 'A control', requirementJson: reqJson });
+        });
+
+        it('throws HubClientError(409) on conflict', async () => {
+            mock.onPost('/calm/domains/risk/controls').reply(409, { error: 'Control already exists' });
+
+            await expect(client.createControl('risk', 'dup', 'desc', reqJson)).rejects.toMatchObject({
+                status: 409,
+                request: 'POST /calm/domains/risk/controls'
+            });
+        });
+    });
+
+    // ── listControls ──────────────────────────────────────────────────────────
+
+    describe('listControls', () => {
+        it('returns array of control summaries', async () => {
+            mock.onGet('/calm/domains/risk/controls').reply(200, {
+                values: [
+                    { id: 1, name: 'control-a' },
+                    { id: 2, name: 'control-b' }
+                ]
+            });
+
+            const result = await client.listControls('risk');
+            expect(result).toHaveLength(2);
+            expect(result[0]).toEqual({ id: 1, name: 'control-a' });
+        });
+
+        it('returns empty array when values is absent', async () => {
+            mock.onGet('/calm/domains/risk/controls').reply(200, {});
+            const result = await client.listControls('risk');
+            expect(result).toEqual([]);
+        });
+    });
+
+    // ── pushControlRequirement ────────────────────────────────────────────────
+
+    describe('pushControlRequirement', () => {
+        const reqJson = JSON.stringify({ type: 'control-requirement', requirements: [] });
+
+        it('returns id, version and location on 201 with Location header', async () => {
+            mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {
+                location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            });
+
+            const result = await client.pushControlRequirement('risk', 1, '1.0.0', reqJson);
+            expect(result).toEqual({
+                id: 1,
+                version: '1.0.0',
+                location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            });
+        });
+
+        it('returns constructed location when header is absent', async () => {
+            mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {});
+
+            const result = await client.pushControlRequirement('risk', 1, '1.0.0', reqJson);
+            expect(result.location).toBe('/calm/domains/risk/controls/1/requirement/versions/1.0.0');
+        });
+
+        it('throws HubClientError(400) on bad request', async () => {
+            mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(400, 'Bad request');
+            await expect(client.pushControlRequirement('risk', 1, '1.0.0', reqJson)).rejects.toMatchObject({
+                status: 400,
+                request: 'POST /calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            });
+        });
+    });
+
+    // ── pullControlRequirement ────────────────────────────────────────────────
+
+    describe('pullControlRequirement', () => {
+        it('returns the requirement detail object', async () => {
+            const detail = { type: 'control-requirement', requirements: [] };
+            mock.onGet('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(200, detail);
+
+            const result = await client.pullControlRequirement('risk', 1, '1.0.0');
+            expect(result).toEqual(detail);
+        });
+
+        it('throws HubClientError(404) when not found', async () => {
+            mock.onGet('/calm/domains/risk/controls/99/requirement/versions/1.0.0').reply(404, 'Not found');
+            await expect(client.pullControlRequirement('risk', 99, '1.0.0')).rejects.toMatchObject({ status: 404 });
+        });
+    });
+
+    // ── pushControlConfig ─────────────────────────────────────────────────────
+
+    describe('pushControlConfig', () => {
+        const configJson = JSON.stringify({ type: 'control-configuration', config: {} });
+
+        it('returns id, version and location on 201 with Location header', async () => {
+            mock.onPost('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(201, null, {
+                location: '/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0'
+            });
+
+            const result = await client.pushControlConfig('risk', 1, 'cfg-1', '1.0.0', configJson);
+            expect(result).toEqual({
+                id: 1,
+                version: '1.0.0',
+                location: '/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0'
+            });
+        });
+
+        it('returns constructed location when header is absent', async () => {
+            mock.onPost('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(201, null, {});
+
+            const result = await client.pushControlConfig('risk', 1, 'cfg-1', '1.0.0', configJson);
+            expect(result.location).toBe('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0');
+        });
+
+        it('throws HubClientError(400) on bad request', async () => {
+            mock.onPost('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(400, 'Bad request');
+            await expect(client.pushControlConfig('risk', 1, 'cfg-1', '1.0.0', configJson)).rejects.toMatchObject({
+                status: 400,
+                request: 'POST /calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0'
+            });
+        });
+    });
+
+    // ── pullControlConfig ─────────────────────────────────────────────────────
+
+    describe('pullControlConfig', () => {
+        it('returns the config detail object', async () => {
+            const detail = { type: 'control-configuration', config: {} };
+            mock.onGet('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(200, detail);
+
+            const result = await client.pullControlConfig('risk', 1, 'cfg-1', '1.0.0');
+            expect(result).toEqual(detail);
+        });
+
+        it('throws HubClientError(404) when not found', async () => {
+            mock.onGet('/calm/domains/risk/controls/99/configurations/cfg-1/versions/1.0.0').reply(404, 'Not found');
+            await expect(client.pullControlConfig('risk', 99, 'cfg-1', '1.0.0')).rejects.toMatchObject({ status: 404 });
+        });
+    });
+
+    // ── auth plugin: domains/controls ─────────────────────────────────────────
+
+    describe('auth plugin: domains/controls', () => {
+        let authMock: AxiosMockAdapter;
+        let authClient: CalmHubClient;
+        let getAuthHeaders: ReturnType<typeof vi.fn>;
+
+        beforeEach(() => {
+            getAuthHeaders = vi.fn().mockResolvedValue({ Authorization: 'Bearer test-token' });
+            const authPlugin = { getAuthHeaders };
+            const ax = axios.create({ baseURL: 'http://localhost:8080' });
+            authMock = new AxiosMockAdapter(ax);
+            authClient = new CalmHubClient({ calmHubUrl: 'http://localhost:8080', authPlugin }, ax);
+        });
+
+        it('injects auth headers on createDomain', async () => {
+            authMock.onPost('/calm/domains').reply(201, null, { location: '/calm/domains/7' });
+
+            await authClient.createDomain('risk');
+            expect(getAuthHeaders).toHaveBeenCalled();
+        });
+
+        it('injects auth headers on listDomains', async () => {
+            authMock.onGet('/calm/domains').reply(200, { values: [] });
+
+            await authClient.listDomains();
+            expect(getAuthHeaders).toHaveBeenCalled();
+        });
+
+        it('injects auth headers on pushControlRequirement', async () => {
+            authMock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {
+                location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            });
+
+            await authClient.pushControlRequirement('risk', 1, '1.0.0', '{}');
+            expect(getAuthHeaders).toHaveBeenCalled();
+        });
+
+        it('injects auth headers on pullControlConfig', async () => {
+            authMock.onGet('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(200, {});
+
+            await authClient.pullControlConfig('risk', 1, 'cfg-1', '1.0.0');
+            expect(getAuthHeaders).toHaveBeenCalled();
+        });
+    });
 });

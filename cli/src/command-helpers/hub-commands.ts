@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary, HubDomainSummary, HubControlSummary } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -697,6 +697,311 @@ export async function runListStandards(options: ListStandardsOptions): Promise<v
         }
     } catch (err) {
         handleHubError(err, format);
+    }
+}
+
+// ── create domain ───────────────────────────────────────────────────────────
+
+export interface CreateDomainOptions {
+    calmHubOptions: CalmHubOptions;
+    name: string;
+    format?: string;
+}
+
+export function printIdCreateResult(result: { id: number; location: string }, format: OutputFormat): void {
+    if (format === 'pretty') {
+        printTableSuccess(
+            [{ STATUS: 'Created', ID: result.id, LOCATION: result.location }],
+            [
+                { key: 'STATUS', header: 'STATUS' },
+                { key: 'ID', header: 'ID' },
+                { key: 'LOCATION', header: 'LOCATION' }
+            ]
+        );
+    } else {
+        printJsonSuccess({ id: result.id, location: result.location });
+    }
+}
+
+export async function runCreateDomain(options: CreateDomainOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const result = await client.createDomain(options.name);
+        printIdCreateResult(result, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── list domains ─────────────────────────────────────────────────────────────
+
+export interface ListDomainsOptions {
+    calmHubOptions: CalmHubOptions;
+    format?: string;
+}
+
+export async function runListDomains(options: ListDomainsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const domains: HubDomainSummary[] = await client.listDomains();
+
+        if (format === 'pretty') {
+            printTableSuccess(
+                domains.map(d => ({ NAME: d.name })),
+                [{ key: 'NAME', header: 'NAME' }]
+            );
+        } else {
+            printJsonSuccess(domains);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── create control ────────────────────────────────────────────────────────────
+
+export interface CreateControlOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    name: string;
+    description: string;
+    file: string;
+    format?: string;
+}
+
+export async function runCreateControl(options: CreateControlOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+
+    if (!options.name?.trim()) {
+        handleHubError(new Error('--name is required and must not be blank'), format);
+    }
+    if (!options.description?.trim()) {
+        handleHubError(new Error('--description is required and must not be blank'), format);
+    }
+
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    let fileContent: string;
+    try {
+        fileContent = await readFile(options.file, 'utf-8');
+    } catch {
+        printError(0, `Could not read file: ${options.file}`, `create control ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        JSON.parse(fileContent);
+    } catch {
+        printError(0, `File is not valid JSON: ${options.file}`, `create control ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        const result = await client.createControl(options.domain, options.name, options.description, fileContent);
+        printIdCreateResult(result, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── list controls ─────────────────────────────────────────────────────────────
+
+export interface ListControlsOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    format?: string;
+}
+
+export async function runListControls(options: ListControlsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const controls: HubControlSummary[] = await client.listControls(options.domain);
+
+        if (format === 'pretty') {
+            printTableSuccess(
+                controls.map(c => ({ ID: c.id, NAME: c.name })),
+                [
+                    { key: 'ID', header: 'ID' },
+                    { key: 'NAME', header: 'NAME' }
+                ]
+            );
+        } else {
+            printJsonSuccess(controls);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── push control-requirement ──────────────────────────────────────────────────
+
+export interface PushControlRequirementOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    controlId: string;
+    version: string;
+    file: string;
+    format?: string;
+}
+
+export async function runPushControlRequirement(options: PushControlRequirementOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+
+    const parsedControlId = parseInt(options.controlId, 10);
+    if (!Number.isFinite(parsedControlId)) {
+        printError(0, '--control-id must be a valid integer', 'push control-requirement', format);
+        process.exit(1);
+    }
+
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    let fileContent: string;
+    try {
+        fileContent = await readFile(options.file, 'utf-8');
+    } catch {
+        printError(0, `Could not read file: ${options.file}`, `push control-requirement ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        JSON.parse(fileContent);
+    } catch {
+        printError(0, `File is not valid JSON: ${options.file}`, `push control-requirement ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        const result = await client.pushControlRequirement(options.domain, parsedControlId, options.version, fileContent);
+        printPushResult(result, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── pull control-requirement ──────────────────────────────────────────────────
+
+export interface PullControlRequirementOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    controlId: string;
+    version: string;
+    output?: string;
+}
+
+export async function runPullControlRequirement(options: PullControlRequirementOptions): Promise<void> {
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
+    const client = new CalmHubClient(calmHubOptions);
+
+    const parsedControlId = parseInt(options.controlId, 10);
+    if (!Number.isFinite(parsedControlId)) {
+        printError(0, '--control-id must be a valid integer', 'pull control-requirement', 'json');
+        process.exit(1);
+    }
+
+    try {
+        const result = await client.pullControlRequirement(options.domain, parsedControlId, options.version);
+        const pretty = JSON.stringify(result, null, 2);
+
+        if (options.output) {
+            await writeFile(options.output, pretty, 'utf-8');
+        } else {
+            console.log(pretty);
+        }
+    } catch (err) {
+        handleHubError(err, 'json');
+    }
+}
+
+// ── push control-config ───────────────────────────────────────────────────────
+
+export interface PushControlConfigOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    controlId: string;
+    configId: string;
+    version: string;
+    file: string;
+    format?: string;
+}
+
+export async function runPushControlConfig(options: PushControlConfigOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+
+    const parsedControlId = parseInt(options.controlId, 10);
+    if (!Number.isFinite(parsedControlId)) {
+        printError(0, '--control-id must be a valid integer', 'push control-config', format);
+        process.exit(1);
+    }
+
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    let fileContent: string;
+    try {
+        fileContent = await readFile(options.file, 'utf-8');
+    } catch {
+        printError(0, `Could not read file: ${options.file}`, `push control-config ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        JSON.parse(fileContent);
+    } catch {
+        printError(0, `File is not valid JSON: ${options.file}`, `push control-config ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        const result = await client.pushControlConfig(options.domain, parsedControlId, options.configId, options.version, fileContent);
+        printPushResult(result, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── pull control-config ───────────────────────────────────────────────────────
+
+export interface PullControlConfigOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    controlId: string;
+    configId: string;
+    version: string;
+    output?: string;
+}
+
+export async function runPullControlConfig(options: PullControlConfigOptions): Promise<void> {
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
+    const client = new CalmHubClient(calmHubOptions);
+
+    const parsedControlId = parseInt(options.controlId, 10);
+    if (!Number.isFinite(parsedControlId)) {
+        printError(0, '--control-id must be a valid integer', 'pull control-config', 'json');
+        process.exit(1);
+    }
+
+    try {
+        const result = await client.pullControlConfig(options.domain, parsedControlId, options.configId, options.version);
+        const pretty = JSON.stringify(result, null, 2);
+
+        if (options.output) {
+            await writeFile(options.output, pretty, 'utf-8');
+        } else {
+            console.log(pretty);
+        }
+    } catch (err) {
+        handleHubError(err, 'json');
     }
 }
 

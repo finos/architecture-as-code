@@ -43,6 +43,15 @@ export interface HubNamespaceCreateResult {
     location: string;
 }
 
+export interface HubDomainSummary {
+    name: string;
+}
+
+export interface HubControlSummary {
+    id: number;
+    name: string;
+}
+
 export class HubClientError extends Error {
     constructor(
         public readonly status: number,
@@ -352,6 +361,111 @@ export class CalmHubClient {
         }
     }
 
+    // ── Domains/Controls ─────────────────────────────────────────────────────
+
+    async createDomain(name: string): Promise<HubCreateResult> {
+        const endpoint = 'POST /calm/domains';
+        try {
+            const response = await this.ax.post('/calm/domains', { name });
+            const header = response.headers['location'] as string | undefined;
+            const location = header ?? `/calm/domains/${name}`;
+            const id = header ? this.parseIdFromLocation(header, endpoint) : 0;
+            return { id, location };
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async listDomains(): Promise<HubDomainSummary[]> {
+        const endpoint = 'GET /calm/domains';
+        try {
+            const response = await this.ax.get('/calm/domains');
+            const values: HubDomainSummary[] = response.data?.values ?? [];
+            return values;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async createControl(domain: string, name: string, description: string, requirementJson: string): Promise<HubCreateResult> {
+        const endpoint = `POST /calm/domains/${domain}/controls`;
+        try {
+            const response = await this.ax.post(`/calm/domains/${domain}/controls`, { name, description, requirementJson });
+            const location = (response.headers['location'] as string | undefined) ?? `/calm/domains/${domain}/controls`;
+            const id = this.parseIdFromLocation(location, endpoint);
+            return { id, location };
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async listControls(domain: string): Promise<HubControlSummary[]> {
+        const endpoint = `GET /calm/domains/${domain}/controls`;
+        try {
+            const response = await this.ax.get(`/calm/domains/${domain}/controls`);
+            const values: HubControlSummary[] = response.data?.values ?? [];
+            return values;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async pushControlRequirement(domain: string, controlId: number, version: string, requirementJson: string): Promise<HubCreateResult> {
+        const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
+        try {
+            const response = await this.ax.post(
+                `/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`,
+                requirementJson,
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+            const location = (response.headers['location'] as string | undefined)
+                ?? `/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
+            return { id: controlId, version, location };
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async pullControlRequirement(domain: string, controlId: number, version: string): Promise<object> {
+        const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
+        try {
+            const response = await this.ax.get(
+                `/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`
+            );
+            return response.data as object;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async pushControlConfig(domain: string, controlId: number, configId: string, version: string, configJson: string): Promise<HubCreateResult> {
+        const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
+        try {
+            const response = await this.ax.post(
+                `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`,
+                configJson,
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+            const location = (response.headers['location'] as string | undefined)
+                ?? `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
+            return { id: controlId, version, location };
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async pullControlConfig(domain: string, controlId: number, configId: string, version: string): Promise<object> {
+        const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
+        try {
+            const response = await this.ax.get(
+                `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`
+            );
+            return response.data as object;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
 
     /**
@@ -370,6 +484,17 @@ export class CalmHubClient {
         };
     }
 
+    /**
+     * Parses a resource id from a Location header of the form
+     * /calm/.../{id} or /calm/.../{id}/
+     */
+    private parseIdFromLocation(location: string, endpoint: string): number {
+        const match = /\/(\d+)\/?$/.exec(location);
+        if (!match) {
+            throw new HubClientError(0, `Could not parse location header: ${location}`, endpoint);
+        }
+        return parseInt(match[1], 10);
+    }
 
     private wrapError(err: unknown, endpoint: string): HubClientError {
         if (err instanceof HubClientError) return err;
