@@ -126,6 +126,7 @@ public class PatternTools {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validateNotBlank(name, "Pattern name"),
                 () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Pattern name"),
                 () -> McpValidationHelper.validateDescriptionLength(description, "Pattern description"),
                 () -> McpValidationHelper.validateNotBlank(patternJson, "Pattern JSON"),

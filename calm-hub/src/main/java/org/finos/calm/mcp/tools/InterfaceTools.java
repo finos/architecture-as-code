@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -113,6 +114,7 @@ public class InterfaceTools {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validateNotBlank(name, "Interface name"),
                 () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Interface name"),
                 () -> McpValidationHelper.validateDescriptionLength(description, "Interface description"),
                 () -> McpValidationHelper.validateNotBlank(interfaceJson, "Interface JSON"),
@@ -151,12 +153,18 @@ public class InterfaceTools {
             List<NamespaceInterfaceSummary> interfaces = interfaceStore.getInterfacesForNamespace(namespace);
             String existingName = null;
             String existingDescription = null;
+            boolean interfaceFound = false;
             for (NamespaceInterfaceSummary s : interfaces) {
-                if (s.getId() == interfaceId) {
+                if (Objects.equals(s.getId(), interfaceId)) {
                     existingName = s.getName();
                     existingDescription = s.getDescription();
+                    interfaceFound = true;
                     break;
                 }
+            }
+            if (!interfaceFound) {
+                logger.warn("Interface [{}] not found in namespace summary for [{}]", interfaceId, namespace);
+                return McpResponseFormatter.entityNotFound("interface", interfaceId, namespace);
             }
             CreateInterfaceRequest request = new CreateInterfaceRequest(existingName, existingDescription, interfaceJson);
             interfaceStore.createInterfaceForVersion(request, namespace, interfaceId, version);

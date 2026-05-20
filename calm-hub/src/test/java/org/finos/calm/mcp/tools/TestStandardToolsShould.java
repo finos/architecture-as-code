@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -315,6 +316,8 @@ class TestStandardToolsShould {
         Standard created = new Standard(new CreateStandardRequest(null, null, "{}"));
         created.setId(1);
         created.setVersion("1.1.0");
+        when(standardStore.getStandardsForNamespace("finos"))
+                .thenReturn(List.of(new NamespaceStandardSummary("My Standard", "A description", 1)));
         when(standardStore.createStandardForVersion(any(CreateStandardRequest.class), eq("finos"), eq(1), eq("1.1.0")))
                 .thenReturn(created);
 
@@ -326,6 +329,8 @@ class TestStandardToolsShould {
 
     @Test
     void return_error_when_version_already_exists() throws Exception {
+        when(standardStore.getStandardsForNamespace("finos"))
+                .thenReturn(List.of(new NamespaceStandardSummary("My Standard", "A description", 1)));
         when(standardStore.createStandardForVersion(any(), anyString(), anyInt(), anyString()))
                 .thenThrow(new StandardVersionExistsException());
 
@@ -337,8 +342,8 @@ class TestStandardToolsShould {
 
     @Test
     void return_error_when_standard_not_found_for_create_version() throws Exception {
-        when(standardStore.createStandardForVersion(any(), anyString(), anyInt(), anyString()))
-                .thenThrow(new StandardNotFoundException());
+        when(standardStore.getStandardsForNamespace("finos"))
+                .thenReturn(List.of()); // ID 99 not in namespace
 
         ToolResponse result = standardTools.createStandardVersion("finos", 99, "1.1.0", "{}");
 
@@ -347,8 +352,21 @@ class TestStandardToolsShould {
     }
 
     @Test
+    void return_error_when_standard_not_in_summary_does_not_overwrite_metadata() throws Exception {
+        // The summary lookup should fail fast; the store's createStandardForVersion must NOT be called
+        when(standardStore.getStandardsForNamespace("finos"))
+                .thenReturn(List.of(new NamespaceStandardSummary("Other Standard", "other desc", 2)));
+
+        ToolResponse result = standardTools.createStandardVersion("finos", 99, "1.1.0", "{}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+        verify(standardStore, never()).createStandardForVersion(any(), anyString(), anyInt(), anyString());
+    }
+
+    @Test
     void return_error_when_namespace_not_found_for_create_standard_version() throws Exception {
-        when(standardStore.createStandardForVersion(any(), anyString(), anyInt(), anyString()))
+        when(standardStore.getStandardsForNamespace("missing"))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = standardTools.createStandardVersion("missing", 1, "1.1.0", "{}");

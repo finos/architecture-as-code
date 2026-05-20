@@ -26,6 +26,7 @@ import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -452,6 +453,18 @@ class TestAdrToolsShould {
         verifyNoInteractions(adrStore);
     }
 
+    @Test
+    void return_generic_error_without_exception_details_for_create_adr() throws Exception {
+        when(adrStore.createAdrForNamespace(any(AdrMeta.class)))
+                .thenThrow(new RuntimeException("sensitive internal detail"));
+
+        ToolResponse result = adrTools.createAdr("finos", VALID_ADR_JSON);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Unexpected error"));
+        assertThat(text(result), not(containsString("sensitive internal detail")));
+    }
+
     // --- updateAdr ---
 
     @Test
@@ -514,6 +527,18 @@ class TestAdrToolsShould {
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("disabled"));
         verifyNoInteractions(adrStore);
+    }
+
+    @Test
+    void return_generic_error_without_exception_details_for_update_adr() throws Exception {
+        when(adrStore.updateAdrForNamespace(any(AdrMeta.class)))
+                .thenThrow(new RuntimeException("sensitive internal detail"));
+
+        ToolResponse result = adrTools.updateAdr("finos", 1, VALID_ADR_JSON);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Unexpected error"));
+        assertThat(text(result), not(containsString("sensitive internal detail")));
     }
 
     // --- updateAdrStatus ---

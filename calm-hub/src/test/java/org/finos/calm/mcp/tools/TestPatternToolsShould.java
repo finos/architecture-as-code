@@ -275,6 +275,17 @@ class TestPatternToolsShould {
         verifyNoInteractions(patternStore);
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void reject_blank_or_null_name_for_create_pattern(String name) {
+        ToolResponse result = patternTools.createPattern("workshop", name, "desc", "{}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Pattern name"));
+        verifyNoInteractions(patternStore);
+    }
+
     @Test
     void reject_pattern_name_exceeding_max_length() {
         String longName = "n".repeat(201);

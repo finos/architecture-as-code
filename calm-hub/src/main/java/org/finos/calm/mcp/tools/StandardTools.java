@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -151,12 +152,18 @@ public class StandardTools {
             List<NamespaceStandardSummary> standards = standardStore.getStandardsForNamespace(namespace);
             String existingName = null;
             String existingDescription = null;
+            boolean standardFound = false;
             for (NamespaceStandardSummary s : standards) {
-                if (s.getId() == standardId) {
+                if (Objects.equals(s.getId(), standardId)) {
                     existingName = s.getName();
                     existingDescription = s.getDescription();
+                    standardFound = true;
                     break;
                 }
+            }
+            if (!standardFound) {
+                logger.warn("Standard [{}] not found in namespace [{}] while preparing version creation", standardId, namespace);
+                return McpResponseFormatter.entityNotFound("standard", standardId, namespace);
             }
             CreateStandardRequest request = new CreateStandardRequest(existingName, existingDescription, standardJson);
             standardStore.createStandardForVersion(request, namespace, standardId, version);

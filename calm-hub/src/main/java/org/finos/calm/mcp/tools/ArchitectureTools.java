@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -142,7 +143,7 @@ public class ArchitectureTools {
             try {
                 List<NamespaceArchitectureSummary> summaries = architectureStore.getArchitecturesForNamespace(namespace);
                 for (NamespaceArchitectureSummary summary : summaries) {
-                    if (architectureId == summary.getId()) {
+                    if (Objects.equals(summary.getId(), architectureId)) {
                         if (resolvedName == null) resolvedName = summary.getName();
                         if (resolvedDescription == null) resolvedDescription = summary.getDescription();
                         break;

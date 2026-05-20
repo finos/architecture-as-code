@@ -272,6 +272,17 @@ class TestInterfaceToolsShould {
         verifyNoInteractions(interfaceStore);
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void reject_blank_or_null_name_for_create_interface(String name) {
+        ToolResponse result = interfaceTools.createInterface("finos", name, "desc", "{}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Interface name"));
+        verifyNoInteractions(interfaceStore);
+    }
+
     @Test
     void reject_interface_description_exceeding_max_length() {
         String longDesc = "d".repeat(1025);
@@ -324,9 +335,7 @@ class TestInterfaceToolsShould {
     @Test
     void return_error_when_interface_not_found_for_create_version() throws Exception {
         when(interfaceStore.getInterfacesForNamespace("finos"))
-                .thenReturn(List.of());
-        when(interfaceStore.createInterfaceForVersion(any(), anyString(), anyInt(), anyString()))
-                .thenThrow(new InterfaceNotFoundException());
+                .thenReturn(List.of()); // interface 99 not in namespace
 
         ToolResponse result = interfaceTools.createInterfaceVersion("finos", 99, "1.1.0", "{}");
 

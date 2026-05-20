@@ -1,6 +1,7 @@
 package org.finos.calm.mcp.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
 public class AdrTools {
 
     private static final Logger logger = LoggerFactory.getLogger(AdrTools.class);
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Inject
     @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
@@ -209,7 +210,7 @@ public class AdrTools {
             return ToolResponse.error("Error: Failed to parse ADR content. Check the JSON structure.");
         } catch (Exception e) {
             logger.error("Unexpected error creating ADR in namespace [{}]", namespace, e);
-            return ToolResponse.error("Error: Unexpected error creating ADR - " + e.getMessage());
+            return ToolResponse.error("Error: Unexpected error creating ADR.");
         }
     }
 
@@ -257,7 +258,7 @@ public class AdrTools {
             return ToolResponse.error("Error: Failed to parse ADR content. Check the JSON structure.");
         } catch (Exception e) {
             logger.error("Unexpected error updating ADR [{}] in namespace [{}]", adrId, namespace, e);
-            return ToolResponse.error("Error: Unexpected error updating ADR " + adrId + " - " + e.getMessage());
+            return ToolResponse.error("Error: Unexpected error updating ADR " + adrId + ".");
         }
     }
 
