@@ -541,20 +541,11 @@ describe('CalmHubClient', () => {
     // ── createDomain ─────────────────────────────────────────────────────────
 
     describe('createDomain', () => {
-        it('returns id and location on 201', async () => {
-            mock.onPost('/calm/domains').reply(201, null, {
-                location: '/calm/domains/7'
-            });
-
-            const result = await client.createDomain('risk');
-            expect(result).toEqual({ id: 7, location: '/calm/domains/7' });
-        });
-
-        it('falls back to constructed location when header is absent', async () => {
+        it('returns name and location on 201', async () => {
             mock.onPost('/calm/domains').reply(201, null, {});
 
             const result = await client.createDomain('risk');
-            expect(result.location).toBe('/calm/domains/risk');
+            expect(result).toEqual({ name: 'risk', location: '/calm/domains/risk' });
         });
 
         it('throws HubClientError(409) on conflict', async () => {
@@ -764,7 +755,7 @@ describe('CalmHubClient', () => {
         });
 
         it('injects auth headers on createDomain', async () => {
-            authMock.onPost('/calm/domains').reply(201, null, { location: '/calm/domains/7' });
+            authMock.onPost('/calm/domains').reply(201, null, {});
 
             await authClient.createDomain('risk');
             expect(getAuthHeaders).toHaveBeenCalled();

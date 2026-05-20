@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary, HubDomainSummary, HubControlSummary } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary, HubDomainSummary, HubControlSummary, HubDomainCreateResult } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -729,8 +729,19 @@ export async function runCreateDomain(options: CreateDomainOptions): Promise<voi
     const client = new CalmHubClient(calmHubOptions);
 
     try {
-        const result = await client.createDomain(options.name);
-        printIdCreateResult(result, format);
+        const result: HubDomainCreateResult = await client.createDomain(options.name);
+        if (format === 'pretty') {
+            printTableSuccess(
+                [{ STATUS: 'Created', NAME: result.name, LOCATION: result.location }],
+                [
+                    { key: 'STATUS', header: 'STATUS' },
+                    { key: 'NAME', header: 'NAME' },
+                    { key: 'LOCATION', header: 'LOCATION' }
+                ]
+            );
+        } else {
+            printJsonSuccess({ name: result.name, location: result.location });
+        }
     } catch (err) {
         handleHubError(err, format);
     }

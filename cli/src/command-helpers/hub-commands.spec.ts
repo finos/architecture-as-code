@@ -1134,17 +1134,17 @@ describe('hub-commands', () => {
     describe('runCreateDomain', () => {
         it('calls createDomain and prints JSON result', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.createDomain).mockResolvedValue({ id: 7, location: '/calm/domains/7' });
+            vi.mocked(mockClient.createDomain).mockResolvedValue({ name: 'risk', location: '/calm/domains/risk' });
 
             await runCreateDomain({ calmHubOptions: { calmHubUrl: 'http://hub' }, name: 'risk' });
 
             expect(mockClient.createDomain).toHaveBeenCalledWith('risk');
-            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith({ id: 7, location: '/calm/domains/7' });
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith({ name: 'risk', location: '/calm/domains/risk' });
         });
 
         it('renders table when format is pretty', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.createDomain).mockResolvedValue({ id: 7, location: '/calm/domains/7' });
+            vi.mocked(mockClient.createDomain).mockResolvedValue({ name: 'risk', location: '/calm/domains/risk' });
 
             await runCreateDomain({ calmHubOptions: { calmHubUrl: 'http://hub' }, name: 'risk', format: 'pretty' });
 

@@ -55,6 +55,7 @@ export {
     type HubStandardSummary,
     type HubCreateResult,
     type HubNamespaceCreateResult,
+    type HubDomainCreateResult,
     type HubDomainSummary,
     type HubControlSummary,
     type CalmHubOptions

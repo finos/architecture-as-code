@@ -43,6 +43,11 @@ export interface HubNamespaceCreateResult {
     location: string;
 }
 
+export interface HubDomainCreateResult {
+    name: string;
+    location: string;
+}
+
 export interface HubDomainSummary {
     name: string;
 }
@@ -363,14 +368,11 @@ export class CalmHubClient {
 
     // ── Domains/Controls ─────────────────────────────────────────────────────
 
-    async createDomain(name: string): Promise<HubCreateResult> {
+    async createDomain(name: string): Promise<HubDomainCreateResult> {
         const endpoint = 'POST /calm/domains';
         try {
-            const response = await this.ax.post('/calm/domains', { name });
-            const header = response.headers['location'] as string | undefined;
-            const location = header ?? `/calm/domains/${name}`;
-            const id = header ? this.parseIdFromLocation(header, endpoint) : 0;
-            return { id, location };
+            await this.ax.post('/calm/domains', { name });
+            return { name, location: `/calm/domains/${name}` };
         } catch (err) {
             throw this.wrapError(err, endpoint);
         }
