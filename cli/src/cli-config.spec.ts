@@ -3,7 +3,6 @@ import { loadCliConfig, loadAuthPlugin } from './cli-config';
 import { resolve } from 'path';
 import { homedir } from 'os';
 
-
 vi.mock('fs/promises', async () => {
     const memfs: { fs: typeof fs } = await vi.importActual('memfs');
 
