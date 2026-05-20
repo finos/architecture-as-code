@@ -99,7 +99,7 @@
         "follow-redirects": ">=1.16.0",
         "hono": ">=4.12.14",
         "serialize-javascript": "^7.0.5",
-        "undici": "^7.21.0",
+        "undici": "^7.25.0",
         "ws": "^8.20.1",
         "@stoplight/spectral-ruleset-bundler": "1.7.0",
         "eslint": {
