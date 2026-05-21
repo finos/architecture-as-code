@@ -154,6 +154,10 @@ public class PatternResource {
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Create a new version of an existing pattern",
+            description = "Stores a new version of the pattern under the supplied {version}. The wrapper-level name and description used by the pattern listing endpoint are refreshed from the top-level `name` and `description` fields of the supplied JSON body when present, so listings reflect the latest version's metadata."
+    )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createVersionedPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
@@ -189,7 +193,7 @@ public class PatternResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Updates a Pattern (if available)",
-            description = "In mutable version stores pattern updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
+            description = "In mutable version stores pattern updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified. The wrapper-level name and description used by the pattern listing endpoint are refreshed from the top-level `name` and `description` fields of the supplied JSON body when present."
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response updateVersionedPattern(

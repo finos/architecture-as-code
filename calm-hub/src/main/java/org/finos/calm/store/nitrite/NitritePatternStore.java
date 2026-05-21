@@ -9,6 +9,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.CalmJsonMetadata;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -120,10 +121,14 @@ public class NitritePatternStore implements PatternStore {
             Filter filter = where(NAMESPACE_FIELD).eq(namespace);
             Document namespaceDocument = patternCollection.find(filter).firstOrNull();
 
+        CalmJsonMetadata metadata = CalmJsonMetadata.extract(patternRequest.getPatternJson());
+        String name = metadata.hasName() ? metadata.getName() : patternRequest.getName();
+        String description = metadata.hasDescription() ? metadata.getDescription() : patternRequest.getDescription();
+
         Document patternDocument = Document.createDocument()
                 .put(PATTERN_ID_FIELD, id)
-                .put(NAME_FIELD, patternRequest.getName())
-                .put(DESCRIPTION_FIELD, patternRequest.getDescription())
+                .put(NAME_FIELD, name)
+                .put(DESCRIPTION_FIELD, description)
                 .put(VERSIONS_FIELD, Document.createDocument().put("1-0-0", patternRequest.getPatternJson()));
 
         if (namespaceDocument == null) {
@@ -248,6 +253,14 @@ public class NitritePatternStore implements PatternStore {
             versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
             patternDoc.put(VERSIONS_FIELD, versions);
 
+            CalmJsonMetadata metadata = CalmJsonMetadata.extract(pattern.getPatternJson());
+            if (metadata.hasName()) {
+                patternDoc.put(NAME_FIELD, metadata.getName());
+            }
+            if (metadata.hasDescription()) {
+                patternDoc.put(DESCRIPTION_FIELD, metadata.getDescription());
+            }
+
             // Update the pattern in the namespace document
             List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(PATTERNS_FIELD);
             // Create a mutable copy of the list
@@ -295,6 +308,14 @@ public class NitritePatternStore implements PatternStore {
         Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
         versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
         patternDoc.put(VERSIONS_FIELD, versions);
+
+        CalmJsonMetadata metadata = CalmJsonMetadata.extract(pattern.getPatternJson());
+        if (metadata.hasName()) {
+            patternDoc.put(NAME_FIELD, metadata.getName());
+        }
+        if (metadata.hasDescription()) {
+            patternDoc.put(DESCRIPTION_FIELD, metadata.getDescription());
+        }
 
         // Update the pattern in the namespace document
         List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(PATTERNS_FIELD);

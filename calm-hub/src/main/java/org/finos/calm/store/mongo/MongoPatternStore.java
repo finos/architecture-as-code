@@ -11,6 +11,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.CalmJsonMetadata;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -89,11 +90,16 @@ public class MongoPatternStore implements PatternStore {
         }
 
         int id = counterStore.getNextPatternSequenceValue();
+        Document parsedPattern = Document.parse(patternRequest.getPatternJson());
+        CalmJsonMetadata metadata = CalmJsonMetadata.extract(parsedPattern);
+        String name = metadata.hasName() ? metadata.getName() : patternRequest.getName();
+        String description = metadata.hasDescription() ? metadata.getDescription() : patternRequest.getDescription();
+
         Document patternDocument = new Document("patternId", id)
-                .append("name", patternRequest.getName())
-                .append("description", patternRequest.getDescription())
+                .append("name", name)
+                .append("description", description)
                 .append("versions",
-                new Document("1-0-0", Document.parse(patternRequest.getPatternJson())));
+                new Document("1-0-0", parsedPattern));
 
         patternCollection.updateOne(
                 Filters.eq("namespace", namespace),
@@ -178,14 +184,23 @@ public class MongoPatternStore implements PatternStore {
         // Validates namespace and pattern existence
         getPatternVersions(pattern);
 
+        Document parsedPattern = Document.parse(pattern.getPatternJson());
+        CalmJsonMetadata metadata = CalmJsonMetadata.extract(parsedPattern);
+
         // Atomic conditional update: only succeeds if the version doesn't already exist
         Document filter = new Document("namespace", pattern.getNamespace())
                 .append("patterns", new Document("$elemMatch",
                         new Document("patternId", pattern.getId())
                                 .append("versions." + pattern.getMongoVersion(), new Document("$exists", false))));
 
-        Document update = new Document("$set",
-                new Document("patterns.$.versions." + pattern.getMongoVersion(), Document.parse(pattern.getPatternJson())));
+        Document setFields = new Document("patterns.$.versions." + pattern.getMongoVersion(), parsedPattern);
+        if (metadata.hasName()) {
+            setFields.append("patterns.$.name", metadata.getName());
+        }
+        if (metadata.hasDescription()) {
+            setFields.append("patterns.$.description", metadata.getDescription());
+        }
+        Document update = new Document("$set", setFields);
 
         if (patternCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new PatternVersionExistsException();
@@ -207,10 +222,17 @@ public class MongoPatternStore implements PatternStore {
         retrievePatternVersions(pattern);
 
         Document patternDocument = Document.parse(pattern.getPatternJson());
+        CalmJsonMetadata metadata = CalmJsonMetadata.extract(patternDocument);
         Document filter = new Document("namespace", pattern.getNamespace())
                 .append("patterns.patternId", pattern.getId());
-        Document update = new Document("$set",
-                new Document("patterns.$.versions." + pattern.getMongoVersion(), patternDocument));
+        Document setFields = new Document("patterns.$.versions." + pattern.getMongoVersion(), patternDocument);
+        if (metadata.hasName()) {
+            setFields.append("patterns.$.name", metadata.getName());
+        }
+        if (metadata.hasDescription()) {
+            setFields.append("patterns.$.description", metadata.getDescription());
+        }
+        Document update = new Document("$set", setFields);
 
         try {
             patternCollection.updateOne(filter, update, new UpdateOptions().upsert(true));

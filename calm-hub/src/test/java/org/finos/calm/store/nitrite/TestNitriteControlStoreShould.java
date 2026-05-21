@@ -727,4 +727,73 @@ public class TestNitriteControlStoreShould {
 
         verify(mockCollection).update(any(Filter.class), any(Document.class));
     }
+
+    // --- JSON-derived name/description (bug-fix coverage) ---
+
+    @Test
+    public void testCreateControlRequirement_prefersNameAndDescriptionFromJsonBody() throws DomainNotFoundException {
+        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
+        when(mockCounterStore.getNextControlSequenceValue()).thenReturn(7);
+
+        DocumentCursor mockCursor = mock(DocumentCursor.class);
+        when(mockCursor.firstOrNull()).thenReturn(null);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+
+        String json = "{\"control-id\":\"c1\",\"name\":\"From JSON\",\"description\":\"From JSON Desc\"}";
+        CreateControlRequirement createRequest = new CreateControlRequirement("Wrapper Name", "Wrapper Desc", json);
+
+        ControlDetail result = controlStore.createControlRequirement(createRequest, TEST_DOMAIN);
+
+        assertThat(result.getName(), is("From JSON"));
+        assertThat(result.getDescription(), is("From JSON Desc"));
+    }
+
+    @Test
+    public void testCreateRequirementForVersion_updatesWrapperNameAndDescriptionFromJson() throws Exception {
+        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
+
+        Document requirement = Document.createDocument().put("1-0-0", "{}");
+        Document controlDoc = Document.createDocument()
+                .put("controlId", 1)
+                .put("name", "Old Name")
+                .put("description", "Old Desc")
+                .put("requirement", requirement)
+                .put("configurations", new ArrayList<>());
+        Document domainDoc = Document.createDocument()
+                .put("domain", TEST_DOMAIN)
+                .put("controls", Arrays.asList(controlDoc));
+
+        setupDomainDocReturn(domainDoc);
+
+        String json = "{\"control-id\":\"c1\",\"name\":\"New Name\",\"description\":\"New Desc\"}";
+        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "2.0.0", json);
+
+        assertThat(controlDoc.get("name", String.class), is("New Name"));
+        assertThat(controlDoc.get("description", String.class), is("New Desc"));
+        verify(mockCollection).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void testCreateRequirementForVersion_leavesWrapperUntouchedWhenJsonLacksMetadata() throws Exception {
+        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
+
+        Document requirement = Document.createDocument().put("1-0-0", "{}");
+        Document controlDoc = Document.createDocument()
+                .put("controlId", 1)
+                .put("name", "Old Name")
+                .put("description", "Old Desc")
+                .put("requirement", requirement)
+                .put("configurations", new ArrayList<>());
+        Document domainDoc = Document.createDocument()
+                .put("domain", TEST_DOMAIN)
+                .put("controls", Arrays.asList(controlDoc));
+
+        setupDomainDocReturn(domainDoc);
+
+        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "2.0.0", "{\"type\":\"req-v2\"}");
+
+        assertThat(controlDoc.get("name", String.class), is("Old Name"));
+        assertThat(controlDoc.get("description", String.class), is("Old Desc"));
+        verify(mockCollection).update(any(Filter.class), any(Document.class));
+    }
 }

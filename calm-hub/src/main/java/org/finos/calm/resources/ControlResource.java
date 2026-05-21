@@ -153,7 +153,7 @@ public class ControlResource {
     @Path("{domain}/controls/{controlId}/requirement/versions/{version}")
     @Operation(
             summary = "Create a new requirement version for a control",
-            description = "Creates a new version of the requirement for an existing control"
+            description = "Creates a new version of the requirement for an existing control. The wrapper-level name and description used by the control listing endpoint are refreshed from the top-level `name` and `description` fields of the supplied JSON body when present, so listings reflect the latest version's metadata."
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createRequirementForVersion(

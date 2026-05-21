@@ -26,13 +26,16 @@ import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.pattern.NamespacePatternSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -386,5 +389,84 @@ public class TestMongoPatternStoreShould {
 
         verify(patternCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
         verify(patternCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    // --- JSON-derived name/description (bug-fix coverage) ---
+
+    @Test
+    void create_pattern_for_namespace_prefers_name_and_description_from_json_body() throws NamespaceNotFoundException {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(counterStore.getNextPatternSequenceValue()).thenReturn(7);
+
+        String json = "{\"name\":\"JSON Pattern\",\"description\":\"JSON Desc\"}";
+        CreatePatternRequest request = new CreatePatternRequest("Wrapper Name", "Wrapper Desc", json);
+
+        mongoPatternStore.createPatternForNamespace(request, "finos");
+
+        Document expectedDoc = new Document("patternId", 7)
+                .append("name", "JSON Pattern")
+                .append("description", "JSON Desc")
+                .append("versions", new Document("1-0-0", Document.parse(json)));
+
+        verify(patternCollection).updateOne(
+                eq(Filters.eq("namespace", "finos")),
+                eq(Updates.push("patterns", expectedDoc)),
+                any(UpdateOptions.class));
+    }
+
+    @Test
+    void create_pattern_for_version_updates_wrapper_name_and_description_from_json() throws Exception {
+        mockSetupPatternDocumentWithVersions();
+        when(patternCollection.updateOne(any(Document.class), any(Document.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        String json = "{\"name\":\"v2 name\",\"description\":\"v2 desc\"}";
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
+                .setId(42).setVersion("2.0.0").setPattern(json).build();
+
+        mongoPatternStore.createPatternForVersion(pattern);
+
+        ArgumentCaptor<Document> updateCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(patternCollection).updateOne(any(Document.class), updateCaptor.capture());
+        Document set = (Document) updateCaptor.getValue().get("$set");
+        assertThat(set.getString("patterns.$.name"), is("v2 name"));
+        assertThat(set.getString("patterns.$.description"), is("v2 desc"));
+        assertThat(set, hasKey("patterns.$.versions.2-0-0"));
+    }
+
+    @Test
+    void create_pattern_for_version_leaves_wrapper_untouched_when_json_lacks_metadata() throws Exception {
+        mockSetupPatternDocumentWithVersions();
+        when(patternCollection.updateOne(any(Document.class), any(Document.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
+                .setId(42).setVersion("2.0.0").setPattern(validJson).build();
+
+        mongoPatternStore.createPatternForVersion(pattern);
+
+        ArgumentCaptor<Document> updateCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(patternCollection).updateOne(any(Document.class), updateCaptor.capture());
+        Document set = (Document) updateCaptor.getValue().get("$set");
+        assertThat(set, not(hasKey("patterns.$.name")));
+        assertThat(set, not(hasKey("patterns.$.description")));
+        assertThat(set, hasKey("patterns.$.versions.2-0-0"));
+    }
+
+    @Test
+    void update_pattern_for_version_updates_wrapper_name_and_description_from_json() throws Exception {
+        mockSetupPatternDocumentWithVersions();
+
+        String json = "{\"name\":\"updated\",\"description\":\"updated desc\"}";
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
+                .setId(42).setVersion("1.0.0").setPattern(json).build();
+
+        mongoPatternStore.updatePatternForVersion(pattern);
+
+        ArgumentCaptor<Document> updateCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(patternCollection).updateOne(any(Document.class), updateCaptor.capture(), any(UpdateOptions.class));
+        Document set = (Document) updateCaptor.getValue().get("$set");
+        assertThat(set.getString("patterns.$.name"), is("updated"));
+        assertThat(set.getString("patterns.$.description"), is("updated desc"));
     }
 }
