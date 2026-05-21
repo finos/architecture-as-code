@@ -93,37 +93,37 @@ public class NitriteControlStore implements ControlStore {
             String name = request.getName();
             String description = request.getDescription();
 
-        Document requirementVersions = Document.createDocument()
-                .put("1-0-0", request.getRequirementJson());
+            Document requirementVersions = Document.createDocument()
+                    .put("1-0-0", request.getRequirementJson());
 
-        Document controlDoc = Document.createDocument()
-                .put(CONTROL_ID_FIELD, controlId)
-                .put("name", name)
-                .put("description", description)
-                .put(REQUIREMENT_FIELD, requirementVersions)
-                .put(CONFIGURATIONS_FIELD, new ArrayList<>());
+            Document controlDoc = Document.createDocument()
+                    .put(CONTROL_ID_FIELD, controlId)
+                    .put("name", name)
+                    .put("description", description)
+                    .put(REQUIREMENT_FIELD, requirementVersions)
+                    .put(CONFIGURATIONS_FIELD, new ArrayList<>());
 
-        Document existingDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+            Document existingDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
 
-        if (existingDoc == null) {
-            List<Document> controls = new ArrayList<>();
-            controls.add(controlDoc);
-            Document newDoc = Document.createDocument()
-                    .put(DOMAIN_FIELD, domain)
-                    .put(CONTROLS_FIELD, controls);
-            controlCollection.insert(newDoc);
-        } else {
-            @SuppressWarnings("unchecked")
-            List<Document> controls = (List<Document>) existingDoc.get(CONTROLS_FIELD);
-            if (controls == null) {
-                controls = new ArrayList<>();
+            if (existingDoc == null) {
+                List<Document> controls = new ArrayList<>();
+                controls.add(controlDoc);
+                Document newDoc = Document.createDocument()
+                        .put(DOMAIN_FIELD, domain)
+                        .put(CONTROLS_FIELD, controls);
+                controlCollection.insert(newDoc);
             } else {
-                controls = new ArrayList<>(controls);
+                @SuppressWarnings("unchecked")
+                List<Document> controls = (List<Document>) existingDoc.get(CONTROLS_FIELD);
+                if (controls == null) {
+                    controls = new ArrayList<>();
+                } else {
+                    controls = new ArrayList<>(controls);
+                }
+                controls.add(controlDoc);
+                existingDoc.put(CONTROLS_FIELD, controls);
+                controlCollection.update(where(DOMAIN_FIELD).eq(domain), existingDoc);
             }
-            controls.add(controlDoc);
-            existingDoc.put(CONTROLS_FIELD, controls);
-            controlCollection.update(where(DOMAIN_FIELD).eq(domain), existingDoc);
-        }
 
             return new ControlDetail(controlId, name, description);
         } finally {

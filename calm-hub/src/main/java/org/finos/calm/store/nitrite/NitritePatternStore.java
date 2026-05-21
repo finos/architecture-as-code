@@ -121,43 +121,43 @@ public class NitritePatternStore implements PatternStore {
             Filter filter = where(NAMESPACE_FIELD).eq(namespace);
             Document namespaceDocument = patternCollection.find(filter).firstOrNull();
 
-        String name = patternRequest.getName();
-        String description = patternRequest.getDescription();
+            String name = patternRequest.getName();
+            String description = patternRequest.getDescription();
 
-        Document patternDocument = Document.createDocument()
-                .put(PATTERN_ID_FIELD, id)
-                .put(NAME_FIELD, name)
-                .put(DESCRIPTION_FIELD, description)
-                .put(VERSIONS_FIELD, Document.createDocument().put("1-0-0", patternRequest.getPatternJson()));
+            Document patternDocument = Document.createDocument()
+                    .put(PATTERN_ID_FIELD, id)
+                    .put(NAME_FIELD, name)
+                    .put(DESCRIPTION_FIELD, description)
+                    .put(VERSIONS_FIELD, Document.createDocument().put("1-0-0", patternRequest.getPatternJson()));
 
-        if (namespaceDocument == null) {
-            // Create new namespace document with pattern
-            Document newNamespaceDoc = Document.createDocument()
-                    .put(NAMESPACE_FIELD, namespace)
-                    .put(PATTERNS_FIELD, List.of(patternDocument));
+            if (namespaceDocument == null) {
+                // Create new namespace document with pattern
+                Document newNamespaceDoc = Document.createDocument()
+                        .put(NAMESPACE_FIELD, namespace)
+                        .put(PATTERNS_FIELD, List.of(patternDocument));
 
-            patternCollection.insert(newNamespaceDoc);
-        } else {
-            // Update existing namespace document
-            List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class)
-                    .getList(PATTERNS_FIELD);
-            if (patterns == null) {
-                patterns = new ArrayList<>();
+                patternCollection.insert(newNamespaceDoc);
             } else {
-                patterns = new ArrayList<>(patterns); // Make a mutable copy
+                // Update existing namespace document
+                List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class)
+                        .getList(PATTERNS_FIELD);
+                if (patterns == null) {
+                    patterns = new ArrayList<>();
+                } else {
+                    patterns = new ArrayList<>(patterns); // Make a mutable copy
+                }
+                patterns.add(patternDocument);
+
+                namespaceDocument.put(PATTERNS_FIELD, patterns);
+                patternCollection.update(filter, namespaceDocument);
             }
-            patterns.add(patternDocument);
 
-            namespaceDocument.put(PATTERNS_FIELD, patterns);
-            patternCollection.update(filter, namespaceDocument);
-        }
-
-        Pattern persistedPattern = new Pattern.PatternBuilder()
-                .setId(id)
-                .setNamespace(namespace)
-                .setPattern(patternRequest.getPatternJson())
-                .setVersion("1-0-0")
-                .build();
+            Pattern persistedPattern = new Pattern.PatternBuilder()
+                    .setId(id)
+                    .setNamespace(namespace)
+                    .setPattern(patternRequest.getPatternJson())
+                    .setVersion("1-0-0")
+                    .build();
 
             LOG.info("Created pattern with ID {} for namespace '{}'", id, namespace);
             return persistedPattern;
