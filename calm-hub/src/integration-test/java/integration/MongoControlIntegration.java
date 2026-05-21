@@ -478,4 +478,61 @@ public class MongoControlIntegration {
                 .then()
                 .statusCode(404);
     }
+
+    // --- Wrapper name/description sync from JSON body on new requirement version ---
+
+    @Test
+    @Order(40)
+    void end_to_end_list_controls_returns_wrapper_name_and_description_from_create() {
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .then()
+                .statusCode(200)
+                .body("values[0].id", equalTo(1))
+                .body("values[0].name", equalTo("Access Control"))
+                .body("values[0].description", equalTo("Ensure proper access control mechanisms"));
+    }
+
+    @Test
+    @Order(41)
+    void end_to_end_create_requirement_version_with_name_and_description_in_json() {
+        String versionBody = "{\"name\": \"Updated Access Control\", \"description\": \"Refined access control requirement\", \"type\": \"requirement-v3\"}";
+
+        given()
+                .body(versionBody)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0"));
+    }
+
+    @Test
+    @Order(42)
+    void end_to_end_list_controls_reflects_updated_name_and_description_after_new_version() {
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .then()
+                .statusCode(200)
+                .body("values.find { it.id == 1 }.name", equalTo("Updated Access Control"))
+                .body("values.find { it.id == 1 }.description", equalTo("Refined access control requirement"));
+    }
+
+    @Test
+    @Order(43)
+    void end_to_end_create_requirement_version_without_name_in_json_preserves_wrapper() {
+        given()
+                .body("{\"type\": \"requirement-v4\"}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
+                .then()
+                .statusCode(201);
+
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .then()
+                .statusCode(200)
+                .body("values.find { it.id == 1 }.name", equalTo("Updated Access Control"))
+                .body("values.find { it.id == 1 }.description", equalTo("Refined access control requirement"));
+    }
 }

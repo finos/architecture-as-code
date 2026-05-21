@@ -10,6 +10,7 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.CalmJsonMetadata;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -102,11 +103,15 @@ public class MongoControlStore implements ControlStore {
 
         int controlId = counterStore.getNextControlSequenceValue();
 
-        Document requirementVersions = new Document("1-0-0", Document.parse(request.getRequirementJson()));
+        Document parsedRequirement = Document.parse(request.getRequirementJson());
+        String name = request.getName();
+        String description = request.getDescription();
+
+        Document requirementVersions = new Document("1-0-0", parsedRequirement);
 
         Document controlDoc = new Document("controlId", controlId)
-                .append("name", request.getName())
-                .append("description", request.getDescription())
+                .append("name", name)
+                .append("description", description)
                 .append("requirement", requirementVersions)
                 .append("configurations", new ArrayList<>());
 
@@ -116,7 +121,7 @@ public class MongoControlStore implements ControlStore {
                 new UpdateOptions().upsert(true)
         );
 
-        return new ControlDetail(controlId, request.getName(), request.getDescription());
+        return new ControlDetail(controlId, name, description);
     }
 
     @Override
@@ -208,14 +213,23 @@ public class MongoControlStore implements ControlStore {
 
         String mongoVersion = version.replace('.', '-');
 
+        Document parsedRequirement = Document.parse(requirementJson);
+        CalmJsonMetadata metadata = CalmJsonMetadata.extract(parsedRequirement);
+
         // Atomic conditional update: only succeeds if the requirement version doesn't already exist
         Document filter = new Document("domain", domain)
                 .append("controls", new Document("$elemMatch",
                         new Document("controlId", controlId)
                                 .append("requirement." + mongoVersion, new Document("$exists", false))));
 
-        Document update = new Document("$set",
-                new Document("controls.$.requirement." + mongoVersion, Document.parse(requirementJson)));
+        Document setFields = new Document("controls.$.requirement." + mongoVersion, parsedRequirement);
+        if (metadata.hasName()) {
+            setFields.append("controls.$.name", metadata.getName());
+        }
+        if (metadata.hasDescription()) {
+            setFields.append("controls.$.description", metadata.getDescription());
+        }
+        Document update = new Document("$set", setFields);
 
         if (controlCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new ControlRequirementVersionExistsException();

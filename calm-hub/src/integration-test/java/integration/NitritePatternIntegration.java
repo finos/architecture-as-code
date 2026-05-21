@@ -72,4 +72,63 @@ public class NitritePatternIntegration {
                 .statusCode(200)
                 .body(equalTo(PATTERN));
     }
+
+    // --- Wrapper name/description sync from JSON body on new version ---
+
+    @Test
+    @Order(4)
+    void end_to_end_list_patterns_returns_wrapper_name_and_description_from_create() {
+        int id = Integer.parseInt(createdPatternId);
+        given()
+                .when().get("/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values.find { it.id == " + id + " }.name", equalTo("name"))
+                .body("values.find { it.id == " + id + " }.description", equalTo("description"));
+    }
+
+    @Test
+    @Order(5)
+    void end_to_end_create_pattern_version_with_name_and_description_in_json() {
+        String versionBody = "{\"name\": \"updated-pattern\", \"description\": \"updated pattern description\", \"nodes\": []}";
+
+        given()
+                .body(versionBody)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/2.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/2.0.0"));
+    }
+
+    @Test
+    @Order(6)
+    void end_to_end_list_patterns_reflects_updated_name_and_description_after_new_version() {
+        int id = Integer.parseInt(createdPatternId);
+        given()
+                .when().get("/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values.find { it.id == " + id + " }.name", equalTo("updated-pattern"))
+                .body("values.find { it.id == " + id + " }.description", equalTo("updated pattern description"));
+    }
+
+    @Test
+    @Order(7)
+    void end_to_end_create_pattern_version_without_name_in_json_preserves_wrapper() {
+        int id = Integer.parseInt(createdPatternId);
+        given()
+                .body("{\"nodes\": [], \"relationships\": []}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/3.0.0")
+                .then()
+                .statusCode(201);
+
+        given()
+                .when().get("/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values.find { it.id == " + id + " }.name", equalTo("updated-pattern"))
+                .body("values.find { it.id == " + id + " }.description", equalTo("updated pattern description"));
+    }
 }

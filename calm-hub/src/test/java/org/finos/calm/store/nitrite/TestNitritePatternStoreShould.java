@@ -629,4 +629,99 @@ public class TestNitritePatternStoreShould {
         assertThat(result.getMongoVersion(), is("1-0-0"));
         assertThat(result.getPatternJson(), is(PATTERN_JSON));
     }
+
+    // --- JSON-derived name/description (bug-fix coverage) ---
+
+    @Test
+    public void testCreatePatternForNamespace_usesDtoNameAndDescriptionOnInitialCreate() throws NamespaceNotFoundException {
+        String json = "{\"name\":\"JSON Name\",\"description\":\"JSON Desc\"}";
+        CreatePatternRequest request = new CreatePatternRequest("Wrapper", "Wrapper Desc", json);
+
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+        when(mockCounterStore.getNextPatternSequenceValue()).thenReturn(PATTERN_ID);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(null);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        patternStore.createPatternForNamespace(request, NAMESPACE);
+
+        org.mockito.ArgumentCaptor<Document> inserted = org.mockito.ArgumentCaptor.forClass(Document.class);
+        verify(mockCollection).insert(inserted.capture());
+
+        @SuppressWarnings("unchecked")
+        List<Document> patterns = (List<Document>) inserted.getValue().get("patterns");
+        Document patternDoc = patterns.get(0);
+        assertThat(patternDoc.get("name", String.class), is("Wrapper"));
+        assertThat(patternDoc.get("description", String.class), is("Wrapper Desc"));
+    }
+
+    @Test
+    public void testCreatePatternForVersion_updatesWrapperNameAndDescriptionFromJson() throws Exception {
+        String json = "{\"name\":\"v2 name\",\"description\":\"v2 desc\"}";
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("2-0-0")
+                .setPattern(json)
+                .build();
+
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document versionsDoc = mock(Document.class);
+        when(versionsDoc.containsKey(anyString())).thenReturn(false);
+
+        Document patternDoc = mock(Document.class);
+        when(patternDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
+        when(patternDoc.get("patternId", Integer.class)).thenReturn(PATTERN_ID);
+
+        List<Document> patterns = new ArrayList<>();
+        patterns.add(patternDoc);
+
+        Document namespaceDoc = mock(Document.class);
+        when(namespaceDoc.get(eq("patterns"), any())).thenReturn(patterns);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        patternStore.createPatternForVersion(pattern);
+
+        verify(patternDoc).put(eq("name"), eq("v2 name"));
+        verify(patternDoc).put(eq("description"), eq("v2 desc"));
+    }
+
+    @Test
+    public void testUpdatePatternForVersion_updatesWrapperNameAndDescriptionFromJson() throws Exception {
+        String json = "{\"name\":\"updated\",\"description\":\"updated desc\"}";
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1-0-0")
+                .setPattern(json)
+                .build();
+
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document versionsDoc = mock(Document.class);
+
+        Document patternDoc = mock(Document.class);
+        when(patternDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
+        when(patternDoc.get("patternId", Integer.class)).thenReturn(PATTERN_ID);
+
+        List<Document> patterns = new ArrayList<>();
+        patterns.add(patternDoc);
+
+        Document namespaceDoc = mock(Document.class);
+        when(namespaceDoc.get(eq("patterns"), any())).thenReturn(patterns);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        patternStore.updatePatternForVersion(pattern);
+
+        verify(patternDoc).put(eq("name"), eq("updated"));
+        verify(patternDoc).put(eq("description"), eq("updated desc"));
+    }
 }
