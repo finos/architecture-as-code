@@ -36,6 +36,16 @@ mvn -P integration verify
 
 Development mode is designed to provide a great developer experience from using modern tools and build systems.
 
+### Skipping `npm` build
+
+CalmHub will install and build the frontend every time you run it by default.
+This takes a while and can be rather tedious.
+To disable this, set `skip.npm`, which disables the NPM commands of the frontend Maven plugin:
+
+```shell
+../mvnw quarkus:dev -Dskip.npm
+```
+
 ### Storage Modes
 
 Calm Hub supports two different storage modes:

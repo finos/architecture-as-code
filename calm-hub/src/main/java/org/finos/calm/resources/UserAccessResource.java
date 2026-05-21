@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.GET;
@@ -41,6 +42,7 @@ public class UserAccessResource {
             description = "Creates a user-access for a given namespace on a particular resource type"
     )
     @PermittedScopes({CalmHubScopes.NAMESPACE_ADMIN})
+    @PermissionsAllowed(value = {CalmHubScopes.NAMESPACE_ADMIN}, params = "namespace")
     public Response createUserAccessForNamespace(@PathParam("namespace") String namespace,
                                                  UserAccess createUserAccessRequest) {
 
@@ -71,6 +73,7 @@ public class UserAccessResource {
             description = "Get user-access details for a given namespace"
     )
     @PermittedScopes({CalmHubScopes.NAMESPACE_ADMIN})
+    @PermissionsAllowed(value = {CalmHubScopes.NAMESPACE_ADMIN}, params = "namespace")
     public Response getUserAccessForNamespace(@PathParam("namespace") String namespace) {
 
         try {
@@ -95,6 +98,7 @@ public class UserAccessResource {
             description = "Get user-access details for a given namespace and Id"
     )
     @PermittedScopes({CalmHubScopes.NAMESPACE_ADMIN})
+    @PermissionsAllowed(value = {CalmHubScopes.NAMESPACE_ADMIN}, params = "namespace")
     public Response getUserAccessForNamespaceAndId(@PathParam("namespace") String namespace,
                                                    @PathParam("userAccessId") Integer userAccessId) {
 

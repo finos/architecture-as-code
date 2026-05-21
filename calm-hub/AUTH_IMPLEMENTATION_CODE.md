@@ -123,6 +123,7 @@ public class ProxyAuthenticationMechanism implements HttpAuthenticationMechanism
                 new ChallengeData(HttpResponseStatus.UNAUTHORIZED.code(), null, null));
     }
 
+
     @Override
     public Set<Class<? extends AuthenticationRequest>> getCredentialTypes() {
         return Set.of(TrustedAuthRequest.class);

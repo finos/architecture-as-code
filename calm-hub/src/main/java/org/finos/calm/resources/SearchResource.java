@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.Authenticated;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -57,6 +58,7 @@ public class SearchResource {
             description = "Search across all resource types (architectures, patterns, flows, standards, interfaces, controls, ADRs) with results grouped by type"
     )
     @PermittedScopes({CalmHubScopes.SEARCH_READ})
+    @Authenticated
     public Response search(@QueryParam("q") String query) {
         if (query == null || query.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
