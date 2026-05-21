@@ -222,6 +222,38 @@ post_architecture_version() {
     fi
 }
 
+# POST an additional version of an existing pattern (mutable version store).
+# Usage: post_pattern_version <namespace> <pattern-id> <version> <name> <description> <document-json>
+post_pattern_version() {
+    local namespace="$1"
+    local pattern_id="$2"
+    local version="$3"
+    local name="$4"
+    local description="$5"
+    local doc="$6"
+
+    local payload
+    payload=$(jq -n \
+        --arg name "$name" \
+        --arg description "$description" \
+        --argjson doc "$doc" \
+        '{name: $name, description: $description, patternJson: ($doc | tojson)}')
+
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        "$CALM_HUB_URL/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
+        -H "$CONTENT_TYPE" \
+        -d "$payload")
+
+    if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+        print_status "Created pattern '$name' version $version in namespace $namespace"
+    elif [[ "$http_code" == "409" ]]; then
+        print_warning "Pattern '$name' version $version already exists, skipping"
+    else
+        print_warning "Failed to create pattern '$name' version $version (HTTP $http_code)"
+    fi
+}
+
 # Function to create patterns
 create_patterns() {
     print_status "Creating patterns..."
@@ -794,6 +826,172 @@ CALMDOC
 CALMDOC
 )
     post_document "workshop" "patterns" "patternJson" "Conference Signup Pattern" "A reusable architecture pattern for conference signup systems with Kubernetes deployment." "$doc"
+
+    # Workshop Conference Signup Pattern - second version (2.0.0)
+    # Provides two points-in-time so the calm-hub-ui "Compare" feature has something to diff
+    # for patterns. Versus 1.0.0 this adds an attendees cache (node + relationship), tweaks the
+    # attendees service description, and extends the Kubernetes deployment to include the cache.
+    print_status "Creating Workshop Conference Signup Pattern version 2.0.0..."
+    local conf_pattern_id
+    conf_pattern_id=$(get_resource_id_by_name "workshop" "patterns" "Conference Signup Pattern")
+    local pattern_v2
+    pattern_v2=$(cat <<'CALMDOC'
+{
+            "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+            "type": "object",
+            "title": "Conference Signup Pattern",
+            "description": "A reusable architecture pattern for conference signup systems with Kubernetes deployment.",
+            "properties": {
+                "nodes": {
+                    "type": "array",
+                    "minItems": 6,
+                    "maxItems": 6,
+                    "prefixItems": [
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "conference-website" },
+                                "name": { "const": "Conference Website" },
+                                "description": { "const": "Website to sign up for a conference" },
+                                "node-type": { "const": "webclient" }
+                            }
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "load-balancer" },
+                                "name": { "const": "Load Balancer" },
+                                "description": { "const": "The attendees service, or a placeholder for another application" },
+                                "node-type": { "const": "network" }
+                            }
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "attendees" },
+                                "name": { "const": "Attendees Service" },
+                                "description": { "const": "The attendees service with response caching enabled" },
+                                "node-type": { "const": "service" }
+                            }
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "attendees-store" },
+                                "name": { "const": "Attendees Store" },
+                                "description": { "const": "Persistent storage for attendees" },
+                                "node-type": { "const": "database" }
+                            }
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "attendees-cache" },
+                                "name": { "const": "Attendees Cache" },
+                                "description": { "const": "In-memory cache for attendee lookups" },
+                                "node-type": { "const": "database" }
+                            }
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "k8s-cluster" },
+                                "name": { "const": "Kubernetes Cluster" },
+                                "description": { "const": "Kubernetes Cluster with network policy rules enabled" },
+                                "node-type": { "const": "system" }
+                            }
+                        }
+                    ]
+                },
+                "relationships": {
+                    "type": "array",
+                    "minItems": 5,
+                    "maxItems": 5,
+                    "prefixItems": [
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "conference-website-load-balancer" },
+                                "description": { "const": "Request attendee details" },
+                                "protocol": { "const": "HTTPS" },
+                                "relationship-type": {
+                                    "const": { "connects": { "source": { "node": "conference-website" }, "destination": { "node": "load-balancer" } } }
+                                }
+                            },
+                            "required": [ "description" ]
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "load-balancer-attendees-service" },
+                                "description": { "const": "Forward" },
+                                "protocol": { "const": "mTLS" },
+                                "relationship-type": {
+                                    "const": { "connects": { "source": { "node": "load-balancer" }, "destination": { "node": "attendees" } } }
+                                }
+                            },
+                            "required": [ "description" ]
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "attendees-attendees-store" },
+                                "description": { "const": "Store or request attendee details" },
+                                "protocol": { "const": "JDBC" },
+                                "relationship-type": {
+                                    "const": { "connects": { "source": { "node": "attendees" }, "destination": { "node": "attendees-store" } } }
+                                }
+                            },
+                            "required": [ "description" ]
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": { "const": "attendees-attendees-cache" },
+                                "description": { "const": "Cache attendee lookups" },
+                                "protocol": { "const": "RESP" },
+                                "relationship-type": {
+                                    "const": { "connects": { "source": { "node": "attendees" }, "destination": { "node": "attendees-cache" } } }
+                                }
+                            },
+                            "required": [ "description" ]
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "properties": {
+                                "unique-id": { "const": "deployed-in-k8s-cluster" },
+                                "description": { "const": "Components deployed on the k8s cluster" },
+                                "relationship-type": {
+                                    "const": { "deployed-in": { "container": "k8s-cluster", "nodes": [ "load-balancer", "attendees", "attendees-store", "attendees-cache" ] } }
+                                }
+                            },
+                            "required": [ "description" ]
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "nodes",
+                "relationships"
+            ]
+        }
+CALMDOC
+)
+    if [[ -n "$conf_pattern_id" ]]; then
+        post_pattern_version "workshop" "$conf_pattern_id" "2.0.0" "Conference Signup Pattern" "A reusable architecture pattern for conference signup systems with Kubernetes deployment (with attendee caching)." "$pattern_v2"
+    else
+        print_warning "Could not resolve Conference Signup Pattern id; skipping 2.0.0 seed"
+    fi
 
     # Workshop Conference Secure Signup Pattern (Pattern 2) - Exact MongoDB content
     print_status "Creating Workshop Conference Secure Signup Pattern..."

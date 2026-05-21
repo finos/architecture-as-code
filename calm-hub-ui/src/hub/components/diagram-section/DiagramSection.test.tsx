@@ -270,7 +270,7 @@ describe('DiagramSection', () => {
     });
 
     describe('compare mode', () => {
-        it('renders a Compare button for architectures but not patterns', () => {
+        it('renders a Compare button for both architectures and patterns', () => {
             const { rerender } = render(
                 <MemoryRouter>
                     <DiagramSection data={architectureData} />
@@ -283,7 +283,20 @@ describe('DiagramSection', () => {
                     <DiagramSection data={patternData} />
                 </MemoryRouter>
             );
-            expect(screen.queryByRole('button', { name: /compare versions/i })).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /compare versions/i })).toBeInTheDocument();
+        });
+
+        it('enters compare mode for a pattern when Compare is clicked', async () => {
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={patternData} />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByRole('button', { name: /compare versions/i }));
+
+            expect(screen.getByTestId('compare-view')).toBeInTheDocument();
         });
 
         it('enters compare mode when Compare is clicked', async () => {

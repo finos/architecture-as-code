@@ -10,17 +10,22 @@ import ReactFlow, {
     useNodesInitialized,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import type { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { FloatingEdge } from '../../visualizer/components/reactflow/FloatingEdge.js';
 import { CustomNode } from '../../visualizer/components/reactflow/CustomNode.js';
 import { SystemGroupNode } from '../../visualizer/components/reactflow/SystemGroupNode.js';
+import { DecisionGroupNode } from '../../visualizer/components/reactflow/DecisionGroupNode.js';
 import { THEME } from '../../visualizer/components/reactflow/theme.js';
 import { parseCALMDataWithDiff } from './utils/diffTransformer.js';
+import { parsePatternDataWithDiff } from './utils/patternDiffTransformer.js';
 import type { DiffGraphProps } from '../model/diff-ui-types.js';
 
 const edgeTypes = { custom: FloatingEdge };
-const nodeTypes = { custom: CustomNode, group: SystemGroupNode };
+// `decisionGroup` is only emitted for patterns; registering it unconditionally is
+// harmless for architectures (their parser never produces decision-group nodes).
+const nodeTypes = { custom: CustomNode, group: SystemGroupNode, decisionGroup: DecisionGroupNode };
 
-function DiffGraphInner({ architecture, diffResult, isFirst }: DiffGraphProps) {
+function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { fitView } = useReactFlow();
@@ -42,10 +47,12 @@ function DiffGraphInner({ architecture, diffResult, isFirst }: DiffGraphProps) {
     }, []);
 
     useEffect(() => {
-        const { nodes: parsedNodes, edges: parsedEdges } = parseCALMDataWithDiff(architecture, diffResult, isFirst);
+        const { nodes: parsedNodes, edges: parsedEdges } = sourceType === 'Patterns'
+            ? parsePatternDataWithDiff(source as Record<string, unknown>, diffResult, isFirst)
+            : parseCALMDataWithDiff(source as CalmArchitectureSchema, diffResult, isFirst);
         setNodes(parsedNodes);
         setEdges(parsedEdges);
-    }, [architecture, diffResult, isFirst, setNodes, setEdges]);
+    }, [source, sourceType, diffResult, isFirst, setNodes, setEdges]);
 
     useEffect(() => {
         if (nodesInitialized) {
