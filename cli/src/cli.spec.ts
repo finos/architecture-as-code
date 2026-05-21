@@ -147,6 +147,19 @@ describe('CLI Commands', () => {
             }));
         });
 
+        it('should accept the deprecated --architecture-a/--architecture-b aliases', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'diff',
+                '--architecture-a', 'before.json',
+                '--architecture-b', 'after.json',
+            ]);
+
+            expect(diffModule.runDiffCommand).toHaveBeenCalledWith(expect.objectContaining({
+                documentAPath: 'before.json',
+                documentBPath: 'after.json',
+            }));
+        });
+
         it('should default to json format', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'diff',
