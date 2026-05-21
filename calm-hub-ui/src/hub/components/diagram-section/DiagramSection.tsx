@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline } from 'react-icons/io5';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoGitCompareOutline } from 'react-icons/io5';
 import { Data } from '../../../model/calm.js';
+import { sortVersionsDescending } from '../../../model/version.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
+import { CompareView } from './compare/CompareView.js';
+import { fetchVersionList } from './compare/compareData.js';
 import { CalmService } from '../../../service/calm-service.js';
 import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
 
@@ -24,16 +27,46 @@ type DiagramTabType = 'diagram' | 'json' | 'deployments';
 
 export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramSectionProps) {
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const tabParam = searchParams.get('tab') as DiagramTabType | null;
     const activeTab: DiagramTabType = tabParam ?? 'diagram';
     const calmService = useMemo(() => new CalmService(), []);
     const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
+    const [compareMode, setCompareMode] = useState(false);
+    const [versions, setVersions] = useState<string[]>([]);
 
     const setActiveTab = (tab: DiagramTabType) => {
+        setCompareMode(false);
         setSearchParams({ tab }, { replace: true });
     };
 
     const isArchitecture = data.calmType === 'Architectures';
+    const urlType = isArchitecture ? 'architectures' : 'patterns';
+
+    const handleVersionChange = (version: string) => {
+        if (version === data.version) return;
+        // Preserve the active tab when switching version.
+        const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
+        navigate(`/${data.name}/${urlType}/${data.id}/${version}${query}`);
+    };
+
+    useEffect(() => {
+        setCompareMode(false);
+    }, [data.name, data.id, data.calmType]);
+
+    useEffect(() => {
+        let cancelled = false;
+        fetchVersionList(calmService, data.name, data.calmType, data.id)
+            .then((list) => {
+                if (!cancelled) setVersions(sortVersionsDescending(list));
+            })
+            .catch(() => {
+                if (!cancelled) setVersions([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [calmService, data.name, data.calmType, data.id]);
 
     useEffect(() => {
         if (!isArchitecture) {
@@ -51,7 +84,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
             <button
                 role="tab"
-                className={`tab gap-1 rounded-lg ${activeTab === 'diagram' ? 'tab-active !bg-accent !text-white' : ''}`}
+                className={`tab gap-1 rounded-lg ${!compareMode && activeTab === 'diagram' ? 'tab-active !bg-accent !text-white' : ''}`}
                 onClick={() => setActiveTab('diagram')}
             >
                 <IoEyeOutline />
@@ -59,7 +92,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             </button>
             <button
                 role="tab"
-                className={`tab gap-1 rounded-lg ${activeTab === 'json' ? 'tab-active !bg-accent !text-white' : ''}`}
+                className={`tab gap-1 rounded-lg ${!compareMode && activeTab === 'json' ? 'tab-active !bg-accent !text-white' : ''}`}
                 onClick={() => setActiveTab('json')}
             >
                 <IoCodeOutline />
@@ -68,7 +101,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             {isArchitecture && (
                 <button
                     role="tab"
-                    className={`tab gap-1 rounded-lg ${activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
+                    className={`tab gap-1 rounded-lg ${!compareMode && activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
                     onClick={() => setActiveTab('deployments')}
                 >
                     <IoRocketOutline />
@@ -76,6 +109,18 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                 </button>
             )}
         </div>
+    );
+
+    const compareButton = (
+        <button
+            className={`btn btn-sm gap-1 ${compareMode ? 'btn-active' : 'btn-ghost'}`}
+            onClick={() => setCompareMode((m) => !m)}
+            aria-label="Compare versions"
+            title={compareMode ? 'Exit compare' : 'Compare versions'}
+        >
+            <IoGitCompareOutline />
+            Compare
+        </button>
     );
 
     return (
@@ -86,11 +131,16 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                     namespace={data.name}
                     id={data.id}
                     version={data.version}
+                    versions={versions}
+                    onVersionChange={handleVersionChange}
+                    titleActions={isArchitecture ? compareButton : undefined}
                     rightContent={tabs}
                 />
 
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    {activeTab === 'diagram' ? (
+                    {compareMode && data.calmType === 'Architectures' ? (
+                        <CompareView data={data} versions={versions} onExit={() => setCompareMode(false)} />
+                    ) : activeTab === 'diagram' ? (
                         <div className="w-full h-full">
                             <Drawer data={data} onItemSelect={onItemSelect} decorators={decorators} />
                         </div>

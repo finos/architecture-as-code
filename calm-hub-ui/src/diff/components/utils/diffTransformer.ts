@@ -49,7 +49,9 @@ export function parseCALMDataWithDiff(
                 diffStatus,
                 originalId,
             } as DiffNodeData,
-            style: getNodeStyle(diffStatus),
+            // Merge the diff highlight on top of the styling produced by the main
+            // viewer's transformer (e.g. system-group dimensions) rather than replacing it.
+            style: { ...node.style, ...getNodeStyle(diffStatus) },
         };
     });
 
@@ -87,7 +89,9 @@ export function parseCALMDataWithDiff(
                 diffStatus,
                 originalId,
             } as DiffEdgeData,
-            style: getEdgeStyle(diffStatus),
+            // Merge the diff colour over the main viewer's edge styling (dash, width)
+            // rather than replacing it, so unchanged edges look identical to the main view.
+            style: { ...edge.style, ...getEdgeStyle(diffStatus) },
         };
     });
 
@@ -98,15 +102,21 @@ export function parseCALMDataWithDiff(
 }
 
 function getNodeStyle(diffStatus?: string): React.CSSProperties {
+    // CustomNode draws its own bordered box, so the diff highlight is a coloured ring
+    // (box-shadow) around the node wrapper — visible without affecting layout/size.
+    const ring = (color: string): React.CSSProperties => ({
+        boxShadow: `0 0 0 3px ${color}`,
+        borderRadius: '12px',
+    });
     switch (diffStatus) {
     case 'added':
-        return { borderColor: '#16a34a', borderWidth: 2 };
+        return ring('#16a34a');
     case 'removed':
-        return { borderColor: '#dc2626', borderWidth: 2, opacity: 0.6 };
+        return { ...ring('#dc2626'), opacity: 0.6 };
     case 'modified':
-        return { borderColor: '#d97706', borderWidth: 2 };
+        return ring('#d97706');
     case 'renamed':
-        return { borderColor: '#6366f1', borderWidth: 2 };
+        return ring('#6366f1');
     case 'unchanged':
     default:
         return {};

@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -7,6 +7,7 @@ import { Data } from '../../../model/calm.js';
 
 const calmServiceMock = {
     fetchDecoratorValues: vi.fn().mockResolvedValue([]),
+    fetchVersionsByCustomId: vi.fn().mockResolvedValue(['1.0.0', '2.0.0']),
 };
 
 vi.mock('react-router-dom', async () => {
@@ -25,9 +26,14 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
     Drawer: ({ data }: { data: Data }) => <div data-testid="drawer">Drawer for {data.id}</div>
 }));
 
+vi.mock('./compare/CompareView.js', () => ({
+    CompareView: ({ data }: { data: Data }) => <div data-testid="compare-view">Compare for {data.id}</div>
+}));
+
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(() => ({
         fetchDecoratorValues: calmServiceMock.fetchDecoratorValues,
+        fetchVersionsByCustomId: calmServiceMock.fetchVersionsByCustomId,
     })),
 }));
 
@@ -51,6 +57,7 @@ describe('DiagramSection', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         calmServiceMock.fetchDecoratorValues.mockResolvedValue([]);
+        calmServiceMock.fetchVersionsByCustomId.mockResolvedValue(['1.0.0', '2.0.0']);
     });
 
     describe('with architecture data', () => {
@@ -224,6 +231,108 @@ describe('DiagramSection', () => {
 
             expect(jsonTab).toHaveClass('tab-active');
             expect(diagramTab).not.toHaveClass('tab-active');
+        });
+    });
+
+    describe('version selector', () => {
+        it('renders the version as a dropdown listing all versions', async () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            const select = (await screen.findByLabelText('Version')) as HTMLSelectElement;
+            expect(select.value).toBe('1.0.0');
+            expect(Array.from(select.querySelectorAll('option')).map((o) => o.value)).toEqual([
+                '2.0.0',
+                '1.0.0',
+            ]);
+        });
+
+        it('navigates to the selected version', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            const select = await screen.findByLabelText('Version');
+            fireEvent.change(select, { target: { value: '2.0.0' } });
+
+            await waitFor(() => {
+                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/2.0.0');
+            });
+        });
+    });
+
+    describe('compare mode', () => {
+        it('renders a Compare button for architectures but not patterns', () => {
+            const { rerender } = render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+            expect(screen.getByRole('button', { name: /compare versions/i })).toBeInTheDocument();
+
+            rerender(
+                <MemoryRouter>
+                    <DiagramSection data={patternData} />
+                </MemoryRouter>
+            );
+            expect(screen.queryByRole('button', { name: /compare versions/i })).not.toBeInTheDocument();
+        });
+
+        it('enters compare mode when Compare is clicked', async () => {
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+
+            await user.click(screen.getByRole('button', { name: /compare versions/i }));
+
+            expect(screen.getByTestId('compare-view')).toBeInTheDocument();
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+        });
+
+        it('toggles back to the regular view when Compare is clicked again', async () => {
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            const compareButton = screen.getByRole('button', { name: /compare versions/i });
+            await user.click(compareButton);
+            expect(screen.getByTestId('compare-view')).toBeInTheDocument();
+
+            await user.click(compareButton);
+            expect(screen.queryByTestId('compare-view')).not.toBeInTheDocument();
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+        });
+
+        it('exits compare mode when a tab is clicked', async () => {
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByRole('button', { name: /compare versions/i }));
+            expect(screen.getByTestId('compare-view')).toBeInTheDocument();
+
+            await user.click(screen.getByRole('tab', { name: /diagram/i }));
+            expect(screen.queryByTestId('compare-view')).not.toBeInTheDocument();
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
         });
     });
 });
