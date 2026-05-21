@@ -73,7 +73,7 @@ describe('diffTransformer', () => {
         expect(result.nodes).toHaveLength(9);
         expect(result.nodes.find(n => n.id === 'audit-service')?.data.diffStatus).toBe('added');
         //check styles
-        expect(result.nodes.find(n => n.id === 'audit-service')?.style).toEqual({ borderColor: '#16a34a', borderWidth: 2 });
+        expect(result.nodes.find(n => n.id === 'audit-service')?.style).toEqual({ boxShadow: '0 0 0 3px #16a34a', borderRadius: '12px' });
     });
 
     it('should handle modified nodes correctly', () => {
@@ -112,7 +112,8 @@ describe('diffTransformer', () => {
         expect(result.nodes).toHaveLength(8);
         expect(result.nodes.find(n => n.id === 'api-gateway')?.data.diffStatus).toBe('modified');
         //check styles
-        expect(result.nodes.find(n => n.id === 'api-gateway')?.style).toEqual({ borderColor: "#d97706", borderWidth: 2, });
+        // Diff highlight is merged on top of the main viewer's node styling (preserved).
+        expect(result.nodes.find(n => n.id === 'api-gateway')?.style).toMatchObject({ boxShadow: '0 0 0 3px #d97706', borderRadius: '12px' });
     });
 
     it('should handle unchanged nodes correctly', () => {
@@ -165,11 +166,11 @@ describe('diffTransformer', () => {
         expect(result.nodes.find(n => n.id === 'payment-service')?.data.diffStatus).toBe('unchanged');
         expect(result.nodes.find(n => n.id === 'user-db')?.data.diffStatus).toBe('unchanged');
         expect(result.nodes.find(n => n.id === 'trader')?.data.diffStatus).toBe('unchanged');
-        //check styles
-        expect(result.nodes.find(n => n.id === 'api-gateway')?.style).toEqual({});
-        expect(result.nodes.find(n => n.id === 'payment-service')?.style).toEqual({});
-        expect(result.nodes.find(n => n.id === 'user-db')?.style).toEqual({});
-        expect(result.nodes.find(n => n.id === 'trader')?.style).toEqual({});
+        // Unchanged nodes carry no diff highlight (their base styling is left untouched).
+        expect(result.nodes.find(n => n.id === 'api-gateway')?.style?.boxShadow).toBeUndefined();
+        expect(result.nodes.find(n => n.id === 'payment-service')?.style?.boxShadow).toBeUndefined();
+        expect(result.nodes.find(n => n.id === 'user-db')?.style?.boxShadow).toBeUndefined();
+        expect(result.nodes.find(n => n.id === 'trader')?.style?.boxShadow).toBeUndefined();
     });
 
     it('should handle nodes removed correctly', () => {
@@ -202,7 +203,7 @@ describe('diffTransformer', () => {
         expect(result.nodes).toHaveLength(7);
         expect(result.nodes.find(n => n.id === 'user-db')?.data.diffStatus).toBe('removed');
         //check styles
-        expect(result.nodes.find(n => n.id === 'user-db')?.style).toEqual({ borderColor: "#dc2626", borderWidth: 2, opacity: 0.6, });
+        expect(result.nodes.find(n => n.id === 'user-db')?.style).toEqual({ boxShadow: '0 0 0 3px #dc2626', borderRadius: '12px', opacity: 0.6 });
     });
 
     it('should handle empty nodes correctly', () => {
@@ -387,7 +388,8 @@ describe('diffTransformer', () => {
         expect(result.edges.find(e => e.data?.['unique-id'] === 'gateway-to-payment-renamed')?.data.diffStatus).toBe('renamed');
         expect(result.edges.find(e => e.data?.['unique-id'] === 'gateway-to-payment-renamed')?.data.originalId).toBe('gateway-to-payment');
         //check styles
-        expect(result.edges.find(e => e.data?.['unique-id'] === 'gateway-to-payment')?.style).toEqual({});
+        // Unchanged edge keeps the main viewer's base styling; renamed edge is recoloured.
+        expect(result.edges.find(e => e.data?.['unique-id'] === 'gateway-to-payment')?.style).toEqual({ stroke: '#007dff', strokeWidth: 2.5 });
         expect(result.edges.find(e => e.data?.['unique-id'] === 'gateway-to-payment-renamed')?.style).toEqual({ stroke: '#6366f1', strokeWidth: 3 });
     });
 
@@ -446,9 +448,9 @@ describe('diffTransformer', () => {
         expect(result.edges.find(e => e.data?.['unique-id'] === 'trader-to-gateway')?.data.diffStatus).toBe('unchanged');
         expect(result.edges.find(e => e.data?.['unique-id'] === 'gateway-to-payment')?.data.diffStatus).toBe('unchanged');
         expect(result.edges.find(e => e.data?.['unique-id'] === 'payment-to-db')?.data.diffStatus).toBe('unchanged');
-        //check styles
-        expect(result.edges.find(e => e.data?.['unique-id'] === 'trader-to-gateway')?.style).toEqual({});
-        expect(result.edges.find(e => e.data?.['unique-id'] === 'gateway-to-payment')?.style).toEqual({});
-        expect(result.edges.find(e => e.data?.['unique-id'] === 'payment-to-db')?.style).toEqual({});
+        // Unchanged edges retain the main viewer's base styling (no diff recolouring).
+        expect(result.edges.find(e => e.data?.['unique-id'] === 'trader-to-gateway')?.style).toEqual({ stroke: '#007dff', strokeWidth: 2.5 });
+        expect(result.edges.find(e => e.data?.['unique-id'] === 'gateway-to-payment')?.style).toEqual({ stroke: '#007dff', strokeWidth: 2.5 });
+        expect(result.edges.find(e => e.data?.['unique-id'] === 'payment-to-db')?.style).toEqual({ stroke: '#007dff', strokeWidth: 2.5 });
     });
 });
