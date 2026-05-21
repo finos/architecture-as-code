@@ -1,9 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TreeNavigation, buildNamespaceTree } from './TreeNavigation.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
 import { InterfaceService } from '../../../service/interface-service.js';
-import { MemoryRouter, useParams } from 'react-router-dom';
+import { MemoryRouter, useParams, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 
 // Mock react-router-dom
@@ -169,7 +169,6 @@ describe('TreeNavigation', () => {
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
             expect(calmServiceInstance?.fetchPatternSummaries).toHaveBeenCalledWith('test-namespace');
-            expect(calmServiceInstance?.fetchPatternVersions).toHaveBeenCalledWith('test-namespace', '102');
             expect(calmServiceInstance?.fetchPattern).toHaveBeenCalledWith('test-namespace', '102', 'v2.0');
         });
     });
@@ -189,7 +188,6 @@ describe('TreeNavigation', () => {
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
             expect(calmServiceInstance?.fetchArchitectureSummaries).toHaveBeenCalledWith('test-namespace');
-            expect(calmServiceInstance?.fetchArchitectureVersions).toHaveBeenCalledWith('test-namespace', '201');
             expect(calmServiceInstance?.fetchArchitecture).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
         });
     });
@@ -209,7 +207,6 @@ describe('TreeNavigation', () => {
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
             expect(calmServiceInstance?.fetchFlowSummaries).toHaveBeenCalledWith('test-namespace');
-            expect(calmServiceInstance?.fetchFlowVersions).toHaveBeenCalledWith('test-namespace', '201');
             expect(calmServiceInstance?.fetchFlow).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
         });
     });
@@ -228,7 +225,6 @@ describe('TreeNavigation', () => {
 
         await waitFor(() => {
             expect(adrServiceInstance?.fetchAdrSummaries).toHaveBeenCalledWith('test-namespace');
-            expect(adrServiceInstance?.fetchAdrRevisions).toHaveBeenCalledWith('test-namespace', '201');
             expect(adrServiceInstance?.fetchAdr).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
         });
     });
@@ -295,6 +291,42 @@ describe('TreeNavigation', () => {
                 controlName: 'Test Control',
                 controlDescription: 'A control',
             });
+        });
+    });
+
+    it('navigates to the latest version when a resource is clicked', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+        const navigate = vi.fn();
+        vi.mocked(useNavigate).mockReturnValue(navigate);
+        vi.mocked(CalmService).mockImplementationOnce(() => ({
+            fetchNamespaces: vi.fn().mockResolvedValue(['test-namespace']),
+            fetchPatternSummaries: vi.fn().mockResolvedValue([]),
+            fetchFlowSummaries: vi.fn().mockResolvedValue([]),
+            fetchStandardSummaries: vi.fn().mockResolvedValue([]),
+            fetchArchitectureSummaries: vi.fn().mockResolvedValue([{ id: 201, name: 'arch-a', description: '' }]),
+            fetchPatternVersions: vi.fn().mockResolvedValue([]),
+            fetchFlowVersions: vi.fn().mockResolvedValue([]),
+            fetchStandardVersions: vi.fn().mockResolvedValue([]),
+            fetchArchitectureVersions: vi.fn().mockResolvedValue(['1.0.0', '2.0.0', '1.5.0']),
+            fetchPattern: vi.fn().mockResolvedValue({}),
+            fetchFlow: vi.fn().mockResolvedValue({}),
+            fetchStandard: vi.fn().mockResolvedValue({}),
+            fetchArchitecture: vi.fn().mockResolvedValue({}),
+            fetchMappings: vi.fn().mockResolvedValue([]),
+            fetchVersionsByCustomId: vi.fn().mockResolvedValue([]),
+            fetchResourceByCustomId: vi.fn().mockResolvedValue({}),
+        }) as unknown as InstanceType<typeof CalmService>);
+
+        render(<MemoryRouter initialEntries={["/"]}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        fireEvent.click(await screen.findByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+        fireEvent.click(await screen.findByText('arch-a'));
+
+        await waitFor(() => {
+            expect(navigate).toHaveBeenCalledWith('/test-namespace/architectures/201/2.0.0');
         });
     });
 });
