@@ -223,6 +223,9 @@ post_architecture_version() {
 }
 
 # POST an additional version of an existing pattern (mutable version store).
+# Unlike the architecture version endpoint (which takes a name/description/architectureJson
+# envelope), the pattern version endpoint consumes the raw pattern document as the request
+# body, so the document JSON is sent directly.
 # Usage: post_pattern_version <namespace> <pattern-id> <version> <name> <description> <document-json>
 post_pattern_version() {
     local namespace="$1"
@@ -232,18 +235,11 @@ post_pattern_version() {
     local description="$5"
     local doc="$6"
 
-    local payload
-    payload=$(jq -n \
-        --arg name "$name" \
-        --arg description "$description" \
-        --argjson doc "$doc" \
-        '{name: $name, description: $description, patternJson: ($doc | tojson)}')
-
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        -d "$doc")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created pattern '$name' version $version in namespace $namespace"
