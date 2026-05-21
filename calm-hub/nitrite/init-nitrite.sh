@@ -178,6 +178,50 @@ post_document() {
     fi
 }
 
+# Look up the numeric id of a namespace-scoped resource by its name.
+# Usage: get_resource_id_by_name <namespace> <resource> <name>
+get_resource_id_by_name() {
+    local namespace="$1"
+    local resource="$2"
+    local name="$3"
+
+    curl -s "$CALM_HUB_URL/calm/namespaces/$namespace/$resource" -H "$CONTENT_TYPE" \
+        | jq -r --arg name "$name" '.values[] | select(.name == $name) | .id' \
+        | head -n1
+}
+
+# POST an additional version of an existing architecture (mutable version store).
+# Usage: post_architecture_version <namespace> <architecture-id> <version> <name> <description> <document-json>
+post_architecture_version() {
+    local namespace="$1"
+    local architecture_id="$2"
+    local version="$3"
+    local name="$4"
+    local description="$5"
+    local doc="$6"
+
+    local payload
+    payload=$(jq -n \
+        --arg name "$name" \
+        --arg description "$description" \
+        --argjson doc "$doc" \
+        '{name: $name, description: $description, architectureJson: ($doc | tojson)}')
+
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        "$CALM_HUB_URL/calm/namespaces/$namespace/architectures/$architecture_id/versions/$version" \
+        -H "$CONTENT_TYPE" \
+        -d "$payload")
+
+    if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+        print_status "Created architecture '$name' version $version in namespace $namespace"
+    elif [[ "$http_code" == "409" ]]; then
+        print_warning "Architecture '$name' version $version already exists, skipping"
+    else
+        print_warning "Failed to create architecture '$name' version $version (HTTP $http_code)"
+    fi
+}
+
 # Function to create patterns
 create_patterns() {
     print_status "Creating patterns..."
@@ -1346,6 +1390,110 @@ CALMDOC
 CALMDOC
 )
     post_document "workshop" "architectures" "architectureJson" "Conference Signup Architecture" "Conference signup system architecture deployed on a Kubernetes cluster" "$doc"
+
+    # Workshop Architecture - second version (2.0.0)
+    # Provides two points-in-time so the calm-hub-ui "Compare" feature has something to diff.
+    # Versus 1.0.0 this adds an attendees cache (node + relationship), tweaks the attendees
+    # service description, and extends the Kubernetes deployment to include the cache.
+    print_status "Creating Workshop architecture version 2.0.0..."
+    local conf_arch_id
+    conf_arch_id=$(get_resource_id_by_name "workshop" "architectures" "Conference Signup Architecture")
+    local doc_v2
+    doc_v2=$(cat <<'CALMDOC'
+{
+            "nodes": [
+                {
+                    "unique-id": "conference-website",
+                    "name": "Conference Website",
+                    "description": "Website to sign up for a conference",
+                    "node-type": "webclient",
+                    "interfaces": [{ "unique-id": "conference-website-url", "url": "[[ URL ]]" }]
+                },
+                {
+                    "unique-id": "load-balancer",
+                    "name": "Load Balancer",
+                    "description": "The attendees service, or a placeholder for another application",
+                    "node-type": "network",
+                    "interfaces": [{ "unique-id": "load-balancer-host-port", "host": "[[ HOST ]]", "port": -1 }]
+                },
+                {
+                    "unique-id": "attendees",
+                    "name": "Attendees Service",
+                    "description": "The attendees service with response caching enabled",
+                    "node-type": "service",
+                    "interfaces": [
+                        { "unique-id": "attendees-image", "image": "[[ IMAGE ]]" },
+                        { "unique-id": "attendees-port", "port": -1 }
+                    ]
+                },
+                {
+                    "unique-id": "attendees-store",
+                    "name": "Attendees Store",
+                    "description": "Persistent storage for attendees",
+                    "node-type": "database",
+                    "interfaces": [
+                        { "unique-id": "database-image", "image": "[[ IMAGE ]]" },
+                        { "unique-id": "database-port", "port": -1 }
+                    ]
+                },
+                {
+                    "unique-id": "attendees-cache",
+                    "name": "Attendees Cache",
+                    "description": "In-memory cache for attendee lookups",
+                    "node-type": "database",
+                    "interfaces": [
+                        { "unique-id": "cache-image", "image": "[[ IMAGE ]]" },
+                        { "unique-id": "cache-port", "port": -1 }
+                    ]
+                },
+                {
+                    "unique-id": "k8s-cluster",
+                    "name": "Kubernetes Cluster",
+                    "description": "Kubernetes Cluster with network policy rules enabled",
+                    "node-type": "system"
+                }
+            ],
+            "relationships": [
+                {
+                    "unique-id": "conference-website-load-balancer",
+                    "description": "Request attendee details",
+                    "protocol": "HTTPS",
+                    "relationship-type": { "connects": { "source": { "node": "conference-website" }, "destination": { "node": "load-balancer" } } }
+                },
+                {
+                    "unique-id": "load-balancer-attendees-service",
+                    "description": "Forward",
+                    "protocol": "mTLS",
+                    "relationship-type": { "connects": { "source": { "node": "load-balancer" }, "destination": { "node": "attendees" } } }
+                },
+                {
+                    "unique-id": "attendees-attendees-store",
+                    "description": "Store or request attendee details",
+                    "protocol": "JDBC",
+                    "relationship-type": { "connects": { "source": { "node": "attendees" }, "destination": { "node": "attendees-store" } } }
+                },
+                {
+                    "unique-id": "attendees-attendees-cache",
+                    "description": "Cache attendee lookups",
+                    "protocol": "RESP",
+                    "relationship-type": { "connects": { "source": { "node": "attendees" }, "destination": { "node": "attendees-cache" } } }
+                },
+                {
+                    "unique-id": "deployed-in-k8s-cluster",
+                    "description": "Components deployed on the k8s cluster",
+                    "relationship-type": { "deployed-in": { "container": "k8s-cluster", "nodes": ["load-balancer", "attendees", "attendees-store", "attendees-cache"] } }
+                }
+            ],
+            "metadata": [{ "kubernetes": { "namespace": "conference" } }],
+            "$schema": "https://calm.finos.org/calm/namespaces/workshop/patterns/1/versions/1.0.0"
+        }
+CALMDOC
+)
+    if [[ -n "$conf_arch_id" ]]; then
+        post_architecture_version "workshop" "$conf_arch_id" "2.0.0" "Conference Signup Architecture" "Conference signup system architecture deployed on a Kubernetes cluster (with attendee caching)" "$doc_v2"
+    else
+        print_warning "Could not resolve Conference Signup Architecture id; skipping 2.0.0 seed"
+    fi
 
     # TraderX Architecture
     print_status "Creating TraderX architecture..."
