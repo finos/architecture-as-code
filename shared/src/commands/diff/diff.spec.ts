@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { runDiff, formatDiff, hasChanges } from './diff.js';
+import { runDiff, formatDiff, hasChanges, detectDocumentType } from './diff.js';
 import type { DiffResult } from '@finos/calm-models/diff';
 
 const loggerMock = {
@@ -45,6 +45,26 @@ const archB = {
         },
     ],
 };
+
+const makePattern = (nodeName: string) => ({
+    $schema: 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+    type: 'object',
+    properties: {
+        nodes: {
+            type: 'array',
+            prefixItems: [
+                {
+                    properties: {
+                        'unique-id': { const: 'svc-a' },
+                        name: { const: nodeName },
+                        'node-type': { const: 'service' },
+                    },
+                },
+            ],
+        },
+        relationships: { type: 'array', prefixItems: [] },
+    },
+});
 
 const emptyResult: DiffResult = {
     nodesAdded: [],
@@ -125,6 +145,54 @@ describe('runDiff', () => {
         expect(loggerMock.warn).toHaveBeenCalledTimes(1);
         expect(loggerMock.warn.mock.calls[0][0]).toMatch(/missing a unique-id/);
         expect(result.hasChanges).toBe(true);
+    });
+
+    it('diffs two pattern files and reports a pattern-titled summary', async () => {
+        const a = writeArch('a.pattern.json', makePattern('Service A'));
+        const b = writeArch('b.pattern.json', makePattern('Service A v2'));
+
+        const { diff, hasChanges: changed, formatted } = await runDiff(a, b, { format: 'summary' });
+
+        expect(changed).toBe(true);
+        expect(diff.nodesModified.map((n) => n.original['unique-id'])).toEqual(['svc-a']);
+        expect(formatted).toContain('CALM pattern diff');
+    });
+
+    it('throws when the two inputs are different document types', async () => {
+        const a = writeArch('a.json', archA);
+        const b = writeArch('b.pattern.json', makePattern('Service A'));
+        await expect(runDiff(a, b)).rejects.toThrow(/mismatched document types: architecture vs pattern/);
+    });
+
+    it('honours an explicit documentType override', async () => {
+        const a = writeArch('a.pattern.json', makePattern('Service A'));
+        const b = writeArch('b.pattern.json', makePattern('Service A'));
+        const { hasChanges: changed } = await runDiff(a, b, { documentType: 'pattern' });
+        expect(changed).toBe(false);
+    });
+});
+
+describe('detectDocumentType', () => {
+    it('classifies a document with top-level node/relationship arrays as an architecture', () => {
+        expect(detectDocumentType(archA)).toBe('architecture');
+    });
+
+    it('classifies a JSON Schema document as a pattern', () => {
+        expect(detectDocumentType(makePattern('Service A'))).toBe('pattern');
+    });
+
+    it('classifies a pattern wrapped in allOf as a pattern', () => {
+        const allOfPattern = {
+            $schema: 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+            allOf: [{ properties: { nodes: { type: 'array', prefixItems: [] } } }],
+        };
+        expect(detectDocumentType(allOfPattern)).toBe('pattern');
+    });
+
+    it('throws when the document matches neither an architecture nor a pattern', () => {
+        expect(() => detectDocumentType({ $schema: 'something', title: 'mystery' })).toThrow(
+            /Could not determine the CALM document type/,
+        );
     });
 });
 

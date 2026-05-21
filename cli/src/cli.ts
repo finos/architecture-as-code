@@ -253,13 +253,17 @@ Validation requires:
 
     program
         .command('diff')
-        .description('Compare two CALM architecture JSON files and report what changed.')
-        .requiredOption('-a, --architecture-a <file>', 'Path to the first (baseline) architecture file.')
-        .requiredOption('-b, --architecture-b <file>', 'Path to the second architecture file to compare against the baseline.')
+        .description('Compare two CALM documents (architectures or patterns) and report what changed.')
+        .requiredOption('-a, --document-a <file>', 'Path to the first (baseline) CALM document.')
+        .requiredOption('-b, --document-b <file>', 'Path to the second CALM document to compare against the baseline.')
         .addOption(
             new Option('-f, --format <format>', 'Output format')
                 .choices(['json', 'summary'])
                 .default('json')
+        )
+        .addOption(
+            new Option('-t, --type <type>', 'Force the document type instead of auto-detecting it.')
+                .choices(['architecture', 'pattern'])
         )
         .option(OUTPUT_OPTION, 'Path location at which to write the diff output. If omitted, prints to stdout.')
         .option('--exit-code', 'Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.', false)
@@ -267,10 +271,11 @@ Validation requires:
         .action(async (options) => {
             const { runDiffCommand } = await import('./command-helpers/diff');
             const hasChanges = await runDiffCommand({
-                architectureAPath: options.architectureA,
-                architectureBPath: options.architectureB,
+                documentAPath: options.documentA,
+                documentBPath: options.documentB,
                 outputFormat: options.format,
                 outputPath: options.output,
+                documentType: options.type,
                 verbose: !!options.verbose,
             });
             if (options.exitCode && hasChanges) {

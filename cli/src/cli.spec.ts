@@ -128,9 +128,22 @@ describe('CLI Commands', () => {
             ]);
 
             expect(diffModule.runDiffCommand).toHaveBeenCalledWith(expect.objectContaining({
-                architectureAPath: 'before.json',
-                architectureBPath: 'after.json',
+                documentAPath: 'before.json',
+                documentBPath: 'after.json',
                 outputFormat: 'summary',
+            }));
+        });
+
+        it('should pass the document type through when --type is set', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'diff',
+                '-a', 'before.pattern.json',
+                '-b', 'after.pattern.json',
+                '--type', 'pattern',
+            ]);
+
+            expect(diffModule.runDiffCommand).toHaveBeenCalledWith(expect.objectContaining({
+                documentType: 'pattern',
             }));
         });
 
