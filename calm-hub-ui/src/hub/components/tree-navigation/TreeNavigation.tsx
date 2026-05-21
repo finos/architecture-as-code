@@ -685,14 +685,11 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             console.warn('No versions found for resource %s; nothing to load', resourceID);
             return;
         }
-        const resourceIDForRoute = type === 'Architectures'
-            ? architectureSummaries
-                .find((summary) => (summary.customId ?? summary.id.toString()) === resourceID || summary.name === resourceID)
-                ?.id
-                ?.toString() ?? resourceID
-            : resourceID;
-        navigate(`${basePath}/${selectedNamespace}/${mapTypeInUIToTypeInUrl(type as TypeInUI)}/${resourceIDForRoute}/${latest}`);
-    }, [navigate, selectedNamespace, calmService, adrService, architectureSummaries]);
+        // Route with the displayed id (slug when present) so the deep-link loads the
+        // same resource and the tree keeps it highlighted. The loader resolves slug vs
+        // numeric ids itself.
+        navigate(`${basePath}/${selectedNamespace}/${mapTypeInUIToTypeInUrl(type as TypeInUI)}/${resourceID}/${latest}`);
+    }, [navigate, selectedNamespace, calmService, adrService]);
 
     const getResourceIDs = (type: string): string[] => {
         const toId = (s: ResourceSummary) => s.customId ?? s.id.toString();

@@ -114,7 +114,7 @@ export function CompareView({ data, versions, onExit }: CompareViewProps) {
                             </div>
                         </div>
                     </div>
-                    <DiffPanel diffResult={diffResult} />
+                    <DiffPanel diffResult={diffResult} emptyMessage="Select two versions to compare." />
                 </div>
             )}
         </div>

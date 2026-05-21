@@ -2,14 +2,14 @@ import type { DiffPanelProps, DiffSectionProps } from '../model/diff-ui-types.js
 import { getRelationshipTypeDisplayString } from '../../visualizer/components/reactflow/utils/calmHelpers.js';
 import '../Diff.css';
 
-export function DiffPanel({ diffResult }: DiffPanelProps) {
+export function DiffPanel({ diffResult, emptyMessage }: DiffPanelProps) {
     if (!diffResult) {
         return (
             <div className="diff-panel">
                 <div className="diff-summary">
                     <h3 className="text-lg font-semibold mb-4">Diff Summary</h3>
                     <p className="text-gray-600">
-                        Upload two CALM architecture files to see the differences.
+                        {emptyMessage ?? 'Upload two CALM architecture files to see the differences.'}
                     </p>
                 </div>
             </div>

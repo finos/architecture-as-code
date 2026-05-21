@@ -12,7 +12,7 @@ describe('compareVersions', () => {
         expect(compareVersions('1.2.3', '1.2.3')).toBe(0);
     });
 
-    it('treats a missing trailing segment as lower', () => {
+    it('treats a missing trailing segment as zero', () => {
         expect(compareVersions('1.0', '1.0.1')).toBeLessThan(0);
         expect(compareVersions('1.0.0', '1.0')).toBe(0);
     });
