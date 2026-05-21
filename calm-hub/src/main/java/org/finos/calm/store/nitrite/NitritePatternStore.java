@@ -121,9 +121,8 @@ public class NitritePatternStore implements PatternStore {
             Filter filter = where(NAMESPACE_FIELD).eq(namespace);
             Document namespaceDocument = patternCollection.find(filter).firstOrNull();
 
-        CalmJsonMetadata metadata = CalmJsonMetadata.extract(patternRequest.getPatternJson());
-        String name = metadata.hasName() ? metadata.getName() : patternRequest.getName();
-        String description = metadata.hasDescription() ? metadata.getDescription() : patternRequest.getDescription();
+        String name = patternRequest.getName();
+        String description = patternRequest.getDescription();
 
         Document patternDocument = Document.createDocument()
                 .put(PATTERN_ID_FIELD, id)

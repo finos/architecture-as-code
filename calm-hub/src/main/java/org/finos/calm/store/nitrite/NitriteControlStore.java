@@ -90,9 +90,8 @@ public class NitriteControlStore implements ControlStore {
         try {
             int controlId = counterStore.getNextControlSequenceValue();
 
-            CalmJsonMetadata metadata = CalmJsonMetadata.extract(request.getRequirementJson());
-            String name = metadata.hasName() ? metadata.getName() : request.getName();
-            String description = metadata.hasDescription() ? metadata.getDescription() : request.getDescription();
+            String name = request.getName();
+            String description = request.getDescription();
 
         Document requirementVersions = Document.createDocument()
                 .put("1-0-0", request.getRequirementJson());

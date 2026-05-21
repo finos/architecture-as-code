@@ -731,7 +731,7 @@ public class TestNitriteControlStoreShould {
     // --- JSON-derived name/description (bug-fix coverage) ---
 
     @Test
-    public void testCreateControlRequirement_prefersNameAndDescriptionFromJsonBody() throws DomainNotFoundException {
+    public void testCreateControlRequirement_usesDtoNameAndDescriptionOnInitialCreate() throws DomainNotFoundException {
         when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
         when(mockCounterStore.getNextControlSequenceValue()).thenReturn(7);
 
@@ -744,8 +744,8 @@ public class TestNitriteControlStoreShould {
 
         ControlDetail result = controlStore.createControlRequirement(createRequest, TEST_DOMAIN);
 
-        assertThat(result.getName(), is("From JSON"));
-        assertThat(result.getDescription(), is("From JSON Desc"));
+        assertThat(result.getName(), is("Wrapper Name"));
+        assertThat(result.getDescription(), is("Wrapper Desc"));
     }
 
     @Test

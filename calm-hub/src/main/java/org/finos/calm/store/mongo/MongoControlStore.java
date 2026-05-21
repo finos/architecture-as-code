@@ -104,9 +104,8 @@ public class MongoControlStore implements ControlStore {
         int controlId = counterStore.getNextControlSequenceValue();
 
         Document parsedRequirement = Document.parse(request.getRequirementJson());
-        CalmJsonMetadata metadata = CalmJsonMetadata.extract(parsedRequirement);
-        String name = metadata.hasName() ? metadata.getName() : request.getName();
-        String description = metadata.hasDescription() ? metadata.getDescription() : request.getDescription();
+        String name = request.getName();
+        String description = request.getDescription();
 
         Document requirementVersions = new Document("1-0-0", parsedRequirement);
 

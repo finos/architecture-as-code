@@ -394,7 +394,7 @@ public class TestMongoPatternStoreShould {
     // --- JSON-derived name/description (bug-fix coverage) ---
 
     @Test
-    void create_pattern_for_namespace_prefers_name_and_description_from_json_body() throws NamespaceNotFoundException {
+    void create_pattern_for_namespace_uses_dto_name_and_description_on_initial_create() throws NamespaceNotFoundException {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(counterStore.getNextPatternSequenceValue()).thenReturn(7);
 
@@ -404,8 +404,8 @@ public class TestMongoPatternStoreShould {
         mongoPatternStore.createPatternForNamespace(request, "finos");
 
         Document expectedDoc = new Document("patternId", 7)
-                .append("name", "JSON Pattern")
-                .append("description", "JSON Desc")
+                .append("name", "Wrapper Name")
+                .append("description", "Wrapper Desc")
                 .append("versions", new Document("1-0-0", Document.parse(json)));
 
         verify(patternCollection).updateOne(

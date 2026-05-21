@@ -633,7 +633,7 @@ public class TestNitritePatternStoreShould {
     // --- JSON-derived name/description (bug-fix coverage) ---
 
     @Test
-    public void testCreatePatternForNamespace_prefersNameAndDescriptionFromJsonBody() throws NamespaceNotFoundException {
+    public void testCreatePatternForNamespace_usesDtoNameAndDescriptionOnInitialCreate() throws NamespaceNotFoundException {
         String json = "{\"name\":\"JSON Name\",\"description\":\"JSON Desc\"}";
         CreatePatternRequest request = new CreatePatternRequest("Wrapper", "Wrapper Desc", json);
 
@@ -652,8 +652,8 @@ public class TestNitritePatternStoreShould {
         @SuppressWarnings("unchecked")
         List<Document> patterns = (List<Document>) inserted.getValue().get("patterns");
         Document patternDoc = patterns.get(0);
-        assertThat(patternDoc.get("name", String.class), is("JSON Name"));
-        assertThat(patternDoc.get("description", String.class), is("JSON Desc"));
+        assertThat(patternDoc.get("name", String.class), is("Wrapper"));
+        assertThat(patternDoc.get("description", String.class), is("Wrapper Desc"));
     }
 
     @Test

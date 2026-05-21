@@ -122,4 +122,62 @@ public class MongoPatternIntegration {
                 .statusCode(200)
                 .body(equalTo(PATTERN));
     }
+
+    // --- Wrapper name/description sync from JSON body on new version ---
+
+    @Test
+    @Order(5)
+    void end_to_end_list_patterns_returns_wrapper_name_and_description_from_create() {
+        given()
+                .when().get("/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1))
+                .body("values[0].name", equalTo("name"))
+                .body("values[0].description", equalTo("description"));
+    }
+
+    @Test
+    @Order(6)
+    void end_to_end_create_pattern_version_with_name_and_description_in_json() {
+        String versionBody = "{\"name\": \"updated-pattern\", \"description\": \"updated pattern description\", \"nodes\": []}";
+
+        given()
+                .body(versionBody)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/1/versions/2.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/1/versions/2.0.0"));
+    }
+
+    @Test
+    @Order(7)
+    void end_to_end_list_patterns_reflects_updated_name_and_description_after_new_version() {
+        given()
+                .when().get("/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1))
+                .body("values[0].name", equalTo("updated-pattern"))
+                .body("values[0].description", equalTo("updated pattern description"));
+    }
+
+    @Test
+    @Order(8)
+    void end_to_end_create_pattern_version_without_name_in_json_preserves_wrapper() {
+        given()
+                .body("{\"nodes\": [], \"relationships\": []}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/1/versions/3.0.0")
+                .then()
+                .statusCode(201);
+
+        given()
+                .when().get("/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values[0].name", equalTo("updated-pattern"))
+                .body("values[0].description", equalTo("updated pattern description"));
+    }
 }

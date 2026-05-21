@@ -91,9 +91,8 @@ public class MongoPatternStore implements PatternStore {
 
         int id = counterStore.getNextPatternSequenceValue();
         Document parsedPattern = Document.parse(patternRequest.getPatternJson());
-        CalmJsonMetadata metadata = CalmJsonMetadata.extract(parsedPattern);
-        String name = metadata.hasName() ? metadata.getName() : patternRequest.getName();
-        String description = metadata.hasDescription() ? metadata.getDescription() : patternRequest.getDescription();
+        String name = patternRequest.getName();
+        String description = patternRequest.getDescription();
 
         Document patternDocument = new Document("patternId", id)
                 .append("name", name)

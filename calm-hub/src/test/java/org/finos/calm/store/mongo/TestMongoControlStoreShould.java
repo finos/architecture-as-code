@@ -683,7 +683,7 @@ public class TestMongoControlStoreShould {
     // --- JSON-derived name/description (bug-fix coverage) ---
 
     @Test
-    void create_control_requirement_prefers_name_and_description_from_json_body() throws DomainNotFoundException {
+    void create_control_requirement_uses_dto_name_and_description_on_initial_create() throws DomainNotFoundException {
         when(domainStore.getDomains()).thenReturn(List.of("security"));
         when(counterStore.getNextControlSequenceValue()).thenReturn(7);
 
@@ -692,8 +692,8 @@ public class TestMongoControlStoreShould {
 
         ControlDetail result = mongoControlStore.createControlRequirement(createRequest, "security");
 
-        assertThat(result.getName(), is("From JSON"));
-        assertThat(result.getDescription(), is("From JSON Desc"));
+        assertThat(result.getName(), is("Wrapper Name"));
+        assertThat(result.getDescription(), is("Wrapper Desc"));
     }
 
     @Test
