@@ -45,7 +45,9 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
 
     const handleVersionChange = (version: string) => {
         if (version === data.version) return;
-        navigate(`/${data.name}/${urlType}/${data.id}/${version}`);
+        // Preserve the active tab when switching version.
+        const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
+        navigate(`/${data.name}/${urlType}/${data.id}/${version}${query}`);
     };
 
     useEffect(() => {
@@ -131,13 +133,13 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                     version={data.version}
                     versions={versions}
                     onVersionChange={handleVersionChange}
-                    titleActions={compareButton}
+                    titleActions={isArchitecture ? compareButton : undefined}
                     rightContent={tabs}
                 />
 
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    {compareMode ? (
-                        <CompareView data={data} onExit={() => setCompareMode(false)} />
+                    {compareMode && data.calmType === 'Architectures' ? (
+                        <CompareView data={data} versions={versions} onExit={() => setCompareMode(false)} />
                     ) : activeTab === 'diagram' ? (
                         <div className="w-full h-full">
                             <Drawer data={data} onItemSelect={onItemSelect} decorators={decorators} />

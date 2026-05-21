@@ -26,13 +26,20 @@ function DiffGraphInner({ architecture, diffResult, isFirst }: DiffGraphProps) {
     const { fitView } = useReactFlow();
     const nodesInitialized = useNodesInitialized();
     const containerRef = useRef<HTMLDivElement>(null);
+    const fitFrameRef = useRef<number>();
 
     // Fit on the next animation frame so ReactFlow has picked up the container's
     // final dimensions first — the compare panels reach their final (narrower) width
     // after the diagram first renders, and a synchronous fitView uses the stale size.
+    // The frame is tracked so it can be cancelled if the graph unmounts first.
     const scheduleFit = useCallback(() => {
-        requestAnimationFrame(() => fitView({ padding: 0.2 }));
+        if (fitFrameRef.current !== undefined) cancelAnimationFrame(fitFrameRef.current);
+        fitFrameRef.current = requestAnimationFrame(() => fitView({ padding: 0.2 }));
     }, [fitView]);
+
+    useEffect(() => () => {
+        if (fitFrameRef.current !== undefined) cancelAnimationFrame(fitFrameRef.current);
+    }, []);
 
     useEffect(() => {
         const { nodes: parsedNodes, edges: parsedEdges } = parseCALMDataWithDiff(architecture, diffResult, isFirst);
@@ -94,10 +101,8 @@ function DiffGraphInner({ architecture, diffResult, isFirst }: DiffGraphProps) {
 
 export function DiffGraph(props: DiffGraphProps) {
     return (
-        <div style={{ height: '100%', width: '100%' }}>
-            <ReactFlowProvider>
-                <DiffGraphInner {...props} />
-            </ReactFlowProvider>
-        </div>
+        <ReactFlowProvider>
+            <DiffGraphInner {...props} />
+        </ReactFlowProvider>
     );
 }

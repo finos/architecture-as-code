@@ -103,6 +103,7 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
                 onEdgeClick={handleEdgeClick}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}
+                minZoom={0.1}
                 attributionPosition="bottom-left"
                 style={{ background: THEME.colors.background }}
             >

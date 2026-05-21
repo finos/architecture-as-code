@@ -680,7 +680,11 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
         setSelectedResourceID(resourceID);
         const versions = await fetchVersionsForResource(resourceID, type, selectedNamespace, calmService, adrService);
         const latest = pickLatestVersion(versions);
-        if (!latest) return;
+        if (!latest) {
+            // arg1 is %s to prevent format string injection from `resourceID`.
+            console.warn('No versions found for resource %s; nothing to load', resourceID);
+            return;
+        }
         const resourceIDForRoute = type === 'Architectures'
             ? architectureSummaries
                 .find((summary) => (summary.customId ?? summary.id.toString()) === resourceID || summary.name === resourceID)
