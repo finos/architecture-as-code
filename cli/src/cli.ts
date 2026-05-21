@@ -588,7 +588,7 @@ Validation requires:
         });
 
     hubListCmd
-        .command('control-configurations')
+        .command('control-configs')
         .description('List configurations for a control')
         .requiredOption(DOMAIN_OPTION, 'Target domain')
         .requiredOption(CONTROL_ID_OPTION, 'Control ID')
@@ -696,7 +696,7 @@ Validation requires:
         });
 
     hubCreateCmd
-        .command('control-configuration <config-file>')
+        .command('control-config <config-file>')
         .description('Create a new configuration for a control in CALM Hub')
         .requiredOption(DOMAIN_OPTION, 'Target domain')
         .requiredOption(CONTROL_ID_OPTION, 'Control ID')

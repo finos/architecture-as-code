@@ -905,7 +905,7 @@ describe('CLI Commands', () => {
         });
     });
 
-    describe('create control-configuration command', () => {
+    describe('create control-config command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
             vi.spyOn(hubCommandsModule, 'runCreateControlConfiguration').mockResolvedValue(undefined);
@@ -913,7 +913,7 @@ describe('CLI Commands', () => {
 
         it('calls runCreateControlConfiguration with domain, controlId and file', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'create', 'control-configuration', 'cfg.json',
+                'node', 'cli.js', 'hub', 'create', 'control-config', 'cfg.json',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--calm-hub-url', 'http://hub',
@@ -928,7 +928,7 @@ describe('CLI Commands', () => {
         });
     });
 
-    describe('list control-configurations command', () => {
+    describe('list control-configs command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
             vi.spyOn(hubCommandsModule, 'runListControlConfigurations').mockResolvedValue(undefined);
@@ -936,7 +936,7 @@ describe('CLI Commands', () => {
 
         it('calls runListControlConfigurations with domain and controlId', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'control-configurations',
+                'node', 'cli.js', 'hub', 'list', 'control-configs',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--calm-hub-url', 'http://hub',
@@ -951,7 +951,7 @@ describe('CLI Commands', () => {
 
         it('passes --format pretty through to the handler', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'control-configurations',
+                'node', 'cli.js', 'hub', 'list', 'control-configs',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--format', 'pretty',
