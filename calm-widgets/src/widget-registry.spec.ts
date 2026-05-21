@@ -37,7 +37,7 @@ describe('WidgetRegistry (with memfs)', () => {
             id: 'my-widget',
             templatePartial: 'main.hbs',
             partials: ['sub1.hbs', 'sub2.hbs'],
-            validateContext: function (context: unknown): context is unknown {
+            validateContext: function (_context: unknown): _context is unknown {
                 return false;
             }
         };
@@ -68,7 +68,7 @@ describe('WidgetRegistry (with memfs)', () => {
                     return arr.length;
                 },
             }),
-            validateContext: function (context: unknown): context is unknown {
+            validateContext: function (_context: unknown): _context is unknown {
                 return true;
             }
         };
@@ -87,7 +87,7 @@ describe('WidgetRegistry (with memfs)', () => {
         const widget: CalmWidget = {
             id: 'retrievable',
             templatePartial: 'main.hbs',
-            validateContext: function (context: unknown): context is unknown {
+            validateContext: function (_context: unknown): _context is unknown {
                 return true;
             }
         };
@@ -104,7 +104,7 @@ describe('WidgetRegistry (with memfs)', () => {
         const widget: CalmWidget = {
             id: 'clear-me',
             templatePartial: 'main.hbs',
-            validateContext: function (context: unknown): context is unknown {
+            validateContext: function (_context: unknown): _context is unknown {
                 return true;
             }
         };

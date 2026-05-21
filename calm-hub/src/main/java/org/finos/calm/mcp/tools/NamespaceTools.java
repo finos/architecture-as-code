@@ -58,7 +58,7 @@ public class NamespaceTools {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(name),
-                () -> description != null ? McpValidationHelper.validateDescriptionLength(description, "Description") : null);
+                () -> McpValidationHelper.validateDescriptionLength(description, "Description"));
         if (err.isPresent()) return err.get();
 
         try {

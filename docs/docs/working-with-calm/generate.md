@@ -25,6 +25,7 @@ This will create an architecture in the current working directory with the defau
 - **`-s, --schema-directory <path>`**: Path to the directory containing schemas to use in architecture.
 - **`-c, --calm-hub-url <url>`**: URL to CALMHub instance.
 - **`-u, --url-to-local-file-mapping <path>`**: Path to a JSON file that maps URLs to local file paths (see [URL Mapping](#url-to-local-file-mapping) below).
+- **`--option-choices <choices>`**: Pre-defined option choices as a JSON object, or a path to a JSON file. Skips interactive prompts (see [Pattern Options](#pattern-options) below).
 - **`-v, --verbose`**: Enable verbose logging.
 
 ## Example of Generating an architecture
@@ -36,6 +37,58 @@ calm generate -p calm/pattern/microservices.json -o my-architecture.json
 ```
 
 This command uses the `microservices.json` pattern and outputs the result to `my-architecture.json`.
+
+## Pattern Options
+
+Some CALM patterns contain `options` relationships that present a choice of which nodes and relationships to include in the generated architecture. When you run `calm generate` against such a pattern, the CLI will interactively prompt you to make each choice.
+
+### Interactive prompts
+
+For each options relationship in the pattern, the CLI will ask you to select a choice:
+
+- **`oneOf`** options present a single-select prompt — you must pick exactly one.
+- **`anyOf`** options present a multi-select prompt — you can pick zero or more.
+
+### Pre-defining choices non-interactively
+
+You can skip the interactive prompts by passing `--option-choices` with a JSON object that maps each option's `unique-id` to the chosen description(s).
+
+- For **`oneOf`** options, supply a **string** (exactly one choice).
+- For **`anyOf`** options, supply a **string** or an **array of strings** (one or more choices).
+
+```shell
+# oneOf option — single string
+calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C"}'
+
+# anyOf option — array of strings
+calm generate -p pattern.json --option-choices '{"node-options": ["Node 1", "Node 2"]}'
+
+# Mixed oneOf and anyOf
+calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C", "node-options": ["Node 1", "Node 2"]}'
+```
+
+You can also save the choices to a file in the same JSON format and pass the path instead:
+
+```json
+{
+  "connection-options": "Application A connects to Application C",
+  "node-options": ["Node 1", "Node 2"]
+}
+```
+
+```shell
+calm generate -p pattern.json --option-choices choices.json
+```
+
+The keys in the object must match the `unique-id` of the options relationship in the pattern. The values must match the `description` of one or more of the available choices within that option.
+
+:::tip
+After running `calm generate` interactively, the CLI prints your selections in the `--option-choices` format so you can save them for later use:
+
+```
+info: Selected choices (reusable with --option-choices): {"connection-options":"Application A connects to Application C","node-options":["Node 1","Node 2"]}
+```
+:::
 
 ## URL to Local File Mapping
 

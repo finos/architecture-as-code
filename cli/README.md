@@ -3,6 +3,19 @@
 A command line interface to interact with the CALM schema.
 You can use these tools to create an architecture from a CALM pattern, or validate that an architecture conforms to a given pattern.
 
+## Config file reference
+
+The CLI will load user config from `~/.calm.json` to allow profile-level config of CalmHub and other details.
+These properties can also be loaded from environment variables; if set they will override the config file.
+
+Note that if they're set on the command line, e.g. `--calm-hub-url`, this will override both the file and env vars.
+
+| Config file property | Environment variable        | Description  |
+| -------------------- | --------------------------- | ------------ |
+| `allowedRemoteHosts` | `CALM_ALLOWED_REMOTE_HOSTS` | List of allowed hosts to use when loading files directly from raw URLs. Note that in env variable form this should be a comma-separated list. | 
+| `authPluginPath`     | `CALM_AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
+| `calmHubUrl`         | `CALM_HUB_URL`              | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
+
 ## Using the CLI
 
 ### Getting Started
@@ -55,6 +68,7 @@ Options:
   -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
   -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
   -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
+  --option-choices <choices>    Pre-defined option choices as a JSON object mapping option unique-ids to choice descriptions. Skips interactive prompts.
   -v, --verbose                 Enable verbose logging. (default: false)
   -h, --help                    display help for command
 ```
@@ -63,6 +77,30 @@ The most simple way to use this command is to call it with only the pattern opti
 
 ```shell
 % calm generate -p ./conferences/osff-ln-2025/workshop/conference-signup.pattern.json
+```
+
+#### Pattern options
+
+Some CALM patterns define **options** — decision points where the architecture can vary. When a pattern contains options, the `generate` command will prompt you interactively to make your selections. At the end of the prompts, the CLI prints the choices you made in a format you can save and reuse:
+
+```
+info: Selected choices (reusable with --option-choices): {"connection-options":"Application A connects to Application C","node-options":["Node 1","Node 2"]}
+```
+
+To skip the interactive prompts, pass your choices via `--option-choices` as an inline JSON string or a path to a JSON file.
+
+- For a **`oneOf`** option (pick exactly one), supply a string value.
+- For an **`anyOf`** option (pick one or more), supply a string or an array of strings.
+
+```shell
+# Inline JSON — single oneOf choice
+% calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C"}'
+
+# Inline JSON — mixed oneOf and anyOf
+% calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C", "node-options": ["Node 1", "Node 2"]}'
+
+# From a saved choices file
+% calm generate -p pattern.json --option-choices ./my-choices.json
 ```
 
 ### Validating a CALM architecture

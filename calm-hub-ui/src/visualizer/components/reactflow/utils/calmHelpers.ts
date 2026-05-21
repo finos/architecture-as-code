@@ -40,3 +40,13 @@ export function extractNodeType(node: CalmNodeSchema | null | undefined): string
 export function extractRelationshipType(relationship: CalmRelationshipSchema | null | undefined): CalmRelationshipTypeSchema | undefined {
   return relationship?.['relationship-type'];
 }
+
+export function getRelationshipTypeDisplayString(relType: CalmRelationshipTypeSchema | null | undefined): string {
+  if (!relType) return 'unknown';
+  if ('connects' in relType) return 'connects';
+  if ('interacts' in relType) return 'interacts';
+  if ('deployed-in' in relType) return 'deployed-in';
+  if ('composed-of' in relType) return 'composed-of';
+  if ('options' in relType) return 'options';
+  return 'unknown';
+}

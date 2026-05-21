@@ -1,7 +1,7 @@
 import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
-import { promptUserForOptions } from './command-helpers/generate-options';
+import { promptUserForOptions, loadChoicesFromInput } from './command-helpers/generate-options';
 import * as cliConfig from './cli-config';
 import path from 'path';
 import { select } from '@inquirer/prompts';
@@ -17,6 +17,7 @@ const VERBOSE_OPTION = '-v, --verbose';
 // Generate command options
 const PATTERN_OPTION = '-p, --pattern <file>';
 const CALMHUB_URL_OPTION = '-c, --calm-hub-url <url>';
+const OPTION_CHOICES_OPTION = '--option-choices <choices>';
 
 // Validate command options
 const FORMAT_OPTION = '-f, --format <format>';
@@ -58,6 +59,7 @@ export function setupCLI(program: Command) {
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
+        .option(OPTION_CHOICES_OPTION, 'Pre-defined option choices as a JSON object mapping option unique-ids to choice descriptions, or a path to a JSON file. Skips interactive prompts.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const debug = !!options.verbose;
@@ -68,7 +70,9 @@ export function setupCLI(program: Command) {
             const docLoader = buildDocumentLoader(docLoaderOpts);
             const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
             const pattern: object = await docLoader.loadMissingDocument(options.pattern, 'pattern');
-            const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
+            const choices: CalmChoice[] = options.optionChoices
+                ? loadChoicesFromInput(options.optionChoices, pattern, debug)
+                : await promptUserForOptions(pattern, options.verbose);
             await runGenerate(pattern, options.output, debug, schemaDirectory, choices);
         });
 
@@ -248,6 +252,33 @@ Validation requires:
             console.log(`Selected AI provider: ${selectedProvider}`);
 
             await setupAiTools(selectedProvider, options.directory, !!options.verbose);
+        });
+
+    program
+        .command('diff')
+        .description('Compare two CALM architecture JSON files and report what changed.')
+        .requiredOption('-a, --architecture-a <file>', 'Path to the first (baseline) architecture file.')
+        .requiredOption('-b, --architecture-b <file>', 'Path to the second architecture file to compare against the baseline.')
+        .addOption(
+            new Option('-f, --format <format>', 'Output format')
+                .choices(['json', 'summary'])
+                .default('json')
+        )
+        .option(OUTPUT_OPTION, 'Path location at which to write the diff output. If omitted, prints to stdout.')
+        .option('--exit-code', 'Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.', false)
+        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .action(async (options) => {
+            const { runDiffCommand } = await import('./command-helpers/diff');
+            const hasChanges = await runDiffCommand({
+                architectureAPath: options.architectureA,
+                architectureBPath: options.architectureB,
+                outputFormat: options.format,
+                outputPath: options.output,
+                verbose: !!options.verbose,
+            });
+            if (options.exitCode && hasChanges) {
+                process.exit(1);
+            }
         });
 
     program
