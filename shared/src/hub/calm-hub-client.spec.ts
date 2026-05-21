@@ -739,6 +739,98 @@ describe('CalmHubClient', () => {
         });
     });
 
+    // ── createControlConfiguration ────────────────────────────────────────────
+
+    describe('createControlConfiguration', () => {
+        const configJson = JSON.stringify({ type: 'control-configuration', config: {} });
+
+        it('returns id and location on 201 with Location header', async () => {
+            mock.onPost('/calm/domains/risk/controls/1/configurations').reply(201, null, {
+                location: '/calm/domains/risk/controls/1/configurations/5'
+            });
+
+            const result = await client.createControlConfiguration('risk', 1, configJson);
+            expect(result).toEqual({
+                id: 5,
+                location: '/calm/domains/risk/controls/1/configurations/5'
+            });
+        });
+
+        it('throws HubClientError(404) when control not found', async () => {
+            mock.onPost('/calm/domains/risk/controls/99/configurations').reply(404, 'Not found');
+            await expect(client.createControlConfiguration('risk', 99, configJson)).rejects.toMatchObject({ status: 404 });
+        });
+    });
+
+    // ── listControlConfigurations ─────────────────────────────────────────────
+
+    describe('listControlConfigurations', () => {
+        it('returns list of config IDs', async () => {
+            mock.onGet('/calm/domains/risk/controls/1/configurations').reply(200, { values: [1, 2, 3] });
+
+            const result = await client.listControlConfigurations('risk', 1);
+            expect(result).toEqual([1, 2, 3]);
+        });
+
+        it('returns empty array when no configurations', async () => {
+            mock.onGet('/calm/domains/risk/controls/1/configurations').reply(200, { values: [] });
+
+            const result = await client.listControlConfigurations('risk', 1);
+            expect(result).toEqual([]);
+        });
+
+        it('throws HubClientError(404) when control not found', async () => {
+            mock.onGet('/calm/domains/risk/controls/99/configurations').reply(404, 'Not found');
+            await expect(client.listControlConfigurations('risk', 99)).rejects.toMatchObject({ status: 404 });
+        });
+    });
+
+    // ── listControlRequirementVersions ────────────────────────────────────────
+
+    describe('listControlRequirementVersions', () => {
+        it('returns list of version strings', async () => {
+            mock.onGet('/calm/domains/risk/controls/1/requirement/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
+
+            const result = await client.listControlRequirementVersions('risk', 1);
+            expect(result).toEqual(['1.0.0', '2.0.0']);
+        });
+
+        it('returns empty array when no versions', async () => {
+            mock.onGet('/calm/domains/risk/controls/1/requirement/versions').reply(200, { values: [] });
+
+            const result = await client.listControlRequirementVersions('risk', 1);
+            expect(result).toEqual([]);
+        });
+
+        it('throws HubClientError(404) when control not found', async () => {
+            mock.onGet('/calm/domains/risk/controls/99/requirement/versions').reply(404, 'Not found');
+            await expect(client.listControlRequirementVersions('risk', 99)).rejects.toMatchObject({ status: 404 });
+        });
+    });
+
+    // ── listControlConfigVersions ─────────────────────────────────────────────
+
+    describe('listControlConfigVersions', () => {
+        it('returns list of version strings', async () => {
+            mock.onGet('/calm/domains/risk/controls/1/configurations/5/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
+
+            const result = await client.listControlConfigVersions('risk', 1, 5);
+            expect(result).toEqual(['1.0.0', '2.0.0']);
+        });
+
+        it('returns empty array when no versions', async () => {
+            mock.onGet('/calm/domains/risk/controls/1/configurations/5/versions').reply(200, { values: [] });
+
+            const result = await client.listControlConfigVersions('risk', 1, 5);
+            expect(result).toEqual([]);
+        });
+
+        it('throws HubClientError(404) when configuration not found', async () => {
+            mock.onGet('/calm/domains/risk/controls/1/configurations/99/versions').reply(404, 'Not found');
+            await expect(client.listControlConfigVersions('risk', 1, 99)).rejects.toMatchObject({ status: 404 });
+        });
+    });
+
     // ── auth plugin: domains/controls ─────────────────────────────────────────
 
     describe('auth plugin: domains/controls', () => {

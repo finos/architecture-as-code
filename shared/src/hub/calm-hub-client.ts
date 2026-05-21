@@ -468,6 +468,52 @@ export class CalmHubClient {
         }
     }
 
+    async createControlConfiguration(domain: string, controlId: number, configurationJson: string): Promise<HubCreateResult> {
+        const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/configurations`;
+        try {
+            const response = await this.ax.post(
+                `/calm/domains/${domain}/controls/${controlId}/configurations`,
+                { configurationJson }
+            );
+            const location = (response.headers['location'] as string | undefined)
+                ?? `/calm/domains/${domain}/controls/${controlId}/configurations`;
+            const id = this.parseIdFromLocation(location, endpoint);
+            return { id, location };
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async listControlConfigurations(domain: string, controlId: number): Promise<number[]> {
+        const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations`;
+        try {
+            const response = await this.ax.get(`/calm/domains/${domain}/controls/${controlId}/configurations`);
+            return (response.data?.values ?? []) as number[];
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async listControlRequirementVersions(domain: string, controlId: number): Promise<string[]> {
+        const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/requirement/versions`;
+        try {
+            const response = await this.ax.get(`/calm/domains/${domain}/controls/${controlId}/requirement/versions`);
+            return (response.data?.values ?? []) as string[];
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async listControlConfigVersions(domain: string, controlId: number, configId: number): Promise<string[]> {
+        const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`;
+        try {
+            const response = await this.ax.get(`/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`);
+            return (response.data?.values ?? []) as string[];
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
 
     /**

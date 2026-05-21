@@ -1016,6 +1016,169 @@ export async function runPullControlConfig(options: PullControlConfigOptions): P
     }
 }
 
+// ── create control-configuration ──────────────────────────────────────────────
+
+export interface CreateControlConfigurationOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    controlId: string;
+    file: string;
+    format?: string;
+}
+
+export async function runCreateControlConfiguration(options: CreateControlConfigurationOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+
+    const parsedControlId = parseInt(options.controlId, 10);
+    if (!Number.isFinite(parsedControlId)) {
+        printError(0, '--control-id must be a valid integer', 'create control-configuration', format);
+        process.exit(1);
+    }
+
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    let fileContent: string;
+    try {
+        fileContent = await readFile(options.file, 'utf-8');
+    } catch {
+        printError(0, `Could not read file: ${options.file}`, `create control-configuration ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        JSON.parse(fileContent);
+    } catch {
+        printError(0, `File is not valid JSON: ${options.file}`, `create control-configuration ${options.file}`, format);
+        process.exit(1);
+    }
+
+    try {
+        const result = await client.createControlConfiguration(options.domain, parsedControlId, fileContent);
+        printIdCreateResult(result as { id: number; location: string }, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── list control-configurations ───────────────────────────────────────────────
+
+export interface ListControlConfigurationsOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    controlId: string;
+    format?: string;
+}
+
+export async function runListControlConfigurations(options: ListControlConfigurationsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+
+    const parsedControlId = parseInt(options.controlId, 10);
+    if (!Number.isFinite(parsedControlId)) {
+        printError(0, '--control-id must be a valid integer', 'list control-configurations', format);
+        process.exit(1);
+    }
+
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const ids: number[] = await client.listControlConfigurations(options.domain, parsedControlId);
+
+        if (format === 'pretty') {
+            printTableSuccess(
+                ids.map(id => ({ ID: id })),
+                [{ key: 'ID', header: 'ID' }]
+            );
+        } else {
+            printJsonSuccess(ids);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── list control-requirement-versions ────────────────────────────────────────
+
+export interface ListControlRequirementVersionsOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    controlId: string;
+    format?: string;
+}
+
+export async function runListControlRequirementVersions(options: ListControlRequirementVersionsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+
+    const parsedControlId = parseInt(options.controlId, 10);
+    if (!Number.isFinite(parsedControlId)) {
+        printError(0, '--control-id must be a valid integer', 'list control-requirement-versions', format);
+        process.exit(1);
+    }
+
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const versions: string[] = await client.listControlRequirementVersions(options.domain, parsedControlId);
+
+        if (format === 'pretty') {
+            printTableSuccess(
+                versions.map(v => ({ VERSION: v })),
+                [{ key: 'VERSION', header: 'VERSION' }]
+            );
+        } else {
+            printJsonSuccess(versions);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+// ── list control-config-versions ─────────────────────────────────────────────
+
+export interface ListControlConfigVersionsOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    controlId: string;
+    configId: string;
+    format?: string;
+}
+
+export async function runListControlConfigVersions(options: ListControlConfigVersionsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+
+    const parsedControlId = parseInt(options.controlId, 10);
+    if (!Number.isFinite(parsedControlId)) {
+        printError(0, '--control-id must be a valid integer', 'list control-config-versions', format);
+        process.exit(1);
+    }
+
+    const parsedConfigId = parseInt(options.configId, 10);
+    if (!Number.isFinite(parsedConfigId)) {
+        printError(0, '--config-id must be a valid integer', 'list control-config-versions', format);
+        process.exit(1);
+    }
+
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const versions: string[] = await client.listControlConfigVersions(options.domain, parsedControlId, parsedConfigId);
+
+        if (format === 'pretty') {
+            printTableSuccess(
+                versions.map(v => ({ VERSION: v })),
+                [{ key: 'VERSION', header: 'VERSION' }]
+            );
+        } else {
+            printJsonSuccess(versions);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
 // ── shared error handler ──────────────────────────────────────────────────────
 
 function handleHubError(err: unknown, format: OutputFormat): never {
