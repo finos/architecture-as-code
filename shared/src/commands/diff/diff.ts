@@ -101,17 +101,30 @@ function looksLikePattern(doc: Record<string, unknown>): boolean {
 }
 
 /**
- * Distinguishes a CALM architecture instance (top-level `nodes`/`relationships`
- * arrays) from a CALM pattern (a JSON Schema describing those arrays under
- * `properties`/`allOf`). Throws when the input matches neither shape, so
- * malformed input is surfaced rather than silently diffed to an empty result.
+ * Classifies a document as an architecture instance (top-level
+ * `nodes`/`relationships` arrays) or a pattern (a JSON Schema describing those
+ * arrays under `properties`/`allOf`). Returns `null` when the input clearly
+ * matches neither shape, leaving the decision to the caller.
  */
-export function detectDocumentType(doc: Record<string, unknown>): DiffDocumentType {
+export function tryDetectDocumentType(doc: Record<string, unknown>): DiffDocumentType | null {
     if (Array.isArray(doc['nodes']) || Array.isArray(doc['relationships'])) {
         return 'architecture';
     }
     if (looksLikePattern(doc)) {
         return 'pattern';
+    }
+    return null;
+}
+
+/**
+ * Like {@link tryDetectDocumentType} but throws when the input matches neither
+ * shape, so malformed input is surfaced rather than silently diffed to an empty
+ * result.
+ */
+export function detectDocumentType(doc: Record<string, unknown>): DiffDocumentType {
+    const detected = tryDetectDocumentType(doc);
+    if (detected) {
+        return detected;
     }
     throw new Error(
         'Could not determine the CALM document type: expected an architecture ' +
@@ -132,15 +145,33 @@ export async function runDiff(
     const docA = readDocument(docAPath);
     const docB = readDocument(docBPath);
 
-    const typeA = options.documentType ?? detectDocumentType(docA);
-    const typeB = options.documentType ?? detectDocumentType(docB);
-    if (typeA !== typeB) {
-        throw new Error(
-            `Cannot diff mismatched document types: ${typeA} vs ${typeB}. Both inputs must be the ` +
-                'same CALM document type; pass --type to override detection.',
-        );
+    let documentType: DiffDocumentType;
+    if (options.documentType) {
+        // An explicit --type overrides auto-detection (and rescues genuinely
+        // ambiguous inputs), but if a document's content confidently matches the
+        // opposite type the override is almost certainly a mistake — fail loudly
+        // rather than emit a misleading empty diff.
+        documentType = options.documentType;
+        for (const [docPath, doc] of [[docAPath, docA], [docBPath, docB]] as const) {
+            const detected = tryDetectDocumentType(doc);
+            if (detected && detected !== documentType) {
+                throw new Error(
+                    `--type was set to '${documentType}', but ${docPath} matches '${detected}'. ` +
+                        'Remove --type to auto-detect, or pass inputs of the forced type.',
+                );
+            }
+        }
+    } else {
+        const typeA = detectDocumentType(docA);
+        const typeB = detectDocumentType(docB);
+        if (typeA !== typeB) {
+            throw new Error(
+                `Cannot diff mismatched document types: ${typeA} vs ${typeB}. Both inputs must be the ` +
+                    'same CALM document type; pass --type to override detection.',
+            );
+        }
+        documentType = typeA;
     }
-    const documentType = typeA;
 
     const diff = documentType === 'pattern'
         ? diffPatterns(docA, docB)

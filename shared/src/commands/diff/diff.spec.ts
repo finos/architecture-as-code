@@ -170,6 +170,14 @@ describe('runDiff', () => {
         const { hasChanges: changed } = await runDiff(a, b, { documentType: 'pattern' });
         expect(changed).toBe(false);
     });
+
+    it('throws when a forced documentType conflicts with the document content', async () => {
+        const a = writeArch('a.json', archA);
+        const b = writeArch('b.json', archB);
+        await expect(runDiff(a, b, { documentType: 'pattern' })).rejects.toThrow(
+            /matches 'architecture'/,
+        );
+    });
 });
 
 describe('detectDocumentType', () => {

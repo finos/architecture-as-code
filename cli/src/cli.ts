@@ -254,8 +254,12 @@ Validation requires:
     program
         .command('diff')
         .description('Compare two CALM documents (architectures or patterns) and report what changed.')
-        .requiredOption('-a, --document-a <file>', 'Path to the first (baseline) CALM document.')
-        .requiredOption('-b, --document-b <file>', 'Path to the second CALM document to compare against the baseline.')
+        .option('-a, --document-a <file>', 'Path to the first (baseline) CALM document.')
+        .option('-b, --document-b <file>', 'Path to the second CALM document to compare against the baseline.')
+        // Deprecated aliases retained for backwards compatibility with cli-v1.41.0,
+        // which shipped the diff command with architecture-only long flags.
+        .addOption(new Option('--architecture-a <file>', 'Deprecated alias for --document-a.').hideHelp())
+        .addOption(new Option('--architecture-b <file>', 'Deprecated alias for --document-b.').hideHelp())
         .addOption(
             new Option('-f, --format <format>', 'Output format')
                 .choices(['json', 'summary'])
@@ -268,11 +272,19 @@ Validation requires:
         .option(OUTPUT_OPTION, 'Path location at which to write the diff output. If omitted, prints to stdout.')
         .option('--exit-code', 'Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.', false)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-        .action(async (options) => {
+        .action(async (options, command) => {
+            const documentAPath = options.documentA ?? options.architectureA;
+            const documentBPath = options.documentB ?? options.architectureB;
+            if (!documentAPath || !documentBPath) {
+                command.error('error: both -a/--document-a <file> and -b/--document-b <file> are required');
+            }
+            if (options.architectureA || options.architectureB) {
+                process.stderr.write('warning: --architecture-a/--architecture-b are deprecated; use --document-a/--document-b.\n');
+            }
             const { runDiffCommand } = await import('./command-helpers/diff');
             const hasChanges = await runDiffCommand({
-                documentAPath: options.documentA,
-                documentBPath: options.documentB,
+                documentAPath,
+                documentBPath,
                 outputFormat: options.format,
                 outputPath: options.output,
                 documentType: options.type,
