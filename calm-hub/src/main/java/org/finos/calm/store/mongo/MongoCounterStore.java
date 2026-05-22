@@ -7,6 +7,7 @@ import com.mongodb.client.model.ReturnDocument;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * Provides atomically-incrementing sequence counters for generating unique integer IDs
@@ -30,6 +31,7 @@ import org.bson.Document;
  * {@link com.mongodb.MongoException}, preventing any entity from being created with
  * an invalid or duplicate ID.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoCounterStore.class)
 public class MongoCounterStore {

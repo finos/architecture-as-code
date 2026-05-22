@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * NitriteDB-backed implementation of {@link SearchStore}.
@@ -30,6 +31,7 @@ import java.util.Set;
  * Controls are scoped by domain rather than namespace, so they bypass the
  * readable-namespaces filter.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 @Typed(NitriteSearchStore.class)
 public class NitriteSearchStore implements SearchStore {

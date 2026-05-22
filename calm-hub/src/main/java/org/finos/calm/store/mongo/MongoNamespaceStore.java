@@ -13,6 +13,7 @@ import org.finos.calm.store.NamespaceStore;
 
 import java.util.ArrayList;
 import java.util.List;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link NamespaceStore}.
@@ -33,6 +34,7 @@ import java.util.List;
  * @see org.finos.calm.store.nitrite.NitriteNamespaceStore NitriteNamespaceStore for the
  *      contrasting ReentrantLock-based approach used in standalone mode
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoNamespaceStore.class)
 public class MongoNamespaceStore implements NamespaceStore {

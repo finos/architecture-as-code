@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.mongo.MongoControlStore;
 import org.finos.calm.store.nitrite.NitriteControlStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for ControlStore implementations.
@@ -20,10 +21,10 @@ public class ControlStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoControlStore mongoControlStore;
+    Instance<MongoControlStore> mongoControlStore;
 
     @Inject
-    NitriteControlStore standaloneControlStore;
+    Instance<NitriteControlStore> standaloneControlStore;
 
     /**
      * Produces the appropriate ControlStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class ControlStoreProducer {
     @ApplicationScoped
     public ControlStore produceControlStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneControlStore;
+            return standaloneControlStore.get();
         } else {
-            return mongoControlStore;
+            return mongoControlStore.get();
         }
     }
 }

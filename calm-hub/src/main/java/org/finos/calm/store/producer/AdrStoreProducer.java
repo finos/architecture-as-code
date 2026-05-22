@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.mongo.MongoAdrStore;
 import org.finos.calm.store.nitrite.NitriteAdrStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for AdrStore implementations.
@@ -20,10 +21,10 @@ public class AdrStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoAdrStore mongoAdrStore;
+    Instance<MongoAdrStore> mongoAdrStore;
 
     @Inject
-    NitriteAdrStore standaloneAdrStore;
+    Instance<NitriteAdrStore> standaloneAdrStore;
 
     /**
      * Produces the appropriate AdrStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class AdrStoreProducer {
     @ApplicationScoped
     public AdrStore produceAdrStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneAdrStore;
+            return standaloneAdrStore.get();
         } else {
-            return mongoAdrStore;
+            return mongoAdrStore.get();
         }
     }
 }

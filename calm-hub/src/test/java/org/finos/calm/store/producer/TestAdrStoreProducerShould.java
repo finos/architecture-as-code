@@ -9,26 +9,40 @@ import org.finos.calm.store.mongo.MongoAdrStore;
 import org.finos.calm.store.nitrite.NitriteAdrStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import jakarta.enterprise.inject.Instance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
 
-@QuarkusTest
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestAdrStoreProducerShould {
 
-    @InjectMock
+    @Mock
     MongoAdrStore mongoAdrStore;
 
-    @InjectMock
+    @Mock
+    Instance<MongoAdrStore> mongoAdrStoreInstance;
+
+    @Mock
     NitriteAdrStore nitriteAdrStore;
+
+    @Mock
+    Instance<NitriteAdrStore> nitriteAdrStoreInstance;
 
     private AdrStoreProducer adrStoreProducer;
 
     @BeforeEach
     void setup() {
         adrStoreProducer = new AdrStoreProducer();
-        adrStoreProducer.mongoAdrStore = mongoAdrStore;
-        adrStoreProducer.standaloneAdrStore = nitriteAdrStore;
+        when(mongoAdrStoreInstance.get()).thenReturn(mongoAdrStore);
+        adrStoreProducer.mongoAdrStore = mongoAdrStoreInstance;
+        when(nitriteAdrStoreInstance.get()).thenReturn(nitriteAdrStore);
+        adrStoreProducer.standaloneAdrStore = nitriteAdrStoreInstance;
     }
 
     @Test

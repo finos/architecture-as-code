@@ -1,7 +1,5 @@
 package org.finos.calm.store.producer;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.mongo.MongoFlowStore;
 import org.finos.calm.store.nitrite.NitriteFlowStore;
@@ -11,23 +9,39 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import jakarta.enterprise.inject.Instance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
-@QuarkusTest
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestFlowStoreProducerShould {
 
-    @InjectMock
+    @Mock
     MongoFlowStore mongoFlowStore;
 
-    @InjectMock
+    @Mock
+    Instance<MongoFlowStore> mongoFlowStoreInstance;
+
+    @Mock
     NitriteFlowStore nitriteFlowStore;
+
+    @Mock
+    Instance<NitriteFlowStore> nitriteFlowStoreInstance;
 
     private FlowStoreProducer flowStoreProducer;
 
     @BeforeEach
     void setup() {
         flowStoreProducer = new FlowStoreProducer();
-        flowStoreProducer.mongoFlowStore = mongoFlowStore;
-        flowStoreProducer.standaloneFlowStore = nitriteFlowStore;
+        when(mongoFlowStoreInstance.get()).thenReturn(mongoFlowStore);
+        flowStoreProducer.mongoFlowStore = mongoFlowStoreInstance;
+        when(nitriteFlowStoreInstance.get()).thenReturn(nitriteFlowStore);
+        flowStoreProducer.standaloneFlowStore = nitriteFlowStoreInstance;
     }
 
     @Test
