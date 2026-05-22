@@ -276,7 +276,7 @@ public class NitriteControlIntegration {
     @Order(23)
     void end_to_end_create_requirement_version_for_existing_control() {
         given()
-                .body("{\"type\": \"requirement-v2\"}")
+                .body("{\"name\":\"Access Control\",\"description\":\"Ensure proper access control mechanisms\",\"requirementJson\":\"{\\\"type\\\": \\\"requirement-v2\\\"}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
@@ -309,7 +309,7 @@ public class NitriteControlIntegration {
     @Order(26)
     void end_to_end_create_requirement_version_returns_409_for_existing_version() {
         given()
-                .body("{\"type\": \"duplicate\"}")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{\\\"type\\\": \\\"duplicate\\\"}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
                 .then()
@@ -320,7 +320,7 @@ public class NitriteControlIntegration {
     @Order(27)
     void end_to_end_create_requirement_version_returns_404_for_invalid_domain() {
         given()
-                .body("{}")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
@@ -331,7 +331,7 @@ public class NitriteControlIntegration {
     @Order(28)
     void end_to_end_create_requirement_version_returns_404_for_invalid_control() {
         given()
-                .body("{}")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions/2.0.0")
                 .then()
@@ -396,7 +396,7 @@ public class NitriteControlIntegration {
     @Order(33)
     void end_to_end_create_configuration_version() {
         given()
-                .body("{\"setting\": \"enabled-v2\"}")
+                .body("{\"configurationJson\":\"{\\\"setting\\\": \\\"enabled-v2\\\"}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/2.0.0")
                 .then()
@@ -429,7 +429,7 @@ public class NitriteControlIntegration {
     @Order(36)
     void end_to_end_create_configuration_version_returns_409_for_existing_version() {
         given()
-                .body("{\"setting\": \"dup\"}")
+                .body("{\"configurationJson\":\"{\\\"setting\\\": \\\"dup\\\"}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/1.0.0")
                 .then()
@@ -440,10 +440,78 @@ public class NitriteControlIntegration {
     @Order(37)
     void end_to_end_create_configuration_version_returns_404_for_invalid_config() {
         given()
-                .body("{}")
+                .body("{\"configurationJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/2.0.0")
                 .then()
                 .statusCode(404);
+    }
+
+    // --- Wrapper name/description sync from JSON body on new requirement version ---
+
+    @Test
+    @Order(40)
+    void end_to_end_list_controls_returns_wrapper_name_and_description_from_create() {
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .then()
+                .statusCode(200)
+                .body("values[0].id", equalTo(1))
+                .body("values[0].name", equalTo("Access Control"))
+                .body("values[0].description", equalTo("Ensure proper access control mechanisms"));
+    }
+
+    @Test
+    @Order(41)
+    void end_to_end_create_requirement_version_with_name_and_description_in_envelope() {
+        String versionBody = "{\"name\": \"Updated Access Control\", \"description\": \"Refined access control requirement\", \"requirementJson\": \"{\\\"type\\\": \\\"requirement-v3\\\"}\"}";
+
+        given()
+                .body(versionBody)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0"));
+    }
+
+    @Test
+    @Order(42)
+    void end_to_end_list_controls_reflects_updated_name_and_description_after_new_version() {
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .then()
+                .statusCode(200)
+                .body("values.find { it.id == 1 }.name", equalTo("Updated Access Control"))
+                .body("values.find { it.id == 1 }.description", equalTo("Refined access control requirement"));
+    }
+
+    @Test
+    @Order(43)
+    void end_to_end_create_requirement_version_stores_only_inner_json_and_updates_wrapper() {
+        String inner = "{\"type\": \"requirement-v4\"}";
+        String envelope = "{\"name\": \"Final Access Control\", \"description\": \"Final\", \"requirementJson\": \"" + inner.replace("\"", "\\\"") + "\"}";
+
+        given()
+                .body(envelope)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
+                .then()
+                .statusCode(201);
+
+        // Stored content must be the inner requirementJson verbatim, not the envelope
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
+                .then()
+                .statusCode(200)
+                .body("type", equalTo("requirement-v4"));
+
+        // Wrapper reflects the latest envelope name/description
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .then()
+                .statusCode(200)
+                .body("values.find { it.id == 1 }.name", equalTo("Final Access Control"))
+                .body("values.find { it.id == 1 }.description", equalTo("Final"));
     }
 }

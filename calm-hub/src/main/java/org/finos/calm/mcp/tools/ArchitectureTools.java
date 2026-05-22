@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -32,6 +33,10 @@ public class ArchitectureTools {
     boolean mcpEnabled;
 
     @Inject
+    @ConfigProperty(name = "allow.put.operations", defaultValue = "false")
+    boolean allowPutOperations;
+
+    @Inject
     ArchitectureStore architectureStore;
 
     @Tool(description = "List all architectures in a CalmHub namespace. Returns architecture IDs, names, and descriptions.")
@@ -44,24 +49,13 @@ public class ArchitectureTools {
 
         try {
             List<NamespaceArchitectureSummary> architectures = architectureStore.getArchitecturesForNamespace(namespace);
-            if (architectures.isEmpty()) {
-                return ToolResponse.success("No architectures found in namespace '" + namespace + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("Architectures in '").append(namespace).append("':\n");
-            for (NamespaceArchitectureSummary arch : architectures) {
-                sb.append("- ID: ").append(arch.getId());
-                if (arch.getName() != null) {
-                    sb.append(", Name: ").append(arch.getName());
-                }
-                if (arch.getDescription() != null) {
-                    sb.append(", Description: ").append(arch.getDescription());
-                }
-                sb.append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            List<McpResponseFormatter.ResourceSummary> summaries = architectures.stream()
+                    .map(a -> new McpResponseFormatter.ResourceSummary(a.getId(), a.getName(), a.getDescription()))
+                    .toList();
+            return McpResponseFormatter.formatResourceList("architecture", namespace, summaries);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         }
     }
 
@@ -81,20 +75,13 @@ public class ArchitectureTools {
                     .setId(architectureId)
                     .build();
             List<String> versions = architectureStore.getArchitectureVersions(arch);
-            if (versions.isEmpty()) {
-                return ToolResponse.success("No versions found for architecture " + architectureId + " in namespace '" + namespace + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("Versions for architecture ").append(architectureId).append(":\n");
-            for (String version : versions) {
-                sb.append("- ").append(version).append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            return McpResponseFormatter.formatVersionList("architecture", architectureId, namespace, versions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         } catch (ArchitectureNotFoundException e) {
             logger.warn("Architecture [{}] not found in namespace [{}]", architectureId, namespace, e);
-            return ToolResponse.error("Error: Architecture " + architectureId + " not found in namespace '" + namespace + "'.");
+            return McpResponseFormatter.entityNotFound("architecture", architectureId, namespace);
         }
     }
 
@@ -119,13 +106,72 @@ public class ArchitectureTools {
             return ToolResponse.success(architectureStore.getArchitectureForVersion(arch));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         } catch (ArchitectureNotFoundException e) {
             logger.warn("Architecture [{}] not found in namespace [{}]", architectureId, namespace, e);
-            return ToolResponse.error("Error: Architecture " + architectureId + " not found in namespace '" + namespace + "'.");
+            return McpResponseFormatter.entityNotFound("architecture", architectureId, namespace);
         } catch (ArchitectureVersionNotFoundException e) {
             logger.warn("Version [{}] not found for architecture [{}] in namespace [{}]", version, architectureId, namespace, e);
-            return ToolResponse.error("Error: Version '" + version + "' not found for architecture " + architectureId + ".");
+            return McpResponseFormatter.versionNotFound("architecture", architectureId, version);
+        }
+    }
+
+    @Tool(description = "Publish a new version of an existing architecture. Use this to add a new semantic version (e.g. '1.1.0') against an existing architecture ID without allocating a new identity. Optionally supply name or description to overwrite them; omit (or pass null) to retain existing values.")
+    public ToolResponse updateArchitecture(
+            @ToolArg(description = "The namespace containing the architecture") String namespace,
+            @ToolArg(description = "The architecture ID to publish a new version for (positive integer)") int architectureId,
+            @ToolArg(description = "The new version string to publish (e.g. '1.1.0')") String version,
+            @ToolArg(description = "The full CALM architecture JSON content for this version") String architectureJson,
+            @ToolArg(description = "Optional new name for the architecture; omit to keep existing name", required = false) String name,
+            @ToolArg(description = "Optional new description for the architecture; omit to keep existing description", required = false) String description) {
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.checkMutationAllowed(allowPutOperations),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateVersion(version),
+                () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
+                () -> McpValidationHelper.validateMaxLength(architectureJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Architecture JSON"),
+                () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Architecture name"),
+                () -> McpValidationHelper.validateDescriptionLength(description, "Architecture description"),
+                () -> McpValidationHelper.validateJson(architectureJson, "Architecture JSON"));
+        if (err.isPresent()) return err.get();
+
+        String resolvedName = name;
+        String resolvedDescription = description;
+        if (resolvedName == null || resolvedDescription == null) {
+            try {
+                List<NamespaceArchitectureSummary> summaries = architectureStore.getArchitecturesForNamespace(namespace);
+                for (NamespaceArchitectureSummary summary : summaries) {
+                    if (Objects.equals(summary.getId(), architectureId)) {
+                        if (resolvedName == null) resolvedName = summary.getName();
+                        if (resolvedDescription == null) resolvedDescription = summary.getDescription();
+                        break;
+                    }
+                }
+            } catch (NamespaceNotFoundException e) {
+                // will be surfaced below when updateArchitectureForVersion is called
+            }
+        }
+
+        try {
+            Architecture architecture = new Architecture.ArchitectureBuilder()
+                    .setNamespace(namespace)
+                    .setId(architectureId)
+                    .setVersion(version)
+                    .setName(resolvedName)
+                    .setDescription(resolvedDescription)
+                    .setArchitecture(architectureJson)
+                    .build();
+            architectureStore.updateArchitectureForVersion(architecture);
+            logger.info("Architecture [{}] updated with version [{}] in namespace [{}]", architectureId, version, namespace);
+            return ToolResponse.success("Architecture " + architectureId + " updated successfully with version '" + version + "' in namespace '" + namespace + "'.");
+        } catch (NamespaceNotFoundException e) {
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return McpResponseFormatter.namespaceNotFound(namespace);
+        } catch (ArchitectureNotFoundException e) {
+            logger.warn("Architecture [{}] not found in namespace [{}]", architectureId, namespace, e);
+            return McpResponseFormatter.entityNotFound("architecture", architectureId, namespace);
         }
     }
 
@@ -141,6 +187,7 @@ public class ArchitectureTools {
                 () -> McpValidationHelper.validateMaxLength(name, McpValidationHelper.MAX_NAME_LENGTH, "Architecture name"),
                 () -> McpValidationHelper.validateDescriptionLength(description, "Architecture description"),
                 () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
+                () -> McpValidationHelper.validateMaxLength(architectureJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Architecture JSON"),
                 () -> McpValidationHelper.validateJson(architectureJson, "Architecture JSON"));
         if (err.isPresent()) return err.get();
 
@@ -156,7 +203,7 @@ public class ArchitectureTools {
             return ToolResponse.success("Architecture created successfully with ID: " + result.getId() + " (version " + result.getDotVersion() + ") in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return McpResponseFormatter.namespaceNotFound(namespace);
         }
     }
 }

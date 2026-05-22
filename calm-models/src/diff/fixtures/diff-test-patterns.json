@@ -1,0 +1,351 @@
+{
+  "basePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Base Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": { "const": "payment-service" },
+              "name": { "const": "Payment Service" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": { "const": "user-db" },
+              "name": { "const": "User Database" },
+              "node-type": { "const": "database" }
+            }
+          }
+        ]
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
+            "properties": {
+              "unique-id": { "const": "gateway-to-payment" },
+              "description": { "const": "Gateway routes to payment service" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+              }
+            }
+          },
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
+            "properties": {
+              "unique-id": { "const": "payment-to-db" },
+              "description": { "const": "Payment persists to database" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "user-db" } } }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Addition Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "payment-service" },
+              "name": { "const": "Payment Service" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "user-db" },
+              "name": { "const": "User Database" },
+              "node-type": { "const": "database" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "audit-service" },
+              "name": { "const": "Audit Service" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ]
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "gateway-to-payment" },
+              "description": { "const": "Gateway routes to payment service" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+              }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "payment-to-db" },
+              "description": { "const": "Payment persists to database" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "user-db" } } }
+              }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "payment-to-audit" },
+              "description": { "const": "Payment emits audit events" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "audit-service" } } }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "removalPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Removal Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "payment-service" },
+              "name": { "const": "Payment Service" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ]
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "gateway-to-payment" },
+              "description": { "const": "Gateway routes to payment service" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "modificationPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Modification Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway v2" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "payment-service" },
+              "name": { "const": "Payment Service" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "user-db" },
+              "name": { "const": "User Database" },
+              "node-type": { "const": "database" }
+            }
+          }
+        ]
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "gateway-to-payment" },
+              "description": { "const": "Gateway routes to payment service" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+              }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "payment-to-db" },
+              "description": { "const": "Payment persists to database" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "user-db" } } }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "renamePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Rename Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "payment-processor" },
+              "name": { "const": "Payment Service" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "user-db" },
+              "name": { "const": "User Database" },
+              "node-type": { "const": "database" }
+            }
+          }
+        ]
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "gateway-to-payment" },
+              "description": { "const": "Gateway routes to payment service" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+              }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "payment-to-db" },
+              "description": { "const": "Payment persists to database" },
+              "relationship-type": {
+                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "user-db" } } }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "allOfPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "AllOf Wrapped Pattern",
+    "allOf": [
+      {
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "properties": {
+                  "unique-id": { "const": "api-gateway" },
+                  "name": { "const": "API Gateway" },
+                  "node-type": { "const": "service" }
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "decisionPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Decision Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "unique-id": { "const": "postgres-store" },
+                  "name": { "const": "Postgres Store" },
+                  "node-type": { "const": "database" }
+                }
+              },
+              {
+                "properties": {
+                  "unique-id": { "const": "dynamo-store" },
+                  "name": { "const": "DynamoDB Store" },
+                  "node-type": { "const": "database" }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
+    }
+  }
+}

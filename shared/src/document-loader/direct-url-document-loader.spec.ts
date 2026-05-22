@@ -114,10 +114,12 @@ describe('direct-url-document-loader', () => {
             .rejects.not.toThrow('private or internal network addresses are not allowed');
     });
 
-    it('rejects non-allowlisted public hosts', async () => {
+    it('rejects non-allowlisted public hosts with helpful guidance', async () => {
         const url = 'https://example.com/public-schema.json';
         await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
             .rejects.toThrow('is not allowlisted');
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('calm init-config --allowed-remote-hosts example.com');
     });
 
     it('allows loading from configured allowlisted host', async () => {
@@ -149,5 +151,26 @@ describe('direct-url-document-loader', () => {
     it('rejects URLs that include credentials', async () => {
         await expect(directUrlDocumentLoader.loadMissingDocument('https://user:secret@calm.finos.org/core.json', 'schema'))
             .rejects.toThrow('Credentials in URL are not allowed');
+    });
+
+    it('throws when response is a string instead of an object', async () => {
+        mock.onGet('/string-response.json').reply(200, 'just a string');
+        const promise = directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/string-response.json', 'schema');
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toThrow('Expected a JSON object');
+    });
+
+    it('throws when response is null', async () => {
+        mock.onGet('/null-response.json').reply(200, null);
+        const promise = directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/null-response.json', 'schema');
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toThrow('Expected a JSON object');
+    });
+
+    it('throws when response is an array', async () => {
+        mock.onGet('/array-response.json').reply(200, [{ '$id': 'foo' }]);
+        const promise = directUrlDocumentLoader.loadMissingDocument('https://calm.finos.org/array-response.json', 'schema');
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toThrow('Expected a JSON object');
     });
 });

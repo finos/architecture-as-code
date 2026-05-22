@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
-import { DocumentLoader } from './document-loader';
+import { DocumentLoader, DocumentLoadError } from './document-loader';
 import { SchemaDirectory } from '../schema-directory';
 
 describe('MultiStrategyDocumentLoader', () => {
@@ -39,6 +39,64 @@ describe('MultiStrategyDocumentLoader', () => {
         expect(result).toEqual({ foo: 'bar' });
         expect(mockLoader1.loadMissingDocument).toHaveBeenCalled();
         expect(mockLoader2.loadMissingDocument).toHaveBeenCalled();
+    });
+
+    it('surfaces a fatal (non-recoverable) error immediately without trying later loaders', async () => {
+        const fatalError = new DocumentLoadError({
+            name: 'UNKNOWN',
+            message: 'Expected a JSON object from calm:/foo but received: string',
+            recoverable: false
+        });
+        const mockLoader1: DocumentLoader = {
+            initialise: vi.fn(),
+            loadMissingDocument: vi.fn().mockRejectedValue(fatalError),
+            resolvePath: vi.fn()
+        };
+        const mockLoader2: DocumentLoader = {
+            initialise: vi.fn(),
+            loadMissingDocument: vi.fn().mockResolvedValue({ foo: 'bar' }),
+            resolvePath: vi.fn()
+        };
+        const multi = new MultiStrategyDocumentLoader([mockLoader1, mockLoader2]);
+
+        await expect(multi.loadMissingDocument('calm:/foo', 'schema'))
+            .rejects.toThrow('Expected a JSON object from calm:/foo but received: string');
+        expect(mockLoader1.loadMissingDocument).toHaveBeenCalled();
+        // The fatal error must not be masked by a later loader.
+        expect(mockLoader2.loadMissingDocument).not.toHaveBeenCalled();
+    });
+
+    it('falls through recoverable errors but stops at the first fatal error', async () => {
+        const recoverableError = new DocumentLoadError({
+            name: 'OPERATION_NOT_IMPLEMENTED',
+            message: 'not mine'
+        });
+        const fatalError = new DocumentLoadError({
+            name: 'UNKNOWN',
+            message: 'fetched but invalid',
+            recoverable: false
+        });
+        const mockLoader1: DocumentLoader = {
+            initialise: vi.fn(),
+            loadMissingDocument: vi.fn().mockRejectedValue(recoverableError),
+            resolvePath: vi.fn()
+        };
+        const mockLoader2: DocumentLoader = {
+            initialise: vi.fn(),
+            loadMissingDocument: vi.fn().mockRejectedValue(fatalError),
+            resolvePath: vi.fn()
+        };
+        const mockLoader3: DocumentLoader = {
+            initialise: vi.fn(),
+            loadMissingDocument: vi.fn().mockResolvedValue({ foo: 'bar' }),
+            resolvePath: vi.fn()
+        };
+        const multi = new MultiStrategyDocumentLoader([mockLoader1, mockLoader2, mockLoader3]);
+
+        await expect(multi.loadMissingDocument('id', 'schema')).rejects.toThrow('fetched but invalid');
+        expect(mockLoader1.loadMissingDocument).toHaveBeenCalled();
+        expect(mockLoader2.loadMissingDocument).toHaveBeenCalled();
+        expect(mockLoader3.loadMissingDocument).not.toHaveBeenCalled();
     });
 
     it('throws if all loaders fail', async () => {

@@ -8,9 +8,14 @@ interface SectionHeaderProps {
     id: string;
     version: string;
     rightContent?: ReactNode;
+    /** When provided (and non-empty), the version renders as a selectable dropdown. */
+    versions?: string[];
+    onVersionChange?: (version: string) => void;
+    /** Rendered inline immediately after the version (e.g. a Compare button). */
+    titleActions?: ReactNode;
 }
 
-export function SectionHeader({ icon, namespace, id, version, rightContent }: SectionHeaderProps) {
+export function SectionHeader({ icon, namespace, id, version, rightContent, versions, onVersionChange, titleActions }: SectionHeaderProps) {
     const [copied, setCopied] = useState(false);
     const [pinned, setPinned] = useState(false);
     const showShareBar = isSlug(id);
@@ -28,10 +33,27 @@ export function SectionHeader({ icon, namespace, id, version, rightContent }: Se
     return (
         <div>
             <div className="bg-base-200 px-6 py-4 flex items-center justify-between border-b border-base-300">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
+                <h2 className="text-xl font-semibold flex items-center gap-2 whitespace-nowrap">
                     {icon}
                     {namespace} <span className="text-gray-400">/</span> {id}{' '}
-                    <span className="text-gray-400">/</span> {version}
+                    <span className="text-gray-400">/</span>{' '}
+                    {versions && versions.length > 0 ? (
+                        <select
+                            className="select select-ghost text-xl font-semibold !h-auto !min-h-0 !py-0 !pl-1 !pr-6 !leading-tight !border-0 focus:!outline-none"
+                            value={version}
+                            onChange={(e) => onVersionChange?.(e.target.value)}
+                            aria-label="Version"
+                        >
+                            {(versions.includes(version) ? versions : [version, ...versions]).map((v) => (
+                                <option key={v} value={v}>
+                                    {v}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <span>{version}</span>
+                    )}
+                    {titleActions}
                 </h2>
                 {rightContent}
             </div>

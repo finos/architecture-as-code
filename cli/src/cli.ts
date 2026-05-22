@@ -1,10 +1,11 @@
 import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
-import { promptUserForOptions } from './command-helpers/generate-options';
+import { promptUserForOptions, loadChoicesFromInput } from './command-helpers/generate-options';
 import * as cliConfig from './cli-config';
 import path from 'path';
 import { select } from '@inquirer/prompts';
+import { CreateNamespaceOptions, ListArchitecturesOptions, ListNamespacesOptions, PullArchitectureOptions, PushArchitectureOptions, runCreateNamespace, runListArchitectures, runListNamespaces, runPullArchitecture, runPushArchitecture } from './command-helpers/hub-commands';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -16,6 +17,7 @@ const VERBOSE_OPTION = '-v, --verbose';
 // Generate command options
 const PATTERN_OPTION = '-p, --pattern <file>';
 const CALMHUB_URL_OPTION = '-c, --calm-hub-url <url>';
+const OPTION_CHOICES_OPTION = '--option-choices <choices>';
 
 // Validate command options
 const FORMAT_OPTION = '-f, --format <format>';
@@ -33,6 +35,13 @@ const AI_DIRECTORY_OPTION = '-d, --directory <path>';
 const AI_PROVIDER_OPTION = '-p, --provider <provider>';
 const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
 
+// Hub command options
+const NAMESPACE_OPTION = '--namespace <namespace>';
+const NAME_OPTION = '--name <name>';
+const DESCRIPTION_OPTION = '--description <description>';
+const ID_OPTION = '--id <id>';
+const HUB_VERSION_OPTION = '--ver <version>'; // --version conflicts with Commander's built-in version flag
+
 export function setupCLI(program: Command) {
     program
         .name('calm')
@@ -47,6 +56,7 @@ export function setupCLI(program: Command) {
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
+        .option(OPTION_CHOICES_OPTION, 'Pre-defined option choices as a JSON object mapping option unique-ids to choice descriptions, or a path to a JSON file. Skips interactive prompts.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const debug = !!options.verbose;
@@ -57,7 +67,9 @@ export function setupCLI(program: Command) {
             const docLoader = buildDocumentLoader(docLoaderOpts);
             const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
             const pattern: object = await docLoader.loadMissingDocument(options.pattern, 'pattern');
-            const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
+            const choices: CalmChoice[] = options.optionChoices
+                ? loadChoicesFromInput(options.optionChoices, pattern, debug)
+                : await promptUserForOptions(pattern, options.verbose);
             await runGenerate(pattern, options.output, debug, schemaDirectory, choices);
         });
 
@@ -239,6 +251,183 @@ Validation requires:
             await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
+    program
+        .command('diff')
+        .description('Compare two CALM documents (architectures or patterns) and report what changed.')
+        .option('-a, --document-a <file>', 'Path to the first (baseline) CALM document.')
+        .option('-b, --document-b <file>', 'Path to the second CALM document to compare against the baseline.')
+        // Deprecated aliases retained for backwards compatibility with cli-v1.41.0,
+        // which shipped the diff command with architecture-only long flags.
+        .addOption(new Option('--architecture-a <file>', 'Deprecated alias for --document-a.').hideHelp())
+        .addOption(new Option('--architecture-b <file>', 'Deprecated alias for --document-b.').hideHelp())
+        .addOption(
+            new Option('-f, --format <format>', 'Output format')
+                .choices(['json', 'summary'])
+                .default('json')
+        )
+        .addOption(
+            new Option('-t, --type <type>', 'Force the document type instead of auto-detecting it.')
+                .choices(['architecture', 'pattern'])
+        )
+        .option(OUTPUT_OPTION, 'Path location at which to write the diff output. If omitted, prints to stdout.')
+        .option('--exit-code', 'Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.', false)
+        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .action(async (options, command) => {
+            const documentAPath = options.documentA ?? options.architectureA;
+            const documentBPath = options.documentB ?? options.architectureB;
+            if (!documentAPath || !documentBPath) {
+                command.error('error: both -a/--document-a <file> and -b/--document-b <file> are required');
+            }
+            if (options.architectureA || options.architectureB) {
+                process.stderr.write('warning: --architecture-a/--architecture-b are deprecated; use --document-a/--document-b.\n');
+            }
+            const { runDiffCommand } = await import('./command-helpers/diff');
+            const hasChanges = await runDiffCommand({
+                documentAPath,
+                documentBPath,
+                outputFormat: options.format,
+                outputPath: options.output,
+                documentType: options.type,
+                verbose: !!options.verbose,
+            });
+            if (options.exitCode && hasChanges) {
+                process.exit(1);
+            }
+        });
+
+    program
+        .command('init-config')
+        .description('Create or update the CALM CLI configuration file (~/.calm.json).')
+        .option('--allowed-remote-hosts <hosts>', 'Comma-separated list of trusted remote hosts to allow for direct URL loading')
+        .option('--calm-hub-url <url>', 'URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents')
+        .action(async (options) => {
+            const existingConfig = await cliConfig.loadCliConfig() ?? {};
+
+            if (options.allowedRemoteHosts) {
+                const newHosts = (options.allowedRemoteHosts as string).split(',').map((h: string) => h.trim()).filter(Boolean);
+                const existingHosts = existingConfig.allowedRemoteHosts ?? [];
+                const merged = [...new Set([...existingHosts, ...newHosts])];
+                existingConfig.allowedRemoteHosts = merged;
+            }
+
+            if (options.calmHubUrl) {
+                existingConfig.calmHubUrl = options.calmHubUrl;
+            }
+
+            const configPath = cliConfig.getUserConfigLocation();
+            await cliConfig.saveCliConfig(existingConfig);
+            console.log(`✅ Configuration saved to ${configPath}`);
+            console.log(JSON.stringify(existingConfig, null, 2));
+        });
+
+    // ── hub ───────────────────────────────────────────────────────────────────
+
+    const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'pretty']).default('json');
+
+    const hubCmd = new Command('hub').description('Interact with CALM Hub');
+
+    // hub push
+    const hubPushCmd = hubCmd.command('push').description('Push a CALM document to CALM Hub');
+
+    hubPushCmd
+        .command('architecture <architecture-file>')
+        .description('Push a CALM architecture file to CALM Hub')
+        .option(NAME_OPTION, 'Name for the architecture in CALM Hub (required when creating a new architecture)')
+        .option(DESCRIPTION_OPTION, 'Description for the architecture')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(ID_OPTION, 'Existing architecture ID (required when adding a new version)')
+        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
+        .addOption(hubOutputOption)
+        .action(async (architectureFile, options) => {
+            const pushOptions: PushArchitectureOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                name: options.name,
+                description: options.description,
+                file: architectureFile,
+                id: options.id,
+                version: options.ver,
+                format: options.format
+            };
+            await runPushArchitecture(pushOptions);
+        });
+
+    // hub pull
+    const hubPullCmd = hubCmd.command('pull').description('Pull a CALM document from CALM Hub');
+
+    hubPullCmd
+        .command('architecture')
+        .description('Pull a specific version of a CALM architecture from CALM Hub')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .requiredOption(ID_OPTION, 'Architecture ID to pull')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const pullOptions: PullArchitectureOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                id: options.id,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullArchitecture(pullOptions);
+        });
+
+    // hub list
+    const hubListCmd = hubCmd.command('list').description('List CALM Hub resources');
+
+    hubListCmd
+        .command('architectures')
+        .description('List architectures in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listOptions: ListArchitecturesOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListArchitectures(listOptions);
+        });
+
+    hubListCmd
+        .command('namespaces')
+        .description('List all namespaces')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listOptions: ListNamespacesOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                format: options.format
+            };
+            await runListNamespaces(listOptions);
+        });
+
+    // hub create
+    const hubCreateCmd = hubCmd.command('create').description('Create CALM Hub resources');
+
+    hubCreateCmd
+        .command('namespace')
+        .description('Create a new namespace in CALM Hub')
+        .requiredOption(NAME_OPTION, 'Namespace name')
+        .requiredOption(DESCRIPTION_OPTION, 'Namespace description')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const createOptions: CreateNamespaceOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                name: options.name,
+                description: options.description,
+                format: options.format
+            };
+            await runCreateNamespace(createOptions);
+        });
+
+    program.addCommand(hubCmd);
+
 }
 
 interface ParseDocumentLoaderOptions {
@@ -268,6 +457,19 @@ export async function parseDocumentLoaderConfig(
         logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
         docLoaderOpts.calmHubUrl = userConfig.calmHubUrl;
     }
+    
+    // if we have an auth plugin and we have calmHub configured
+    if (userConfig && userConfig.authPluginPath) {
+        logger.info('Loading auth plugin from config file: ' + userConfig.authPluginPath);
+        try {
+            const authPlugin = await cliConfig.loadAuthPlugin(userConfig.authPluginPath, !!options.verbose);
+            docLoaderOpts.authPlugin = authPlugin;
+            logger.debug('Auth plugin loaded successfully');
+        } catch (err) {
+            logger.error('Failed to load auth plugin: ' + (err instanceof Error ? err.message : String(err)));
+        }
+    }
+
     if (userConfig && userConfig.allowedRemoteHosts && !options.allowedRemoteHosts) {
         logger.info('Using allowed remote hosts from config file');
         docLoaderOpts.allowedRemoteHosts = userConfig.allowedRemoteHosts;

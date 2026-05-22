@@ -1,5 +1,7 @@
 import { fs, vol } from 'memfs';
-import { loadCliConfig } from './cli-config';
+import { loadCliConfig, loadAuthPlugin } from './cli-config';
+import { resolve } from 'path';
+import { homedir } from 'os';
 
 vi.mock('fs/promises', async () => {
     const memfs: { fs: typeof fs } = await vi.importActual('memfs');
@@ -7,15 +9,25 @@ vi.mock('fs/promises', async () => {
     return memfs.fs.promises;
 });
 
+vi.mock('fs', async () => {
+    const memfs: { fs: typeof fs } = await vi.importActual('memfs');
+    return memfs.fs;
+});
+
 vi.mock('os', () => ({
-    homedir: () => '/home/user'
+    homedir: vi.fn(() => '/home/user'),
+    
 }));
+
 
 const exampleConfig = {
     calmHubUrl: 'https://example.com/calmhub',
-    allowedRemoteHosts: ['schemas.example.com']
+    allowedRemoteHosts: ['schemas.example.com'],
+    authPluginPath: './auth-plugin.js'
 };
 
+const FIXTURES_DIR = resolve(__dirname, '../test_fixtures');
+const JS_FIXTURE = resolve(FIXTURES_DIR, 'test-auth-plugin.js');
 
 describe('cli-config', () => {
     beforeEach(() => {
@@ -24,6 +36,8 @@ describe('cli-config', () => {
 
     afterEach(() => {
         vol.reset();
+        vi.mocked(homedir).mockReturnValue('/home/user');
+        vi.unstubAllEnvs();
     });
 
     it('loads user config from .calm.json in home dir', async () => {
@@ -34,15 +48,109 @@ describe('cli-config', () => {
         expect(config).toEqual(exampleConfig);
     });
 
-    it('returns null when .calm.json does not exist', async () => {
+    it('returns empty config when .calm.json does not exist', async () => {
         const config = await loadCliConfig();
-        expect(config).toBeNull();
+        expect(config).toEqual({ calmHubUrl: undefined, allowedRemoteHosts: undefined, authPluginPath: undefined });
     });
 
-    it('return undefined when .calm.json is invalid JSON', async () => {
+    it('returns empty config when .calm.json is invalid JSON', async () => {
         vol.fromJSON({
             '/home/user/.calm.json': 'invalid json'
         });
-        await expect(loadCliConfig()).resolves.toBeNull();
+        await expect(loadCliConfig()).resolves.toEqual({ calmHubUrl: undefined, allowedRemoteHosts: undefined, authPluginPath: undefined });
+    });
+
+    it('replaces homedir in auth plugin path', async () => {
+        vol.fromJSON({
+            '/home/user/.calm.json': JSON.stringify({
+                authPluginPath: '~/my-auth-plugin.js'
+            })
+        });
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({
+            authPluginPath: '~/my-auth-plugin.js'
+        });
+    });
+
+    it('loads JavaScript auth plugin from absolute path', async () => {
+        vol.fromJSON({
+            '/home/user/.calm.json': JSON.stringify({ authPluginPath: JS_FIXTURE }),
+            // just register this file exists. the actual loading mechanism, import(), will be handled by node which is mocked in the test environment to return a valid auth plugin.
+            [JS_FIXTURE]: '',
+        });
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({ authPluginPath: JS_FIXTURE });
+
+        const authPlugin = await loadAuthPlugin(config!.authPluginPath!, false);
+        expect(authPlugin.getAuthHeaders).toBeDefined();
+    });
+
+    it('loads JavaScript auth plugin with tilde path', async () => {
+        // Point homedir at FIXTURES_DIR so ~/test-auth-plugin.js resolves to the real fixture file
+        vi.mocked(homedir).mockReturnValue(FIXTURES_DIR);
+
+        vol.fromJSON({
+            [resolve(FIXTURES_DIR, '.calm.json')]: JSON.stringify({ authPluginPath: '~/test-auth-plugin.js' }),
+            [JS_FIXTURE]: '',
+        });
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({ authPluginPath: '~/test-auth-plugin.js' });
+
+        const authPlugin = await loadAuthPlugin(config!.authPluginPath!, false);
+        expect(authPlugin.getAuthHeaders).toBeDefined();
+    });
+    
+    it('loads config props from environment variables', async () => {
+        vi.stubEnv('CALM_HUB_URL', 'https://env-var.com/calmhub');
+        vi.stubEnv('CALM_ALLOWED_REMOTE_HOSTS', 'env1.example.com,env2.example.com');
+        vi.stubEnv('CALM_AUTH_PLUGIN_PATH', './env-auth-plugin.js');
+
+        vol.fromJSON({
+            '/home/user/.calm.json': '{}'
+        });
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({
+            calmHubUrl: 'https://env-var.com/calmhub',
+            allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
+            authPluginPath: './env-auth-plugin.js'
+        });
+    });
+    
+    it('loads config props from environment variables when config file is missing', async () => {
+        vi.stubEnv('CALM_HUB_URL', 'https://env-var.com/calmhub');
+        vi.stubEnv('CALM_ALLOWED_REMOTE_HOSTS', 'env1.example.com,env2.example.com');
+        vi.stubEnv('CALM_AUTH_PLUGIN_PATH', './env-auth-plugin.js');
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({
+            calmHubUrl: 'https://env-var.com/calmhub',
+            allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
+            authPluginPath: './env-auth-plugin.js'
+        });
+    });
+
+    it('overrides config file with config props from environment variables', async () => {
+        vi.stubEnv('CALM_HUB_URL', 'https://env-var.com/calmhub');
+        vi.stubEnv('CALM_ALLOWED_REMOTE_HOSTS', 'env1.example.com,env2.example.com');
+        vi.stubEnv('CALM_AUTH_PLUGIN_PATH', './env-auth-plugin.js');
+
+        vol.fromJSON({
+            '/home/user/.calm.json': JSON.stringify({
+                calmHubUrl: 'https://example.com/wrong-calmhub-url',
+                allowedRemoteHosts: ['wrong.example.com'],
+                authPluginPath: './bad-auth-plugin.js'
+            })
+        });
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({
+            calmHubUrl: 'https://env-var.com/calmhub',
+            allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
+            authPluginPath: './env-auth-plugin.js'
+        });
     });
 });

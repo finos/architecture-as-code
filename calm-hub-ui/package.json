@@ -39,7 +39,7 @@
         "web-vitals": "^5.0.1"
     },
     "devDependencies": {
-        "@eslint/js": "^10.0.0",
+        "@eslint/js": "^9.39.4",
         "@tailwindcss/typography": "^0.5.16",
         "@testing-library/cypress": "^10.1.0",
         "@testing-library/jest-dom": "^6.6.3",
@@ -60,7 +60,7 @@
         "eslint-plugin-react-refresh": "^0.5.0",
         "jsdom": "^26.0.0",
         "npm-force-resolutions": "^0.0.10",
-        "postcss": "^8.5.13",
+        "postcss": "^8.5.12",
         "prettier": "^3.3.3",
         "stylelint": "^16.26.0",
         "stylelint-config-standard": "^39.0.1",

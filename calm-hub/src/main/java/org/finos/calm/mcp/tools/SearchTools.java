@@ -40,16 +40,10 @@ public class SearchTools {
     public ToolResponse searchHub(
             @ToolArg(description = "The search query string (1-200 characters)") String query) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
-                () -> McpValidationHelper.checkEnabled(mcpEnabled));
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNotBlank(query, "Search query"),
+                () -> McpValidationHelper.validateMaxLength(query, MAX_QUERY_LENGTH, "Search query"));
         if (err.isPresent()) return err.get();
-
-        if (query == null || query.isBlank()) {
-            return ToolResponse.error("Error: Search query must not be blank.");
-        }
-
-        if (query.length() > MAX_QUERY_LENGTH) {
-            return ToolResponse.error("Error: Search query must not exceed " + MAX_QUERY_LENGTH + " characters.");
-        }
 
         GroupedSearchResults groupedResults = searchStore.search(query);
         Map<String, List<SearchResult>> groups = toGroupMap(groupedResults);
