@@ -139,8 +139,8 @@ public class MongoPatternIntegration {
 
     @Test
     @Order(6)
-    void end_to_end_create_pattern_version_with_name_and_description_in_json() {
-        String versionBody = "{\"name\": \"updated-pattern\", \"description\": \"updated pattern description\", \"nodes\": []}";
+    void end_to_end_create_pattern_version_with_name_and_description_in_envelope() {
+        String versionBody = "{\"name\": \"updated-pattern\", \"description\": \"updated pattern description\", \"patternJson\": \"{\\\"nodes\\\": []}\"}";
 
         given()
                 .body(versionBody)
@@ -165,19 +165,30 @@ public class MongoPatternIntegration {
 
     @Test
     @Order(8)
-    void end_to_end_create_pattern_version_without_name_in_json_preserves_wrapper() {
+    void end_to_end_create_pattern_version_stores_only_inner_patternJson_and_updates_wrapper() {
+        String inner = "{\"nodes\": [], \"relationships\": []}";
+        String envelope = "{\"name\": \"third-name\", \"description\": \"third description\", \"patternJson\": \"" + inner.replace("\"", "\\\"") + "\"}";
+
         given()
-                .body("{\"nodes\": [], \"relationships\": []}")
+                .body(envelope)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/patterns/1/versions/3.0.0")
                 .then()
                 .statusCode(201);
 
+        // Stored content must be the inner patternJson verbatim, not the envelope
+        given()
+                .when().get("/calm/namespaces/finos/patterns/1/versions/3.0.0")
+                .then()
+                .statusCode(200)
+                .body(equalTo(inner));
+
+        // Wrapper reflects the latest envelope name/description
         given()
                 .when().get("/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
-                .body("values[0].name", equalTo("updated-pattern"))
-                .body("values[0].description", equalTo("updated pattern description"));
+                .body("values[0].name", equalTo("third-name"))
+                .body("values[0].description", equalTo("third description"));
     }
 }

@@ -11,7 +11,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.finos.calm.domain.CalmJsonMetadata;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -184,7 +183,6 @@ public class MongoPatternStore implements PatternStore {
         getPatternVersions(pattern);
 
         Document parsedPattern = Document.parse(pattern.getPatternJson());
-        CalmJsonMetadata metadata = CalmJsonMetadata.extract(parsedPattern);
 
         // Atomic conditional update: only succeeds if the version doesn't already exist
         Document filter = new Document("namespace", pattern.getNamespace())
@@ -193,11 +191,13 @@ public class MongoPatternStore implements PatternStore {
                                 .append("versions." + pattern.getMongoVersion(), new Document("$exists", false))));
 
         Document setFields = new Document("patterns.$.versions." + pattern.getMongoVersion(), parsedPattern);
-        if (metadata.hasName()) {
-            setFields.append("patterns.$.name", metadata.getName());
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+        if (pattern.getName() != null && !pattern.getName().isBlank()) {
+            setFields.append("patterns.$.name", pattern.getName());
         }
-        if (metadata.hasDescription()) {
-            setFields.append("patterns.$.description", metadata.getDescription());
+        if (pattern.getDescription() != null && !pattern.getDescription().isBlank()) {
+            setFields.append("patterns.$.description", pattern.getDescription());
         }
         Document update = new Document("$set", setFields);
 
@@ -221,15 +221,16 @@ public class MongoPatternStore implements PatternStore {
         retrievePatternVersions(pattern);
 
         Document patternDocument = Document.parse(pattern.getPatternJson());
-        CalmJsonMetadata metadata = CalmJsonMetadata.extract(patternDocument);
         Document filter = new Document("namespace", pattern.getNamespace())
                 .append("patterns.patternId", pattern.getId());
         Document setFields = new Document("patterns.$.versions." + pattern.getMongoVersion(), patternDocument);
-        if (metadata.hasName()) {
-            setFields.append("patterns.$.name", metadata.getName());
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+        if (pattern.getName() != null && !pattern.getName().isBlank()) {
+            setFields.append("patterns.$.name", pattern.getName());
         }
-        if (metadata.hasDescription()) {
-            setFields.append("patterns.$.description", metadata.getDescription());
+        if (pattern.getDescription() != null && !pattern.getDescription().isBlank()) {
+            setFields.append("patterns.$.description", pattern.getDescription());
         }
         Document update = new Document("$set", setFields);
 

@@ -283,6 +283,14 @@ public class NitriteFlowStore implements FlowStore {
                         Document versions = flowDoc.get(VERSIONS_FIELD, Document.class);
                         versions.put(flow.getMongoVersion(), flow.getFlowJson());
                         flowDoc.put(VERSIONS_FIELD, versions);
+                        // Defensive: the REST layer enforces @NotBlank on name/description via CreateFlowRequest,
+                        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+                        if (flow.getName() != null && !flow.getName().isBlank()) {
+                            flowDoc.put(NAME_FIELD, flow.getName());
+                        }
+                        if (flow.getDescription() != null && !flow.getDescription().isBlank()) {
+                            flowDoc.put(DESCRIPTION_FIELD, flow.getDescription());
+                        }
                         flows.set(i, flowDoc);
                         found = true;
                         break;

@@ -9,7 +9,6 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
-import org.finos.calm.domain.CalmJsonMetadata;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -252,12 +251,13 @@ public class NitritePatternStore implements PatternStore {
             versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
             patternDoc.put(VERSIONS_FIELD, versions);
 
-            CalmJsonMetadata metadata = CalmJsonMetadata.extract(pattern.getPatternJson());
-            if (metadata.hasName()) {
-                patternDoc.put(NAME_FIELD, metadata.getName());
+            // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+            // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+            if (pattern.getName() != null && !pattern.getName().isBlank()) {
+                patternDoc.put(NAME_FIELD, pattern.getName());
             }
-            if (metadata.hasDescription()) {
-                patternDoc.put(DESCRIPTION_FIELD, metadata.getDescription());
+            if (pattern.getDescription() != null && !pattern.getDescription().isBlank()) {
+                patternDoc.put(DESCRIPTION_FIELD, pattern.getDescription());
             }
 
             // Update the pattern in the namespace document
@@ -308,12 +308,13 @@ public class NitritePatternStore implements PatternStore {
         versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
         patternDoc.put(VERSIONS_FIELD, versions);
 
-        CalmJsonMetadata metadata = CalmJsonMetadata.extract(pattern.getPatternJson());
-        if (metadata.hasName()) {
-            patternDoc.put(NAME_FIELD, metadata.getName());
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+        if (pattern.getName() != null && !pattern.getName().isBlank()) {
+            patternDoc.put(NAME_FIELD, pattern.getName());
         }
-        if (metadata.hasDescription()) {
-            patternDoc.put(DESCRIPTION_FIELD, metadata.getDescription());
+        if (pattern.getDescription() != null && !pattern.getDescription().isBlank()) {
+            patternDoc.put(DESCRIPTION_FIELD, pattern.getDescription());
         }
 
         // Update the pattern in the namespace document

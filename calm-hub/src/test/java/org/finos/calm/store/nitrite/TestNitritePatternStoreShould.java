@@ -657,13 +657,14 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
-    public void testCreatePatternForVersion_updatesWrapperNameAndDescriptionFromJson() throws Exception {
-        String json = "{\"name\":\"v2 name\",\"description\":\"v2 desc\"}";
+    public void testCreatePatternForVersion_updatesWrapperNameAndDescriptionFromEnvelope() throws Exception {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(NAMESPACE)
                 .setId(PATTERN_ID)
                 .setVersion("2-0-0")
-                .setPattern(json)
+                .setName("v2 name")
+                .setDescription("v2 desc")
+                .setPattern("{}")
                 .build();
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
@@ -692,13 +693,14 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
-    public void testUpdatePatternForVersion_updatesWrapperNameAndDescriptionFromJson() throws Exception {
-        String json = "{\"name\":\"updated\",\"description\":\"updated desc\"}";
+    public void testUpdatePatternForVersion_updatesWrapperNameAndDescriptionFromEnvelope() throws Exception {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(NAMESPACE)
                 .setId(PATTERN_ID)
                 .setVersion("1-0-0")
-                .setPattern(json)
+                .setName("updated")
+                .setDescription("updated desc")
+                .setPattern("{}")
                 .build();
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
