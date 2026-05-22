@@ -128,6 +128,12 @@ export const DeleteRelationshipSchema = z.object({
   file: z.string().optional()
 });
 
+export const FinalizeArchitectureSchema = z.object({
+  file: z.string().optional(),
+  /** Render SVG and include in the response. Defaults to true. */
+  render: z.boolean().optional().default(true)
+});
+
 export const CreateViewSchema = z.object({
   file: z.string().optional()
 });

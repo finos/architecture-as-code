@@ -143,6 +143,11 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'Guides',
+      items: ['calm-studio/guides/convert-arb-to-calm'],
+    },
+    {
+      type: 'category',
       label: 'Developer Guide',
       items: [
         'calm-studio/developer-guide/extension-packs',
