@@ -28,8 +28,8 @@ beforeEach(() => {
 });
 
 const baseOptions = {
-    architectureAPath: 'a.json',
-    architectureBPath: 'b.json',
+    documentAPath: 'a.json',
+    documentBPath: 'b.json',
     outputFormat: 'json' as const,
     outputPath: undefined,
     verbose: false,
