@@ -153,7 +153,7 @@ public class ControlResource {
     @Path("{domain}/controls/{controlId}/requirement/versions/{version}")
     @Operation(
             summary = "Create a new requirement version for a control",
-            description = "Creates a new version of the requirement for an existing control. The wrapper-level name and description used by the control listing endpoint are refreshed from the top-level `name` and `description` fields of the supplied JSON body when present, so listings reflect the latest version's metadata."
+            description = "Creates a new version of the requirement for an existing control. The request body is an envelope containing the wrapper-level `name`, `description`, and inner `requirementJson` document; only the inner document is persisted as the version contents, and the wrapper-level name/description used by the control listing endpoint are taken directly from the envelope fields."
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createRequirementForVersion(
@@ -164,9 +164,9 @@ public class ControlResource {
             @PathParam("version")
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version,
-            String requirementJson) {
+            @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
         try {
-            store.createRequirementForVersion(domain, controlId, version, requirementJson);
+            store.createRequirementForVersion(domain, controlId, version, createControlRequirement);
             return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/requirement/versions/" + version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating requirement version", domain, e);
@@ -302,7 +302,7 @@ public class ControlResource {
     @Path("{domain}/controls/{controlId}/configurations/{configId}/versions/{version}")
     @Operation(
             summary = "Create a new version of a control configuration",
-            description = "Creates a new version of the configuration for an existing control configuration"
+            description = "Creates a new version of the configuration for an existing control configuration. The request body is an envelope containing the inner `configurationJson` document; only the inner document is persisted as the version contents."
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createConfigurationForVersion(
@@ -314,9 +314,9 @@ public class ControlResource {
             @PathParam("version")
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version,
-            String configurationJson) {
+            @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
         try {
-            store.createConfigurationForVersion(domain, controlId, configId, version, configurationJson);
+            store.createConfigurationForVersion(domain, controlId, configId, version, createControlConfiguration);
             return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configId + "/versions/" + version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating configuration version", domain, e);

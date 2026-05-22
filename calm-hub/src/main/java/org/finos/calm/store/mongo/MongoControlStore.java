@@ -10,7 +10,6 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.finos.calm.domain.CalmJsonMetadata;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -207,14 +206,13 @@ public class MongoControlStore implements ControlStore {
     }
 
     @Override
-    public void createRequirementForVersion(String domain, int controlId, String version, String requirementJson) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
+    public void createRequirementForVersion(String domain, int controlId, String version, CreateControlRequirement request) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
         // Validate domain and control exist
         findControl(domain, controlId);
 
         String mongoVersion = version.replace('.', '-');
 
-        Document parsedRequirement = Document.parse(requirementJson);
-        CalmJsonMetadata metadata = CalmJsonMetadata.extract(parsedRequirement);
+        Document parsedRequirement = Document.parse(request.getRequirementJson());
 
         // Atomic conditional update: only succeeds if the requirement version doesn't already exist
         Document filter = new Document("domain", domain)
@@ -223,11 +221,11 @@ public class MongoControlStore implements ControlStore {
                                 .append("requirement." + mongoVersion, new Document("$exists", false))));
 
         Document setFields = new Document("controls.$.requirement." + mongoVersion, parsedRequirement);
-        if (metadata.hasName()) {
-            setFields.append("controls.$.name", metadata.getName());
+        if (request.getName() != null && !request.getName().isBlank()) {
+            setFields.append("controls.$.name", request.getName());
         }
-        if (metadata.hasDescription()) {
-            setFields.append("controls.$.description", metadata.getDescription());
+        if (request.getDescription() != null && !request.getDescription().isBlank()) {
+            setFields.append("controls.$.description", request.getDescription());
         }
         Document update = new Document("$set", setFields);
 
@@ -257,7 +255,7 @@ public class MongoControlStore implements ControlStore {
     }
 
     @Override
-    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, String configurationJson) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
+    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, CreateControlConfiguration request) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
         // Validate domain, control, and configuration exist
         findConfiguration(domain, controlId, configurationId);
 
@@ -287,7 +285,7 @@ public class MongoControlStore implements ControlStore {
         if (controlCollection.updateOne(
                 filter,
                 Updates.set("controls.$[ctrl].configurations.$[cfg].versions." + mongoVersion,
-                        Document.parse(configurationJson)),
+                        Document.parse(request.getConfigurationJson())),
                 new UpdateOptions().arrayFilters(List.of(
                         Filters.eq("ctrl.controlId", controlId),
                         Filters.eq("cfg.configurationId", configurationId)

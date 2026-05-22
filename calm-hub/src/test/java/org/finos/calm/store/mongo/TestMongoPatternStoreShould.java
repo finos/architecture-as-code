@@ -415,14 +415,15 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
-    void create_pattern_for_version_updates_wrapper_name_and_description_from_json() throws Exception {
+    void create_pattern_for_version_updates_wrapper_name_and_description_from_envelope() throws Exception {
         mockSetupPatternDocumentWithVersions();
         when(patternCollection.updateOne(any(Document.class), any(Document.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
 
-        String json = "{\"name\":\"v2 name\",\"description\":\"v2 desc\"}";
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
-                .setId(42).setVersion("2.0.0").setPattern(json).build();
+                .setId(42).setVersion("2.0.0")
+                .setName("v2 name").setDescription("v2 desc")
+                .setPattern(validJson).build();
 
         mongoPatternStore.createPatternForVersion(pattern);
 
@@ -435,7 +436,7 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
-    void create_pattern_for_version_leaves_wrapper_untouched_when_json_lacks_metadata() throws Exception {
+    void create_pattern_for_version_leaves_wrapper_untouched_when_envelope_lacks_metadata() throws Exception {
         mockSetupPatternDocumentWithVersions();
         when(patternCollection.updateOne(any(Document.class), any(Document.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
@@ -454,12 +455,13 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
-    void update_pattern_for_version_updates_wrapper_name_and_description_from_json() throws Exception {
+    void update_pattern_for_version_updates_wrapper_name_and_description_from_envelope() throws Exception {
         mockSetupPatternDocumentWithVersions();
 
-        String json = "{\"name\":\"updated\",\"description\":\"updated desc\"}";
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
-                .setId(42).setVersion("1.0.0").setPattern(json).build();
+                .setId(42).setVersion("1.0.0")
+                .setName("updated").setDescription("updated desc")
+                .setPattern(validJson).build();
 
         mongoPatternStore.updatePatternForVersion(pattern);
 

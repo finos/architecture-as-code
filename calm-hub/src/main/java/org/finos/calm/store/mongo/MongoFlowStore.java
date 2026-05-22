@@ -184,8 +184,7 @@ public class MongoFlowStore implements FlowStore {
                         new Document("flowId", flow.getId())
                                 .append("versions." + flow.getMongoVersion(), new Document("$exists", false))));
 
-        Document update = new Document("$set",
-                new Document("flows.$.versions." + flow.getMongoVersion(), Document.parse(flow.getFlowJson())));
+        Document update = new Document("$set", buildVersionSetFields(flow));
 
         if (flowCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new FlowVersionExistsException();
@@ -206,11 +205,9 @@ public class MongoFlowStore implements FlowStore {
     private void writeFlowToMongo(Flow flow) throws FlowNotFoundException, NamespaceNotFoundException {
         retrieveFlowVersions(flow);
 
-        Document flowDocument = Document.parse(flow.getFlowJson());
         Document filter = new Document("namespace", flow.getNamespace())
                 .append("flows.flowId", flow.getId());
-        Document update = new Document("$set",
-                new Document("flows.$.versions." + flow.getMongoVersion(), flowDocument));
+        Document update = new Document("$set", buildVersionSetFields(flow));
 
         try {
             flowCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
@@ -218,6 +215,17 @@ public class MongoFlowStore implements FlowStore {
             log.error("Failed to write flow to mongo [{}]", flow, ex);
             throw new FlowNotFoundException();
         }
+    }
+
+    private Document buildVersionSetFields(Flow flow) {
+        Document setFields = new Document("flows.$.versions." + flow.getMongoVersion(), Document.parse(flow.getFlowJson()));
+        if (flow.getName() != null && !flow.getName().isBlank()) {
+            setFields.append("flows.$.name", flow.getName());
+        }
+        if (flow.getDescription() != null && !flow.getDescription().isBlank()) {
+            setFields.append("flows.$.description", flow.getDescription());
+        }
+        return setFields;
     }
 
 }

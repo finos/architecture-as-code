@@ -307,7 +307,7 @@ public class MongoControlIntegration {
     @Order(22)
     void end_to_end_create_requirement_version_for_existing_control() {
         given()
-                .body("{\"type\": \"requirement-v2\"}")
+                .body("{\"name\":\"Access Control\",\"description\":\"Ensure proper access control mechanisms\",\"requirementJson\":\"{\\\"type\\\": \\\"requirement-v2\\\"}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
@@ -340,7 +340,7 @@ public class MongoControlIntegration {
     @Order(25)
     void end_to_end_create_requirement_version_returns_409_for_existing_version() {
         given()
-                .body("{\"type\": \"duplicate\"}")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{\\\"type\\\": \\\"duplicate\\\"}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
                 .then()
@@ -351,7 +351,7 @@ public class MongoControlIntegration {
     @Order(26)
     void end_to_end_create_requirement_version_returns_404_for_invalid_domain() {
         given()
-                .body("{}")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
@@ -362,7 +362,7 @@ public class MongoControlIntegration {
     @Order(27)
     void end_to_end_create_requirement_version_returns_404_for_invalid_control() {
         given()
-                .body("{}")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions/2.0.0")
                 .then()
@@ -428,7 +428,7 @@ public class MongoControlIntegration {
     @Order(32)
     void end_to_end_create_configuration_version_for_seeded_config() {
         given()
-                .body("{\"setting\": \"enabled-v2\"}")
+                .body("{\"configurationJson\":\"{\\\"setting\\\": \\\"enabled-v2\\\"}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0")
                 .then()
@@ -461,7 +461,7 @@ public class MongoControlIntegration {
     @Order(35)
     void end_to_end_create_configuration_version_returns_409_for_existing_version() {
         given()
-                .body("{\"setting\": \"dup\"}")
+                .body("{\"configurationJson\":\"{\\\"setting\\\": \\\"dup\\\"}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/1.0.0")
                 .then()
@@ -472,7 +472,7 @@ public class MongoControlIntegration {
     @Order(36)
     void end_to_end_create_configuration_version_returns_404_for_invalid_config() {
         given()
-                .body("{}")
+                .body("{\"configurationJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/2.0.0")
                 .then()
@@ -495,8 +495,8 @@ public class MongoControlIntegration {
 
     @Test
     @Order(41)
-    void end_to_end_create_requirement_version_with_name_and_description_in_json() {
-        String versionBody = "{\"name\": \"Updated Access Control\", \"description\": \"Refined access control requirement\", \"type\": \"requirement-v3\"}";
+    void end_to_end_create_requirement_version_with_name_and_description_in_envelope() {
+        String versionBody = "{\"name\": \"Updated Access Control\", \"description\": \"Refined access control requirement\", \"requirementJson\": \"{\\\"type\\\": \\\"requirement-v3\\\"}\"}";
 
         given()
                 .body(versionBody)
@@ -520,19 +520,30 @@ public class MongoControlIntegration {
 
     @Test
     @Order(43)
-    void end_to_end_create_requirement_version_without_name_in_json_preserves_wrapper() {
+    void end_to_end_create_requirement_version_stores_only_inner_json_and_updates_wrapper() {
+        String inner = "{\"type\": \"requirement-v4\"}";
+        String envelope = "{\"name\": \"Final Access Control\", \"description\": \"Final\", \"requirementJson\": \"" + inner.replace("\"", "\\\"") + "\"}";
+
         given()
-                .body("{\"type\": \"requirement-v4\"}")
+                .body(envelope)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
                 .then()
                 .statusCode(201);
 
+        // Stored content must be the inner requirementJson verbatim, not the envelope
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
+                .then()
+                .statusCode(200)
+                .body("type", equalTo("requirement-v4"));
+
+        // Wrapper reflects the latest envelope name/description
         given()
                 .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
-                .body("values.find { it.id == 1 }.name", equalTo("Updated Access Control"))
-                .body("values.find { it.id == 1 }.description", equalTo("Refined access control requirement"));
+                .body("values.find { it.id == 1 }.name", equalTo("Final Access Control"))
+                .body("values.find { it.id == 1 }.description", equalTo("Final"));
     }
 }

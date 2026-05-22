@@ -107,8 +107,10 @@ public class MongoFlowIntegration {
     @Test
     @Order(5)
     void end_to_end_verify_latest_flow() {
+        String envelope = "{\"name\": \"name-v2\", \"description\": \"desc-v2\", \"flowJson\": \"" + FLOW_V2.replace("\"", "\\\"") + "\"}";
+
         given()
-                .body(FLOW_V2)
+                .body(envelope)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/flows/1/versions/2.0.0")
                 .then()

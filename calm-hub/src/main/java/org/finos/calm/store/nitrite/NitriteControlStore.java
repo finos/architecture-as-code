@@ -7,7 +7,6 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.finos.calm.config.StandaloneQualifier;
-import org.finos.calm.domain.CalmJsonMetadata;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -216,7 +215,7 @@ public class NitriteControlStore implements ControlStore {
     }
 
     @Override
-    public void createRequirementForVersion(String domain, int controlId, String version, String requirementJson) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
+    public void createRequirementForVersion(String domain, int controlId, String version, CreateControlRequirement request) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
         lock.lock();
         try {
             validateDomain(domain);
@@ -234,14 +233,13 @@ public class NitriteControlStore implements ControlStore {
                 requirement = Document.createDocument();
                 controlDoc.put(REQUIREMENT_FIELD, requirement);
             }
-            requirement.put(nitriteVersion, requirementJson);
+            requirement.put(nitriteVersion, request.getRequirementJson());
 
-            CalmJsonMetadata metadata = CalmJsonMetadata.extract(requirementJson);
-            if (metadata.hasName()) {
-                controlDoc.put("name", metadata.getName());
+            if (request.getName() != null && !request.getName().isBlank()) {
+                controlDoc.put("name", request.getName());
             }
-            if (metadata.hasDescription()) {
-                controlDoc.put("description", metadata.getDescription());
+            if (request.getDescription() != null && !request.getDescription().isBlank()) {
+                controlDoc.put("description", request.getDescription());
             }
 
             controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
@@ -284,7 +282,7 @@ public class NitriteControlStore implements ControlStore {
     }
 
     @Override
-    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, String configurationJson) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
+    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, CreateControlConfiguration request) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
         lock.lock();
         try {
             validateDomain(domain);
@@ -303,7 +301,7 @@ public class NitriteControlStore implements ControlStore {
                 versions = Document.createDocument();
                 configDoc.put(VERSIONS_FIELD, versions);
             }
-            versions.put(nitriteVersion, configurationJson);
+            versions.put(nitriteVersion, request.getConfigurationJson());
 
             controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
         } finally {

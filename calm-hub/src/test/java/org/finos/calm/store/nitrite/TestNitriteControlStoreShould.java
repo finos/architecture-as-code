@@ -560,7 +560,7 @@ public class TestNitriteControlStoreShould {
     public void testCreateRequirementForVersion_happyPath() throws Exception {
         setupDomainDocReturn(buildControlWithVersionsAndConfigs());
 
-        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "3.0.0", "{\"type\":\"req-v3\"}");
+        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "3.0.0", new CreateControlRequirement("n", "d", "{\"type\":\"req-v3\"}"));
 
         verify(mockCollection).update(any(Filter.class), any(Document.class));
     }
@@ -570,21 +570,21 @@ public class TestNitriteControlStoreShould {
         setupDomainDocReturn(buildControlWithVersionsAndConfigs());
 
         assertThrows(ControlRequirementVersionExistsException.class,
-                () -> controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "1.0.0", "{}"));
+                () -> controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "1.0.0", new CreateControlRequirement("n", "d", "{}")));
     }
 
     @Test
     public void testCreateRequirementForVersion_throwsDomainNotFoundException() {
         when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
         assertThrows(DomainNotFoundException.class,
-                () -> controlStore.createRequirementForVersion(INVALID_DOMAIN, 1, "2.0.0", "{}"));
+                () -> controlStore.createRequirementForVersion(INVALID_DOMAIN, 1, "2.0.0", new CreateControlRequirement("n", "d", "{}")));
     }
 
     @Test
     public void testCreateRequirementForVersion_throwsControlNotFoundException() {
         setupDomainDocReturn(buildControlWithVersionsAndConfigs());
         assertThrows(ControlNotFoundException.class,
-                () -> controlStore.createRequirementForVersion(TEST_DOMAIN, 999, "2.0.0", "{}"));
+                () -> controlStore.createRequirementForVersion(TEST_DOMAIN, 999, "2.0.0", new CreateControlRequirement("n", "d", "{}")));
     }
 
     @Test
@@ -602,7 +602,7 @@ public class TestNitriteControlStoreShould {
 
         setupDomainDocReturn(domainDoc);
 
-        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "1.0.0", "{\"type\":\"new\"}");
+        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "1.0.0", new CreateControlRequirement("n", "d", "{\"type\":\"new\"}"));
 
         verify(mockCollection).update(any(Filter.class), any(Document.class));
     }
@@ -669,7 +669,7 @@ public class TestNitriteControlStoreShould {
     public void testCreateConfigurationForVersion_happyPath() throws Exception {
         setupDomainDocReturn(buildControlWithVersionsAndConfigs());
 
-        controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 10, "2.0.0", "{\"setting\":\"v2\"}");
+        controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 10, "2.0.0", new CreateControlConfiguration("{\"setting\":\"v2\"}"));
 
         verify(mockCollection).update(any(Filter.class), any(Document.class));
     }
@@ -679,7 +679,7 @@ public class TestNitriteControlStoreShould {
         setupDomainDocReturn(buildControlWithVersionsAndConfigs());
 
         assertThrows(ControlConfigurationVersionExistsException.class,
-                () -> controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 10, "1.0.0", "{}"));
+                () -> controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 10, "1.0.0", new CreateControlConfiguration("{}")));
     }
 
     @Test
@@ -687,21 +687,21 @@ public class TestNitriteControlStoreShould {
         setupDomainDocReturn(buildControlWithVersionsAndConfigs());
 
         assertThrows(ControlConfigurationNotFoundException.class,
-                () -> controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 999, "2.0.0", "{}"));
+                () -> controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 999, "2.0.0", new CreateControlConfiguration("{}")));
     }
 
     @Test
     public void testCreateConfigurationForVersion_throwsDomainNotFoundException() {
         when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
         assertThrows(DomainNotFoundException.class,
-                () -> controlStore.createConfigurationForVersion(INVALID_DOMAIN, 1, 10, "2.0.0", "{}"));
+                () -> controlStore.createConfigurationForVersion(INVALID_DOMAIN, 1, 10, "2.0.0", new CreateControlConfiguration("{}")));
     }
 
     @Test
     public void testCreateConfigurationForVersion_throwsControlNotFoundException() {
         setupDomainDocReturn(buildControlWithVersionsAndConfigs());
         assertThrows(ControlNotFoundException.class,
-                () -> controlStore.createConfigurationForVersion(TEST_DOMAIN, 999, 10, "2.0.0", "{}"));
+                () -> controlStore.createConfigurationForVersion(TEST_DOMAIN, 999, 10, "2.0.0", new CreateControlConfiguration("{}")));
     }
 
     @Test
@@ -723,7 +723,7 @@ public class TestNitriteControlStoreShould {
 
         setupDomainDocReturn(domainDoc);
 
-        controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 10, "1.0.0", "{\"setting\":\"new\"}");
+        controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 10, "1.0.0", new CreateControlConfiguration("{\"setting\":\"new\"}"));
 
         verify(mockCollection).update(any(Filter.class), any(Document.class));
     }
@@ -749,7 +749,7 @@ public class TestNitriteControlStoreShould {
     }
 
     @Test
-    public void testCreateRequirementForVersion_updatesWrapperNameAndDescriptionFromJson() throws Exception {
+    public void testCreateRequirementForVersion_updatesWrapperNameAndDescriptionFromEnvelope() throws Exception {
         when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
 
         Document requirement = Document.createDocument().put("1-0-0", "{}");
@@ -765,8 +765,8 @@ public class TestNitriteControlStoreShould {
 
         setupDomainDocReturn(domainDoc);
 
-        String json = "{\"control-id\":\"c1\",\"name\":\"New Name\",\"description\":\"New Desc\"}";
-        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "2.0.0", json);
+        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "2.0.0",
+                new CreateControlRequirement("New Name", "New Desc", "{\"type\":\"req-v2\"}"));
 
         assertThat(controlDoc.get("name", String.class), is("New Name"));
         assertThat(controlDoc.get("description", String.class), is("New Desc"));
@@ -774,7 +774,7 @@ public class TestNitriteControlStoreShould {
     }
 
     @Test
-    public void testCreateRequirementForVersion_leavesWrapperUntouchedWhenJsonLacksMetadata() throws Exception {
+    public void testCreateRequirementForVersion_leavesWrapperUntouchedWhenEnvelopeLacksMetadata() throws Exception {
         when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
 
         Document requirement = Document.createDocument().put("1-0-0", "{}");
@@ -790,7 +790,8 @@ public class TestNitriteControlStoreShould {
 
         setupDomainDocReturn(domainDoc);
 
-        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "2.0.0", "{\"type\":\"req-v2\"}");
+        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "2.0.0",
+                new CreateControlRequirement(null, null, "{\"type\":\"req-v2\"}"));
 
         assertThat(controlDoc.get("name", String.class), is("Old Name"));
         assertThat(controlDoc.get("description", String.class), is("Old Desc"));
