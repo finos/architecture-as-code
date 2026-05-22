@@ -10,8 +10,10 @@ export { runGenerate } from './commands/generate/generate.js';
 export {
     runDiff,
     formatDiff,
+    detectDocumentType,
     hasChanges as diffHasChanges,
     type DiffOutputFormat,
+    type DiffDocumentType,
     type DiffRunOptions,
     type DiffRunResult,
 } from './commands/diff/diff.js';
