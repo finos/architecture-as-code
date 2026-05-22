@@ -41,13 +41,13 @@ export class MultiStrategyDocumentLoader implements DocumentLoader {
                 // genuinely failed to load it. Surface it immediately rather than masking it with a
                 // later loader's "this reference isn't mine" error.
                 if (err instanceof DocumentLoadError && !err.recoverable) {
-                    this.logger.error(`Loader ${loader.constructor.name} failed fatally loading document: ${documentId}. See report below:`);
+                    this.logger.error(`Loader ${loader.constructor.name} failed fatally loading document: ${documentId}. Enable debug logging for the full loader report.`);
                     this.printErrorMessages(errors);
                     throw err;
                 }
             }
         }
-        this.logger.error(`All document loaders failed to load document: ${documentId}. See report below:`);
+        this.logger.error(`All document loaders failed to load document: ${documentId}. Enable debug logging for the full loader report.`);
         this.printErrorMessages(errors);
         const lastError = errors[errors.length - 1].error;
         throw new DocumentLoadError({

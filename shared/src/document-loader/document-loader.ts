@@ -84,7 +84,7 @@ type ErrorName = 'OPERATION_NOT_IMPLEMENTED' | 'UNKNOWN';
 export class DocumentLoadError extends Error {
     name: ErrorName;
     message: string;
-    cause: Error;
+    cause?: Error;
     /**
      * Whether a multi-strategy loader should fall through to the next loader on this error.
      * `true` (default) means "this reference isn't mine" — try the next loader.
