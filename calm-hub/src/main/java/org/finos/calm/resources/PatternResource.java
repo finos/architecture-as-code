@@ -17,7 +17,6 @@ import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,8 +52,7 @@ public class PatternResource {
             summary = "Retrieve patterns in a given namespace",
             description = "Patterns stored in a given namespace"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    @PermissionsAllowed(value = {CalmHubScopes.PATTERNS_READ}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.PATTERNS_READ)
     public Response getPatternsForNamespace(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
@@ -74,8 +72,7 @@ public class PatternResource {
             summary = "Create pattern for namespace",
             description = "Creates a pattern for a given namespace with an allocated ID and version 1.0.0"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    @PermissionsAllowed(value = {CalmHubScopes.PATTERNS_WRITE}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.PATTERNS_WRITE)
     public Response createPatternForNamespace(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @Valid @NotNull(message = "Request must not be null") CreatePatternRequest patternRequest
@@ -98,8 +95,7 @@ public class PatternResource {
             summary = "Retrieve a list of versions for a given pattern",
             description = "Pattern versions are not opinionated, outside of the first version created"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    @PermissionsAllowed(value = {CalmHubScopes.PATTERNS_READ}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.PATTERNS_READ)
     public Response getPatternVersions(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId
@@ -128,8 +124,7 @@ public class PatternResource {
             summary = "Retrieve a specific pattern at a given version",
             description = "Retrieve patterns at a specific version"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    @PermissionsAllowed(value = {CalmHubScopes.PATTERNS_READ}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.PATTERNS_READ)
     public Response getPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId,
@@ -159,8 +154,7 @@ public class PatternResource {
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    @PermissionsAllowed(value = {CalmHubScopes.PATTERNS_WRITE}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.PATTERNS_WRITE)
     public Response createVersionedPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId,
@@ -197,8 +191,7 @@ public class PatternResource {
             summary = "Updates a Pattern (if available)",
             description = "In mutable version stores pattern updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    @PermissionsAllowed(value = {CalmHubScopes.PATTERNS_WRITE}, params = "namespace")
+    @PermissionsAllowed({CalmHubScopes.PATTERNS_WRITE})
     public Response updateVersionedPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId,

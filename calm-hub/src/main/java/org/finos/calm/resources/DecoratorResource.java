@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
@@ -21,7 +22,6 @@ import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.DecoratorStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +64,7 @@ public class DecoratorResource {
             summary = "Retrieve decorators in a given namespace",
             description = "Decorator IDs stored in a given namespace, optionally filtered by target and/or type"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.ROLE_VIEWER)
     public Response getDecoratorsForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @QueryParam("target") @Size(max = 500) @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String target,
@@ -93,7 +93,7 @@ public class DecoratorResource {
             summary = "Retrieve decorator values in a given namespace",
             description = "Decorator values stored in a given namespace, optionally filtered by target and/or type"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.ROLE_VIEWER)
     public Response getDecoratorValuesForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @QueryParam("target") @Size(max = 500) @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String target,
@@ -121,7 +121,7 @@ public class DecoratorResource {
             summary = "Retrieve a decorator by its ID in a given namespace",
             description = "A decorator stored in a given namespace"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.ROLE_VIEWER)
     public Response getDecoratorById(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id
@@ -151,7 +151,7 @@ public class DecoratorResource {
             summary = "Create a decorator in a given namespace",
             description = "Creates a decorator, validating the namespace exists and the JSON is well-formed"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.ROLE_CONTRIBUTOR)
     public Response createDecoratorForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             String decoratorJson
@@ -185,7 +185,7 @@ public class DecoratorResource {
             summary = "Update a decorator by ID in a given namespace",
             description = "Updates an existing decorator, validating the namespace and ID exist and the JSON is well-formed"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.ROLE_CONTRIBUTOR)
     public Response updateDecoratorForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id,

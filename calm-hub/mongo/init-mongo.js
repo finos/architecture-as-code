@@ -2500,14 +2500,14 @@ if (db.userAccess.countDocuments() === 0) {
         {
             "userAccessId": NumberInt(1),
             "username": "demo_admin",
-            "permission": "write",
+            "permission": "admin",
             "namespace": "finos",
             "resourceType": "all"
         },
         {
             "userAccessId": NumberInt(2),
             "username": "demo_admin",
-            "permission": "write",
+            "permission": "admin",
             "namespace": "workshop",
             "resourceType": "patterns"
         },

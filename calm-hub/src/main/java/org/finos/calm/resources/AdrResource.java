@@ -27,7 +27,6 @@ import org.finos.calm.domain.exception.AdrPersistenceException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,8 +67,7 @@ public class AdrResource {
             summary = "Retrieve ADRs in a given namespace",
             description = "ADRs stored in a given namespace"
     )
-    @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
-    @PermissionsAllowed(value = {CalmHubScopes.ADRS_READ}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.ADRS_READ)
     public Response getAdrsForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
@@ -95,8 +93,7 @@ public class AdrResource {
             summary = "Create ADR for namespace",
             description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
     )
-    @PermittedScopes({CalmHubScopes.ADRS_ALL})
-    @PermissionsAllowed(value = {CalmHubScopes.ADRS_WRITE}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.ADRS_WRITE)
     public Response createAdrForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             NewAdrRequest newAdrRequest
@@ -136,8 +133,7 @@ public class AdrResource {
             summary = "Update ADR for namespace",
             description = "Updates an ADR for a given namespace. Creates a new revision."
     )
-    @PermittedScopes({CalmHubScopes.ADRS_ALL})
-    @PermissionsAllowed(value = {CalmHubScopes.ADRS_WRITE}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.ADRS_WRITE)
     public Response updateAdrForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("adrId") int adrId,
@@ -180,8 +176,7 @@ public class AdrResource {
                     content = @Content(schema = @Schema(implementation = AdrMeta.class))
             )
     })
-    @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
-    @PermissionsAllowed(value = {CalmHubScopes.ADRS_READ}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.ADRS_READ)
     public Response getAdr(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("adrId") int adrId
@@ -212,8 +207,7 @@ public class AdrResource {
             summary = "Retrieve a list of revisions for a given ADR",
             description = "The most recent revision is the canonical ADR, with others available for audit or exploring changes."
     )
-    @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
-    @PermissionsAllowed(value = {CalmHubScopes.ADRS_READ}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.ADRS_READ)
     public Response getAdrRevisions(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("adrId") int adrId
@@ -251,8 +245,7 @@ public class AdrResource {
                     content = @Content(schema = @Schema(implementation = AdrMeta.class))
             )
     })
-    @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
-    @PermissionsAllowed(value = {CalmHubScopes.ADRS_READ}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.ADRS_READ)
     public Response getAdrRevision(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("adrId") int adrId,
@@ -286,8 +279,7 @@ public class AdrResource {
             summary = "Update the status of ADR for namespace",
             description = "Updates the status of an ADR for a given namespace. Creates a new revision."
     )
-    @PermittedScopes({CalmHubScopes.ADRS_ALL})
-    @PermissionsAllowed(value = {CalmHubScopes.ADRS_WRITE}, params = "namespace")
+    @PermissionsAllowed(CalmHubScopes.ADRS_WRITE)
     public Response updateAdrStatusForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("adrId") int adrId,

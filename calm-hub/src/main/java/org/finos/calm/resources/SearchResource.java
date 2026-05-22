@@ -15,8 +15,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.search.GroupedSearchResults;
-import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.store.SearchStore;
 import org.slf4j.Logger;
@@ -57,7 +55,6 @@ public class SearchResource {
             summary = "Global Search",
             description = "Search across all resource types (architectures, patterns, flows, standards, interfaces, controls, ADRs) with results grouped by type"
     )
-    @PermittedScopes({CalmHubScopes.SEARCH_READ})
     @Authenticated
     public Response search(@QueryParam("q") String query) {
         if (query == null || query.isBlank()) {
