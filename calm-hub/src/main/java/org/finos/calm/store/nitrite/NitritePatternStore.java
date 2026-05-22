@@ -251,6 +251,8 @@ public class NitritePatternStore implements PatternStore {
             versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
             patternDoc.put(VERSIONS_FIELD, versions);
 
+            // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+            // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
             if (pattern.getName() != null && !pattern.getName().isBlank()) {
                 patternDoc.put(NAME_FIELD, pattern.getName());
             }
@@ -306,6 +308,8 @@ public class NitritePatternStore implements PatternStore {
         versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
         patternDoc.put(VERSIONS_FIELD, versions);
 
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
         if (pattern.getName() != null && !pattern.getName().isBlank()) {
             patternDoc.put(NAME_FIELD, pattern.getName());
         }

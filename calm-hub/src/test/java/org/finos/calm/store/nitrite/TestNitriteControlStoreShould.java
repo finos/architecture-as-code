@@ -775,6 +775,8 @@ public class TestNitriteControlStoreShould {
 
     @Test
     public void testCreateRequirementForVersion_leavesWrapperUntouchedWhenEnvelopeLacksMetadata() throws Exception {
+        // Defensive: the REST layer enforces @NotBlank so null name/description are unreachable via REST;
+        // this test exercises the store's defensive guards for non-REST callers.
         when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
 
         Document requirement = Document.createDocument().put("1-0-0", "{}");

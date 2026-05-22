@@ -729,6 +729,8 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_requirement_for_version_leaves_wrapper_untouched_when_envelope_lacks_metadata() throws Exception {
+        // Defensive: the REST layer enforces @NotBlank so null name/description are unreachable via REST;
+        // this test exercises the store's defensive guards for non-REST callers.
         when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document requirement = new Document("1-0-0", new Document("type", "req"));

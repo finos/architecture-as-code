@@ -89,5 +89,13 @@ public class NitriteFlowIntegration {
                 .then()
                 .statusCode(200)
                 .body(equalTo(FLOW_V2));
+
+        // Wrapper name/description must reflect the most recent envelope
+        given()
+                .when().get("/calm/namespaces/finos/flows")
+                .then()
+                .statusCode(200)
+                .body("values[0].name", equalTo("name-v2"))
+                .body("values[0].description", equalTo("desc-v2"));
     }
 }

@@ -437,6 +437,8 @@ public class TestMongoPatternStoreShould {
 
     @Test
     void create_pattern_for_version_leaves_wrapper_untouched_when_envelope_lacks_metadata() throws Exception {
+        // Defensive: the REST layer enforces @NotBlank so null name/description are unreachable via REST;
+        // this test exercises the store's defensive guards for non-REST callers.
         mockSetupPatternDocumentWithVersions();
         when(patternCollection.updateOne(any(Document.class), any(Document.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));

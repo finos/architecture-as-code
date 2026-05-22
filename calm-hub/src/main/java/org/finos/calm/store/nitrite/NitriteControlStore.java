@@ -235,6 +235,8 @@ public class NitriteControlStore implements ControlStore {
             }
             requirement.put(nitriteVersion, request.getRequirementJson());
 
+            // Defensive: the REST layer enforces @NotBlank on name/description via CreateControlRequirement,
+            // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
             if (request.getName() != null && !request.getName().isBlank()) {
                 controlDoc.put("name", request.getName());
             }

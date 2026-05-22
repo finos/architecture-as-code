@@ -191,6 +191,8 @@ public class MongoPatternStore implements PatternStore {
                                 .append("versions." + pattern.getMongoVersion(), new Document("$exists", false))));
 
         Document setFields = new Document("patterns.$.versions." + pattern.getMongoVersion(), parsedPattern);
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
         if (pattern.getName() != null && !pattern.getName().isBlank()) {
             setFields.append("patterns.$.name", pattern.getName());
         }
@@ -222,6 +224,8 @@ public class MongoPatternStore implements PatternStore {
         Document filter = new Document("namespace", pattern.getNamespace())
                 .append("patterns.patternId", pattern.getId());
         Document setFields = new Document("patterns.$.versions." + pattern.getMongoVersion(), patternDocument);
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
         if (pattern.getName() != null && !pattern.getName().isBlank()) {
             setFields.append("patterns.$.name", pattern.getName());
         }

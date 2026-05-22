@@ -219,6 +219,8 @@ public class MongoFlowStore implements FlowStore {
 
     private Document buildVersionSetFields(Flow flow) {
         Document setFields = new Document("flows.$.versions." + flow.getMongoVersion(), Document.parse(flow.getFlowJson()));
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreateFlowRequest,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
         if (flow.getName() != null && !flow.getName().isBlank()) {
             setFields.append("flows.$.name", flow.getName());
         }

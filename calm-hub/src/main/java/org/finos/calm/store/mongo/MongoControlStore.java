@@ -221,6 +221,8 @@ public class MongoControlStore implements ControlStore {
                                 .append("requirement." + mongoVersion, new Document("$exists", false))));
 
         Document setFields = new Document("controls.$.requirement." + mongoVersion, parsedRequirement);
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreateControlRequirement,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
         if (request.getName() != null && !request.getName().isBlank()) {
             setFields.append("controls.$.name", request.getName());
         }
