@@ -107,10 +107,13 @@ export class MappedDocumentLoader implements DocumentLoader {
      * Load and parse a JSON document from a file path
      */
     private async loadDocumentFromPath(filePath: string): Promise<object> {
+        // These failures occur after a mapping has claimed the reference, so they are fatal:
+        // a later loader cannot do better, and falling through would mask the real reason.
         if (!existsSync(filePath)) {
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
-                message: `File not found: ${filePath}`
+                message: `File not found: ${filePath}`,
+                recoverable: false
             });
         }
 
@@ -121,7 +124,8 @@ export class MappedDocumentLoader implements DocumentLoader {
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
                 message: `Failed to load/parse ${filePath}: ${err instanceof Error ? err.message : String(err)}`,
-                cause: err
+                cause: err,
+                recoverable: false
             });
         }
     }
