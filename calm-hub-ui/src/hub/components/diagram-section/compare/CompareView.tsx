@@ -1,28 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CalmArchitectureSchema } from '@finos/calm-models/types';
-import { diffArchitectures, type DiffResult } from '@finos/calm-models/diff';
+import { diffArchitectures, diffPatterns, type DiffResult } from '@finos/calm-models/diff';
 import { CalmService } from '../../../../service/calm-service.js';
 import { Data } from '../../../../model/calm.js';
 import { compareVersions } from '../../../../model/version.js';
 import { DiffGraph } from '../../../../diff/components/DiffGraph.js';
 import { DiffPanel } from '../../../../diff/components/DiffPanel.js';
+import type { DiffSource } from '../../../../diff/model/diff-ui-types.js';
 import '../../../../diff/Diff.css';
 import { CompareBar } from './CompareBar.js';
 import { fetchVersionData } from './compareData.js';
 
 interface CompareViewProps {
-    data: Data & { calmType: 'Architectures' };
+    data: Data & { calmType: 'Architectures' | 'Patterns' };
     /** Available versions for this resource, sorted newest-first. */
     versions: string[];
     onExit: () => void;
+}
+
+function diffSources(calmType: 'Architectures' | 'Patterns', a: DiffSource, b: DiffSource): DiffResult {
+    return calmType === 'Patterns'
+        ? diffPatterns(a, b)
+        : diffArchitectures(a as CalmArchitectureSchema, b as CalmArchitectureSchema);
 }
 
 export function CompareView({ data, versions, onExit }: CompareViewProps) {
     const calmService = useMemo(() => new CalmService(), []);
     const [versionA, setVersionA] = useState('');
     const [versionB, setVersionB] = useState('');
-    const [archA, setArchA] = useState<CalmArchitectureSchema | null>(null);
-    const [archB, setArchB] = useState<CalmArchitectureSchema | null>(null);
+    const [sourceA, setSourceA] = useState<DiffSource | null>(null);
+    const [sourceB, setSourceB] = useState<DiffSource | null>(null);
     const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -47,14 +54,14 @@ export function CompareView({ data, versions, onExit }: CompareViewProps) {
         ])
             .then(([a, b]) => {
                 if (cancelled) return;
-                const archAData = (a.data ?? null) as CalmArchitectureSchema | null;
-                const archBData = (b.data ?? null) as CalmArchitectureSchema | null;
-                setArchA(archAData);
-                setArchB(archBData);
-                setDiffResult(archAData && archBData ? diffArchitectures(archAData, archBData) : null);
+                const aData = (a.data ?? null) as DiffSource | null;
+                const bData = (b.data ?? null) as DiffSource | null;
+                setSourceA(aData);
+                setSourceB(bData);
+                setDiffResult(aData && bData ? diffSources(data.calmType, aData, bData) : null);
             })
             .catch(() => {
-                if (!cancelled) setError('Failed to load architecture versions');
+                if (!cancelled) setError('Failed to load versions to compare');
             });
         return () => {
             cancelled = true;
@@ -99,16 +106,16 @@ export function CompareView({ data, versions, onExit }: CompareViewProps) {
                             <div className="architecture-panel">
                                 <div className="architecture-header">Baseline: {versionA}</div>
                                 <div className="architecture-graph">
-                                    {archA && (
-                                        <DiffGraph key={`a-${versionA}`} architecture={archA} diffResult={diffResult} isFirst={true} />
+                                    {sourceA && (
+                                        <DiffGraph key={`a-${versionA}`} source={sourceA} sourceType={data.calmType} diffResult={diffResult} isFirst={true} />
                                     )}
                                 </div>
                             </div>
                             <div className="architecture-panel">
                                 <div className="architecture-header">Comparison: {versionB}</div>
                                 <div className="architecture-graph">
-                                    {archB && (
-                                        <DiffGraph key={`b-${versionB}`} architecture={archB} diffResult={diffResult} isFirst={false} />
+                                    {sourceB && (
+                                        <DiffGraph key={`b-${versionB}`} source={sourceB} sourceType={data.calmType} diffResult={diffResult} isFirst={false} />
                                     )}
                                 </div>
                             </div>

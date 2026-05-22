@@ -133,12 +133,12 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                     version={data.version}
                     versions={versions}
                     onVersionChange={handleVersionChange}
-                    titleActions={isArchitecture ? compareButton : undefined}
+                    titleActions={compareButton}
                     rightContent={tabs}
                 />
 
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    {compareMode && data.calmType === 'Architectures' ? (
+                    {compareMode ? (
                         <CompareView data={data} versions={versions} onExit={() => setCompareMode(false)} />
                     ) : activeTab === 'diagram' ? (
                         <div className="w-full h-full">

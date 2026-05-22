@@ -2,7 +2,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { beforeEach, describe, it, expect, vi, Mock } from 'vitest';
 import { CompareView } from './CompareView.js';
 import { Data } from '../../../../model/calm.js';
-import { diffArchitectures } from '@finos/calm-models/diff';
+import { diffArchitectures, diffPatterns } from '@finos/calm-models/diff';
 
 let calmServiceInstance: {
     fetchResourceByCustomId: Mock;
@@ -37,6 +37,7 @@ vi.mock('../../../../diff/components/DiffPanel.js', () => ({
 
 vi.mock('@finos/calm-models/diff', () => ({
     diffArchitectures: vi.fn(() => ({ marker: 'diff' })),
+    diffPatterns: vi.fn(() => ({ marker: 'pattern-diff' })),
 }));
 
 const versions = ['2.0.0', '1.5.0', '1.0.0'];
@@ -46,6 +47,14 @@ const architectureData: Data & { calmType: 'Architectures' } = {
     version: '2.0.0',
     name: 'arch-namespace',
     calmType: 'Architectures',
+    data: undefined,
+};
+
+const patternData: Data & { calmType: 'Patterns' } = {
+    id: 'test-pattern',
+    version: '2.0.0',
+    name: 'pattern-namespace',
+    calmType: 'Patterns',
     data: undefined,
 };
 
@@ -71,6 +80,16 @@ describe('CompareView', () => {
             expect(screen.getByTestId('diff-graph-b')).toBeInTheDocument();
             expect(screen.getByTestId('diff-panel')).toBeInTheDocument();
             expect(diffArchitectures).toHaveBeenCalled();
+        });
+    });
+
+    it('computes a pattern diff when the resource is a pattern', async () => {
+        render(<CompareView data={patternData} versions={versions} onExit={vi.fn()} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('diff-graph-a')).toBeInTheDocument();
+            expect(diffPatterns).toHaveBeenCalled();
+            expect(diffArchitectures).not.toHaveBeenCalled();
         });
     });
 

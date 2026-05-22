@@ -1,6 +1,6 @@
 import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO, assertJsonObject } from './document-loader';
+import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO, assertJsonObject, DocumentLoadError } from './document-loader';
 import { initLogger, Logger } from '../logger';
 import { AuthPlugin } from '../auth/auth-plugin';
 
@@ -62,27 +62,51 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         const url = new URL(documentId);
         const protocol = url.protocol;
         if (protocol !== CALM_HUB_PROTO) {
+            // Not a calm: reference — recoverable, let other loaders try.
             throw new Error(`CalmHubDocumentLoader only loads documents with protocol '${CALM_HUB_PROTO}'. (Requested: ${protocol})`);
         }
+
+        // From here the reference is ours: any failure is fatal and must not fall through to
+        // another loader (which would mask the real reason with an unrelated error).
+
         // The URL constructor normalizes '..' segments, so url.pathname is already resolved.
         // Reject if the original input contained traversal sequences before normalization.
         if (documentId.includes('/..')) {
-            throw new Error(`CalmHubDocumentLoader rejected path containing directory traversal in: ${documentId}`);
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: `CalmHubDocumentLoader rejected path containing directory traversal in: ${documentId}`,
+                recoverable: false
+            });
         }
         const path = url.pathname;
 
         if (!CalmHubDocumentLoader.SAFE_PATH_PATTERN.test(path)) {
-            throw new Error(`CalmHubDocumentLoader rejected path with disallowed characters: ${path}`);
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: `CalmHubDocumentLoader rejected path with disallowed characters: ${path}`,
+                recoverable: false
+            });
         }
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
 
-        // TODO gracefully handle 404s and other errors
-        const response = await this.ax.get(path);
-        const document = response.data;
-        assertJsonObject(document, documentId);
-        this.logger.debug('Successfully loaded document from CALMHub with id ' + documentId);
-        return document;
+        try {
+            const response = await this.ax.get(path);
+            const document = response.data;
+            assertJsonObject(document, documentId);
+            this.logger.debug('Successfully loaded document from CALMHub with id ' + documentId);
+            return document;
+        } catch (err) {
+            if (err instanceof DocumentLoadError) {
+                throw err;
+            }
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: `Failed to load document from CALMHub: ${documentId}`,
+                cause: err instanceof Error ? err : undefined,
+                recoverable: false
+            });
+        }
     }
 
     /**
