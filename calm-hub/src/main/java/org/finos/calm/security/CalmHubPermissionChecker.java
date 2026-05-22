@@ -3,14 +3,16 @@ package org.finos.calm.security;
 import io.quarkus.security.PermissionChecker;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Singleton;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Singleton
+import java.util.List;
+
+@ApplicationScoped
 public class CalmHubPermissionChecker {
     private static final Logger logger = LoggerFactory.getLogger(CalmHubPermissionChecker.class);
 
@@ -79,8 +81,8 @@ public class CalmHubPermissionChecker {
                     .anyMatch(grant -> grant.getNamespace().equals(namespace)
                             && grant.getPermission() == UserAccess.Permission.admin);
         } catch (UserAccessNotFoundException e) {
-            logger.debug("No access grants found for user [{}]", username);
-            return false;
+            logger.error("No user access records found for user {}. Rejecting request.", username);
+            throw new RuntimeException(e);
         }
     }
 
