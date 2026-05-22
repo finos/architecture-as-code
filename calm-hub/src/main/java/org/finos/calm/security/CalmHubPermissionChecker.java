@@ -22,7 +22,7 @@ public class CalmHubPermissionChecker {
         this.userAccessStore = userAccessStore;
     }
 
-    @PermissionChecker("architectures-read")
+    @PermissionChecker(CalmHubScopes.ARCHITECTURES_READ)
     public boolean allowArchitectureRead(SecurityIdentity identity, String namespace) {
         logger.warn("checking arch read permissions");
         return true;
@@ -30,49 +30,49 @@ public class CalmHubPermissionChecker {
 //        return hasAccess(identity, namespace, UserAccess.ResourceType.architectures, false);
     }
 
-    @PermissionChecker("architectures-write")
+    @PermissionChecker(CalmHubScopes.ARCHITECTURES_WRITE)
     public boolean allowArchitectureWrite(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
         return hasAccess(identity, namespace, UserAccess.ResourceType.architectures, true);
     }
 
-    @PermissionChecker("patterns-read")
+    @PermissionChecker(CalmHubScopes.PATTERNS_READ)
     public boolean allowPatternRead(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
         return hasAccess(identity, namespace, UserAccess.ResourceType.patterns, false);
     }
 
-    @PermissionChecker("patterns-write")
+    @PermissionChecker(CalmHubScopes.PATTERNS_WRITE)
     public boolean allowPatternWrite(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
         return hasAccess(identity, namespace, UserAccess.ResourceType.patterns, true);
     }
 
-    @PermissionChecker("flows-read")
+    @PermissionChecker(CalmHubScopes.FLOWS_READ)
     public boolean allowFlowRead(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
         return hasAccess(identity, namespace, UserAccess.ResourceType.flows, false);
     }
 
-    @PermissionChecker("flows-write")
+    @PermissionChecker(CalmHubScopes.FLOWS_WRITE)
     public boolean allowFlowWrite(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
         return hasAccess(identity, namespace, UserAccess.ResourceType.flows, true);
     }
 
-    @PermissionChecker("adrs-read")
+    @PermissionChecker(CalmHubScopes.ADRS_READ)
     public boolean allowAdrRead(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
         return hasAccess(identity, namespace, UserAccess.ResourceType.adrs, false);
     }
 
-    @PermissionChecker("adrs-write")
+    @PermissionChecker(CalmHubScopes.ADRS_WRITE)
     public boolean allowAdrWrite(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
         return hasAccess(identity, namespace, UserAccess.ResourceType.adrs, true);
     }
 
-    @PermissionChecker("namespace-admin")
+    @PermissionChecker(CalmHubScopes.NAMESPACE_ADMIN)
     public boolean allowNamespaceAdmin(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
         String username = identity.getPrincipal().getName();
