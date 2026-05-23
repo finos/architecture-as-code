@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import type { CalmTimelineSchema } from '@finos/calm-models/types';
 import { Data, ResourceSummary, ResourceMapping } from '../model/calm.js';
 import { getAuthHeaders } from '../authService.js';
 import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
@@ -238,6 +239,32 @@ export class CalmService {
             .catch((error) => {
                 const errorMessage = `Error fetching standard for namespace ${namespace}, standard ID ${standardID}, version ${version}:`;
                 // arg1 is %s to prevent format string injection from `namespace`, `standardID`, and `version`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    // --- Timelines ---
+
+    /**
+     * Fetch the implied timeline projected from an architecture's version
+     * history. Returns the `calm-timeline.json` document describing each version
+     * as a moment.
+     */
+    public async fetchArchitectureTimeline(
+        namespace: string,
+        architectureID: string
+    ): Promise<CalmTimelineSchema> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(
+                `/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(architectureID)}/timeline`,
+                { headers }
+            )
+            .then((res) => res.data)
+            .catch((error) => {
+                const errorMessage = `Error fetching timeline for architecture ID ${architectureID}:`;
+                // arg1 is %s to prevent format string injection from `architectureID`.
                 console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
