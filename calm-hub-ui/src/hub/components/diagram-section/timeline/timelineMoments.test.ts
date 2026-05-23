@@ -37,6 +37,7 @@ describe('momentsFromTimeline', () => {
                 moment({
                     'unique-id': 'genesis',
                     name: 'Genesis',
+                    description: 'The first moment',
                     'valid-from': '2025-01-01',
                     adrs: ['/calm/adrs/1'],
                     details: { 'detailed-architecture': '/calm/.../versions/1.0.0' },
@@ -50,8 +51,8 @@ describe('momentsFromTimeline', () => {
         };
         const result = momentsFromTimeline(timeline);
         expect(result).toEqual([
-            { key: 'genesis', label: 'Genesis', version: '1.0.0', validFrom: '2025-01-01', adrs: ['/calm/adrs/1'] },
-            { key: 'next', label: 'Next', version: '2.0.0', validFrom: undefined, adrs: undefined },
+            { key: 'genesis', label: 'Genesis', version: '1.0.0', description: 'The first moment', validFrom: '2025-01-01', adrs: ['/calm/adrs/1'] },
+            { key: 'next', label: 'Next', version: '2.0.0', description: '', validFrom: undefined, adrs: undefined },
         ]);
     });
 

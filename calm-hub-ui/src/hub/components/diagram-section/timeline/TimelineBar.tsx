@@ -16,6 +16,8 @@ export interface TimelineMoment {
     label: string;
     /** The underlying resource version this moment maps to. */
     version: string;
+    /** Moment description, when one was authored on the timeline document. */
+    description?: string;
     /** Optional ISO date the moment became valid. */
     validFrom?: string;
     /** ADR references carried on the moment, if any. */

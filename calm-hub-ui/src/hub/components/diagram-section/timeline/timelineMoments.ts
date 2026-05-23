@@ -22,16 +22,17 @@ export function versionFromReference(reference: string | undefined): string | un
 export function momentsFromTimeline(timeline: CalmTimelineSchema): TimelineMoment[] {
     const moments = Array.isArray(timeline.moments) ? timeline.moments : [];
     return moments
-        .map((moment) => {
+        .map((moment): TimelineMoment | null => {
             const version = versionFromReference(moment.details?.['detailed-architecture']);
             if (!version) return null;
             return {
                 key: moment['unique-id'],
                 label: moment.name || moment['unique-id'],
                 version,
+                description: moment.description,
                 validFrom: moment['valid-from'],
                 adrs: Array.isArray(moment.adrs) ? moment.adrs : undefined,
-            } satisfies TimelineMoment;
+            };
         })
         .filter((m): m is TimelineMoment => m !== null);
 }

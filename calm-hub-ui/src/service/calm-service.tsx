@@ -247,9 +247,11 @@ export class CalmService {
     // --- Timelines ---
 
     /**
-     * Fetch the implied timeline projected from an architecture's version
-     * history. Returns the `calm-timeline.json` document describing each version
-     * as a moment.
+     * Fetch the timeline for an architecture. Returns the explicit timeline if
+     * one references this architecture; otherwise the backend returns an implied
+     * timeline projected from the architecture's version history. Either way the
+     * response is a `calm-timeline.json` document describing each version as a
+     * moment.
      */
     public async fetchArchitectureTimeline(
         namespace: string,
