@@ -58,6 +58,12 @@ export interface HubControlSummary {
 }
 
 export class HubClientError extends Error {
+    /**
+     * Creates a normalized Hub client error.
+     * @param status HTTP status code or 0 for non-HTTP failures.
+     * @param error Error message.
+     * @param request Request label that failed.
+     */
     constructor(
         public readonly status: number,
         public readonly error: string,
@@ -71,6 +77,11 @@ export class HubClientError extends Error {
 export class CalmHubClient {
     private readonly ax: Axios;
 
+    /**
+     * Creates a Hub client bound to a base URL and optional auth plugin.
+     * @param options Hub connection options.
+     * @param axiosInstance Optional injected axios instance for testing.
+     */
     constructor(options: CalmHubOptions, axiosInstance?: Axios) {
         const baseUrl = options.calmHubUrl;
        
@@ -98,6 +109,12 @@ export class CalmHubClient {
 
     // ── Namespaces ───────────────────────────────────────────────────────────
 
+    /**
+     * Creates a namespace.
+     * @param name Namespace name.
+     * @param description Namespace description.
+     * @returns Created namespace result with location.
+     */
     async createNamespace(name: string, description: string): Promise<HubNamespaceCreateResult> {
         const endpoint = 'POST /calm/namespaces';
         try {
@@ -109,6 +126,10 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Lists namespaces.
+     * @returns Namespace summaries.
+     */
     async listNamespaces(): Promise<HubNamespaceSummary[]> {
         const endpoint = 'GET /calm/namespaces';
         try {
@@ -122,6 +143,14 @@ export class CalmHubClient {
 
     // ── Architectures ────────────────────────────────────────────────────────
 
+    /**
+     * Creates a new architecture.
+     * @param namespace Namespace name.
+     * @param name Architecture name.
+     * @param description Architecture description.
+     * @param architectureJson Architecture JSON payload.
+     * @returns Created resource metadata.
+     */
     async pushArchitecture(
         namespace: string,
         name: string,
@@ -142,6 +171,16 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Creates a new version for an existing architecture.
+     * @param namespace Namespace name.
+     * @param id Architecture id.
+     * @param version Version label.
+     * @param name Architecture name.
+     * @param description Architecture description.
+     * @param architectureJson Architecture JSON payload.
+     * @returns Created resource metadata.
+     */
     async pushArchitectureVersion(
         namespace: string,
         id: number,
@@ -163,6 +202,11 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Lists architectures and their versions in a namespace.
+     * @param namespace Namespace name.
+     * @returns Architecture summaries.
+     */
     async listArchitectures(namespace: string): Promise<HubArchitectureSummary[]> {
         const endpoint = `GET /calm/namespaces/${namespace}/architectures`;
         try {
@@ -190,6 +234,13 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Pulls a specific architecture version.
+     * @param namespace Namespace name.
+     * @param id Architecture id.
+     * @param version Version label.
+     * @returns Architecture document.
+     */
     async pullArchitecture(namespace: string, id: number, version: string): Promise<object> {
         const endpoint = `GET /calm/namespaces/${namespace}/architectures/${id}/versions/${version}`;
         try {
@@ -204,6 +255,14 @@ export class CalmHubClient {
 
     // ── Patterns ─────────────────────────────────────────────────────────────
 
+    /**
+     * Creates a new pattern.
+     * @param namespace Namespace name.
+     * @param name Pattern name.
+     * @param description Pattern description.
+     * @param patternJson Pattern JSON payload.
+     * @returns Created resource metadata.
+     */
     async pushPattern(
         namespace: string,
         name: string,
@@ -224,6 +283,16 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Creates a new version for an existing pattern.
+     * @param namespace Namespace name.
+     * @param id Pattern id.
+     * @param version Version label.
+     * @param _name Unused name parameter kept for compatibility.
+     * @param _description Unused description parameter kept for compatibility.
+     * @param patternJson Pattern JSON payload.
+     * @returns Created resource metadata.
+     */
     async pushPatternVersion(
         namespace: string,
         id: number,
@@ -245,6 +314,11 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Lists patterns and their versions in a namespace.
+     * @param namespace Namespace name.
+     * @returns Pattern summaries.
+     */
     async listPatterns(namespace: string): Promise<HubPatternSummary[]> {
         const endpoint = `GET /calm/namespaces/${namespace}/patterns`;
         try {
@@ -272,6 +346,13 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Pulls a specific pattern version.
+     * @param namespace Namespace name.
+     * @param id Pattern id.
+     * @param version Version label.
+     * @returns Pattern document.
+     */
     async pullPattern(namespace: string, id: number, version: string): Promise<object> {
         const endpoint = `GET /calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
         try {
@@ -286,6 +367,14 @@ export class CalmHubClient {
 
     // ── Standards ─────────────────────────────────────────────────────────────
 
+    /**
+     * Creates a new standard.
+     * @param namespace Namespace name.
+     * @param name Standard name.
+     * @param description Standard description.
+     * @param standardJson Standard JSON payload.
+     * @returns Created resource metadata.
+     */
     async pushStandard(
         namespace: string,
         name: string,
@@ -306,6 +395,16 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Creates a new version for an existing standard.
+     * @param namespace Namespace name.
+     * @param id Standard id.
+     * @param version Version label.
+     * @param name Standard name.
+     * @param description Standard description.
+     * @param standardJson Standard JSON payload.
+     * @returns Created resource metadata.
+     */
     async pushStandardVersion(
         namespace: string,
         id: number,
@@ -327,6 +426,11 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Lists standards and their versions in a namespace.
+     * @param namespace Namespace name.
+     * @returns Standard summaries.
+     */
     async listStandards(namespace: string): Promise<HubStandardSummary[]> {
         const endpoint = `GET /calm/namespaces/${namespace}/standards`;
         try {
@@ -354,6 +458,13 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Pulls a specific standard version.
+     * @param namespace Namespace name.
+     * @param id Standard id.
+     * @param version Version label.
+     * @returns Standard document.
+     */
     async pullStandard(namespace: string, id: number, version: string): Promise<object> {
         const endpoint = `GET /calm/namespaces/${namespace}/standards/${id}/versions/${version}`;
         try {
@@ -368,6 +479,11 @@ export class CalmHubClient {
 
     // ── Domains/Controls ─────────────────────────────────────────────────────
 
+    /**
+     * Creates a domain.
+     * @param name Domain name.
+     * @returns Created domain metadata.
+     */
     async createDomain(name: string): Promise<HubDomainCreateResult> {
         const endpoint = 'POST /calm/domains';
         try {
@@ -378,6 +494,10 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Lists domains.
+     * @returns Domain summaries.
+     */
     async listDomains(): Promise<HubDomainSummary[]> {
         const endpoint = 'GET /calm/domains';
         try {
@@ -389,6 +509,14 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Creates a control requirement.
+     * @param domain Domain name.
+     * @param name Control name.
+     * @param description Control description.
+     * @param requirementJson Requirement JSON payload.
+     * @returns Created resource metadata.
+     */
     async createControl(domain: string, name: string, description: string, requirementJson: string): Promise<HubCreateResult> {
         const endpoint = `POST /calm/domains/${domain}/controls`;
         try {
@@ -401,6 +529,11 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Lists controls for a domain.
+     * @param domain Domain name.
+     * @returns Control summaries.
+     */
     async listControls(domain: string): Promise<HubControlSummary[]> {
         const endpoint = `GET /calm/domains/${domain}/controls`;
         try {
@@ -412,6 +545,14 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Pushes a versioned control requirement.
+     * @param domain Domain name.
+     * @param controlId Control id.
+     * @param version Version label.
+     * @param requirementJson Requirement JSON payload.
+     * @returns Created resource metadata.
+     */
     async pushControlRequirement(domain: string, controlId: number, version: string, requirementJson: string): Promise<HubCreateResult> {
         const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
         try {
@@ -428,6 +569,13 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Pulls a versioned control requirement.
+     * @param domain Domain name.
+     * @param controlId Control id.
+     * @param version Version label.
+     * @returns Requirement document.
+     */
     async pullControlRequirement(domain: string, controlId: number, version: string): Promise<object> {
         const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
         try {
@@ -440,6 +588,15 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Pushes a versioned control configuration.
+     * @param domain Domain name.
+     * @param controlId Control id.
+     * @param configId Configuration id.
+     * @param version Version label.
+     * @param configJson Configuration JSON payload.
+     * @returns Created resource metadata.
+     */
     async pushControlConfiguration(domain: string, controlId: number, configId: string, version: string, configJson: string): Promise<HubCreateResult> {
         const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
         try {
@@ -456,6 +613,14 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Pulls a versioned control configuration.
+     * @param domain Domain name.
+     * @param controlId Control id.
+     * @param configId Configuration id.
+     * @param version Version label.
+     * @returns Configuration document.
+     */
     async pullControlConfiguration(domain: string, controlId: number, configId: string, version: string): Promise<object> {
         const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
         try {
@@ -468,6 +633,13 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Creates a control configuration.
+     * @param domain Domain name.
+     * @param controlId Control id.
+     * @param configurationJson Configuration JSON payload.
+     * @returns Created resource metadata.
+     */
     async createControlConfiguration(domain: string, controlId: number, configurationJson: string): Promise<HubCreateResult> {
         const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/configurations`;
         try {
@@ -484,6 +656,12 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Lists control configuration ids for a control.
+     * @param domain Domain name.
+     * @param controlId Control id.
+     * @returns Configuration ids.
+     */
     async listControlConfigurations(domain: string, controlId: number): Promise<number[]> {
         const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations`;
         try {
@@ -494,6 +672,12 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Lists control requirement versions.
+     * @param domain Domain name.
+     * @param controlId Control id.
+     * @returns Requirement versions.
+     */
     async listControlRequirementVersions(domain: string, controlId: number): Promise<string[]> {
         const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/requirement/versions`;
         try {
@@ -504,6 +688,13 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Lists control configuration versions.
+     * @param domain Domain name.
+     * @param controlId Control id.
+     * @param configId Configuration id.
+     * @returns Configuration versions.
+     */
     async listControlConfigurationVersions(domain: string, controlId: number, configId: number): Promise<string[]> {
         const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`;
         try {
@@ -544,6 +735,12 @@ export class CalmHubClient {
         return parseInt(match[1], 10);
     }
 
+    /**
+     * Converts unknown errors into HubClientError with endpoint context.
+     * @param err Unknown thrown value.
+     * @param endpoint Endpoint label.
+     * @returns Normalized Hub client error.
+     */
     private wrapError(err: unknown, endpoint: string): HubClientError {
         if (err instanceof HubClientError) return err;
         if (axios.isAxiosError(err) && err.response) {

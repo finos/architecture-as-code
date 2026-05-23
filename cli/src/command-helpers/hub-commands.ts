@@ -6,6 +6,12 @@ import * as cliConfig from '../cli-config';
 // ── Hub URL resolution ────────────────────────────────────────────────────────
 
 class HubCommandError extends Error {
+    /**
+     * Creates a typed command error for user-facing Hub command failures.
+     * @param status HTTP-like status code.
+     * @param error Error message.
+     * @param request Request label.
+     */
     constructor(
         public status: number,
         public error: string,
@@ -61,6 +67,11 @@ export interface PushArchitectureResult {
     location: string;
 }
 
+/**
+ * Prints a push operation result in either pretty table or JSON format.
+ * @param result Push result payload.
+ * @param format Output format selector.
+ */
 export function printPushResult(result: PushArchitectureResult, format: OutputFormat): void {
     if (format === 'pretty') {
         printTableSuccess(
@@ -77,6 +88,16 @@ export function printPushResult(result: PushArchitectureResult, format: OutputFo
     }
 }
 
+/**
+ * Resolves missing architecture name/description from an existing architecture id.
+ * @param client CALM Hub API client.
+ * @param namespace Target namespace.
+ * @param parsedId Architecture id.
+ * @param name Optional name supplied by the user.
+ * @param description Optional description supplied by the user.
+ * @param format Output format used for error handling.
+ * @returns Resolved name and description.
+ */
 export async function resolveVersionedMetadata(
     client: CalmHubClient,
     namespace: string,
@@ -106,6 +127,14 @@ export async function resolveVersionedMetadata(
     };
 }
 
+/**
+ * Pushes a new architecture version for an existing architecture id.
+ * @param client CALM Hub API client.
+ * @param options Command options.
+ * @param fileContent Architecture JSON payload.
+ * @param format Output format used for error handling.
+ * @returns Push result with id, version, and location.
+ */
 export async function pushVersioned(
     client: CalmHubClient,
     options: PushArchitectureOptions,
@@ -142,6 +171,12 @@ export async function pushVersioned(
     );
 }
 
+/**
+ * Resolves CALM Hub options and exits with formatted error output on failure.
+ * @param opts Raw hub options.
+ * @param format Output format used for errors.
+ * @returns Fully-resolved hub options.
+ */
 async function handleOptionsLoadError(opts: CalmHubOptions, format: OutputFormat = 'json'): Promise<CalmHubOptions> {
     try {
         return await resolveCalmHubOptions(opts);
@@ -150,6 +185,10 @@ async function handleOptionsLoadError(opts: CalmHubOptions, format: OutputFormat
     }
 }
 
+/**
+ * Pushes a new architecture or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
 export async function runPushArchitecture(options: PushArchitectureOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -202,6 +241,10 @@ export interface PullArchitectureOptions {
     output?: string;
 }
 
+/**
+ * Pulls an architecture version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
 export async function runPullArchitecture(options: PullArchitectureOptions): Promise<void> {
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions);
     const client = new CalmHubClient(calmHubOptions);
@@ -234,6 +277,10 @@ export interface ListArchitecturesOptions {
     format?: string;
 }
 
+/**
+ * Lists architectures in a namespace.
+ * @param options Command options.
+ */
 export async function runListArchitectures(options: ListArchitecturesOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
@@ -268,6 +315,10 @@ export interface CreateNamespaceOptions {
     format?: string;
 }
 
+/**
+ * Creates a new namespace in CALM Hub.
+ * @param options Command options.
+ */
 export async function runCreateNamespace(options: CreateNamespaceOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     if (!options.description?.trim()) {
@@ -303,6 +354,10 @@ export interface ListNamespacesOptions {
     format?: string;
 }
 
+/**
+ * Lists all namespaces in CALM Hub.
+ * @param options Command options.
+ */
 export async function runListNamespaces(options: ListNamespacesOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
@@ -340,6 +395,16 @@ export interface PushPatternOptions {
     format?: string;
 }
 
+/**
+ * Resolves missing pattern name/description from an existing pattern id.
+ * @param client CALM Hub API client.
+ * @param namespace Target namespace.
+ * @param parsedId Pattern id.
+ * @param name Optional name supplied by the user.
+ * @param description Optional description supplied by the user.
+ * @param format Output format used for error handling.
+ * @returns Resolved name and description.
+ */
 export async function resolvePatternMetadata(
     client: CalmHubClient,
     namespace: string,
@@ -369,6 +434,14 @@ export async function resolvePatternMetadata(
     };
 }
 
+/**
+ * Pushes a new pattern version for an existing pattern id.
+ * @param client CALM Hub API client.
+ * @param options Command options.
+ * @param fileContent Pattern JSON payload.
+ * @param format Output format used for error handling.
+ * @returns Push result with id, version, and location.
+ */
 export async function pushPatternVersioned(
     client: CalmHubClient,
     options: PushPatternOptions,
@@ -405,6 +478,10 @@ export async function pushPatternVersioned(
     );
 }
 
+/**
+ * Pushes a new pattern or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
 export async function runPushPattern(options: PushPatternOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -456,6 +533,10 @@ export interface PullPatternOptions {
     output?: string;
 }
 
+/**
+ * Pulls a pattern version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
 export async function runPullPattern(options: PullPatternOptions): Promise<void> {
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
     const client = new CalmHubClient(calmHubOptions);
@@ -488,6 +569,10 @@ export interface ListPatternsOptions {
     format?: string;
 }
 
+/**
+ * Lists patterns in a namespace.
+ * @param options Command options.
+ */
 export async function runListPatterns(options: ListPatternsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
@@ -526,6 +611,16 @@ export interface PushStandardOptions {
     format?: string;
 }
 
+/**
+ * Resolves missing standard name/description from an existing standard id.
+ * @param client CALM Hub API client.
+ * @param namespace Target namespace.
+ * @param parsedId Standard id.
+ * @param name Optional name supplied by the user.
+ * @param description Optional description supplied by the user.
+ * @param format Output format used for error handling.
+ * @returns Resolved name and description.
+ */
 export async function resolveStandardMetadata(
     client: CalmHubClient,
     namespace: string,
@@ -555,6 +650,14 @@ export async function resolveStandardMetadata(
     };
 }
 
+/**
+ * Pushes a new standard version for an existing standard id.
+ * @param client CALM Hub API client.
+ * @param options Command options.
+ * @param fileContent Standard JSON payload.
+ * @param format Output format used for error handling.
+ * @returns Push result with id, version, and location.
+ */
 export async function pushStandardVersioned(
     client: CalmHubClient,
     options: PushStandardOptions,
@@ -591,6 +694,10 @@ export async function pushStandardVersioned(
     );
 }
 
+/**
+ * Pushes a new standard or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
 export async function runPushStandard(options: PushStandardOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -642,6 +749,10 @@ export interface PullStandardOptions {
     output?: string;
 }
 
+/**
+ * Pulls a standard version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
 export async function runPullStandard(options: PullStandardOptions): Promise<void> {
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
     const client = new CalmHubClient(calmHubOptions);
@@ -674,6 +785,10 @@ export interface ListStandardsOptions {
     format?: string;
 }
 
+/**
+ * Lists standards in a namespace.
+ * @param options Command options.
+ */
 export async function runListStandards(options: ListStandardsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
@@ -708,6 +823,11 @@ export interface CreateDomainOptions {
     format?: string;
 }
 
+/**
+ * Prints an id-based creation result in either pretty table or JSON format.
+ * @param result Creation result payload.
+ * @param format Output format selector.
+ */
 export function printIdCreateResult(result: { id: number; location: string }, format: OutputFormat): void {
     if (format === 'pretty') {
         printTableSuccess(
@@ -723,6 +843,10 @@ export function printIdCreateResult(result: { id: number; location: string }, fo
     }
 }
 
+/**
+ * Creates a domain in CALM Hub.
+ * @param options Command options.
+ */
 export async function runCreateDomain(options: CreateDomainOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
@@ -754,6 +878,10 @@ export interface ListDomainsOptions {
     format?: string;
 }
 
+/**
+ * Lists domains in CALM Hub.
+ * @param options Command options.
+ */
 export async function runListDomains(options: ListDomainsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
@@ -786,6 +914,10 @@ export interface CreateControlRequirementOptions {
     format?: string;
 }
 
+/**
+ * Creates a control requirement from a local JSON file.
+ * @param options Command options.
+ */
 export async function runCreateControlRequirement(options: CreateControlRequirementOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -830,6 +962,10 @@ export interface ListControlRequirementsOptions {
     format?: string;
 }
 
+/**
+ * Lists controls for a domain.
+ * @param options Command options.
+ */
 export async function runListControlRequirements(options: ListControlRequirementsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
@@ -865,6 +1001,10 @@ export interface PushControlRequirementOptions {
     format?: string;
 }
 
+/**
+ * Pushes a versioned control requirement from a local JSON file.
+ * @param options Command options.
+ */
 export async function runPushControlRequirement(options: PushControlRequirementOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -910,6 +1050,10 @@ export interface PullControlRequirementOptions {
     output?: string;
 }
 
+/**
+ * Pulls a versioned control requirement and writes it to stdout or a file.
+ * @param options Command options.
+ */
 export async function runPullControlRequirement(options: PullControlRequirementOptions): Promise<void> {
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
     const client = new CalmHubClient(calmHubOptions);
@@ -946,6 +1090,10 @@ export interface PushControlConfigurationOptions {
     format?: string;
 }
 
+/**
+ * Pushes a versioned control configuration from a local JSON file.
+ * @param options Command options.
+ */
 export async function runPushControlConfiguration(options: PushControlConfigurationOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -992,6 +1140,10 @@ export interface PullControlConfigurationOptions {
     output?: string;
 }
 
+/**
+ * Pulls a versioned control configuration and writes it to stdout or a file.
+ * @param options Command options.
+ */
 export async function runPullControlConfiguration(options: PullControlConfigurationOptions): Promise<void> {
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
     const client = new CalmHubClient(calmHubOptions);
@@ -1026,6 +1178,10 @@ export interface CreateControlConfigurationOptions {
     format?: string;
 }
 
+/**
+ * Creates a control configuration from a local JSON file.
+ * @param options Command options.
+ */
 export async function runCreateControlConfiguration(options: CreateControlConfigurationOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -1070,6 +1226,10 @@ export interface ListControlConfigurationsOptions {
     format?: string;
 }
 
+/**
+ * Lists control configuration ids for a control.
+ * @param options Command options.
+ */
 export async function runListControlConfigurations(options: ListControlConfigurationsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -1107,6 +1267,10 @@ export interface ListControlRequirementVersionsOptions {
     format?: string;
 }
 
+/**
+ * Lists available requirement versions for a control.
+ * @param options Command options.
+ */
 export async function runListControlRequirementVersions(options: ListControlRequirementVersionsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -1145,6 +1309,10 @@ export interface ListControlConfigurationVersionsOptions {
     format?: string;
 }
 
+/**
+ * Lists available versions for a control configuration.
+ * @param options Command options.
+ */
 export async function runListControlConfigurationVersions(options: ListControlConfigurationVersionsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
@@ -1181,6 +1349,11 @@ export async function runListControlConfigurationVersions(options: ListControlCo
 
 // ── shared error handler ──────────────────────────────────────────────────────
 
+/**
+ * Normalizes and prints Hub errors, then exits the process.
+ * @param err Thrown error.
+ * @param format Output format selector.
+ */
 function handleHubError(err: unknown, format: OutputFormat): never {
     if (err instanceof HubClientError || err instanceof HubCommandError) {
         printError(err.status, err.error, err.request, format);
