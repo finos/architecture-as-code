@@ -1226,6 +1226,11 @@ export interface ListControlConfigurationsOptions {
     format?: string;
 }
 
+interface ControlConfigurationSummary {
+    id: number;
+    versions: string[];
+}
+
 /**
  * Lists control configuration ids for a control.
  * @param options Command options.
@@ -1244,14 +1249,27 @@ export async function runListControlConfigurations(options: ListControlConfigura
 
     try {
         const ids: number[] = await client.listControlConfigurations(options.domain, parsedControlId);
+        const sortedIds = [...ids].sort((a, b) => a - b);
+        const configurations: ControlConfigurationSummary[] = [];
+
+        for (const id of sortedIds) {
+            const versions = await client.listControlConfigurationVersions(options.domain, parsedControlId, id);
+            configurations.push({ id, versions });
+        }
 
         if (format === 'pretty') {
             printTableSuccess(
-                ids.map(id => ({ ID: id })),
-                [{ key: 'ID', header: 'ID' }]
+                configurations.map(configuration => ({
+                    ID: configuration.id,
+                    VERSIONS: configuration.versions.join(', ')
+                })),
+                [
+                    { key: 'ID', header: 'ID' },
+                    { key: 'VERSIONS', header: 'VERSIONS' }
+                ]
             );
         } else {
-            printJsonSuccess(ids);
+            printJsonSuccess(configurations);
         }
     } catch (err) {
         handleHubError(err, format);
@@ -1285,54 +1303,6 @@ export async function runListControlRequirementVersions(options: ListControlRequ
 
     try {
         const versions: string[] = await client.listControlRequirementVersions(options.domain, parsedControlId);
-
-        if (format === 'pretty') {
-            printTableSuccess(
-                versions.map(v => ({ VERSION: v })),
-                [{ key: 'VERSION', header: 'VERSION' }]
-            );
-        } else {
-            printJsonSuccess(versions);
-        }
-    } catch (err) {
-        handleHubError(err, format);
-    }
-}
-
-// ── list control-configuration-versions ──────────────────────────────────────
-
-export interface ListControlConfigurationVersionsOptions {
-    calmHubOptions: CalmHubOptions;
-    domain: string;
-    controlId: string;
-    configId: string;
-    format?: string;
-}
-
-/**
- * Lists available versions for a control configuration.
- * @param options Command options.
- */
-export async function runListControlConfigurationVersions(options: ListControlConfigurationVersionsOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-
-    const parsedControlId = parseInt(options.controlId, 10);
-    if (!Number.isFinite(parsedControlId)) {
-        printError(0, '--control-id must be a valid integer', 'list control-configuration-versions', format);
-        process.exit(1);
-    }
-
-    const parsedConfigId = parseInt(options.configId, 10);
-    if (!Number.isFinite(parsedConfigId)) {
-        printError(0, '--config-id must be a valid integer', 'list control-configuration-versions', format);
-        process.exit(1);
-    }
-
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    try {
-        const versions: string[] = await client.listControlConfigurationVersions(options.domain, parsedControlId, parsedConfigId);
 
         if (format === 'pretty') {
             printTableSuccess(

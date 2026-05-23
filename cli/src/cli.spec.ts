@@ -1085,6 +1085,17 @@ describe('CLI Commands', () => {
                 format: 'pretty',
             }));
         });
+
+        it('rejects removed control-configuration-versions command', async () => {
+            program.exitOverride();
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'control-configuration-versions',
+                '--domain', 'risk',
+                '--control-id', '1',
+                '--config-id', '5',
+            ])).rejects.toThrow('process.exit');
+        });
     });
 
     describe('list control-requirement-versions command', () => {
@@ -1104,30 +1115,6 @@ describe('CLI Commands', () => {
             expect(hubCommandsModule.runListControlRequirementVersions).toHaveBeenCalledWith(expect.objectContaining({
                 domain: 'risk',
                 controlId: '1',
-                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
-            }));
-        });
-    });
-
-    describe('list control-configuration-versions command', () => {
-        beforeEach(async () => {
-            hubCommandsModule = await import('./command-helpers/hub-commands');
-            vi.spyOn(hubCommandsModule, 'runListControlConfigurationVersions').mockResolvedValue(undefined);
-        });
-
-        it('calls runListControlConfigurationVersions with domain, controlId and configId', async () => {
-            await program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'control-configuration-versions',
-                '--domain', 'risk',
-                '--control-id', '1',
-                '--config-id', '5',
-                '--calm-hub-url', 'http://hub',
-            ]);
-
-            expect(hubCommandsModule.runListControlConfigurationVersions).toHaveBeenCalledWith(expect.objectContaining({
-                domain: 'risk',
-                controlId: '1',
-                configId: '5',
                 calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));
         });
