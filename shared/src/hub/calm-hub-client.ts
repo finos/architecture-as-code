@@ -460,7 +460,7 @@ export class CalmHubClient {
         const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
         try {
             const response = await this.ax.get(
-            `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`
+                `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`
             );
             return response.data as object;
         } catch (err) {
