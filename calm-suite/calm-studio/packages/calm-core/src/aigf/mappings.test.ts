@@ -34,6 +34,29 @@ describe('AIGF Mappings', () => {
     expect(result.risks).toHaveLength(0);
   });
 
+  it("getAIGFForNodeType('ai:mcp-server') returns AIR-SEC-025 with mi-19 and mi-21", () => {
+    const result = getAIGFForNodeType('ai:mcp-server');
+    const riskIds = result.risks.map((r) => r.id);
+    const mitigationIds = result.mitigations.map((m) => m.id);
+    expect(riskIds).toEqual(['AIR-SEC-025']);
+    expect(mitigationIds).toContain('mi-19');
+    expect(mitigationIds).toContain('mi-21');
+  });
+
+  it("getAIGFForNodeType('ai:observability') returns empty risks and mitigations (observability IS the mitigation)", () => {
+    const result = getAIGFForNodeType('ai:observability');
+    expect(result.risks).toHaveLength(0);
+    expect(result.mitigations).toHaveLength(0);
+  });
+
+  it("aigfNodeRiskMappings explicitly contains an entry for ai:observability", async () => {
+    const { aigfNodeRiskMappings } = await import('./mappings.js');
+    const entry = aigfNodeRiskMappings.find((m) => m.nodeTypePattern === 'ai:observability');
+    expect(entry).toBeDefined();
+    expect(entry?.applicableRisks).toEqual([]);
+    expect(entry?.recommendedMitigations).toEqual([]);
+  });
+
   it("getAIGFForNodeType('service') returns empty (non-AI node)", () => {
     const result = getAIGFForNodeType('service');
     expect(result.risks).toHaveLength(0);

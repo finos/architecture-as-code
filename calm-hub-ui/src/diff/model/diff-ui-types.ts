@@ -17,8 +17,14 @@ export interface DiffEdgeData extends CalmRelationshipSchema {
     originalId?: string;
 }
 
+/** A diffable CALM document: an architecture instance or a pattern JSON Schema. */
+export type DiffSource = CalmArchitectureSchema | Record<string, unknown>;
+
+export type DiffSourceType = 'Architectures' | 'Patterns';
+
 export interface DiffGraphProps {
-    architecture: CalmArchitectureSchema;
+    source: DiffSource;
+    sourceType: DiffSourceType;
     diffResult: DiffResult | null;
     isFirst: boolean;
 }
@@ -30,13 +36,8 @@ export interface DiffSectionProps<T> {
     className: string;
 }
 
-export interface DiffGraphPanelProps {
-    archA: CalmArchitectureSchema | null;
-    archB: CalmArchitectureSchema | null;
-    diffResult: DiffResult | null;
-    onFileLoad: (file: File, isFirst: boolean) => void;
-}
-
 export interface DiffPanelProps {
     diffResult: DiffResult | null;
+    /** Message shown when there is no diff yet. Defaults to the upload-route wording. */
+    emptyMessage?: string;
 }

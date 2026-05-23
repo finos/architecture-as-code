@@ -31,11 +31,11 @@ public class TestFlowResourcePutEnabledShould {
 
     @Test
     void return_400_error_when_version_is_not_valid_when_updating_flow_version() {
-        String flowJson = "{ \"test\": \"json\" }";
+        String envelopeBody = "{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}";
 
         given()
                 .header("Content-Type", "application/json")
-                .body(flowJson)
+                .body(envelopeBody)
                 .when()
                 .put("/calm/namespaces/test/flows/20/versions/invalid-version")
                 .then()
@@ -71,7 +71,7 @@ public class TestFlowResourcePutEnabledShould {
         if (expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
-                    .body("{ \"test\": \"json\" }")
+                    .body("{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
                     .put("/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
@@ -80,7 +80,7 @@ public class TestFlowResourcePutEnabledShould {
         } else {
             given()
                     .header("Content-Type", "application/json")
-                    .body("{ \"test\": \"json\" }")
+                    .body("{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
                     .put("/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()

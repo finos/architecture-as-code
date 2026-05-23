@@ -56,11 +56,25 @@ export function diffArchitectures(
     archA: CalmArchitectureSchema,
     archB: CalmArchitectureSchema,
 ): DiffResult {
-    const allNodesA = archA.nodes ?? [];
-    const allNodesB = archB.nodes ?? [];
-    const allEdgesA = archA.relationships ?? [];
-    const allEdgesB = archB.relationships ?? [];
+    return diffNodesAndRelationships(
+        archA.nodes ?? [],
+        archB.nodes ?? [],
+        archA.relationships ?? [],
+        archB.relationships ?? [],
+    );
+}
 
+/**
+ * Core diff over the node/relationship arrays that both architectures and
+ * (normalised) patterns reduce to. Matching is by `unique-id`; items missing
+ * one are surfaced via `invalidItems` rather than silently dropped.
+ */
+export function diffNodesAndRelationships(
+    allNodesA: CalmNodeSchema[],
+    allNodesB: CalmNodeSchema[],
+    allEdgesA: CalmRelationshipSchema[],
+    allEdgesB: CalmRelationshipSchema[],
+): DiffResult {
     const validNodesA = allNodesA.filter((n) => n['unique-id']);
     const validNodesB = allNodesB.filter((n) => n['unique-id']);
     const validEdgesA = allEdgesA.filter((r) => r['unique-id']);

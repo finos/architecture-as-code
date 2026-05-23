@@ -46,6 +46,7 @@ Options:
 Commands:
   generate [options]          Generate an architecture from a CALM pattern file.
   validate [options]          Validate that an architecture conforms to a given CALM pattern.
+  diff [options]              Compare two CALM documents (architectures or patterns) and report what changed.
   template [options]          Generate files from a CALM model using a Handlebars template bundle.
   docify [options]            Generate a documentation website off your CALM model.
   init-ai [options]           Augment a git repository with AI assistance for CALM
@@ -276,6 +277,53 @@ WARN  issues:
 
 which is just letting you know that you have left in some placeholder values which might have been generated with the generate command.
 This isn't a full break, but it implies that you've forgotten to fill out a detail in your architecture.
+
+### Diffing two CALM documents
+
+This command compares two versions of a CALM document and reports what changed between them. It works on both **architectures** and **patterns**, matching nodes and relationships by their `unique-id` and classifying each as added, removed, modified, or renamed. The document type is auto-detected; use `--type` to override detection.
+
+```shell
+% calm diff --help
+Usage: calm diff [options]
+
+Compare two CALM documents (architectures or patterns) and report what changed.
+
+Options:
+  -a, --document-a <file>   Path to the first (baseline) CALM document.
+  -b, --document-b <file>   Path to the second CALM document to compare against the baseline.
+  -f, --format <format>     Output format (choices: "json", "summary", default: "json")
+  -t, --type <type>         Force the document type instead of auto-detecting it. (choices: "architecture", "pattern")
+  -o, --output <file>       Path location at which to write the diff output. If omitted, prints to stdout.
+  --exit-code               Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.
+  -v, --verbose             Enable verbose logging. (default: false)
+  -h, --help                display help for command
+```
+
+For a quick human-readable overview, use `--format summary`:
+
+```shell
+% calm diff -a ./baseline.arch.json -b ./updated.arch.json --format summary
+CALM architecture diff
+----------------------
+Nodes:         +1  -0  ~1  ↔0  =3
+Relationships: +1  -0  ~0  ↔0  =2
+
+Nodes added:
+  - audit-service
+...
+```
+
+The same command compares two patterns — pass the pattern files instead:
+
+```shell
+% calm diff -a ./v1.pattern.json -b ./v2.pattern.json --format summary
+```
+
+The `--exit-code` flag makes the command exit non-zero when any change (including items skipped for a missing `unique-id`) is detected, so it can gate version bumps in CI:
+
+```shell
+% calm diff -a ./baseline.arch.json -b ./updated.arch.json --exit-code
+```
 
 ## CALM init-ai
 

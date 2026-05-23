@@ -21,6 +21,7 @@ import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundExceptio
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
@@ -476,7 +477,7 @@ public class TestMongoControlStoreShould {
         when(controlCollection.updateOne(any(Document.class), any(Document.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
 
-        mongoControlStore.createRequirementForVersion("security", 1, "2.0.0", "{\"type\": \"req-v2\"}");
+        mongoControlStore.createRequirementForVersion("security", 1, "2.0.0", new CreateControlRequirement("n", "d", "{\"type\": \"req-v2\"}"));
 
         verify(controlCollection).updateOne(any(Document.class), any(Document.class));
     }
@@ -502,7 +503,7 @@ public class TestMongoControlStoreShould {
                 .thenReturn(UpdateResult.acknowledged(0, 0L, null));
 
         assertThrows(ControlRequirementVersionExistsException.class, () ->
-                mongoControlStore.createRequirementForVersion("security", 1, "1.0.0", "{}"));
+                mongoControlStore.createRequirementForVersion("security", 1, "1.0.0", new CreateControlRequirement("n", "d", "{}")));
     }
 
     @Test
@@ -510,7 +511,7 @@ public class TestMongoControlStoreShould {
         when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         assertThrows(DomainNotFoundException.class, () ->
-                mongoControlStore.createRequirementForVersion("invalid", 1, "2.0.0", "{}"));
+                mongoControlStore.createRequirementForVersion("invalid", 1, "2.0.0", new CreateControlRequirement("n", "d", "{}")));
     }
 
     @Test
@@ -525,7 +526,7 @@ public class TestMongoControlStoreShould {
         when(findIterable.first()).thenReturn(domainDoc);
 
         assertThrows(ControlNotFoundException.class, () ->
-                mongoControlStore.createRequirementForVersion("security", 999, "2.0.0", "{}"));
+                mongoControlStore.createRequirementForVersion("security", 999, "2.0.0", new CreateControlRequirement("n", "d", "{}")));
     }
 
     // --- createControlConfiguration ---
@@ -605,7 +606,7 @@ public class TestMongoControlStoreShould {
         when(controlCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
 
-        mongoControlStore.createConfigurationForVersion("security", 1, 10, "2.0.0", "{\"setting\": \"b\"}");
+        mongoControlStore.createConfigurationForVersion("security", 1, 10, "2.0.0", new CreateControlConfiguration("{\"setting\": \"b\"}"));
 
         verify(controlCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
     }
@@ -633,7 +634,7 @@ public class TestMongoControlStoreShould {
                 .thenReturn(UpdateResult.acknowledged(0, 0L, null));
 
         assertThrows(ControlConfigurationVersionExistsException.class, () ->
-                mongoControlStore.createConfigurationForVersion("security", 1, 10, "1.0.0", "{}"));
+                mongoControlStore.createConfigurationForVersion("security", 1, 10, "1.0.0", new CreateControlConfiguration("{}")));
     }
 
     @Test
@@ -653,7 +654,7 @@ public class TestMongoControlStoreShould {
         when(findIterable.first()).thenReturn(domainDoc);
 
         assertThrows(ControlConfigurationNotFoundException.class, () ->
-                mongoControlStore.createConfigurationForVersion("security", 1, 999, "2.0.0", "{}"));
+                mongoControlStore.createConfigurationForVersion("security", 1, 999, "2.0.0", new CreateControlConfiguration("{}")));
     }
 
     @Test
@@ -661,7 +662,7 @@ public class TestMongoControlStoreShould {
         when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         assertThrows(DomainNotFoundException.class, () ->
-                mongoControlStore.createConfigurationForVersion("invalid", 1, 10, "2.0.0", "{}"));
+                mongoControlStore.createConfigurationForVersion("invalid", 1, 10, "2.0.0", new CreateControlConfiguration("{}")));
     }
 
     @Test
@@ -676,6 +677,86 @@ public class TestMongoControlStoreShould {
         when(findIterable.first()).thenReturn(domainDoc);
 
         assertThrows(ControlNotFoundException.class, () ->
-                mongoControlStore.createConfigurationForVersion("security", 999, 10, "2.0.0", "{}"));
+                mongoControlStore.createConfigurationForVersion("security", 999, 10, "2.0.0", new CreateControlConfiguration("{}")));
+    }
+
+    // --- JSON-derived name/description (bug-fix coverage) ---
+
+    @Test
+    void create_control_requirement_uses_dto_name_and_description_on_initial_create() throws DomainNotFoundException {
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+        when(counterStore.getNextControlSequenceValue()).thenReturn(7);
+
+        String json = "{\"control-id\":\"c1\",\"name\":\"From JSON\",\"description\":\"From JSON Desc\"}";
+        CreateControlRequirement createRequest = new CreateControlRequirement("Wrapper Name", "Wrapper Desc", json);
+
+        ControlDetail result = mongoControlStore.createControlRequirement(createRequest, "security");
+
+        assertThat(result.getName(), is("Wrapper Name"));
+        assertThat(result.getDescription(), is("Wrapper Desc"));
+    }
+
+    @Test
+    void create_requirement_for_version_updates_wrapper_name_and_description_from_envelope() throws Exception {
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+
+        Document requirement = new Document("1-0-0", new Document("type", "req"));
+        Document controlDoc = new Document("controlId", 1)
+                .append("name", "Old Name")
+                .append("description", "Old Desc")
+                .append("requirement", requirement)
+                .append("configurations", new ArrayList<>());
+        Document domainDoc = new Document("domain", "security")
+                .append("controls", List.of(controlDoc));
+
+        FindIterable<Document> findIterable = mockFindIterable();
+        when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(domainDoc);
+        when(controlCollection.updateOne(any(Document.class), any(Document.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        mongoControlStore.createRequirementForVersion("security", 1, "2.0.0",
+                new CreateControlRequirement("New Name", "New Desc", "{\"type\":\"req-v2\"}"));
+
+        ArgumentCaptor<Document> updateCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(controlCollection).updateOne(any(Document.class), updateCaptor.capture());
+
+        Document set = (Document) updateCaptor.getValue().get("$set");
+        assertThat(set.getString("controls.$.name"), is("New Name"));
+        assertThat(set.getString("controls.$.description"), is("New Desc"));
+        assertThat(set, hasKey("controls.$.requirement.2-0-0"));
+    }
+
+    @Test
+    void create_requirement_for_version_leaves_wrapper_untouched_when_envelope_lacks_metadata() throws Exception {
+        // Defensive: the REST layer enforces @NotBlank so null name/description are unreachable via REST;
+        // this test exercises the store's defensive guards for non-REST callers.
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+
+        Document requirement = new Document("1-0-0", new Document("type", "req"));
+        Document controlDoc = new Document("controlId", 1)
+                .append("name", "Old Name")
+                .append("description", "Old Desc")
+                .append("requirement", requirement)
+                .append("configurations", new ArrayList<>());
+        Document domainDoc = new Document("domain", "security")
+                .append("controls", List.of(controlDoc));
+
+        FindIterable<Document> findIterable = mockFindIterable();
+        when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(domainDoc);
+        when(controlCollection.updateOne(any(Document.class), any(Document.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        mongoControlStore.createRequirementForVersion("security", 1, "2.0.0",
+                new CreateControlRequirement(null, null, "{\"type\":\"req-v2\"}"));
+
+        ArgumentCaptor<Document> updateCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(controlCollection).updateOne(any(Document.class), updateCaptor.capture());
+
+        Document set = (Document) updateCaptor.getValue().get("$set");
+        assertThat(set, not(hasKey("controls.$.name")));
+        assertThat(set, not(hasKey("controls.$.description")));
+        assertThat(set, hasKey("controls.$.requirement.2-0-0"));
     }
 }

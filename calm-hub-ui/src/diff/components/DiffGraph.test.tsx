@@ -22,7 +22,8 @@ describe('DiffGraph', () => {
 
         render(
             <DiffGraph
-                architecture={architecture}
+                source={architecture}
+                sourceType="Architectures"
                 diffResult={diffResult}
                 isFirst={true}
             />
@@ -59,7 +60,8 @@ describe('DiffGraph', () => {
 
         render(
             <DiffGraph
-                architecture={emptyArchitecture}
+                source={emptyArchitecture}
+                sourceType="Architectures"
                 diffResult={diffResult}
                 isFirst={true}
             />
@@ -71,5 +73,48 @@ describe('DiffGraph', () => {
         screen.findAllByRole('edge').then(edges => {
             expect(edges).toHaveLength(0);
         });
+    });
+
+    it('renders a pattern source via the pattern transformer', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            properties: {
+                                'unique-id': { const: 'svc-a' },
+                                name: { const: 'Service A' },
+                                'node-type': { const: 'service' },
+                            },
+                        },
+                    ],
+                },
+                relationships: { type: 'array', prefixItems: [] },
+            },
+        };
+        const diffResult: DiffResult = {
+            nodesAdded: [{ 'unique-id': 'svc-a', name: 'Service A', 'node-type': 'service' }],
+            nodesRemoved: [],
+            nodesModified: [],
+            nodesSame: [],
+            nodesRenamed: [],
+            edgesAdded: [],
+            edgesRemoved: [],
+            edgesModified: [],
+            edgesSame: [],
+            edgesRenamed: [],
+        };
+
+        render(
+            <DiffGraph
+                source={pattern}
+                sourceType="Patterns"
+                diffResult={diffResult}
+                isFirst={false}
+            />
+        );
+
+        expect(screen.getByText('Service A')).toBeInTheDocument();
     });
 });
