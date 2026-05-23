@@ -5,7 +5,7 @@ import * as hubOutput from './hub-output';
 import { runCreateNamespace, runListArchitectures, runListNamespaces, 
     runPullArchitecture, runPushArchitecture,  printPushResult, pushVersioned, 
     resolveCalmHubOptions, resolveVersionedMetadata,
-    runCreateDomain, runListDomains, runCreateControl, runListControls,
+    runCreateDomain, runListDomains, runCreateControlRequirement, runListControlRequirements,
     runPushControlRequirement, runPullControlRequirement, runPushControlConfig, runPullControlConfig,
     printIdCreateResult,
     runCreateControlConfiguration, runListControlConfigurations,
@@ -1204,14 +1204,14 @@ describe('hub-commands', () => {
         });
     });
 
-    // ── runCreateControl ───────────────────────────────────────────────────
+    // ── runCreateControlRequirement ────────────────────────────────────────
 
-    describe('runCreateControl', () => {
+    describe('runCreateControlRequirement', () => {
         it('calls createControl and prints JSON result', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.createControl).mockResolvedValue({ id: 42, location: '/calm/domains/risk/controls/42' });
 
-            await runCreateControl({
+            await runCreateControlRequirement({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 name: 'my-control',
@@ -1227,7 +1227,7 @@ describe('hub-commands', () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.createControl).mockResolvedValue({ id: 42, location: '/calm/domains/risk/controls/42' });
 
-            await runCreateControl({
+            await runCreateControlRequirement({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 name: 'my-control',
@@ -1240,7 +1240,7 @@ describe('hub-commands', () => {
         });
 
         it('exits when name is blank', async () => {
-            await expect(runCreateControl({
+            await expect(runCreateControlRequirement({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 name: '   ',
@@ -1253,7 +1253,7 @@ describe('hub-commands', () => {
         });
 
         it('exits when description is blank', async () => {
-            await expect(runCreateControl({
+            await expect(runCreateControlRequirement({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 name: 'my-control',
@@ -1268,7 +1268,7 @@ describe('hub-commands', () => {
         it('exits when file cannot be read', async () => {
             vi.mocked(fs.readFile).mockRejectedValueOnce(new Error('ENOENT'));
 
-            await expect(runCreateControl({
+            await expect(runCreateControlRequirement({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 name: 'my-control',
@@ -1281,7 +1281,7 @@ describe('hub-commands', () => {
         it('exits when file is not valid JSON', async () => {
             vi.mocked(fs.readFile).mockResolvedValueOnce('not-json' as unknown as Uint8Array);
 
-            await expect(runCreateControl({
+            await expect(runCreateControlRequirement({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 name: 'my-control',
@@ -1297,7 +1297,7 @@ describe('hub-commands', () => {
                 new shared.HubClientError(409, 'Control already exists', 'POST /calm/domains/risk/controls')
             );
 
-            await expect(runCreateControl({
+            await expect(runCreateControlRequirement({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 name: 'my-control',
@@ -1308,14 +1308,14 @@ describe('hub-commands', () => {
         });
     });
 
-    // ── runListControls ────────────────────────────────────────────────────
+    // ── runListControlRequirements ─────────────────────────────────────────
 
-    describe('runListControls', () => {
+    describe('runListControlRequirements', () => {
         it('prints JSON list of controls', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: 'control-a' }]);
 
-            await runListControls({ calmHubOptions: { calmHubUrl: 'http://hub' }, domain: 'risk' });
+            await runListControlRequirements({ calmHubOptions: { calmHubUrl: 'http://hub' }, domain: 'risk' });
 
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([{ id: 1, name: 'control-a' }]);
         });
@@ -1324,7 +1324,7 @@ describe('hub-commands', () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: 'control-a' }]);
 
-            await runListControls({ calmHubOptions: { calmHubUrl: 'http://hub' }, domain: 'risk', format: 'pretty' });
+            await runListControlRequirements({ calmHubOptions: { calmHubUrl: 'http://hub' }, domain: 'risk', format: 'pretty' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
                 [{ ID: 1, NAME: 'control-a' }],
@@ -1336,7 +1336,7 @@ describe('hub-commands', () => {
         });
 
         it('exits when no hub URL is available', async () => {
-            await expect(runListControls({ calmHubOptions: {}, domain: 'risk' })).rejects.toThrow('process.exit');
+            await expect(runListControlRequirements({ calmHubOptions: {}, domain: 'risk' })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
         });
     });

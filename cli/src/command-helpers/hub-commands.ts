@@ -777,7 +777,7 @@ export async function runListDomains(options: ListDomainsOptions): Promise<void>
 
 // ── create control ────────────────────────────────────────────────────────────
 
-export interface CreateControlOptions {
+export interface CreateControlRequirementOptions {
     calmHubOptions: CalmHubOptions;
     domain: string;
     name: string;
@@ -786,7 +786,7 @@ export interface CreateControlOptions {
     format?: string;
 }
 
-export async function runCreateControl(options: CreateControlOptions): Promise<void> {
+export async function runCreateControlRequirement(options: CreateControlRequirementOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
 
     if (!options.name?.trim()) {
@@ -803,14 +803,14 @@ export async function runCreateControl(options: CreateControlOptions): Promise<v
     try {
         fileContent = await readFile(options.file, 'utf-8');
     } catch {
-        printError(0, `Could not read file: ${options.file}`, `create control ${options.file}`, format);
+        printError(0, `Could not read file: ${options.file}`, `create control-requirement ${options.file}`, format);
         process.exit(1);
     }
 
     try {
         JSON.parse(fileContent);
     } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `create control ${options.file}`, format);
+        printError(0, `File is not valid JSON: ${options.file}`, `create control-requirement ${options.file}`, format);
         process.exit(1);
     }
 
@@ -824,13 +824,13 @@ export async function runCreateControl(options: CreateControlOptions): Promise<v
 
 // ── list controls ─────────────────────────────────────────────────────────────
 
-export interface ListControlsOptions {
+export interface ListControlRequirementsOptions {
     calmHubOptions: CalmHubOptions;
     domain: string;
     format?: string;
 }
 
-export async function runListControls(options: ListControlsOptions): Promise<void> {
+export async function runListControlRequirements(options: ListControlRequirementsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);

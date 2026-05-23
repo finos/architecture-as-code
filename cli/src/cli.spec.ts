@@ -812,22 +812,22 @@ describe('CLI Commands', () => {
         });
     });
 
-    describe('create control command', () => {
+    describe('create control-requirement command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
-            vi.spyOn(hubCommandsModule, 'runCreateControl').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runCreateControlRequirement').mockResolvedValue(undefined);
         });
 
-        it('calls runCreateControl with domain, name, description and file', async () => {
+        it('calls runCreateControlRequirement with domain, name, description and file', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'create', 'control', 'req.json',
+                'node', 'cli.js', 'hub', 'create', 'control-requirement', 'req.json',
                 '--domain', 'risk',
                 '--name', 'my-control',
                 '--description', 'A control',
                 '--calm-hub-url', 'http://hub',
             ]);
 
-            expect(hubCommandsModule.runCreateControl).toHaveBeenCalledWith(expect.objectContaining({
+            expect(hubCommandsModule.runCreateControlRequirement).toHaveBeenCalledWith(expect.objectContaining({
                 domain: 'risk',
                 name: 'my-control',
                 description: 'A control',
@@ -866,20 +866,20 @@ describe('CLI Commands', () => {
         });
     });
 
-    describe('list controls command', () => {
+    describe('list control-requirements command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
-            vi.spyOn(hubCommandsModule, 'runListControls').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runListControlRequirements').mockResolvedValue(undefined);
         });
 
-        it('calls runListControls with domain and hub url', async () => {
+        it('calls runListControlRequirements with domain and hub url', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'controls',
+                'node', 'cli.js', 'hub', 'list', 'control-requirements',
                 '--domain', 'risk',
                 '--calm-hub-url', 'http://hub',
             ]);
 
-            expect(hubCommandsModule.runListControls).toHaveBeenCalledWith(expect.objectContaining({
+            expect(hubCommandsModule.runListControlRequirements).toHaveBeenCalledWith(expect.objectContaining({
                 domain: 'risk',
                 calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));
@@ -887,12 +887,12 @@ describe('CLI Commands', () => {
 
         it('passes --format pretty through to the handler', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'controls',
+                'node', 'cli.js', 'hub', 'list', 'control-requirements',
                 '--domain', 'risk',
                 '--format', 'pretty',
             ]);
 
-            expect(hubCommandsModule.runListControls).toHaveBeenCalledWith(expect.objectContaining({
+            expect(hubCommandsModule.runListControlRequirements).toHaveBeenCalledWith(expect.objectContaining({
                 format: 'pretty',
             }));
         });
