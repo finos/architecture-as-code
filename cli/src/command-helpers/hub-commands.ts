@@ -1226,13 +1226,16 @@ export interface ListControlConfigurationsOptions {
     format?: string;
 }
 
+/**
+ * Summarizes a control configuration with the versions available for it.
+ */
 interface ControlConfigurationSummary {
     id: number;
     versions: string[];
 }
 
 /**
- * Lists control configuration ids for a control.
+ * Lists control configurations for a control requirement, including the versions available for each configuration.
  * @param options Command options.
  */
 export async function runListControlConfigurations(options: ListControlConfigurationsOptions): Promise<void> {
