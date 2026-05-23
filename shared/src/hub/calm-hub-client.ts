@@ -440,7 +440,7 @@ export class CalmHubClient {
         }
     }
 
-    async pushControlConfig(domain: string, controlId: number, configId: string, version: string, configJson: string): Promise<HubCreateResult> {
+    async pushControlConfiguration(domain: string, controlId: number, configId: string, version: string, configJson: string): Promise<HubCreateResult> {
         const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
         try {
             const response = await this.ax.post(
@@ -456,11 +456,11 @@ export class CalmHubClient {
         }
     }
 
-    async pullControlConfig(domain: string, controlId: number, configId: string, version: string): Promise<object> {
+    async pullControlConfiguration(domain: string, controlId: number, configId: string, version: string): Promise<object> {
         const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
         try {
             const response = await this.ax.get(
-                `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`
+            `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`
             );
             return response.data as object;
         } catch (err) {
@@ -504,7 +504,7 @@ export class CalmHubClient {
         }
     }
 
-    async listControlConfigVersions(domain: string, controlId: number, configId: number): Promise<string[]> {
+    async listControlConfigurationVersions(domain: string, controlId: number, configId: number): Promise<string[]> {
         const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`;
         try {
             const response = await this.ax.get(`/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`);

@@ -961,15 +961,15 @@ describe('CLI Commands', () => {
         });
     });
 
-    describe('push control-config command', () => {
+    describe('push control-configuration command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
-            vi.spyOn(hubCommandsModule, 'runPushControlConfig').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runPushControlConfiguration').mockResolvedValue(undefined);
         });
 
-        it('calls runPushControlConfig with domain, controlId, configId, version and file', async () => {
+        it('calls runPushControlConfiguration with domain, controlId, configId, version and file', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'push', 'control-config', 'cfg.json',
+                'node', 'cli.js', 'hub', 'push', 'control-configuration', 'cfg.json',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--config-id', 'cfg-1',
@@ -977,7 +977,7 @@ describe('CLI Commands', () => {
                 '--calm-hub-url', 'http://hub',
             ]);
 
-            expect(hubCommandsModule.runPushControlConfig).toHaveBeenCalledWith(expect.objectContaining({
+            expect(hubCommandsModule.runPushControlConfiguration).toHaveBeenCalledWith(expect.objectContaining({
                 domain: 'risk',
                 controlId: '1',
                 configId: 'cfg-1',
@@ -988,15 +988,15 @@ describe('CLI Commands', () => {
         });
     });
 
-    describe('pull control-config command', () => {
+    describe('pull control-configuration command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
-            vi.spyOn(hubCommandsModule, 'runPullControlConfig').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runPullControlConfiguration').mockResolvedValue(undefined);
         });
 
-        it('calls runPullControlConfig with domain, controlId, configId and version', async () => {
+        it('calls runPullControlConfiguration with domain, controlId, configId and version', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'pull', 'control-config',
+                'node', 'cli.js', 'hub', 'pull', 'control-configuration',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--config-id', 'cfg-1',
@@ -1004,7 +1004,7 @@ describe('CLI Commands', () => {
                 '--calm-hub-url', 'http://hub',
             ]);
 
-            expect(hubCommandsModule.runPullControlConfig).toHaveBeenCalledWith(expect.objectContaining({
+            expect(hubCommandsModule.runPullControlConfiguration).toHaveBeenCalledWith(expect.objectContaining({
                 domain: 'risk',
                 controlId: '1',
                 configId: 'cfg-1',
@@ -1015,7 +1015,7 @@ describe('CLI Commands', () => {
 
         it('passes --output through to the handler', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'pull', 'control-config',
+                'node', 'cli.js', 'hub', 'pull', 'control-configuration',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--config-id', 'cfg-1',
@@ -1023,13 +1023,13 @@ describe('CLI Commands', () => {
                 '--output', 'out.json',
             ]);
 
-            expect(hubCommandsModule.runPullControlConfig).toHaveBeenCalledWith(expect.objectContaining({
+            expect(hubCommandsModule.runPullControlConfiguration).toHaveBeenCalledWith(expect.objectContaining({
                 output: 'out.json',
             }));
         });
     });
 
-    describe('create control-config command', () => {
+    describe('create control-configuration command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
             vi.spyOn(hubCommandsModule, 'runCreateControlConfiguration').mockResolvedValue(undefined);
@@ -1037,7 +1037,7 @@ describe('CLI Commands', () => {
 
         it('calls runCreateControlConfiguration with domain, controlId and file', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'create', 'control-config', 'cfg.json',
+                'node', 'cli.js', 'hub', 'create', 'control-configuration', 'cfg.json',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--calm-hub-url', 'http://hub',
@@ -1052,7 +1052,7 @@ describe('CLI Commands', () => {
         });
     });
 
-    describe('list control-configs command', () => {
+    describe('list control-configurations command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
             vi.spyOn(hubCommandsModule, 'runListControlConfigurations').mockResolvedValue(undefined);
@@ -1060,7 +1060,7 @@ describe('CLI Commands', () => {
 
         it('calls runListControlConfigurations with domain and controlId', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'control-configs',
+                'node', 'cli.js', 'hub', 'list', 'control-configurations',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--calm-hub-url', 'http://hub',
@@ -1075,7 +1075,7 @@ describe('CLI Commands', () => {
 
         it('passes --format pretty through to the handler', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'control-configs',
+                'node', 'cli.js', 'hub', 'list', 'control-configurations',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--format', 'pretty',
@@ -1109,22 +1109,22 @@ describe('CLI Commands', () => {
         });
     });
 
-    describe('list control-config-versions command', () => {
+    describe('list control-configuration-versions command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
-            vi.spyOn(hubCommandsModule, 'runListControlConfigVersions').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runListControlConfigurationVersions').mockResolvedValue(undefined);
         });
 
-        it('calls runListControlConfigVersions with domain, controlId and configId', async () => {
+        it('calls runListControlConfigurationVersions with domain, controlId and configId', async () => {
             await program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'control-config-versions',
+                'node', 'cli.js', 'hub', 'list', 'control-configuration-versions',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--config-id', '5',
                 '--calm-hub-url', 'http://hub',
             ]);
 
-            expect(hubCommandsModule.runListControlConfigVersions).toHaveBeenCalledWith(expect.objectContaining({
+            expect(hubCommandsModule.runListControlConfigurationVersions).toHaveBeenCalledWith(expect.objectContaining({
                 domain: 'risk',
                 controlId: '1',
                 configId: '5',

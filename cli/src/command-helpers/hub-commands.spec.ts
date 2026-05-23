@@ -6,10 +6,10 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces,
     runPullArchitecture, runPushArchitecture,  printPushResult, pushVersioned, 
     resolveCalmHubOptions, resolveVersionedMetadata,
     runCreateDomain, runListDomains, runCreateControlRequirement, runListControlRequirements,
-    runPushControlRequirement, runPullControlRequirement, runPushControlConfig, runPullControlConfig,
+    runPushControlRequirement, runPullControlRequirement, runPushControlConfiguration, runPullControlConfiguration,
     printIdCreateResult,
     runCreateControlConfiguration, runListControlConfigurations,
-    runListControlRequirementVersions, runListControlConfigVersions } from './hub-commands';
+    runListControlRequirementVersions, runListControlConfigurationVersions } from './hub-commands';
 
 // We stub the entire @finos/calm-shared module so no real HTTP is made
 vi.mock('@finos/calm-shared', () => {
@@ -34,12 +34,12 @@ vi.mock('@finos/calm-shared', () => {
         listControls: vi.fn(),
         pushControlRequirement: vi.fn(),
         pullControlRequirement: vi.fn(),
-        pushControlConfig: vi.fn(),
-        pullControlConfig: vi.fn(),
+        pushControlConfiguration: vi.fn(),
+        pullControlConfiguration: vi.fn(),
         createControlConfiguration: vi.fn(),
         listControlConfigurations: vi.fn(),
         listControlRequirementVersions: vi.fn(),
-        listControlConfigVersions: vi.fn()
+        listControlConfigurationVersions: vi.fn()
     };
     return {
         CalmHubClient: vi.fn(() => mockClient),
@@ -1481,16 +1481,16 @@ describe('hub-commands', () => {
         });
     });
 
-    // ── runPushControlConfig ───────────────────────────────────────────────
+    // ── runPushControlConfiguration ────────────────────────────────────────
 
-    describe('runPushControlConfig', () => {
-        it('calls pushControlConfig and prints result', async () => {
+    describe('runPushControlConfiguration', () => {
+        it('calls pushControlConfiguration and prints result', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pushControlConfig).mockResolvedValue({
+            vi.mocked(mockClient.pushControlConfiguration).mockResolvedValue({
                 id: 1, version: '1.0.0', location: '/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0'
             });
 
-            await runPushControlConfig({
+            await runPushControlConfiguration({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
@@ -1499,12 +1499,12 @@ describe('hub-commands', () => {
                 file: 'cfg.json'
             });
 
-            expect(mockClient.pushControlConfig).toHaveBeenCalledWith('risk', 1, 'cfg-1', '1.0.0', expect.any(String));
+            expect(mockClient.pushControlConfiguration).toHaveBeenCalledWith('risk', 1, 'cfg-1', '1.0.0', expect.any(String));
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ id: 1, version: '1.0.0' }));
         });
 
         it('exits when controlId is not a valid integer', async () => {
-            await expect(runPushControlConfig({
+            await expect(runPushControlConfiguration({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: 'bad',
@@ -1518,7 +1518,7 @@ describe('hub-commands', () => {
         it('exits when file cannot be read', async () => {
             vi.mocked(fs.readFile).mockRejectedValueOnce(new Error('ENOENT'));
 
-            await expect(runPushControlConfig({
+            await expect(runPushControlConfiguration({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
@@ -1532,7 +1532,7 @@ describe('hub-commands', () => {
         it('exits when file is not valid JSON', async () => {
             vi.mocked(fs.readFile).mockResolvedValueOnce('not-json' as unknown as Uint8Array);
 
-            await expect(runPushControlConfig({
+            await expect(runPushControlConfiguration({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
@@ -1545,11 +1545,11 @@ describe('hub-commands', () => {
 
         it('exits on Hub error', async () => {
             const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.pushControlConfig).mockRejectedValue(
+            vi.mocked(mockClient.pushControlConfiguration).mockRejectedValue(
                 new shared.HubClientError(400, 'Bad request', 'POST /calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0')
             );
 
-            await expect(runPushControlConfig({
+            await expect(runPushControlConfiguration({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
@@ -1561,15 +1561,15 @@ describe('hub-commands', () => {
         });
     });
 
-    // ── runPullControlConfig ───────────────────────────────────────────────
+    // ── runPullControlConfiguration ────────────────────────────────────────
 
-    describe('runPullControlConfig', () => {
+    describe('runPullControlConfiguration', () => {
         it('writes JSON to stdout', async () => {
             const { mockClient } = await getSharedMocks();
             const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
-            vi.mocked(mockClient.pullControlConfig).mockResolvedValue({ type: 'control-configuration', config: {} });
+            vi.mocked(mockClient.pullControlConfiguration).mockResolvedValue({ type: 'control-configuration', config: {} });
 
-            await runPullControlConfig({
+            await runPullControlConfiguration({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
@@ -1583,9 +1583,9 @@ describe('hub-commands', () => {
 
         it('writes to file when --output is provided', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pullControlConfig).mockResolvedValue({ type: 'control-configuration', config: {} });
+            vi.mocked(mockClient.pullControlConfiguration).mockResolvedValue({ type: 'control-configuration', config: {} });
 
-            await runPullControlConfig({
+            await runPullControlConfiguration({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
@@ -1598,7 +1598,7 @@ describe('hub-commands', () => {
         });
 
         it('exits when controlId is not a valid integer', async () => {
-            await expect(runPullControlConfig({
+            await expect(runPullControlConfiguration({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: 'xyz',
@@ -1610,11 +1610,11 @@ describe('hub-commands', () => {
 
         it('exits on Hub error', async () => {
             const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.pullControlConfig).mockRejectedValue(
+            vi.mocked(mockClient.pullControlConfiguration).mockRejectedValue(
                 new shared.HubClientError(404, 'Not found', 'GET /calm/domains/risk/controls/99/configurations/cfg-1/versions/1.0.0')
             );
 
-            await expect(runPullControlConfig({
+            await expect(runPullControlConfiguration({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '99',
@@ -1805,14 +1805,14 @@ describe('hub-commands', () => {
         });
     });
 
-    // ── runListControlConfigVersions ──────────────────────────────────────────
+    // ── runListControlConfigurationVersions ─────────────────────────────────
 
-    describe('runListControlConfigVersions', () => {
+    describe('runListControlConfigurationVersions', () => {
         it('prints JSON list of versions', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.listControlConfigVersions).mockResolvedValue(['1.0.0', '2.0.0']);
+            vi.mocked(mockClient.listControlConfigurationVersions).mockResolvedValue(['1.0.0', '2.0.0']);
 
-            await runListControlConfigVersions({
+            await runListControlConfigurationVersions({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
@@ -1824,9 +1824,9 @@ describe('hub-commands', () => {
 
         it('renders table when format is pretty', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.listControlConfigVersions).mockResolvedValue(['1.0.0']);
+            vi.mocked(mockClient.listControlConfigurationVersions).mockResolvedValue(['1.0.0']);
 
-            await runListControlConfigVersions({
+            await runListControlConfigurationVersions({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
@@ -1841,7 +1841,7 @@ describe('hub-commands', () => {
         });
 
         it('exits when controlId is not a valid integer', async () => {
-            await expect(runListControlConfigVersions({
+            await expect(runListControlConfigurationVersions({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: 'abc',
@@ -1851,7 +1851,7 @@ describe('hub-commands', () => {
         });
 
         it('exits when configId is not a valid integer', async () => {
-            await expect(runListControlConfigVersions({
+            await expect(runListControlConfigurationVersions({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
@@ -1862,11 +1862,11 @@ describe('hub-commands', () => {
 
         it('exits on Hub error', async () => {
             const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.listControlConfigVersions).mockRejectedValue(
+            vi.mocked(mockClient.listControlConfigurationVersions).mockRejectedValue(
                 new shared.HubClientError(404, 'Not found', 'GET /calm/domains/risk/controls/1/configurations/99/versions')
             );
 
-            await expect(runListControlConfigVersions({
+            await expect(runListControlConfigurationVersions({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 domain: 'risk',
                 controlId: '1',
