@@ -998,8 +998,8 @@ export interface PushControlRequirementOptions {
     domain: string;
     controlId: string;
     version: string;
-    name: string;
-    description: string;
+    name?: string;
+    description?: string;
     file: string;
     format?: string;
 }
@@ -1036,12 +1036,51 @@ export async function runPushControlRequirement(options: PushControlRequirementO
     }
 
     try {
+        const trimmedName = options.name?.trim();
+        const trimmedDescription = options.description?.trim();
+
+        let resolvedName = trimmedName;
+        let resolvedDescription = trimmedDescription;
+
+        if (!resolvedName || !resolvedDescription) {
+            const controls = await client.listControls(options.domain);
+            const matchingControl = controls.find(control => control.id === parsedControlId);
+
+            if (!matchingControl) {
+                printError(
+                    0,
+                    `Control with id ${parsedControlId} not found in domain ${options.domain}`,
+                    'push control-requirement',
+                    format
+                );
+                process.exit(1);
+            }
+
+            if (!resolvedName) {
+                resolvedName = matchingControl.name?.trim();
+            }
+
+            if (!resolvedDescription) {
+                resolvedDescription = matchingControl.description?.trim();
+            }
+
+            if (!resolvedName || !resolvedDescription) {
+                printError(
+                    0,
+                    `Control with id ${parsedControlId} in domain ${options.domain} is missing name or description`,
+                    'push control-requirement',
+                    format
+                );
+                process.exit(1);
+            }
+        }
+
         const result = await client.pushControlRequirement(
             options.domain,
             parsedControlId,
             options.version,
-            options.name,
-            options.description,
+            resolvedName,
+            resolvedDescription,
             fileContent
         );
         printPushResult(result, format);

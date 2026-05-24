@@ -925,6 +925,26 @@ describe('CLI Commands', () => {
                 calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));
         });
+
+        it('calls runPushControlRequirement when name and description are omitted', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'control-requirement', 'req.json',
+                '--domain', 'risk',
+                '--control-id', '1',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushControlRequirement).toHaveBeenCalledWith(expect.objectContaining({
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                name: undefined,
+                description: undefined,
+                file: 'req.json',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
     });
 
     describe('pull control-requirement command', () => {

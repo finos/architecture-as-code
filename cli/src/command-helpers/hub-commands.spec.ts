@@ -1378,7 +1378,179 @@ describe('hub-commands', () => {
             });
 
             expect(mockClient.pushControlRequirement).toHaveBeenCalledWith('risk', 1, '1.0.0', 'req-name', 'req-description', expect.any(String));
+            expect(mockClient.listControls).not.toHaveBeenCalled();
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ id: 1, version: '1.0.0' }));
+        });
+
+        it('uses listControls fallback when name and description are omitted', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: 'fallback-name', description: 'fallback-description' }]);
+            vi.mocked(mockClient.pushControlRequirement).mockResolvedValue({
+                id: 1, version: '1.0.0', location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            });
+
+            await runPushControlRequirement({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                file: 'req.json'
+            });
+
+            expect(mockClient.listControls).toHaveBeenCalledWith('risk');
+            expect(mockClient.pushControlRequirement).toHaveBeenCalledWith(
+                'risk',
+                1,
+                '1.0.0',
+                'fallback-name',
+                'fallback-description',
+                expect.any(String)
+            );
+        });
+
+        it('uses fallback only for missing name when description is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: 'fallback-name', description: 'fallback-description' }]);
+            vi.mocked(mockClient.pushControlRequirement).mockResolvedValue({
+                id: 1, version: '1.0.0', location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            });
+
+            await runPushControlRequirement({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                description: 'cli-description',
+                file: 'req.json'
+            });
+
+            expect(mockClient.listControls).toHaveBeenCalledWith('risk');
+            expect(mockClient.pushControlRequirement).toHaveBeenCalledWith(
+                'risk',
+                1,
+                '1.0.0',
+                'fallback-name',
+                'cli-description',
+                expect.any(String)
+            );
+        });
+
+        it('uses fallback only for missing description when name is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: 'fallback-name', description: 'fallback-description' }]);
+            vi.mocked(mockClient.pushControlRequirement).mockResolvedValue({
+                id: 1, version: '1.0.0', location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            });
+
+            await runPushControlRequirement({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                name: 'cli-name',
+                file: 'req.json'
+            });
+
+            expect(mockClient.listControls).toHaveBeenCalledWith('risk');
+            expect(mockClient.pushControlRequirement).toHaveBeenCalledWith(
+                'risk',
+                1,
+                '1.0.0',
+                'cli-name',
+                'fallback-description',
+                expect.any(String)
+            );
+        });
+
+        it('treats empty CLI values as missing and falls back to listControls', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: 'fallback-name', description: 'fallback-description' }]);
+            vi.mocked(mockClient.pushControlRequirement).mockResolvedValue({
+                id: 1, version: '1.0.0', location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            });
+
+            await runPushControlRequirement({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                name: '   ',
+                description: '\t',
+                file: 'req.json'
+            });
+
+            expect(mockClient.listControls).toHaveBeenCalledWith('risk');
+            expect(mockClient.pushControlRequirement).toHaveBeenCalledWith(
+                'risk',
+                1,
+                '1.0.0',
+                'fallback-name',
+                'fallback-description',
+                expect.any(String)
+            );
+        });
+
+        it('exits when control is not found during fallback lookup', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 2, name: 'other', description: 'other-desc' }]);
+
+            await expect(runPushControlRequirement({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                file: 'req.json'
+            })).rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                'Control with id 1 not found in domain risk',
+                expect.any(String),
+                'json'
+            );
+            expect(mockClient.pushControlRequirement).not.toHaveBeenCalled();
+        });
+
+        it('exits when fallback control is missing name', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: '', description: 'fallback-description' }]);
+
+            await expect(runPushControlRequirement({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                file: 'req.json'
+            })).rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                'Control with id 1 in domain risk is missing name or description',
+                expect.any(String),
+                'json'
+            );
+            expect(mockClient.pushControlRequirement).not.toHaveBeenCalled();
+        });
+
+        it('exits when fallback control is missing description', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: 'fallback-name', description: '' }]);
+
+            await expect(runPushControlRequirement({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                domain: 'risk',
+                controlId: '1',
+                version: '1.0.0',
+                file: 'req.json'
+            })).rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0,
+                'Control with id 1 in domain risk is missing name or description',
+                expect.any(String),
+                'json'
+            );
+            expect(mockClient.pushControlRequirement).not.toHaveBeenCalled();
         });
 
         it('renders table when format is pretty', async () => {
