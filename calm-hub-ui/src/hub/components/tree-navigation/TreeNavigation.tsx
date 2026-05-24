@@ -366,11 +366,11 @@ function loadResourceIds({
     namespace,
     calmService,
     setArchitectureSummaries, 
-    setPatternSummaries, 
-    setFlowSummaries, 
+    setPatternSummaries,
+    setFlowSummaries,
     setStandardSummaries,
-    adrService, 
-    setAdrSummaries 
+    adrService,
+    setAdrSummaries
 }: LoadResourceIdsOptions) {
     if (type === 'Architectures') {
         calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries);
@@ -430,9 +430,9 @@ function loadResource({
     namespace, 
     resourceID,
     calmService,
-    onDataLoad, 
-    onAdrLoad, 
-    adrService 
+    onDataLoad,
+    onAdrLoad,
+    adrService
 }: LoadResourceOptions) {
     if (type === 'Architectures') {
         calmService.fetchArchitecture(namespace, resourceID, version).then(onDataLoad);
