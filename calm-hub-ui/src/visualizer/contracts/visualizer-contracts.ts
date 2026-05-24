@@ -42,6 +42,8 @@ export interface ReactFlowVisualizerProps {
     onNodeClick?: (nodeData: CalmNodeSchema) => void;
     onEdgeClick?: (edgeData: CalmRelationshipSchema) => void;
     onBackgroundClick?: () => void;
+    /** Identifies the diagram (namespace/id) so its viewport can be remembered. */
+    viewportKey?: string;
 }
 
 /**
@@ -51,6 +53,8 @@ export interface ArchitectureGraphProps {
     jsonData: CalmArchitectureSchema;
     onNodeClick?: (node: CalmNodeSchema) => void;
     onEdgeClick?: (edge: CalmRelationshipSchema) => void;
+    /** Identifies the diagram (namespace/id) so its viewport can be remembered. */
+    viewportKey?: string;
 }
 
 /**

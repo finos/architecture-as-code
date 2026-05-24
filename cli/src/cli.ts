@@ -301,9 +301,20 @@ Validation requires:
 
     program
         .command('diff')
-        .description('Compare two CALM documents (architectures or patterns) and report what changed.')
+        .description('Compare two CALM documents (architectures or patterns), or the moments of a CALM timeline, and report what changed.')
+        .addHelpText('after', `
+
+Diff modes:
+  - two documents:  diff -a <doc-a> -b <doc-b>
+  - a timeline:     diff --timeline <file>                       (diffs every adjacent moment pair)
+  - timeline pair:  diff --timeline <file> --from <id> --to <id> (diffs any two moments)
+
+Timeline moment 'detailed-architecture' references are resolved relative to the timeline file's directory.`)
         .option('-a, --document-a <file>', 'Path to the first (baseline) CALM document.')
         .option('-b, --document-b <file>', 'Path to the second CALM document to compare against the baseline.')
+        .option(TIMELINE_OPTION, 'Path to a CALM timeline file. Diffs adjacent moments, or a specific pair with --from/--to.')
+        .option('--from <momentId>', 'With --timeline, the unique-id of the baseline moment (requires --to).')
+        .option('--to <momentId>', 'With --timeline, the unique-id of the moment to compare against (requires --from).')
         // Deprecated aliases retained for backwards compatibility with cli-v1.41.0,
         // which shipped the diff command with architecture-only long flags.
         .addOption(new Option('--architecture-a <file>', 'Deprecated alias for --document-a.').hideHelp())
@@ -321,6 +332,34 @@ Validation requires:
         .option('--exit-code', 'Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.', false)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options, command) => {
+            if (options.timeline) {
+                const documentAPath = options.documentA ?? options.architectureA;
+                const documentBPath = options.documentB ?? options.architectureB;
+                if (documentAPath || documentBPath) {
+                    command.error('error: --timeline cannot be combined with -a/--document-a or -b/--document-b');
+                }
+                if ((options.from && !options.to) || (!options.from && options.to)) {
+                    command.error('error: --from and --to must be supplied together');
+                }
+                const { runTimelineDiffCommand } = await import('./command-helpers/diff');
+                const hasChanges = await runTimelineDiffCommand({
+                    timelinePath: options.timeline,
+                    fromMomentId: options.from,
+                    toMomentId: options.to,
+                    outputFormat: options.format,
+                    outputPath: options.output,
+                    verbose: !!options.verbose,
+                });
+                if (options.exitCode && hasChanges) {
+                    process.exit(1);
+                }
+                return;
+            }
+
+            if (options.from || options.to) {
+                command.error('error: --from/--to are only valid together with --timeline');
+            }
+
             const documentAPath = options.documentA ?? options.architectureA;
             const documentBPath = options.documentB ?? options.architectureB;
             if (!documentAPath || !documentBPath) {
@@ -341,6 +380,32 @@ Validation requires:
             if (options.exitCode && hasChanges) {
                 process.exit(1);
             }
+        });
+
+    program
+        .command('timeline')
+        .description('Synthesise an implied CALM timeline from a set of local versioned architecture files.')
+        .addHelpText('after', `
+
+One moment is generated per input architecture, in the order the files are given
+(plain files have no semver versions to sort by). Each moment's name/description
+is taken from the architecture's own name/description when present, else derived
+from the filename. The 'detailed-architecture' reference is written relative to
+the --output file's directory so the timeline is portable and reloadable by
+'calm validate --timeline' / 'calm diff --timeline'.
+
+Example:
+  calm timeline -a v1.json -a v2.json -a v3.json -o calm-timeline.json`)
+        .requiredOption('-a, --architecture <files...>', 'Paths to architecture files, in moment order. Repeat the flag or pass several paths after one flag.')
+        .option(OUTPUT_OPTION, 'Path location at which to write the generated timeline. If omitted, prints to stdout.')
+        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .action(async (options) => {
+            const { runTimelineGenerate } = await import('./command-helpers/timeline');
+            runTimelineGenerate({
+                architecturePaths: options.architecture,
+                outputPath: options.output,
+                verbose: !!options.verbose,
+            });
         });
 
     program

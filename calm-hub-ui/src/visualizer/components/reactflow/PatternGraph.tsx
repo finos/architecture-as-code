@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
     Node,
     Edge,
@@ -8,8 +8,10 @@ import ReactFlow, {
     Panel,
     useNodesState,
     useEdgesState,
+    type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
 import { SystemGroupNode } from './SystemGroupNode.js';
@@ -41,9 +43,15 @@ interface PatternGraphProps {
     patternData: Record<string, unknown>;
     onNodeClick?: (nodeData: Record<string, unknown>) => void;
     onEdgeClick?: (edgeData: Record<string, unknown>) => void;
+    viewportKey?: string;
 }
 
-export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternGraphProps) {
+export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKey }: PatternGraphProps) {
+    const savedViewport = useMemo<Viewport | undefined>(
+        () => (viewportKey ? readViewportForKey(viewportKey) : undefined),
+        [viewportKey]
+    );
+
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -159,6 +167,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternG
     return (
         <div style={{ height: '100%', width: '100%' }}>
             <ReactFlow
+                key={viewportKey}
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
@@ -169,7 +178,11 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternG
                 onNodeMouseEnter={handleNodeMouseEnter}
                 onNodeMouseLeave={handleNodeMouseLeave}
                 onEdgeClick={handleEdgeClick}
-                fitView
+                onMove={(_, viewport) => {
+                    if (viewportKey) saveViewportForKey(viewportKey, viewport);
+                }}
+                fitView={!savedViewport}
+                defaultViewport={savedViewport}
                 fitViewOptions={{ padding: 0.2 }}
                 attributionPosition="bottom-left"
                 style={{ background: THEME.colors.background }}

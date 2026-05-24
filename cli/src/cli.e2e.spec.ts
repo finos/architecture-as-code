@@ -821,6 +821,81 @@ describe('CLI Integration Tests', () => {
         fs.rmSync(actualOutputDir, { recursive: true });
     });
 
+    test('diff --timeline reports adjacent moment changes in summary format', async () => {
+        const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
+        const { stdout } = await run(calm(), ['diff', '--timeline', timelinePath, '-f', 'summary']);
+        expect(stdout).toContain('moment-v1 -> moment-v2');
+        expect(stdout).toContain('service-c');
+    });
+
+    test('diff --timeline with --from/--to diffs a specific moment pair as JSON', async () => {
+        const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
+        const { stdout } = await run(
+            calm(),
+            ['diff', '--timeline', timelinePath, '--from', 'moment-v1', '--to', 'moment-v2', '-f', 'json']
+        );
+        const parsed = JSON.parse(stdout);
+        expect(parsed).toHaveLength(1);
+        expect(parsed[0]).toMatchObject({ from: 'moment-v1', to: 'moment-v2' });
+        expect(parsed[0].diff.nodesAdded.map((n: { 'unique-id': string }) => n['unique-id'])).toContain('service-c');
+    });
+
+    test('diff --timeline --exit-code exits non-zero when moments differ', async () => {
+        const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
+        await expect(
+            run(calm(), ['diff', '--timeline', timelinePath, '--exit-code'])
+        ).rejects.toHaveProperty('exitCode', 1);
+    });
+
+    test('diff rejects --timeline combined with -a/-b', async () => {
+        const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
+        await expect(
+            run(calm(), ['diff', '--timeline', timelinePath, '-a', 'a.json'])
+        ).rejects.toMatchObject({
+            stderr: expect.stringContaining('--timeline cannot be combined with')
+        });
+    });
+
+    test('diff rejects --from without --to', async () => {
+        const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
+        await expect(
+            run(calm(), ['diff', '--timeline', timelinePath, '--from', 'moment-v1'])
+        ).rejects.toMatchObject({
+            stderr: expect.stringContaining('--from and --to must be supplied together')
+        });
+    });
+
+    test('timeline command generates a timeline that calm validate --timeline can load', async () => {
+        const archV1 = path.join(__dirname, '../test_fixtures/timeline-diff/arch-v1.json');
+        const archV2 = path.join(__dirname, '../test_fixtures/timeline-diff/arch-v2.json');
+        const outputFile = path.join(tempDir, 'generated-timeline.json');
+
+        await run(calm(), ['timeline', '-a', archV1, '-a', archV2, '-o', outputFile]);
+
+        expect(fs.existsSync(outputFile)).toBe(true);
+        const generated = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+        expect(generated.$schema).toBe('https://calm.finos.org/release/1.2/meta/calm-timeline.json');
+        expect(generated.moments.map((m: { 'unique-id': string }) => m['unique-id'])).toEqual(['arch-v1', 'arch-v2']);
+        expect(generated['current-moment']).toBe('arch-v2');
+
+        // The generated timeline must be reloadable: validate should parse it and
+        // resolve its (relative) detailed-architecture references without crashing.
+        const validateOutput = path.join(tempDir, 'generated-timeline-validation.json');
+        await run(calm(), ['validate', '--timeline', outputFile, '-o', validateOutput]).catch(() => undefined);
+        expect(fs.existsSync(validateOutput)).toBe(true);
+        const validation = JSON.parse(fs.readFileSync(validateOutput, 'utf8'));
+        // A loadable timeline yields a structured validation outcome (not a loader crash).
+        expect(validation).toHaveProperty('hasErrors');
+    });
+
+    test('timeline command prints to stdout when no output file is given', async () => {
+        const archV1 = path.join(__dirname, '../test_fixtures/timeline-diff/arch-v1.json');
+        const { stdout } = await run(calm(), ['timeline', '-a', archV1]);
+        const generated = JSON.parse(stdout);
+        expect(generated.moments).toHaveLength(1);
+        expect(generated.moments[0]['node-type']).toBe('moment');
+    });
+
     function writeJson(filePath: string, obj: object) {
         fs.mkdirSync(path.dirname(filePath), { recursive: true });
         fs.writeFileSync(filePath, JSON.stringify(obj, null, 2));

@@ -10,6 +10,7 @@ export function ReactFlowVisualizer({
   onNodeClick,
   onEdgeClick,
   onBackgroundClick,
+  viewportKey,
 }: ReactFlowVisualizerProps) {
   const handleBackgroundClick = (event: React.MouseEvent) => {
     // Only trigger if clicking the background (not a node or edge)
@@ -34,6 +35,7 @@ export function ReactFlowVisualizer({
         jsonData={calmData}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
+        viewportKey={viewportKey}
       />
     </div>
   );

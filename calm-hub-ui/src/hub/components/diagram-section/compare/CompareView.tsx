@@ -1,129 +1,83 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { CalmArchitectureSchema } from '@finos/calm-models/types';
-import { diffArchitectures, diffPatterns, type DiffResult } from '@finos/calm-models/diff';
-import { CalmService } from '../../../../service/calm-service.js';
-import { Data } from '../../../../model/calm.js';
-import { compareVersions } from '../../../../model/version.js';
+import type { DiffResult } from '@finos/calm-models/diff';
 import { DiffGraph } from '../../../../diff/components/DiffGraph.js';
-import { DiffPanel } from '../../../../diff/components/DiffPanel.js';
 import type { DiffSource } from '../../../../diff/model/diff-ui-types.js';
 import '../../../../diff/Diff.css';
-import { CompareBar } from './CompareBar.js';
-import { fetchVersionData } from './compareData.js';
 
 interface CompareViewProps {
-    data: Data & { calmType: 'Architectures' | 'Patterns' };
-    /** Available versions for this resource, sorted newest-first. */
-    versions: string[];
-    onExit: () => void;
+    calmType: 'Architectures' | 'Patterns';
+    /** Baseline (from / left) version label, shown in the pane header. */
+    versionA: string;
+    /** Comparison (to / right) version label, shown in the pane header. */
+    versionB: string;
+    sourceA: DiffSource | null;
+    sourceB: DiffSource | null;
+    /** The shared diff result; drives the highlight overlay on both panes. */
+    diffResult: DiffResult | null;
+    /** Error message to display in place of the panes. */
+    error?: string | null;
 }
 
-function diffSources(calmType: 'Architectures' | 'Patterns', a: DiffSource, b: DiffSource): DiffResult {
-    return calmType === 'Patterns'
-        ? diffPatterns(a, b)
-        : diffArchitectures(a as CalmArchitectureSchema, b as CalmArchitectureSchema);
-}
-
-export function CompareView({ data, versions, onExit }: CompareViewProps) {
-    const calmService = useMemo(() => new CalmService(), []);
-    const [versionA, setVersionA] = useState('');
-    const [versionB, setVersionB] = useState('');
-    const [sourceA, setSourceA] = useState<DiffSource | null>(null);
-    const [sourceB, setSourceB] = useState<DiffSource | null>(null);
-    const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
-    const [error, setError] = useState<string | null>(null);
-
-    // Choose sensible defaults: B is the currently-viewed version, A is the
-    // next-older version.
-    useEffect(() => {
-        if (versions.length === 0) return;
-        const b = versions.includes(data.version) ? data.version : versions[0];
-        const older = versions.filter((v) => compareVersions(v, b) < 0);
-        setVersionB(b);
-        setVersionA(older[0] ?? b);
-    }, [versions, data.version]);
-
-    // Fetch both selected versions and compute the diff.
-    useEffect(() => {
-        if (!versionA || !versionB) return;
-        let cancelled = false;
-        setError(null);
-        Promise.all([
-            fetchVersionData(calmService, data.name, data.calmType, data.id, versionA),
-            fetchVersionData(calmService, data.name, data.calmType, data.id, versionB),
-        ])
-            .then(([a, b]) => {
-                if (cancelled) return;
-                const aData = (a.data ?? null) as DiffSource | null;
-                const bData = (b.data ?? null) as DiffSource | null;
-                setSourceA(aData);
-                setSourceB(bData);
-                setDiffResult(aData && bData ? diffSources(data.calmType, aData, bData) : null);
-            })
-            .catch(() => {
-                if (!cancelled) setError('Failed to load versions to compare');
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [calmService, data.name, data.calmType, data.id, versionA, versionB]);
-
-    // Keep the two selectors on different versions: when a change would make them
-    // equal, move the other selector to the adjacent (preferring previous/older) version.
-    const adjacentVersion = (version: string): string => {
-        const idx = versions.indexOf(version);
-        return versions[idx + 1] ?? versions[idx - 1] ?? version;
-    };
-
-    const handleChangeA = (version: string) => {
-        setVersionA(version);
-        if (version === versionB) setVersionB(adjacentVersion(version));
-    };
-
-    const handleChangeB = (version: string) => {
-        setVersionB(version);
-        if (version === versionA) setVersionA(adjacentVersion(version));
-    };
+/**
+ * Side-by-side Baseline / Comparison diagram panes for compare mode. Pure
+ * renderer: the parent (DiagramSection) fetches both versions and computes the
+ * DiffResult so the inline diff summary in the timeline can share it.
+ */
+export function CompareView({
+    calmType,
+    versionA,
+    versionB,
+    sourceA,
+    sourceB,
+    diffResult,
+    error = null,
+}: CompareViewProps) {
+    if (error) {
+        return (
+            <div
+                className="h-full flex items-center justify-center text-error"
+                data-testid="compare-error"
+            >
+                {error}
+            </div>
+        );
+    }
 
     return (
         <div className="h-full flex flex-col">
-            <CompareBar
-                versions={versions}
-                versionA={versionA}
-                versionB={versionB}
-                onChangeA={handleChangeA}
-                onChangeB={handleChangeB}
-                onExit={onExit}
-            />
-            {error ? (
-                <div className="flex-1 flex items-center justify-center text-error" data-testid="compare-error">
-                    {error}
-                </div>
-            ) : (
-                <div className="flex-1 flex min-h-0">
-                    <div className="diff-graph-panel">
-                        <div className="architectures-container">
-                            <div className="architecture-panel">
-                                <div className="architecture-header">Baseline: {versionA}</div>
-                                <div className="architecture-graph">
-                                    {sourceA && (
-                                        <DiffGraph key={`a-${versionA}`} source={sourceA} sourceType={data.calmType} diffResult={diffResult} isFirst={true} />
-                                    )}
-                                </div>
+            <div className="flex-1 flex min-h-0">
+                <div className="diff-graph-panel" style={{ flex: 1 }}>
+                    <div className="architectures-container">
+                        <div className="architecture-panel">
+                            <div className="architecture-header">Baseline: {versionA}</div>
+                            <div className="architecture-graph">
+                                {sourceA && (
+                                    <DiffGraph
+                                        key={`a-${versionA}`}
+                                        source={sourceA}
+                                        sourceType={calmType}
+                                        diffResult={diffResult}
+                                        isFirst={true}
+                                    />
+                                )}
                             </div>
-                            <div className="architecture-panel">
-                                <div className="architecture-header">Comparison: {versionB}</div>
-                                <div className="architecture-graph">
-                                    {sourceB && (
-                                        <DiffGraph key={`b-${versionB}`} source={sourceB} sourceType={data.calmType} diffResult={diffResult} isFirst={false} />
-                                    )}
-                                </div>
+                        </div>
+                        <div className="architecture-panel">
+                            <div className="architecture-header">Comparison: {versionB}</div>
+                            <div className="architecture-graph">
+                                {sourceB && (
+                                    <DiffGraph
+                                        key={`b-${versionB}`}
+                                        source={sourceB}
+                                        sourceType={calmType}
+                                        diffResult={diffResult}
+                                        isFirst={false}
+                                    />
+                                )}
                             </div>
                         </div>
                     </div>
-                    <DiffPanel diffResult={diffResult} emptyMessage="Select two versions to compare." />
                 </div>
-            )}
+            </div>
         </div>
     );
 }

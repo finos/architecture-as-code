@@ -13,6 +13,7 @@ import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.TimelineStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,6 +44,9 @@ public class TestArchitectureResourceShould {
     private static final String TEST_DESCRIPTION = "test description";
     @InjectMock
     ArchitectureStore mockArchitectureStore;
+
+    @InjectMock
+    TimelineStore mockTimelineStore;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -403,5 +407,59 @@ public class TestArchitectureResourceShould {
                 .put("/calm/namespaces/test/architectures/20/versions/1.0.1")
                 .then()
                 .statusCode(403);
+    }
+
+    @Test
+    void return_a_404_when_an_invalid_namespace_is_provided_on_get_architecture_timeline() throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        when(mockTimelineStore.getTimelinesForNamespace(any())).thenReturn(List.of());
+        when(mockArchitectureStore.getArchitectureVersions(any())).thenThrow(new NamespaceNotFoundException());
+
+        given()
+                .when()
+                .get("/calm/namespaces/invalid/architectures/42/timeline")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_a_404_when_an_invalid_architecture_is_provided_on_get_architecture_timeline() throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        when(mockTimelineStore.getTimelinesForNamespace(any())).thenReturn(List.of());
+        when(mockArchitectureStore.getArchitectureVersions(any())).thenThrow(new ArchitectureNotFoundException());
+
+        given()
+                .when()
+                .get("/calm/namespaces/finos/architectures/42/timeline")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_architecture_timeline() {
+        given()
+                .when()
+                .get("/calm/namespaces/fin_os/architectures/42/timeline")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
+    void return_an_implied_timeline_projection_when_architecture_has_versions() throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        when(mockTimelineStore.getTimelinesForNamespace(any())).thenReturn(List.of());
+        when(mockArchitectureStore.getArchitectureVersions(any()))
+                .thenReturn(List.of("1.1.0", "1.0.0"));
+
+        given()
+                .when()
+                .get("/calm/namespaces/finos/architectures/42/timeline")
+                .then()
+                .statusCode(200)
+                .body("'$schema'", equalTo("https://calm.finos.org/release/1.2/meta/calm-timeline.json"))
+                .body("'current-moment'", equalTo("1.1.0"))
+                .body("moments[0].'unique-id'", equalTo("1.0.0"))
+                .body("moments[0].'node-type'", equalTo("moment"))
+                .body("moments[0].details.'detailed-architecture'",
+                        equalTo("/calm/namespaces/finos/architectures/42/versions/1.0.0"))
+                .body("moments[1].'unique-id'", equalTo("1.1.0"));
     }
 }

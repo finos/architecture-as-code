@@ -5,6 +5,8 @@ export interface PatternVisualizerProps {
     onNodeClick?: (nodeData: Record<string, unknown>) => void;
     onEdgeClick?: (edgeData: Record<string, unknown>) => void;
     onBackgroundClick?: () => void;
+    /** Identifies the diagram (namespace/id) so its viewport can be remembered. */
+    viewportKey?: string;
 }
 
 export function PatternVisualizer({
@@ -12,6 +14,7 @@ export function PatternVisualizer({
     onNodeClick,
     onEdgeClick,
     onBackgroundClick,
+    viewportKey,
 }: PatternVisualizerProps) {
     const handleBackgroundClick = (event: React.MouseEvent) => {
         if ((event.target as HTMLElement).classList.contains('react-flow__pane')) {
@@ -35,6 +38,7 @@ export function PatternVisualizer({
                 patternData={patternData}
                 onNodeClick={onNodeClick}
                 onEdgeClick={onEdgeClick}
+                viewportKey={viewportKey}
             />
         </div>
     );

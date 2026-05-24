@@ -13,9 +13,15 @@ interface SectionHeaderProps {
     onVersionChange?: (version: string) => void;
     /** Rendered inline immediately after the version (e.g. a Compare button). */
     titleActions?: ReactNode;
+    /** Whether to render the trailing `/ version` segment. Defaults to true. */
+    showVersion?: boolean;
+    /** Human-readable name shown in the trail in place of the (often numeric) id. */
+    displayName?: string;
+    /** Element type label inserted into the trail (e.g. "Architecture"). */
+    typeLabel?: string;
 }
 
-export function SectionHeader({ icon, namespace, id, version, rightContent, versions, onVersionChange, titleActions }: SectionHeaderProps) {
+export function SectionHeader({ icon, namespace, id, version, rightContent, versions, onVersionChange, titleActions, showVersion = true, displayName, typeLabel }: SectionHeaderProps) {
     const [copied, setCopied] = useState(false);
     const [pinned, setPinned] = useState(false);
     const showShareBar = isSlug(id);
@@ -35,23 +41,36 @@ export function SectionHeader({ icon, namespace, id, version, rightContent, vers
             <div className="bg-base-200 px-6 py-4 flex items-center justify-between border-b border-base-300">
                 <h2 className="text-xl font-semibold flex items-center gap-2 whitespace-nowrap">
                     {icon}
-                    {namespace} <span className="text-gray-400">/</span> {id}{' '}
+                    {namespace}
+                    {typeLabel && (
+                        <>
+                            {' '}
+                            <span className="text-gray-400">/</span> {typeLabel}
+                        </>
+                    )}{' '}
                     <span className="text-gray-400">/</span>{' '}
-                    {versions && versions.length > 0 ? (
-                        <select
-                            className="select select-ghost text-xl font-semibold !h-auto !min-h-0 !py-0 !pl-1 !pr-6 !leading-tight !border-0 focus:!outline-none"
-                            value={version}
-                            onChange={(e) => onVersionChange?.(e.target.value)}
-                            aria-label="Version"
-                        >
-                            {(versions.includes(version) ? versions : [version, ...versions]).map((v) => (
-                                <option key={v} value={v}>
-                                    {v}
-                                </option>
-                            ))}
-                        </select>
-                    ) : (
-                        <span>{version}</span>
+                    <span title={id}>{displayName || id}</span>
+                    {showVersion && (
+                        <>
+                            {' '}
+                            <span className="text-gray-400">/</span>{' '}
+                            {versions && versions.length > 0 ? (
+                                <select
+                                    className="select select-ghost text-xl font-semibold !h-auto !min-h-0 !py-0 !pl-1 !pr-6 !leading-tight !border-0 focus:!outline-none"
+                                    value={version}
+                                    onChange={(e) => onVersionChange?.(e.target.value)}
+                                    aria-label="Version"
+                                >
+                                    {(versions.includes(version) ? versions : [version, ...versions]).map((v) => (
+                                        <option key={v} value={v}>
+                                            {v}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <span>{version}</span>
+                            )}
+                        </>
                     )}
                     {titleActions}
                 </h2>
