@@ -597,7 +597,7 @@ export class CalmHubClient {
      * @param configJson Configuration JSON payload.
      * @returns Created resource metadata.
      */
-    async pushControlConfiguration(domain: string, controlId: number, configId: string, version: string, configJson: string): Promise<HubCreateResult> {
+    async pushControlConfiguration(domain: string, controlId: number, configId: number, version: string, configJson: string): Promise<HubCreateResult> {
         const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
         try {
             const response = await this.ax.post(
@@ -621,7 +621,7 @@ export class CalmHubClient {
      * @param version Version label.
      * @returns Configuration document.
      */
-    async pullControlConfiguration(domain: string, controlId: number, configId: string, version: string): Promise<object> {
+    async pullControlConfiguration(domain: string, controlId: number, configId: number, version: string): Promise<object> {
         const endpoint = `GET /calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
         try {
             const response = await this.ax.get(

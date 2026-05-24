@@ -1103,6 +1103,12 @@ export async function runPushControlConfiguration(options: PushControlConfigurat
         process.exit(1);
     }
 
+    const parsedConfigId = parseInt(options.configId, 10);
+    if (!Number.isFinite(parsedConfigId)) {
+        printError(0, '--config-id must be a valid integer', 'push control-configuration', format);
+        process.exit(1);
+    }
+
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);
 
@@ -1122,7 +1128,7 @@ export async function runPushControlConfiguration(options: PushControlConfigurat
     }
 
     try {
-        const result = await client.pushControlConfiguration(options.domain, parsedControlId, options.configId, options.version, fileContent);
+        const result = await client.pushControlConfiguration(options.domain, parsedControlId, parsedConfigId, options.version, fileContent);
         printPushResult(result, format);
     } catch (err) {
         handleHubError(err, format);
@@ -1154,8 +1160,14 @@ export async function runPullControlConfiguration(options: PullControlConfigurat
         process.exit(1);
     }
 
+    const parsedConfigId = parseInt(options.configId, 10);
+    if (!Number.isFinite(parsedConfigId)) {
+        printError(0, '--config-id must be a valid integer', 'pull control-configuration', 'json');
+        process.exit(1);
+    }
+
     try {
-        const result = await client.pullControlConfiguration(options.domain, parsedControlId, options.configId, options.version);
+        const result = await client.pullControlConfiguration(options.domain, parsedControlId, parsedConfigId, options.version);
         const pretty = JSON.stringify(result, null, 2);
 
         if (options.output) {

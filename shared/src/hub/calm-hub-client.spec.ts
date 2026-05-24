@@ -694,30 +694,30 @@ describe('CalmHubClient', () => {
         const configJson = JSON.stringify({ type: 'control-configuration', config: {} });
 
         it('returns id, version and location on 201 with Location header', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(201, null, {
-                location: '/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0'
+            mock.onPost('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(201, null, {
+                location: '/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
             });
 
-            const result = await client.pushControlConfiguration('risk', 1, 'cfg-1', '1.0.0', configJson);
+            const result = await client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson);
             expect(result).toEqual({
                 id: 1,
                 version: '1.0.0',
-                location: '/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0'
+                location: '/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
             });
         });
 
         it('returns constructed location when header is absent', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(201, null, {});
+            mock.onPost('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(201, null, {});
 
-            const result = await client.pushControlConfiguration('risk', 1, 'cfg-1', '1.0.0', configJson);
-            expect(result.location).toBe('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0');
+            const result = await client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson);
+            expect(result.location).toBe('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0');
         });
 
         it('throws HubClientError(400) on bad request', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(400, 'Bad request');
-            await expect(client.pushControlConfiguration('risk', 1, 'cfg-1', '1.0.0', configJson)).rejects.toMatchObject({
+            mock.onPost('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(400, 'Bad request');
+            await expect(client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson)).rejects.toMatchObject({
                 status: 400,
-                request: 'POST /calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0'
+                request: 'POST /calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
             });
         });
     });
@@ -727,15 +727,15 @@ describe('CalmHubClient', () => {
     describe('pullControlConfiguration', () => {
         it('returns the config detail object', async () => {
             const detail = { type: 'control-configuration', config: {} };
-            mock.onGet('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(200, detail);
+            mock.onGet('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(200, detail);
 
-            const result = await client.pullControlConfiguration('risk', 1, 'cfg-1', '1.0.0');
+            const result = await client.pullControlConfiguration('risk', 1, 5, '1.0.0');
             expect(result).toEqual(detail);
         });
 
         it('throws HubClientError(404) when not found', async () => {
-            mock.onGet('/calm/domains/risk/controls/99/configurations/cfg-1/versions/1.0.0').reply(404, 'Not found');
-            await expect(client.pullControlConfiguration('risk', 99, 'cfg-1', '1.0.0')).rejects.toMatchObject({ status: 404 });
+            mock.onGet('/calm/domains/risk/controls/99/configurations/5/versions/1.0.0').reply(404, 'Not found');
+            await expect(client.pullControlConfiguration('risk', 99, 5, '1.0.0')).rejects.toMatchObject({ status: 404 });
         });
     });
 
@@ -870,9 +870,9 @@ describe('CalmHubClient', () => {
         });
 
         it('injects auth headers on pullControlConfiguration', async () => {
-            authMock.onGet('/calm/domains/risk/controls/1/configurations/cfg-1/versions/1.0.0').reply(200, {});
+            authMock.onGet('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(200, {});
 
-            await authClient.pullControlConfiguration('risk', 1, 'cfg-1', '1.0.0');
+            await authClient.pullControlConfiguration('risk', 1, 5, '1.0.0');
             expect(getAuthHeaders).toHaveBeenCalled();
         });
     });
