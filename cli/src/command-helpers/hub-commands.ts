@@ -997,6 +997,8 @@ export interface PushControlRequirementOptions {
     domain: string;
     controlId: string;
     version: string;
+    name: string;
+    description: string;
     file: string;
     format?: string;
 }
@@ -1033,7 +1035,14 @@ export async function runPushControlRequirement(options: PushControlRequirementO
     }
 
     try {
-        const result = await client.pushControlRequirement(options.domain, parsedControlId, options.version, fileContent);
+        const result = await client.pushControlRequirement(
+            options.domain,
+            parsedControlId,
+            options.version,
+            options.name,
+            options.description,
+            fileContent
+        );
         printPushResult(result, format);
     } catch (err) {
         handleHubError(err, format);

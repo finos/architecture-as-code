@@ -640,6 +640,8 @@ describe('CalmHubClient', () => {
     // ── pushControlRequirement ────────────────────────────────────────────────
 
     describe('pushControlRequirement', () => {
+        const reqName = 'access-control';
+        const reqDescription = 'Access control requirement wrapper';
         const reqJson = JSON.stringify({ type: 'control-requirement', requirements: [] });
 
         it('returns id, version and location on 201 with Location header', async () => {
@@ -647,7 +649,7 @@ describe('CalmHubClient', () => {
                 location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
             });
 
-            const result = await client.pushControlRequirement('risk', 1, '1.0.0', reqJson);
+            const result = await client.pushControlRequirement('risk', 1, '1.0.0', reqName, reqDescription, reqJson);
             expect(result).toEqual({
                 id: 1,
                 version: '1.0.0',
@@ -658,13 +660,28 @@ describe('CalmHubClient', () => {
         it('returns constructed location when header is absent', async () => {
             mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {});
 
-            const result = await client.pushControlRequirement('risk', 1, '1.0.0', reqJson);
+            const result = await client.pushControlRequirement('risk', 1, '1.0.0', reqName, reqDescription, reqJson);
             expect(result.location).toBe('/calm/domains/risk/controls/1/requirement/versions/1.0.0');
+        });
+
+        it('sends wrapper payload with name, description and requirementJson', async () => {
+            mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {
+                location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            });
+
+            await client.pushControlRequirement('risk', 1, '1.0.0', reqName, reqDescription, reqJson);
+
+            expect(mock.history.post).toHaveLength(1);
+            expect(JSON.parse(mock.history.post[0].data as string)).toEqual({
+                name: reqName,
+                description: reqDescription,
+                requirementJson: reqJson
+            });
         });
 
         it('throws HubClientError(400) on bad request', async () => {
             mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(400, 'Bad request');
-            await expect(client.pushControlRequirement('risk', 1, '1.0.0', reqJson)).rejects.toMatchObject({
+            await expect(client.pushControlRequirement('risk', 1, '1.0.0', reqName, reqDescription, reqJson)).rejects.toMatchObject({
                 status: 400,
                 request: 'POST /calm/domains/risk/controls/1/requirement/versions/1.0.0'
             });
@@ -700,7 +717,7 @@ describe('CalmHubClient', () => {
 
             const result = await client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson);
             expect(result).toEqual({
-                id: 1,
+                id: 5,
                 version: '1.0.0',
                 location: '/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
             });
@@ -711,6 +728,19 @@ describe('CalmHubClient', () => {
 
             const result = await client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson);
             expect(result.location).toBe('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0');
+        });
+
+        it('sends wrapper payload with configurationJson', async () => {
+            mock.onPost('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(201, null, {
+                location: '/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
+            });
+
+            await client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson);
+
+            expect(mock.history.post).toHaveLength(1);
+            expect(JSON.parse(mock.history.post[0].data as string)).toEqual({
+                configurationJson: configJson
+            });
         });
 
         it('throws HubClientError(400) on bad request', async () => {
@@ -865,7 +895,7 @@ describe('CalmHubClient', () => {
                 location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
             });
 
-            await authClient.pushControlRequirement('risk', 1, '1.0.0', '{}');
+            await authClient.pushControlRequirement('risk', 1, '1.0.0', 'req-name', 'req-description', '{}');
             expect(getAuthHeaders).toHaveBeenCalled();
         });
 

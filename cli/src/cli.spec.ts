@@ -904,12 +904,14 @@ describe('CLI Commands', () => {
             vi.spyOn(hubCommandsModule, 'runPushControlRequirement').mockResolvedValue(undefined);
         });
 
-        it('calls runPushControlRequirement with domain, controlId, version and file', async () => {
+        it('calls runPushControlRequirement with domain, controlId, version, metadata and file', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'hub', 'push', 'control-requirement', 'req.json',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--ver', '1.0.0',
+                '--name', 'req-name',
+                '--description', 'req-description',
                 '--calm-hub-url', 'http://hub',
             ]);
 
@@ -917,6 +919,8 @@ describe('CLI Commands', () => {
                 domain: 'risk',
                 controlId: '1',
                 version: '1.0.0',
+                name: 'req-name',
+                description: 'req-description',
                 file: 'req.json',
                 calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));

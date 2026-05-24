@@ -550,15 +550,24 @@ export class CalmHubClient {
      * @param domain Domain name.
      * @param controlId Control id.
      * @param version Version label.
+     * @param name Requirement wrapper name.
+     * @param description Requirement wrapper description.
      * @param requirementJson Requirement JSON payload.
      * @returns Created resource metadata.
      */
-    async pushControlRequirement(domain: string, controlId: number, version: string, requirementJson: string): Promise<HubCreateResult> {
+    async pushControlRequirement(
+        domain: string,
+        controlId: number,
+        version: string,
+        name: string,
+        description: string,
+        requirementJson: string
+    ): Promise<HubCreateResult> {
         const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
         try {
             const response = await this.ax.post(
                 `/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`,
-                requirementJson,
+                { name, description, requirementJson },
                 { headers: { 'Content-Type': 'application/json' } }
             );
             const location = (response.headers['location'] as string | undefined)
@@ -602,12 +611,12 @@ export class CalmHubClient {
         try {
             const response = await this.ax.post(
                 `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`,
-                configJson,
+                { configurationJson: configJson },
                 { headers: { 'Content-Type': 'application/json' } }
             );
             const location = (response.headers['location'] as string | undefined)
                 ?? `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
-            return { id: controlId, version, location };
+            return { id: configId, version, location };
         } catch (err) {
             throw this.wrapError(err, endpoint);
         }

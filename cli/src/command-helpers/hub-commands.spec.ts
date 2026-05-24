@@ -1355,10 +1355,12 @@ describe('hub-commands', () => {
                 domain: 'risk',
                 controlId: '1',
                 version: '1.0.0',
+                name: 'req-name',
+                description: 'req-description',
                 file: 'req.json'
             });
 
-            expect(mockClient.pushControlRequirement).toHaveBeenCalledWith('risk', 1, '1.0.0', expect.any(String));
+            expect(mockClient.pushControlRequirement).toHaveBeenCalledWith('risk', 1, '1.0.0', 'req-name', 'req-description', expect.any(String));
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ id: 1, version: '1.0.0' }));
         });
 
@@ -1373,6 +1375,8 @@ describe('hub-commands', () => {
                 domain: 'risk',
                 controlId: '1',
                 version: '1.0.0',
+                name: 'req-name',
+                description: 'req-description',
                 file: 'req.json',
                 format: 'pretty'
             });
@@ -1386,6 +1390,8 @@ describe('hub-commands', () => {
                 domain: 'risk',
                 controlId: 'abc',
                 version: '1.0.0',
+                name: 'req-name',
+                description: 'req-description',
                 file: 'req.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(0, '--control-id must be a valid integer', expect.any(String), 'json');
@@ -1399,6 +1405,8 @@ describe('hub-commands', () => {
                 domain: 'risk',
                 controlId: '1',
                 version: '1.0.0',
+                name: 'req-name',
+                description: 'req-description',
                 file: 'missing.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(0, expect.stringContaining('Could not read file'), expect.any(String), 'json');
@@ -1415,6 +1423,8 @@ describe('hub-commands', () => {
                 domain: 'risk',
                 controlId: '1',
                 version: '1.0.0',
+                name: 'req-name',
+                description: 'req-description',
                 file: 'req.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(400, 'Bad request', expect.any(String), 'json');

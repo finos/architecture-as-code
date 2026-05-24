@@ -455,6 +455,8 @@ Validation requires:
         .requiredOption(DOMAIN_OPTION, 'Target domain')
         .requiredOption(CONTROL_ID_OPTION, 'Control ID')
         .requiredOption(HUB_VERSION_OPTION, 'Semver version to create')
+        .requiredOption(NAME_OPTION, 'Name for the requirement version wrapper')
+        .requiredOption(DESCRIPTION_OPTION, 'Description for the requirement version wrapper')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (requirementFile, options) => {
@@ -463,6 +465,8 @@ Validation requires:
                 domain: options.domain,
                 controlId: options.controlId,
                 version: options.ver,
+                name: options.name,
+                description: options.description,
                 file: requirementFile,
                 format: options.format
             };
