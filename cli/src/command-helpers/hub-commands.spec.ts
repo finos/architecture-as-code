@@ -1322,15 +1322,32 @@ describe('hub-commands', () => {
 
         it('renders table when format is pretty', async () => {
             const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: 'control-a', description: 'control-a-desc' }]);
+
+            await runListControlRequirements({ calmHubOptions: { calmHubUrl: 'http://hub' }, domain: 'risk', format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ ID: 1, NAME: 'control-a', DESCRIPTION: 'control-a-desc' }],
+                [
+                    { key: 'ID', header: 'ID' },
+                    { key: 'NAME', header: 'NAME' },
+                    { key: 'DESCRIPTION', header: 'DESCRIPTION' }
+                ]
+            );
+        });
+
+        it('renders blank description when not provided', async () => {
+            const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.listControls).mockResolvedValue([{ id: 1, name: 'control-a' }]);
 
             await runListControlRequirements({ calmHubOptions: { calmHubUrl: 'http://hub' }, domain: 'risk', format: 'pretty' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
-                [{ ID: 1, NAME: 'control-a' }],
+                [{ ID: 1, NAME: 'control-a', DESCRIPTION: '' }],
                 [
                     { key: 'ID', header: 'ID' },
-                    { key: 'NAME', header: 'NAME' }
+                    { key: 'NAME', header: 'NAME' },
+                    { key: 'DESCRIPTION', header: 'DESCRIPTION' }
                 ]
             );
         });

@@ -976,10 +976,11 @@ export async function runListControlRequirements(options: ListControlRequirement
 
         if (format === 'pretty') {
             printTableSuccess(
-                controls.map(c => ({ ID: c.id, NAME: c.name })),
+                controls.map(c => ({ ID: c.id, NAME: c.name, DESCRIPTION: c.description ?? '' })),
                 [
                     { key: 'ID', header: 'ID' },
-                    { key: 'NAME', header: 'NAME' }
+                    { key: 'NAME', header: 'NAME' },
+                    { key: 'DESCRIPTION', header: 'DESCRIPTION' }
                 ]
             );
         } else {

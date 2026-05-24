@@ -55,6 +55,7 @@ export interface HubDomainSummary {
 export interface HubControlSummary {
     id: number;
     name: string;
+    description?: string;
 }
 
 export class HubClientError extends Error {
