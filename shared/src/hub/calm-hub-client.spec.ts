@@ -355,7 +355,7 @@ describe('CalmHubClient', () => {
             expect(result).toEqual({ id: 10, version: '2.0.0', location: '/calm/namespaces/finos/patterns/10/versions/2.0.0' });
         });
 
-        it('sends raw pattern JSON as the request body', async () => {
+        it('sends pattern metadata and patternJson in the request body', async () => {
             let capturedBody: unknown;
             mock.onPost('/calm/namespaces/finos/patterns/10/versions/2.0.0').reply((config) => {
                 capturedBody = JSON.parse(config.data as string);
@@ -364,7 +364,11 @@ describe('CalmHubClient', () => {
 
             await client.pushPatternVersion('finos', 10, '2.0.0', 'my-pattern', 'desc', patternJson);
 
-            expect(capturedBody).toEqual({ nodes: [] });
+            expect(capturedBody).toEqual({
+                name: 'my-pattern',
+                description: 'desc',
+                patternJson
+            });
         });
 
         it('throws HubClientError(409) on duplicate version', async () => {

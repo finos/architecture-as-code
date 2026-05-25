@@ -296,8 +296,8 @@ export class CalmHubClient {
      * @param namespace Namespace name.
      * @param id Pattern id.
      * @param version Version label.
-     * @param _name Unused name parameter kept for compatibility.
-     * @param _description Unused description parameter kept for compatibility.
+     * @param name Pattern name.
+     * @param description Pattern description.
      * @param patternJson Pattern JSON payload.
      * @returns Created resource metadata.
      */
@@ -305,15 +305,15 @@ export class CalmHubClient {
         namespace: string,
         id: number,
         version: string,
-        _name: string,
-        _description: string,
+        name: string,
+        description: string,
         patternJson: string
     ): Promise<HubCreateResult> {
         const endpoint = `POST /calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
         try {
             const response = await this.ax.post(
                 `/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`,
-                patternJson
+                { name, description, patternJson }
             );
             const location = response.headers['location'] as string;
             return this.parseVersionedLocation(location, endpoint);
@@ -604,6 +604,10 @@ export class CalmHubClient {
         requirementJson: string
     ): Promise<HubCreateResult> {
         const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
+        // print debug all parameters except requirementJson which may be large
+        console.debug(`pushControlRequirement called with domain=${domain}, controlId=${controlId}, version=${version}, name=${name}, description=${description}`);
+        // print debug first 200 characters of requirementJson
+        console.debug(`requirementJson: ${requirementJson.substring(0, 200)}${requirementJson.length > 200 ? '... (truncated)' : ''}`);
         try {
             const response = await this.ax.post(
                 `/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`,
