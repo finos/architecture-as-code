@@ -4,7 +4,12 @@ import { mkdirp } from 'mkdirp';
 import {
     diffArchitectures,
     diffPatterns,
+    diffTimelineAdjacent,
+    diffTimelineMoments,
+    type ArchitectureResolver,
     type DiffResult,
+    type MomentDiff,
+    type TimelineInput,
 } from '@finos/calm-models/diff';
 import type { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { initLogger } from '../../logger.js';
@@ -197,4 +202,67 @@ export async function runDiff(
     }
 
     return { diff, formatted, hasChanges: hasChanges(diff) };
+}
+
+export interface TimelineDiffRunOptions {
+    /** Diff only this single pair instead of all adjacent pairs. */
+    fromMomentId?: string;
+    toMomentId?: string;
+    verbose?: boolean;
+}
+
+export interface TimelineDiffRunResult {
+    /** Ordered diffs: one per adjacent pair, or a single entry for an explicit pair. */
+    diffs: MomentDiff[];
+}
+
+/**
+ * Builds a filesystem-backed {@link ArchitectureResolver} that resolves a
+ * moment's `detailed-architecture` string reference relative to the directory
+ * of the timeline document being diffed.
+ */
+export function createFileSystemArchitectureResolver(baseDir: string): ArchitectureResolver {
+    return async (reference: string) => {
+        const resolved = path.isAbsolute(reference)
+            ? reference
+            : path.resolve(baseDir, reference);
+        const raw = await fs.promises.readFile(resolved, 'utf-8');
+        return JSON.parse(raw) as Record<string, unknown>;
+    };
+}
+
+/**
+ * Diffs a CALM timeline document on disk. Moment `detailed-architecture`
+ * references are resolved relative to the timeline file's directory. Diffs all
+ * adjacent moment pairs unless an explicit {@link TimelineDiffRunOptions.fromMomentId}
+ * / {@link TimelineDiffRunOptions.toMomentId} pair is supplied.
+ */
+export async function runTimelineDiff(
+    timelinePath: string,
+    options: TimelineDiffRunOptions = {},
+): Promise<TimelineDiffRunResult> {
+    const logger = initLogger(!!options.verbose, 'calm-timeline-diff');
+    const resolvedPath = path.resolve(timelinePath);
+    logger.info(`Diffing timeline ${resolvedPath}`);
+
+    const timeline = readDocument(resolvedPath) as TimelineInput;
+    const resolver = createFileSystemArchitectureResolver(path.dirname(resolvedPath));
+
+    if (options.fromMomentId || options.toMomentId) {
+        if (!options.fromMomentId || !options.toMomentId) {
+            throw new Error(
+                'Both fromMomentId and toMomentId must be supplied to diff a specific pair.',
+            );
+        }
+        const diff = await diffTimelineMoments(
+            timeline,
+            options.fromMomentId,
+            options.toMomentId,
+            resolver,
+        );
+        return { diffs: [diff] };
+    }
+
+    const diffs = await diffTimelineAdjacent(timeline, resolver);
+    return { diffs };
 }

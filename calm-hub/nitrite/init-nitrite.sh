@@ -49,7 +49,7 @@ create_namespaces() {
     print_status "Creating namespaces..."
     
     # Create required namespaces (the API requires both a name and a description)
-    for namespace in finos workshop traderx ai-governance-v2; do
+    for namespace in finos workshop traderx ai-governance-v2 timeline-demo; do
         print_status "Creating namespace: $namespace"
         local http_code
         http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/namespaces" \
@@ -2740,13 +2740,359 @@ CALMDOC
 }
 
 # Main execution
+create_timeline_demo() {
+    print_status "Creating timeline-demo architectures + explicit timeline..."
+
+    # --- Payments Service (implied timeline) ---------------------------------
+    # No stored timeline; the timeline bar projects one from the version list.
+    local payments_v1='{
+        "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+        "nodes": [
+            { "unique-id": "api", "node-type": "service", "name": "Payments API", "description": "Public payments API" },
+            { "unique-id": "db", "node-type": "database", "name": "Payments DB", "description": "Stores payment records" }
+        ],
+        "relationships": [
+            { "unique-id": "api-to-db", "description": "Reads/writes payments",
+              "relationship-type": { "connects": { "source": { "node": "api" }, "destination": { "node": "db" } } } }
+        ]
+    }'
+    local payments_v2='{
+        "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+        "nodes": [
+            { "unique-id": "api", "node-type": "service", "name": "Payments API", "description": "Public payments API" },
+            { "unique-id": "db", "node-type": "database", "name": "Payments DB", "description": "Stores payment records" },
+            { "unique-id": "cache", "node-type": "service", "name": "Idempotency Cache", "description": "Caches request keys" }
+        ],
+        "relationships": [
+            { "unique-id": "api-to-db", "description": "Reads/writes payments",
+              "relationship-type": { "connects": { "source": { "node": "api" }, "destination": { "node": "db" } } } },
+            { "unique-id": "api-to-cache", "description": "Checks idempotency cache",
+              "relationship-type": { "connects": { "source": { "node": "api" }, "destination": { "node": "cache" } } } }
+        ]
+    }'
+    local payments_v3='{
+        "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+        "nodes": [
+            { "unique-id": "api", "node-type": "service", "name": "Payments API", "description": "Public payments API" },
+            { "unique-id": "db", "node-type": "database", "name": "Payments DB", "description": "Stores payment records" },
+            { "unique-id": "cache", "node-type": "service", "name": "Idempotency Cache", "description": "Caches request keys" },
+            { "unique-id": "worker", "node-type": "service", "name": "Settlement Worker", "description": "Async settlement processor" }
+        ],
+        "relationships": [
+            { "unique-id": "api-to-db", "description": "Reads/writes payments",
+              "relationship-type": { "connects": { "source": { "node": "api" }, "destination": { "node": "db" } } } },
+            { "unique-id": "api-to-cache", "description": "Checks idempotency cache",
+              "relationship-type": { "connects": { "source": { "node": "api" }, "destination": { "node": "cache" } } } },
+            { "unique-id": "worker-to-db", "description": "Async settlement updates DB",
+              "relationship-type": { "connects": { "source": { "node": "worker" }, "destination": { "node": "db" } } } }
+        ]
+    }'
+
+    post_document "timeline-demo" "architectures" "architectureJson" \
+        "Payments Service (implied timeline)" \
+        "Demo architecture with no curated timeline — the bar projects one from the version list." \
+        "$payments_v1"
+
+    local payments_id
+    payments_id=$(get_resource_id_by_name "timeline-demo" "architectures" "Payments Service (implied timeline)")
+    if [[ -n "$payments_id" ]]; then
+        post_architecture_version "timeline-demo" "$payments_id" "1.1.0" \
+            "Payments Service (implied timeline)" "Added idempotency cache." "$payments_v2"
+        post_architecture_version "timeline-demo" "$payments_id" "1.2.0" \
+            "Payments Service (implied timeline)" "Added async settlement worker." "$payments_v3"
+    else
+        print_warning "Could not resolve Payments Service id; skipping additional versions"
+    fi
+
+    # --- Trading Platform (explicit timeline) --------------------------------
+    # Four versions; an explicit stored timeline with four moments, with the
+    # *third* moment marked as current-moment so testers can see the NOW badge
+    # anchored on a non-latest version.
+    local trading_v1='{
+        "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+        "nodes": [
+            { "unique-id": "gateway", "node-type": "service", "name": "Order Gateway", "description": "Accepts client orders" },
+            { "unique-id": "matching", "node-type": "service", "name": "Matching Engine", "description": "Matches buy/sell orders" }
+        ],
+        "relationships": [
+            { "unique-id": "gateway-to-matching", "description": "Gateway forwards orders",
+              "relationship-type": { "connects": { "source": { "node": "gateway" }, "destination": { "node": "matching" } } } }
+        ]
+    }'
+    local trading_v2='{
+        "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+        "nodes": [
+            { "unique-id": "gateway", "node-type": "service", "name": "Order Gateway", "description": "Accepts client orders" },
+            { "unique-id": "matching", "node-type": "service", "name": "Matching Engine", "description": "Matches buy/sell orders" },
+            { "unique-id": "order-book", "node-type": "database", "name": "Order Book", "description": "Centralised order book" }
+        ],
+        "relationships": [
+            { "unique-id": "gateway-to-matching", "description": "Gateway forwards orders",
+              "relationship-type": { "connects": { "source": { "node": "gateway" }, "destination": { "node": "matching" } } } },
+            { "unique-id": "matching-to-order-book", "description": "Matching engine persists state",
+              "relationship-type": { "connects": { "source": { "node": "matching" }, "destination": { "node": "order-book" } } } }
+        ]
+    }'
+    local trading_v3='{
+        "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+        "nodes": [
+            { "unique-id": "gateway", "node-type": "service", "name": "Order Gateway", "description": "Accepts client orders" },
+            { "unique-id": "matching", "node-type": "service", "name": "Matching Engine", "description": "Matches buy/sell orders" },
+            { "unique-id": "order-book", "node-type": "database", "name": "Order Book", "description": "Centralised order book" },
+            { "unique-id": "risk", "node-type": "service", "name": "Risk Engine", "description": "Pre-trade risk checks" }
+        ],
+        "relationships": [
+            { "unique-id": "gateway-to-matching", "description": "Gateway forwards orders",
+              "relationship-type": { "connects": { "source": { "node": "gateway" }, "destination": { "node": "matching" } } } },
+            { "unique-id": "matching-to-order-book", "description": "Matching engine persists state",
+              "relationship-type": { "connects": { "source": { "node": "matching" }, "destination": { "node": "order-book" } } } },
+            { "unique-id": "gateway-to-risk", "description": "Gateway runs pre-trade risk checks",
+              "relationship-type": { "connects": { "source": { "node": "gateway" }, "destination": { "node": "risk" } } } }
+        ]
+    }'
+    local trading_v4='{
+        "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+        "nodes": [
+            { "unique-id": "gateway", "node-type": "service", "name": "Order Gateway", "description": "Accepts client orders" },
+            { "unique-id": "matching", "node-type": "service", "name": "Matching Engine", "description": "Matches buy/sell orders" },
+            { "unique-id": "order-book", "node-type": "database", "name": "Order Book", "description": "Centralised order book" },
+            { "unique-id": "risk", "node-type": "service", "name": "Risk Engine", "description": "Pre-trade risk checks" },
+            { "unique-id": "settlement", "node-type": "service", "name": "Settlement Engine", "description": "Post-trade settlement" }
+        ],
+        "relationships": [
+            { "unique-id": "gateway-to-matching", "description": "Gateway forwards orders",
+              "relationship-type": { "connects": { "source": { "node": "gateway" }, "destination": { "node": "matching" } } } },
+            { "unique-id": "matching-to-order-book", "description": "Matching engine persists state",
+              "relationship-type": { "connects": { "source": { "node": "matching" }, "destination": { "node": "order-book" } } } },
+            { "unique-id": "gateway-to-risk", "description": "Gateway runs pre-trade risk checks",
+              "relationship-type": { "connects": { "source": { "node": "gateway" }, "destination": { "node": "risk" } } } },
+            { "unique-id": "matching-to-settlement", "description": "Matched trades flow to settlement",
+              "relationship-type": { "connects": { "source": { "node": "matching" }, "destination": { "node": "settlement" } } } }
+        ]
+    }'
+
+    post_document "timeline-demo" "architectures" "architectureJson" \
+        "Trading Platform (explicit timeline)" \
+        "Demo architecture with a curated timeline. Has four versions; the explicit timeline marks the third as current." \
+        "$trading_v1"
+
+    local trading_id
+    trading_id=$(get_resource_id_by_name "timeline-demo" "architectures" "Trading Platform (explicit timeline)")
+    if [[ -z "$trading_id" ]]; then
+        print_warning "Could not resolve Trading Platform id; skipping additional versions + timeline"
+        return
+    fi
+
+    post_architecture_version "timeline-demo" "$trading_id" "1.1.0" \
+        "Trading Platform (explicit timeline)" "Added centralised order book." "$trading_v2"
+    post_architecture_version "timeline-demo" "$trading_id" "2.0.0" \
+        "Trading Platform (explicit timeline)" "Added pre-trade risk engine." "$trading_v3"
+    post_architecture_version "timeline-demo" "$trading_id" "3.0.0" \
+        "Trading Platform (explicit timeline)" "Added post-trade settlement." "$trading_v4"
+
+    # Explicit stored timeline: 4 curated moments referencing the 4 versions
+    # above. current-moment = "risk-controls" (the THIRD moment, v2.0.0) — even
+    # though there is a fourth (v3.0.0), so NOW does not follow the latest.
+    local timeline_doc
+    timeline_doc=$(jq -n --arg id "$trading_id" '
+    {
+        "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+        "current-moment": "risk-controls",
+        "metadata": { "title": "Trading Platform Timeline", "owner": "Trading Platform Team" },
+        "moments": [
+            { "unique-id": "initial-launch", "node-type": "moment", "name": "Initial launch",
+              "description": "Order gateway + matching engine", "valid-from": "2024-01-15",
+              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/1.0.0") },
+              "adrs": ["https://example.com/adr/0001-initial-trading-architecture"] },
+            { "unique-id": "order-book-rollout", "node-type": "moment", "name": "Order book rollout",
+              "description": "Centralised order book", "valid-from": "2024-04-01",
+              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/1.1.0") },
+              "adrs": ["https://example.com/adr/0002-order-book"] },
+            { "unique-id": "risk-controls", "node-type": "moment", "name": "Risk controls go-live",
+              "description": "Added pre-trade risk engine", "valid-from": "2024-09-01",
+              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/2.0.0") },
+              "adrs": ["https://example.com/adr/0003-pre-trade-risk"] },
+            { "unique-id": "settlement-go-live", "node-type": "moment", "name": "Settlement go-live",
+              "description": "Added post-trade settlement", "valid-from": "2025-02-01",
+              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/3.0.0") },
+              "adrs": ["https://example.com/adr/0004-settlement"] }
+        ]
+    }')
+
+    local tl_payload
+    tl_payload=$(jq -n \
+        --arg n "Trading Platform Timeline" \
+        --arg d "Curated timeline with four moments. current-moment is the third (Risk controls go-live)." \
+        --argjson doc "$timeline_doc" \
+        '{name: $n, description: $d, timelineJson: ($doc|tojson)}')
+
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        "$CALM_HUB_URL/calm/namespaces/timeline-demo/timelines" \
+        -H "$CONTENT_TYPE" -d "$tl_payload")
+    if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+        print_status "Created explicit timeline for Trading Platform in timeline-demo"
+    elif [[ "$http_code" == "409" ]]; then
+        print_warning "Trading Platform timeline already exists, skipping"
+    else
+        print_warning "Failed to create Trading Platform timeline (HTTP $http_code)"
+    fi
+
+    # --- Demo Pattern (implied timeline, 3 versions) -------------------------
+    # Patterns have no explicit timeline, so the bar always shows the implied
+    # projection — useful for testing the pattern path of the timeline UI.
+    local pattern_v1='{
+        "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+        "title": "Demo Pattern",
+        "type": "object",
+        "properties": {
+            "nodes": {
+                "type": "array",
+                "minItems": 1,
+                "prefixItems": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "api-gateway" },
+                            "node-type": { "const": "system" },
+                            "name": { "const": "API Gateway" },
+                            "description": { "const": "Entry point for the demo pattern." }
+                        }
+                    }
+                ]
+            }
+        }
+    }'
+    local pattern_v2='{
+        "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+        "title": "Demo Pattern",
+        "type": "object",
+        "properties": {
+            "nodes": {
+                "type": "array",
+                "minItems": 2,
+                "prefixItems": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "api-gateway" },
+                            "node-type": { "const": "system" },
+                            "name": { "const": "API Gateway" },
+                            "description": { "const": "Entry point for the demo pattern." }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "service" },
+                            "node-type": { "const": "service" },
+                            "name": { "const": "Downstream Service" },
+                            "description": { "const": "Service called by the gateway." }
+                        }
+                    }
+                ]
+            }
+        }
+    }'
+    local pattern_v3='{
+        "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+        "title": "Demo Pattern",
+        "type": "object",
+        "properties": {
+            "nodes": {
+                "type": "array",
+                "minItems": 2,
+                "prefixItems": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "api-gateway" },
+                            "node-type": { "const": "system" },
+                            "name": { "const": "API Gateway" },
+                            "description": { "const": "Entry point for the demo pattern." }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "service" },
+                            "node-type": { "const": "service" },
+                            "name": { "const": "Downstream Service" },
+                            "description": { "const": "Service called by the gateway." }
+                        }
+                    }
+                ]
+            },
+            "relationships": {
+                "type": "array",
+                "minItems": 1,
+                "prefixItems": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "gateway-interacts-service" },
+                            "description": { "const": "Gateway calls downstream service." },
+                            "relationship-type": {
+                                "const": {
+                                    "interacts": {
+                                        "actor": "api-gateway",
+                                        "nodes": ["service"]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }'
+
+    post_document "timeline-demo" "patterns" "patternJson" \
+        "Demo Pattern (implied timeline)" \
+        "Demo pattern with three versions to exercise the pattern path of the timeline bar." \
+        "$pattern_v1"
+
+    local pattern_id
+    pattern_id=$(get_resource_id_by_name "timeline-demo" "patterns" "Demo Pattern (implied timeline)")
+    if [[ -n "$pattern_id" ]]; then
+        # Post extra pattern versions with the {name, description, patternJson}
+        # envelope (the shared post_pattern_version helper still sends the raw
+        # doc, which the current endpoint rejects with 400 — see calm-hub
+        # PatternResource.createVersionedPattern).
+        post_demo_pattern_version() {
+            local version="$1" desc="$2" doc="$3"
+            local payload
+            payload=$(jq -n \
+                --arg n "Demo Pattern (implied timeline)" \
+                --arg d "$desc" \
+                --argjson doc "$doc" \
+                '{name: $n, description: $d, patternJson: ($doc | tojson)}')
+            local code
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "$CALM_HUB_URL/calm/namespaces/timeline-demo/patterns/$pattern_id/versions/$version" \
+                -H "$CONTENT_TYPE" -d "$payload")
+            if [[ "$code" == "200" || "$code" == "201" ]]; then
+                print_status "Created Demo Pattern version $version in timeline-demo"
+            elif [[ "$code" == "409" ]]; then
+                print_warning "Demo Pattern version $version already exists, skipping"
+            else
+                print_warning "Failed to create Demo Pattern version $version (HTTP $code)"
+            fi
+        }
+        post_demo_pattern_version "1.1.0" "Added downstream service node." "$pattern_v2"
+        post_demo_pattern_version "2.0.0" "Added gateway→service interacts relationship." "$pattern_v3"
+    else
+        print_warning "Could not resolve Demo Pattern id; skipping additional versions"
+    fi
+}
+
 main() {
     print_status "Starting CalmHub NitriteDB initialization..."
     print_status "Target URL: $CALM_HUB_URL"
-    
+
     # Check if CalmHub is running
     check_calmhub_status
-    
+
     # Initialize data in order
     create_namespaces
     create_core_schemas
@@ -2757,7 +3103,8 @@ main() {
     create_ai_governance_architecture
     create_user_access
     create_standards
-    
+    create_timeline_demo
+
     print_status "CalmHub NitriteDB initialization completed!"
     print_status "Note: Some operations may have failed if the corresponding REST endpoints are not yet implemented."
     print_status "This is expected for a system in development."

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoGitCompareOutline } from 'react-icons/io5';
+import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline } from 'react-icons/io5';
 import { Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
@@ -8,7 +8,18 @@ import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
 import { CompareView } from './compare/CompareView.js';
-import { fetchVersionList } from './compare/compareData.js';
+import { diffArchitectures, diffPatterns, type DiffResult } from '@finos/calm-models/diff';
+import type { CalmArchitectureSchema } from '@finos/calm-models/types';
+import type { DiffSource } from '../../../diff/model/diff-ui-types.js';
+import { TimelineBar, type TimelineMoment } from './timeline/TimelineBar.js';
+import {
+    currentMomentIdFromTimeline,
+    isExplicitTimeline,
+    momentsFromTimeline,
+    momentsFromVersions,
+} from './timeline/timelineMoments.js';
+import { computeChanges, type VersionChange } from './timeline/perVersionChanges.js';
+import { fetchVersionData, fetchVersionList } from './compare/compareData.js';
 import { CalmService } from '../../../service/calm-service.js';
 import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
 
@@ -32,27 +43,131 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const activeTab: DiagramTabType = tabParam ?? 'diagram';
     const calmService = useMemo(() => new CalmService(), []);
     const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
-    const [compareMode, setCompareMode] = useState(false);
+    const [compareFrom, setCompareFrom] = useState<string | null>(null);
+    const [compareTo, setCompareTo] = useState<string | null>(null);
     const [versions, setVersions] = useState<string[]>([]);
+    const [moments, setMoments] = useState<TimelineMoment[]>([]);
+    /**
+     * The timeline document's `current-moment` field — used for the NOW badge.
+     * Undefined when there is no timeline doc (patterns) or when the projection
+     * is implied and so the "current" moment isn't a real authored point.
+     */
+    const [timelineCurrentMomentId, setTimelineCurrentMomentId] = useState<string | undefined>(undefined);
+    /** True for stored / authored (explicit) timelines, false for implied projections. */
+    const [timelineIsExplicit, setTimelineIsExplicit] = useState<boolean>(false);
+    const [displayName, setDisplayName] = useState<string | undefined>(undefined);
+    /** Compare-mode data shared by CompareView (graphs) and TimelineBar (summary). */
+    const [compareSourceA, setCompareSourceA] = useState<DiffSource | null>(null);
+    const [compareSourceB, setCompareSourceB] = useState<DiffSource | null>(null);
+    const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
+    const [compareError, setCompareError] = useState<string | null>(null);
 
     const setActiveTab = (tab: DiagramTabType) => {
-        setCompareMode(false);
         setSearchParams({ tab }, { replace: true });
     };
 
     const isArchitecture = data.calmType === 'Architectures';
     const urlType = isArchitecture ? 'architectures' : 'patterns';
+    const typeLabel = isArchitecture ? 'Architecture' : 'Pattern';
 
     const handleVersionChange = (version: string) => {
+        // Selecting any moment exits compare mode, even if it's the
+        // already-current version (otherwise compare would be a trap when one
+        // of the endpoints is the version you started from).
+        setCompareFrom(null);
+        setCompareTo(null);
         if (version === data.version) return;
         // Preserve the active tab when switching version.
         const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
         navigate(`/${data.name}/${urlType}/${data.id}/${version}${query}`);
     };
 
+    const startCompare = (from: string, to: string) => {
+        setCompareFrom(from);
+        setCompareTo(to);
+    };
+
+    // Fetch both compared versions and compute the diff at the section level so
+    // both the CompareView (graphs) and the TimelineBar (inline diff summary)
+    // share the same result.
     useEffect(() => {
-        setCompareMode(false);
+        if (!compareFrom || !compareTo) {
+            setCompareSourceA(null);
+            setCompareSourceB(null);
+            setDiffResult(null);
+            setCompareError(null);
+            return;
+        }
+        let cancelled = false;
+        setCompareError(null);
+        Promise.all([
+            fetchVersionData(calmService, data.name, data.calmType, data.id, compareFrom),
+            fetchVersionData(calmService, data.name, data.calmType, data.id, compareTo),
+        ])
+            .then(([a, b]) => {
+                if (cancelled) return;
+                const aData = (a.data ?? null) as DiffSource | null;
+                const bData = (b.data ?? null) as DiffSource | null;
+                setCompareSourceA(aData);
+                setCompareSourceB(bData);
+                setDiffResult(
+                    aData && bData
+                        ? data.calmType === 'Patterns'
+                            ? diffPatterns(aData, bData)
+                            : diffArchitectures(
+                                  aData as CalmArchitectureSchema,
+                                  bData as CalmArchitectureSchema
+                              )
+                        : null
+                );
+            })
+            .catch(() => {
+                if (!cancelled) setCompareError('Failed to load versions to compare');
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [calmService, data.name, data.calmType, data.id, compareFrom, compareTo]);
+
+    /** Diff the selected and previous version of this resource for the WHAT CHANGED block. */
+    const loadChangesForVersion = useCallback(
+        async (prevVersion: string, currVersion: string): Promise<VersionChange[]> => {
+            const [prev, curr] = await Promise.all([
+                fetchVersionData(calmService, data.name, data.calmType, data.id, prevVersion),
+                fetchVersionData(calmService, data.name, data.calmType, data.id, currVersion),
+            ]);
+            return computeChanges(data.calmType, prev.data, curr.data);
+        },
+        [calmService, data.name, data.calmType, data.id]
+    );
+
+    // Reset compare state when the underlying resource changes.
+    useEffect(() => {
+        setCompareFrom(null);
+        setCompareTo(null);
     }, [data.name, data.id, data.calmType]);
+
+    // Resolve the resource's human-readable name for the breadcrumb (the route
+    // carries only the id, which is often numeric).
+    useEffect(() => {
+        let cancelled = false;
+        setDisplayName(undefined);
+        const summaries = isArchitecture
+            ? calmService.fetchArchitectureSummaries(data.name)
+            : calmService.fetchPatternSummaries(data.name);
+        summaries
+            .then((list) => {
+                if (cancelled) return;
+                const match = list.find((s) => String(s.id) === data.id || s.customId === data.id);
+                setDisplayName(match?.name);
+            })
+            .catch(() => {
+                if (!cancelled) setDisplayName(undefined);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [calmService, data.name, data.id, isArchitecture]);
 
     useEffect(() => {
         let cancelled = false;
@@ -68,6 +183,38 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         };
     }, [calmService, data.name, data.calmType, data.id]);
 
+    // Build the timeline-bar moments. Architectures use the (explicit or
+    // implied) timeline document; patterns build moments straight from the
+    // version list (reversed to chronological, oldest-first) order.
+    useEffect(() => {
+        if (!isArchitecture) {
+            // Patterns: implied timeline built from the version list — no NOW badge.
+            setMoments(momentsFromVersions(versions));
+            setTimelineCurrentMomentId(undefined);
+            setTimelineIsExplicit(false);
+            return;
+        }
+        let cancelled = false;
+        calmService
+            .fetchArchitectureTimeline(data.name, data.id)
+            .then((doc) => {
+                if (cancelled) return;
+                setMoments(momentsFromTimeline(doc));
+                setTimelineCurrentMomentId(currentMomentIdFromTimeline(doc));
+                setTimelineIsExplicit(isExplicitTimeline(doc));
+            })
+            .catch(() => {
+                // Fall back to the version list so the bar still navigates.
+                if (cancelled) return;
+                setMoments(momentsFromVersions(versions));
+                setTimelineCurrentMomentId(undefined);
+                setTimelineIsExplicit(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [isArchitecture, calmService, data.name, data.id, versions]);
+
     useEffect(() => {
         if (!isArchitecture) {
             setDecorators([]);
@@ -78,13 +225,55 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         calmService.fetchDecoratorValues(data.name, target, 'deployment').then((values) => setDecorators(values as DeploymentDecorator[]));
     }, [data, isArchitecture, calmService]);
 
+    // When an architecture has an explicit timeline, landing on the latest
+    // version (the tree's implicit default) one-shot redirects to the
+    // timeline's current-moment instead — once per resource visit, so the
+    // user can still navigate freely to other versions afterwards.
+    const explicitRedirectedFor = useRef<string | null>(null);
+    useEffect(() => {
+        explicitRedirectedFor.current = null;
+    }, [data.name, data.id]);
+    useEffect(() => {
+        if (!isArchitecture) return;
+        if (!timelineIsExplicit || !timelineCurrentMomentId) return;
+        if (versions.length === 0 || moments.length === 0) return;
+        const resourceKey = `${data.name}/${data.id}`;
+        if (explicitRedirectedFor.current === resourceKey) return;
+        explicitRedirectedFor.current = resourceKey;
+
+        const currentMoment = moments.find((m) => m.key === timelineCurrentMomentId);
+        if (!currentMoment || currentMoment.version === data.version) return;
+        // Only redirect when the user is on the latest version — anything else
+        // is a deliberate pick (deep-link or manual navigation) we shouldn't override.
+        if (data.version !== versions[0]) return;
+
+        const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
+        navigate(
+            `/${data.name}/${urlType}/${data.id}/${currentMoment.version}${query}`,
+            { replace: true }
+        );
+    }, [
+        isArchitecture,
+        timelineIsExplicit,
+        timelineCurrentMomentId,
+        moments,
+        versions,
+        data.name,
+        data.id,
+        data.version,
+        urlType,
+        activeTab,
+        navigate,
+    ]);
+
     const Icon = iconMap[data.calmType];
+    const comparing = compareFrom !== null && compareTo !== null;
 
     const tabs = (
         <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
             <button
                 role="tab"
-                className={`tab gap-1 rounded-lg ${!compareMode && activeTab === 'diagram' ? 'tab-active !bg-accent !text-white' : ''}`}
+                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'diagram' ? 'tab-active !bg-accent !text-white' : ''}`}
                 onClick={() => setActiveTab('diagram')}
             >
                 <IoEyeOutline />
@@ -92,7 +281,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             </button>
             <button
                 role="tab"
-                className={`tab gap-1 rounded-lg ${!compareMode && activeTab === 'json' ? 'tab-active !bg-accent !text-white' : ''}`}
+                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'json' ? 'tab-active !bg-accent !text-white' : ''}`}
                 onClick={() => setActiveTab('json')}
             >
                 <IoCodeOutline />
@@ -101,7 +290,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             {isArchitecture && (
                 <button
                     role="tab"
-                    className={`tab gap-1 rounded-lg ${!compareMode && activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
+                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
                     onClick={() => setActiveTab('deployments')}
                 >
                     <IoRocketOutline />
@@ -109,18 +298,6 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                 </button>
             )}
         </div>
-    );
-
-    const compareButton = (
-        <button
-            className={`btn btn-sm gap-1 ${compareMode ? 'btn-active' : 'btn-ghost'}`}
-            onClick={() => setCompareMode((m) => !m)}
-            aria-label="Compare versions"
-            title={compareMode ? 'Exit compare' : 'Compare versions'}
-        >
-            <IoGitCompareOutline />
-            Compare
-        </button>
     );
 
     return (
@@ -131,15 +308,23 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                     namespace={data.name}
                     id={data.id}
                     version={data.version}
-                    versions={versions}
-                    onVersionChange={handleVersionChange}
-                    titleActions={compareButton}
+                    showVersion={false}
+                    displayName={displayName}
+                    typeLabel={typeLabel}
                     rightContent={tabs}
                 />
 
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    {compareMode ? (
-                        <CompareView data={data} versions={versions} onExit={() => setCompareMode(false)} />
+                    {comparing ? (
+                        <CompareView
+                            calmType={data.calmType}
+                            versionA={compareFrom ?? ''}
+                            versionB={compareTo ?? ''}
+                            sourceA={compareSourceA}
+                            sourceB={compareSourceB}
+                            diffResult={diffResult}
+                            error={compareError}
+                        />
                     ) : activeTab === 'diagram' ? (
                         <div className="w-full h-full">
                             <Drawer data={data} onItemSelect={onItemSelect} decorators={decorators} />
@@ -154,6 +339,20 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                         </div>
                     )}
                 </div>
+
+                <TimelineBar
+                    moments={moments}
+                    currentVersion={data.version}
+                    displayName={displayName}
+                    timelineCurrentMomentId={timelineCurrentMomentId}
+                    timelineIsExplicit={timelineIsExplicit}
+                    compareFrom={compareFrom}
+                    compareTo={compareTo}
+                    diffResult={diffResult}
+                    loadChangesForVersion={loadChangesForVersion}
+                    onNavigate={handleVersionChange}
+                    onCompare={startCompare}
+                />
             </div>
         </div>
     );

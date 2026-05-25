@@ -8,6 +8,18 @@ export {
     diffPatterns,
     normalisePatternToInstance,
 } from './pattern-diff.js';
+export {
+    diffTimelineAdjacent,
+    diffTimelineMoments,
+    type MomentDiff,
+    type TimelineInput,
+} from './timeline-diff.js';
+export {
+    resolveMomentArchitecture,
+    type ArchitectureResolver,
+    type MomentLike,
+    type MomentDetailsLike,
+} from './architecture-resolver.js';
 export type {
     DiffResult,
     NodeChange,
