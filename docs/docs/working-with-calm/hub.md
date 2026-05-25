@@ -382,7 +382,7 @@ calm hub list control-requirements --domain risk -c http://localhost:8080
 
 - **`--domain <domain>`**: _(required)_ The domain to list control requirements from.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **ID**, **NAME**, and **DESCRIPTION**.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **ID**, **NAME**, **DESCRIPTION**, and **VERSIONS**.
 
 ### Create a control requirement
 
@@ -459,21 +459,6 @@ calm hub pull control-requirement \
 - **`-o, --output <file>`**: Write the requirement JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
-### List control requirement versions
-
-To list all available versions for a control requirement:
-
-```shell
-calm hub list control-requirement-versions --domain risk --control-id 42 -c http://localhost:8080
-```
-
-**Options:**
-
-- **`--domain <domain>`**: _(required)_ The target domain.
-- **`--control-id <id>`**: _(required)_ The numeric control ID.
-- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with column **VERSION**.
-
 ## Managing Control Configurations
 
 Control configurations are managed per control requirement and identified by a numeric configuration ID.
@@ -491,7 +476,7 @@ calm hub list control-configurations --domain risk --control-id 42 -c http://loc
 - **`--domain <domain>`**: _(required)_ The target domain.
 - **`--control-id <id>`**: _(required)_ The numeric control ID.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **ID** and **VERSIONS**.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **CONFIG-ID** and **VERSIONS**.
 
 ### Create a control configuration
 
