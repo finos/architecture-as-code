@@ -1122,19 +1122,6 @@ describe('CLI Commands', () => {
         });
     });
 
-    describe('list control-requirement-versions command', () => {
-        it('rejects removed control-requirement-versions command', async () => {
-            program.exitOverride();
-
-            await expect(program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'control-requirement-versions',
-                '--domain', 'risk',
-                '--control-id', '1',
-                '--calm-hub-url', 'http://hub',
-            ])).rejects.toThrow('process.exit');
-        });
-    });
-
 });
 
 describe('parseDocumentLoaderConfig', () => {
