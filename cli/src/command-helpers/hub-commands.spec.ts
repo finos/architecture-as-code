@@ -1973,9 +1973,9 @@ describe('hub-commands', () => {
             });
 
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([
-                { id: 1, versions: ['1.0.0'] },
-                { id: 2, versions: ['1.0.0', '2.0.0'] },
-                { id: 3, versions: ['3.0.0'] }
+                { 'config-id': 1, versions: ['1.0.0'] },
+                { 'config-id': 2, versions: ['1.0.0', '2.0.0'] },
+                { 'config-id': 3, versions: ['3.0.0'] }
             ]);
         });
 
@@ -1995,11 +1995,11 @@ describe('hub-commands', () => {
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
                 [
-                    { ID: 1, VERSIONS: '1.0.0' },
-                    { ID: 2, VERSIONS: '1.0.0, 2.0.0' }
+                    { 'CONFIG-ID': 1, VERSIONS: '1.0.0' },
+                    { 'CONFIG-ID': 2, VERSIONS: '1.0.0, 2.0.0' }
                 ],
                 [
-                    { key: 'ID', header: 'ID' },
+                    { key: 'CONFIG-ID', header: 'CONFIG-ID' },
                     { key: 'VERSIONS', header: 'VERSIONS' }
                 ]
             );
@@ -2021,8 +2021,8 @@ describe('hub-commands', () => {
             expect(mockClient.listControlConfigurationVersions).toHaveBeenNthCalledWith(1, 'risk', 1, 1);
             expect(mockClient.listControlConfigurationVersions).toHaveBeenNthCalledWith(2, 'risk', 1, 3);
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([
-                { id: 1, versions: ['1.0.0'] },
-                { id: 3, versions: ['3.0.0'] }
+                { 'config-id': 1, versions: ['1.0.0'] },
+                { 'config-id': 3, versions: ['3.0.0'] }
             ]);
         });
 
@@ -2053,9 +2053,9 @@ describe('hub-commands', () => {
             });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
-                [{ ID: 3, VERSIONS: '' }],
+                [{ 'CONFIG-ID': 3, VERSIONS: '' }],
                 [
-                    { key: 'ID', header: 'ID' },
+                    { key: 'CONFIG-ID', header: 'CONFIG-ID' },
                     { key: 'VERSIONS', header: 'VERSIONS' }
                 ]
             );

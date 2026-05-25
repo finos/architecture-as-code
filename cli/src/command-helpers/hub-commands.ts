@@ -1297,7 +1297,7 @@ export interface ListControlConfigurationsOptions {
  * Summarizes a control configuration with the versions available for it.
  */
 interface ControlConfigurationSummary {
-    id: number;
+    configId: number;
     versions: string[];
 }
 
@@ -1324,22 +1324,22 @@ export async function runListControlConfigurations(options: ListControlConfigura
 
         for (const id of sortedIds) {
             const versions = await client.listControlConfigurationVersions(options.domain, parsedControlId, id);
-            configurations.push({ id, versions });
+            configurations.push({ configId: id, versions });
         }
 
         if (format === 'pretty') {
             printTableSuccess(
                 configurations.map(configuration => ({
-                    ID: configuration.id,
+                    'CONFIG-ID': configuration.configId,
                     VERSIONS: configuration.versions.join(', ')
                 })),
                 [
-                    { key: 'ID', header: 'ID' },
+                    { key: 'CONFIG-ID', header: 'CONFIG-ID' },
                     { key: 'VERSIONS', header: 'VERSIONS' }
                 ]
             );
         } else {
-            printJsonSuccess(configurations);
+            printJsonSuccess(configurations.map(c => ({ 'config-id': c.configId, versions: c.versions })));
         }
     } catch (err) {
         handleHubError(err, format);
