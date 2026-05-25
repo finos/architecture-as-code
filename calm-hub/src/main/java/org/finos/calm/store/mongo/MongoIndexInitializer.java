@@ -115,7 +115,7 @@ public class MongoIndexInitializer {
             LOG.info("Ensured unique index on schemas.version");
 
             // Namespace-scoped collections — one document per namespace
-            for (String collection : new String[]{"architectures", "patterns", "flows", "standards", "interfaces"}) {
+            for (String collection : new String[]{"architectures", "patterns", "flows", "timelines", "standards", "interfaces"}) {
                 database.getCollection(collection)
                         .createIndex(new Document("namespace", 1), uniqueIndex);
                 LOG.info("Ensured unique index on {}.namespace", collection);

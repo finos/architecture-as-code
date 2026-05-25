@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { z } from 'zod';
+import { basename } from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   AddNodeSchema,
@@ -16,6 +17,7 @@ import {
   type ToolResponse
 } from '../types.js';
 import { resolveFile, readCalmFile, writeCalmFile } from '../file-io.js';
+import { recomputeAigfDecorators } from '../aigf-helpers.js';
 
 // Use z.infer so function params match what MCP SDK passes (respects exactOptionalPropertyTypes)
 type AddNodeArgs = z.infer<typeof AddNodeSchema>;
@@ -34,7 +36,8 @@ export function addNode(args: AddNodeArgs): ToolResponse {
   const arch = readCalmFile(filePath);
   // Cast from Zod inferred type — required fields guaranteed by schema, difference is only undefined vs absent
   arch.nodes.push(args.node as import('@calmstudio/calm-core').CalmNode);
-  writeCalmFile(filePath, arch);
+  const updated = recomputeAigfDecorators(arch, basename(filePath));
+  writeCalmFile(filePath, updated);
   return toolSuccess(`Node added: ${args.node['unique-id']} (${args.node.name})`);
 }
 
@@ -125,7 +128,8 @@ export function batchCreateNodes(args: BatchCreateNodesArgs): ToolResponse {
   for (const node of args.nodes) {
     arch.nodes.push(node as import('@calmstudio/calm-core').CalmNode);
   }
-  writeCalmFile(filePath, arch);
+  const updated = recomputeAigfDecorators(arch, basename(filePath));
+  writeCalmFile(filePath, updated);
   const count = args.nodes.length;
   return toolSuccess(`Added ${count} node${count !== 1 ? 's' : ''}.`);
 }

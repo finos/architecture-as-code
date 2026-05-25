@@ -5,6 +5,64 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.42.0] - 2026-05-25
+
+## [1.42.0](https://github.com/finos/architecture-as-code/compare/cli-v1.41.0...cli-v1.42.0) (2026-05-25)
+
+### ⚠ BREAKING CHANGE
+
+* **calm-hub:** clients sending a raw document body to the above
+version-create endpoints must now wrap it in the appropriate envelope.
+
+* fix(calm-hub): address PR review feedback on envelope standardisation
+
+- Document that store-level name/description null-guards are defensive for
+  non-REST callers; the REST layer enforces @NotBlank via the envelope DTOs
+  so these branches are unreachable via HTTP. Comments added to six stores:
+  MongoPatternStore, MongoFlowStore, MongoControlStore, NitritePatternStore,
+  NitriteFlowStore, NitriteControlStore.
+
+- Annotate three unit tests that drive the defensive path with null
+  name/description (TestMongoPatternStoreShould,
+  TestMongoControlStoreShould, TestNitriteControlStoreShould) to make
+  clear they exercise the direct-store contract, not the REST contract.
+
+- Extend MongoFlowIntegration and NitriteFlowIntegration
+  end_to_end_verify_latest_flow tests: after posting a v2 envelope and
+  asserting the inner flow JSON, also GET the namespace flows listing and
+  assert values[0].name/description match the envelope, mirroring the
+  existing pattern and control integration coverage.
+
+* Merge branch 'main' into feat/calm-arb-converter ([](https://github.com/finos/architecture-as-code/commit/5b5057702082115cc2f0d83917d4d596e2772849)), closes [#2331](https://github.com/finos/architecture-as-code/issues/2331)
+
+### docs
+
+* **calm-suite:** skill guide — convert ARB markdown to CALM via MCP ([](https://github.com/finos/architecture-as-code/commit/2a75de5f84c7763db73a47174e7b3c0b76a7240d)), closes [#2430](https://github.com/finos/architecture-as-code/issues/2430)
+
+### feat
+
+* architecture timelines (#2289) (#2496) ([](https://github.com/finos/architecture-as-code/commit/8f610080cf5fd64e102a00cdb22524cb558bd9c4)), closes [#2289](https://github.com/finos/architecture-as-code/issues/2289) [#2496](https://github.com/finos/architecture-as-code/issues/2496)
+* **calm-hub-ui:** version compare for patterns (#2490) ([](https://github.com/finos/architecture-as-code/commit/903b2f4c9802abd1482a03584b7484ef4fb2370b)), closes [#2490](https://github.com/finos/architecture-as-code/issues/2490)
+* **calm-hub-ui:** version compare in the main architecture view (#2482) ([](https://github.com/finos/architecture-as-code/commit/da8f4499c9b8364d008605dde1858e59a802b1dd)), closes [#2482](https://github.com/finos/architecture-as-code/issues/2482) [#2442](https://github.com/finos/architecture-as-code/issues/2442) [#2289](https://github.com/finos/architecture-as-code/issues/2289)
+* **calm-suite:** add ai:mcp-server node type and AIGF mapping ([](https://github.com/finos/architecture-as-code/commit/f0a5802f15d68fc8624a01e4de27519bf4245ff7)), closes [#2430](https://github.com/finos/architecture-as-code/issues/2430)
+* **calm-suite:** add ai:observability node type and AIGF mapping ([](https://github.com/finos/architecture-as-code/commit/4fafcf0a032dca643b359f7622d266969652b1e4)), closes [#2430](https://github.com/finos/architecture-as-code/issues/2430)
+* **calm-suite:** add finalize_architecture MCP tool ([](https://github.com/finos/architecture-as-code/commit/e7d57bded5dc6dcd3ea7c32928512452e86ea18e)), closes [#2430](https://github.com/finos/architecture-as-code/issues/2430)
+* **calm-suite:** add recomputeAigfDecorators helper for MCP server ([](https://github.com/finos/architecture-as-code/commit/6c2a0ce419687eba4d69c7f003fd30e679881522)), closes [#2430](https://github.com/finos/architecture-as-code/issues/2430)
+* **calm-suite:** auto-attach AIGF decorators in add_node and batch_create_nodes ([](https://github.com/finos/architecture-as-code/commit/ef0f383ac4b00e56a10b5dacc82fda543915e882)), closes [#2430](https://github.com/finos/architecture-as-code/issues/2430)
+* **calm-suite:** convert AI reference architecture markdown into CALM 1.2 via MCP ([](https://github.com/finos/architecture-as-code/commit/15363690dd2b8073453cbc10e8931929ba5d1b9a))
+* **calm-suite:** expose ARB conversion skill via read_calm_guide topic ([](https://github.com/finos/architecture-as-code/commit/b5bc24f089718f6a6d959ea37e7f2f078de0c5f9)), closes [#2430](https://github.com/finos/architecture-as-code/issues/2430)
+* **cli:** diff CALM patterns as well as architectures (#2489) ([](https://github.com/finos/architecture-as-code/commit/716100fe39ed744d98b03236bf3ec7950b63265a)), closes [#2489](https://github.com/finos/architecture-as-code/issues/2489)
+
+### fix
+
+* **calm-hub:** Standardise Across REST API for Update (#2493) ([](https://github.com/finos/architecture-as-code/commit/cc274991fc60d2cbe6d3f29ad5710762fe5ea031)), closes [#2493](https://github.com/finos/architecture-as-code/issues/2493) [#2491](https://github.com/finos/architecture-as-code/issues/2491)
+* **calm-hub:** sync wrapper name/description bug  (#2485) ([](https://github.com/finos/architecture-as-code/commit/7a0d6cf8f558370012976ee583ba081cc0133b68)), closes [#2485](https://github.com/finos/architecture-as-code/issues/2485)
+* **shared:** surface fatal document-loader errors instead of masking them (#2488) ([](https://github.com/finos/architecture-as-code/commit/f436764c20dd025f90ce00dab246670ed1f60f66)), closes [#2488](https://github.com/finos/architecture-as-code/issues/2488) [#2440](https://github.com/finos/architecture-as-code/issues/2440)
+
+### test
+
+* **calm-suite:** snapshot multi-agent ARB conversion to CALM 1.2 ([](https://github.com/finos/architecture-as-code/commit/328cb7098c8ce2838d9db8efd9beab5dae34032a)), closes [#2430](https://github.com/finos/architecture-as-code/issues/2430)
+
 ## [1.41.0] - 2026-05-21
 
 ## [1.41.0](https://github.com/finos/architecture-as-code/compare/cli-v1.40.0...cli-v1.41.0) (2026-05-21)

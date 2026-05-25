@@ -315,6 +315,32 @@ describe('CalmService', () => {
         });
     });
 
+    describe('fetchArchitectureTimeline', () => {
+        const timelineDoc = {
+            'current-moment': '1.1.0',
+            moments: [
+                { 'unique-id': '1.0.0', 'node-type': 'moment', name: '1.0.0', description: 'first' },
+            ],
+        };
+
+        it('should retrieve the implied timeline for an architecture', async () => {
+            mock.onGet(
+                `/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(resourceId)}/timeline`
+            ).reply(200, timelineDoc);
+            const actual = await calmService.fetchArchitectureTimeline(namespace, resourceId);
+            expect(actual).toEqual(timelineDoc);
+        });
+
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(resourceId)}/timeline`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchArchitectureTimeline(namespace, resourceId)
+            ).rejects.toThrowError();
+        });
+    });
+
     describe('fetchDecoratorValues', () => {
         it('should retrieve decorator values for a namespace', async () => {
             const decorators = [

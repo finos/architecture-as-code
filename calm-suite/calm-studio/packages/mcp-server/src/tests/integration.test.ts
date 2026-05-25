@@ -72,6 +72,18 @@ describe('E2E: read_calm_guide', () => {
     expect(text).toContain('connects');
     expect(text).toContain('create_architecture');
   });
+
+  it('returns the ARB conversion skill when topic="arb-conversion"', () => {
+    const result = readCalmGuide({ topic: 'arb-conversion' });
+    const text = assertToolSuccess(result, 'read_calm_guide');
+    expect(text).toContain('Convert ARB markdown to CALM');
+    expect(text).toContain('Layer-to-node-type mapping');
+    expect(text).toContain('ai:mcp-server');
+    expect(text).toContain('ai:observability');
+    expect(text).toContain('finalize_architecture');
+    // Should NOT be the default CALM reference content
+    expect(text).not.toContain('CALM Architecture Reference Guide');
+  });
 });
 
 describe('E2E: create_architecture → add_node → add_relationship → validate → describe → render → export → import', () => {

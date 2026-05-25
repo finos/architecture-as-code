@@ -59,6 +59,10 @@ public class MongoCounterStore {
         return nextValueForCounter("flowStoreCounter");
     }
 
+    public int getNextTimelineSequenceValue() {
+        return nextValueForCounter("timelineStoreCounter");
+    }
+
     public int getNextStandardSequenceValue() {
         return nextValueForCounter("standardStoreCounter");
     }

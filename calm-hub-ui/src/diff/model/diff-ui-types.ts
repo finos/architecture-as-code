@@ -28,16 +28,3 @@ export interface DiffGraphProps {
     diffResult: DiffResult | null;
     isFirst: boolean;
 }
-
-export interface DiffSectionProps<T> {
-    title: string;
-    items: T[];
-    renderItem: (item: T) => string;
-    className: string;
-}
-
-export interface DiffPanelProps {
-    diffResult: DiffResult | null;
-    /** Message shown when there is no diff yet. Defaults to the upload-route wording. */
-    emptyMessage?: string;
-}

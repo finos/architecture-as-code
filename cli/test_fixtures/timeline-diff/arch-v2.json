@@ -1,0 +1,44 @@
+{
+  "nodes": [
+    {
+      "unique-id": "service-a",
+      "node-type": "service",
+      "name": "Service A",
+      "description": "The first service"
+    },
+    {
+      "unique-id": "service-b",
+      "node-type": "service",
+      "name": "Service B",
+      "description": "The second service"
+    },
+    {
+      "unique-id": "service-c",
+      "node-type": "service",
+      "name": "Service C",
+      "description": "A newly added third service"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "a-to-b",
+      "description": "A calls B",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "service-a" },
+          "destination": { "node": "service-b" }
+        }
+      }
+    },
+    {
+      "unique-id": "b-to-c",
+      "description": "B calls C",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "service-b" },
+          "destination": { "node": "service-c" }
+        }
+      }
+    }
+  ]
+}

@@ -12,11 +12,16 @@ export {
     formatDiff,
     detectDocumentType,
     hasChanges as diffHasChanges,
+    runTimelineDiff,
+    createFileSystemArchitectureResolver,
     type DiffOutputFormat,
     type DiffDocumentType,
     type DiffRunOptions,
     type DiffRunResult,
+    type TimelineDiffRunOptions,
+    type TimelineDiffRunResult,
 } from './commands/diff/diff.js';
+export type { ArchitectureResolver, MomentDiff } from '@finos/calm-models/diff';
 export {
     extractOptions,
     selectChoices,
