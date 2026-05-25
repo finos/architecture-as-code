@@ -6,11 +6,11 @@ sidebar_position: 9
 
 # Hub
 
-:::note
-The `hub` command group is under active development.  Additional subcommands and features will be released in future verions.
+:::warning
+The `hub` command group is under active development.  Functionality may change without notice.
 :::
 
-The `hub` command group allows you to interact with a running `CALM Hub` instance directly from the CLI. You can use it to manage namespaces and push, pull, and list CALM architecture documents stored in CALM Hub.
+The `hub` command group allows you to interact with a running `CALM Hub` instance directly from the CLI. You can use it to manage Namespaces, Architectures, Standards, Patterns, Domains and Controls stored in CALM Hub.
 
 ## Connecting to CALM Hub
 
