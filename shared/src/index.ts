@@ -73,6 +73,7 @@ export {
     type HubDomainCreateResult,
     type HubDomainSummary,
     type HubControlSummary,
+    type HubControlRequirementSummary,
     type CalmHubOptions
 } from './hub/calm-hub-client.js';
 export {

@@ -58,6 +58,13 @@ export interface HubControlSummary {
     description?: string;
 }
 
+export interface HubControlRequirementSummary {
+    'control-id': number;
+    name: string;
+    description?: string;
+    versions: string[];
+}
+
 export class HubClientError extends Error {
     /**
      * Creates a normalized Hub client error.
@@ -542,6 +549,38 @@ export class CalmHubClient {
             const values: HubControlSummary[] = response.data?.values ?? [];
             return values;
         } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    /**
+     * Lists control requirements and their versions for a domain.
+     * @param domain Domain name.
+     * @returns Control requirement summaries.
+     */
+    async listControlRequirements(domain: string): Promise<HubControlRequirementSummary[]> {
+        const endpoint = `GET /calm/domains/${domain}/controls`;
+        try {
+            const controls = await this.listControls(domain);
+            const summaries = await Promise.all(
+                controls.map(async (control) => {
+                    const versionsEndpoint = `GET /calm/domains/${domain}/controls/${control.id}/requirement/versions`;
+                    try {
+                        const versions = await this.listControlRequirementVersions(domain, control.id);
+                        return {
+                            'control-id': control.id,
+                            name: control.name,
+                            description: control.description,
+                            versions
+                        };
+                    } catch (err) {
+                        throw this.wrapError(err, versionsEndpoint);
+                    }
+                })
+            );
+            return summaries;
+        } catch (err) {
+            if (err instanceof HubClientError) throw err;
             throw this.wrapError(err, endpoint);
         }
     }

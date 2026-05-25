@@ -838,6 +838,89 @@ describe('CalmHubClient', () => {
         });
     });
 
+    // ── listControlRequirements ───────────────────────────────────────────────
+
+    describe('listControlRequirements', () => {
+        it('returns control requirements with versions', async () => {
+            mock.onGet('/calm/domains/risk/controls').reply(200, {
+                values: [
+                    { id: 20, name: 'Encryption At Rest Requirement Updated', description: 'Updated control for encryption at rest' },
+                    { id: 21, name: 'Data Retention Requirement', description: 'Control for data retention' }
+                ]
+            });
+            mock.onGet('/calm/domains/risk/controls/20/requirement/versions').reply(200, { values: ['1.0.0'] });
+            mock.onGet('/calm/domains/risk/controls/21/requirement/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
+
+            const result = await client.listControlRequirements('risk');
+
+            expect(result).toEqual([
+                {
+                    'control-id': 20,
+                    name: 'Encryption At Rest Requirement Updated',
+                    description: 'Updated control for encryption at rest',
+                    versions: ['1.0.0']
+                },
+                {
+                    'control-id': 21,
+                    name: 'Data Retention Requirement',
+                    description: 'Control for data retention',
+                    versions: ['1.0.0', '2.0.0']
+                }
+            ]);
+        });
+
+        it('returns empty array when no controls exist', async () => {
+            mock.onGet('/calm/domains/risk/controls').reply(200, { values: [] });
+
+            const result = await client.listControlRequirements('risk');
+
+            expect(result).toEqual([]);
+        });
+
+        it('includes controls with empty version lists', async () => {
+            mock.onGet('/calm/domains/risk/controls').reply(200, {
+                values: [{ id: 22, name: 'Logging Requirement', description: 'Control for logging' }]
+            });
+            mock.onGet('/calm/domains/risk/controls/22/requirement/versions').reply(200, { values: [] });
+
+            const result = await client.listControlRequirements('risk');
+
+            expect(result).toEqual([
+                {
+                    'control-id': 22,
+                    name: 'Logging Requirement',
+                    description: 'Control for logging',
+                    versions: []
+                }
+            ]);
+        });
+
+        it('fails when listing controls fails', async () => {
+            mock.onGet('/calm/domains/risk/controls').reply(500, { error: 'Internal server error' });
+
+            await expect(client.listControlRequirements('risk')).rejects.toMatchObject({
+                status: 500,
+                request: 'GET /calm/domains/risk/controls'
+            });
+        });
+
+        it('fails when one control version lookup fails', async () => {
+            mock.onGet('/calm/domains/risk/controls').reply(200, {
+                values: [
+                    { id: 20, name: 'Encryption At Rest Requirement Updated', description: 'Updated control for encryption at rest' },
+                    { id: 21, name: 'Data Retention Requirement', description: 'Control for data retention' }
+                ]
+            });
+            mock.onGet('/calm/domains/risk/controls/20/requirement/versions').reply(200, { values: ['1.0.0'] });
+            mock.onGet('/calm/domains/risk/controls/21/requirement/versions').reply(404, 'Not found');
+
+            await expect(client.listControlRequirements('risk')).rejects.toMatchObject({
+                status: 404,
+                request: 'GET /calm/domains/risk/controls/21/requirement/versions'
+            });
+        });
+    });
+
     // ── listControlConfigurationVersions ─────────────────────────────────────
 
     describe('listControlConfigurationVersions', () => {

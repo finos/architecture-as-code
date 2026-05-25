@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary, HubDomainSummary, HubControlSummary, HubDomainCreateResult } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary, HubDomainSummary, HubControlRequirementSummary, HubDomainCreateResult } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -972,15 +972,21 @@ export async function runListControlRequirements(options: ListControlRequirement
     const client = new CalmHubClient(calmHubOptions);
 
     try {
-        const controls: HubControlSummary[] = await client.listControls(options.domain);
+        const controls: HubControlRequirementSummary[] = await client.listControlRequirements(options.domain);
 
         if (format === 'pretty') {
             printTableSuccess(
-                controls.map(c => ({ ID: c.id, NAME: c.name, DESCRIPTION: c.description ?? '' })),
+                controls.map(c => ({
+                    'CONTROL-ID': c['control-id'],
+                    NAME: c.name,
+                    DESCRIPTION: c.description ?? '',
+                    VERSIONS: c.versions.join(', ')
+                })),
                 [
-                    { key: 'ID', header: 'ID' },
+                    { key: 'CONTROL-ID', header: 'CONTROL-ID' },
                     { key: 'NAME', header: 'NAME' },
-                    { key: 'DESCRIPTION', header: 'DESCRIPTION' }
+                    { key: 'DESCRIPTION', header: 'DESCRIPTION' },
+                    { key: 'VERSIONS', header: 'VERSIONS' }
                 ]
             );
         } else {
@@ -1334,47 +1340,6 @@ export async function runListControlConfigurations(options: ListControlConfigura
             );
         } else {
             printJsonSuccess(configurations);
-        }
-    } catch (err) {
-        handleHubError(err, format);
-    }
-}
-
-// ── list control-requirement-versions ────────────────────────────────────────
-
-export interface ListControlRequirementVersionsOptions {
-    calmHubOptions: CalmHubOptions;
-    domain: string;
-    controlId: string;
-    format?: string;
-}
-
-/**
- * Lists available requirement versions for a control.
- * @param options Command options.
- */
-export async function runListControlRequirementVersions(options: ListControlRequirementVersionsOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-
-    const parsedControlId = parseInt(options.controlId, 10);
-    if (!Number.isFinite(parsedControlId)) {
-        printError(0, '--control-id must be a valid integer', 'list control-requirement-versions', format);
-        process.exit(1);
-    }
-
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    try {
-        const versions: string[] = await client.listControlRequirementVersions(options.domain, parsedControlId);
-
-        if (format === 'pretty') {
-            printTableSuccess(
-                versions.map(v => ({ VERSION: v })),
-                [{ key: 'VERSION', header: 'VERSION' }]
-            );
-        } else {
-            printJsonSuccess(versions);
         }
     } catch (err) {
         handleHubError(err, format);

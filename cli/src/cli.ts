@@ -46,10 +46,8 @@ import {
     runPullControlConfiguration,
     CreateControlConfigurationOptions,
     ListControlConfigurationsOptions,
-    ListControlRequirementVersionsOptions,
     runCreateControlConfiguration,
-    runListControlConfigurations,
-    runListControlRequirementVersions
+    runListControlConfigurations
 } from './command-helpers/hub-commands';
 
 // Shared options used across multiple commands
@@ -736,7 +734,7 @@ Example:
 
     hubListCmd
         .command('control-requirements')
-        .description('List controls in a domain')
+        .description('List control requirements with versions in a domain')
         .requiredOption(DOMAIN_OPTION, 'Target domain')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
@@ -764,23 +762,6 @@ Example:
                 format: options.format
             };
             await runListControlConfigurations(listOptions);
-        });
-
-    hubListCmd
-        .command('control-requirement-versions')
-        .description('List requirement versions for a control')
-        .requiredOption(DOMAIN_OPTION, 'Target domain')
-        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
-        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .addOption(hubOutputOption)
-        .action(async (options) => {
-            const listOptions: ListControlRequirementVersionsOptions = {
-                calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                domain: options.domain,
-                controlId: options.controlId,
-                format: options.format
-            };
-            await runListControlRequirementVersions(listOptions);
         });
 
     // hub create

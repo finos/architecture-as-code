@@ -1123,24 +1123,15 @@ describe('CLI Commands', () => {
     });
 
     describe('list control-requirement-versions command', () => {
-        beforeEach(async () => {
-            hubCommandsModule = await import('./command-helpers/hub-commands');
-            vi.spyOn(hubCommandsModule, 'runListControlRequirementVersions').mockResolvedValue(undefined);
-        });
+        it('rejects removed control-requirement-versions command', async () => {
+            program.exitOverride();
 
-        it('calls runListControlRequirementVersions with domain and controlId', async () => {
-            await program.parseAsync([
+            await expect(program.parseAsync([
                 'node', 'cli.js', 'hub', 'list', 'control-requirement-versions',
                 '--domain', 'risk',
                 '--control-id', '1',
                 '--calm-hub-url', 'http://hub',
-            ]);
-
-            expect(hubCommandsModule.runListControlRequirementVersions).toHaveBeenCalledWith(expect.objectContaining({
-                domain: 'risk',
-                controlId: '1',
-                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
-            }));
+            ])).rejects.toThrow('process.exit');
         });
     });
 
