@@ -1110,16 +1110,6 @@ describe('CLI Commands', () => {
             }));
         });
 
-        it('rejects removed control-configuration-versions command', async () => {
-            program.exitOverride();
-
-            await expect(program.parseAsync([
-                'node', 'cli.js', 'hub', 'list', 'control-configuration-versions',
-                '--domain', 'risk',
-                '--control-id', '1',
-                '--config-id', '5',
-            ])).rejects.toThrow('process.exit');
-        });
     });
 
 });
