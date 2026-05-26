@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.StandardStore;
 import org.finos.calm.store.mongo.MongoStandardStore;
 import org.finos.calm.store.nitrite.NitriteStandardStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for PatternStore implementations.
@@ -20,10 +21,10 @@ public class StandardStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoStandardStore mongoStandardStore;
+    Instance<MongoStandardStore> mongoStandardStore;
 
     @Inject
-    NitriteStandardStore standaloneStandardStore;
+    Instance<NitriteStandardStore> standaloneStandardStore;
 
     /**
      * Produces the appropriate PatternStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class StandardStoreProducer {
     @ApplicationScoped
     public StandardStore produceStandardStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneStandardStore;
+            return standaloneStandardStore.get();
         } else {
-            return mongoStandardStore;
+            return mongoStandardStore.get();
         }
     }
 }

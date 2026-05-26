@@ -27,7 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoAdrStore.class)
 public class MongoAdrStore implements AdrStore {

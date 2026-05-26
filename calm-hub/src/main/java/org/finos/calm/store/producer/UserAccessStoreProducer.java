@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.UserAccessStore;
 import org.finos.calm.store.mongo.MongoUserAccessStore;
 import org.finos.calm.store.nitrite.NitriteUserAccessStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for UserAccessStore implementations.
@@ -20,10 +21,10 @@ public class UserAccessStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoUserAccessStore mongoUserAccessStore;
+    Instance<MongoUserAccessStore> mongoUserAccessStore;
 
     @Inject
-    NitriteUserAccessStore standaloneUserAccessStore;
+    Instance<NitriteUserAccessStore> standaloneUserAccessStore;
 
     /**
      * Produces the appropriate UserAccessStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class UserAccessStoreProducer {
     @ApplicationScoped
     public UserAccessStore produceUserAccessStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneUserAccessStore;
+            return standaloneUserAccessStore.get();
         } else {
-            return mongoUserAccessStore;
+            return mongoUserAccessStore.get();
         }
     }
 }

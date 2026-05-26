@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link SearchStore}.
@@ -26,6 +27,7 @@ import java.util.Set;
  * Controls are scoped by domain rather than namespace, so they bypass the
  * readable-namespaces filter.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoSearchStore.class)
 public class MongoSearchStore implements SearchStore {

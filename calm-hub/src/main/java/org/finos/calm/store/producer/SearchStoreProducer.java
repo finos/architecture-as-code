@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.SearchStore;
 import org.finos.calm.store.mongo.MongoSearchStore;
 import org.finos.calm.store.nitrite.NitriteSearchStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for SearchStore implementations.
@@ -20,10 +21,10 @@ public class SearchStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoSearchStore mongoSearchStore;
+    Instance<MongoSearchStore> mongoSearchStore;
 
     @Inject
-    NitriteSearchStore standaloneSearchStore;
+    Instance<NitriteSearchStore> standaloneSearchStore;
 
     /**
      * Produces the appropriate SearchStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class SearchStoreProducer {
     @ApplicationScoped
     public SearchStore produceSearchStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneSearchStore;
+            return standaloneSearchStore.get();
         } else {
-            return mongoSearchStore;
+            return mongoSearchStore.get();
         }
     }
 }
