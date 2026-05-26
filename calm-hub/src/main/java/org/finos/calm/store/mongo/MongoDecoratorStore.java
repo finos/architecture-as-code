@@ -21,10 +21,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB implementation of DecoratorStore.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoDecoratorStore.class)
 public class MongoDecoratorStore implements DecoratorStore {

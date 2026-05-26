@@ -4,13 +4,24 @@ permissions:
     contents: read
 
 on:
-    # Only manual trigger from GitHub UI
+    push:
+        branches:
+            - main
+        paths:
+            - 'calm-hub/**'
+            - 'calm-hub-ui/**'
+            - '.github/workflows/docker-publish-calm-hub.yml'
+    # Manual trigger from GitHub UI (allows custom tag)
     workflow_dispatch:
         inputs:
             tag:
                 description: 'Image tag (default: latest)'
                 required: false
                 default: 'latest'
+
+concurrency:
+    group: docker-publish-calm-hub
+    cancel-in-progress: false
 
 jobs:
     build-and-push:

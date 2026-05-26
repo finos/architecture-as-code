@@ -1,5 +1,6 @@
 package org.finos.calm.config;
 
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -20,6 +21,7 @@ import java.nio.file.Paths;
  * Configuration for standalone mode using NitriteDB.
  * This class manages the lifecycle of the NitriteDB instance.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 public class NitriteDBConfig {
 

@@ -54,11 +54,16 @@ To run the application in standalone mode:
 
 ```shell
 # Development mode with standalone storage
-../mvnw quarkus:dev -Dcalm.database.mode=standalone
+../mvnw quarkus:dev -Dquarkus.profile=standalone
 
 # Production mode with standalone storage
-java -Dcalm.database.mode=standalone -jar target/quarkus-app/quarkus-run.jar
+java -Dquarkus.profile=standalone -jar target/quarkus-app/quarkus-run.jar
 ```
+
+> **Note:** The `standalone` Quarkus profile automatically sets `calm.database.mode=standalone`
+> and suppresses MongoDB health-checks and dev-services. You can also pass
+> `-Dcalm.database.mode=standalone` directly, but using the profile flag is recommended as
+> it applies all standalone suppressions in one step.
 
 ### Mongo Database Startup
 

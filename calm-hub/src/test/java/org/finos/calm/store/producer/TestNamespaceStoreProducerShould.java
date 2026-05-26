@@ -1,7 +1,5 @@
 package org.finos.calm.store.producer;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.store.NamespaceStore;
 import org.finos.calm.store.mongo.MongoNamespaceStore;
 import org.finos.calm.store.nitrite.NitriteNamespaceStore;
@@ -11,23 +9,39 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import jakarta.enterprise.inject.Instance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
-@QuarkusTest
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestNamespaceStoreProducerShould {
 
-    @InjectMock
+    @Mock
     MongoNamespaceStore mongoNamespaceStore;
 
-    @InjectMock
+    @Mock
+    Instance<MongoNamespaceStore> mongoNamespaceStoreInstance;
+
+    @Mock
     NitriteNamespaceStore nitriteNamespaceStore;
+
+    @Mock
+    Instance<NitriteNamespaceStore> nitriteNamespaceStoreInstance;
 
     private NamespaceStoreProducer namespaceStoreProducer;
 
     @BeforeEach
     void setup() {
         namespaceStoreProducer = new NamespaceStoreProducer();
-        namespaceStoreProducer.mongoNamespaceStore = mongoNamespaceStore;
-        namespaceStoreProducer.standaloneNamespaceStore = nitriteNamespaceStore;
+        when(mongoNamespaceStoreInstance.get()).thenReturn(mongoNamespaceStore);
+        namespaceStoreProducer.mongoNamespaceStore = mongoNamespaceStoreInstance;
+        when(nitriteNamespaceStoreInstance.get()).thenReturn(nitriteNamespaceStore);
+        namespaceStoreProducer.standaloneNamespaceStore = nitriteNamespaceStoreInstance;
     }
 
     @Test

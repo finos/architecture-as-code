@@ -1,7 +1,5 @@
 package org.finos.calm.store.producer;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.store.InterfaceStore;
 import org.finos.calm.store.mongo.MongoInterfaceStore;
 import org.finos.calm.store.nitrite.NitriteInterfaceStore;
@@ -11,23 +9,39 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import jakarta.enterprise.inject.Instance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
-@QuarkusTest
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestInterfaceStoreProducerShould {
 
-    @InjectMock
+    @Mock
     MongoInterfaceStore mongoInterfaceStore;
 
-    @InjectMock
+    @Mock
+    Instance<MongoInterfaceStore> mongoInterfaceStoreInstance;
+
+    @Mock
     NitriteInterfaceStore nitriteInterfaceStore;
+
+    @Mock
+    Instance<NitriteInterfaceStore> nitriteInterfaceStoreInstance;
 
     private InterfaceStoreProducer interfaceStoreProducer;
 
     @BeforeEach
     void setup() {
         interfaceStoreProducer = new InterfaceStoreProducer();
-        interfaceStoreProducer.mongoInterfaceStore = mongoInterfaceStore;
-        interfaceStoreProducer.standaloneInterfaceStore = nitriteInterfaceStore;
+        when(mongoInterfaceStoreInstance.get()).thenReturn(mongoInterfaceStore);
+        interfaceStoreProducer.mongoInterfaceStore = mongoInterfaceStoreInstance;
+        when(nitriteInterfaceStoreInstance.get()).thenReturn(nitriteInterfaceStore);
+        interfaceStoreProducer.standaloneInterfaceStore = nitriteInterfaceStoreInstance;
     }
 
     @Test
