@@ -30,6 +30,27 @@ Timelines serve several important purposes:
 - **Compliance & Audit**: Maintain a clear record of architectural states for regulatory requirements or internal audits.
 - **Knowledge Transfer**: Help new team members understand the architectural journey and decision-making process.
 
+## Explicit vs. Implied Timelines
+
+CALM supports two kinds of timelines depending on whether you have authored a dedicated timeline configuration:
+
+### Explicit Timelines (Authored)
+
+An **Explicit Timeline** is a curated JSON document conforming to the CALM timeline schema (`calm-timeline.json`). It is designed to capture the detailed reasoning and context behind architectural evolution.
+
+- **Rich Metadata**: Each moment (milestone) has a custom title (e.g., `"Database Separation"`), a description, an activation date (`valid-from`), and links to the exact **Architecture Decision Records (ADRs)** detailing *why* the change was made.
+- **Current Baseline**: Defines a `current-moment` property. In CALM Hub, this highlights the active production baseline with a **NOW** badge.
+- **Future States**: Can model planned future moments (which omit the `valid-from` property).
+
+### Implied Timelines (Projected)
+
+An **Implied Timeline** is an automatically generated projection of an architecture or pattern's history. It is synthesized by CALM tools or the CALM Hub backend when no explicit timeline document exists.
+
+- **Automatic SemVer**: Moments are generated straight from the list of published versions of a given resource.
+- **Default Metadata**: Moments default to using their SemVer version string as their identifier and name (e.g., `1.0.0`, `1.1.0`). They do not contain descriptive names, custom change logs, or links to ADRs.
+- **No NOW Badge**: Since there is no authored metadata pointing to a particular version as the baseline, the timeline bar does not render a **NOW** badge.
+- **Usage**: Used by default for all **Patterns** (patterns do not have explicit timeline resources) or when an architecture has multiple versions published but no explicit timeline document has been pushed.
+
 ## Key Properties of Timelines
 
 A timeline document has the following key properties:

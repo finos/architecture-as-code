@@ -104,7 +104,7 @@ The agent file provides GitHub Copilot with specialized knowledge about:
 
 ## Resources
 
-- [CALM CLI Documentation](../../working-with-calm/using-the-cli)
+- [CALM CLI Documentation](../../working-with-calm/cli)
 - [GitHub Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide)
 
 ## Tips
