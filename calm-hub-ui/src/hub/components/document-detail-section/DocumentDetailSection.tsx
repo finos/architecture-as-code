@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoGridOutline, IoGitNetworkOutline } from 'react-icons/io5';
-import { Data } from '../../../model/calm.js';
+import { Data, isSlug } from '../../../model/calm.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
@@ -29,7 +29,9 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
         setVersions([]);
         let cancelled = false;
         let fetchPromise: Promise<string[]>;
-        if (data.calmType === 'Standards') {
+        if (isSlug(data.id)) {
+            fetchPromise = calmService.fetchVersionsByCustomId(data.name, data.id);
+        } else if (data.calmType === 'Standards') {
             fetchPromise = calmService.fetchStandardVersions(data.name, data.id);
         } else if (data.calmType === 'Flows') {
             fetchPromise = calmService.fetchFlowVersions(data.name, data.id);

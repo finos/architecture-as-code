@@ -21,19 +21,22 @@ vi.mock('@monaco-editor/react', () => ({
 
 const mockFetchStandardVersions = vi.fn();
 const mockFetchFlowVersions = vi.fn();
+const mockFetchVersionsByCustomId = vi.fn();
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(() => ({
         fetchStandardVersions: mockFetchStandardVersions,
         fetchFlowVersions: mockFetchFlowVersions,
+        fetchVersionsByCustomId: mockFetchVersionsByCustomId,
     })),
 }));
 
 describe('DocumentDetailSection', () => {
     beforeEach(() => {
         mockNavigate.mockClear();
-        mockFetchStandardVersions.mockResolvedValue([]);
-        mockFetchFlowVersions.mockResolvedValue([]);
+        mockFetchStandardVersions.mockClear().mockResolvedValue([]);
+        mockFetchFlowVersions.mockClear().mockResolvedValue([]);
+        mockFetchVersionsByCustomId.mockClear().mockResolvedValue([]);
     });
 
     it('renders null when data is undefined', () => {
@@ -110,7 +113,7 @@ describe('DocumentDetailSection', () => {
         mockFetchStandardVersions.mockResolvedValue(['2.0.0', '1.0.0']);
 
         const data: Data = {
-            id: 'my-standard',
+            id: '42',
             version: '2.0.0',
             name: 'test-ns',
             calmType: 'Standards',
@@ -137,7 +140,7 @@ describe('DocumentDetailSection', () => {
         mockFetchStandardVersions.mockResolvedValue(['2.0.0', '1.0.0']);
 
         const data: Data = {
-            id: 'my-standard',
+            id: '42',
             version: '2.0.0',
             name: 'test-ns',
             calmType: 'Standards',
@@ -156,14 +159,14 @@ describe('DocumentDetailSection', () => {
 
         await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Version' }), '1.0.0');
 
-        expect(mockNavigate).toHaveBeenCalledWith('/test-ns/standards/my-standard/1.0.0');
+        expect(mockNavigate).toHaveBeenCalledWith('/test-ns/standards/42/1.0.0');
     });
 
     it('shows version dropdown for Flows when multiple versions are available', async () => {
         mockFetchFlowVersions.mockResolvedValue(['3.0.0', '2.0.0', '1.0.0']);
 
         const data: Data = {
-            id: 'my-flow',
+            id: '99',
             version: '3.0.0',
             name: 'flow-ns',
             calmType: 'Flows',
@@ -182,5 +185,30 @@ describe('DocumentDetailSection', () => {
 
         const options = screen.getAllByRole('option');
         expect(options.map((o) => o.textContent)).toEqual(['3.0.0', '2.0.0', '1.0.0']);
+    });
+
+    it('uses fetchVersionsByCustomId when the resource ID is a slug', async () => {
+        mockFetchVersionsByCustomId.mockResolvedValue(['2.0.0', '1.0.0']);
+
+        const data: Data = {
+            id: 'my-payment-standard',
+            version: '2.0.0',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: undefined,
+        };
+
+        render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('combobox', { name: 'Version' })).toBeInTheDocument();
+        });
+
+        expect(mockFetchVersionsByCustomId).toHaveBeenCalledWith('test-ns', 'my-payment-standard');
+        expect(mockFetchStandardVersions).not.toHaveBeenCalled();
     });
 });
