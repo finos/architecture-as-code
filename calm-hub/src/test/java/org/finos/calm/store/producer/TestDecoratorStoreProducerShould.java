@@ -1,7 +1,5 @@
 package org.finos.calm.store.producer;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.mongo.MongoDecoratorStore;
 import org.finos.calm.store.nitrite.NitriteDecoratorStore;
@@ -11,23 +9,39 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import jakarta.enterprise.inject.Instance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
-@QuarkusTest
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestDecoratorStoreProducerShould {
 
-    @InjectMock
+    @Mock
     MongoDecoratorStore mongoDecoratorStore;
 
-    @InjectMock
+    @Mock
+    Instance<MongoDecoratorStore> mongoDecoratorStoreInstance;
+
+    @Mock
     NitriteDecoratorStore nitriteDecoratorStore;
+
+    @Mock
+    Instance<NitriteDecoratorStore> nitriteDecoratorStoreInstance;
 
     private DecoratorStoreProducer decoratorStoreProducer;
 
     @BeforeEach
     void setup() {
         decoratorStoreProducer = new DecoratorStoreProducer();
-        decoratorStoreProducer.mongoDecoratorStore = mongoDecoratorStore;
-        decoratorStoreProducer.nitriteDecoratorStore = nitriteDecoratorStore;
+        when(mongoDecoratorStoreInstance.get()).thenReturn(mongoDecoratorStore);
+        decoratorStoreProducer.mongoDecoratorStore = mongoDecoratorStoreInstance;
+        when(nitriteDecoratorStoreInstance.get()).thenReturn(nitriteDecoratorStore);
+        decoratorStoreProducer.nitriteDecoratorStore = nitriteDecoratorStoreInstance;
     }
 
     @Test

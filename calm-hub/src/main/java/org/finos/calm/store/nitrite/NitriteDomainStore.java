@@ -20,6 +20,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * NitriteDB-backed implementation of {@link DomainStore}, used in standalone mode.
@@ -33,6 +34,7 @@ import static org.dizitart.no2.filters.FluentFilter.where;
  * @see org.finos.calm.store.mongo.MongoDomainStore MongoDomainStore for the
  *      contrasting database-enforced uniqueness approach
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 @Typed(NitriteDomainStore.class)
 public class NitriteDomainStore implements DomainStore {

@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.NamespaceStore;
 import org.finos.calm.store.mongo.MongoNamespaceStore;
 import org.finos.calm.store.nitrite.NitriteNamespaceStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for NamespaceStore implementations.
@@ -20,10 +21,10 @@ public class NamespaceStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoNamespaceStore mongoNamespaceStore;
+    Instance<MongoNamespaceStore> mongoNamespaceStore;
 
     @Inject
-    NitriteNamespaceStore standaloneNamespaceStore;
+    Instance<NitriteNamespaceStore> standaloneNamespaceStore;
 
     /**
      * Produces the appropriate NamespaceStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class NamespaceStoreProducer {
     @ApplicationScoped
     public NamespaceStore produceNamespaceStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneNamespaceStore;
+            return standaloneNamespaceStore.get();
         } else {
-            return mongoNamespaceStore;
+            return mongoNamespaceStore.get();
         }
     }
 }

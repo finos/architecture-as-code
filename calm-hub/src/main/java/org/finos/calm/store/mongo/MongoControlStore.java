@@ -25,6 +25,7 @@ import org.finos.calm.store.ControlStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link ControlStore}.
@@ -56,6 +57,7 @@ import java.util.Set;
  * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoControlStore.class)
 public class MongoControlStore implements ControlStore {
