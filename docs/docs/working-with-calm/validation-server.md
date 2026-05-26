@@ -332,6 +332,4 @@ curl: (7) Failed to connect to localhost port 3000: Connection refused
 
 ## See Also
 
-- [Validate Command](validate.md) - CLI-based validation
-- [Using the CLI](using-the-cli.md) - General CLI usage
-- [Installation](installation.md) - Installing CALM tools
+- [CLI](cli.md) - General CLI usage, installation, and commands

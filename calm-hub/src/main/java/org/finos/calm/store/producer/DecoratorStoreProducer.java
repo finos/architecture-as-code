@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.mongo.MongoDecoratorStore;
 import org.finos.calm.store.nitrite.NitriteDecoratorStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for DecoratorStore implementations.
@@ -20,10 +21,10 @@ public class DecoratorStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoDecoratorStore mongoDecoratorStore;
+    Instance<MongoDecoratorStore> mongoDecoratorStore;
 
     @Inject
-    NitriteDecoratorStore nitriteDecoratorStore;
+    Instance<NitriteDecoratorStore> nitriteDecoratorStore;
 
     /**
      * Produces the appropriate DecoratorStore implementation based on the configured database mode.
@@ -34,8 +35,8 @@ public class DecoratorStoreProducer {
     @ApplicationScoped
     public DecoratorStore produceDecoratorStore() {
         if ("standalone".equals(databaseMode)) {
-            return nitriteDecoratorStore;
+            return nitriteDecoratorStore.get();
         }
-        return mongoDecoratorStore;
+        return mongoDecoratorStore.get();
     }
 }
