@@ -4,13 +4,7 @@ import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Pattern;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
@@ -31,10 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.*;
 
 
 /**
@@ -69,7 +60,7 @@ public class ArchitectureResource {
             summary = "Retrieve architectures in a given namespace",
             description = "Architecture stored in a given namespace"
     )
-    @PermissionsAllowed(CalmHubScopes.ARCHITECTURES_READ)
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getArchitecturesForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
@@ -89,7 +80,7 @@ public class ArchitectureResource {
             summary = "Create architecture for namespace",
             description = "Creates a architecture for a given namespace with an allocated ID and version 1.0.0"
     )
-    @PermissionsAllowed(CalmHubScopes.ARCHITECTURES_WRITE)
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createArchitectureForNamespace(
             @PathParam("namespace")
             @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
@@ -120,7 +111,7 @@ public class ArchitectureResource {
             summary = "Retrieve a list of versions for a given architecture",
             description = "Architecture versions are not opinionated, outside of the first version created"
     )
-    @PermissionsAllowed(CalmHubScopes.ARCHITECTURES_READ)
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getArchitectureVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("architectureId") int architectureId
@@ -148,7 +139,7 @@ public class ArchitectureResource {
             summary = "Retrieve a specific architecture at a given version",
             description = "Retrieve architectures at a specific version"
     )
-    @PermissionsAllowed(CalmHubScopes.ARCHITECTURES_READ)
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getArchitecture(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("architectureId") int architectureId,
@@ -177,7 +168,7 @@ public class ArchitectureResource {
     @Path("{namespace}/architectures/{architectureId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @PermissionsAllowed(CalmHubScopes.ARCHITECTURES_WRITE)
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createVersionedArchitecture(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("architectureId") int architectureId,
@@ -216,7 +207,7 @@ public class ArchitectureResource {
             summary = "Updates an architecture (if available)",
             description = "In mutable version stores architecture updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
     )
-    @PermissionsAllowed(CalmHubScopes.ARCHITECTURES_WRITE)
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateVersionedArchitecture(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("architectureId") int architectureId,

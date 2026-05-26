@@ -1,15 +1,10 @@
 package org.finos.calm.resources;
 
-import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -17,6 +12,7 @@ import org.finos.calm.domain.NamespaceRequest;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.NamespaceStore;
 
 import java.net.URI;
@@ -37,7 +33,7 @@ public class NamespaceResource {
             summary = "Available Namespaces",
             description = "The available namespaces available in this Calm Hub"
     )
-    @Authenticated
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ValueWrapper<NamespaceInfo> namespaces() {
         return new ValueWrapper<>(namespaceStore.getNamespaces());
     }
@@ -49,8 +45,7 @@ public class NamespaceResource {
             summary = "Create Namespace",
             description = "Create a new namespace in the Calm Hub"
     )
-    @Authenticated
-    // TODO need a permission to manage top level namespaces
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response createNamespace(@Valid @NotNull(message = "Request must not be null") NamespaceRequest request) throws URISyntaxException {
 
         String name = request.getName().trim();

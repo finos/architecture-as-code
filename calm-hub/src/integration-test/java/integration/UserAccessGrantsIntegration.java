@@ -105,7 +105,7 @@ public class UserAccessGrantsIntegration {
     void end_to_end_create_user_access_with_namespace_admin_scope_and_with_admin_user_grants() {
         String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
         logger.info("authServerUrl {}", authServerUrl);
-        String accessToken = generateAccessTokenWithPasswordGrantType(authServerUrl, CalmHubScopes.NAMESPACE_ADMIN);
+        String accessToken = generateAccessTokenWithPasswordGrantType(authServerUrl, CalmHubScopes.ADMIN);
         given()
                 .auth().oauth2(accessToken)
                 .body(CREATE_USER_ACCESS_REQUEST)
@@ -120,7 +120,7 @@ public class UserAccessGrantsIntegration {
     void end_to_end_forbidden_create_user_access_when_admin_has_no_access_on_namespace() {
 
         String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
-        String accessToken = generateAccessTokenWithPasswordGrantType(authServerUrl, CalmHubScopes.NAMESPACE_ADMIN);
+        String accessToken = generateAccessTokenWithPasswordGrantType(authServerUrl, CalmHubScopes.ADMIN);
         given()
                 .auth().oauth2(accessToken)
                 .body(CREATE_USER_ACCESS_REQUEST_2)

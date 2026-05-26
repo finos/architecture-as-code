@@ -45,7 +45,7 @@ public class DomainResource {
             summary = "Available Domains",
             description = "The available domains in this Calm Hub"
     )
-    @PermissionsAllowed(CalmHubScopes.ROLE_VIEWER)
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getDomains() {
         return Response.ok(new ValueWrapper<>(store.getDomains())).build();
     }
@@ -62,7 +62,7 @@ public class DomainResource {
             summary = "Create Domain",
             description = "Create a new domain in the Calm Hub"
     )
-    @PermissionsAllowed(CalmHubScopes.ROLE_CONTRIBUTOR)
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createDomain(@Valid @NotNull(message = "Request must not be null") Domain domain) {
         String domainName = domain.getName();
 

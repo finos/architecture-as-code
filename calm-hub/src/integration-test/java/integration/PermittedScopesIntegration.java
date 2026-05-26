@@ -71,7 +71,7 @@ public class PermittedScopesIntegration {
     void end_to_end_get_patterns_with_valid_scopes() {
         String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
         logger.info("authServerUrl {}", authServerUrl);
-        String accessToken = generateAccessTokenWithPasswordGrantType(authServerUrl, CalmHubScopes.ARCHITECTURES_READ);
+        String accessToken = generateAccessTokenWithPasswordGrantType(authServerUrl, CalmHubScopes.READ);
         given()
                 .auth().oauth2(accessToken)
                 .when().get("/calm/namespaces/finos/patterns")
@@ -123,7 +123,7 @@ public class PermittedScopesIntegration {
     void end_to_end_forbidden_create_pattern_when_matching_scopes_notfound() {
         String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
         logger.info("authServerUrl {}", authServerUrl);
-        String accessToken = generateAccessTokenWithClientCredentialGrant(authServerUrl, CalmHubScopes.ARCHITECTURES_READ);
+        String accessToken = generateAccessTokenWithClientCredentialGrant(authServerUrl, CalmHubScopes.READ);
 
         given()
                 .auth().oauth2(accessToken)
@@ -147,8 +147,7 @@ public class PermittedScopesIntegration {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {CalmHubScopes.ADRS_READ, CalmHubScopes.ADRS_ALL,
-            CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @ValueSource(strings = {CalmHubScopes.READ, CalmHubScopes.WRITE})
     @Order(4)
     void end_to_end_get_namespaces_with_valid_access_token(String scope) {
         String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
@@ -181,7 +180,7 @@ public class PermittedScopesIntegration {
     void end_to_end_forbidden_create_pattern_with_matching_scopes_but_no_user_permissions() {
         String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
         logger.info("authServerUrl {}", authServerUrl);
-        String accessToken = generateAccessTokenWithPasswordGrantType(authServerUrl, CalmHubScopes.ARCHITECTURES_ALL);
+        String accessToken = generateAccessTokenWithPasswordGrantType(authServerUrl, CalmHubScopes.WRITE);
         logger.info("accessToken: {}", accessToken);
         given()
                 .auth().oauth2(accessToken)

@@ -1,12 +1,7 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.PermissionsAllowed;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -40,7 +35,7 @@ public class UserAccessResource {
             summary = "Create user access for namespace",
             description = "Creates a user-access for a given namespace on a particular resource type"
     )
-    @PermissionsAllowed({CalmHubScopes.NAMESPACE_ADMIN})
+    @PermissionsAllowed({CalmHubScopes.ADMIN})
     public Response createUserAccessForNamespace(@PathParam("namespace") String namespace,
                                                  UserAccess createUserAccessRequest) {
 
@@ -70,7 +65,7 @@ public class UserAccessResource {
             summary = "Get user-access for a given namespace",
             description = "Get user-access details for a given namespace"
     )
-    @PermissionsAllowed({CalmHubScopes.NAMESPACE_ADMIN})
+    @PermissionsAllowed({CalmHubScopes.ADMIN})
     public Response getUserAccessForNamespace(@PathParam("namespace") String namespace) {
 
         try {
@@ -94,7 +89,7 @@ public class UserAccessResource {
             summary = "Get the user-access record for a given namespace and Id",
             description = "Get user-access details for a given namespace and Id"
     )
-    @PermissionsAllowed({CalmHubScopes.NAMESPACE_ADMIN})
+    @PermissionsAllowed({CalmHubScopes.ADMIN})
     public Response getUserAccessForNamespaceAndId(@PathParam("namespace") String namespace,
                                                    @PathParam("userAccessId") Integer userAccessId) {
 
