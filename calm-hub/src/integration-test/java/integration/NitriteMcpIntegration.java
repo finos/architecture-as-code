@@ -14,6 +14,7 @@ import org.finos.calm.mcp.tools.AdrTools;
 import org.finos.calm.mcp.tools.PatternTools;
 import org.finos.calm.mcp.tools.SearchTools;
 import org.finos.calm.mcp.tools.StandardTools;
+import org.finos.calm.mcp.tools.TimelineTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -98,6 +99,7 @@ public class NitriteMcpIntegration {
     private static int createdPatternId;
     private static int createdStandardId;
     private static int createdAdrId;
+    private static int createdTimelineId;
 
     @Inject
     ArchitectureTools architectureTools;
@@ -125,6 +127,9 @@ public class NitriteMcpIntegration {
 
     @Inject
     AdrTools adrTools;
+
+    @Inject
+    TimelineTools timelineTools;
 
     private static String text(ToolResponse r) {
         return ((TextContent) r.firstContent()).text();
@@ -360,7 +365,7 @@ public class NitriteMcpIntegration {
 
     @Test
     @Order(26)
-    void mcp_update_architecture_publishes_new_version() {
+    void mcp_update_architecture_upserts_version_via_put() {
         ToolResponse result = architectureTools.updateArchitecture(
                 "finos", createdArchitectureId, "1.1.0", "{\"name\": \"mcp-nitrite-architecture-updated\"}", null, null);
         assertThat(result.isError(), is(false));
@@ -710,6 +715,125 @@ public class NitriteMcpIntegration {
     @Order(65)
     void mcp_list_adrs_for_nonexistent_namespace_returns_error() {
         ToolResponse result = adrTools.listAdrs("nonexistent");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    // --- createArchitectureVersion (POST — no PUT gate) ---
+
+    @Test
+    @Order(66)
+    void mcp_create_architecture_version_with_post() {
+        ToolResponse result = architectureTools.createArchitectureVersion(
+                "finos", createdArchitectureId, "1.2.0", "{\"name\": \"mcp-nitrite-architecture-v2\"}");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+        assertThat(text(result), containsString("1.2.0"));
+    }
+
+    @Test
+    @Order(67)
+    void mcp_create_architecture_version_returns_error_for_duplicate() {
+        ToolResponse result = architectureTools.createArchitectureVersion(
+                "finos", createdArchitectureId, "1.2.0", "{\"name\": \"duplicate\"}");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("already exists"));
+    }
+
+    @Test
+    @Order(68)
+    void mcp_list_architecture_versions_includes_post_created_version() {
+        ToolResponse result = architectureTools.listArchitectureVersions("finos", createdArchitectureId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+        assertThat(text(result), containsString("1.2.0"));
+    }
+
+    // --- Timeline Tools ---
+
+    @Test
+    @Order(69)
+    void mcp_create_timeline() {
+        ToolResponse result = timelineTools.createTimeline("mcp-nitrite", "MCP Nitrite Timeline", "Nitrite integration test timeline", "{\"events\":[]}");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+
+        Matcher matcher = ID_PATTERN.matcher(text(result));
+        assertThat("Response should contain timeline ID", matcher.find());
+        createdTimelineId = Integer.parseInt(matcher.group(1));
+        logger.info("Created timeline with ID: {}", createdTimelineId);
+    }
+
+    @Test
+    @Order(70)
+    void mcp_list_timelines_contains_created() {
+        ToolResponse result = timelineTools.listTimelines("mcp-nitrite");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("MCP Nitrite Timeline"));
+    }
+
+    @Test
+    @Order(71)
+    void mcp_list_timeline_versions() {
+        ToolResponse result = timelineTools.listTimelineVersions("mcp-nitrite", createdTimelineId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+    }
+
+    @Test
+    @Order(72)
+    void mcp_get_timeline() {
+        ToolResponse result = timelineTools.getTimeline("mcp-nitrite", createdTimelineId, "1.0.0");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("events"));
+    }
+
+    @Test
+    @Order(73)
+    void mcp_create_timeline_version() {
+        ToolResponse result = timelineTools.createTimelineVersion("mcp-nitrite", createdTimelineId, "1.1.0", "{\"events\":[{\"id\":\"e1\"}]}");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("created successfully"));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(74)
+    void mcp_list_timeline_versions_includes_new_version() {
+        ToolResponse result = timelineTools.listTimelineVersions("mcp-nitrite", createdTimelineId);
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1.0.0"));
+        assertThat(text(result), containsString("1.1.0"));
+    }
+
+    @Test
+    @Order(75)
+    void mcp_create_timeline_version_returns_error_for_duplicate_version() {
+        ToolResponse result = timelineTools.createTimelineVersion("mcp-nitrite", createdTimelineId, "1.1.0", "{\"events\":[]}");
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("already exists"));
+    }
+
+    @Test
+    @Order(76)
+    void mcp_update_timeline() {
+        ToolResponse result = timelineTools.updateTimeline("mcp-nitrite", createdTimelineId, "1.1.0", "{\"events\":[{\"id\":\"e1-updated\"}]}");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("updated successfully"));
+    }
+
+    @Test
+    @Order(77)
+    void mcp_get_timeline_after_update() {
+        ToolResponse result = timelineTools.getTimeline("mcp-nitrite", createdTimelineId, "1.1.0");
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("e1-updated"));
+    }
+
+    @Test
+    @Order(78)
+    void mcp_list_timelines_returns_error_for_nonexistent_namespace() {
+        ToolResponse result = timelineTools.listTimelines("nonexistent");
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("not found"));
     }

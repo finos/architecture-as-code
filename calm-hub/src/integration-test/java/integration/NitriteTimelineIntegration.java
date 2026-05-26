@@ -15,6 +15,8 @@ public class NitriteTimelineIntegration {
     public static final String TIMELINE = "{\"moments\": []}";
     public static final String TIMELINE_V2 = "{\"moments\": [{\"unique-id\": \"1.0.0\"}]}";
 
+    private static int createdTimelineId;
+
     @BeforeEach
     public void setup() {
         NitriteSetup.namespaceSetup();
@@ -41,20 +43,28 @@ public class NitriteTimelineIntegration {
                 }
                 """;
 
-        given()
+        String location = given()
                 .body(payload)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/timelines")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("calm/namespaces/finos/timelines/1"));
+                .header("Location", containsString("calm/namespaces/finos/timelines/"))
+                .extract().header("Location");
+
+        int timelinesIdx = location.indexOf("/timelines/") + "/timelines/".length();
+        String idStr = location.substring(timelinesIdx);
+        if (idStr.contains("/")) {
+            idStr = idStr.substring(0, idStr.indexOf('/'));
+        }
+        createdTimelineId = Integer.parseInt(idStr);
     }
 
     @Test
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/timelines/1/versions")
+                .when().get("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -65,7 +75,7 @@ public class NitriteTimelineIntegration {
     @Order(4)
     void end_to_end_verify_timeline() {
         given()
-                .when().get("/calm/namespaces/finos/timelines/1/versions/1.0.0")
+                .when().get("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(TIMELINE));
@@ -79,13 +89,13 @@ public class NitriteTimelineIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/timelines/1/versions/2.0.0")
+                .when().post("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("calm/namespaces/finos/timelines/1/versions/2.0.0"));
+                .header("Location", containsString("calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0"));
 
         given()
-                .when().get("/calm/namespaces/finos/timelines/1/versions/2.0.0")
+                .when().get("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(TIMELINE_V2));

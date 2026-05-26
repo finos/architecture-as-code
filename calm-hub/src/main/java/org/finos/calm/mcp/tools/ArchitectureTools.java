@@ -9,6 +9,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
@@ -116,12 +117,50 @@ public class ArchitectureTools {
         }
     }
 
-    @Tool(description = "Publish a new version of an existing architecture. Use this to add a new semantic version (e.g. '1.1.0') against an existing architecture ID without allocating a new identity. Optionally supply name or description to overwrite them; omit (or pass null) to retain existing values.")
-    public ToolResponse updateArchitecture(
+    @Tool(description = "Publish a new version of an existing architecture. Use this to add a new semantic version (e.g. '1.1.0') against an existing architecture ID without allocating a new identity.")
+    public ToolResponse createArchitectureVersion(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
             @ToolArg(description = "The architecture ID to publish a new version for (positive integer)") int architectureId,
             @ToolArg(description = "The new version string to publish (e.g. '1.1.0')") String version,
-            @ToolArg(description = "The full CALM architecture JSON content for this version") String architectureJson,
+            @ToolArg(description = "The full CALM architecture JSON content for this version") String architectureJson) {
+        Optional<ToolResponse> err = McpValidationHelper.firstError(
+                () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.validateNamespace(namespace),
+                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateVersion(version),
+                () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
+                () -> McpValidationHelper.validateMaxLength(architectureJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Architecture JSON"),
+                () -> McpValidationHelper.validateJson(architectureJson, "Architecture JSON"));
+        if (err.isPresent()) return err.get();
+
+        try {
+            Architecture architecture = new Architecture.ArchitectureBuilder()
+                    .setNamespace(namespace)
+                    .setId(architectureId)
+                    .setVersion(version)
+                    .setArchitecture(architectureJson)
+                    .build();
+            architectureStore.createArchitectureForVersion(architecture);
+            logger.info("Architecture [{}] version [{}] created in namespace [{}]", architectureId, version, namespace);
+            return ToolResponse.success("Architecture " + architectureId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
+        } catch (NamespaceNotFoundException e) {
+            logger.warn("Namespace not found [{}]", namespace, e);
+            return McpResponseFormatter.namespaceNotFound(namespace);
+        } catch (ArchitectureNotFoundException e) {
+            logger.warn("Architecture [{}] not found in namespace [{}]", architectureId, namespace, e);
+            return McpResponseFormatter.entityNotFound("architecture", architectureId, namespace);
+        } catch (ArchitectureVersionExistsException e) {
+            logger.warn("Version [{}] already exists for architecture [{}] in namespace [{}]", version, architectureId, namespace, e);
+            return ToolResponse.error("Error: Version '" + version + "' already exists for architecture " + architectureId + ".");
+        }
+    }
+
+    @Tool(description = "Update the content of an existing architecture version. Requires PUT operations to be enabled on this CalmHub instance.")
+    public ToolResponse updateArchitecture(
+            @ToolArg(description = "The namespace containing the architecture") String namespace,
+            @ToolArg(description = "The architecture ID (positive integer)") int architectureId,
+            @ToolArg(description = "The version string to update (e.g. '1.0.0')") String version,
+            @ToolArg(description = "The updated CALM architecture JSON content") String architectureJson,
             @ToolArg(description = "Optional new name for the architecture; omit to keep existing name", required = false) String name,
             @ToolArg(description = "Optional new description for the architecture; omit to keep existing description", required = false) String description) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
