@@ -53,17 +53,20 @@ The storage implementation is selected based on the active Quarkus profile:
 To run the application in standalone mode:
 
 ```shell
-# Development mode with standalone storage
-../mvnw quarkus:dev -Dquarkus.profile=standalone
+# Development mode with standalone storage (uses Maven -Pstandalone profile)
+../mvnw quarkus:dev -Pstandalone
 
 # Production mode with standalone storage
 java -Dquarkus.profile=standalone -jar target/quarkus-app/quarkus-run.jar
 ```
 
-> **Note:** The `standalone` Quarkus profile automatically sets `calm.database.mode=standalone`
-> and suppresses MongoDB health-checks and dev-services. You can also pass
-> `-Dcalm.database.mode=standalone` directly, but using the profile flag is recommended as
-> it applies all standalone suppressions in one step.
+> **Note:** In dev mode use `-Pstandalone` (the Maven profile), not `-Dquarkus.profile=standalone`.
+> The `quarkus-maven-plugin` forks a separate JVM for dev mode and does not reliably propagate
+> `-D` flags from the Maven CLI into that process; the Maven profile `standalone` configures the
+> plugin's own `systemProperties` so `quarkus.profile=standalone` reaches the running app.
+> The `standalone` Quarkus profile activates `calm.database.mode=standalone` and suppresses
+> MongoDB health-checks and dev-services. For production (`java -jar …`) the JVM flag
+> `-Dquarkus.profile=standalone` is passed directly to the process and works as expected.
 
 ### Mongo Database Startup
 

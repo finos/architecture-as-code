@@ -356,6 +356,29 @@
                 </plugins>
             </build>
         </profile>
+        <!-- Standalone profile: activates NitriteDB dev mode via the quarkus-maven-plugin
+             systemProperties so the quarkus.profile=standalone property is reliably forwarded
+             to the Quarkus dev JVM (plain -Dquarkus.profile=standalone on the Maven CLI is
+             not propagated into the forked dev process). -->
+        <profile>
+            <id>standalone</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.quarkus</groupId>
+                        <artifactId>quarkus-maven-plugin</artifactId>
+                        <configuration>
+                            <systemProperties>
+                                <quarkus.profile>standalone</quarkus.profile>
+                            </systemProperties>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>dependency-check</id>
             <activation>
