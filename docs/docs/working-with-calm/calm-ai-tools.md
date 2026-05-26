@@ -1,7 +1,7 @@
 ---
 id: calm-ai-tools
 title: CALM AI Tools
-sidebar_position: 6
+sidebar_position: 7
 ---
 
 # CALM AI Tools
