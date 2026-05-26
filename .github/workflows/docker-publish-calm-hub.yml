@@ -20,7 +20,7 @@ on:
                 default: 'latest'
 
 concurrency:
-    group: docker-publish-calm-hub-${{ github.ref }}
+    group: docker-publish-calm-hub
     cancel-in-progress: false
 
 jobs:
