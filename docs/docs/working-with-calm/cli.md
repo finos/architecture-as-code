@@ -258,7 +258,7 @@ calm validate --timeline calm/architecture/calm.timeline.json -f json
 
 This command will check if `calm.timeline.json` conforms to the timeline schema and display any validation errors or warnings.
 
-### URL to Local File Mapping
+### URL to Local File Mapping (Validate)
 
 Refer to the [URL to Local File Mapping](#url-to-local-file-mapping) instructions above under the Generate section. The mapping behavior is identical.
 
