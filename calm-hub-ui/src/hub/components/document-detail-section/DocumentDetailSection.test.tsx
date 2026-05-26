@@ -21,13 +21,11 @@ vi.mock('@monaco-editor/react', () => ({
 
 const mockFetchStandardVersions = vi.fn();
 const mockFetchFlowVersions = vi.fn();
-const mockFetchPatternVersions = vi.fn();
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(() => ({
         fetchStandardVersions: mockFetchStandardVersions,
         fetchFlowVersions: mockFetchFlowVersions,
-        fetchPatternVersions: mockFetchPatternVersions,
     })),
 }));
 
@@ -36,7 +34,6 @@ describe('DocumentDetailSection', () => {
         mockNavigate.mockClear();
         mockFetchStandardVersions.mockResolvedValue([]);
         mockFetchFlowVersions.mockResolvedValue([]);
-        mockFetchPatternVersions.mockResolvedValue([]);
     });
 
     it('renders null when data is undefined', () => {

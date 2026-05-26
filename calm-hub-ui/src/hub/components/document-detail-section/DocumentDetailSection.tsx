@@ -15,7 +15,6 @@ function calmTypeToUrlSegment(calmType: string): string {
     switch (calmType) {
         case 'Standards': return 'standards';
         case 'Flows': return 'flows';
-        case 'Patterns': return 'patterns';
         default: return calmType.toLowerCase();
     }
 }
@@ -27,14 +26,13 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
 
     useEffect(() => {
         if (!data) return;
+        setVersions([]);
         let cancelled = false;
         let fetchPromise: Promise<string[]>;
         if (data.calmType === 'Standards') {
             fetchPromise = calmService.fetchStandardVersions(data.name, data.id);
         } else if (data.calmType === 'Flows') {
             fetchPromise = calmService.fetchFlowVersions(data.name, data.id);
-        } else if (data.calmType === 'Patterns') {
-            fetchPromise = calmService.fetchPatternVersions(data.name, data.id);
         } else {
             return;
         }
