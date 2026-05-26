@@ -119,14 +119,9 @@ When you select an **Architecture** or **Pattern** artifact, CALM Hub renders th
 
 ## Timeline
 
-The bottom of the visualizer features a collapsible **Timeline Bar** that represents the history and evolution of the selected architecture or pattern artifact. 
+The bottom of the visualizer features a collapsible **Timeline Bar** that represents the history and evolution of the selected architecture or pattern artifact.
 
-:::info Explicit vs. Implied Timelines in the Hub
-CALM Hub renders timelines in two different ways depending on whether an explicit timeline document is available:
-
-- **Explicit Timeline**: If a timeline configuration file (`calm-timeline.json`) has been authored and uploaded, the Hub UI displays curated moment cards with custom titles (e.g., `"Initial Launch"`, `"Database Separation"`), detailed release notes, and links to Architecture Decision Records (ADRs). It also features a **NOW** badge on the moment matching the current active baseline.
-- **Implied Timeline**: If no explicit timeline is defined, the Hub automatically generates a timeline from the published versions. Moments are named after their SemVer version string (e.g., `1.0.0`, `1.1.0`), do not contain custom description text or ADR links, and do not show a **NOW** badge.
-::: 
+How the Hub renders this bar depends on whether the artifact has an authored timeline document or only published versions — see [Explicit vs. Implied Timelines](../core-concepts/timelines#explicit-vs-implied-timelines) for the underlying concept.
 
 ### Collapsed Mode
 
