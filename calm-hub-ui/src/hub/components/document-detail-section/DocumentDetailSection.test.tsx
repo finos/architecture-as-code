@@ -1,14 +1,17 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { DocumentDetailSection } from './DocumentDetailSection.js';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Data } from '../../../model/calm.js';
+
+const mockNavigate = vi.fn();
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: vi.fn(() => vi.fn()),
+        useNavigate: vi.fn(() => mockNavigate),
     };
 });
 
@@ -16,7 +19,26 @@ vi.mock('@monaco-editor/react', () => ({
     Editor: ({ value }: { value: string }) => <textarea value={value} readOnly data-testid="monaco-editor" />
 }));
 
+const mockFetchStandardVersions = vi.fn();
+const mockFetchFlowVersions = vi.fn();
+const mockFetchPatternVersions = vi.fn();
+
+vi.mock('../../../service/calm-service.js', () => ({
+    CalmService: vi.fn().mockImplementation(() => ({
+        fetchStandardVersions: mockFetchStandardVersions,
+        fetchFlowVersions: mockFetchFlowVersions,
+        fetchPatternVersions: mockFetchPatternVersions,
+    })),
+}));
+
 describe('DocumentDetailSection', () => {
+    beforeEach(() => {
+        mockNavigate.mockClear();
+        mockFetchStandardVersions.mockResolvedValue([]);
+        mockFetchFlowVersions.mockResolvedValue([]);
+        mockFetchPatternVersions.mockResolvedValue([]);
+    });
+
     it('renders null when data is undefined', () => {
         const { container } = render(
             <MemoryRouter>
@@ -85,5 +107,83 @@ describe('DocumentDetailSection', () => {
 
         const textarea = screen.getByTestId('monaco-editor');
         expect(textarea).toHaveValue(JSON.stringify(data, null, 2));
+    });
+
+    it('shows version dropdown for Standards when multiple versions are available', async () => {
+        mockFetchStandardVersions.mockResolvedValue(['2.0.0', '1.0.0']);
+
+        const data: Data = {
+            id: 'my-standard',
+            version: '2.0.0',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: undefined,
+        };
+
+        render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('combobox', { name: 'Version' })).toBeInTheDocument();
+        });
+
+        const select = screen.getByRole('combobox', { name: 'Version' });
+        expect(select).toHaveValue('2.0.0');
+        const options = screen.getAllByRole('option');
+        expect(options.map((o) => o.textContent)).toEqual(['2.0.0', '1.0.0']);
+    });
+
+    it('navigates to the selected version when version changes for Standards', async () => {
+        mockFetchStandardVersions.mockResolvedValue(['2.0.0', '1.0.0']);
+
+        const data: Data = {
+            id: 'my-standard',
+            version: '2.0.0',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: undefined,
+        };
+
+        render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('combobox', { name: 'Version' })).toBeInTheDocument();
+        });
+
+        await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Version' }), '1.0.0');
+
+        expect(mockNavigate).toHaveBeenCalledWith('/test-ns/standards/my-standard/1.0.0');
+    });
+
+    it('shows version dropdown for Flows when multiple versions are available', async () => {
+        mockFetchFlowVersions.mockResolvedValue(['3.0.0', '2.0.0', '1.0.0']);
+
+        const data: Data = {
+            id: 'my-flow',
+            version: '3.0.0',
+            name: 'flow-ns',
+            calmType: 'Flows',
+            data: undefined,
+        };
+
+        render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('combobox', { name: 'Version' })).toBeInTheDocument();
+        });
+
+        const options = screen.getAllByRole('option');
+        expect(options.map((o) => o.textContent)).toEqual(['3.0.0', '2.0.0', '1.0.0']);
     });
 });
