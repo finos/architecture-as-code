@@ -5,6 +5,29 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.42.1] - 2026-05-27
+
+## [1.42.1](https://github.com/finos/architecture-as-code/compare/cli-v1.42.0...cli-v1.42.1) (2026-05-27)
+
+### chore
+
+* **deps:** bump cargo rand 0.8.5 -> 0.8.6 (GHSA-cq8v-f236-94qc) (#2508) ([](https://github.com/finos/architecture-as-code/commit/b0867229af0707ba4cc489e57465ce88a54ab43c)), closes [#2508](https://github.com/finos/architecture-as-code/issues/2508)
+* **deps:** patch GHSA-w5hq-g745-h8pq (uuid <11.1.1) via root override (#2501) ([](https://github.com/finos/architecture-as-code/commit/01a28c7e208ecba4986ab7cefc0587c339dbec05)), closes [#2501](https://github.com/finos/architecture-as-code/issues/2501)
+
+### ci
+
+* trigger Docker publish on merge to main for calm-hub projects (#2512) ([](https://github.com/finos/architecture-as-code/commit/74e8d518c37abb8e8ebcef19e15bcdc826c32f03)), closes [#2512](https://github.com/finos/architecture-as-code/issues/2512) [#2507](https://github.com/finos/architecture-as-code/issues/2507)
+
+### docs
+
+* restructure working-with-calm into CLI and CALM Hub guides (#2523) ([](https://github.com/finos/architecture-as-code/commit/5a594afdda77408cbe3dc4f181f0decdff8e1af8)), closes [#2523](https://github.com/finos/architecture-as-code/issues/2523)
+
+### fix
+
+* **calm-hub:** Fix Eager Loading of Mongo Client in Quarkus (#2494) ([](https://github.com/finos/architecture-as-code/commit/46563676b1a54d0869c7d662922e30c242a43149)), closes [#2494](https://github.com/finos/architecture-as-code/issues/2494)
+* **calm-hub:** standalone dev mode now correctly activates NitriteDB (#2520) ([](https://github.com/finos/architecture-as-code/commit/3f17ec3cc93e9ecf9ee96df1bd699b5ace8cad2c)), closes [#2520](https://github.com/finos/architecture-as-code/issues/2520) [#2519](https://github.com/finos/architecture-as-code/issues/2519)
+* **deps:** pin Netty BOM updates below 4.2.0 (#2513) ([](https://github.com/finos/architecture-as-code/commit/20d7283de7dfb07e6e01ae2546397cb3a4b5f621)), closes [#2513](https://github.com/finos/architecture-as-code/issues/2513)
+
 ## [1.42.0] - 2026-05-25
 
 ## [1.42.0](https://github.com/finos/architecture-as-code/compare/cli-v1.41.0...cli-v1.42.0) (2026-05-25)
