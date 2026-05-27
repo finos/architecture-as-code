@@ -1,14 +1,13 @@
 ---
 id: vscode-extension
 title: VS Code Extension
+sidebar_label: CALM Tools (VSCode)
 sidebar_position: 2
 ---
 
 # VS Code Extension
 
 The **CALM Tools** VS Code extension turns your editor into a live workbench for CALM architecture models. It validates documents on the fly, renders an interactive preview, and surfaces model elements in a navigable sidebar — all without leaving the file you're editing.
-
-This page is a feature reference for users who already know what CALM is. If you're new to the extension, the [Install the CALM VS Code Extension](../tutorials/beginner/04-vscode-extension) tutorial walks through your first model step-by-step.
 
 ---
 
@@ -149,48 +148,191 @@ The extension identifies a file as CALM by its `$schema` reference, so non-CALM 
 
 ---
 
-## Hover Information
-
-Hovering over a node identifier in the JSON editor surfaces the node's name, type, and description in a tooltip without taking you out of the source. This is most useful when reading a relationship block and you want to confirm what `web-frontend` or `api-server` actually refers to.
-
-:::note
-A screenshot of the hover tooltip is a known follow-up — see [issue #2531](https://github.com/finos/architecture-as-code/issues/2531). The feature itself is fully functional.
-:::
-
----
-
 ## Timeline Navigation
 
-When your workspace contains a `calm-timeline.json` document alongside multiple versioned architecture files, the extension treats it as the source of truth for architecture evolution. Click any milestone to open the architecture file it references; the **current moment** is marked with a star.
+When the active editor is a CALM timeline document — a JSON file whose `$schema` references `calm-timeline.json` and whose top-level shape includes a `moments` array — the **Model Elements** sidebar switches into **timeline mode**. Each moment in the timeline becomes a navigable item in the sidebar, with the **current moment** marked by a star.
 
-The timeline document follows the same shape as a CALM Hub timeline — see [Explicit vs. Implied Timelines](../core-concepts/timelines#explicit-vs-implied-timelines) for the underlying concept.
+![CALM sidebar in timeline mode showing two architecture moments](/img/vscode/09-timeline.png)
 
-:::note
-A timeline screenshot is a known follow-up — see [issue #2531](https://github.com/finos/architecture-as-code/issues/2531).
-:::
+### Authoring a timeline document
+
+A minimal `calm-timeline.json` document looks like this:
+
+```json
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+    "current-moment": "initial",
+    "moments": [
+        {
+            "unique-id": "initial",
+            "node-type": "moment",
+            "name": "Initial Architecture",
+            "description": "The first version of the system",
+            "valid-from": "2024-01-01",
+            "details": {
+                "detailed-architecture": "arch-v1.json"
+            }
+        },
+        {
+            "unique-id": "enhanced",
+            "node-type": "moment",
+            "name": "Enhanced Architecture",
+            "description": "Adds a caching layer and an API gateway",
+            "valid-from": "2024-06-01",
+            "details": {
+                "detailed-architecture": "arch-v2.json"
+            }
+        }
+    ],
+    "metadata": {
+        "title": "Payments Platform Timeline",
+        "description": "Architecture evolution across 2024"
+    }
+}
+```
+
+Each moment is a versioned snapshot. The `details.detailed-architecture` field points to the architecture file representing the system at that moment — either a relative path (resolved against the timeline document's folder) or a URL that you map via [Multi-Document Navigation](#multi-document-navigation).
+
+The `current-moment` field tells the extension which moment is the current production-deployed state. That moment renders with the star icon in the sidebar; non-current moments use a hollow circle.
+
+### How the extension uses it
+
+- **Sidebar grouping** — the **Model Elements** view replaces its usual Nodes / Relationships / Flows groups with the single **📅 Architecture Timeline** group. Each child item is a moment, labelled with its `name` and `valid-from` date.
+- **Click to open** — clicking a moment opens the architecture file referenced by its `details.detailed-architecture`. The preview, validator, and tree all re-target the newly opened file.
+- **Current-moment indicator** — the star marker means "this is the baseline" — useful for orienting yourself when a timeline contains many historical snapshots.
+- **Relative-path resolution** — paths inside `details.detailed-architecture` are resolved relative to the timeline document. If you need to resolve URLs to local files, configure `calm.urlMapping` (see [Multi-Document Navigation](#multi-document-navigation)).
+
+### When to use a timeline
+
+A timeline document is the right tool when:
+
+- The architecture has evolved through multiple distinct versions you want to keep traceable side-by-side.
+- You need an at-a-glance view of "what we have today" vs "what we had before" vs "what's planned".
+- Reviewers and architects need to navigate between versions without remembering filenames.
+
+If you only have a single architecture, you don't need a timeline document — the extension's standard tree view is sufficient.
+
+For the concept behind timelines (explicit vs implied, how the Hub renders them) see [Explicit vs. Implied Timelines](../core-concepts/timelines#explicit-vs-implied-timelines).
 
 ---
 
 ## Multi-Document Navigation
 
-CALM models often span multiple files connected by `detailed-architecture` references. The extension can resolve these references to local files via a URL-mapping document.
+Real-world CALM models are usually split across many files. A top-level system architecture references downstream service architectures by URL, each service architecture may reference deployment-detail files, and so on. The extension uses a **URL-to-local-path mapping** to resolve these references against files on your disk, so clicking through the diagram opens the right file every time.
 
-1. Create a mapping file (any name; convention is `calm-mapping.json`) anywhere in the workspace:
+### How it works
 
-   ```json
-   {
-     "https://specs.internal/payment-service": "./services/payment-service.json",
-     "https://specs.internal/inventory": "./services/inventory.json"
-   }
-   ```
+A node in a parent architecture uses the `details.detailed-architecture` field to point at a child document:
 
-2. Point the extension at it via `settings.json`:
+```json
+{
+    "unique-id": "payment-service",
+    "name": "Payment Service",
+    "node-type": "container",
+    "details": {
+        "detailed-architecture": "https://specs.internal/payment-service"
+    }
+}
+```
 
-   ```json
-   "calm.urlMapping": "calm-mapping.json"
-   ```
+In production, that URL would resolve to a real document published in CALM Hub. While authoring locally, you tell the extension *where the local copy of each URL lives* via a mapping document. The extension reads that mapping, swaps URLs for paths, and clicks in the preview open the local file.
 
-Now clicking a `detailed-architecture` reference in the preview opens the local file directly, rather than failing to resolve a URL.
+### Creating `calm-mapping.json`
+
+The mapping is a flat JSON object — keys are URLs (exactly as they appear in `detailed-architecture` fields), values are paths to the local files.
+
+```json
+{
+    "https://specs.internal/payment-service": "./services/payment-service.json",
+    "https://specs.internal/inventory":       "./services/inventory.json",
+    "https://specs.internal/notifications":   "./services/notifications.json"
+}
+```
+
+**Rules and gotchas:**
+
+| Rule | Detail |
+| --- | --- |
+| **One mapping file per workspace** | The extension reads a single mapping document. If you maintain multiple, combine them or switch the active one via the setting. |
+| **Keys must match exactly** | URL matching is a string compare. A trailing slash, casing difference, or extra path segment in the key vs. the `detailed-architecture` value will silently miss. |
+| **Values are paths, not URLs** | Use a relative path (recommended) or an absolute file-system path. Don't put another URL on the right-hand side. |
+| **Relative paths resolve against the mapping file's directory** | `"./services/foo.json"` from a mapping at `<workspace>/calm/calm-mapping.json` resolves to `<workspace>/calm/services/foo.json` — **not** to `<workspace>/services/foo.json`. Put the mapping file in the folder whose relative paths you want to use. |
+| **The mapping file can sit anywhere in the workspace** | Convention is the workspace root, but a `calm/` or `architecture/` subfolder is equally valid. |
+| **The filename can be anything** | `calm-mapping.json` is the convention but the extension doesn't enforce it — it reads whichever path you point the setting at. |
+| **Invalid JSON is logged, not fatal** | The extension surfaces a warning in its log channel and proceeds without the mapping. Navigation falls back to "no mapping configured" behaviour. |
+
+### Pointing the extension at it
+
+Add the workspace-relative path to your VS Code settings (either `.vscode/settings.json` for the workspace, or your user settings if you always use the same layout):
+
+```json
+"calm.urlMapping": "calm-mapping.json"
+```
+
+Or, if the mapping sits in a subfolder:
+
+```json
+"calm.urlMapping": "calm/calm-mapping.json"
+```
+
+The path is resolved against the first workspace folder. The extension watches this setting — changing it resets the navigation service so the next click picks up the new mapping immediately, without needing a window reload.
+
+### A complete example
+
+Workspace layout:
+
+```
+my-architecture/
+├── .vscode/
+│   └── settings.json
+├── calm-mapping.json
+├── system.json
+└── services/
+    ├── payment-service.json
+    └── inventory.json
+```
+
+`.vscode/settings.json`:
+
+```json
+{
+    "calm.urlMapping": "calm-mapping.json"
+}
+```
+
+`calm-mapping.json` (note: paths are relative to *this file*, which sits in the workspace root):
+
+```json
+{
+    "https://specs.internal/payment-service": "./services/payment-service.json",
+    "https://specs.internal/inventory":       "./services/inventory.json"
+}
+```
+
+`system.json` (excerpt):
+
+```json
+{
+    "nodes": [
+        {
+            "unique-id": "payment-service",
+            "name": "Payment Service",
+            "node-type": "container",
+            "details": {
+                "detailed-architecture": "https://specs.internal/payment-service"
+            }
+        }
+    ]
+}
+```
+
+With this setup, clicking the **Payment Service** node in the preview of `system.json` opens `services/payment-service.json` in a new editor column. The same mapping is also used by the CALM CLI's `docify` command (see [`calm docify`](cli#documenting-architectures-docify)) — so authoring once works for both interactive and batch documentation generation.
+
+### Troubleshooting
+
+- **Clicking a node does nothing, or shows "No URL mapping configured"** — the setting isn't set, the path is wrong, or the mapping file is missing. Open VS Code's **Output** panel and switch the channel to **CALM** to see the navigation service's diagnostic log.
+- **Click opens the wrong file** — your mapping value is interpreted relative to the mapping file's location, not the workspace root. Move the mapping file or adjust the paths.
+- **Click logs "Invalid JSON in URL mapping file"** — there's a syntax error in the mapping (missing comma, trailing comma, etc.). The extension keeps running without the mapping until you fix it.
 
 ---
 

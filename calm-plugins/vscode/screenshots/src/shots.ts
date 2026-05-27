@@ -311,22 +311,44 @@ export const shots: Shot[] = [
         },
     },
 
-    // Timeline visualisation. The fixture provides a calm-timeline.json
-    // alongside arch-v1/arch-v2, but neither opening the timeline document
-    // directly nor opening an architecture in the same folder surfaces the
-    // expected timeline bar in the preview pane. Likely requires either a
-    // calm-mapping.json or a specific command that isn't documented yet.
-    // Left as a TODO follow-up; the docs section describes timeline support
-    // textually with a link to the timelines core-concept page.
+    // Timeline navigation: the extension's tree-view-model enters "timeline
+    // mode" when the active file is detected as a calm-timeline document
+    // (see calm-plugins/vscode/src/features/tree-view/view-model/
+    // tree-view-model.ts → buildTimelineTree). The CALM sidebar then shows
+    // "📅 Architecture Timeline" with each moment as a child item.
     {
         name: '09-timeline',
         fixture: 'timeline',
-        workspaceFile: 'arch-v1.json',
-        description: 'Timeline navigation across architecture milestones.',
-        implemented: false,
+        workspaceFile: 'calm-timeline.json',
+        description: 'Timeline navigation showing architecture moments in the sidebar.',
+        implemented: true,
         async setup(window) {
-            await openPreview(window)
-            await window.waitForTimeout(2_500)
+            const editor = window.locator('.monaco-editor').first()
+            await editor.click()
+            await window.waitForTimeout(500)
+
+            // Trigger a save (Cmd+S) to force the extension's
+            // onDidSaveTextDocument handler to re-detect the file type. The
+            // initial onDidChangeActiveTextEditor on launch is sometimes
+            // missed because the extension's onStartupFinished activation
+            // races with the editor opening.
+            await window.keyboard.press('ControlOrMeta+S')
+            await window.waitForTimeout(2_000)
+
+            await runCommand(window, 'workbench.view.extension.calm')
+            await window.waitForTimeout(1_500)
+
+            // Expand the timeline group so the moment items are visible.
+            const first = window.locator('[role="treeitem"]').first()
+            await first.click()
+            await window.waitForTimeout(200)
+            await window.keyboard.press('ArrowRight')
+            await window.waitForTimeout(200)
+            for (let i = 0; i < 4; i++) {
+                await window.keyboard.press('ArrowDown')
+                await window.keyboard.press('ArrowRight')
+                await window.waitForTimeout(120)
+            }
         },
         async capture(window) {
             return await captureFullWindow(window)

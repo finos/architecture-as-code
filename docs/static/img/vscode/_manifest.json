@@ -1,99 +1,102 @@
 {
-  "generatedAt": "2026-05-27T21:28:29.334Z",
+  "generatedAt": "2026-05-27T21:57:39.849Z",
   "vscodeVersion": "1.121.0",
   "shots": [
     {
       "name": "01-activity-bar.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 169556,
-      "sha256": "c36d9c0883c686cc6207d5e6ed6623f0a0344f772df834e27695ff51df4084cd"
+      "bytes": 170485,
+      "sha256": "f65e4c9ca9ea26916ae571869cb03a9dda9a1b0949c64a99d84244757b8d7406"
     },
     {
       "name": "02-tree-view.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 173238,
-      "sha256": "4ca13e800970957b2e077b7ab5d9c6d9be786747cd25bd29f30d368ef867b1f4"
+      "bytes": 174118,
+      "sha256": "5297b7fb7aa02bcff3d34852d3f8c7fa2e02f81899c44445a3024de51d7a5dd0"
     },
     {
       "name": "03-tree-search.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 177627,
-      "sha256": "ad73757f2f1ae53c81bd3b5d07a43e099c0e06e7edd841fbe81428755ec25010"
+      "bytes": 178545,
+      "sha256": "2151940ad11470e27b4e383c1bad8bae355e5849db18f1810cc151202c21416f"
     },
     {
       "name": "04-preview-hero.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 208146,
-      "sha256": "db80e4a91cbf3e1f8a0e45ae17bb3e9926128bf866b03c3fb61cfccee7c28bfd"
+      "bytes": 208668,
+      "sha256": "b30421e70c668ce43e8284357b74ab2a0d05d732f5f1f618c556af80a26ed949"
     },
     {
       "name": "05-theme-light.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 207256,
-      "sha256": "e084e90759b6e58f67e970242a483ce102f5f1b0ad7e0db4e8981b377f36f60d"
+      "bytes": 207591,
+      "sha256": "6b2b8e9e7ae1c7163a096b1da80a4d87599183f220ff88a2a0e3a86b7c4ca8c5"
     },
     {
       "name": "05-theme-dark.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 201250,
-      "sha256": "073c77c700b0f6b5d2140726ab5d0a5afc20099636fdce57490fb06cc0e54d14"
+      "bytes": 201602,
+      "sha256": "4d8371ac30f80a1808f11c453abf260bd0047c7073981cebd805f87a0fe3ca58"
     },
     {
       "name": "05-theme-hc-light.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 206435,
-      "sha256": "989c02a84ca617bc77fe3b79586d5072969c06563c160d0809938a5f32a30fbb"
+      "bytes": 206954,
+      "sha256": "9bbaa2ba5686fd3226d6fbfa1ace5a772698a9601cca4d32e2aee2f0f6caf492"
     },
     {
       "name": "05-theme-hc-dark.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 208686,
-      "sha256": "41a23b091e483f30e8acd6cbbace49165084cd2942bf2a0b36ce6bb8b2269fcf"
+      "bytes": 209220,
+      "sha256": "be6dad5595667f14ba23b0e7aa5d5baf48ff0be93573e62120aeed0424e30dd8"
     },
     {
       "name": "06-layout-elk.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 208146,
-      "sha256": "db80e4a91cbf3e1f8a0e45ae17bb3e9926128bf866b03c3fb61cfccee7c28bfd"
+      "bytes": 208669,
+      "sha256": "8b4cf93f4c57b8e218a16868d77a057439fe81adb234b62965fa18dbe90f4abd"
     },
     {
       "name": "06-layout-dagre.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 213138,
-      "sha256": "319fc9583c9338f1f5452dc74268e8ef1daec2e3f4daf90f2346d7af04fd5603"
+      "bytes": 213691,
+      "sha256": "8b3eac44cb2736bc6fcc48b1cabc8f05ca7f35d024e2a95a5d682c2b5ac12424"
     },
     {
       "name": "07-validation-problems.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 182720,
-      "sha256": "9166c7879e137f9cadc56c040c88cf5198f4b76acff8811dd370c2b5515864b3"
+      "bytes": 184486,
+      "sha256": "ffe5959f73bed0407e1b9442430d7b24242576e6c4a1a997d7e1a9fabf81fe5f"
+    },
+    {
+      "name": "09-timeline.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 129399,
+      "sha256": "d6a494869d54d667d8be6b870db93956b107672b8c0ea9785276f379b68afc8e"
     },
     {
       "name": "10-docify.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 139243,
-      "sha256": "d8799550368b625f937a5882cb902f1647cd1b65882297712ebc664a8600943d"
+      "bytes": 139875,
+      "sha256": "fcb40c504a74e34db4d8164a0801fde3f780886c988d22238bc386ffb26bc46d"
     }
   ],
   "skipped": [
     {
       "name": "08-hover",
-      "reason": "TODO — see issue #2529"
-    },
-    {
-      "name": "09-timeline",
       "reason": "TODO — see issue #2529"
     }
   ]
