@@ -32,7 +32,13 @@ export const PINNED_VSCODE_VERSION = '1.121.0'
 
 export interface LaunchOptions {
     extensionPath: string
+    // Path passed to VSCode as the workspace argument — either a single file
+    // (opens with that file active) or a folder (opens a folder workspace).
     workspacePath: string
+    // Optional workbench-settings overrides merged into the seeded settings.json
+    // for this launch. Used by shots that need a specific theme, layout engine,
+    // or any other setting that has to be in place before the first paint.
+    settingsOverrides?: Record<string, unknown>
 }
 
 export interface LaunchResult {
@@ -58,9 +64,10 @@ export async function launchVSCodeWithExtension(opts: LaunchOptions): Promise<La
     // from the first paint — no flash of the secondary side bar.
     const userDir = path.join(userDataDir, 'User')
     mkdirSync(userDir, { recursive: true })
+    const mergedSettings = { ...WORKBENCH_SETTINGS, ...(opts.settingsOverrides ?? {}) }
     writeFileSync(
         path.join(userDir, 'settings.json'),
-        JSON.stringify(WORKBENCH_SETTINGS, null, 2) + '\n'
+        JSON.stringify(mergedSettings, null, 2) + '\n'
     )
 
     const args = [
