@@ -133,11 +133,28 @@ public class ArchitectureTools {
                 () -> McpValidationHelper.validateJson(architectureJson, "Architecture JSON"));
         if (err.isPresent()) return err.get();
 
+        String resolvedName = null;
+        String resolvedDescription = null;
+        try {
+            List<NamespaceArchitectureSummary> summaries = architectureStore.getArchitecturesForNamespace(namespace);
+            for (NamespaceArchitectureSummary summary : summaries) {
+                if (Objects.equals(summary.getId(), architectureId)) {
+                    resolvedName = summary.getName();
+                    resolvedDescription = summary.getDescription();
+                    break;
+                }
+            }
+        } catch (NamespaceNotFoundException e) {
+            // will be surfaced below when createArchitectureForVersion is called
+        }
+
         try {
             Architecture architecture = new Architecture.ArchitectureBuilder()
                     .setNamespace(namespace)
                     .setId(architectureId)
                     .setVersion(version)
+                    .setName(resolvedName)
+                    .setDescription(resolvedDescription)
                     .setArchitecture(architectureJson)
                     .build();
             architectureStore.createArchitectureForVersion(architecture);

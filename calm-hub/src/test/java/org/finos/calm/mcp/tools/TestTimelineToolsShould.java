@@ -472,4 +472,28 @@ class TestTimelineToolsShould {
         assertThat(result.isError(), is(true));
         verifyNoInteractions(timelineStore);
     }
+
+    @Test
+    void reject_invalid_namespace_for_update_timeline() {
+        ToolResponse result = timelineTools.updateTimeline("bad ns", 1, "1.0.0", "{}");
+
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(timelineStore);
+    }
+
+    @Test
+    void reject_blank_json_for_update_timeline() {
+        ToolResponse result = timelineTools.updateTimeline("workshop", 1, "1.0.0", "");
+
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(timelineStore);
+    }
+
+    @Test
+    void reject_non_positive_id_for_update_timeline() {
+        ToolResponse result = timelineTools.updateTimeline("workshop", 0, "1.0.0", "{}");
+
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(timelineStore);
+    }
 }

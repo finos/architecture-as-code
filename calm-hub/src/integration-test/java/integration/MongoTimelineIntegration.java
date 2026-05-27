@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.restassured.RestAssured.given;
 import static integration.MongoSetup.counterSetup;
@@ -26,6 +28,8 @@ public class MongoTimelineIntegration {
     private static final Logger logger = LoggerFactory.getLogger(MongoTimelineIntegration.class);
     public static final String TIMELINE = "{\"moments\": []}";
     public static final String TIMELINE_V2 = "{\"moments\": [{\"unique-id\": \"1.0.0\"}]}";
+
+    private static final Pattern TIMELINE_ID_PATTERN = Pattern.compile("/timelines/(\\d+)");
 
     private static int createdTimelineId;
 
@@ -85,12 +89,11 @@ public class MongoTimelineIntegration {
                 .header("Location", containsString("calm/namespaces/finos/timelines/"))
                 .extract().header("Location");
 
-        int timelinesIdx = location.indexOf("/timelines/") + "/timelines/".length();
-        String idStr = location.substring(timelinesIdx);
-        if (idStr.contains("/")) {
-            idStr = idStr.substring(0, idStr.indexOf('/'));
+        Matcher matcher = TIMELINE_ID_PATTERN.matcher(location);
+        if (!matcher.find()) {
+            throw new IllegalStateException("Could not extract timeline ID from Location header: " + location);
         }
-        createdTimelineId = Integer.parseInt(idStr);
+        createdTimelineId = Integer.parseInt(matcher.group(1));
         logger.info("Created timeline with ID: {}", createdTimelineId);
     }
 

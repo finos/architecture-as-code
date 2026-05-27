@@ -183,7 +183,7 @@ public class PatternTools {
         }
     }
 
-    @Tool(description = "Update the content of an existing pattern version.")
+    @Tool(description = "Update the content of an existing pattern version. Requires PUT operations to be enabled on this CalmHub instance.")
     public ToolResponse updatePattern(
             @ToolArg(description = "The namespace containing the pattern") String namespace,
             @ToolArg(description = "The pattern ID (positive integer)") int patternId,

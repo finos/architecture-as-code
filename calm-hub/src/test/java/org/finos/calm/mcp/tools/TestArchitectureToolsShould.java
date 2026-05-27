@@ -315,8 +315,8 @@ class TestArchitectureToolsShould {
     @Test
     void create_architecture_version_successfully() throws Exception {
         architectureTools.allowPutOperations = false;
-
-        architectureStore.createArchitectureForVersion(any());
+        when(architectureStore.getArchitecturesForNamespace("workshop"))
+                .thenReturn(List.of(new NamespaceArchitectureSummary("Existing Name", "Existing description", 1)));
 
         ToolResponse result = architectureTools.createArchitectureVersion("workshop", 1, "1.1.0", "{\"nodes\":[]}");
 
@@ -324,6 +324,19 @@ class TestArchitectureToolsShould {
         assertThat(text(result), containsString("1"));
         assertThat(text(result), containsString("1.1.0"));
         assertThat(text(result), containsString("workshop"));
+    }
+
+    @Test
+    void create_architecture_version_preserves_existing_name_and_description() throws Exception {
+        when(architectureStore.getArchitecturesForNamespace("workshop"))
+                .thenReturn(List.of(new NamespaceArchitectureSummary("Conference Signup", "A signup flow", 1)));
+        ArgumentCaptor<Architecture> captor = ArgumentCaptor.forClass(Architecture.class);
+
+        architectureTools.createArchitectureVersion("workshop", 1, "2.0.0", "{\"nodes\":[]}");
+
+        verify(architectureStore).createArchitectureForVersion(captor.capture());
+        assertThat(captor.getValue().getName(), is("Conference Signup"));
+        assertThat(captor.getValue().getDescription(), is("A signup flow"));
     }
 
     @Test
