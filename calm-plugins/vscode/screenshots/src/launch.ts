@@ -4,7 +4,7 @@
 
 import { downloadAndUnzipVSCode } from '@vscode/test-electron'
 import { _electron as electron, type ElectronApplication, type Page } from 'playwright'
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -91,6 +91,9 @@ export async function launchVSCodeWithExtension(opts: LaunchOptions): Promise<La
         } catch {
             // best effort
         }
+        // mkdtempSync dirs are not auto-cleaned; remove them once the app is gone.
+        rmSync(userDataDir, { recursive: true, force: true })
+        rmSync(extensionsDir, { recursive: true, force: true })
     }
 
     return { app, window, cleanup }

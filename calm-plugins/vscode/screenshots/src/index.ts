@@ -5,7 +5,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { launchVSCodeWithExtension } from './launch.js'
+import { launchVSCodeWithExtension, PINNED_VSCODE_VERSION } from './launch.js'
 import { normaliseWorkbench } from './normalise.js'
 import { writePng, type ManifestEntry } from './shoot.js'
 import { shots, implementedShots } from './shots.js'
@@ -66,7 +66,7 @@ async function main() {
 
     const manifest: Manifest = {
         generatedAt: new Date().toISOString(),
-        vscodeVersion: (await import('./launch.js')).PINNED_VSCODE_VERSION,
+        vscodeVersion: PINNED_VSCODE_VERSION,
         shots: entries,
         skipped,
     }

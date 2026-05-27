@@ -63,9 +63,13 @@ export function writePng(filePath: string, png: Buffer): ManifestEntry {
 }
 
 // PNG dimensions are at fixed offsets in the IHDR chunk: bytes 16-19 = width,
-// 20-23 = height (big-endian). No need for a full PNG decoder.
+// 20-23 = height (big-endian). No need for a full PNG decoder. The full PNG
+// magic is 8 bytes starting with 0x89 'P' 'N' 'G'; we check the magic byte
+// and the ASCII signature together to match the smoke test's assertion.
 function readPngDimensions(png: Buffer): { width: number; height: number } {
-    if (png.length < 24 || png.toString('ascii', 1, 4) !== 'PNG') {
+    const isPng =
+        png.length >= 24 && png[0] === 0x89 && png.toString('ascii', 1, 4) === 'PNG'
+    if (!isPng) {
         throw new Error('Buffer is not a PNG')
     }
     const width = png.readUInt32BE(16)

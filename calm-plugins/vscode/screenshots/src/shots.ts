@@ -7,7 +7,7 @@
 //   TODO         — issue #2529 follow-up; entry stubbed so the structure is visible
 
 import type { Page } from 'playwright'
-import { runCommand, runCommandByTitle, resetForNextShot } from './normalise.js'
+import { runCommand, runCommandByTitle } from './normalise.js'
 import { captureFullWindow } from './shoot.js'
 
 export interface Shot {
@@ -61,9 +61,11 @@ export const shots: Shot[] = [
             await window.keyboard.press('ArrowRight')
             await window.waitForTimeout(300)
 
-            // Expand each visible group. We walk down with ArrowDown +
-            // ArrowRight; a closed leaf turns into a no-op, an open node
-            // just moves focus.
+            // Walk down the tree with ArrowDown + ArrowRight to expand each
+            // visible top-level group (Nodes, Relationships, Flows). Six
+            // iterations covers the group rows plus a couple of buffer steps
+            // for any future top-level entries; on a closed leaf ArrowRight
+            // is a no-op, on an already-expanded node it just moves focus.
             for (let i = 0; i < 6; i++) {
                 await window.keyboard.press('ArrowDown')
                 await window.keyboard.press('ArrowRight')
@@ -216,6 +218,3 @@ export const shots: Shot[] = [
 ]
 
 export const implementedShots = shots.filter((s) => s.implemented)
-
-// Re-export for symmetric imports in the orchestrator.
-export { resetForNextShot }

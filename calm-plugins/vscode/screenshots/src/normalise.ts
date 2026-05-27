@@ -21,16 +21,6 @@ export async function normaliseWorkbench(window: Page): Promise<void> {
     await window.waitForTimeout(300)
 }
 
-// Reset workbench between shots: close any open editors/panels that aren't part
-// of the next shot's setup. The orchestrator may override this for shots that
-// want to preserve state.
-export async function resetForNextShot(window: Page): Promise<void> {
-    await runCommand(window, 'workbench.action.closeAllEditors')
-    await runCommand(window, 'workbench.action.closePanel')
-    await runCommand(window, 'workbench.action.closeAuxiliaryBar')
-    await window.waitForTimeout(200)
-}
-
 export async function runCommand(window: Page, commandId: string): Promise<void> {
     // Open Command Palette
     await window.keyboard.press('Meta+Shift+P')
