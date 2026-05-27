@@ -33,8 +33,11 @@ async function main() {
 
     const entries: ManifestEntry[] = []
 
-    // Optional filter via SHOOT_ONLY=03-tree-search,08-hover to iterate one or
-    // a few shots without running the whole set. Useful while developing.
+    // Optional filter via SHOOT_ONLY=03-tree-search,04-preview-hero to
+    // iterate one or a few shots without running the whole set. Useful while
+    // developing. Names not in `implementedShots` (i.e. `implemented: false`)
+    // are still ignored — the filter narrows the implemented set, it doesn't
+    // bypass the implementation flag.
     const onlyEnv = process.env.SHOOT_ONLY?.trim()
     const allowed = onlyEnv ? new Set(onlyEnv.split(',').map((s) => s.trim())) : null
     const todoShots = shots.filter((s) => !s.implemented && (!allowed || allowed.has(s.name)))

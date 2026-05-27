@@ -88,15 +88,11 @@ The preview has three tabs at the top:
 
 The preview's colour palette is controlled by the `calm.docify.theme` setting. Four explicit themes are available, plus `auto` which follows your VS Code colour theme.
 
-<div className="vscode-extension-theme-gallery">
-
 | Light | Dark |
 | --- | --- |
 | ![Preview rendered with the light theme](/img/vscode/05-theme-light.png) | ![Preview rendered with the dark theme](/img/vscode/05-theme-dark.png) |
 | **High Contrast Light** | **High Contrast Dark** |
 | ![Preview rendered with the high-contrast light theme](/img/vscode/05-theme-hc-light.png) | ![Preview rendered with the high-contrast dark theme](/img/vscode/05-theme-hc-dark.png) |
-
-</div>
 
 Configure in `settings.json`:
 
@@ -256,5 +252,5 @@ Each file in those folders is indexed by its `$id`. Reference the `$id` from you
 
 - **Issues & feature requests:** [github.com/finos/architecture-as-code/issues](https://github.com/finos/architecture-as-code/issues)
 - **Source:** [calm-plugins/vscode](https://github.com/finos/architecture-as-code/tree/main/calm-plugins/vscode)
-- **Beginner walkthrough:** [Install the CALM VSCode Extension](../tutorials/beginner/04-vscode-extension)
+- **Beginner walkthrough:** [Install the CALM VS Code Extension](../tutorials/beginner/04-vscode-extension)
 - **CLI equivalent:** [`calm` CLI](cli) for batch use outside the editor

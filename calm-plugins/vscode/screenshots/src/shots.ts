@@ -27,6 +27,11 @@ export interface Shot {
 // Wait for a Mermaid-rendered diagram inside the preview's inner webview frame
 // to settle. The preview emits no event we can hook, so we poll for the
 // presence of node-shaped elements and then settle.
+//
+// NOTE: on timeout we log a warning and return rather than throwing — the
+// caller's screenshot will still run, producing whatever the preview managed
+// to render. This means a regression in the preview can silently produce a
+// degraded PNG; manual review of the PR diff remains the gate for catching it.
 async function waitForDiagramRendered(window: Page, timeoutMs = 10_000): Promise<void> {
     const deadline = Date.now() + timeoutMs
     while (Date.now() < deadline) {
@@ -265,6 +270,10 @@ export const shots: Shot[] = [
     // the chord doesn't fire the tooltip via Playwright's keyboard.press
     // sequence in this VSCode build. Left as a TODO follow-up — the docs
     // section can describe hover without a screenshot.
+    //
+    // The setup body below is retained as scaffolding for whoever picks up
+    // this TODO: cursor lands on the right token; only the show-hover trigger
+    // is unsolved. Toggle `implemented: true` once that's fixed.
     {
         name: '08-hover',
         fixture: 'three-tier',
