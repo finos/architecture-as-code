@@ -44,11 +44,13 @@ The output lands directly in `docs/static/img/vscode/<name>.png`, alongside `doc
 ## Adding a new shot
 
 1. Add a fixture under `fixtures/` if an existing one doesn't fit your case.
-2. Append an entry to `src/shots.ts`:
+2. Append an entry to `src/shots.ts` — the `Shot` interface requires `name`, `fixture`, `description`, `implemented`, `setup`, and `capture`:
    ```ts
    {
        name: '11-my-new-shot',
        fixture: 'three-tier',
+       description: 'Short caption hint shown in the docs page.',
+       implemented: true,
        async setup(window) {
            // Whatever the shot needs: open command, expand tree, hover, etc.
        },

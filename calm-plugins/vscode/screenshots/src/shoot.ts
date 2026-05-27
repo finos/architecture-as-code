@@ -38,11 +38,16 @@ export async function captureCropped(window: Page, opts: CaptureOptions): Promis
     }
 
     const pad = opts.cropPadding ?? 0
+    const x = Math.max(0, Math.floor(box.x - pad))
+    const y = Math.max(0, Math.floor(box.y - pad))
     const clip = {
-        x: Math.max(0, Math.floor(box.x - pad)),
-        y: Math.max(0, Math.floor(box.y - pad)),
-        width: Math.min(DEFAULT_VIEWPORT.width, Math.ceil(box.width + pad * 2)),
-        height: Math.min(DEFAULT_VIEWPORT.height, Math.ceil(box.height + pad * 2)),
+        x,
+        y,
+        // Clamp the clip extent to what remains of the viewport from the
+        // origin — clamping width to DEFAULT_VIEWPORT.width alone allows
+        // x + width to exceed the viewport when x > 0.
+        width: Math.min(DEFAULT_VIEWPORT.width - x, Math.ceil(box.width + pad * 2)),
+        height: Math.min(DEFAULT_VIEWPORT.height - y, Math.ceil(box.height + pad * 2)),
     }
 
     return await window.screenshot({ type: 'png', clip })

@@ -57,6 +57,8 @@ Each shot in `src/shots.ts` is a declarative object:
 {
     name: '04-preview-hero',          // becomes 04-preview-hero.png
     fixture: 'three-tier',            // fixtures/three-tier/ opens as the workspace
+    description: 'Live preview …',    // caption hint surfaced in the docs page
+    implemented: true,                // false to scaffold a TODO entry
     async setup(window) {
         // Drive the UI into the state we want to capture.
         // Examples: Cmd+Shift+P to open Command Palette, type a command, press Enter.
@@ -76,7 +78,7 @@ The orchestrator handles: opening the fixture, calling `setup`, waiting for rend
 
 ### Add a shot
 1. If no existing fixture fits, add one under `fixtures/<name>/architecture.json` (and any other files VSCode needs to open it).
-2. Append an entry to `src/shots.ts` with the four required fields.
+2. Append an entry to `src/shots.ts` with all six required `Shot` fields (`name`, `fixture`, `description`, `implemented`, `setup`, `capture`).
 3. Run `npm run shoot` and inspect the resulting PNG in `docs/static/img/vscode/`.
 4. Commit the PNG, the updated `_manifest.json`, and (if added) the fixture.
 

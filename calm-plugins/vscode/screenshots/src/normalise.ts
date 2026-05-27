@@ -23,7 +23,7 @@ export async function normaliseWorkbench(window: Page): Promise<void> {
 
 export async function runCommand(window: Page, commandId: string): Promise<void> {
     // Open Command Palette
-    await window.keyboard.press('Meta+Shift+P')
+    await window.keyboard.press('ControlOrMeta+Shift+P')
     await window.waitForSelector('.quick-input-widget', { timeout: 5_000 })
 
     // The palette opens with `>` prefix already. Type the command ID — VSCode
@@ -40,7 +40,7 @@ export async function runCommand(window: Page, commandId: string): Promise<void>
 // command ID. Use when the command ID isn't known or the title-cased label is
 // more reliable.
 export async function runCommandByTitle(window: Page, title: string): Promise<void> {
-    await window.keyboard.press('Meta+Shift+P')
+    await window.keyboard.press('ControlOrMeta+Shift+P')
     await window.waitForSelector('.quick-input-widget', { timeout: 5_000 })
     await window.keyboard.type(title)
     await window.waitForTimeout(300)
