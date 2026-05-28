@@ -29,8 +29,12 @@ public class DecoratorTools {
     private static final Logger logger = LoggerFactory.getLogger(DecoratorTools.class);
 
     @Inject
-    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
+    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "false")
     boolean mcpEnabled;
+
+    @Inject
+    @ConfigProperty(name = "allow.put.operations", defaultValue = "false")
+    boolean allowPutOperations;
 
     @Inject
     DecoratorStore decoratorStore;
@@ -111,6 +115,7 @@ public class DecoratorTools {
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> McpValidationHelper.validateNotBlank(decoratorJson, "Decorator JSON"),
+                () -> McpValidationHelper.validateMaxLength(decoratorJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Decorator JSON"),
                 () -> McpValidationHelper.validateJson(decoratorJson, "Decorator JSON"));
         if (err.isPresent()) return err.get();
 
@@ -132,9 +137,11 @@ public class DecoratorTools {
             @ToolArg(description = "The updated decorator JSON payload") String decoratorJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
+                () -> McpValidationHelper.checkMutationAllowed(allowPutOperations),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> McpValidationHelper.validatePositiveId(decoratorId, "Decorator ID"),
                 () -> McpValidationHelper.validateNotBlank(decoratorJson, "Decorator JSON"),
+                () -> McpValidationHelper.validateMaxLength(decoratorJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Decorator JSON"),
                 () -> McpValidationHelper.validateJson(decoratorJson, "Decorator JSON"));
         if (err.isPresent()) return err.get();
 

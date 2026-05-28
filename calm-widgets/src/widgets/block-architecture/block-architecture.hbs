@@ -14,10 +14,10 @@ flowchart TB
     {{#if ../renderNodeTypeShapes}}
     {{> typed-node.hbs}}
     {{else}}
-    {{{mermaidId id}}}["{{label}}"]:::node
+    {{{mermaidId id}}}["{{{mermaidText label}}}"]:::node
     {{/if}}
     {{#each interfaces}}
-        {{{mermaidId id}}}["{{label}}"]:::iface
+        {{{mermaidId id}}}["{{{mermaidText label}}}"]:::iface
     {{/each}}
 {{/each}}
 

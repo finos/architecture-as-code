@@ -22,6 +22,27 @@ describe('SectionHeader', () => {
         expect(heading).toHaveTextContent('1.0.0');
     });
 
+    it('shows the display name and type label in place of the id when provided', () => {
+        render(
+            <SectionHeader
+                icon={<span>Icon</span>}
+                namespace="my-namespace"
+                id="42"
+                version="1.0.0"
+                showVersion={false}
+                typeLabel="Architecture"
+                displayName="Trading System"
+            />
+        );
+
+        const heading = screen.getByRole('heading');
+        expect(heading).toHaveTextContent('my-namespace');
+        expect(heading).toHaveTextContent('Architecture');
+        expect(heading).toHaveTextContent('Trading System');
+        // The numeric id is no longer shown as the label (kept as a tooltip).
+        expect(heading).not.toHaveTextContent('42');
+    });
+
     it('renders right content when provided', () => {
         const icon = <span>Icon</span>;
         const rightContent = <div data-testid="right-content">Right Content</div>;

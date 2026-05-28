@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * MCP tool provider for control requirement resources. Exposes read operations
@@ -31,7 +32,7 @@ public class ControlTools {
     private static final Logger logger = LoggerFactory.getLogger(ControlTools.class);
 
     @Inject
-    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
+    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "false")
     boolean mcpEnabled;
 
     @Inject
@@ -48,21 +49,10 @@ public class ControlTools {
 
         try {
             List<ControlDetail> controls = controlStore.getControlsForDomain(domain);
-            if (controls.isEmpty()) {
-                return ToolResponse.success("No controls found in domain '" + domain + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("Controls in domain '").append(domain).append("':\n");
-            for (ControlDetail control : controls) {
-                sb.append("- ID: ").append(control.getId());
-                if (control.getName() != null) {
-                    sb.append(", Name: ").append(control.getName());
-                }
-                if (control.getDescription() != null) {
-                    sb.append(", Description: ").append(control.getDescription());
-                }
-                sb.append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            List<McpResponseFormatter.ResourceSummary> summaries = controls.stream()
+                    .map(c -> new McpResponseFormatter.ResourceSummary(c.getId(), c.getName(), c.getDescription()))
+                    .collect(Collectors.toList());
+            return McpResponseFormatter.formatResourceList("control", "domain", domain, summaries);
         } catch (DomainNotFoundException e) {
             logger.warn("Domain not found [{}]", domain, e);
             return ToolResponse.error("Error: Domain '" + domain + "' not found.");
@@ -109,14 +99,7 @@ public class ControlTools {
 
         try {
             List<String> versions = controlStore.getRequirementVersions(domain, controlId);
-            if (versions.isEmpty()) {
-                return ToolResponse.success("No versions found for control " + controlId + " in domain '" + domain + "'.");
-            }
-            StringBuilder sb = new StringBuilder().append("Versions for control ").append(controlId).append(":\n");
-            for (String version : versions) {
-                sb.append("- ").append(version).append("\n");
-            }
-            return ToolResponse.success(sb.toString());
+            return McpResponseFormatter.formatVersionList("control", controlId, "domain", domain, versions);
         } catch (DomainNotFoundException e) {
             logger.warn("Domain not found [{}]", domain, e);
             return ToolResponse.error("Error: Domain '" + domain + "' not found.");

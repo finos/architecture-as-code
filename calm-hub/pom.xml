@@ -185,6 +185,47 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            <!-- Read the Node and npm versions from the repo's existing source of truth
+                 (.nvmrc and package.json's packageManager) so calm-hub's CI build stays
+                 aligned with local dev without manual sync. frontend-maven-plugin doesn't
+                 natively support reading a version file, so we load both via antrun into
+                 Maven properties and reference them below. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>read-node-versions</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <exportAntProperties>true</exportAntProperties>
+                            <target>
+                                <loadfile property="node.version.raw" srcFile="${project.basedir}/../.nvmrc">
+                                    <filterchain>
+                                        <striplinebreaks/>
+                                    </filterchain>
+                                </loadfile>
+                                <property name="node.version" value="v${node.version.raw}"/>
+                                <loadfile property="npm.version" srcFile="${project.basedir}/../package.json">
+                                    <filterchain>
+                                        <linecontainsregexp>
+                                            <regexp pattern='"packageManager"'/>
+                                        </linecontainsregexp>
+                                        <tokenfilter>
+                                            <replaceregex pattern='.*"packageManager"\s*:\s*"npm@([^"]+)".*' replace="\1"/>
+                                        </tokenfilter>
+                                        <striplinebreaks/>
+                                    </filterchain>
+                                </loadfile>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
@@ -200,8 +241,8 @@
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <nodeVersion>v22.15.0</nodeVersion>
-                            <npmVersion>11.3.0</npmVersion>
+                            <nodeVersion>${node.version}</nodeVersion>
+                            <npmVersion>${npm.version}</npmVersion>
                         </configuration>
                     </execution>
                     <execution>
@@ -356,6 +397,29 @@
                             <includes>
                                 <include>**/*Integration.java</include>
                             </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- Standalone profile: activates NitriteDB dev mode via the quarkus-maven-plugin
+             systemProperties so the quarkus.profile=standalone property is reliably forwarded
+             to the Quarkus dev JVM (plain -Dquarkus.profile=standalone on the Maven CLI is
+             not propagated into the forked dev process). -->
+        <profile>
+            <id>standalone</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.quarkus</groupId>
+                        <artifactId>quarkus-maven-plugin</artifactId>
+                        <configuration>
+                            <systemProperties>
+                                <quarkus.profile>standalone</quarkus.profile>
+                            </systemProperties>
                         </configuration>
                     </plugin>
                 </plugins>

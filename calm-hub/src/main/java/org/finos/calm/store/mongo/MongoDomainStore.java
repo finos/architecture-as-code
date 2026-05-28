@@ -13,6 +13,7 @@ import org.finos.calm.store.DomainStore;
 
 import java.util.ArrayList;
 import java.util.List;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link DomainStore}.
@@ -27,6 +28,7 @@ import java.util.List;
  * @see org.finos.calm.store.nitrite.NitriteDomainStore NitriteDomainStore for the standalone
  *      ReentrantLock-based approach
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoDomainStore.class)
 public class MongoDomainStore implements DomainStore {

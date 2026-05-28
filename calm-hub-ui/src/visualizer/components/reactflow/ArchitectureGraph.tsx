@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
     Node,
     Background,
@@ -7,8 +7,10 @@ import ReactFlow, {
     Panel,
     useNodesState,
     useEdgesState,
+    type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
 import { SystemGroupNode } from './SystemGroupNode.js';
@@ -24,7 +26,14 @@ const edgeTypes = { custom: FloatingEdge };
 const nodeTypes = { custom: CustomNode, group: SystemGroupNode };
 const GROUP_NODE_TYPES = ['group'];
 
-export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: ArchitectureGraphProps) {
+export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewportKey }: ArchitectureGraphProps) {
+    // Restore the saved viewport for this diagram (so a refresh keeps the zoom/pan);
+    // a different diagram has no saved viewport for its key, so it fits to view.
+    const savedViewport = useMemo<Viewport | undefined>(
+        () => (viewportKey ? readViewportForKey(viewportKey) : undefined),
+        [viewportKey]
+    );
+
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -91,6 +100,9 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
     return (
         <div style={{ height: '100%', width: '100%' }}>
             <ReactFlow
+                // Remount when the diagram (resource) changes so a new architecture fits
+                // afresh; switching versions/moments keeps the same key and preserves the view.
+                key={viewportKey}
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
@@ -101,8 +113,13 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
                 onNodeMouseEnter={handleNodeMouseEnter}
                 onNodeMouseLeave={handleNodeMouseLeave}
                 onEdgeClick={handleEdgeClick}
-                fitView
+                onMove={(_, viewport) => {
+                    if (viewportKey) saveViewportForKey(viewportKey, viewport);
+                }}
+                fitView={!savedViewport}
+                defaultViewport={savedViewport}
                 fitViewOptions={{ padding: 0.2 }}
+                minZoom={0.1}
                 attributionPosition="bottom-left"
                 style={{ background: THEME.colors.background }}
             >

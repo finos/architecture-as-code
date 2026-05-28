@@ -48,14 +48,11 @@ const sidebars = {
       label: 'Working with CALM',
       link: {type: 'doc', id: 'working-with-calm/working-with-calm-index'},
       items: [
-        'working-with-calm/installation',
-        'working-with-calm/using-the-cli',
-        'working-with-calm/generate',
-        'working-with-calm/validate',
-        'working-with-calm/docify',
-        'working-with-calm/hub',
-        'working-with-calm/validation-server',
+        'working-with-calm/calm-hub',
+        'working-with-calm/vscode-extension',
         'working-with-calm/calm-ai-tools',
+        'working-with-calm/cli',
+        'working-with-calm/validation-server',
         'working-with-calm/voice-mode'
       ],
     },
@@ -105,6 +102,14 @@ const sidebars = {
         },
         {
           type: 'category',
+          label: '🟠 Advanced',
+          link: {type: 'doc', id: 'tutorials/advanced/advanced-tutorials'},
+          items: [
+            'tutorials/advanced/architecture-discovery-skill-tutorial',
+          ],
+        },
+        {
+          type: 'category',
           label: '🛠️ Practitioner',
           link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
           items: [
@@ -132,6 +137,11 @@ const sidebars = {
       type: 'category',
       label: 'User Guide',
       items: ['calm-studio/user-guide/architecture-overview'],
+    },
+    {
+      type: 'category',
+      label: 'Guides',
+      items: ['calm-studio/guides/convert-arb-to-calm'],
     },
     {
       type: 'category',

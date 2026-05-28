@@ -2,9 +2,16 @@ package org.finos.calm.resources;
 
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Pattern;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
@@ -18,6 +25,7 @@ import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.ArchitectureTimelineService;
 import org.finos.calm.store.ArchitectureStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +33,10 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.finos.calm.resources.ResourceValidationConstants.*;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 
 /**
@@ -36,6 +47,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 public class ArchitectureResource {
 
     private final ArchitectureStore store;
+    private final ArchitectureTimelineService timelineService;
 
     private final Logger logger = LoggerFactory.getLogger(ArchitectureResource.class);
 
@@ -43,8 +55,9 @@ public class ArchitectureResource {
     Boolean allowPutOperations;
 
     @Inject
-    public ArchitectureResource(ArchitectureStore store) {
+    public ArchitectureResource(ArchitectureStore store, ArchitectureTimelineService timelineService) {
         this.store = store;
+        this.timelineService = timelineService;
     }
 
     /**
@@ -238,6 +251,34 @@ public class ArchitectureResource {
         }
 
 
+    }
+
+    @GET
+    @Path("{namespace}/architectures/{architectureId}/timeline")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Retrieve a timeline for a given architecture",
+            description = "Returns the CALM timeline for an architecture. If an explicit timeline is linked to the "
+                    + "architecture it is returned; otherwise an implied timeline projecting the architecture's "
+                    + "version history is returned."
+    )
+    @PermissionsAllowed(CalmHubScopes.READ)
+    public Response getArchitectureTimeline(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("architectureId") int architectureId
+    ) {
+        try {
+            return Response.ok(timelineService.getTimelineForArchitecture(namespace, architectureId)).build();
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when retrieving architecture timeline", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (ArchitectureNotFoundException e) {
+            logger.error("Invalid architecture [{}] when retrieving architecture timeline", architectureId, e);
+            return invalidArchitectureResponse(architectureId);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialise timeline for architecture [{}] in namespace [{}]", architectureId, namespace, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Failed to build timeline for architecture: " + architectureId).build();
+        }
     }
 
     private Response architectureWithLocationResponse(Architecture architecture) throws URISyntaxException {

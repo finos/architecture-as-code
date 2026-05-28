@@ -27,7 +27,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
-import static org.finos.calm.resources.ResourceValidationConstants.*;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 @Path("/calm/namespaces")
 public class FlowResource {
@@ -189,17 +193,23 @@ public class FlowResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @PermissionsAllowed(CalmHubScopes.WRITE)
+    @Operation(
+            summary = "Create a new version of an existing flow",
+            description = "Stores a new version of the flow under the supplied {version}. The request body is an envelope containing `name`, optional `description`, and the inner `flowJson` document; only the inner document is persisted as the version contents."
+    )
     public Response createVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
-            String flowJson
+            @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
                 .setVersion(version)
-                .setFlow(flowJson)
+                .setName(flowRequest.getName())
+                .setDescription(flowRequest.getDescription())
+                .setFlow(flowRequest.getFlowJson())
                 .build();
 
         try {
@@ -223,20 +233,22 @@ public class FlowResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Updates a Flow (if available)",
-            description = "In mutable version stores flow updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
+            description = "In mutable version stores flow updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified. The request body uses the same envelope as POST."
     )
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)  String version,
-            String flowJson
+            @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
                 .setVersion(version)
-                .setFlow(flowJson)
+                .setName(flowRequest.getName())
+                .setDescription(flowRequest.getDescription())
+                .setFlow(flowRequest.getFlowJson())
                 .build();
 
         if (!allowPutOperations) {

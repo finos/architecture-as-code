@@ -1,0 +1,32 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "unique-id": "docify-demo",
+    "name": "Docify Demo",
+    "description": "Small architecture used by the docify-template fixture to demonstrate live documentation generation.",
+    "nodes": [
+        {
+            "unique-id": "client",
+            "node-type": "webclient",
+            "name": "Client",
+            "description": "A web client."
+        },
+        {
+            "unique-id": "service",
+            "node-type": "service",
+            "name": "Service",
+            "description": "A backend service."
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "client-to-service",
+            "description": "Calls",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "client" },
+                    "destination": { "node": "service" }
+                }
+            }
+        }
+    ]
+}

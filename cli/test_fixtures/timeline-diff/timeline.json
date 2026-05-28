@@ -1,0 +1,24 @@
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+  "current-moment": "moment-v2",
+  "moments": [
+    {
+      "unique-id": "moment-v1",
+      "node-type": "moment",
+      "name": "Version 1",
+      "description": "Two services connected",
+      "details": {
+        "detailed-architecture": "arch-v1.json"
+      }
+    },
+    {
+      "unique-id": "moment-v2",
+      "node-type": "moment",
+      "name": "Version 2",
+      "description": "A third service added",
+      "details": {
+        "detailed-architecture": "arch-v2.json"
+      }
+    }
+  ]
+}

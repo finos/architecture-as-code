@@ -8,6 +8,21 @@ export {
 export { OutputFormat, ValidateOutputFormat } from './commands/validate/validate.js';
 export { runGenerate } from './commands/generate/generate.js';
 export {
+    runDiff,
+    formatDiff,
+    detectDocumentType,
+    hasChanges as diffHasChanges,
+    runTimelineDiff,
+    createFileSystemArchitectureResolver,
+    type DiffOutputFormat,
+    type DiffDocumentType,
+    type DiffRunOptions,
+    type DiffRunResult,
+    type TimelineDiffRunOptions,
+    type TimelineDiffRunResult,
+} from './commands/diff/diff.js';
+export type { ArchitectureResolver, MomentDiff } from '@finos/calm-models/diff';
+export {
     extractOptions,
     selectChoices,
     CalmChoice,
@@ -51,8 +66,15 @@ export {
     HubClientError,
     type HubNamespaceSummary,
     type HubArchitectureSummary,
+    type HubPatternSummary,
+    type HubStandardSummary,
     type HubCreateResult,
-    type HubNamespaceCreateResult
+    type HubNamespaceCreateResult,
+    type HubDomainCreateResult,
+    type HubDomainSummary,
+    type HubControlSummary,
+    type HubControlRequirementSummary,
+    type CalmHubOptions
 } from './hub/calm-hub-client.js';
 export {
     enrichWithDocumentPositions,

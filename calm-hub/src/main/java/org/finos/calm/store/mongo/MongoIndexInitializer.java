@@ -2,6 +2,7 @@ package org.finos.calm.store.mongo;
 
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -54,6 +55,7 @@ import org.slf4j.LoggerFactory;
  * @see MongoDomainStore
  * @see MongoArchitectureStore
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 public class MongoIndexInitializer {
 
@@ -113,7 +115,7 @@ public class MongoIndexInitializer {
             LOG.info("Ensured unique index on schemas.version");
 
             // Namespace-scoped collections — one document per namespace
-            for (String collection : new String[]{"architectures", "patterns", "flows", "standards", "interfaces"}) {
+            for (String collection : new String[]{"architectures", "patterns", "flows", "timelines", "standards", "interfaces"}) {
                 database.getCollection(collection)
                         .createIndex(new Document("namespace", 1), uniqueIndex);
                 LOG.info("Ensured unique index on {}.namespace", collection);

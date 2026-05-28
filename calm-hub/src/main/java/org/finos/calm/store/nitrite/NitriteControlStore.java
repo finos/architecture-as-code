@@ -28,11 +28,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * Implementation of the ControlStore interface using NitriteDB.
  * This implementation is used when the application is running in standalone mode.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 @Typed(NitriteControlStore.class)
 public class NitriteControlStore implements ControlStore {
@@ -89,39 +91,42 @@ public class NitriteControlStore implements ControlStore {
         try {
             int controlId = counterStore.getNextControlSequenceValue();
 
-        Document requirementVersions = Document.createDocument()
-                .put("1-0-0", request.getRequirementJson());
+            String name = request.getName();
+            String description = request.getDescription();
 
-        Document controlDoc = Document.createDocument()
-                .put(CONTROL_ID_FIELD, controlId)
-                .put("name", request.getName())
-                .put("description", request.getDescription())
-                .put(REQUIREMENT_FIELD, requirementVersions)
-                .put(CONFIGURATIONS_FIELD, new ArrayList<>());
+            Document requirementVersions = Document.createDocument()
+                    .put("1-0-0", request.getRequirementJson());
 
-        Document existingDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+            Document controlDoc = Document.createDocument()
+                    .put(CONTROL_ID_FIELD, controlId)
+                    .put("name", name)
+                    .put("description", description)
+                    .put(REQUIREMENT_FIELD, requirementVersions)
+                    .put(CONFIGURATIONS_FIELD, new ArrayList<>());
 
-        if (existingDoc == null) {
-            List<Document> controls = new ArrayList<>();
-            controls.add(controlDoc);
-            Document newDoc = Document.createDocument()
-                    .put(DOMAIN_FIELD, domain)
-                    .put(CONTROLS_FIELD, controls);
-            controlCollection.insert(newDoc);
-        } else {
-            @SuppressWarnings("unchecked")
-            List<Document> controls = (List<Document>) existingDoc.get(CONTROLS_FIELD);
-            if (controls == null) {
-                controls = new ArrayList<>();
+            Document existingDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+
+            if (existingDoc == null) {
+                List<Document> controls = new ArrayList<>();
+                controls.add(controlDoc);
+                Document newDoc = Document.createDocument()
+                        .put(DOMAIN_FIELD, domain)
+                        .put(CONTROLS_FIELD, controls);
+                controlCollection.insert(newDoc);
             } else {
-                controls = new ArrayList<>(controls);
+                @SuppressWarnings("unchecked")
+                List<Document> controls = (List<Document>) existingDoc.get(CONTROLS_FIELD);
+                if (controls == null) {
+                    controls = new ArrayList<>();
+                } else {
+                    controls = new ArrayList<>(controls);
+                }
+                controls.add(controlDoc);
+                existingDoc.put(CONTROLS_FIELD, controls);
+                controlCollection.update(where(DOMAIN_FIELD).eq(domain), existingDoc);
             }
-            controls.add(controlDoc);
-            existingDoc.put(CONTROLS_FIELD, controls);
-            controlCollection.update(where(DOMAIN_FIELD).eq(domain), existingDoc);
-        }
 
-            return new ControlDetail(controlId, request.getName(), request.getDescription());
+            return new ControlDetail(controlId, name, description);
         } finally {
             lock.unlock();
         }
@@ -212,7 +217,7 @@ public class NitriteControlStore implements ControlStore {
     }
 
     @Override
-    public void createRequirementForVersion(String domain, int controlId, String version, String requirementJson) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
+    public void createRequirementForVersion(String domain, int controlId, String version, CreateControlRequirement request) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
         lock.lock();
         try {
             validateDomain(domain);
@@ -230,7 +235,16 @@ public class NitriteControlStore implements ControlStore {
                 requirement = Document.createDocument();
                 controlDoc.put(REQUIREMENT_FIELD, requirement);
             }
-            requirement.put(nitriteVersion, requirementJson);
+            requirement.put(nitriteVersion, request.getRequirementJson());
+
+            // Defensive: the REST layer enforces @NotBlank on name/description via CreateControlRequirement,
+            // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+            if (request.getName() != null && !request.getName().isBlank()) {
+                controlDoc.put("name", request.getName());
+            }
+            if (request.getDescription() != null && !request.getDescription().isBlank()) {
+                controlDoc.put("description", request.getDescription());
+            }
 
             controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
         } finally {
@@ -272,7 +286,7 @@ public class NitriteControlStore implements ControlStore {
     }
 
     @Override
-    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, String configurationJson) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
+    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, CreateControlConfiguration request) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
         lock.lock();
         try {
             validateDomain(domain);
@@ -291,7 +305,7 @@ public class NitriteControlStore implements ControlStore {
                 versions = Document.createDocument();
                 configDoc.put(VERSIONS_FIELD, versions);
             }
-            versions.put(nitriteVersion, configurationJson);
+            versions.put(nitriteVersion, request.getConfigurationJson());
 
             controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
         } finally {

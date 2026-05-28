@@ -293,7 +293,7 @@ public class TestPatternResourceShould {
         given()
                 .when()
                 .header("Content-Type", "application/json")
-                .body("{ \"test\": \"json\" }")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                 .post("/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
@@ -305,11 +305,22 @@ public class TestPatternResourceShould {
         given()
                 .when()
                 .header("Content-Type", "application/json")
-                .body("{ \"test\": \"json\" }")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                 .post("/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_envelope_patternJson_is_missing_on_create_new_pattern_version() {
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body("{\"name\":\"n\",\"description\":\"d\"}")
+                .post("/calm/namespaces/finos/patterns/20/versions/1.0.1")
+                .then()
+                .statusCode(400);
     }
 
     static Stream<Arguments> provideParametersForCreatePatternTests() {
@@ -331,6 +342,8 @@ public class TestPatternResourceShould {
                 .setId(20)
                 .build();
 
+        String envelopeBody = "{\"name\":\"my-pattern\",\"description\":\"desc\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}";
+
         if (exceptionToThrow != null) {
             when(mockPatternStore.createPatternForVersion(expectedPattern)).thenThrow(exceptionToThrow);
         } else {
@@ -340,7 +353,7 @@ public class TestPatternResourceShould {
         if(expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedPattern.getPatternJson())
+                    .body(envelopeBody)
                     .when()
                     .post("/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
@@ -350,7 +363,7 @@ public class TestPatternResourceShould {
         } else {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedPattern.getPatternJson())
+                    .body(envelopeBody)
                     .when()
                     .post("/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
@@ -364,7 +377,7 @@ public class TestPatternResourceShould {
     void return_forbidden_for_put_operations_on_patterns_by_default_and_when_configured() {
         given()
                 .header("Content-Type", "application/json")
-                .body("{ \"test\": \"json\" }")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                 .when()
                 .put("/calm/namespaces/test/patterns/20/versions/1.0.1")
                 .then()

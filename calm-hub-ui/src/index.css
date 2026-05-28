@@ -3,6 +3,16 @@
     themes: light --default;
 }
 
+/* Fonts for the timeline / diff UI, exposed via --font-* so Tailwind v4
+ * generates `font-inter` and `font-mono-jb` utility classes without overriding
+ * the global default sans. */
+@theme {
+    --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, blinkmacsystemfont,
+        'Segoe UI', roboto, sans-serif;
+    --font-mono-jb: 'JetBrains Mono', ui-monospace, sfmono-regular, menlo, monaco, consolas,
+        'Liberation Mono', 'Courier New', monospace;
+}
+
 /*
  * Brand colors (--color-primary, --color-accent, --color-accent-light)
  * are set at runtime from src/theme/colors.ts via initThemeCssVars().

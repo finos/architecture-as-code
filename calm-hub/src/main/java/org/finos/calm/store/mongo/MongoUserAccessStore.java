@@ -15,7 +15,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoUserAccessStore.class)
 public class MongoUserAccessStore implements UserAccessStore {

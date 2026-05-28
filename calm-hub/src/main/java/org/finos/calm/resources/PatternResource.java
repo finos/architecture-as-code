@@ -25,7 +25,11 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.finos.calm.resources.ResourceValidationConstants.*;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 @Path("/calm/namespaces")
 public class PatternResource {
@@ -151,18 +155,24 @@ public class PatternResource {
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Create a new version of an existing pattern",
+            description = "Stores a new version of the pattern under the supplied {version}. The request body is an envelope containing the wrapper-level `name`, optional `description`, and the inner CALM `patternJson` document; only the inner document is persisted as the version contents, and the wrapper-level name/description used by the pattern listing endpoint are taken directly from the envelope fields."
+    )
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createVersionedPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId,
             @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
-            String patternJson
+            @Valid @NotNull(message = "Request must not be null") CreatePatternRequest patternRequest
     ) throws URISyntaxException {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
                 .setId(patternId)
                 .setVersion(version)
-                .setPattern(patternJson)
+                .setName(patternRequest.getName())
+                .setDescription(patternRequest.getDescription())
+                .setPattern(patternRequest.getPatternJson())
                 .build();
 
         try {
@@ -186,20 +196,22 @@ public class PatternResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Updates a Pattern (if available)",
-            description = "In mutable version stores pattern updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
+            description = "In mutable version stores pattern updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified. The request body is the same envelope used by POST: only the inner `patternJson` is persisted as the new version contents, and the wrapper-level `name`/`description` shown by the listing endpoint are taken from the envelope fields."
     )
     @PermissionsAllowed({CalmHubScopes.WRITE})
     public Response updateVersionedPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId,
             @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
-            String patternJson
+            @Valid @NotNull(message = "Request must not be null") CreatePatternRequest patternRequest
     ) throws URISyntaxException {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
                 .setId(patternId)
                 .setVersion(version)
-                .setPattern(patternJson)
+                .setName(patternRequest.getName())
+                .setDescription(patternRequest.getDescription())
+                .setPattern(patternRequest.getPatternJson())
                 .build();
 
         if (!allowPutOperations) {

@@ -28,7 +28,7 @@ public class NamespaceTools {
     private static final Logger logger = LoggerFactory.getLogger(NamespaceTools.class);
 
     @Inject
-    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
+    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "false")
     boolean mcpEnabled;
 
     @Inject
@@ -63,7 +63,7 @@ public class NamespaceTools {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(name),
-                () -> description != null ? McpValidationHelper.validateDescriptionLength(description, "Description") : null);
+                () -> McpValidationHelper.validateDescriptionLength(description, "Description"));
         if (err.isPresent()) return err.get();
 
         try {

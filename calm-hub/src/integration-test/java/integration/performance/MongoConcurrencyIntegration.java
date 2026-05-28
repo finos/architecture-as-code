@@ -386,7 +386,7 @@ public class MongoConcurrencyIntegration {
         ConcurrencyResult<Response> result = runConcurrently(THREADS, new java.util.concurrent.atomic.AtomicInteger(0), (index) ->
                 given()
                         .contentType(ContentType.JSON)
-                        .body("{\"v\": \"" + (index + 2) + ".0.0\"}")
+                        .body("{\"name\":\"version-test-pattern\",\"description\":\"for version concurrency test\",\"patternJson\":\"{\\\"v\\\": \\\"" + (index + 2) + ".0.0\\\"}\"}")
                         .when().post("/calm/namespaces/finos/patterns/" + patternId + "/versions/" + (index + 2) + ".0.0")
                         .thenReturn()
         );
@@ -422,7 +422,7 @@ public class MongoConcurrencyIntegration {
         ConcurrencyResult<Response> result = runConcurrently(THREADS, new java.util.concurrent.atomic.AtomicInteger(0), (index) ->
                 given()
                         .contentType(ContentType.JSON)
-                        .body("{\"type\": \"requirement-v" + (index + 2) + "\"}")
+                        .body("{\"name\":\"version-test-control\",\"description\":\"for version concurrency test\",\"requirementJson\":\"{\\\"type\\\": \\\"requirement-v" + (index + 2) + "\\\"}\"}")
                         .when().post("/calm/domains/security/controls/" + controlId + "/requirement/versions/" + (index + 2) + ".0.0")
                         .thenReturn()
         );

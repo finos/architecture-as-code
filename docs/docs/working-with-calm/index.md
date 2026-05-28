@@ -10,13 +10,10 @@ This section will guide you through the practical aspects of using CALM to defin
 
 Explore the topics below to get hands-on experience with CALM:
 
-- [Installation](installation): Learn how to set up the CALM CLI on your machine.
-- [Using the CLI](using-the-cli): Understand the basic usage of the CALM CLI and how to access its commands.
-- [Generate](generate): Discover how to generate architectural architectures from predefined patterns.
-- [Validate](validate): Learn how to validate your architecture against CALM patterns to ensure compliance.
+- [CLI](cli): Learn how to install, navigate, and utilize the CALM CLI to generate, validate, and document architectures, and interact with the CALM Hub.
+- [CALM Hub](calm-hub): Explore and inspect the visual registry of architectures, patterns, and compliance controls.
+- [VS Code Extension](vscode-extension): Live-validate, visualise, and navigate CALM architectures directly inside your editor.
 - [Validation Server](validation-server): Run a standalone HTTP server for remote CALM architecture validation.
-- [Docify](docify): Generate a documentation website from your CALM architecture model.
-- [Hub](hub): Interact with a running `CALM Hub` instance.
 - [CALM AI Tools](calm-ai-tools): Expands the support of additional AI Assistants in CALM architecture modeling.
 - [Voice Mode](voice-mode): Enable hands-free interaction with CALM Copilot Chat using voice commands.
 
