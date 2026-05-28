@@ -55,7 +55,7 @@ describe('WidgetRenderer', () => {
         const widget: CalmWidget = {
             id: 'test-widget',
             templatePartial: 'main.hbs',
-            validateContext: (context: unknown): context is unknown => true,
+            validateContext: (_context: unknown): _context is unknown => true,
             transformToViewModel: vi.fn().mockImplementation((ctx) => ({
                 wrapped: ctx,
             })),
@@ -76,7 +76,7 @@ describe('WidgetRenderer', () => {
         const widget: CalmWidget = {
             id: 'test-widget',
             templatePartial: 'main.hbs',
-            validateContext: (context: unknown): context is unknown => true,
+            validateContext: (_context: unknown): _context is unknown => true,
             transformToViewModel: vi.fn().mockImplementation((ctx) => ({
                 wrapped: ctx,
             })),
@@ -97,7 +97,7 @@ describe('WidgetRenderer', () => {
         const widget: CalmWidget = {
             id: 'plain-widget',
             templatePartial: 'main.hbs',
-            validateContext: (context: unknown): context is unknown => true,
+            validateContext: (_context: unknown): _context is unknown => true,
         };
 
         (registry.get as Mock).mockReturnValue(widget);

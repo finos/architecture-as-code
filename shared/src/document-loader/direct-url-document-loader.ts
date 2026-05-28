@@ -1,8 +1,7 @@
 import axios, { Axios } from 'axios';
 import { isIP } from 'net';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader } from './document-loader';
-import { DocumentLoadError } from './document-loader';
+import { CalmDocumentType, DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { Logger, initLogger } from '../logger';
 
 const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
@@ -87,32 +86,52 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
     }
 
     async loadMissingDocument(documentId: string, _type: CalmDocumentType): Promise<object> {
+        let parsedUrl: URL;
         try {
-            const parsedUrl = new URL(documentId);
-            const allowedProtocols = ['http:', 'https:'];
-            if (!allowedProtocols.includes(parsedUrl.protocol)) {
-                throw new DocumentLoadError({
-                    name: 'UNKNOWN',
-                    message: `Unsupported URL protocol '${parsedUrl.protocol}' in document URL. Only HTTP and HTTPS are allowed.`,
-                });
-            }
+            parsedUrl = new URL(documentId);
+        } catch {
+            // Not a parseable absolute URL — recoverable, let other loaders try.
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: `Not a valid absolute URL: ${documentId}`,
+            });
+        }
+
+        const allowedProtocols = ['http:', 'https:'];
+        if (!allowedProtocols.includes(parsedUrl.protocol)) {
+            // Not an HTTP(S) reference — recoverable, let other loaders try.
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: `Unsupported URL protocol '${parsedUrl.protocol}' in document URL. Only HTTP and HTTPS are allowed.`,
+            });
+        }
+
+        // From here the reference is ours (an HTTP(S) URL): any failure is fatal and must not fall
+        // through to another loader (which would mask the real reason with an unrelated error).
+        try {
             if (isPrivateHost(parsedUrl.hostname)) {
                 throw new DocumentLoadError({
                     name: 'UNKNOWN',
                     message: `Requests to private or internal network addresses are not allowed: ${parsedUrl.hostname}`,
+                    recoverable: false
                 });
             }
             const normalizedHost = normalizeHost(parsedUrl.hostname);
             if (!this.allowedRemoteHosts.has(normalizedHost)) {
                 throw new DocumentLoadError({
                     name: 'UNKNOWN',
-                    message: `Direct URL loading is restricted to approved hosts. Host '${parsedUrl.hostname}' is not allowlisted.`,
+                    message: `Direct URL loading is restricted to approved hosts. Host '${parsedUrl.hostname}' is not allowlisted.\n\n`
+                        + 'To allow this host, run:\n\n'
+                        + `  calm init-config --allowed-remote-hosts ${parsedUrl.hostname}\n\n`
+                        + 'Only add hosts you trust.',
+                    recoverable: false
                 });
             }
             if (parsedUrl.username || parsedUrl.password) {
                 throw new DocumentLoadError({
                     name: 'UNKNOWN',
                     message: 'Credentials in URL are not allowed.',
+                    recoverable: false
                 });
             }
             const requestPath = toRequestPath(parsedUrl);
@@ -122,6 +141,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 maxRedirects: 0,
                 allowAbsoluteUrls: false
             });
+            assertJsonObject(response.data, documentId);
             return response.data;
         } catch (error) {
             if (error instanceof DocumentLoadError) {
@@ -130,7 +150,8 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
                 message: `Failed to load document from URL: ${documentId}`,
-                cause: error instanceof Error ? error : undefined
+                cause: error instanceof Error ? error : undefined,
+                recoverable: false
             });
         }
     }

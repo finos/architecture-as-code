@@ -1,0 +1,261 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "unique-id": "finos-calm-architecture-as-code",
+    "name": "FINOS CALM Architecture as Code",
+    "description": "Architecture of the FINOS Common Architecture Language Model (CALM) tooling ecosystem including CLI, web services, UI, and IDE extensions",
+    "metadata": [
+        {
+            "version": "1.0.0",
+            "created-by": "CALM Architecture Discovery",
+            "project": "FINOS Architecture as Code",
+            "repository": "https://github.com/finos/architecture-as-code"
+        }
+    ],
+    "nodes": [
+        {
+            "unique-id": "calm-cli",
+            "node-type": "service",
+            "name": "CALM CLI",
+            "description": "Command-line tool for validating, generating, and documenting CALM architectures",
+            "metadata": {
+                "technology": "Node.js/TypeScript",
+                "package": "@finos/calm-cli",
+                "runtime": "Node 22+",
+                "distribution": "npm"
+            }
+        },
+        {
+            "unique-id": "calm-hub",
+            "node-type": "service",
+            "name": "CALM Hub Backend",
+            "description": "Java/Quarkus REST API backend for managing CALM architectures, patterns, and flows with namespace-based organization",
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-api",
+                    "port": 8080
+                }
+            ],
+            "metadata": {
+                "technology": "Java 21/Quarkus 3.34",
+                "framework": "Quarkus",
+                "api-base-path": "/calm"
+            }
+        },
+        {
+            "unique-id": "calm-hub-ui",
+            "node-type": "webclient",
+            "name": "CALM Hub Web UI",
+            "description": "React-based web frontend for visualizing and managing CALM architectures",
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-ui-dev",
+                    "port": 5173
+                }
+            ],
+            "metadata": {
+                "technology": "React 19/TypeScript",
+                "build-tool": "Vite",
+                "deployment": "Bundled into calm-hub for production"
+            }
+        },
+        {
+            "unique-id": "calm-server",
+            "node-type": "service",
+            "name": "CALM Validation Server",
+            "description": "Node.js/Express server providing CALM validation and health check endpoints",
+            "interfaces": [
+                {
+                    "unique-id": "calm-server-api",
+                    "port": 3000
+                }
+            ],
+            "metadata": {
+                "technology": "Node.js/Express/TypeScript",
+                "package": "@finos/calm-server",
+                "security-note": "No authentication - intended for local/trusted environments only"
+            }
+        },
+        {
+            "unique-id": "calm-vscode-extension",
+            "node-type": "webclient",
+            "name": "CALM VSCode Extension",
+            "description": "VSCode extension for live visualization, validation, and documentation generation of CALM models",
+            "metadata": {
+                "technology": "TypeScript/VSCode Extension API",
+                "package": "calm-vscode-plugin",
+                "publisher": "FINOS",
+                "distribution": "VSCode Marketplace"
+            }
+        },
+        {
+            "unique-id": "docs-website",
+            "node-type": "webclient",
+            "name": "Documentation Website",
+            "description": "Docusaurus-based documentation website for CALM project",
+            "interfaces": [
+                {
+                    "unique-id": "docs-website-url",
+                    "url": "https://calm.finos.org"
+                }
+            ],
+            "metadata": {
+                "technology": "Docusaurus/React",
+                "hosting": "Static site"
+            }
+        },
+        {
+            "unique-id": "mongodb",
+            "node-type": "database",
+            "name": "MongoDB Database",
+            "description": "Document database storing CALM architectures, patterns, flows, and metadata",
+            "interfaces": [
+                {
+                    "unique-id": "mongodb-connection",
+                    "host": "localhost",
+                    "port": 27017
+                }
+            ],
+            "metadata": {
+                "technology": "MongoDB",
+                "database-name": "calmSchemas",
+                "deployment": "Docker container for local dev"
+            }
+        },
+        {
+            "unique-id": "keycloak",
+            "node-type": "ecosystem",
+            "name": "Keycloak Identity Provider",
+            "description": "OAuth2/OIDC authentication and authorization provider for CALM Hub",
+            "interfaces": [
+                {
+                    "unique-id": "keycloak-auth-server",
+                    "url": "https://calm-hub.finos.org:9443/realms/calm-hub-realm"
+                }
+            ],
+            "metadata": {
+                "technology": "Keycloak 26.1",
+                "protocol": "OAuth2/OIDC",
+                "deployment": "Docker container for testing, separate deployment for production"
+            }
+        },
+        {
+            "unique-id": "developer",
+            "node-type": "actor",
+            "name": "Developer",
+            "description": "Software developer creating and managing CALM architecture models"
+        },
+        {
+            "unique-id": "architect",
+            "node-type": "actor",
+            "name": "Architect",
+            "description": "System architect designing and documenting system architectures using CALM"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "developer-to-calm-cli",
+            "description": "Developer uses CLI to validate and generate CALM architectures",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": ["calm-cli"]
+                }
+            }
+        },
+        {
+            "unique-id": "developer-to-calm-vscode-extension",
+            "description": "Developer uses VSCode extension to visualize and edit CALM models",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "developer",
+                    "nodes": ["calm-vscode-extension"]
+                }
+            }
+        },
+        {
+            "unique-id": "architect-to-calm-hub-ui",
+            "description": "Architect uses web UI to browse and manage CALM architectures",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "architect",
+                    "nodes": ["calm-hub-ui"]
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-ui-to-calm-hub",
+            "description": "Web UI connects to backend API for architecture management operations",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-ui"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interfaces": ["calm-hub-api"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-to-mongodb",
+            "description": "Backend service stores and retrieves CALM documents from MongoDB",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub"
+                    },
+                    "destination": {
+                        "node": "mongodb",
+                        "interfaces": ["mongodb-connection"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-to-keycloak",
+            "description": "Backend service validates OAuth2 tokens with Keycloak for authentication",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub"
+                    },
+                    "destination": {
+                        "node": "keycloak",
+                        "interfaces": ["keycloak-auth-server"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-ui-to-keycloak",
+            "description": "Web UI authenticates users via OAuth2/OIDC with Keycloak",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-ui"
+                    },
+                    "destination": {
+                        "node": "keycloak",
+                        "interfaces": ["keycloak-auth-server"]
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "calm-vscode-extension-to-calm-server",
+            "description": "VSCode extension validates CALM models using validation server",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-vscode-extension"
+                    },
+                    "destination": {
+                        "node": "calm-server",
+                        "interfaces": ["calm-server-api"]
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "unique-id": "broken-architecture",
+    "name": "Intentionally Broken Architecture",
+    "description": "Used by the validation/problems-panel screenshot. Each node is missing a required field so the extension surfaces multiple diagnostics.",
+    "nodes": [
+        {
+            "unique-id": "missing-type",
+            "name": "Missing node-type"
+        },
+        {
+            "unique-id": "missing-name",
+            "node-type": "service"
+        }
+    ],
+    "relationships": [
+        {
+            "description": "Relationship missing unique-id and relationship-type"
+        }
+    ]
+}

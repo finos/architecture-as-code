@@ -20,6 +20,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * NitriteDB-backed implementation of {@link NamespaceStore}, used in standalone mode.
@@ -41,6 +42,7 @@ import static org.dizitart.no2.filters.FluentFilter.where;
  * @see org.finos.calm.store.mongo.MongoNamespaceStore MongoNamespaceStore for the
  *      contrasting database-enforced uniqueness approach
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 @Typed(NitriteNamespaceStore.class)
 public class NitriteNamespaceStore implements NamespaceStore {

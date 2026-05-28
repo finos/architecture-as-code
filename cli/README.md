@@ -3,6 +3,19 @@
 A command line interface to interact with the CALM schema.
 You can use these tools to create an architecture from a CALM pattern, or validate that an architecture conforms to a given pattern.
 
+## Config file reference
+
+The CLI will load user config from `~/.calm.json` to allow profile-level config of CalmHub and other details.
+These properties can also be loaded from environment variables; if set they will override the config file.
+
+Note that if they're set on the command line, e.g. `--calm-hub-url`, this will override both the file and env vars.
+
+| Config file property | Environment variable        | Description  |
+| -------------------- | --------------------------- | ------------ |
+| `allowedRemoteHosts` | `CALM_ALLOWED_REMOTE_HOSTS` | List of allowed hosts to use when loading files directly from raw URLs. Note that in env variable form this should be a comma-separated list. | 
+| `authPluginPath`     | `CALM_AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
+| `calmHubUrl`         | `CALM_HUB_URL`              | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
+
 ## Using the CLI
 
 ### Getting Started
@@ -33,6 +46,7 @@ Options:
 Commands:
   generate [options]          Generate an architecture from a CALM pattern file.
   validate [options]          Validate that an architecture conforms to a given CALM pattern.
+  diff [options]              Compare two CALM documents (architectures or patterns) and report what changed.
   template [options]          Generate files from a CALM model using a Handlebars template bundle.
   docify [options]            Generate a documentation website off your CALM model.
   init-ai [options]           Augment a git repository with AI assistance for CALM
@@ -55,6 +69,7 @@ Options:
   -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
   -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
   -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
+  --option-choices <choices>    Pre-defined option choices as a JSON object mapping option unique-ids to choice descriptions. Skips interactive prompts.
   -v, --verbose                 Enable verbose logging. (default: false)
   -h, --help                    display help for command
 ```
@@ -63,6 +78,30 @@ The most simple way to use this command is to call it with only the pattern opti
 
 ```shell
 % calm generate -p ./conferences/osff-ln-2025/workshop/conference-signup.pattern.json
+```
+
+#### Pattern options
+
+Some CALM patterns define **options** — decision points where the architecture can vary. When a pattern contains options, the `generate` command will prompt you interactively to make your selections. At the end of the prompts, the CLI prints the choices you made in a format you can save and reuse:
+
+```
+info: Selected choices (reusable with --option-choices): {"connection-options":"Application A connects to Application C","node-options":["Node 1","Node 2"]}
+```
+
+To skip the interactive prompts, pass your choices via `--option-choices` as an inline JSON string or a path to a JSON file.
+
+- For a **`oneOf`** option (pick exactly one), supply a string value.
+- For an **`anyOf`** option (pick one or more), supply a string or an array of strings.
+
+```shell
+# Inline JSON — single oneOf choice
+% calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C"}'
+
+# Inline JSON — mixed oneOf and anyOf
+% calm generate -p pattern.json --option-choices '{"connection-options": "Application A connects to Application C", "node-options": ["Node 1", "Node 2"]}'
+
+# From a saved choices file
+% calm generate -p pattern.json --option-choices ./my-choices.json
 ```
 
 ### Validating a CALM architecture
@@ -238,6 +277,53 @@ WARN  issues:
 
 which is just letting you know that you have left in some placeholder values which might have been generated with the generate command.
 This isn't a full break, but it implies that you've forgotten to fill out a detail in your architecture.
+
+### Diffing two CALM documents
+
+This command compares two versions of a CALM document and reports what changed between them. It works on both **architectures** and **patterns**, matching nodes and relationships by their `unique-id` and classifying each as added, removed, modified, or renamed. The document type is auto-detected; use `--type` to override detection.
+
+```shell
+% calm diff --help
+Usage: calm diff [options]
+
+Compare two CALM documents (architectures or patterns) and report what changed.
+
+Options:
+  -a, --document-a <file>   Path to the first (baseline) CALM document.
+  -b, --document-b <file>   Path to the second CALM document to compare against the baseline.
+  -f, --format <format>     Output format (choices: "json", "summary", default: "json")
+  -t, --type <type>         Force the document type instead of auto-detecting it. (choices: "architecture", "pattern")
+  -o, --output <file>       Path location at which to write the diff output. If omitted, prints to stdout.
+  --exit-code               Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.
+  -v, --verbose             Enable verbose logging. (default: false)
+  -h, --help                display help for command
+```
+
+For a quick human-readable overview, use `--format summary`:
+
+```shell
+% calm diff -a ./baseline.arch.json -b ./updated.arch.json --format summary
+CALM architecture diff
+----------------------
+Nodes:         +1  -0  ~1  ↔0  =3
+Relationships: +1  -0  ~0  ↔0  =2
+
+Nodes added:
+  - audit-service
+...
+```
+
+The same command compares two patterns — pass the pattern files instead:
+
+```shell
+% calm diff -a ./v1.pattern.json -b ./v2.pattern.json --format summary
+```
+
+The `--exit-code` flag makes the command exit non-zero when any change (including items skipped for a missing `unique-id`) is detected, so it can gate version bumps in CI:
+
+```shell
+% calm diff -a ./baseline.arch.json -b ./updated.arch.json --exit-code
+```
 
 ## CALM init-ai
 
@@ -419,6 +505,28 @@ and
 This differs:
 {{ block-architecture render-node-type-shapes=false }}
 ```
+
+## Authentication plugins
+
+The CLI supports an external authentication plugin to allow authentication to CalmHub in enterprise environments, where seamless auth will likely require specific logic.
+
+### Writing an authentication plugin
+
+Authentication plugins are JavaScript files. You can find an example in [the test fixtures](./test_fixtures/test-auth-plugin.js).
+
+Plugins must export a default class implementing the [`AuthPlugin`](../shared/src/auth/auth-plugin.ts) interface, i.e. a `getAuthHeaders(url, requestBody)` method that returns a `Promise<Record<string, string>>`.
+
+The function `getAuthHeaders` will be invoked with the request URL and body for every request made to CalmHub by the CLI.
+
+### Using an authentication plugin
+
+To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fashion as configuring a CalmHub URL:
+
+```
+{
+  "calmHubUrl": "http://calmhub.com",
+  "authPluginPath": "~/plugins/auth-plugin.js"
+}```
 
 ## CALM Workspace
 

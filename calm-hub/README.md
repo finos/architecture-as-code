@@ -53,12 +53,20 @@ The storage implementation is selected based on the active Quarkus profile:
 To run the application in standalone mode:
 
 ```shell
-# Development mode with standalone storage
-../mvnw quarkus:dev -Dcalm.database.mode=standalone
+# Development mode with standalone storage (uses Maven -Pstandalone profile)
+../mvnw quarkus:dev -Pstandalone
 
 # Production mode with standalone storage
-java -Dcalm.database.mode=standalone -jar target/quarkus-app/quarkus-run.jar
+java -Dquarkus.profile=standalone -jar target/quarkus-app/quarkus-run.jar
 ```
+
+> **Note:** In dev mode use `-Pstandalone` (the Maven profile), not `-Dquarkus.profile=standalone`.
+> The `quarkus-maven-plugin` forks a separate JVM for dev mode and does not reliably propagate
+> `-D` flags from the Maven CLI into that process; the Maven profile `standalone` configures the
+> plugin's own `systemProperties` so `quarkus.profile=standalone` reaches the running app.
+> The `standalone` Quarkus profile activates `calm.database.mode=standalone` and suppresses
+> MongoDB health-checks and dev-services. For production (`java -jar …`) the JVM flag
+> `-Dquarkus.profile=standalone` is passed directly to the process and works as expected.
 
 ### Mongo Database Startup
 
@@ -185,9 +193,10 @@ The tool implementations live in
 [`src/main/java/org/finos/calm/mcp/tools`](src/main/java/org/finos/calm/mcp/tools):
 
 - **ArchitectureTools** — list, create and read architectures (and their versions) for a namespace.
-- **ControlTools** — list and read control requirements for a namespace.
+- **ControlTools** — list and read control requirements; create control requirements and control configurations within a domain.
 - **DecoratorTools** — full CRUD over decorators.
-- **NamespaceTools** — create namespaces, list namespaces, list domains.
+- **DomainTools** — list and create control domains.
+- **NamespaceTools** — list and create namespaces.
 - **SearchTools** — global cross-resource search with capped, grouped results.
 
 #### Endpoint

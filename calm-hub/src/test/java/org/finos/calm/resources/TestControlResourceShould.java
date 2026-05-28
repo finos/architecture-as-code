@@ -429,7 +429,7 @@ public class TestControlResourceShould {
     void return_a_400_when_an_invalid_format_of_domain_is_provided_on_create_requirement_version() {
         given()
                 .header("Content-Type", "application/json")
-                .body("{}")
+                .body(new CreateControlRequirement("n", "d", "{}"))
                 .when()
                 .post("/calm/domains/invalid_domain/controls/1/requirement/versions/2.0.0")
                 .then()
@@ -441,7 +441,7 @@ public class TestControlResourceShould {
     void return_a_400_when_an_invalid_format_of_version_is_provided_on_create_requirement_version() {
         given()
                 .header("Content-Type", "application/json")
-                .body("{}")
+                .body(new CreateControlRequirement("n", "d", "{}"))
                 .when()
                 .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0invalid.1")
                 .then()
@@ -464,16 +464,18 @@ public class TestControlResourceShould {
     void respond_correctly_to_create_requirement_version(Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
         if (exceptionToThrow != null) {
             doThrow(exceptionToThrow).when(mockControlStore)
-                    .createRequirementForVersion(anyString(), anyInt(), anyString(), anyString());
+                    .createRequirementForVersion(anyString(), anyInt(), anyString(), any(CreateControlRequirement.class));
         } else {
             doNothing().when(mockControlStore)
-                    .createRequirementForVersion(anyString(), anyInt(), anyString(), anyString());
+                    .createRequirementForVersion(anyString(), anyInt(), anyString(), any(CreateControlRequirement.class));
         }
+
+        Object envelopeBody = new CreateControlRequirement("n", "d", "{\"type\": \"req-v2\"}");
 
         if (expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
-                    .body("{\"type\": \"req-v2\"}")
+                    .body(envelopeBody)
                     .when()
                     .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                     .then()
@@ -482,7 +484,7 @@ public class TestControlResourceShould {
         } else {
             given()
                     .header("Content-Type", "application/json")
-                    .body("{\"type\": \"req-v2\"}")
+                    .body(envelopeBody)
                     .when()
                     .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                     .then()
@@ -553,7 +555,7 @@ public class TestControlResourceShould {
     void return_a_400_when_an_invalid_format_of_domain_is_provided_on_create_configuration_version() {
         given()
                 .header("Content-Type", "application/json")
-                .body("{}")
+                .body(new CreateControlConfiguration("{}"))
                 .when()
                 .post("/calm/domains/invalid_domain/controls/1/configurations/10/versions/2.0.0")
                 .then()
@@ -565,7 +567,7 @@ public class TestControlResourceShould {
     void return_a_400_when_an_invalid_format_of_version_is_provided_on_create_configuration_version() {
         given()
                 .header("Content-Type", "application/json")
-                .body("{}")
+                .body(new CreateControlConfiguration("{}"))
                 .when()
                 .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/1.0invalid.1")
                 .then()
@@ -589,16 +591,18 @@ public class TestControlResourceShould {
     void respond_correctly_to_create_configuration_version(Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
         if (exceptionToThrow != null) {
             doThrow(exceptionToThrow).when(mockControlStore)
-                    .createConfigurationForVersion(anyString(), anyInt(), anyInt(), anyString(), anyString());
+                    .createConfigurationForVersion(anyString(), anyInt(), anyInt(), anyString(), any(CreateControlConfiguration.class));
         } else {
             doNothing().when(mockControlStore)
-                    .createConfigurationForVersion(anyString(), anyInt(), anyInt(), anyString(), anyString());
+                    .createConfigurationForVersion(anyString(), anyInt(), anyInt(), anyString(), any(CreateControlConfiguration.class));
         }
+
+        Object envelopeBody = new CreateControlConfiguration("{\"setting\": \"v2\"}");
 
         if (expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
-                    .body("{\"setting\": \"v2\"}")
+                    .body(envelopeBody)
                     .when()
                     .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0")
                     .then()
@@ -607,7 +611,7 @@ public class TestControlResourceShould {
         } else {
             given()
                     .header("Content-Type", "application/json")
-                    .body("{\"setting\": \"v2\"}")
+                    .body(envelopeBody)
                     .when()
                     .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0")
                     .then()

@@ -48,13 +48,11 @@ const sidebars = {
       label: 'Working with CALM',
       link: {type: 'doc', id: 'working-with-calm/working-with-calm-index'},
       items: [
-        'working-with-calm/installation',
-        'working-with-calm/using-the-cli',
-        'working-with-calm/generate',
-        'working-with-calm/validate',
-        'working-with-calm/docify',
-        'working-with-calm/validation-server',
+        'working-with-calm/calm-hub',
+        'working-with-calm/vscode-extension',
         'working-with-calm/calm-ai-tools',
+        'working-with-calm/cli',
+        'working-with-calm/validation-server',
         'working-with-calm/voice-mode'
       ],
     },
@@ -104,6 +102,14 @@ const sidebars = {
         },
         {
           type: 'category',
+          label: '🟠 Advanced',
+          link: {type: 'doc', id: 'tutorials/advanced/advanced-tutorials'},
+          items: [
+            'tutorials/advanced/architecture-discovery-skill-tutorial',
+          ],
+        },
+        {
+          type: 'category',
           label: '🛠️ Practitioner',
           link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
           items: [
@@ -115,6 +121,52 @@ const sidebars = {
             'tutorials/build-a-calm-architecture/tutorial-key-takeaways',
            ],
         }
+      ],
+    },
+  ],
+
+  // CALM Studio sidebar — migrated from calm-suite/calm-studio/docs-site/sidebars.ts
+  calmStudioSidebar: [
+    'calm-studio/intro',
+    {
+      type: 'category',
+      label: 'Getting Started',
+      items: ['calm-studio/getting-started/quick-start'],
+    },
+    {
+      type: 'category',
+      label: 'User Guide',
+      items: ['calm-studio/user-guide/architecture-overview'],
+    },
+    {
+      type: 'category',
+      label: 'Guides',
+      items: ['calm-studio/guides/convert-arb-to-calm'],
+    },
+    {
+      type: 'category',
+      label: 'Developer Guide',
+      items: [
+        'calm-studio/developer-guide/extension-packs',
+        'calm-studio/developer-guide/mcp-server',
+        'calm-studio/developer-guide/contributing',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'ADRs',
+      items: [
+        'calm-studio/adrs/index',
+        'calm-studio/adrs/use-svelte-5-over-react',
+        'calm-studio/adrs/use-svelte-flow-as-canvas',
+        'calm-studio/adrs/use-elk-for-auto-layout',
+        'calm-studio/adrs/domain-oriented-control-keys',
+        'calm-studio/adrs/defer-calmscript-dsl',
+        'calm-studio/adrs/extension-pack-system',
+        'calm-studio/adrs/mcp-server-as-primary-ai-integration',
+        'calm-studio/adrs/docusaurus-for-documentation',
+        'calm-studio/adrs/tsup-for-calm-core-packaging',
+        'calm-studio/adrs/github-pages-hosting',
       ],
     },
   ],

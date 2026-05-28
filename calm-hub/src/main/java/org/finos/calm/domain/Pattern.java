@@ -10,12 +10,32 @@ public class Pattern {
     private final int id;
     private final String version;
     private final String pattern;
+    private final String name;
+    private final String description;
 
     private Pattern(PatternBuilder builder) {
         this.namespace = builder.namespace;
         this.id = builder.id;
         this.version = builder.version;
         this.pattern = builder.pattern;
+        this.name = builder.name;
+        this.description = builder.description;
+    }
+
+    /**
+     * Returns the wrapper-level name of the pattern (provided via the create/update envelope).
+     * @return the name of the pattern, may be null
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Returns the wrapper-level description of the pattern (provided via the create/update envelope).
+     * @return the description of the pattern, may be null
+     */
+    public String getDescription() {
+        return description;
     }
 
     /**
@@ -89,6 +109,28 @@ public class Pattern {
         private int id;
         private String version;
         private String pattern;
+        private String name;
+        private String description;
+
+        /**
+         * Sets the wrapper-level name of the pattern.
+         * @param name the name of the pattern
+         * @return the PatternBuilder
+         */
+        public PatternBuilder setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        /**
+         * Sets the wrapper-level description of the pattern.
+         * @param description the description of the pattern
+         * @return the PatternBuilder
+         */
+        public PatternBuilder setDescription(String description) {
+            this.description = description;
+            return this;
+        }
 
         /**
          * Sets the namespace of the pattern.

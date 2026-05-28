@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.mongo.MongoResourceMappingStore;
 import org.finos.calm.store.nitrite.NitriteResourceMappingStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for ResourceMappingStore implementations.
@@ -20,18 +21,18 @@ public class ResourceMappingStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoResourceMappingStore mongoResourceMappingStore;
+    Instance<MongoResourceMappingStore> mongoResourceMappingStore;
 
     @Inject
-    NitriteResourceMappingStore standaloneResourceMappingStore;
+    Instance<NitriteResourceMappingStore> standaloneResourceMappingStore;
 
     @Produces
     @ApplicationScoped
     public ResourceMappingStore produceResourceMappingStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneResourceMappingStore;
+            return standaloneResourceMappingStore.get();
         } else {
-            return mongoResourceMappingStore;
+            return mongoResourceMappingStore.get();
         }
     }
 }

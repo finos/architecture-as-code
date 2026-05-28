@@ -1,7 +1,5 @@
 package org.finos.calm.store.producer;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.store.StandardStore;
 import org.finos.calm.store.mongo.MongoStandardStore;
 import org.finos.calm.store.nitrite.NitriteStandardStore;
@@ -11,23 +9,39 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import jakarta.enterprise.inject.Instance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
-@QuarkusTest
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestStandardStoreProducerShould {
 
-    @InjectMock
+    @Mock
     MongoStandardStore mongoStandardStore;
 
-    @InjectMock
+    @Mock
+    Instance<MongoStandardStore> mongoStandardStoreInstance;
+
+    @Mock
     NitriteStandardStore nitriteStandardStore;
+
+    @Mock
+    Instance<NitriteStandardStore> nitriteStandardStoreInstance;
 
     private StandardStoreProducer standardStoreProducer;
 
     @BeforeEach
     void setup() {
         standardStoreProducer = new StandardStoreProducer();
-        standardStoreProducer.mongoStandardStore = mongoStandardStore;
-        standardStoreProducer.standaloneStandardStore = nitriteStandardStore;
+        when(mongoStandardStoreInstance.get()).thenReturn(mongoStandardStore);
+        standardStoreProducer.mongoStandardStore = mongoStandardStoreInstance;
+        when(nitriteStandardStoreInstance.get()).thenReturn(nitriteStandardStore);
+        standardStoreProducer.standaloneStandardStore = nitriteStandardStoreInstance;
     }
 
     @Test

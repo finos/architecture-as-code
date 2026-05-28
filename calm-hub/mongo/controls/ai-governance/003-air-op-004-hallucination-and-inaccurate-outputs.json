@@ -1,0 +1,35 @@
+{
+  "controlId": 3,
+  "name": "AIR-OP-004 — Hallucination and Inaccurate Outputs",
+  "description": "Controls to detect, mitigate and monitor LLM hallucinations and inaccurate outputs in AI systems deployed in financial services.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-004",
+      "name": "Hallucination and Inaccurate Outputs",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-4_hallucination-and-inaccurate-outputs.html",
+      "summary": "LLM hallucinations occur when a model generates confident but incorrect or fabricated information due to its reliance on statistical patterns rather than factual understanding. Techniques like Retrieval-Augmented Generation can reduce hallucinations by providing factual context, but they cannot fully prevent the model from introducing errors or mixing in inaccurate internal knowledge.",
+      "requirements": [
+        "Implement Retrieval-Augmented Generation (RAG) to ground model responses in verified factual sources.",
+        "Deploy output validation pipelines that cross-check AI-generated content against authoritative data sources.",
+        "Provide clear user-facing disclaimers indicating AI-generated content may contain errors.",
+        "Establish human-in-the-loop review processes for high-stakes outputs (e.g., loan decisions, regulatory interpretations).",
+        "Monitor and log hallucination incidents, tracking frequency and business impact.",
+        "Conduct regular red-team exercises to identify hallucination-prone scenarios."
+      ],
+      "contributing_factors": [
+        "Lack of Ground Truth: The model cannot distinguish between accurate and inaccurate data in its training corpus.",
+        "Ambiguous or Incomplete Prompts: Unclear input prompts increase likelihood of fabricated details.",
+        "Confidence Mismatch: LLMs present hallucinated information with high fluency, making errors hard to detect.",
+        "Fine-Tuning or Prompt Bias: Helpfulness-oriented training can increase unsupported statements."
+      ],
+      "references": [
+        "https://arxiv.org/abs/2305.14292",
+        "https://arxiv.org/abs/2401.11817"
+      ]
+    }
+  },
+  "configurations": []
+}

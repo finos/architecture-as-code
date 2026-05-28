@@ -1,7 +1,5 @@
 package org.finos.calm.store.producer;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.store.SearchStore;
 import org.finos.calm.store.mongo.MongoSearchStore;
 import org.finos.calm.store.nitrite.NitriteSearchStore;
@@ -11,23 +9,39 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import jakarta.enterprise.inject.Instance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
-@QuarkusTest
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestSearchStoreProducerShould {
 
-    @InjectMock
+    @Mock
     MongoSearchStore mongoSearchStore;
 
-    @InjectMock
+    @Mock
+    Instance<MongoSearchStore> mongoSearchStoreInstance;
+
+    @Mock
     NitriteSearchStore nitriteSearchStore;
+
+    @Mock
+    Instance<NitriteSearchStore> nitriteSearchStoreInstance;
 
     private SearchStoreProducer searchStoreProducer;
 
     @BeforeEach
     void setup() {
         searchStoreProducer = new SearchStoreProducer();
-        searchStoreProducer.mongoSearchStore = mongoSearchStore;
-        searchStoreProducer.standaloneSearchStore = nitriteSearchStore;
+        when(mongoSearchStoreInstance.get()).thenReturn(mongoSearchStore);
+        searchStoreProducer.mongoSearchStore = mongoSearchStoreInstance;
+        when(nitriteSearchStoreInstance.get()).thenReturn(nitriteSearchStore);
+        searchStoreProducer.standaloneSearchStore = nitriteSearchStoreInstance;
     }
 
     @Test

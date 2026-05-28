@@ -1,0 +1,39 @@
+{
+  "controlId": 17,
+  "name": "AIR-RC-022 — Regulatory Compliance and Oversight",
+  "description": "Controls to ensure AI systems deployed in financial services comply with applicable regulations, maintain required oversight mechanisms, and satisfy regulatory reporting and audit obligations.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-RC-022",
+      "name": "Regulatory Compliance and Oversight",
+      "category": "Regulatory and Compliance",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-22_regulatory-compliance-and-oversight.html",
+      "summary": "AI systems in financial services must comply with an evolving and complex regulatory landscape. Failure to maintain adequate oversight, documentation, and controls can expose firms to regulatory sanctions, enforcement actions, and reputational damage.",
+      "requirements": [
+        "Maintain an AI system inventory documenting all deployed models, their use cases, risk classifications, and regulatory obligations.",
+        "Map each AI system to applicable regulatory frameworks (EU AI Act, SR 11-7, GDPR, FCA guidance, etc.) and evidence compliance.",
+        "Establish AI governance committees with defined accountability for oversight of AI risk and compliance.",
+        "Implement model risk management (MRM) processes aligned with SR 11-7 or equivalent guidance for all AI models used in regulated activities.",
+        "Produce and maintain model documentation sufficient to support regulatory examination and internal audit.",
+        "Monitor regulatory developments and update AI governance policies and controls in response to new requirements."
+      ],
+      "contributing_factors": [
+        "Rapidly evolving AI regulatory landscape creating compliance gaps.",
+        "Absence of AI-specific model risk management frameworks.",
+        "Insufficient documentation of AI system design, validation, and ongoing performance.",
+        "Lack of board and senior management accountability for AI governance."
+      ],
+      "regulatory_references": [
+        "EU AI Act",
+        "SR 11-7: Guidance on Model Risk Management (US Federal Reserve / OCC)",
+        "FCA Guidance on AI and Machine Learning",
+        "GDPR / UK GDPR",
+        "ISO 42001: AI Management Systems"
+      ],
+      "references": []
+    }
+  },
+  "configurations": []
+}

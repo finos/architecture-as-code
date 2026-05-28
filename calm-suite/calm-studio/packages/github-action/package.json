@@ -10,8 +10,8 @@
   "dependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^6.0.0",
-    "@calmstudio/calm-core": "workspace:*",
-    "@calmstudio/mcp": "workspace:*"
+    "@calmstudio/calm-core": "file:../calm-core",
+    "@calmstudio/mcp": "file:../mcp-server"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.38.0",

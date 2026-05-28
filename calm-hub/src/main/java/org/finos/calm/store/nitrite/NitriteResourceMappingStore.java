@@ -23,6 +23,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * NitriteDB-backed implementation of {@link ResourceMappingStore}, used in standalone mode.
@@ -32,6 +33,7 @@ import static org.dizitart.no2.filters.FluentFilter.where;
  * {@link ReentrantLock} to serialize write operations and enforce the uniqueness
  * of {@code (namespace, customId)} pairs at the application level.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 @Typed(NitriteResourceMappingStore.class)
 public class NitriteResourceMappingStore implements ResourceMappingStore {

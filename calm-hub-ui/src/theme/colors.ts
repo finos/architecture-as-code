@@ -109,6 +109,33 @@ export const colors = {
         positive: '#16a34a', // green-600
         negative: '#dc2626', // red-600
     },
+
+    // Timeline / diff design tokens (CALM Hub timeline + comparison UI).
+    // A deliberately separate palette from the wider brand colors so this surface
+    // can evolve without affecting the rest of the app.
+    calm: {
+        blue: '#1f6dff', // primary / active dots / progress / NOW-FROM-TO bg
+        blueDeep: '#0a4ad6', // hover / pressed, badge bg, deep label colour
+        blueSoft: '#e8f0ff', // CURRENT pill bg, selected-row bg
+        teal: '#1aa3b7', // architecture node border (thumbnails)
+    },
+    ink: {
+        900: '#0f172a',
+        700: '#334155',
+        500: '#64748b',
+        400: '#94a3b8',
+        300: '#cbd5e1',
+        200: '#e2e8f0',
+        100: '#f1f5f9',
+        50: '#f8fafc',
+    },
+    timelineBg: '#f6f7f9',
+    new: '#ef4444',
+    diffPalette: {
+        add: { bg: '#e8f6ee', border: '#b6dfc6', fg: '#15803d', sign: '+' },
+        mod: { bg: '#fdf3e2', border: '#f3dca4', fg: '#b45309', sign: '~' },
+        del: { bg: '#fde8e8', border: '#f1bfbf', fg: '#b91c1c', sign: '−' },
+    },
 } as const;
 
 export type Colors = typeof colors;
