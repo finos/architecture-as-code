@@ -214,7 +214,7 @@ at [http://localhost:8080/q/dev-ui](http://localhost:8080/q/dev-ui).
 
 #### Enabling / disabling
 
-MCP is an **experimental feature** and is disabled by default. The whole MCP surface is gated by a single config property (default `false`):
+MCP is an **experimental feature** and is disabled by default. `calm.mcp.enabled` gates **tool invocations** — when `false`, every `@Tool` method returns a disabled error to the MCP client. The `/mcp` HTTP endpoint itself remains reachable regardless of this flag; network-level controls or authentication are needed to restrict endpoint access.
 
 ```properties
 calm.mcp.enabled=false
