@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-05-27T20:54:30.479Z",
+  "vscodeVersion": "1.121.0",
+  "shots": [
+    {
+      "name": "01-activity-bar.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 169556,
+      "sha256": "c36d9c0883c686cc6207d5e6ed6623f0a0344f772df834e27695ff51df4084cd"
+    },
+    {
+      "name": "02-tree-view.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 173238,
+      "sha256": "4ca13e800970957b2e077b7ab5d9c6d9be786747cd25bd29f30d368ef867b1f4"
+    },
+    {
+      "name": "04-preview-hero.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 208142,
+      "sha256": "5bc4cb05f52a90deaa9d45130758a6ce9ff68e56f5660ac64c2b51c44ecc4905"
+    },
+    {
+      "name": "07-validation-problems.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 182720,
+      "sha256": "9166c7879e137f9cadc56c040c88cf5198f4b76acff8811dd370c2b5515864b3"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "03-tree-search",
+      "reason": "TODO — see issue #2529"
+    },
+    {
+      "name": "05-preview-themes",
+      "reason": "TODO — see issue #2529"
+    },
+    {
+      "name": "06-preview-layout",
+      "reason": "TODO — see issue #2529"
+    },
+    {
+      "name": "08-hover",
+      "reason": "TODO — see issue #2529"
+    },
+    {
+      "name": "09-timeline",
+      "reason": "TODO — see issue #2529"
+    },
+    {
+      "name": "10-docify",
+      "reason": "TODO — see issue #2529"
+    }
+  ]
+}
