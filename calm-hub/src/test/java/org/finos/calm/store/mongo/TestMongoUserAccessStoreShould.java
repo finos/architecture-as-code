@@ -201,6 +201,92 @@ public class TestMongoUserAccessStoreShould {
         assertThat(actual.getUserAccessId(), is(userAccessId));
     }
 
+    @Test
+    void create_user_access_for_domain() {
+        when(counterStore.getNextUserAccessSequenceValue()).thenReturn(201);
+
+        UserAccess userAccess = new UserAccess.UserAccessBuilder()
+                .setDomain("payments")
+                .setUsername("test")
+                .setPermission(Permission.write)
+                .build();
+
+        UserAccess actual = mongoUserAccessStore.createUserAccessForDomain(userAccess);
+        assertThat(actual.getUserAccessId(), is(201));
+        assertThat(actual.getDomain(), is("payments"));
+        verify(userAccessCollection).insertOne(ArgumentMatchers.any(Document.class));
+    }
+
+    @Test
+    void throw_exception_if_no_user_access_found_for_domain() {
+        String domain = "payments";
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor mockMongoCursor = mock(DocumentMongoCursor.class);
+        when(mockMongoCursor.hasNext()).thenReturn(false);
+        when(findIterable.iterator()).thenReturn(mockMongoCursor);
+        when(userAccessCollection.find(Filters.eq("domain", domain))).thenReturn(findIterable);
+
+        assertThrows(UserAccessNotFoundException.class,
+                () -> mongoUserAccessStore.getUserAccessForDomain(domain));
+    }
+
+    @Test
+    void return_user_access_list_for_domain() throws Exception {
+        String domain = "payments";
+        Document doc = new Document("username", "test")
+                .append("domain", domain)
+                .append("permission", Permission.read.name())
+                .append("userAccessId", 201);
+
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, false);
+        when(cursor.next()).thenReturn(doc);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(Filters.eq("domain", domain))).thenReturn(findIterable);
+
+        List<UserAccess> actual = mongoUserAccessStore.getUserAccessForDomain(domain);
+
+        assertThat(actual, hasSize(1));
+        assertThat(actual.getFirst().getDomain(), is(domain));
+    }
+
+    @Test
+    void throw_exception_if_no_user_access_found_for_domain_and_id() {
+        String domain = "payments";
+        Integer userAccessId = 201;
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        when(userAccessCollection.find(Filters.and(
+                Filters.eq("domain", domain),
+                Filters.eq("userAccessId", userAccessId)))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        assertThrows(UserAccessNotFoundException.class,
+                () -> mongoUserAccessStore.getUserAccessForDomainAndId(domain, userAccessId));
+    }
+
+    @Test
+    void return_user_access_for_domain_and_id() throws Exception {
+        String domain = "payments";
+        Integer userAccessId = 201;
+
+        Document document = new Document("username", "test")
+                .append("domain", domain)
+                .append("permission", Permission.read.name())
+                .append("userAccessId", userAccessId);
+
+        DocumentFindIterable mockFindIterable = mock(DocumentFindIterable.class);
+        when(userAccessCollection.find(Filters.and(
+                Filters.eq("domain", domain),
+                Filters.eq("userAccessId", userAccessId)))).thenReturn(mockFindIterable);
+        when(mockFindIterable.first()).thenReturn(document);
+
+        UserAccess actual = mongoUserAccessStore.getUserAccessForDomainAndId(domain, userAccessId);
+
+        assertThat(actual.getDomain(), is(domain));
+        assertThat(actual.getUserAccessId(), is(userAccessId));
+    }
+
     private interface DocumentFindIterable extends FindIterable<Document> {
     }
 

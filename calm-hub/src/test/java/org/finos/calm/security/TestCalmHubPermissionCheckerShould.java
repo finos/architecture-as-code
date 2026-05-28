@@ -203,4 +203,91 @@ class TestCalmHubPermissionCheckerShould {
 
         assertTrue(checker.canRead(mockIdentity, "foo"));
     }
+
+    // --- Domain READ checks ---
+
+    @Test
+    void read_grant_for_domain_allows_domain_read() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.read).setDomain("payments").build();
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void write_grant_for_domain_allows_domain_read() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.write).setDomain("payments").build();
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void grant_for_different_domain_denies_domain_read() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.read).setDomain("orders").build();
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertFalse(checker.canReadByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void namespace_grant_does_not_satisfy_domain_read() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.read, "payments");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertFalse(checker.canReadByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void user_with_no_grants_is_denied_domain_read() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
+
+        assertFalse(checker.canReadByDomain(mockIdentity, "payments"));
+    }
+
+    // --- Domain WRITE checks ---
+
+    @Test
+    void read_grant_for_domain_denies_domain_write() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.read).setDomain("payments").build();
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertFalse(checker.canWriteByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void write_grant_for_domain_allows_domain_write() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.write).setDomain("payments").build();
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void anonymous_identity_is_allowed_domain_read_and_write() {
+        when(mockIdentity.isAnonymous()).thenReturn(true);
+
+        assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
+        assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void public_read_enabled_allows_domain_read_without_store_lookup() {
+        checker.allowPublicRead = true;
+        when(mockIdentity.isAnonymous()).thenReturn(false);
+
+        assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
+    }
 }

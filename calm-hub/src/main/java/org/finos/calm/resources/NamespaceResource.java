@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -33,7 +34,7 @@ public class NamespaceResource {
             summary = "Available Namespaces",
             description = "The available namespaces available in this Calm Hub"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @Authenticated
     public ValueWrapper<NamespaceInfo> namespaces() {
         return new ValueWrapper<>(namespaceStore.getNamespaces());
     }

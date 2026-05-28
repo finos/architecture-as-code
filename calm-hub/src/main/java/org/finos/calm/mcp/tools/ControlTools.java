@@ -37,7 +37,7 @@ public class ControlTools {
     @Inject
     ControlStore controlStore;
 
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     @Tool(description = "List all control requirements in a domain (e.g. 'security'). Returns control IDs, names, and descriptions.")
     public ToolResponse listControls(
             @ToolArg(description = "The domain to list controls for (e.g. 'security')") String domain) {
@@ -69,7 +69,7 @@ public class ControlTools {
         }
     }
 
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     @Tool(description = "Get the full JSON content of a specific control requirement version.")
     public ToolResponse getControl(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
@@ -96,7 +96,7 @@ public class ControlTools {
         }
     }
 
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     @Tool(description = "List available versions for a specific control requirement.")
     public ToolResponse listControlVersions(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
@@ -126,7 +126,7 @@ public class ControlTools {
         }
     }
 
-    @PermissionsAllowed(CalmHubScopes.WRITE)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     @Tool(description = "Create a new control requirement in a domain. The requirement is created with an initial version 1.0.0 from the supplied requirement JSON. Returns the assigned control ID.")
     public ToolResponse createControlRequirement(
             @ToolArg(description = "The domain to create the control requirement in (e.g. 'security')") String domain,
@@ -156,7 +156,7 @@ public class ControlTools {
         }
     }
 
-    @PermissionsAllowed(CalmHubScopes.WRITE)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     @Tool(description = "Create a new control configuration for an existing control requirement. The configuration is created with an initial version 1.0.0 from the supplied configuration JSON. Returns the assigned configuration ID.")
     public ToolResponse createControlConfiguration(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,

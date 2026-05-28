@@ -3,13 +3,12 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
-import io.quarkus.security.PermissionsAllowed;
+import io.quarkus.security.Authenticated;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
-import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.SearchStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +37,7 @@ public class SearchTools {
     @Inject
     SearchStore searchStore;
 
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @Authenticated
     @Tool(description = "Search across all resource types in CalmHub. Performs a global search across architectures, patterns, flows, standards, interfaces, controls, and ADRs. Results are grouped by type.")
     public ToolResponse searchHub(
             @ToolArg(description = "The search query string (1-200 characters)") String query) {

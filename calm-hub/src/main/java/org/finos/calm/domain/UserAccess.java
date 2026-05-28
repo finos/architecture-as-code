@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
- * Represents a CalmHub user access on resources associated to a namespace.
+ * Represents a CalmHub user access grant, scoped to either a namespace or a domain.
  */
 public class UserAccess {
 
@@ -22,6 +22,7 @@ public class UserAccess {
     private String username;
     private Permission permission;
     private String namespace;
+    private String domain;
     private int userAccessId;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
@@ -45,20 +46,11 @@ public class UserAccess {
         this.namespace = namespace;
     }
 
-    public UserAccess(){
-
+    public UserAccess() {
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        UserAccess that = (UserAccess) o;
-        if (userAccessId != that.userAccessId) return false;
-        if (!Objects.equals(username, that.username)) return false;
-        if (!Objects.equals(permission, that.permission)) return false;
-        return Objects.equals(namespace, that.namespace);
+    public String getDomain() {
+        return domain;
     }
 
     public String getUsername() {
@@ -73,6 +65,10 @@ public class UserAccess {
         return namespace;
     }
 
+    public void setDomain(String domain) {
+        this.domain = domain;
+    }
+
     public int getUserAccessId() {
         return userAccessId;
     }
@@ -85,6 +81,34 @@ public class UserAccess {
         return updateDateTime;
     }
 
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setPermission(Permission permission) {
+        this.permission = permission;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public void setUserAccessId(int userAccessId) {
+        this.userAccessId = userAccessId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserAccess that = (UserAccess) o;
+        if (userAccessId != that.userAccessId) return false;
+        if (!Objects.equals(username, that.username)) return false;
+        if (!Objects.equals(permission, that.permission)) return false;
+        if (!Objects.equals(namespace, that.namespace)) return false;
+        return Objects.equals(domain, that.domain);
+    }
+
     public void setCreationDateTime(LocalDateTime creationDateTime) {
         this.creationDateTime = creationDateTime;
     }
@@ -95,7 +119,18 @@ public class UserAccess {
 
     @Override
     public int hashCode() {
-        return Objects.hash(username, permission, namespace, userAccessId);
+        return Objects.hash(username, permission, namespace, domain, userAccessId);
+    }
+
+    @Override
+    public String toString() {
+        return "UserAccess{" +
+                "username='" + username + '\'' +
+                ", permission='" + permission + '\'' +
+                ", namespace='" + namespace + '\'' +
+                ", domain='" + domain + '\'' +
+                ", userAccessId=" + userAccessId +
+                '}';
     }
 
     public static class UserAccessBuilder {
@@ -103,6 +138,7 @@ public class UserAccess {
         private String username;
         private Permission permission;
         private String namespace;
+        private String domain;
         private int userAccessId;
 
         public UserAccessBuilder setUsername(String username) {
@@ -120,39 +156,20 @@ public class UserAccess {
             return this;
         }
 
+        public UserAccessBuilder setDomain(String domain) {
+            this.domain = domain;
+            return this;
+        }
+
         public UserAccessBuilder setUserAccessId(int userAccessId) {
             this.userAccessId = userAccessId;
             return this;
         }
 
-        public UserAccess build(){
-            return new UserAccess(username, permission, namespace, userAccessId);
+        public UserAccess build() {
+            UserAccess ua = new UserAccess(username, permission, namespace, userAccessId);
+            ua.domain = this.domain;
+            return ua;
         }
-    }
-
-    @Override
-    public String toString() {
-        return "UserAccess{" +
-                "username='" + username + '\'' +
-                ", permission='" + permission + '\'' +
-                ", namespace='" + namespace + '\'' +
-                ", userAccessId=" + userAccessId +
-                '}';
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public void setPermission(Permission permission) {
-        this.permission = permission;
-    }
-
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
-    }
-
-    public void setUserAccessId(int userAccessId) {
-        this.userAccessId = userAccessId;
     }
 }

@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -32,7 +33,7 @@ public class DomainTools {
     @Inject
     DomainStore domainStore;
 
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @Authenticated
     @Tool(description = "List all control domains available in CalmHub (e.g. 'security'). Domains group related control requirements.")
     public ToolResponse listDomains() {
         String error = McpValidationHelper.checkEnabled(mcpEnabled);
@@ -50,7 +51,7 @@ public class DomainTools {
         return ToolResponse.success(sb.toString());
     }
 
-    @PermissionsAllowed(CalmHubScopes.WRITE)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     @Tool(description = "Create a new control domain in CalmHub (e.g. 'security'). Domains group related control requirements and are independent of namespaces.")
     public ToolResponse createDomain(
             @ToolArg(description = "Name for the new domain (alphanumeric with optional hyphens, e.g. 'security')") String name) {

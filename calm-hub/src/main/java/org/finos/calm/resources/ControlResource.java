@@ -46,7 +46,7 @@ public class ControlResource {
             summary = "Retrieve controls for a given domain",
             description = "Controls stored in a given domain"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getControlsForDomain(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -67,7 +67,7 @@ public class ControlResource {
             summary = "Create a control requirement for a given domain",
             description = "Creates a new control requirement within the specified domain"
     )
-    @PermissionsAllowed(CalmHubScopes.WRITE)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlForDomain(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -89,7 +89,7 @@ public class ControlResource {
             summary = "Retrieve requirement versions for a control",
             description = "Returns the list of versions for a control requirement"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementVersions(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -113,7 +113,7 @@ public class ControlResource {
             summary = "Retrieve requirement at a specific version",
             description = "Returns the requirement JSON for a control at a given version"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementForVersion(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -144,7 +144,7 @@ public class ControlResource {
             summary = "Create a new requirement version for a control",
             description = "Creates a new version of the requirement for an existing control"
     )
-    @PermissionsAllowed(CalmHubScopes.WRITE)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createRequirementForVersion(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -179,7 +179,7 @@ public class ControlResource {
             summary = "Retrieve configurations for a control",
             description = "Returns the list of configuration IDs for a given control"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationsForControl(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -204,7 +204,7 @@ public class ControlResource {
             summary = "Create a new configuration for a control",
             description = "Creates a new configuration within the specified control with an initial version 1.0.0"
     )
-    @PermissionsAllowed(CalmHubScopes.WRITE)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlConfiguration(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -230,7 +230,7 @@ public class ControlResource {
             summary = "Retrieve versions for a control configuration",
             description = "Returns the list of versions for a specific control configuration"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationVersions(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -258,7 +258,7 @@ public class ControlResource {
             summary = "Retrieve a specific configuration version",
             description = "Returns the configuration JSON at a specific version"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationForVersion(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -293,7 +293,7 @@ public class ControlResource {
             summary = "Create a new version of a control configuration",
             description = "Creates a new version of the configuration for an existing control configuration"
     )
-    @PermissionsAllowed(CalmHubScopes.WRITE)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createConfigurationForVersion(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)

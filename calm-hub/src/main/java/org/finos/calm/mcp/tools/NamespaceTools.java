@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -33,7 +34,7 @@ public class NamespaceTools {
     @Inject
     NamespaceStore namespaceStore;
 
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @Authenticated
     @Tool(description = "List all namespaces available in CalmHub. Returns namespace names and descriptions.")
     public ToolResponse listNamespaces() {
         Optional<ToolResponse> err = McpValidationHelper.firstError(

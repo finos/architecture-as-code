@@ -33,7 +33,7 @@ public class CoreSchemaResource {
             summary = "Published CALM Schema Versions",
             description = "Retrieve the CALM Schema versions published by this CALM Hub"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public ValueWrapper<String> schemaVersions() {
         return new ValueWrapper<>(coreSchemaStore.getVersions());
     }
@@ -44,7 +44,7 @@ public class CoreSchemaResource {
             summary = "Published CALM Schemas for Version",
             description = "Retrieve the names of CALM Schemas in a given version"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response schemasForVersion(@PathParam("version") String version) {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
         if (schemas == null) {
@@ -61,7 +61,7 @@ public class CoreSchemaResource {
             summary = "Retrieve a specific schema by schema name",
             description = "Retrieve a specific schema from the CALM Hub"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response getSchema(@PathParam("version") String version,
                               @PathParam("schemaName") String schemaName) {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
@@ -85,7 +85,7 @@ public class CoreSchemaResource {
             summary = "Create Schema Version",
             description = "Create a new schema version with associated schemas"
     )
-    @PermissionsAllowed(CalmHubScopes.WRITE)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response createSchemaVersion(SchemaVersionRequest request) throws URISyntaxException {
         if (request == null || request.getVersion() == null || request.getVersion().trim().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)

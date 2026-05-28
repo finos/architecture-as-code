@@ -11,6 +11,8 @@ import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.function.Predicate;
+
 
 @ApplicationScoped
 public class CalmHubPermissionChecker {
@@ -29,20 +31,33 @@ public class CalmHubPermissionChecker {
     @PermissionChecker(CalmHubScopes.ADMIN)
     public boolean allowNamespaceAdmin(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
-        return hasAccess(identity, namespace, UserAction.ADMIN);
+        return hasNamespaceAccess(identity, namespace, UserAction.ADMIN);
     }
 
     @PermissionChecker(CalmHubScopes.READ)
     public boolean canRead(SecurityIdentity identity, String namespace) {
         if (identity.isAnonymous()) return true;
         if (allowPublicRead) return true;
-        return hasAccess(identity, namespace, UserAction.READ);
+        return hasNamespaceAccess(identity, namespace, UserAction.READ);
+    }
+
+    @PermissionChecker(CalmHubScopes.DOMAIN_READ)
+    public boolean canReadByDomain(SecurityIdentity identity, String domain) {
+        if (identity.isAnonymous()) return true;
+        if (allowPublicRead) return true;
+        return hasDomainAccess(identity, domain, UserAction.READ);
     }
 
     @PermissionChecker(CalmHubScopes.WRITE)
     public boolean canWrite(SecurityIdentity identity, String namespace) {
         return identity.isAnonymous()
-                || hasAccess(identity, namespace, UserAction.WRITE);
+                || hasNamespaceAccess(identity, namespace, UserAction.WRITE);
+    }
+
+    @PermissionChecker(CalmHubScopes.DOMAIN_WRITE)
+    public boolean canWriteByDomain(SecurityIdentity identity, String domain) {
+        return identity.isAnonymous()
+                || hasDomainAccess(identity, domain, UserAction.WRITE);
     }
 
     @PermissionChecker(CalmHubScopes.GLOBAL_ADMIN)
@@ -57,7 +72,7 @@ public class CalmHubPermissionChecker {
             boolean granted =
                     userAccessStore.getUserAccessForUsername(username)
                             .stream()
-                            .anyMatch(grant -> namespaceMatches(grant, "GLOBAL")
+                            .anyMatch(grant -> "GLOBAL".equals(grant.getNamespace())
                                     && permissionSufficient(grant, UserAction.ADMIN));
 
             if (granted) {
@@ -72,30 +87,34 @@ public class CalmHubPermissionChecker {
         }
     }
 
-    private boolean hasAccess(SecurityIdentity identity, String namespace, UserAction action) {
+    private boolean hasNamespaceAccess(SecurityIdentity identity, String namespace, UserAction action) {
+        return hasAccess(identity, "namespace", namespace, action,
+                grant -> namespace != null && namespace.equals(grant.getNamespace()));
+    }
+
+    private boolean hasDomainAccess(SecurityIdentity identity, String domain, UserAction action) {
+        return hasAccess(identity, "domain", domain, action,
+                grant -> domain != null && domain.equals(grant.getDomain()));
+    }
+
+    private boolean hasAccess(SecurityIdentity identity, String scopeType, String scopeValue,
+                              UserAction action, Predicate<UserAccess> grantMatcher) {
         String username = identity.getPrincipal().getName();
-        logger.debug("Checking access for user [{}] on namespace [{}] action=[{}]",
-                username, namespace, action);
+        logger.debug("Checking {} access for user [{}] on {} [{}] action=[{}]",
+                scopeType, username, scopeType, scopeValue, action);
         try {
             boolean result = userAccessStore.getUserAccessForUsername(username).stream()
-                    .anyMatch(grant -> namespaceMatches(grant, namespace)
-                            && permissionSufficient(grant, action));
+                    .anyMatch(grant -> grantMatcher.test(grant) && permissionSufficient(grant, action));
             if (result) {
-                logger.info("User [{}] AUTHORIZED for [{}] in namespace [{}]",
-                        username, action, namespace);
+                logger.info("User [{}] AUTHORIZED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
             } else {
-                logger.warn("User [{}] DENIED for [{}] in namespace [{}]",
-                        username, action, namespace);
+                logger.warn("User [{}] DENIED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
             }
             return result;
         } catch (UserAccessNotFoundException e) {
             logger.debug("No access grants found for user [{}]", username);
             return false;
         }
-    }
-
-    private boolean namespaceMatches(UserAccess grant, String namespace) {
-        return grant.getNamespace().equals(namespace);
     }
 
     private boolean permissionSufficient(UserAccess grant, UserAction action) {
