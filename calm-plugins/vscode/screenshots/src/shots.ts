@@ -355,33 +355,29 @@ export const shots: Shot[] = [
         },
     },
 
-    // Docify / template view: the preview panel has Docify, Template, and
-    // Model tabs at the top. We open the preview, click the Template tab
-    // header so live template rendering is shown alongside the architecture.
-    // This is more reliable than triggering `CALM: Create Documentation
-    // Website`, which prompts for an output directory.
+    // Docify tab: the preview panel has Docify, Template, and Model tabs.
+    // The Docify tab is the one that actually *renders* the architecture
+    // through Mermaid / widgets (see template-tab.view.ts — the Template
+    // tab just shows escaped source). openPreview() already opens the
+    // preview on the Docify tab (the default), so we just need to wait for
+    // the diagram to render.
     {
         name: '10-docify',
         fixture: 'docify-template',
         workspaceFile: 'architecture.json',
-        description: 'Live documentation rendering in the preview Template tab.',
+        description: 'Docify tab rendering the architecture through CALM widgets.',
         implemented: true,
         async setup(window) {
             await openPreview(window)
-            // The Template tab lives INSIDE the preview's webview frame, so
-            // it can't be reached by a top-level page locator. Use the
-            // inner-frame finder from frames.ts.
+            // Belt-and-braces: explicitly click the Docify tab in case a
+            // future change makes a different tab the default.
             const inner = findInnerWebviewFrame(window)
             if (inner) {
-                const templateTab = inner.locator('text=Template').first()
-                if ((await templateTab.count()) > 0) {
-                    await templateTab.click()
-                    await window.waitForTimeout(3_000)
-                } else {
-                    console.warn('[shoot]   Template tab not found inside webview frame')
+                const docifyTab = inner.locator('text=Docify').first()
+                if ((await docifyTab.count()) > 0) {
+                    await docifyTab.click()
+                    await window.waitForTimeout(2_500)
                 }
-            } else {
-                console.warn('[shoot]   inner webview frame not found')
             }
         },
         async capture(window) {

@@ -1,7 +1,7 @@
 ---
 id: vscode-extension
 title: VS Code Extension
-sidebar_label: CALM Tools (VSCode)
+sidebar_label: CALM Tools (VS Code)
 sidebar_position: 2
 ---
 
@@ -49,7 +49,7 @@ Clicking any element focuses the corresponding range in the JSON editor. The vie
 
 ### Search & Filter
 
-For larger architectures, use **Search CALM Architecture Elements** (the magnifier icon at the top of the view, or the command of the same name) to filter the tree to elements matching a substring.
+For larger architectures, use **Search Model Elements** (the magnifier icon at the top of the view, or the command of the same name in the palette) to filter the tree to elements matching a substring. The input box prompt reads *"Search CALM Architecture Elements"*; type any node-id substring and press **Enter**.
 
 ![Model Elements tree filtered by 'api'](/img/vscode/03-tree-search.png)
 
@@ -75,11 +75,7 @@ The preview panel renders the active CALM document as an interactive diagram nex
 - The preview re-renders automatically when you save the file.
 - Use the floating controls in the top-right of the diagram to zoom or reset the view.
 
-The preview has three tabs at the top:
-
-- **Docify** — the default rendered view of the architecture (shown above).
-- **Template** — see [Documentation Generation](#documentation-generation) below.
-- **Model** — the raw model data as the extension sees it.
+The preview has three tabs at the top — **Docify** (the rendered view shown above), **Template** (the raw template source for the active document), and **Model** (the parsed model). See [Documentation Generation](#documentation-generation) below for the full breakdown.
 
 ---
 
@@ -338,16 +334,26 @@ With this setup, clicking the **Payment Service** node in the preview of `system
 
 ## Documentation Generation
 
-The preview's **Template** tab is a live Handlebars renderer. You author a Markdown template that references CALM widgets like `{{block-architecture}}`; the extension renders it against the active architecture and updates the output every time you save.
+The preview panel has three tabs at the top of the webview — each shows a different view of the active architecture:
 
-![Template tab in the preview](/img/vscode/10-docify.png)
+| Tab | What it shows |
+| --- | --- |
+| **Docify** | The rendered documentation view — heading plus an interactive Mermaid diagram of the architecture, produced through the CALM widget pipeline. This is the default tab shown when you open the preview. |
+| **Template** | The raw source of the active Handlebars / Markdown template, shown as syntax-highlighted text. A source viewer, not a renderer — use it to confirm which template is in scope, not to preview output. |
+| **Model** | The CALM model as the extension sees it after parsing — useful for debugging schema or normalisation issues. |
 
-Two related commands generate static output:
+The Docify tab is what most users mean when they say "the preview":
 
-- **CALM: Create Documentation Website** (`calm.createWebsite`) — render the workspace's templates into an HTML site.
-- The equivalent CLI command — see [`calm docify`](cli#documenting-architectures-docify) — for batch generation outside the editor.
+![Docify tab rendering the architecture through CALM widgets](/img/vscode/10-docify.png)
 
-Pair this with the [Handlebars Templates](../tutorials/intermediate/13-handlebars-templates) tutorial if you're new to template authoring.
+To produce static documentation outside the preview, use either of:
+
+- **CALM: Create Documentation Website** (`calm.createWebsite`) — runs the docify pipeline against the workspace and writes an HTML site to disk.
+- The equivalent CLI command — see [`calm docify`](cli#documenting-architectures-docify) — for batch generation in CI or scripts.
+
+Both consume the same `calm.urlMapping` configuration (see [Multi-Document Navigation](#multi-document-navigation)), so authoring once works for interactive, batch, and CI documentation flows.
+
+Pair this with the [Handlebars Templates](../tutorials/intermediate/13-handlebars-templates) tutorial if you're new to authoring custom templates.
 
 ---
 

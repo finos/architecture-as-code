@@ -1,97 +1,97 @@
 {
-  "generatedAt": "2026-05-27T21:57:39.849Z",
+  "generatedAt": "2026-05-28T08:06:58.520Z",
   "vscodeVersion": "1.121.0",
   "shots": [
     {
       "name": "01-activity-bar.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 170485,
-      "sha256": "f65e4c9ca9ea26916ae571869cb03a9dda9a1b0949c64a99d84244757b8d7406"
+      "bytes": 171290,
+      "sha256": "c6211e576f44401ecad0564aa9ec1ef6022e3b51b0a40a87074eb93be36258f9"
     },
     {
       "name": "02-tree-view.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 174118,
-      "sha256": "5297b7fb7aa02bcff3d34852d3f8c7fa2e02f81899c44445a3024de51d7a5dd0"
+      "bytes": 174926,
+      "sha256": "4802200620e687ffb93ab97092a4c8e1f7bb52641481c815d57c08551f9f5ec0"
     },
     {
       "name": "03-tree-search.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 178545,
-      "sha256": "2151940ad11470e27b4e383c1bad8bae355e5849db18f1810cc151202c21416f"
+      "bytes": 179409,
+      "sha256": "f30724d953aa2f7a144437219b54f10352ddc20230db776f0e9ad594e5279ce0"
     },
     {
       "name": "04-preview-hero.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 208668,
-      "sha256": "b30421e70c668ce43e8284357b74ab2a0d05d732f5f1f618c556af80a26ed949"
+      "bytes": 209424,
+      "sha256": "5d960c911c79fb5ae0a92204068b44922d0cc722a8325e0bbf450d56e914668b"
     },
     {
       "name": "05-theme-light.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 207591,
-      "sha256": "6b2b8e9e7ae1c7163a096b1da80a4d87599183f220ff88a2a0e3a86b7c4ca8c5"
+      "bytes": 208202,
+      "sha256": "7c51c3722a190c79f610c3416279cabb0add8022a601897c869e199859357b5f"
     },
     {
       "name": "05-theme-dark.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 201602,
-      "sha256": "4d8371ac30f80a1808f11c453abf260bd0047c7073981cebd805f87a0fe3ca58"
+      "bytes": 202198,
+      "sha256": "f65359dc503c1f8569c2d290a64179b15e3d1fe285adf326555e01382e10c31e"
     },
     {
       "name": "05-theme-hc-light.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 206954,
-      "sha256": "9bbaa2ba5686fd3226d6fbfa1ace5a772698a9601cca4d32e2aee2f0f6caf492"
+      "bytes": 207700,
+      "sha256": "ea807b8a09b73dcafeeccd1196c2ed47093916cd00348462be6ebc2814d758fb"
     },
     {
       "name": "05-theme-hc-dark.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 209220,
-      "sha256": "be6dad5595667f14ba23b0e7aa5d5baf48ff0be93573e62120aeed0424e30dd8"
+      "bytes": 210002,
+      "sha256": "612fe89f59ff9a9716590b0e958f02c1592fae6e02a057f3dcb78a0fa8a7c7cd"
     },
     {
       "name": "06-layout-elk.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 208669,
-      "sha256": "8b4cf93f4c57b8e218a16868d77a057439fe81adb234b62965fa18dbe90f4abd"
+      "bytes": 209427,
+      "sha256": "3b7fc2f1637df89bdf263d6bcd7207ed895511363977480c83acaf7a146c5991"
     },
     {
       "name": "06-layout-dagre.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 213691,
-      "sha256": "8b3eac44cb2736bc6fcc48b1cabc8f05ca7f35d024e2a95a5d682c2b5ac12424"
+      "bytes": 214455,
+      "sha256": "666e9ef05922c68b3b3883a6df08b8f29a7c51eb985856e31a3a55f8c53207bd"
     },
     {
       "name": "07-validation-problems.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 184486,
-      "sha256": "ffe5959f73bed0407e1b9442430d7b24242576e6c4a1a997d7e1a9fabf81fe5f"
+      "bytes": 186135,
+      "sha256": "1c969be9f72c5894090e55a47cbf0de11ae73c9c60727f9fb388e211ad1b1aec"
     },
     {
       "name": "09-timeline.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 129399,
-      "sha256": "d6a494869d54d667d8be6b870db93956b107672b8c0ea9785276f379b68afc8e"
+      "bytes": 130341,
+      "sha256": "18c051f0b351937c767b611d1f74de8a12d576f9c8e4f8c2311b6ce22eac2453"
     },
     {
       "name": "10-docify.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 139875,
-      "sha256": "fcb40c504a74e34db4d8164a0801fde3f780886c988d22238bc386ffb26bc46d"
+      "bytes": 146974,
+      "sha256": "6616a98a3b404694d0d7966caecfb65336880ade8a03ef53dcee12362c76b698"
     }
   ],
   "skipped": [
