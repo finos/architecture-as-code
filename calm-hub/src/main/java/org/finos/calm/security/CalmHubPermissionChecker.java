@@ -3,6 +3,8 @@ package org.finos.calm.security;
 import io.quarkus.security.PermissionChecker;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
@@ -16,6 +18,10 @@ public class CalmHubPermissionChecker {
 
     private final UserAccessStore userAccessStore;
 
+    @Inject
+    @ConfigProperty(name = "calm.hub.allow.public.read", defaultValue = "false")
+    boolean allowPublicRead;
+
     public CalmHubPermissionChecker(UserAccessStore userAccessStore) {
         this.userAccessStore = userAccessStore;
     }
@@ -28,8 +34,9 @@ public class CalmHubPermissionChecker {
 
     @PermissionChecker(CalmHubScopes.READ)
     public boolean canRead(SecurityIdentity identity, String namespace) {
-        return identity.isAnonymous()
-                || hasAccess(identity, namespace, UserAction.READ);
+        if (identity.isAnonymous()) return true;
+        if (allowPublicRead) return true;
+        return hasAccess(identity, namespace, UserAction.READ);
     }
 
     @PermissionChecker(CalmHubScopes.WRITE)
