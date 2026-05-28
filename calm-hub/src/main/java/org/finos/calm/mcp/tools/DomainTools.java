@@ -25,7 +25,7 @@ public class DomainTools {
     private static final Logger logger = LoggerFactory.getLogger(DomainTools.class);
 
     @Inject
-    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
+    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "false")
     boolean mcpEnabled;
 
     @Inject

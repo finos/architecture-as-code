@@ -25,6 +25,9 @@ public class NitriteIntegrationTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("allow.put.operations", "true");
+        return Map.of(
+                "allow.put.operations", "true",
+                "calm.mcp.enabled", "true"
+        );
     }
 }
