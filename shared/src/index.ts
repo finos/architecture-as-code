@@ -66,8 +66,14 @@ export {
     HubClientError,
     type HubNamespaceSummary,
     type HubArchitectureSummary,
+    type HubPatternSummary,
+    type HubStandardSummary,
     type HubCreateResult,
     type HubNamespaceCreateResult,
+    type HubDomainCreateResult,
+    type HubDomainSummary,
+    type HubControlSummary,
+    type HubControlRequirementSummary,
     type CalmHubOptions
 } from './hub/calm-hub-client.js';
 export {

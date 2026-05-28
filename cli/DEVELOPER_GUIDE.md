@@ -64,7 +64,7 @@ $ npm pack --pack-destination /tmp
 # Note: this will replace an existing calm cli install in the global area
 $ npm install -g /tmp/finos-calm-cli-<version-identifier>.tgz
 
-# run manual verfication of the new version, e.g,.
+# run manual verification of the new version, e.g,.
 #   calm --help
 #   calm init-ai --help
 ```
