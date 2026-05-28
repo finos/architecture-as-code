@@ -5,27 +5,42 @@ import org.finos.calm.store.mongo.MongoControlStore;
 import org.finos.calm.store.nitrite.NitriteControlStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import jakarta.enterprise.inject.Instance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestControlStoreProducerShould {
 
     @Mock
     MongoControlStore mongoControlStore;
 
     @Mock
+    Instance<MongoControlStore> mongoControlStoreInstance;
+
+    @Mock
     NitriteControlStore standaloneControlStore;
 
-    @InjectMocks
+    @Mock
+    Instance<NitriteControlStore> standaloneControlStoreInstance;
+
     ControlStoreProducer producer;
 
     @BeforeEach
     public void setup() {
-        MockitoAnnotations.openMocks(this);
+        when(mongoControlStoreInstance.get()).thenReturn(mongoControlStore);
+        when(standaloneControlStoreInstance.get()).thenReturn(standaloneControlStore);
+        producer = new ControlStoreProducer();
+        producer.mongoControlStore = mongoControlStoreInstance;
+        producer.standaloneControlStore = standaloneControlStoreInstance;
     }
 
     @Test

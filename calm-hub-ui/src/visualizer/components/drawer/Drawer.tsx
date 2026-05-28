@@ -48,6 +48,10 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
+    // Identifies the diagram (ignoring version) so its viewport can be remembered
+    // across version/moment switches and refreshes. A dropped file has no identity.
+    const viewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
+
     useEffect(() => {
         const source = fileInstance ?? data?.data;
         const isPattern = !!source && (isPatternData(source) || (!fileInstance && data?.calmType === 'Patterns'));
@@ -204,6 +208,7 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
                                 onNodeClick={handlePatternNodeClick}
                                 onEdgeClick={handlePatternEdgeClick}
                                 onBackgroundClick={closeSidebar}
+                                viewportKey={viewportKey}
                             />
                         ) : calmInstance ? (
                             <ReactFlowVisualizer
@@ -211,6 +216,7 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
                                 onNodeClick={handleNodeClick}
                                 onEdgeClick={handleEdgeClick}
                                 onBackgroundClick={closeSidebar}
+                                viewportKey={viewportKey}
                             />
                         ) : null}
                     </div>

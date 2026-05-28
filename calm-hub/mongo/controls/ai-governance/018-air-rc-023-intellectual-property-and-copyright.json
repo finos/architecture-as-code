@@ -1,0 +1,37 @@
+{
+  "controlId": 18,
+  "name": "AIR-RC-023 — Intellectual Property (IP) and Copyright",
+  "description": "Controls to protect against AI systems generating, distributing, or misappropriating third-party intellectual property or copyrighted content in financial services applications.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-RC-023",
+      "name": "Intellectual Property (IP) and Copyright",
+      "category": "Regulatory and Compliance",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-23_intellectual-property-ip-and-copyright.html",
+      "summary": "AI systems may generate content that infringes third-party intellectual property rights, or may reproduce copyrighted material from training data. Financial institutions must manage IP risks associated with AI-generated outputs.",
+      "requirements": [
+        "Conduct IP risk assessments for all AI systems that generate or reproduce content, identifying copyright exposure.",
+        "Implement content filters to detect and block reproduction of copyrighted material in AI outputs.",
+        "Establish policies governing the use of third-party data and content in AI training datasets, ensuring appropriate licencing.",
+        "Include IP indemnification and liability clauses in contracts with AI model providers.",
+        "Train staff on IP risks associated with AI-generated content and define acceptable use policies.",
+        "Monitor AI outputs for patterns indicating potential copyright infringement and establish remediation procedures."
+      ],
+      "contributing_factors": [
+        "AI models trained on copyrighted content may reproduce or closely paraphrase protected material.",
+        "Ambiguity in copyright law regarding AI-generated content and training data use.",
+        "Insufficient licencing agreements for third-party data used in model training.",
+        "Absence of output monitoring for copyright infringement indicators."
+      ],
+      "regulatory_references": [
+        "Copyright, Designs and Patents Act 1988 (UK)",
+        "EU Copyright Directive",
+        "US Copyright Act"
+      ],
+      "references": []
+    }
+  },
+  "configurations": []
+}

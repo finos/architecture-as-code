@@ -3,39 +3,39 @@
 {{#with (lookup @root.nodeTypeMap nodeType)}}
 {{!-- Use the mapped type for rendering --}}
 {{#if (eq this 'actor')}}
-{{{mermaidId ../id}}}([👤 {{../label}}]):::actor
+{{{mermaidId ../id}}}([👤 {{{mermaidText ../label}}}]):::actor
 {{else if (eq this 'database')}}
-{{{mermaidId ../id}}}[(🗄️ {{../label}})]:::database
+{{{mermaidId ../id}}}[(🗄️ {{{mermaidText ../label}}})]:::database
 {{else if (eq this 'webclient')}}
-{{{mermaidId ../id}}}[[💻 {{../label}}]]:::webclient
+{{{mermaidId ../id}}}[[💻 {{{mermaidText ../label}}}]]:::webclient
 {{else if (eq this 'messagebus')}}
-{{{mermaidId ../id}}}@{shape: h-cyl, label: "📨 {{../label}}"}
+{{{mermaidId ../id}}}@{shape: h-cyl, label: "📨 {{{mermaidText ../label}}}"}
 class {{{mermaidId ../id}}} messagebus
 {{else if (eq this 'service')}}
-{{{mermaidId ../id}}}[/"⚙️ {{../label}}"/]:::service
+{{{mermaidId ../id}}}[/"⚙️ {{{mermaidText ../label}}}"/]:::service
 {{else if (eq this 'system')}}
-{{{mermaidId ../id}}}[🏢 {{../label}}]:::system
+{{{mermaidId ../id}}}[🏢 {{{mermaidText ../label}}}]:::system
 {{else}}
 {{!-- Unknown mapped type, use default --}}
-{{{mermaidId ../id}}}["{{../label}}"]:::node
+{{{mermaidId ../id}}}["{{{mermaidText ../label}}}"]:::node
 {{/if}}
 {{else}}
 {{!-- No mapping, use direct node type or default --}}
 {{#if (eq nodeType 'actor')}}
-{{{mermaidId id}}}([👤 {{label}}]):::actor
+{{{mermaidId id}}}([👤 {{{mermaidText label}}}]):::actor
 {{else if (eq nodeType 'database')}}
-{{{mermaidId id}}}[(🗄️ {{label}})]:::database
+{{{mermaidId id}}}[(🗄️ {{{mermaidText label}}})]:::database
 {{else if (eq nodeType 'webclient')}}
-{{{mermaidId id}}}[[💻 {{label}}]]:::webclient
+{{{mermaidId id}}}[[💻 {{{mermaidText label}}}]]:::webclient
 {{else if (eq nodeType 'messagebus')}}
-{{{mermaidId id}}}@{shape: h-cyl, label: "📨 {{label}}"}
+{{{mermaidId id}}}@{shape: h-cyl, label: "📨 {{{mermaidText label}}}"}
 class {{{mermaidId id}}} messagebus
 {{else if (eq nodeType 'service')}}
-{{{mermaidId id}}}[/"⚙️ {{label}}"/]:::service
+{{{mermaidId id}}}[/"⚙️ {{{mermaidText label}}}"/]:::service
 {{else if (eq nodeType 'system')}}
-{{{mermaidId id}}}[🏢 {{label}}]:::system
+{{{mermaidId id}}}[🏢 {{{mermaidText label}}}]:::system
 {{else}}
 {{!-- Default rectangle for unknown types --}}
-{{{mermaidId id}}}["{{label}}"]:::node
+{{{mermaidId id}}}["{{{mermaidText label}}}"]:::node
 {{/if}}
 {{/with}}

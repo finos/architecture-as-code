@@ -292,11 +292,11 @@ public class TestFlowResourceShould {
 
     @Test
     void return_400_error_when_version_is_not_valid_when_creating_new_flow_version() {
-        String flowJson = "{ \"test\": \"json\" }";
+        String envelopeBody = "{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}";
 
         given()
                 .header("Content-Type", "application/json")
-                .body(flowJson)
+                .body(envelopeBody)
                 .when()
                 .post("/calm/namespaces/test/flows/20/versions/invalid-version")
                 .then()
@@ -323,6 +323,8 @@ public class TestFlowResourceShould {
                 .setId(20)
                 .build();
 
+        String envelopeBody = "{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}";
+
         if (exceptionToThrow != null) {
             when(mockFlowStore.createFlowForVersion(expectedFlow)).thenThrow(exceptionToThrow);
         } else {
@@ -332,7 +334,7 @@ public class TestFlowResourceShould {
         if (expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedFlow.getFlowJson())
+                    .body(envelopeBody)
                     .when()
                     .post("/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
@@ -341,7 +343,7 @@ public class TestFlowResourceShould {
         } else {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedFlow.getFlowJson())
+                    .body(envelopeBody)
                     .when()
                     .post("/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
@@ -355,7 +357,7 @@ public class TestFlowResourceShould {
     void return_forbidden_for_put_operations_on_flows_default_and_when_configured() {
         given()
                 .header("Content-Type", "application/json")
-                .body("{ \"test\": \"json\" }")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                 .when()
                 .put("/calm/namespaces/test/flows/20/versions/1.0.1")
                 .then()

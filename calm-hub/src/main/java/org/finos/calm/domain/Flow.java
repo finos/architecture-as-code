@@ -7,12 +7,24 @@ public class Flow {
     private final int id;
     private final String version;
     private final String flow;
+    private final String name;
+    private final String description;
 
     private Flow(FlowBuilder builder) {
         this.namespace = builder.namespace;
         this.id = builder.id;
         this.version = builder.version;
         this.flow = builder.flow;
+        this.name = builder.name;
+        this.description = builder.description;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public String getNamespace() {
@@ -63,6 +75,18 @@ public class Flow {
         private int id;
         private String version;
         private String flow;
+        private String name;
+        private String description;
+
+        public FlowBuilder setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public FlowBuilder setDescription(String description) {
+            this.description = description;
+            return this;
+        }
 
         public FlowBuilder setNamespace(String namespace) {
             this.namespace = namespace;

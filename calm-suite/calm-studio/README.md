@@ -58,22 +58,22 @@ Architecture diagrams are everywhere — but they rot. They're images no tool ca
 
 ### Prerequisites
 
-- Node.js >= 20
-- pnpm >= 9 (`npm install -g pnpm`)
+- Node.js >= 22 (required by `engine-strict` in the monorepo)
 
 ### Development
 
 ```bash
-git clone https://github.com/finos/calmstudio.git
-cd calmstudio
-pnpm install
-pnpm build
+git clone https://github.com/finos/architecture-as-code.git
+cd architecture-as-code
+npm ci
+npm run build --workspace=@calmstudio/calm-core
+npm run build --workspace=@calmstudio/extensions
 ```
 
 Run the studio:
 
 ```bash
-pnpm --filter @calmstudio/studio dev
+npm run dev --workspace=@calmstudio/studio
 ```
 
 Open [http://localhost:5173](http://localhost:5173).
@@ -147,27 +147,27 @@ CalmStudio uses a comprehensive test suite across all packages:
 
 | Package | Threshold | Command |
 |---------|-----------|---------|
-| calm-core | 90% | `pnpm --filter @calmstudio/calm-core run test:coverage` |
-| extensions | 80% | `pnpm --filter @calmstudio/extensions run test:coverage` |
-| mcp-server | 80% | `pnpm --filter @calmstudio/mcp-server run test:coverage` |
-| studio | 60% | `pnpm --filter @calmstudio/studio run test:coverage` |
+| calm-core | 90% | `npm run test:coverage --workspace=@calmstudio/calm-core` |
+| extensions | 80% | `npm run test:coverage --workspace=@calmstudio/extensions` |
+| mcp-server | 80% | `npm run test:coverage --workspace=@calmstudio/mcp` |
+| studio | 60% | `npm run test:coverage --workspace=@calmstudio/studio` |
 
 **Run all tests:**
 
 ```bash
-pnpm -r run test
+npm run test --workspaces --if-present
 ```
 
 **Run with coverage (enforces thresholds):**
 
 ```bash
-pnpm -r run test:coverage
+npm run test:coverage --workspaces --if-present
 ```
 
 **Run E2E tests** (requires dev server running on port 5173):
 
 ```bash
-pnpm --filter @calmstudio/studio run test:e2e
+npm run test:e2e --workspace=@calmstudio/studio
 ```
 
 Coverage reports are uploaded as CI artifacts on every build. E2E tests run automatically on merge to `main`.
@@ -184,10 +184,10 @@ We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) 
 ### Development Commands
 
 ```bash
-pnpm build        # Build all packages
-pnpm test         # Run all tests
-pnpm typecheck    # TypeScript type check
-pnpm lint         # Lint all packages
+npm run build --workspaces --if-present   # Build all packages
+npm run test --workspaces --if-present    # Run all tests
+npm run typecheck --workspaces --if-present  # TypeScript type check
+npm run lint --workspaces --if-present    # Lint all packages
 ```
 
 ### Commit Convention

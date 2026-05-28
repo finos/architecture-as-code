@@ -1,0 +1,36 @@
+{
+  "controlId": 13,
+  "name": "AIR-OP-028 — Multi-Agent Trust Boundary Violations",
+  "description": "Controls to prevent security compromises in one AI agent from propagating to other agents within multi-agent systems, enforcing trust boundaries and isolation in financial services deployments.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-028",
+      "name": "Multi-Agent Trust Boundary Violations",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-28_multi-agent-trust-boundary-violations.html",
+      "summary": "In multi-agent systems, compromised agents affect other agents through shared resources, communication channels, or state corruption, leading to systemic failures and cascading security incidents.",
+      "requirements": [
+        "Enforce strict agent isolation using separate security contexts, namespaces, and privilege levels per agent.",
+        "Implement mutual authentication and authorisation for all agent-to-agent communications.",
+        "Apply input validation and sanitisation on all inter-agent messages to prevent injection attacks.",
+        "Restrict shared resource access using fine-grained RBAC policies per agent type and privilege level.",
+        "Deploy comprehensive monitoring of cross-agent interactions with anomaly detection capabilities.",
+        "Define and test incident response procedures specifically for multi-agent cascade compromise scenarios."
+      ],
+      "contributing_factors": [
+        "Insufficient agent isolation lacking proper security boundaries between agent types.",
+        "Weak inter-agent authentication enabling agent impersonation attacks.",
+        "Shared resource security gaps in databases and APIs accessible to multiple agents.",
+        "Cross-agent state management flaws allowing memory contamination.",
+        "Design flaws in agent trust models enabling privilege escalation across the agent network."
+      ],
+      "references": [
+        "https://csrc.nist.gov/publications/detail/sp/800-207/final",
+        "https://ithandbook.ffiec.gov/"
+      ]
+    }
+  },
+  "configurations": []
+}

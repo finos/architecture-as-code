@@ -28,11 +28,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * Implementation of the FlowStore interface using NitriteDB.
  * This implementation is used when the application is running in standalone mode.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 @Typed(NitriteFlowStore.class)
 public class NitriteFlowStore implements FlowStore {
@@ -283,6 +285,14 @@ public class NitriteFlowStore implements FlowStore {
                         Document versions = flowDoc.get(VERSIONS_FIELD, Document.class);
                         versions.put(flow.getMongoVersion(), flow.getFlowJson());
                         flowDoc.put(VERSIONS_FIELD, versions);
+                        // Defensive: the REST layer enforces @NotBlank on name/description via CreateFlowRequest,
+                        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+                        if (flow.getName() != null && !flow.getName().isBlank()) {
+                            flowDoc.put(NAME_FIELD, flow.getName());
+                        }
+                        if (flow.getDescription() != null && !flow.getDescription().isBlank()) {
+                            flowDoc.put(DESCRIPTION_FIELD, flow.getDescription());
+                        }
                         flows.set(i, flowDoc);
                         found = true;
                         break;

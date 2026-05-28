@@ -34,18 +34,25 @@ export class MultiStrategyDocumentLoader implements DocumentLoader {
             try {
                 return await loader.loadMissingDocument(documentId, type);
             } catch (err) {
-                errors.push({
-                    loaderName: loader.constructor.name,
-                    error: err instanceof Error ? err : new Error(String(err))
-                });
+                const error = err instanceof Error ? err : new Error(String(err));
+                errors.push({ loaderName: loader.constructor.name, error });
+
+                // A fatal (non-recoverable) error means this loader recognised the reference and
+                // genuinely failed to load it. Surface it immediately rather than masking it with a
+                // later loader's "this reference isn't mine" error.
+                if (err instanceof DocumentLoadError && !err.recoverable) {
+                    this.logger.error(`Loader ${loader.constructor.name} failed fatally loading document: ${documentId}. Enable debug logging for the full loader report.`);
+                    this.printErrorMessages(errors);
+                    throw err;
+                }
             }
         }
-        this.logger.error(`All document loaders failed to load document: ${documentId}. See report below:`);
+        this.logger.error(`All document loaders failed to load document: ${documentId}. Enable debug logging for the full loader report.`);
         this.printErrorMessages(errors);
+        const lastError = errors[errors.length - 1].error;
         throw new DocumentLoadError({
             name: 'UNKNOWN',
-            message: `All document loaders failed to load document: ${documentId}`,
-            cause: errors[errors.length - 1].error
+            message: lastError?.message ?? `Failed to load document: ${documentId}`,
         });
     }
 
@@ -54,7 +61,7 @@ export class MultiStrategyDocumentLoader implements DocumentLoader {
         for (const { loaderName, error } of errors) {
             report += `Loader ${loaderName} FAILED with error: ${error?.message}\n`;
         }
-        this.logger.error(report);
+        this.logger.debug(report);
     }
 
     resolvePath(reference: string): string | undefined {

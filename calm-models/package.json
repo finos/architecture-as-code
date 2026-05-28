@@ -14,6 +14,10 @@
     "./canonical": {
       "import": "./dist/canonical/template-models.js",
       "types": "./dist/canonical/template-models.d.ts"
+    },
+    "./diff": {
+      "import": "./dist/diff/index.js",
+      "types": "./dist/diff/index.d.ts"
     }
   },
   "files": [

@@ -26,6 +26,9 @@ npm test --workspace cli               # Run Vitest tests
 npm run lint --workspace cli           # ESLint check
 npm run lint-fix --workspace cli       # Auto-fix linting issues
 
+# If you want to test just one file run this. Make sure you're in the cli directory or below so it can resolve vitest.config.ts.
+npx vitest run ${TEST FILE}
+
 # Local testing (from repository root)
 npm run link:cli       # Link CLI globally for testing
 calm --help            # Test globally linked CLI

@@ -8,6 +8,21 @@ export {
 export { OutputFormat, ValidateOutputFormat } from './commands/validate/validate.js';
 export { runGenerate } from './commands/generate/generate.js';
 export {
+    runDiff,
+    formatDiff,
+    detectDocumentType,
+    hasChanges as diffHasChanges,
+    runTimelineDiff,
+    createFileSystemArchitectureResolver,
+    type DiffOutputFormat,
+    type DiffDocumentType,
+    type DiffRunOptions,
+    type DiffRunResult,
+    type TimelineDiffRunOptions,
+    type TimelineDiffRunResult,
+} from './commands/diff/diff.js';
+export type { ArchitectureResolver, MomentDiff } from '@finos/calm-models/diff';
+export {
     extractOptions,
     selectChoices,
     CalmChoice,
@@ -18,6 +33,8 @@ export { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 export { SchemaDirectory } from './schema-directory.js';
 export { initLogger } from './logger.js';
 export type { Logger } from './logger.js';
+export { AuthPlugin } from './auth/auth-plugin.js';
+export { NoAuthPlugin } from './auth/no-auth-plugin.js';
 export { TemplateProcessor, TemplateProcessingMode } from './template/template-processor.js';
 export * from './template/types.js';
 export {
@@ -44,6 +61,15 @@ export {
     hasMappingFileExtension,
     getFileExtension
 } from './util/file-utils.js';
+export {
+    CalmHubClient,
+    HubClientError,
+    type HubNamespaceSummary,
+    type HubArchitectureSummary,
+    type HubCreateResult,
+    type HubNamespaceCreateResult,
+    type CalmHubOptions
+} from './hub/calm-hub-client.js';
 export {
     enrichWithDocumentPositions,
     parseDocumentWithPositions,

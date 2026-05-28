@@ -1,8 +1,8 @@
 * @finos/architecture-as-code-maintainers
 
-/calm/ @finos/calm-schema-governance  @markscott-ms
+/calm/ @finos/calm-schema-governance
 
-/calm-hub/ @jpgough-ms @rocketstack-matt @grahampacker-ms @Thels  @markscott-ms
+/calm-hub/ @jpgough-ms @rocketstack-matt @grahampacker-ms @Thels @markscott-ms @willosborne
 
 /calm-server/ @rocketstack-matt @markscott-ms
 

@@ -25,6 +25,7 @@ import org.finos.calm.store.ControlStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link ControlStore}.
@@ -56,6 +57,7 @@ import java.util.Set;
  * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoControlStore.class)
 public class MongoControlStore implements ControlStore {
@@ -102,11 +104,15 @@ public class MongoControlStore implements ControlStore {
 
         int controlId = counterStore.getNextControlSequenceValue();
 
-        Document requirementVersions = new Document("1-0-0", Document.parse(request.getRequirementJson()));
+        Document parsedRequirement = Document.parse(request.getRequirementJson());
+        String name = request.getName();
+        String description = request.getDescription();
+
+        Document requirementVersions = new Document("1-0-0", parsedRequirement);
 
         Document controlDoc = new Document("controlId", controlId)
-                .append("name", request.getName())
-                .append("description", request.getDescription())
+                .append("name", name)
+                .append("description", description)
                 .append("requirement", requirementVersions)
                 .append("configurations", new ArrayList<>());
 
@@ -116,7 +122,7 @@ public class MongoControlStore implements ControlStore {
                 new UpdateOptions().upsert(true)
         );
 
-        return new ControlDetail(controlId, request.getName(), request.getDescription());
+        return new ControlDetail(controlId, name, description);
     }
 
     @Override
@@ -202,11 +208,13 @@ public class MongoControlStore implements ControlStore {
     }
 
     @Override
-    public void createRequirementForVersion(String domain, int controlId, String version, String requirementJson) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
+    public void createRequirementForVersion(String domain, int controlId, String version, CreateControlRequirement request) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
         // Validate domain and control exist
         findControl(domain, controlId);
 
         String mongoVersion = version.replace('.', '-');
+
+        Document parsedRequirement = Document.parse(request.getRequirementJson());
 
         // Atomic conditional update: only succeeds if the requirement version doesn't already exist
         Document filter = new Document("domain", domain)
@@ -214,8 +222,16 @@ public class MongoControlStore implements ControlStore {
                         new Document("controlId", controlId)
                                 .append("requirement." + mongoVersion, new Document("$exists", false))));
 
-        Document update = new Document("$set",
-                new Document("controls.$.requirement." + mongoVersion, Document.parse(requirementJson)));
+        Document setFields = new Document("controls.$.requirement." + mongoVersion, parsedRequirement);
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreateControlRequirement,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+        if (request.getName() != null && !request.getName().isBlank()) {
+            setFields.append("controls.$.name", request.getName());
+        }
+        if (request.getDescription() != null && !request.getDescription().isBlank()) {
+            setFields.append("controls.$.description", request.getDescription());
+        }
+        Document update = new Document("$set", setFields);
 
         if (controlCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new ControlRequirementVersionExistsException();
@@ -243,7 +259,7 @@ public class MongoControlStore implements ControlStore {
     }
 
     @Override
-    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, String configurationJson) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
+    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, CreateControlConfiguration request) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
         // Validate domain, control, and configuration exist
         findConfiguration(domain, controlId, configurationId);
 
@@ -273,7 +289,7 @@ public class MongoControlStore implements ControlStore {
         if (controlCollection.updateOne(
                 filter,
                 Updates.set("controls.$[ctrl].configurations.$[cfg].versions." + mongoVersion,
-                        Document.parse(configurationJson)),
+                        Document.parse(request.getConfigurationJson())),
                 new UpdateOptions().arrayFilters(List.of(
                         Filters.eq("ctrl.controlId", controlId),
                         Filters.eq("cfg.configurationId", configurationId)

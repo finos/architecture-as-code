@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.InterfaceStore;
 import org.finos.calm.store.mongo.MongoInterfaceStore;
 import org.finos.calm.store.nitrite.NitriteInterfaceStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for InterfaceStore implementations.
@@ -20,10 +21,10 @@ public class InterfaceStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoInterfaceStore mongoInterfaceStore;
+    Instance<MongoInterfaceStore> mongoInterfaceStore;
 
     @Inject
-    NitriteInterfaceStore standaloneInterfaceStore;
+    Instance<NitriteInterfaceStore> standaloneInterfaceStore;
 
     /**
      * Produces the appropriate InterfaceStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class InterfaceStoreProducer {
     @ApplicationScoped
     public InterfaceStore produceInterfaceStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneInterfaceStore;
+            return standaloneInterfaceStore.get();
         } else {
-            return mongoInterfaceStore;
+            return mongoInterfaceStore.get();
         }
     }
 }

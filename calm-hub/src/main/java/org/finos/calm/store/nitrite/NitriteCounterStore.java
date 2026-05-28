@@ -15,12 +15,14 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * Implementation of a counter store using NitriteDB.
  * This class provides sequence generation functionality for various stores.
  * This implementation is used when the application is running in standalone mode.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 @Typed(NitriteCounterStore.class)
 public class NitriteCounterStore {
@@ -31,6 +33,7 @@ public class NitriteCounterStore {
     private static final String ARCHITECTURE_COUNTER = "architecture_counter";
     private static final String ADR_COUNTER = "adr_counter";
     private static final String FLOW_COUNTER = "flow_counter";
+    private static final String TIMELINE_COUNTER = "timeline_counter";
     private static final String STANDARD_COUNTER = "standard_counter";
     private static final String USER_ACCESS_COUNTER = "user_access_counter";
     private static final String DECORATOR_COUNTER = "decorator_counter";
@@ -65,6 +68,7 @@ public class NitriteCounterStore {
                     .put(ARCHITECTURE_COUNTER, 0)
                     .put(ADR_COUNTER, 0)
                     .put(FLOW_COUNTER, 0)
+                    .put(TIMELINE_COUNTER, 0)
                     .put(STANDARD_COUNTER, 0)
                     .put(USER_ACCESS_COUNTER, 0)
                     .put(DECORATOR_COUNTER, 0)
@@ -110,6 +114,15 @@ public class NitriteCounterStore {
      */
     public int getNextFlowSequenceValue() {
         return nextValueForCounter(FLOW_COUNTER);
+    }
+
+    /**
+     * Get the next sequence value for timeline store.
+     *
+     * @return The next sequence value
+     */
+    public int getNextTimelineSequenceValue() {
+        return nextValueForCounter(TIMELINE_COUNTER);
     }
 
     /**

@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link PatternStore}.
@@ -40,6 +41,7 @@ import java.util.Set;
  * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoPatternStore.class)
 public class MongoPatternStore implements PatternStore {
@@ -89,11 +91,15 @@ public class MongoPatternStore implements PatternStore {
         }
 
         int id = counterStore.getNextPatternSequenceValue();
+        Document parsedPattern = Document.parse(patternRequest.getPatternJson());
+        String name = patternRequest.getName();
+        String description = patternRequest.getDescription();
+
         Document patternDocument = new Document("patternId", id)
-                .append("name", patternRequest.getName())
-                .append("description", patternRequest.getDescription())
+                .append("name", name)
+                .append("description", description)
                 .append("versions",
-                new Document("1-0-0", Document.parse(patternRequest.getPatternJson())));
+                new Document("1-0-0", parsedPattern));
 
         patternCollection.updateOne(
                 Filters.eq("namespace", namespace),
@@ -178,14 +184,24 @@ public class MongoPatternStore implements PatternStore {
         // Validates namespace and pattern existence
         getPatternVersions(pattern);
 
+        Document parsedPattern = Document.parse(pattern.getPatternJson());
+
         // Atomic conditional update: only succeeds if the version doesn't already exist
         Document filter = new Document("namespace", pattern.getNamespace())
                 .append("patterns", new Document("$elemMatch",
                         new Document("patternId", pattern.getId())
                                 .append("versions." + pattern.getMongoVersion(), new Document("$exists", false))));
 
-        Document update = new Document("$set",
-                new Document("patterns.$.versions." + pattern.getMongoVersion(), Document.parse(pattern.getPatternJson())));
+        Document setFields = new Document("patterns.$.versions." + pattern.getMongoVersion(), parsedPattern);
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+        if (pattern.getName() != null && !pattern.getName().isBlank()) {
+            setFields.append("patterns.$.name", pattern.getName());
+        }
+        if (pattern.getDescription() != null && !pattern.getDescription().isBlank()) {
+            setFields.append("patterns.$.description", pattern.getDescription());
+        }
+        Document update = new Document("$set", setFields);
 
         if (patternCollection.updateOne(filter, update).getMatchedCount() == 0) {
             throw new PatternVersionExistsException();
@@ -209,8 +225,16 @@ public class MongoPatternStore implements PatternStore {
         Document patternDocument = Document.parse(pattern.getPatternJson());
         Document filter = new Document("namespace", pattern.getNamespace())
                 .append("patterns.patternId", pattern.getId());
-        Document update = new Document("$set",
-                new Document("patterns.$.versions." + pattern.getMongoVersion(), patternDocument));
+        Document setFields = new Document("patterns.$.versions." + pattern.getMongoVersion(), patternDocument);
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
+        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
+        if (pattern.getName() != null && !pattern.getName().isBlank()) {
+            setFields.append("patterns.$.name", pattern.getName());
+        }
+        if (pattern.getDescription() != null && !pattern.getDescription().isBlank()) {
+            setFields.append("patterns.$.description", pattern.getDescription());
+        }
+        Document update = new Document("$set", setFields);
 
         try {
             patternCollection.updateOne(filter, update, new UpdateOptions().upsert(true));

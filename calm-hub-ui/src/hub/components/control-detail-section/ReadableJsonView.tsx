@@ -17,7 +17,7 @@ function JsonValue({ value }: { value: unknown }) {
         return <span className="text-info font-mono">{value}</span>;
     }
     if (typeof value === 'string') {
-        return <span className="text-success">{value}</span>;
+        return <span className="text-blue-700">{value}</span>;
     }
     if (Array.isArray(value)) {
         if (value.length === 0) {

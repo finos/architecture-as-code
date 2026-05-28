@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link CoreSchemaStore}.
@@ -32,6 +33,7 @@ import java.util.Map;
  *
  * @see MongoIndexInitializer
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoCoreSchemaStore.class)
 public class MongoCoreSchemaStore implements CoreSchemaStore {

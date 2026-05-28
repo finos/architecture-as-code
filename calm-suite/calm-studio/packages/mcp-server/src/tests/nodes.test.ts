@@ -58,6 +58,34 @@ describe('add_node tool', () => {
     expect(written.nodes).toHaveLength(3);
     expect(written.nodes[2]['unique-id']).toBe('node-3');
   });
+
+  it('does not attach an AIGF decorator when adding a non-AI node', () => {
+    addNode({
+      node: { 'unique-id': 'node-3', 'node-type': 'actor', name: 'User' },
+      file: filePath
+    });
+
+    const written = JSON.parse(readFileSync(filePath, 'utf-8'));
+    expect(written.decorators).toBeUndefined();
+  });
+
+  it('attaches an AIGF governance decorator when adding an AI node', () => {
+    addNode({
+      node: {
+        'unique-id': 'agent-1',
+        'node-type': 'ai:agent',
+        name: 'Trader Agent',
+        description: 'Autonomous trading agent',
+      },
+      file: filePath
+    });
+
+    const written = JSON.parse(readFileSync(filePath, 'utf-8'));
+    expect(written.decorators).toHaveLength(1);
+    expect(written.decorators[0]['unique-id']).toBe('aigf-governance-overlay');
+    expect(written.decorators[0].type).toBe('aigf-governance');
+    expect(written.decorators[0]['applies-to']).toEqual(['agent-1']);
+  });
 });
 
 describe('get_node tool', () => {
@@ -162,5 +190,22 @@ describe('batch_create_nodes tool', () => {
 
     const written = JSON.parse(readFileSync(filePath, 'utf-8'));
     expect(written.nodes).toHaveLength(5); // 2 original + 3 new
+  });
+
+  it('attaches a single AIGF decorator covering every AI node added in the batch', () => {
+    batchCreateNodes({
+      nodes: [
+        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent' },
+        { 'unique-id': 'agent-2', 'node-type': 'ai:agent', name: 'Risk Agent' },
+        { 'unique-id': 'mcp-1', 'node-type': 'ai:mcp-server', name: 'Tool Server' },
+        { 'unique-id': 'svc-1', 'node-type': 'service', name: 'Plain Service' }
+      ],
+      file: filePath
+    });
+
+    const written = JSON.parse(readFileSync(filePath, 'utf-8'));
+    expect(written.decorators).toHaveLength(1);
+    expect(written.decorators[0]['unique-id']).toBe('aigf-governance-overlay');
+    expect(written.decorators[0]['applies-to']).toEqual(['agent-1', 'agent-2', 'mcp-1']);
   });
 });

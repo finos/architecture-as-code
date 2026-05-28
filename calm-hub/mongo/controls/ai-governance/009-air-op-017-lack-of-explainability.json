@@ -1,0 +1,34 @@
+{
+  "controlId": 9,
+  "name": "AIR-OP-017 — Lack of Explainability",
+  "description": "Controls to ensure AI systems provide sufficient transparency and explainability of their decision-making processes to satisfy regulatory, audit, and stakeholder requirements.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "id": "AIR-OP-017",
+      "name": "Lack of Explainability",
+      "category": "Operational",
+      "source": "FINOS AI Governance Framework v2",
+      "url": "https://air-governance-framework.finos.org/risks/ri-17_lack-of-explainability.html",
+      "summary": "AI systems, particularly those using complex foundation models, often lack transparency, making it difficult to interpret how decisions are made. This limits firms' ability to explain outcomes to regulators, stakeholders, or customers, raising trust and compliance concerns.",
+      "requirements": [
+        "Implement explainability mechanisms (e.g., chain-of-thought prompting, SHAP/LIME for ML models, citation of source documents) for all AI-assisted decisions.",
+        "Provide human-readable rationales for AI-generated recommendations in customer-facing applications.",
+        "Maintain decision logs capturing inputs, outputs, and model version for audit purposes.",
+        "Define explainability requirements per use case risk tier, with stricter requirements for high-risk decisions.",
+        "Engage regulators proactively on explainability methodology for AI systems used in regulated activities.",
+        "Conduct model interpretability assessments as part of the AI system validation lifecycle."
+      ],
+      "contributing_factors": [
+        "Black-box nature of large foundation models producing outputs without traceable rationale.",
+        "Complexity of multi-step RAG pipelines obscuring the source of information in outputs.",
+        "Absence of logging and audit infrastructure capturing decision inputs and rationale.",
+        "Insufficient explainability tooling available for generative AI systems."
+      ],
+      "references": [
+        "https://techxplore.com/news/2024-07-large-language-dont-people.html"
+      ]
+    }
+  },
+  "configurations": []
+}

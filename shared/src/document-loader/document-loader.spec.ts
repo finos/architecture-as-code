@@ -1,5 +1,6 @@
+import { AuthPlugin } from '../auth/auth-plugin';
 import { CALM_META_SCHEMA_DIRECTORY } from '../consts';
-import { buildDocumentLoader, DocumentLoaderOptions } from './document-loader';
+import { assertJsonObject, buildDocumentLoader, DocumentLoaderOptions, DocumentLoadError } from './document-loader';
 
 const mocks = vi.hoisted(() => {
     return {
@@ -72,7 +73,23 @@ describe('DocumentLoader', () => {
 
         buildDocumentLoader(docLoaderOpts);
 
-        expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false);
+        expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false, undefined);
+    });
+    
+    it('should pass authplugin to CalmHubDocumentLoader', () => {
+
+        const mockAuthPlugin: AuthPlugin = {
+            getAuthHeaders: vi.fn()
+        };
+
+        const docLoaderOpts: DocumentLoaderOptions = {
+            calmHubUrl: 'https://example.com',
+            authPlugin: mockAuthPlugin
+        };
+
+        buildDocumentLoader(docLoaderOpts);
+
+        expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false, mockAuthPlugin);
     });
 
     it('should pass allowedRemoteHosts to DirectUrlDocumentLoader when provided', () => {
@@ -140,5 +157,40 @@ describe('DocumentLoader', () => {
         buildDocumentLoader(docLoaderOpts);
 
         expect(mocks.mappedDocLoader).not.toHaveBeenCalled();
+    });
+});
+
+describe('DocumentLoadError', () => {
+    it('defaults to recoverable so unmarked errors fall through to the next loader', () => {
+        const error = new DocumentLoadError({ name: 'OPERATION_NOT_IMPLEMENTED', message: 'not mine' });
+        expect(error.recoverable).toBe(true);
+    });
+
+    it('honours an explicit non-recoverable flag', () => {
+        const error = new DocumentLoadError({ name: 'UNKNOWN', message: 'fatal', recoverable: false });
+        expect(error.recoverable).toBe(false);
+    });
+});
+
+describe('assertJsonObject', () => {
+    it('passes for a plain object', () => {
+        expect(() => assertJsonObject({ foo: 'bar' }, 'calm:/foo')).not.toThrow();
+    });
+
+    it.each([
+        ['a string', 'just a string', 'string'],
+        ['null', null, 'null'],
+        ['an array', [{ foo: 'bar' }], 'array'],
+        ['a number', 42, 'number'],
+    ])('throws a fatal DocumentLoadError when given %s', (_label, value, kind) => {
+        let thrown: unknown;
+        try {
+            assertJsonObject(value, 'calm:/foo');
+        } catch (err) {
+            thrown = err;
+        }
+        expect(thrown).toBeInstanceOf(DocumentLoadError);
+        expect((thrown as DocumentLoadError).recoverable).toBe(false);
+        expect((thrown as DocumentLoadError).message).toBe(`Expected a JSON object from calm:/foo but received: ${kind}`);
     });
 });

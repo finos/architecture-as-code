@@ -79,7 +79,7 @@ Relationships connect nodes and describe how they interact:
 
 CALMGuard ships with two demo architectures in the `examples/` directory. To use them:
 
-1. Launch CALMGuard (`pnpm dev`)
+1. Launch CALMGuard (`npm run dev --workspace=calmguard` from the monorepo root)
 2. On the main page, select an architecture from the dropdown:
    - **Trading Platform** — equities trading with market data, order management, risk checks
    - **Payment Gateway** — payment processing with fraud detection and settlement
