@@ -57,7 +57,6 @@ public class TestNitriteUserAccessStoreShould {
                 .setNamespace("finos")
                 .setUsername("testuser")
                 .setPermission(UserAccess.Permission.read)
-                .setResourceType(UserAccess.ResourceType.patterns)
                 .build();
         userAccess.setCreationDateTime(LocalDateTime.now());
         userAccess.setUpdateDateTime(LocalDateTime.now());
@@ -83,7 +82,6 @@ public class TestNitriteUserAccessStoreShould {
                 .setNamespace("nonexistent")
                 .setUsername("testuser")
                 .setPermission(UserAccess.Permission.read)
-                .setResourceType(UserAccess.ResourceType.patterns)
                 .build();
 
         when(mockNamespaceStore.namespaceExists("nonexistent")).thenReturn(false);
@@ -102,7 +100,6 @@ public class TestNitriteUserAccessStoreShould {
         when(mockDoc.get("username", String.class)).thenReturn("testuser");
         when(mockDoc.get("namespace", String.class)).thenReturn("finos");
         when(mockDoc.get("permission", String.class)).thenReturn("read");
-        when(mockDoc.get("resourceType", String.class)).thenReturn("patterns");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(1);
 
         // Act
@@ -135,7 +132,6 @@ public class TestNitriteUserAccessStoreShould {
         when(mockDoc.get("username", String.class)).thenReturn("testuser");
         when(mockDoc.get("namespace", String.class)).thenReturn("finos");
         when(mockDoc.get("permission", String.class)).thenReturn("read");
-        when(mockDoc.get("resourceType", String.class)).thenReturn("patterns");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(1);
 
         // Act
@@ -166,7 +162,6 @@ public class TestNitriteUserAccessStoreShould {
         when(mockDoc.get("username", String.class)).thenReturn("testuser");
         when(mockDoc.get("namespace", String.class)).thenReturn("finos");
         when(mockDoc.get("permission", String.class)).thenReturn("read");
-        when(mockDoc.get("resourceType", String.class)).thenReturn("patterns");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(1);
 
         // Act

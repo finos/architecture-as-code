@@ -44,18 +44,16 @@ public class MongoUserAccessStore implements UserAccessStore {
         Document userAccessDoc = new Document("username", userAccess.getUsername())
                 .append("permission", userAccess.getPermission().name())
                 .append("namespace", userAccess.getNamespace())
-                .append("resourceType", userAccess.getResourceType().name())
                 .append("createdAt", userAccess.getCreationDateTime())
                 .append("lastUpdated", userAccess.getUpdateDateTime())
                 .append("userAccessId", userAccessId);
 
         userAccessCollection.insertOne(userAccessDoc);
-        log.info("UserAccess has been created for namespace: {}, resource: {}, permission: {}, username: {}",
-                userAccess.getNamespace(), userAccess.getResourceType(), userAccess.getPermission(), userAccess.getUsername());
+        log.info("UserAccess has been created for namespace: {}, permission: {}, username: {}",
+                userAccess.getNamespace(), userAccess.getPermission(), userAccess.getUsername());
 
         UserAccess persistedUserAccess = new UserAccess.UserAccessBuilder()
                 .setUserAccessId(userAccessId)
-                .setResourceType(userAccess.getResourceType())
                 .setNamespace(userAccess.getNamespace())
                 .setPermission(userAccess.getPermission())
                 .setUsername(userAccess.getUsername())
@@ -75,7 +73,6 @@ public class MongoUserAccessStore implements UserAccessStore {
                     .setUsername(doc.getString("username"))
                     .setPermission(UserAccess.Permission.valueOf(doc.getString("permission")))
                     .setNamespace(namespace)
-                    .setResourceType(UserAccess.ResourceType.valueOf(doc.getString("resourceType")))
                     .setUserAccessId(doc.getInteger("userAccessId"))
                     .build();
             userAccessList.add(userAccess);
@@ -100,7 +97,6 @@ public class MongoUserAccessStore implements UserAccessStore {
                     .setUsername(doc.getString("username"))
                     .setPermission(UserAccess.Permission.valueOf(doc.getString("permission")))
                     .setNamespace(namespace)
-                    .setResourceType(UserAccess.ResourceType.valueOf(doc.getString("resourceType")))
                     .setUserAccessId(doc.getInteger("userAccessId"))
                     .build();
             userAccessList.add(userAccess);
@@ -131,7 +127,6 @@ public class MongoUserAccessStore implements UserAccessStore {
                     .setUsername(document.getString("username"))
                     .setPermission(UserAccess.Permission.valueOf(document.getString("permission")))
                     .setNamespace(namespace)
-                    .setResourceType(UserAccess.ResourceType.valueOf(document.getString("resourceType")))
                     .setUserAccessId(document.getInteger("userAccessId"))
                     .build();
         }

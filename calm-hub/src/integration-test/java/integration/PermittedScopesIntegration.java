@@ -56,7 +56,6 @@ public class PermittedScopesIntegration {
                 Document document1 = new Document("username", "test-user")
                         .append("namespace", "finos")
                         .append("permission", UserAccess.Permission.read.name())
-                        .append("resourceType", UserAccess.ResourceType.patterns.name())
                         .append("userAccessId", 101);
 
                 database.getCollection("userAccess").insertOne(document1);

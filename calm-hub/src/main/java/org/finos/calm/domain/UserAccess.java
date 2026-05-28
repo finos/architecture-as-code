@@ -19,18 +19,9 @@ public class UserAccess {
         admin
     }
 
-    public enum ResourceType {
-        patterns,
-        flows,
-        adrs,
-        architectures,
-        all
-    }
-
     private String username;
     private Permission permission;
     private String namespace;
-    private ResourceType resourceType;
     private int userAccessId;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
@@ -41,61 +32,33 @@ public class UserAccess {
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     private LocalDateTime updateDateTime;
 
-    public UserAccess(String username, Permission permission, String namespace, ResourceType resourceType, int userAccessId) {
+    public UserAccess(String username, Permission permission, String namespace, int userAccessId) {
         this.username = username;
         this.permission = permission;
         this.namespace = namespace;
-        this.resourceType = resourceType;
         this.userAccessId = userAccessId;
     }
 
-    public UserAccess(String username, Permission permission, String namespace, ResourceType resourceType) {
+    public UserAccess(String username, Permission permission, String namespace) {
         this.username = username;
         this.permission = permission;
         this.namespace = namespace;
-        this.resourceType = resourceType;
     }
 
     public UserAccess(){
 
     }
 
-    public static class UserAccessBuilder {
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-        private String username;
-        private Permission permission;
-        private String namespace;
-        private ResourceType resourceType;
-        private int userAccessId;
-
-        public UserAccessBuilder setUsername(String username) {
-            this.username = username;
-            return this;
-        }
-
-        public UserAccessBuilder setPermission(Permission permission) {
-            this.permission = permission;
-            return this;
-        }
-
-        public UserAccessBuilder setNamespace(String namespace) {
-            this.namespace = namespace;
-            return this;
-        }
-
-        public UserAccessBuilder setResourceType(ResourceType resourceType) {
-            this.resourceType = resourceType;
-            return this;
-        }
-
-        public UserAccessBuilder setUserAccessId(int userAccessId) {
-            this.userAccessId = userAccessId;
-            return this;
-        }
-
-        public UserAccess build(){
-            return new UserAccess(username, permission, namespace, resourceType, userAccessId);
-        }
+        UserAccess that = (UserAccess) o;
+        if (userAccessId != that.userAccessId) return false;
+        if (!Objects.equals(username, that.username)) return false;
+        if (!Objects.equals(permission, that.permission)) return false;
+        return Objects.equals(namespace, that.namespace);
     }
 
     public String getUsername() {
@@ -108,10 +71,6 @@ public class UserAccess {
 
     public String getNamespace() {
         return namespace;
-    }
-
-    public ResourceType getResourceType() {
-        return resourceType;
     }
 
     public int getUserAccessId() {
@@ -135,21 +94,40 @@ public class UserAccess {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        UserAccess that = (UserAccess) o;
-        if (userAccessId != that.userAccessId) return false;
-        if (!Objects.equals(username, that.username)) return false;
-        if (!Objects.equals(permission, that.permission)) return false;
-        if (!Objects.equals(namespace, that.namespace)) return false;
-        return Objects.equals(resourceType, that.resourceType);
+    public int hashCode() {
+        return Objects.hash(username, permission, namespace, userAccessId);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(username, permission, namespace, resourceType, userAccessId);
+    public static class UserAccessBuilder {
+
+        private String username;
+        private Permission permission;
+        private String namespace;
+        private int userAccessId;
+
+        public UserAccessBuilder setUsername(String username) {
+            this.username = username;
+            return this;
+        }
+
+        public UserAccessBuilder setPermission(Permission permission) {
+            this.permission = permission;
+            return this;
+        }
+
+        public UserAccessBuilder setNamespace(String namespace) {
+            this.namespace = namespace;
+            return this;
+        }
+
+        public UserAccessBuilder setUserAccessId(int userAccessId) {
+            this.userAccessId = userAccessId;
+            return this;
+        }
+
+        public UserAccess build(){
+            return new UserAccess(username, permission, namespace, userAccessId);
+        }
     }
 
     @Override
@@ -158,7 +136,6 @@ public class UserAccess {
                 "username='" + username + '\'' +
                 ", permission='" + permission + '\'' +
                 ", namespace='" + namespace + '\'' +
-                ", resourceType='" + resourceType + '\'' +
                 ", userAccessId=" + userAccessId +
                 '}';
     }
@@ -173,10 +150,6 @@ public class UserAccess {
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
-    }
-
-    public void setResourceType(ResourceType resourceType) {
-        this.resourceType = resourceType;
     }
 
     public void setUserAccessId(int userAccessId) {

@@ -34,6 +34,7 @@ class TestCalmHubPermissionCheckerShould {
     @BeforeEach
     void setUp() {
         checker = new CalmHubPermissionChecker(mockUserAccessStore);
+        // allowPublicRead defaults to false
     }
 
     private void givenAuthenticatedUser(String username) throws UserAccessNotFoundException {
@@ -42,109 +43,164 @@ class TestCalmHubPermissionCheckerShould {
         when(mockPrincipal.getName()).thenReturn(username);
     }
 
+    // --- READ checks ---
+
     @Test
-    void read_grant_allows_read_check() throws UserAccessNotFoundException {
+    void read_grant_allows_read() throws UserAccessNotFoundException {
         givenAuthenticatedUser("alice");
-        UserAccess grant = new UserAccess("alice", UserAccess.Permission.read, "foo", UserAccess.ResourceType.architectures);
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.read, "foo");
         when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
 
-        assertTrue(checker.allowArchitectureRead(mockIdentity, "foo"));
+        assertTrue(checker.canRead(mockIdentity, "foo"));
     }
 
     @Test
-    void write_grant_allows_read_check() throws UserAccessNotFoundException {
+    void write_grant_allows_read() throws UserAccessNotFoundException {
         givenAuthenticatedUser("alice");
-        UserAccess grant = new UserAccess("alice", UserAccess.Permission.write, "foo", UserAccess.ResourceType.architectures);
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.write, "foo");
         when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
 
-        assertTrue(checker.allowArchitectureRead(mockIdentity, "foo"));
+        assertTrue(checker.canRead(mockIdentity, "foo"));
     }
 
     @Test
-    void read_grant_denies_write_check() throws UserAccessNotFoundException {
+    void grant_for_different_namespace_denies_read() throws UserAccessNotFoundException {
         givenAuthenticatedUser("alice");
-        UserAccess grant = new UserAccess("alice", UserAccess.Permission.read, "foo", UserAccess.ResourceType.architectures);
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.write, "bar");
         when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
 
-        assertFalse(checker.allowArchitectureWrite(mockIdentity, "foo"));
+        assertFalse(checker.canRead(mockIdentity, "foo"));
     }
 
     @Test
-    void grant_for_different_namespace_denies_check() throws UserAccessNotFoundException {
-        givenAuthenticatedUser("alice");
-        UserAccess grant = new UserAccess("alice", UserAccess.Permission.write, "bar", UserAccess.ResourceType.architectures);
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
-
-        assertFalse(checker.allowArchitectureWrite(mockIdentity, "foo"));
-    }
-
-    @Test
-    void all_resource_type_satisfies_any_specific_resource_check() throws UserAccessNotFoundException {
-        givenAuthenticatedUser("alice");
-        UserAccess grant = new UserAccess("alice", UserAccess.Permission.write, "foo", UserAccess.ResourceType.all);
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
-
-        assertTrue(checker.allowArchitectureRead(mockIdentity, "foo"));
-        assertTrue(checker.allowPatternRead(mockIdentity, "foo"));
-        assertTrue(checker.allowFlowRead(mockIdentity, "foo"));
-        assertTrue(checker.allowAdrRead(mockIdentity, "foo"));
-    }
-
-    @Test
-    void user_with_no_grants_is_denied() throws UserAccessNotFoundException {
+    void user_with_no_grants_is_denied_read() throws UserAccessNotFoundException {
         givenAuthenticatedUser("alice");
         when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
 
-        assertFalse(checker.allowArchitectureRead(mockIdentity, "foo"));
+        assertFalse(checker.canRead(mockIdentity, "foo"));
     }
 
     @Test
-    void pattern_grant_does_not_satisfy_architecture_check() throws UserAccessNotFoundException {
+    void any_namespace_grant_satisfies_read_regardless_of_resource_type() throws UserAccessNotFoundException {
         givenAuthenticatedUser("alice");
-        UserAccess grant = new UserAccess("alice", UserAccess.Permission.write, "foo", UserAccess.ResourceType.patterns);
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.read, "foo");
         when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
 
-        assertFalse(checker.allowArchitectureRead(mockIdentity, "foo"));
-        assertTrue(checker.allowPatternRead(mockIdentity, "foo"));
+        assertTrue(checker.canRead(mockIdentity, "foo"));
     }
 
-    @Test
-    void anonymous_identity_is_always_allowed() {
-        when(mockIdentity.isAnonymous()).thenReturn(true);
-
-        assertTrue(checker.allowArchitectureRead(mockIdentity, "foo"));
-        assertTrue(checker.allowArchitectureWrite(mockIdentity, "foo"));
-        assertTrue(checker.allowPatternRead(mockIdentity, "foo"));
-        assertTrue(checker.allowFlowWrite(mockIdentity, "foo"));
-        assertTrue(checker.allowAdrRead(mockIdentity, "foo"));
-        assertTrue(checker.allowNamespaceAdmin(mockIdentity, "foo"));
-    }
+    // --- WRITE checks ---
 
     @Test
-    void namespace_admin_check_requires_admin_permission() throws UserAccessNotFoundException {
+    void read_grant_denies_write() throws UserAccessNotFoundException {
         givenAuthenticatedUser("alice");
-        UserAccess writeGrant = new UserAccess("alice", UserAccess.Permission.write, "foo", UserAccess.ResourceType.all);
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(writeGrant));
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.read, "foo");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertFalse(checker.canWrite(mockIdentity, "foo"));
+    }
+
+    @Test
+    void write_grant_allows_write() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.write, "foo");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertTrue(checker.canWrite(mockIdentity, "foo"));
+    }
+
+    @Test
+    void admin_grant_allows_read_and_write() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.admin, "foo");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertTrue(checker.canRead(mockIdentity, "foo"));
+        assertTrue(checker.canWrite(mockIdentity, "foo"));
+    }
+
+    // --- ADMIN checks ---
+
+    @Test
+    void write_grant_denies_namespace_admin() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.write, "foo");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
 
         assertFalse(checker.allowNamespaceAdmin(mockIdentity, "foo"));
     }
 
     @Test
-    void namespace_admin_check_passes_with_admin_permission() throws UserAccessNotFoundException {
+    void admin_grant_allows_namespace_admin() throws UserAccessNotFoundException {
         givenAuthenticatedUser("alice");
-        UserAccess adminGrant = new UserAccess("alice", UserAccess.Permission.admin, "foo", UserAccess.ResourceType.architectures);
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(adminGrant));
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.admin, "foo");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
 
         assertTrue(checker.allowNamespaceAdmin(mockIdentity, "foo"));
     }
 
-    @Test
-    void admin_permission_allows_write_check() throws UserAccessNotFoundException {
-        givenAuthenticatedUser("alice");
-        UserAccess adminGrant = new UserAccess("alice", UserAccess.Permission.admin, "foo", UserAccess.ResourceType.architectures);
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(adminGrant));
+    // --- Anonymous ---
 
-        assertTrue(checker.allowArchitectureWrite(mockIdentity, "foo"));
-        assertTrue(checker.allowArchitectureRead(mockIdentity, "foo"));
+    @Test
+    void anonymous_identity_is_always_allowed() {
+        when(mockIdentity.isAnonymous()).thenReturn(true);
+
+        assertTrue(checker.canRead(mockIdentity, "foo"));
+        assertTrue(checker.canWrite(mockIdentity, "foo"));
+        assertTrue(checker.allowNamespaceAdmin(mockIdentity, "foo"));
+    }
+
+    // --- allowPublicRead ---
+
+    @Test
+    void public_read_disabled_denies_user_without_grants() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
+
+        assertFalse(checker.canRead(mockIdentity, "foo"));
+    }
+
+    @Test
+    void public_read_enabled_allows_any_authenticated_user_to_read() {
+        checker.allowPublicRead = true;
+        when(mockIdentity.isAnonymous()).thenReturn(false);
+
+        assertTrue(checker.canRead(mockIdentity, "foo"));
+    }
+
+    @Test
+    void public_read_enabled_does_not_grant_write_access() throws UserAccessNotFoundException {
+        checker.allowPublicRead = true;
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
+
+        assertFalse(checker.canWrite(mockIdentity, "foo"));
+    }
+
+    @Test
+    void public_read_enabled_does_not_grant_namespace_admin_access() throws UserAccessNotFoundException {
+        checker.allowPublicRead = true;
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
+
+        assertFalse(checker.allowNamespaceAdmin(mockIdentity, "foo"));
+    }
+
+    @Test
+    void public_read_enabled_still_allows_anonymous_users() {
+        checker.allowPublicRead = true;
+        when(mockIdentity.isAnonymous()).thenReturn(true);
+
+        assertTrue(checker.canRead(mockIdentity, "foo"));
+    }
+
+    @Test
+    void public_read_enabled_allows_read_without_store_lookup() {
+        checker.allowPublicRead = true;
+        when(mockIdentity.isAnonymous()).thenReturn(false);
+        // No stubbing of the store — if the checker hits it, Mockito strict mode will error,
+        // confirming the store is bypassed when allowPublicRead is true
+
+        assertTrue(checker.canRead(mockIdentity, "foo"));
     }
 }

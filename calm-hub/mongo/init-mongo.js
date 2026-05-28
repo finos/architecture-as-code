@@ -2501,43 +2501,37 @@ if (db.userAccess.countDocuments() === 0) {
             "userAccessId": NumberInt(1),
             "username": "demo_admin",
             "permission": "admin",
-            "namespace": "finos",
-            "resourceType": "all"
+            "namespace": "finos"
         },
         {
             "userAccessId": NumberInt(2),
             "username": "demo_admin",
             "permission": "admin",
-            "namespace": "workshop",
-            "resourceType": "patterns"
+            "namespace": "workshop"
         },
         {
             "userAccessId": NumberInt(3),
             "username": "demo_admin",
             "permission": "read",
-            "namespace": "traderx",
-            "resourceType": "all"
+            "namespace": "traderx"
         },
         {
             "userAccessId": NumberInt(4),
             "username": "demo",
             "permission": "read",
-            "namespace": "finos",
-            "resourceType": "all"
+            "namespace": "finos"
         },
         {
             "userAccessId": NumberInt(5),
             "username": "demo",
             "permission": "read",
-            "namespace": "traderx",
-            "resourceType": "all"
+            "namespace": "traderx"
         },
         {
             "userAccessId": NumberInt(6),
             "username": "demo",
             "permission": "read",
-            "namespace": "workshop",
-            "resourceType": "all"
+            "namespace": "workshop"
         }
     ]);
     logSuccess("Initialized user access for demo_admin and demo users");

@@ -8,10 +8,11 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.Test;
+
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -29,7 +30,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("finos");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.patterns);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -58,7 +58,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("invalid");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.all);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -83,7 +82,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("invalid");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.all);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -108,7 +106,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("finos");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.all);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 

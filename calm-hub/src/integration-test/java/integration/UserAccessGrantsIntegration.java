@@ -29,8 +29,7 @@ public class UserAccessGrantsIntegration {
               {
                     "username": "testuser1",
                     "permission": "read",
-                    "namespace": "finos",
-                    "resourceType": "all"
+                    "namespace": "finos"
                }
             """;
 
@@ -38,8 +37,7 @@ public class UserAccessGrantsIntegration {
               {
                     "username": "testuser1",
                     "permission": "read",
-                    "namespace": "workshop",
-                    "resourceType": "all"
+                    "namespace": "workshop"
                }
             """;
 
@@ -69,7 +67,6 @@ public class UserAccessGrantsIntegration {
             Document document1 = new Document("username", "test-user")
                     .append("namespace", "finos")
                     .append("permission", UserAccess.Permission.write.name())
-                    .append("resourceType", UserAccess.ResourceType.all.name())
                     .append("userAccessId", 101);
 
             database.getCollection("userAccess").insertOne(document1);

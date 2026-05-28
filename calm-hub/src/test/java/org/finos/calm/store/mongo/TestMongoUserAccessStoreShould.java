@@ -1,13 +1,15 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.client.*;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.Document;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.UserAccess.Permission;
-import org.finos.calm.domain.UserAccess.ResourceType;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,7 +68,6 @@ public class TestMongoUserAccessStoreShould {
         Document doc = new Document("username", username)
                 .append("namespace", namespace)
                 .append("permission", Permission.read.name())
-                .append("resourceType", ResourceType.patterns.name())
                 .append("userAccessId", 101);
 
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
@@ -107,7 +108,6 @@ public class TestMongoUserAccessStoreShould {
                 .setNamespace("invalid")
                 .setUsername("test")
                 .setPermission(Permission.read)
-                .setResourceType(ResourceType.architectures)
                 .build();
 
         assertThrows(NamespaceNotFoundException.class,
@@ -123,7 +123,6 @@ public class TestMongoUserAccessStoreShould {
                 .setNamespace("finos")
                 .setUsername("test")
                 .setPermission(Permission.write)
-                .setResourceType(ResourceType.patterns)
                 .build();
 
         UserAccess actual = mongoUserAccessStore.createUserAccessForNamespace(userAccess);
@@ -137,7 +136,6 @@ public class TestMongoUserAccessStoreShould {
         Document doc = new Document("username", "test")
                 .append("namespace", namespace)
                 .append("permission", Permission.read.name())
-                .append("resourceType", ResourceType.flows.name())
                 .append("userAccessId", 111);
 
         DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
@@ -155,7 +153,6 @@ public class TestMongoUserAccessStoreShould {
         assertThat(actual, hasSize(1));
         assertThat(actual.getFirst().getUsername(), is("test"));
         assertThat(actual.getFirst().getPermission(), is(Permission.read));
-        assertThat(actual.getFirst().getResourceType(), is(ResourceType.flows));
     }
 
     @Test
@@ -186,7 +183,6 @@ public class TestMongoUserAccessStoreShould {
         Document document = new Document("username", "test")
                 .append("namespace", namespace)
                 .append("permission", Permission.read.name())
-                .append("resourceType", ResourceType.flows.name())
                 .append("userAccessId", userAccessId);
 
         DocumentFindIterable mockFindIterable = mock(DocumentFindIterable.class);
@@ -201,7 +197,6 @@ public class TestMongoUserAccessStoreShould {
 
         assertThat(actual.getUsername(), is("test"));
         assertThat(actual.getPermission(), is(Permission.read));
-        assertThat(actual.getResourceType(), is(ResourceType.flows));
         assertThat(actual.getNamespace(), is(namespace));
         assertThat(actual.getUserAccessId(), is(userAccessId));
     }
