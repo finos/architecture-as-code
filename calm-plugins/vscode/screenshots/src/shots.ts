@@ -161,6 +161,14 @@ export const shots: Shot[] = [
     // and `workbench.colorTheme` overridden in the seeded settings. The docs
     // page uses these as a 2x2 markdown gallery rather than a composite PNG,
     // because each variant can be linked / inspected on its own.
+    // Theme variants. `workbench.colorTheme` in the seeded settings is
+    // honoured at launch for the standard Modern/Dark/Light themes. HC
+    // variants are NOT honoured by the same path on VSCode 1.121 when
+    // launched via --extensionDevelopmentPath (VSCode falls back to its
+    // internal default regardless of the seeded value, and the post-launch
+    // Color Theme picker can't be driven reliably either because the
+    // theme list is loaded asynchronously). The two HC entries are kept
+    // declared but `implemented: false` until that's resolvable.
     {
         name: '05-theme-light',
         fixture: 'three-tier',
@@ -187,11 +195,12 @@ export const shots: Shot[] = [
             return await captureFullWindow(window)
         },
     },
+    // HC LIGHT — NOT implemented (see block-comment above the theme entries).
     {
         name: '05-theme-hc-light',
         fixture: 'three-tier',
         description: 'Preview rendered with the high-contrast light theme.',
-        implemented: true,
+        implemented: false,
         settings: {
             'calm.docify.theme': 'high-contrast-light',
             'workbench.colorTheme': 'Default High Contrast Light',
@@ -203,11 +212,12 @@ export const shots: Shot[] = [
             return await captureFullWindow(window)
         },
     },
+    // HC DARK — NOT implemented (same reason as HC light).
     {
         name: '05-theme-hc-dark',
         fixture: 'three-tier',
         description: 'Preview rendered with the high-contrast dark theme.',
-        implemented: true,
+        implemented: false,
         settings: {
             'calm.docify.theme': 'high-contrast-dark',
             'workbench.colorTheme': 'Default High Contrast',

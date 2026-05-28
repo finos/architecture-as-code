@@ -24,6 +24,13 @@ const WORKBENCH_SETTINGS = {
     'workbench.tips.enabled': false,
     'workbench.welcomePage.walkthroughs.openOnInstall': false,
     'extensions.ignoreRecommendations': true,
+    // Auto-detect quietly overrides an explicit `workbench.colorTheme` when
+    // the OS reports a different colour scheme or contrast state. Disabling
+    // both so per-shot theme overrides are honoured — particularly the
+    // High Contrast variants, which were otherwise silently swapped back to
+    // their non-HC counterparts on a non-HC OS.
+    'window.autoDetectColorScheme': false,
+    'window.autoDetectHighContrast': false,
 }
 
 // Bumping this is intentional and requires regenerating every PNG in the same PR.

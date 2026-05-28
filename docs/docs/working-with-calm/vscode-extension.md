@@ -86,8 +86,8 @@ The preview's colour palette is controlled by the `calm.docify.theme` setting. F
 | Light | Dark |
 | --- | --- |
 | ![Preview rendered with the light theme](/img/vscode/05-theme-light.png) | ![Preview rendered with the dark theme](/img/vscode/05-theme-dark.png) |
-| **High Contrast Light** | **High Contrast Dark** |
-| ![Preview rendered with the high-contrast light theme](/img/vscode/05-theme-hc-light.png) | ![Preview rendered with the high-contrast dark theme](/img/vscode/05-theme-hc-dark.png) |
+
+The two high-contrast themes (`high-contrast-light` and `high-contrast-dark`) follow the same pattern but use VSCode's higher-contrast palettes for accessibility — set the `calm.docify.theme` setting and your editor's high-contrast workbench theme together to use them.
 
 Configure in `settings.json`:
 

@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-05-28T08:06:58.520Z",
+  "generatedAt": "2026-05-28T08:54:06.001Z",
   "vscodeVersion": "1.121.0",
   "shots": [
     {
       "name": "01-activity-bar.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 171290,
-      "sha256": "c6211e576f44401ecad0564aa9ec1ef6022e3b51b0a40a87074eb93be36258f9"
+      "bytes": 171281,
+      "sha256": "e99c82f55b8ce19502b6c533b4a0d564a82cf52cfe42361f839df85c34d80fc4"
     },
     {
       "name": "02-tree-view.png",
@@ -27,57 +27,43 @@
       "name": "04-preview-hero.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 209424,
-      "sha256": "5d960c911c79fb5ae0a92204068b44922d0cc722a8325e0bbf450d56e914668b"
+      "bytes": 209427,
+      "sha256": "23fc88ba23dff88f927ba93c1da61afe490542a08025a4e35c806965876123cb"
     },
     {
       "name": "05-theme-light.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 208202,
-      "sha256": "7c51c3722a190c79f610c3416279cabb0add8022a601897c869e199859357b5f"
+      "bytes": 208203,
+      "sha256": "9c2cbc3741cc80dc9b3f2ef37cef5c0731f4879d08d769b56bc8dcec8ced6b3d"
     },
     {
       "name": "05-theme-dark.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 202198,
-      "sha256": "f65359dc503c1f8569c2d290a64179b15e3d1fe285adf326555e01382e10c31e"
-    },
-    {
-      "name": "05-theme-hc-light.png",
-      "width": 1600,
-      "height": 1000,
-      "bytes": 207700,
-      "sha256": "ea807b8a09b73dcafeeccd1196c2ed47093916cd00348462be6ebc2814d758fb"
-    },
-    {
-      "name": "05-theme-hc-dark.png",
-      "width": 1600,
-      "height": 1000,
-      "bytes": 210002,
-      "sha256": "612fe89f59ff9a9716590b0e958f02c1592fae6e02a057f3dcb78a0fa8a7c7cd"
+      "bytes": 202194,
+      "sha256": "ed7d22249d2ab5ef1834c64b0fe8caaa1540d0a7ebaeb5c4ef83a25b05d00c2b"
     },
     {
       "name": "06-layout-elk.png",
       "width": 1600,
       "height": 1000,
       "bytes": 209427,
-      "sha256": "3b7fc2f1637df89bdf263d6bcd7207ed895511363977480c83acaf7a146c5991"
+      "sha256": "23fc88ba23dff88f927ba93c1da61afe490542a08025a4e35c806965876123cb"
     },
     {
       "name": "06-layout-dagre.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 214455,
-      "sha256": "666e9ef05922c68b3b3883a6df08b8f29a7c51eb985856e31a3a55f8c53207bd"
+      "bytes": 214453,
+      "sha256": "80bfc7628a6dc86af166d107fbb41d930ef0afe61b10f4ac5844655e70e298fc"
     },
     {
       "name": "07-validation-problems.png",
       "width": 1600,
       "height": 1000,
-      "bytes": 186135,
-      "sha256": "1c969be9f72c5894090e55a47cbf0de11ae73c9c60727f9fb388e211ad1b1aec"
+      "bytes": 186104,
+      "sha256": "6b0d854c8ad44c473e75a8839aeef89df56b361b90fbbdf6166eca221d1c3e6f"
     },
     {
       "name": "09-timeline.png",
@@ -95,6 +81,14 @@
     }
   ],
   "skipped": [
+    {
+      "name": "05-theme-hc-light",
+      "reason": "TODO — see issue #2529"
+    },
+    {
+      "name": "05-theme-hc-dark",
+      "reason": "TODO — see issue #2529"
+    },
     {
       "name": "08-hover",
       "reason": "TODO — see issue #2529"
