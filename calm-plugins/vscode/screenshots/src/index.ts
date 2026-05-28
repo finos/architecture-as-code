@@ -33,13 +33,26 @@ async function main() {
 
     const entries: ManifestEntry[] = []
 
+    // Optional filter via SHOOT_ONLY=03-tree-search,04-preview-hero to
+    // iterate one or a few shots without running the whole set. Useful while
+    // developing. Names not in `implementedShots` (i.e. `implemented: false`)
+    // are still ignored — the filter narrows the implemented set, it doesn't
+    // bypass the implementation flag.
+    const onlyEnv = process.env.SHOOT_ONLY?.trim()
+    const allowed = onlyEnv ? new Set(onlyEnv.split(',').map((s) => s.trim())) : null
+    const todoShots = shots.filter((s) => !s.implemented && (!allowed || allowed.has(s.name)))
+
     for (const shot of implementedShots) {
-        const fixturePath = path.join(FIXTURES_DIR, shot.fixture, 'architecture.json')
-        console.log(`\n[shoot] ${shot.name}  fixture=${shot.fixture}`)
+        if (allowed && !allowed.has(shot.name)) continue
+
+        const workspaceFile = shot.workspaceFile ?? 'architecture.json'
+        const fixturePath = path.join(FIXTURES_DIR, shot.fixture, workspaceFile)
+        console.log(`\n[shoot] ${shot.name}  fixture=${shot.fixture}/${workspaceFile}`)
 
         const { window, cleanup } = await launchVSCodeWithExtension({
             extensionPath: EXTENSION_DIR,
             workspacePath: fixturePath,
+            settingsOverrides: shot.settings,
         })
 
         try {
@@ -60,9 +73,18 @@ async function main() {
         }
     }
 
-    const skipped = shots
-        .filter((s) => !s.implemented)
-        .map((s) => ({ name: s.name, reason: 'TODO — see issue #2529' }))
+    const skipped = todoShots.map((s) => ({
+        name: s.name,
+        reason: 'TODO — see issue #2529',
+    }))
+
+    if (allowed) {
+        console.log(
+            `\n[shoot] SHOOT_ONLY active — manifest NOT updated. Run a full shoot to regenerate the manifest.`
+        )
+        console.log(`[shoot] ${entries.length} shot(s) written.`)
+        return
+    }
 
     const manifest: Manifest = {
         generatedAt: new Date().toISOString(),

@@ -49,6 +49,7 @@ const sidebars = {
       link: {type: 'doc', id: 'working-with-calm/working-with-calm-index'},
       items: [
         'working-with-calm/calm-hub',
+        'working-with-calm/vscode-extension',
         'working-with-calm/calm-ai-tools',
         'working-with-calm/cli',
         'working-with-calm/validation-server',
