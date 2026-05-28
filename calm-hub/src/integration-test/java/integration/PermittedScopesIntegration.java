@@ -163,15 +163,11 @@ public class PermittedScopesIntegration {
 
     @Test
     @Order(5)
-    void end_to_end_forbidden_get_namespaces_when_matching_scopes_notfound() {
-        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
-        logger.info("authServerUrl {}", authServerUrl);
-        String accessToken = generateAccessTokenWithClientCredentialGrant(authServerUrl, "deny:all");
+    void end_to_end_unauthorized_get_namespaces_with_no_access_token() {
         given()
-                .auth().oauth2(accessToken)
                 .when().get("/calm/namespaces")
                 .then()
-                .statusCode(403);
+                .statusCode(401);
     }
 
     @Test
