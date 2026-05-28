@@ -34,7 +34,7 @@ public class DomainUserAccessResource {
             summary = "Create user access for domain",
             description = "Creates a user-access grant for a given domain"
     )
-    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN) // TODO domain level admin scope needed
     public Response createUserAccessForDomain(@PathParam("domain") String domain,
                                               UserAccess createUserAccessRequest) {
 

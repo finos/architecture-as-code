@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -13,6 +14,7 @@ import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
 import org.finos.calm.domain.timeline.CreateTimelineRequest;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.domain.timeline.Timeline;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.TimelineStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,7 @@ public class TimelineTools {
     TimelineStore timelineStore;
 
     @Tool(description = "List all timelines in a CalmHub namespace. Returns timeline IDs, names, and descriptions.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listTimelines(
             @ToolArg(description = "The namespace to list timelines from (e.g. 'workshop', 'finos')") String namespace) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
@@ -61,6 +64,7 @@ public class TimelineTools {
     }
 
     @Tool(description = "List available versions of a timeline in a CalmHub namespace.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listTimelineVersions(
             @ToolArg(description = "The namespace containing the timeline") String namespace,
             @ToolArg(description = "The timeline ID (positive integer)") int timelineId) {
@@ -87,6 +91,7 @@ public class TimelineTools {
     }
 
     @Tool(description = "Get the full JSON content of a specific timeline version.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getTimeline(
             @ToolArg(description = "The namespace containing the timeline") String namespace,
             @ToolArg(description = "The timeline ID (positive integer)") int timelineId,
@@ -118,6 +123,7 @@ public class TimelineTools {
     }
 
     @Tool(description = "Create a new timeline in a namespace. Returns the allocated timeline ID and version.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createTimeline(
             @ToolArg(description = "The namespace to create the timeline in") String namespace,
             @ToolArg(description = "The name of the timeline") String name,
@@ -146,6 +152,7 @@ public class TimelineTools {
     }
 
     @Tool(description = "Publish a new version of an existing timeline. Use this to add a new semantic version (e.g. '1.1.0') against an existing timeline ID without allocating a new identity.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createTimelineVersion(
             @ToolArg(description = "The namespace containing the timeline") String namespace,
             @ToolArg(description = "The timeline ID to publish a new version for (positive integer)") int timelineId,
@@ -184,6 +191,7 @@ public class TimelineTools {
     }
 
     @Tool(description = "Update the content of an existing timeline version. Requires PUT operations to be enabled on this CalmHub instance.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse updateTimeline(
             @ToolArg(description = "The namespace containing the timeline") String namespace,
             @ToolArg(description = "The timeline ID (positive integer)") int timelineId,

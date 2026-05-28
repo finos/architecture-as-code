@@ -35,7 +35,7 @@ public class UserAccessResource {
             summary = "Create user access for namespace",
             description = "Creates a user-access for a given namespace on a particular resource type"
     )
-    @PermissionsAllowed({CalmHubScopes.ADMIN})
+    @PermissionsAllowed(CalmHubScopes.ADMIN)
     public Response createUserAccessForNamespace(@PathParam("namespace") String namespace,
                                                  UserAccess createUserAccessRequest) {
 
@@ -65,7 +65,7 @@ public class UserAccessResource {
             summary = "Get user-access for a given namespace",
             description = "Get user-access details for a given namespace"
     )
-    @PermissionsAllowed({CalmHubScopes.ADMIN})
+    @PermissionsAllowed(CalmHubScopes.ADMIN)
     public Response getUserAccessForNamespace(@PathParam("namespace") String namespace) {
 
         try {
@@ -89,7 +89,7 @@ public class UserAccessResource {
             summary = "Get the user-access record for a given namespace and Id",
             description = "Get user-access details for a given namespace and Id"
     )
-    @PermissionsAllowed({CalmHubScopes.ADMIN})
+    @PermissionsAllowed(CalmHubScopes.ADMIN)
     public Response getUserAccessForNamespaceAndId(@PathParam("namespace") String namespace,
                                                    @PathParam("userAccessId") Integer userAccessId) {
 

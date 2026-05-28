@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -12,11 +13,8 @@ import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
 import org.finos.calm.domain.adr.NewAdrRequest;
 import org.finos.calm.domain.adr.Status;
-import org.finos.calm.domain.exception.AdrNotFoundException;
-import org.finos.calm.domain.exception.AdrParseException;
-import org.finos.calm.domain.exception.AdrPersistenceException;
-import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
-import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.*;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +47,7 @@ public class AdrTools {
     AdrStore adrStore;
 
     @Tool(description = "List all ADRs in a CalmHub namespace. Returns ADR IDs, titles, and current status.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listAdrs(
             @ToolArg(description = "The namespace to list ADRs from (e.g. 'workshop', 'finos')") String namespace) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
@@ -69,6 +68,7 @@ public class AdrTools {
     }
 
     @Tool(description = "Get the latest revision of an ADR. Returns the full ADR content as a JSON object.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getAdr(
             @ToolArg(description = "The namespace containing the ADR") String namespace,
             @ToolArg(description = "The ADR ID (positive integer)") int adrId) {
@@ -105,6 +105,7 @@ public class AdrTools {
     }
 
     @Tool(description = "List all revision numbers for an ADR.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listAdrRevisions(
             @ToolArg(description = "The namespace containing the ADR") String namespace,
             @ToolArg(description = "The ADR ID (positive integer)") int adrId) {
@@ -135,6 +136,7 @@ public class AdrTools {
     }
 
     @Tool(description = "Get a specific revision of an ADR. Returns the ADR content at that revision as a JSON object.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getAdrRevision(
             @ToolArg(description = "The namespace containing the ADR") String namespace,
             @ToolArg(description = "The ADR ID (positive integer)") int adrId,
@@ -174,6 +176,7 @@ public class AdrTools {
     }
 
     @Tool(description = "Create a new ADR in draft status. Accept the ADR content as a JSON string matching the NewAdrRequest structure: {\"title\":\"...\",\"contextAndProblemStatement\":\"...\",\"decisionDrivers\":[],\"consideredOptions\":[],\"decisionOutcome\":{},\"links\":[]}. Returns the allocated ADR ID.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createAdr(
             @ToolArg(description = "The namespace to create the ADR in") String namespace,
             @ToolArg(description = "The ADR content as JSON (NewAdrRequest structure)") String adrJson) {
@@ -215,6 +218,7 @@ public class AdrTools {
     }
 
     @Tool(description = "Update an existing ADR's content. Creates a new revision. Accepts the ADR content as a JSON string matching the NewAdrRequest structure.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse updateAdr(
             @ToolArg(description = "The namespace containing the ADR") String namespace,
             @ToolArg(description = "The ADR ID (positive integer)") int adrId,
@@ -263,6 +267,7 @@ public class AdrTools {
     }
 
     @Tool(description = "Update the status of an ADR. Valid statuses: draft, proposed, accepted, superseded, rejected, deprecated.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse updateAdrStatus(
             @ToolArg(description = "The namespace containing the ADR") String namespace,
             @ToolArg(description = "The ADR ID (positive integer)") int adrId,
