@@ -25,7 +25,7 @@ public class NamespaceTools {
     private static final Logger logger = LoggerFactory.getLogger(NamespaceTools.class);
 
     @Inject
-    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
+    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "false")
     boolean mcpEnabled;
 
     @Inject
