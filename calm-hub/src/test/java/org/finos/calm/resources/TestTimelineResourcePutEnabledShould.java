@@ -3,6 +3,7 @@ package org.finos.calm.resources;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.timeline.Timeline;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.when;
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 @TestProfile(AllowPutProfile.class)
+@TestSecurity(authorizationEnabled = false)
 public class TestTimelineResourcePutEnabledShould {
 
     @InjectMock
