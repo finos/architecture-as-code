@@ -3,11 +3,13 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.NamespaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +33,7 @@ public class NamespaceTools {
     @Inject
     NamespaceStore namespaceStore;
 
+    @PermissionsAllowed(CalmHubScopes.READ)
     @Tool(description = "List all namespaces available in CalmHub. Returns namespace names and descriptions.")
     public ToolResponse listNamespaces() {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
@@ -51,6 +54,7 @@ public class NamespaceTools {
         return ToolResponse.success(sb.toString());
     }
 
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     @Tool(description = "Create a new namespace in CalmHub.")
     public ToolResponse createNamespace(
             @ToolArg(description = "Name for the new namespace (alphanumeric with optional hyphens and dotted segments, case-sensitive, e.g. 'my-org.team1')") String name,

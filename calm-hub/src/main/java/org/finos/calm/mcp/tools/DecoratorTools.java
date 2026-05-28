@@ -3,12 +3,14 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.DecoratorStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +35,7 @@ public class DecoratorTools {
     @Inject
     DecoratorStore decoratorStore;
 
+    @PermissionsAllowed(CalmHubScopes.READ)
     @Tool(description = "List decorators in a namespace, optionally filtered by target architecture path and/or type (e.g. 'threat-model', 'deployment').")
     public ToolResponse listDecorators(
             @ToolArg(description = "The namespace to list decorators from") String namespace,
@@ -69,6 +72,7 @@ public class DecoratorTools {
         }
     }
 
+    @PermissionsAllowed(CalmHubScopes.READ)
     @Tool(description = "Get a specific decorator by its numeric ID in a namespace. Returns the full decorator JSON including data payload.")
     public ToolResponse getDecorator(
             @ToolArg(description = "The namespace containing the decorator") String namespace,
@@ -98,6 +102,7 @@ public class DecoratorTools {
         }
     }
 
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     @Tool(description = "Create a new decorator in a namespace. Use this to store threat model results, deployments, or other decorator data. Returns the assigned decorator ID.")
     public ToolResponse createDecorator(
             @ToolArg(description = "The namespace to create the decorator in") String namespace,
@@ -119,6 +124,7 @@ public class DecoratorTools {
         }
     }
 
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     @Tool(description = "Update an existing decorator in a namespace. Returns the updated decorator representation.")
     public ToolResponse updateDecorator(
             @ToolArg(description = "The namespace containing the decorator") String namespace,

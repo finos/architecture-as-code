@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -12,6 +13,7 @@ import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.ControlStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,7 @@ public class ControlTools {
     @Inject
     ControlStore controlStore;
 
+    @PermissionsAllowed(CalmHubScopes.READ)
     @Tool(description = "List all control requirements in a domain (e.g. 'security'). Returns control IDs, names, and descriptions.")
     public ToolResponse listControls(
             @ToolArg(description = "The domain to list controls for (e.g. 'security')") String domain) {
@@ -66,6 +69,7 @@ public class ControlTools {
         }
     }
 
+    @PermissionsAllowed(CalmHubScopes.READ)
     @Tool(description = "Get the full JSON content of a specific control requirement version.")
     public ToolResponse getControl(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
@@ -92,6 +96,7 @@ public class ControlTools {
         }
     }
 
+    @PermissionsAllowed(CalmHubScopes.READ)
     @Tool(description = "List available versions for a specific control requirement.")
     public ToolResponse listControlVersions(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
@@ -121,6 +126,7 @@ public class ControlTools {
         }
     }
 
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     @Tool(description = "Create a new control requirement in a domain. The requirement is created with an initial version 1.0.0 from the supplied requirement JSON. Returns the assigned control ID.")
     public ToolResponse createControlRequirement(
             @ToolArg(description = "The domain to create the control requirement in (e.g. 'security')") String domain,
@@ -150,6 +156,7 @@ public class ControlTools {
         }
     }
 
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     @Tool(description = "Create a new control configuration for an existing control requirement. The configuration is created with an initial version 1.0.0 from the supplied configuration JSON. Returns the assigned configuration ID.")
     public ToolResponse createControlConfiguration(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
