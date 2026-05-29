@@ -38,15 +38,16 @@ public class DomainUserAccessResource {
     public Response createUserAccessForDomain(@PathParam("domain") String domain,
                                               UserAccess createUserAccessRequest) {
 
-        createUserAccessRequest.setDomain(domain);
         createUserAccessRequest.setCreationDateTime(LocalDateTime.now());
         createUserAccessRequest.setUpdateDateTime(LocalDateTime.now());
 
+        if (!domain.equals(createUserAccessRequest.getDomain())) {
+            logger.error("Request contains an invalid domain [{}]", createUserAccessRequest.getDomain());
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Bad Request").build();
+        }
         try {
-            UserAccess created = store.createUserAccessForDomain(createUserAccessRequest);
-            return Response.created(new URI(
-                            String.format("/calm/domains/%s/user-access/%s", domain, created.getUserAccessId())))
-                    .build();
+            return locationResponse(store.createUserAccessForDomain(createUserAccessRequest));
         } catch (URISyntaxException ex) {
             logger.error("Failed to create user-access for domain: [{}]", domain, ex);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -90,5 +91,11 @@ public class DomainUserAccessResource {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("No access permissions found").build();
         }
+    }
+
+    private Response locationResponse(UserAccess userAccess) throws URISyntaxException {
+        return Response.created(new URI(
+                        String.format("/calm/domains/%s/user-access/%s", userAccess.getDomain(), userAccess.getUserAccessId())))
+                .build();
     }
 }
