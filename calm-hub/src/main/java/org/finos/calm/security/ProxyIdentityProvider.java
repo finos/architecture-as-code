@@ -1,6 +1,5 @@
 package org.finos.calm.security;
 
-import io.quarkus.arc.profile.IfBuildProfile;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.IdentityProvider;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -13,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
-@IfBuildProfile("proxy-auth")
 public class ProxyIdentityProvider implements IdentityProvider<TrustedAuthenticationRequest> {
     Logger logger = LoggerFactory.getLogger(ProxyIdentityProvider.class);
 
@@ -25,7 +23,7 @@ public class ProxyIdentityProvider implements IdentityProvider<TrustedAuthentica
     @Override
     public Uni<SecurityIdentity> authenticate(TrustedAuthenticationRequest request,
             AuthenticationRequestContext context) {
-        logger.debug("Receiving identity from ProxyAuthenticationMechanism - validating as no-op as no IDP is configured for proxy mode.");
+        logger.debug("Trusting principal [{}] — no external IDP configured for this mode.", request.getPrincipal());
         return Uni.createFrom().item(QuarkusSecurityIdentity.builder()
                 .setPrincipal(new QuarkusPrincipal(request.getPrincipal()))
                 .setAnonymous(false)

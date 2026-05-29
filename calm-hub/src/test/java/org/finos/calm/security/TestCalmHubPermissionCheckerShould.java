@@ -34,11 +34,9 @@ class TestCalmHubPermissionCheckerShould {
     @BeforeEach
     void setUp() {
         checker = new CalmHubPermissionChecker(mockUserAccessStore);
-        // allowPublicRead defaults to false
     }
 
     private void givenAuthenticatedUser(String username) throws UserAccessNotFoundException {
-        when(mockIdentity.isAnonymous()).thenReturn(false);
         when(mockIdentity.getPrincipal()).thenReturn(mockPrincipal);
         when(mockPrincipal.getName()).thenReturn(username);
     }
@@ -139,17 +137,6 @@ class TestCalmHubPermissionCheckerShould {
         assertTrue(checker.allowNamespaceAdmin(mockIdentity, "foo"));
     }
 
-    // --- Anonymous ---
-
-    @Test
-    void anonymous_identity_is_always_allowed() {
-        when(mockIdentity.isAnonymous()).thenReturn(true);
-
-        assertTrue(checker.canRead(mockIdentity, "foo"));
-        assertTrue(checker.canWrite(mockIdentity, "foo"));
-        assertTrue(checker.allowNamespaceAdmin(mockIdentity, "foo"));
-    }
-
     // --- allowPublicRead ---
 
     @Test
@@ -163,7 +150,6 @@ class TestCalmHubPermissionCheckerShould {
     @Test
     void public_read_enabled_allows_any_authenticated_user_to_read() {
         checker.allowPublicRead = true;
-        when(mockIdentity.isAnonymous()).thenReturn(false);
 
         assertTrue(checker.canRead(mockIdentity, "foo"));
     }
@@ -187,19 +173,9 @@ class TestCalmHubPermissionCheckerShould {
     }
 
     @Test
-    void public_read_enabled_still_allows_anonymous_users() {
-        checker.allowPublicRead = true;
-        when(mockIdentity.isAnonymous()).thenReturn(true);
-
-        assertTrue(checker.canRead(mockIdentity, "foo"));
-    }
-
-    @Test
     void public_read_enabled_allows_read_without_store_lookup() {
         checker.allowPublicRead = true;
-        when(mockIdentity.isAnonymous()).thenReturn(false);
-        // No stubbing of the store — if the checker hits it, Mockito strict mode will error,
-        // confirming the store is bypassed when allowPublicRead is true
+        // No isAnonymous() stub and no store stub — confirms both are bypassed when allowPublicRead is true
 
         assertTrue(checker.canRead(mockIdentity, "foo"));
     }
@@ -253,6 +229,13 @@ class TestCalmHubPermissionCheckerShould {
         assertFalse(checker.canReadByDomain(mockIdentity, "payments"));
     }
 
+    @Test
+    void public_read_enabled_allows_domain_read_without_store_lookup() {
+        checker.allowPublicRead = true;
+
+        assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
+    }
+
     // --- Domain WRITE checks ---
 
     @Test
@@ -275,19 +258,41 @@ class TestCalmHubPermissionCheckerShould {
         assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
     }
 
-    @Test
-    void anonymous_identity_is_allowed_domain_read_and_write() {
-        when(mockIdentity.isAnonymous()).thenReturn(true);
+    // --- noAuthEnabled ---
 
-        assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
-        assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
+    @Test
+    void no_auth_mode_grants_read_without_store_lookup() {
+        checker.noAuthEnabled = true;
+
+        assertTrue(checker.canRead(mockIdentity, "foo"));
     }
 
     @Test
-    void public_read_enabled_allows_domain_read_without_store_lookup() {
-        checker.allowPublicRead = true;
-        when(mockIdentity.isAnonymous()).thenReturn(false);
+    void no_auth_mode_grants_write_without_store_lookup() {
+        checker.noAuthEnabled = true;
+
+        assertTrue(checker.canWrite(mockIdentity, "foo"));
+    }
+
+    @Test
+    void no_auth_mode_grants_namespace_admin_without_store_lookup() {
+        checker.noAuthEnabled = true;
+
+        assertTrue(checker.allowNamespaceAdmin(mockIdentity, "foo"));
+    }
+
+    @Test
+    void no_auth_mode_grants_global_admin_without_store_lookup() {
+        checker.noAuthEnabled = true;
+
+        assertTrue(checker.hasGlobalAdmin(mockIdentity));
+    }
+
+    @Test
+    void no_auth_mode_grants_domain_read_and_write_without_store_lookup() {
+        checker.noAuthEnabled = true;
 
         assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
+        assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
     }
 }

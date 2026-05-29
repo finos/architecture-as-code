@@ -21,6 +21,10 @@ public class CalmHubPermissionChecker {
     private final UserAccessStore userAccessStore;
 
     @Inject
+    @ConfigProperty(name = "calm.hub.no.auth.enabled", defaultValue = "false")
+    boolean noAuthEnabled;
+
+    @Inject
     @ConfigProperty(name = "calm.hub.allow.public.read", defaultValue = "false")
     boolean allowPublicRead;
 
@@ -30,39 +34,39 @@ public class CalmHubPermissionChecker {
 
     @PermissionChecker(CalmHubScopes.ADMIN)
     public boolean allowNamespaceAdmin(SecurityIdentity identity, String namespace) {
-        if (identity.isAnonymous()) return true;
+        if (noAuthEnabled) return true;
         return hasNamespaceAccess(identity, namespace, UserAction.ADMIN);
     }
 
     @PermissionChecker(CalmHubScopes.READ)
     public boolean canRead(SecurityIdentity identity, String namespace) {
-        if (identity.isAnonymous()) return true;
+        if (noAuthEnabled) return true;
         if (allowPublicRead) return true;
         return hasNamespaceAccess(identity, namespace, UserAction.READ);
     }
 
     @PermissionChecker(CalmHubScopes.DOMAIN_READ)
     public boolean canReadByDomain(SecurityIdentity identity, String domain) {
-        if (identity.isAnonymous()) return true;
+        if (noAuthEnabled) return true;
         if (allowPublicRead) return true;
         return hasDomainAccess(identity, domain, UserAction.READ);
     }
 
     @PermissionChecker(CalmHubScopes.WRITE)
     public boolean canWrite(SecurityIdentity identity, String namespace) {
-        return identity.isAnonymous()
+        return noAuthEnabled
                 || hasNamespaceAccess(identity, namespace, UserAction.WRITE);
     }
 
     @PermissionChecker(CalmHubScopes.DOMAIN_WRITE)
     public boolean canWriteByDomain(SecurityIdentity identity, String domain) {
-        return identity.isAnonymous()
+        return noAuthEnabled
                 || hasDomainAccess(identity, domain, UserAction.WRITE);
     }
 
     @PermissionChecker(CalmHubScopes.GLOBAL_ADMIN)
     public boolean hasGlobalAdmin(SecurityIdentity identity) {
-        if (identity.isAnonymous()) {
+        if (noAuthEnabled) {
             logger.warn("CalmHub is running with no authentication. Granting user access unconditionally.");
             return true;
         }
