@@ -295,4 +295,43 @@ class TestCalmHubPermissionCheckerShould {
         assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
         assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
     }
+
+    // --- GLOBAL ADMIN checks ---
+
+    @Test
+    void global_admin_grant_on_global_namespace_grants_global_admin() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.admin).setNamespace("GLOBAL").build();
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertTrue(checker.hasGlobalAdmin(mockIdentity));
+    }
+
+    @Test
+    void write_grant_on_global_namespace_denies_global_admin() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.write).setNamespace("GLOBAL").build();
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertFalse(checker.hasGlobalAdmin(mockIdentity));
+    }
+
+    @Test
+    void admin_grant_on_non_global_namespace_denies_global_admin() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess("alice", UserAccess.Permission.admin, "finos");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+
+        assertFalse(checker.hasGlobalAdmin(mockIdentity));
+    }
+
+    @Test
+    void user_with_no_grants_is_denied_global_admin() throws UserAccessNotFoundException {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
+
+        assertFalse(checker.hasGlobalAdmin(mockIdentity));
+    }
 }
