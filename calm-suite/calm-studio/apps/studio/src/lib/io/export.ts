@@ -21,6 +21,11 @@ import { getNodesBounds, getViewportForBounds } from '@xyflow/svelte';
 import type { Node } from '@xyflow/svelte';
 import { downloadDataUrl } from '$lib/io/fileSystem';
 import { detectPacksFromArch, buildSidecarData, sidecarNameFor } from '$lib/io/sidecar';
+import {
+	buildThreatsSidecar,
+	splitDecoratorsForExport,
+	threatsSidecarNameFor
+} from '$lib/io/threatsFile';
 import type { CalmArchitecture, CalmDecorator, CalmControls } from '@calmstudio/calm-core';
 import { isAINode, getAIGFForNodeType } from '@calmstudio/calm-core';
 import { buildScalerToml } from '$lib/io/scalerToml';
@@ -98,9 +103,16 @@ export function exportAsCalm(json: string, filename = 'architecture.calm.json'):
 			delete parsed._template;
 		}
 		// Inject AIGF governance decorator if AI nodes exist
-		const decorator = generateAIGFDecorator(parsed, filename);
-		if (decorator !== null) {
-			parsed.decorators = [decorator];
+		const aigfDecorator = generateAIGFDecorator(parsed, filename);
+		// Split decorators: threat-model / control-catalog go to companion sidecar
+		// (.threats.calm.json); other decorators (AIGF, deployment, etc.) stay
+		// inline in the architecture file's `decorators[]` field.
+		const { inline } = splitDecoratorsForExport(parsed);
+		const inlineDecorators = aigfDecorator ? [...inline, aigfDecorator] : inline;
+		if (inlineDecorators.length > 0) {
+			parsed.decorators = inlineDecorators;
+		} else {
+			delete parsed.decorators;
 		}
 		cleanJson = JSON.stringify(parsed, null, 2);
 	} catch {
@@ -129,6 +141,26 @@ export function exportAsCalm(json: string, filename = 'architecture.calm.json'):
 				downloadDataUrl(sidecarUrl, sidecarFilename);
 				setTimeout(() => URL.revokeObjectURL(sidecarUrl), 0);
 			}, 200);
+		}
+	} catch {
+		// Ignore JSON parse errors — main file was already exported
+	}
+
+	// Threats sidecar — emit `<arch>.threats.calm.json` when the architecture
+	// has any threat-model or control-catalog decorators. Reads from the
+	// original `json` argument (which still contains the pre-split decorators).
+	try {
+		const original = JSON.parse(json) as CalmArchitecture;
+		const threatsPayload = buildThreatsSidecar(original);
+		if (threatsPayload !== null) {
+			const threatsJson = JSON.stringify(threatsPayload, null, 2);
+			const threatsFilename = threatsSidecarNameFor(filename);
+			const threatsBlob = new Blob([threatsJson], { type: 'application/json' });
+			const threatsUrl = URL.createObjectURL(threatsBlob);
+			setTimeout(() => {
+				downloadDataUrl(threatsUrl, threatsFilename);
+				setTimeout(() => URL.revokeObjectURL(threatsUrl), 0);
+			}, 400);
 		}
 	} catch {
 		// Ignore JSON parse errors — main file was already exported

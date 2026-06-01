@@ -3,6 +3,7 @@
 <script lang="ts">
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+import ThreatBadge from './ThreatBadge.svelte';
 	let { id, data, selected }: NodeProps = $props();
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
@@ -21,6 +22,7 @@
 
 <div class="node" class:selected>
 	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+<ThreatBadge nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 	<svg width="52" height="46" viewBox="0 0 52 46" fill="none" aria-hidden="true">
 		<polygon
 			points="26,2 50,14 50,34 26,46 2,34 2,14"

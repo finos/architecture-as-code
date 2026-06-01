@@ -1,0 +1,284 @@
+{
+  "$comment": "Companion threat-model decorators file for finos-ma-ref-arch-jan-2026.calm.json. Each decorator validates against https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator (per https://calm.finos.org/core-concepts/decorators). Decorators are grouped one-per-layer plus one cross-layer plus one control-catalog. Source: https://github.com/finos/ai-reference-architecture-library/blob/main/Library/reference_architecture/agentic_ai/multi_agent/tm/tm_ma_ref_arch_apr_2026.md",
+  "decorators": [
+
+    {
+      "unique-id": "tm-control-catalog-ma-apr-2026",
+      "type": "control-catalog",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": [
+        "user-interaction-layer",
+        "agent-gateway-layer",
+        "agent-layer",
+        "knowledge-layer",
+        "llm-layer",
+        "mcp-layer",
+        "evaluation-layer",
+        "observability-layer"
+      ],
+      "data": {
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "source": "https://github.com/finos/ai-reference-architecture-library/blob/main/Library/reference_architecture/agentic_ai/multi_agent/tm/tm_ma_ref_arch_apr_2026.md",
+        "controls": [
+          { "id": "C1",  "description": "Implement input validation libraries and custom rules at the application layer." },
+          { "id": "C2",  "description": "Use a specialised AI security tool, integrated as part of a gateway (Agent, MCP, or LLM) or as a standalone firewall, to inspect, validate, and sanitise prompts and responses for content-based threats." },
+          { "id": "C3",  "description": "Design workflows to require human approval for high-risk actions." },
+          { "id": "C4",  "description": "Integrate with an enterprise Identity Provider (IDP) enforcing Multi-Factor Authentication (MFA)." },
+          { "id": "C5",  "description": "Feed user activity and agent logs into a security analytics platform (SIEM) for behavioural analytics and anomaly detection." },
+          { "id": "C6",  "description": "Configure rate limiting and throttling on API endpoints." },
+          { "id": "C7",  "description": "Deploy a Web Application Firewall (WAF) with rulesets to block common attack vectors." },
+          { "id": "C8",  "description": "Use a Policy-as-Code engine to enforce Attribute-Based Access Control (ABAC) policies for write access." },
+          { "id": "C9",  "description": "Log all critical changes to a centralised, write-once, read-many (WORM) system." },
+          { "id": "C10", "description": "Implement automated configuration scanning to detect unauthorised changes." },
+          { "id": "C11", "description": "Use platform-native network policies (Kubernetes network policies, security groups) to enforce micro-segmentation." },
+          { "id": "C12", "description": "Enforce mutual TLS (mTLS) for all connections using strong, verifiable workload identities (SPIFFE SVIDs)." },
+          { "id": "C13", "description": "Manage and version-control all security policies (authorisation, content, behaviour) as code in a version control system." },
+          { "id": "C14", "description": "Use sandboxing or containerisation technologies to isolate agent processes and tool execution." },
+          { "id": "C15", "description": "Implement runtime monitoring to detect and alert on anomalous agent behaviour or goal deviation." },
+          { "id": "C16", "description": "Ensure child agents are created with a scoped, delegated workload identity and a subset of the parent agent's permissions." },
+          { "id": "C17", "description": "Grant just-in-time, task-scoped permissions for tool execution." },
+          { "id": "C18", "description": "Implement automated data validation and sanitisation pipelines for knowledge sources." },
+          { "id": "C19", "description": "Integrate with Data Loss Prevention (DLP) solutions to scan agent outputs for sensitive data." },
+          { "id": "C20", "description": "Ensure logs contain full cryptographic workload identity and rich contextual details for forensic investigation." },
+          { "id": "C21", "description": "Implement automated response playbooks (SOAR) for high-confidence alerts." },
+          { "id": "C22", "description": "Implement resource quotas and limits (CPU, memory, execution time) within the agent runtime environment." },
+          { "id": "C23", "description": "Sanitise all agent-generated output to remove or neutralise malicious code before it is displayed to users or passed to other systems." },
+          { "id": "C24", "description": "Encrypt sensitive data, including models, both at rest and in transit." },
+          { "id": "C25", "description": "Implement a strict vetting and scanning process for all new models and components before they are registered in the platform." },
+          { "id": "C26", "description": "Enforce strict, non-bypassable workflows for tasks that require human supervision." },
+          { "id": "C27", "description": "Implement a multi-source feedback engine that aggregates and weights signals from diverse sources to generate a trusted score for agent interactions." },
+          { "id": "C28", "description": "Implement network egress filtering to restrict agent outbound connections to an approved destination allowlist." },
+          { "id": "C29", "description": "Use a dedicated secrets management platform for all credentials, API keys, and certificates; never inject secrets as environment variables accessible to the agent process." },
+          { "id": "C30", "description": "Enforce cryptographic signing and integrity verification for all registered models; validate signatures at load time and reject any model whose signature cannot be verified." },
+          { "id": "C31", "description": "Maintain a Software Bill of Materials (SBOM) for all agent components, dependencies, and models; integrate SBOM generation and vulnerability scanning into the CI/CD pipeline." },
+          { "id": "C32", "description": "Enforce data minimisation at the agent runtime layer; pass only the data fields required for each tool call and strip all fields not needed for the immediate task before dispatch." },
+          { "id": "C33", "description": "Apply RAG-specific validation; validate and sanitise retrieved documents before injection into the agent context window and monitor retrieval patterns for anomalous query distributions." },
+          { "id": "C34", "description": "Enforce strict cross-session isolation in long-term memory; cryptographically bind all memory entries to the originating user and session identity." },
+          { "id": "C35", "description": "Enforce strict parameter schema validation for all MCP tool calls; reject any call where parameters contain data from domains not authorised for that tool." },
+          { "id": "C36", "description": "Require signed Agent Card verification for all agent-to-agent calls; reject connections from agents presenting unverifiable, expired, or revoked identities; use a short-lived credential rotation policy." }
+        ]
+      }
+    },
+
+    {
+      "unique-id": "tm-layer-user-interaction",
+      "type": "threat-model",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": ["user-interaction-layer", "user", "application"],
+      "data": {
+        "layer": "User Interaction Layer",
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "threats": [
+          { "id": "T-UIL-01", "name": "Malicious User Input", "description": "A user intentionally submits crafted inputs, including prompt injection, jailbreak attempts, or instruction-carrying payloads, to exploit the agent system or cause harmful downstream actions. Applies to interactive users and automated calling systems.", "mitigations": "Apply input validation and sanitisation at the application layer. Use the AI security gateway to inspect and classify prompts before they reach the agent layer. Enforce human-in-the-loop checkpoints for high-risk action classes.", "controls": ["C1", "C2", "C3"], "affected-nodes": ["application", "user"] },
+          { "id": "T-UIL-02", "name": "User Impersonation", "description": "An attacker compromises or forges credentials to impersonate a legitimate user, inheriting their permissions, context, and agent-delegated authority.", "mitigations": "Enforce strong authentication with MFA at the enterprise identity provider. Monitor for anomalous behavioural signals, including location, time, request volume, and action patterns, that deviate from the established user baseline.", "controls": ["C4", "C5"], "affected-nodes": ["user", "application"] },
+          { "id": "T-UIL-03", "name": "Application Session Hijacking", "description": "An attacker intercepts or steals a valid application session token to issue requests to the agent system under an authenticated user's identity.", "mitigations": "Enforce short session token lifetimes with automatic expiry. Bind sessions to client fingerprint. Apply HttpOnly and Secure cookie attributes. Forward all session anomalies to the SIEM.", "controls": ["C4", "C5", "C9"], "affected-nodes": ["application"] },
+          { "id": "T-UIL-04", "name": "Denial of Service", "description": "An attacker floods the application with a high volume of requests to exhaust system capacity, degrade response quality, or trigger runaway agent execution chains.", "mitigations": "Apply network-layer DDoS protection for volumetric attacks and a WAF for application-layer attacks. Enforce per-user and per-session rate limiting.", "controls": ["C6", "C7"], "affected-nodes": ["user-interaction-layer", "application"] },
+          { "id": "T-UIL-05", "name": "Insecure Output Handling", "description": "An agent generates output containing executable content, such as XSS payloads or script injection, or sensitive data that is returned to the user interface without sanitisation.", "mitigations": "Sanitise all agent output at the application layer before rendering. Scan all output with DLP before delivery. Apply output schema validation to enforce the expected response structure.", "controls": ["C19", "C23"], "affected-nodes": ["application"] },
+          { "id": "T-UIL-06", "name": "HITL Workflow Manipulation", "description": "An attacker manipulates the human-in-the-loop approval interface through social engineering, UI spoofing, or prompt crafting so that a reviewer unknowingly approves a harmful or policy-violating agent action.", "mitigations": "Present full, unmodified agent action context to the reviewer in the HITL interface. Enforce non-bypassable approval workflows at the platform layer. Log every approval decision with reviewer identity and the complete action payload.", "controls": ["C3", "C9", "C26"], "affected-nodes": ["application"] }
+        ]
+      }
+    },
+
+    {
+      "unique-id": "tm-layer-agent-gateway",
+      "type": "threat-model",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": ["agent-gateway-layer", "agent-registry", "agent-gateway", "agent-gateway-guardrails"],
+      "data": {
+        "layer": "Agent Gateway Layer",
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "threats": [
+          { "id": "T-AGL-01", "name": "Agent Registry Poisoning", "description": "An attacker gains write access to the Agent Registry and inserts a malicious agent entry so the gateway routes legitimate requests to an agent under the attacker's control.", "mitigations": "Enforce ABAC with least-privilege write access on the registry. Log all registry mutations to an immutable, write-once audit store. Run automated scanning on all new registry entries before they become routable.", "controls": ["C8", "C9", "C10"], "affected-nodes": ["agent-registry", "agent-gateway"] },
+          { "id": "T-AGL-02", "name": "Gateway Bypass", "description": "An attacker discovers a direct network path to an agent instance, bypassing the gateway and all associated authentication, authorisation, and policy enforcement.", "mitigations": "Implement zero-trust network architecture so that no agent instance is reachable except through the gateway. Enforce mTLS with SPIFFE SVIDs for all internal communications so that agents reject unauthenticated connections regardless of network position.", "controls": ["C11", "C12"], "affected-nodes": ["agent-gateway"] },
+          { "id": "T-AGL-03", "name": "Guardrail and Policy Evasion", "description": "An attacker crafts requests that are syntactically valid but semantically designed to evade the gateway's guardrail policy rules, passing through controls while carrying malicious or out-of-scope instructions.", "mitigations": "Continuously update and adversarially test policy rulesets. Employ semantic behavioural anomaly detection in addition to rule-based filtering. Do not rely on syntactic pattern matching alone.", "controls": ["C5", "C13"], "affected-nodes": ["agent-gateway-guardrails"] },
+          { "id": "T-AGL-04", "name": "Agent Identity Spoofing at Gateway", "description": "An attacker presents a forged or stolen agent identity to the gateway to inherit the permissions, routing rules, or trust level of a legitimate registered agent. Particularly relevant where agent-to-agent calls pass through the gateway.", "mitigations": "Require signed Agent Card verification for all agent identities presented at the gateway. Enforce mTLS with short-lived SPIFFE SVIDs. Reject any identity whose cryptographic proof cannot be verified against the authorised key registry.", "controls": ["C12", "C36"], "affected-nodes": ["agent-gateway", "agent-gateway-guardrails"] }
+        ]
+      }
+    },
+
+    {
+      "unique-id": "tm-layer-agent",
+      "type": "threat-model",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": [
+        "agent-layer",
+        "agent-collaboration-patterns",
+        "supervisor-worker-pattern",
+        "skill-based-routing-pattern",
+        "agent-as-tool-pattern",
+        "unified-agent-runtime",
+        "state-management",
+        "secure-execution",
+        "collaboration-handoff",
+        "adaptive-learning",
+        "workspace-file-system",
+        "tools-layer",
+        "mcp-client",
+        "shell-tool",
+        "io-tool",
+        "web-search-tool",
+        "short-term-memory",
+        "in-session-context-manager",
+        "long-term-memory",
+        "session-summaries",
+        "user-task-personalization"
+      ],
+      "data": {
+        "layer": "Agent Layer",
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "sub-sections": ["Agent Collaboration Patterns", "Unified Agent Runtime", "Tools Layer", "Memory"],
+        "threats": [
+          { "id": "T-AL-01", "section": "Agent Collaboration Patterns", "name": "Supervisor Agent Compromise", "description": "An attacker gains control of the supervisor agent in a Supervisor/Worker pattern, enabling them to issue arbitrary instructions to all subordinate worker agents and control the entire agent graph from a single point.", "mitigations": "Enforce strict runtime and network isolation for supervisor agents. Apply least privilege so the supervisor holds no permissions beyond its immediate coordination tasks. Monitor all inter-agent communication from the supervisor for anomalous instruction patterns.", "controls": ["C11", "C14", "C16"], "affected-nodes": ["supervisor-worker-pattern"] },
+          { "id": "T-AL-02", "section": "Agent Collaboration Patterns", "name": "Goal Manipulation via Skill Routing", "description": "An attacker exploits the Skills-Based Routing mechanism by crafting requests that cause the router to dispatch a sensitive task to a low-trust or compromised agent.", "mitigations": "Validate that the routed agent's declared skills and trust level are consistent with the task's data domain and required permissions before dispatch. Never route solely on declared capability without registry verification.", "controls": ["C8", "C10", "C15"], "affected-nodes": ["skill-based-routing-pattern", "agent-registry"] },
+          { "id": "T-AL-03", "section": "Agent Collaboration Patterns", "name": "Agent-as-a-Tool Abuse", "description": "An attacker exploits the Agent-as-a-Tool pattern to cause a high-privilege agent to invoke a compromised or malicious agent as a sub-tool, granting it access to the caller's permissions and context.", "mitigations": "Require signed Agent Card verification for all agent-to-agent invocations. Enforce that the invoked agent's trust level and permitted data domains are a strict subset of the invoking agent's. Log all agent-to-agent invocations with full identity attribution.", "controls": ["C9", "C16", "C36"], "affected-nodes": ["agent-as-tool-pattern"] },
+          { "id": "T-AL-04", "section": "Agent Collaboration Patterns", "name": "Agent Collusion", "description": "Two or more compromised agents coordinate to circumvent a control that neither could bypass independently. A representative example is one agent generating a recommendation and a colluding agent approving it, bypassing a four-eyes control.", "mitigations": "Enforce independent verification paths so that approval agents do not share context, memory, or instruction sources with the agents they are approving. Monitor for correlated anomalous behaviour across multiple agents. Periodically audit agent communication graphs for unexpected coordination patterns.", "controls": ["C5", "C9", "C16"], "affected-nodes": ["agent-collaboration-patterns"] },
+
+          { "id": "T-AL-05", "section": "Unified Agent Runtime", "name": "Goal Manipulation", "description": "An attacker manipulates an agent's goal or objective through crafted input so that the agent pursues an unintended task while appearing to operate normally.", "mitigations": "Validate all external inputs that could influence the agent's goal state before they are admitted to the reasoning loop. Monitor agent behaviour at runtime for deviations from the expected task plan. Isolate agent runtimes so a compromised agent cannot influence the goal state of its peers.", "controls": ["C1", "C14", "C15"], "affected-nodes": ["unified-agent-runtime"] },
+          { "id": "T-AL-06", "section": "Unified Agent Runtime", "name": "Indirect Prompt Injection", "description": "An attacker embeds malicious instructions in external data consumed by the agent, including retrieved documents, tool responses, web content, and counterparty messages, to manipulate agent reasoning without any malicious action by the human user.", "mitigations": "Sanitise all content retrieved from external sources before it enters the agent context window. Treat all externally sourced content as untrusted regardless of retrieval mechanism. Use the AI security gateway to inspect tool responses, not only user inputs. Enforce that agent instructions may only originate from authorised principals.", "controls": ["C2", "C14", "C33"], "affected-nodes": ["unified-agent-runtime", "tools-layer"] },
+          { "id": "T-AL-07", "section": "Unified Agent Runtime", "name": "Multi-Hop Prompt Injection", "description": "A successful injection in a sub-agent propagates malicious instructions upstream to the supervisor, which then propagates them to the rest of the agent graph. The initial injection point may be low-privilege, but the impact extends to the entire graph.", "mitigations": "Sanitise all inter-agent message payloads at the receiving agent before they are admitted to its reasoning loop. Treat peer-agent messages with the same scrutiny as untrusted external inputs. Implement message provenance tracking so the origin of every instruction is auditable.", "controls": ["C2", "C14", "C16", "C36"], "affected-nodes": ["unified-agent-runtime", "collaboration-handoff"] },
+          { "id": "T-AL-08", "section": "Unified Agent Runtime", "name": "Excessive Agency and Scope Expansion", "description": "An agent autonomously expands its own scope, takes irreversible real-world actions, or executes an action chain whose cumulative effect was not authorised even though each individual action appeared permitted. In FSI deployments, this is the vector most likely to produce a regulatory incident.", "mitigations": "Enforce an explicit approved action list for every agent. Any action not on the list must trigger escalation rather than execution. Implement checkpoint approval for all irreversible actions regardless of autonomy level. Monitor cumulative action sequences, not only individual tool calls.", "controls": ["C3", "C15", "C26"], "affected-nodes": ["unified-agent-runtime", "secure-execution"] },
+          { "id": "T-AL-09", "section": "Unified Agent Runtime", "name": "Agent Resource Exhaustion", "description": "An attacker tricks an agent into executing a computationally expensive, long-running, or infinitely recursive task that exhausts CPU, memory, or time quotas and starves other agents of execution capacity.", "mitigations": "Implement per-agent resource quotas covering CPU, memory, and execution time. Enforce maximum iteration counts on all loops and refinement cycles. Monitor resource consumption in real time and terminate agents that exceed their allocation.", "controls": ["C15", "C22"], "affected-nodes": ["unified-agent-runtime"] },
+          { "id": "T-AL-10", "section": "Unified Agent Runtime", "name": "Secrets Exfiltration from Agent Runtime", "description": "A compromised agent reads environment variables, mounted secrets, service account tokens, or credentials accessible within its execution environment and exfiltrates them to an attacker-controlled endpoint.", "mitigations": "Never inject credentials as environment variables. Use a dedicated secrets management platform with just-in-time, task-scoped credential issuance. Enforce network egress filtering to block exfiltration to unapproved endpoints.", "controls": ["C14", "C28", "C29"], "affected-nodes": ["unified-agent-runtime", "secure-execution"] },
+          { "id": "T-AL-11", "section": "Unified Agent Runtime", "name": "Adaptive Learning Poisoning", "description": "An attacker manipulates the execution outcomes, user feedback, or error rate signals used by the Adaptive Learning component to cause the system to learn degraded prompt templates, miscalibrated agent configurations, or poor tool selection strategies. Unlike one-time feedback manipulation, this attack corrupts the persistent learning state.", "mitigations": "Treat all Adaptive Learning signals as untrusted inputs and validate them before they influence system configuration. Require human review for any configuration change generated by adaptive learning that exceeds a defined sensitivity threshold. Maintain versioned snapshots of all learned configurations to enable rollback.", "controls": ["C9", "C15", "C27"], "affected-nodes": ["adaptive-learning"] },
+          { "id": "T-AL-12", "section": "Unified Agent Runtime", "name": "Workspace File System Abuse", "description": "A compromised agent writes malicious content to the shared Workspace File System that is subsequently read and acted upon by another agent or human user, propagating compromise through the file layer rather than the messaging layer.", "mitigations": "Enforce strict write permissions on the workspace so that agents may only write to paths designated for their current task. Scan all files written to the workspace before they become readable by other agents. Log all file system operations with full agent identity attribution.", "controls": ["C8", "C9", "C14", "C19"], "affected-nodes": ["workspace-file-system", "io-tool"] },
+          { "id": "T-AL-13", "section": "Unified Agent Runtime", "name": "State Hijacking via Pause and Resume", "description": "An attacker manipulates the serialised task state during a pause or handoff operation so that when the task is resumed, the agent operates with attacker-controlled goal state, memory, or credentials.", "mitigations": "Cryptographically sign and integrity-check all serialised state before storage and before loading. Validate state provenance at resume time. Reject any state whose signature cannot be verified.", "controls": ["C9", "C12", "C20"], "affected-nodes": ["state-management"] },
+          { "id": "T-AL-14", "section": "Unified Agent Runtime", "name": "Inter-Agent Compromise via Shared State", "description": "A compromised agent attacks, manipulates, or exfiltrates data from peer agents in the same environment by exploiting shared memory, state, or collaboration and handoff channels.", "mitigations": "Enforce strict runtime and network isolation between all agent instances. Restrict access to shared memory and state to governed, authenticated handoff mechanisms only. Monitor inter-agent communication channels for anomalous access patterns.", "controls": ["C5", "C11", "C14"], "affected-nodes": ["collaboration-handoff", "state-management"] },
+
+          { "id": "T-AL-15", "section": "Tools Layer", "name": "Shell Tool Abuse", "description": "A compromised agent invokes the Shell Tool with attacker-controlled command arguments to execute arbitrary system commands, write malicious files, or escalate privileges within the runtime.", "mitigations": "Sandbox the Shell Tool in a restricted execution environment with an explicit command allowlist. Grant just-in-time, task-scoped permissions for every Shell Tool invocation. Monitor all shell command sequences for patterns that deviate from the agent's approved action list.", "controls": ["C1", "C14", "C17"], "affected-nodes": ["shell-tool"] },
+          { "id": "T-AL-16", "section": "Tools Layer", "name": "I/O Tool Abuse", "description": "A compromised agent uses the I/O Tool to read files outside its designated workspace paths, exfiltrate data to the workspace for collection by another process, or write malicious content that poisons subsequent agent reads.", "mitigations": "Enforce strict path-scoped read and write permissions on the I/O Tool. Log all I/O operations with full agent identity and file path attribution. Scan all written content before it becomes readable by other agents or users.", "controls": ["C8", "C9", "C14"], "affected-nodes": ["io-tool", "workspace-file-system"] },
+          { "id": "T-AL-17", "section": "Tools Layer", "name": "Web Search Tool Manipulation", "description": "An attacker places adversarially crafted content at URLs likely to be returned by the Web Search Tool so that the agent retrieves and acts on attacker-controlled information. The agent has no inherent basis to distrust search results, making this a reliable indirect injection vector.", "mitigations": "Treat all web search results as untrusted external input and sanitise before injection into the context window. Restrict the Web Search Tool to an approved domain allowlist where operationally feasible. Monitor for unexpected behavioural changes in the agent following web retrieval operations.", "controls": ["C2", "C28", "C33"], "affected-nodes": ["web-search-tool"] },
+          { "id": "T-AL-18", "section": "Tools Layer", "name": "MCP Client Misuse", "description": "A compromised agent exploits the MCP Client to invoke unauthorised MCP servers or pass sensitive runtime data as tool call parameters to an attacker-controlled endpoint.", "mitigations": "Enforce that the MCP Client may only connect to servers registered in the approved MCP Server Registry. Apply strict parameter schema validation before dispatch. Enforce data minimisation by stripping all fields not required for the tool's declared function.", "controls": ["C28", "C32", "C35"], "affected-nodes": ["mcp-client"] },
+
+          { "id": "T-AL-19", "section": "Memory", "name": "Context Window Poisoning", "description": "An attacker injects adversarial content into the agent's in-session context window via tool responses, retrieved documents, or inter-agent messages so that the in-session context manager propagates the malicious content through summarisation or trimming into the agent's active reasoning.", "mitigations": "Sanitise all content before it enters the context window regardless of source. Treat all context inputs as untrusted. Monitor for context manipulation patterns such as instruction-containing content arriving via non-user channels.", "controls": ["C2", "C14", "C33"], "affected-nodes": ["short-term-memory", "in-session-context-manager"] },
+          { "id": "T-AL-20", "section": "Memory", "name": "Long-Term Memory Poisoning", "description": "An attacker injects crafted content into session summaries or user and task personalisation stores that persists across sessions and systematically biases future agent behaviour, affecting every future session that retrieves the poisoned entries.", "mitigations": "Validate and sanitise all content before it is written to long-term memory. Treat long-term memory writes with the same scrutiny as knowledge base ingestion. Maintain a versioned, auditable history of memory state changes to enable rollback and forensic investigation.", "controls": ["C9", "C18", "C34"], "affected-nodes": ["long-term-memory", "session-summaries", "user-task-personalization"] },
+          { "id": "T-AL-21", "section": "Memory", "name": "Cross-Session Memory Leakage", "description": "Information from one user's or session's interactions, stored in session summaries or personalisation data, is retrieved and exposed in a subsequent session belonging to a different user. Particularly relevant in multi-tenant deployments.", "mitigations": "Cryptographically bind all long-term memory entries to their originating user and session identity. Require re-authentication before any cross-session memory read. Enforce strict cross-session isolation so that memory written in one session cannot be retrieved in another under any circumstances.", "controls": ["C8", "C24", "C34"], "affected-nodes": ["long-term-memory", "session-summaries", "user-task-personalization"] }
+        ]
+      }
+    },
+
+    {
+      "unique-id": "tm-layer-knowledge",
+      "type": "threat-model",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": ["knowledge-layer", "source-bases", "vector-dbs"],
+      "data": {
+        "layer": "Knowledge Layer",
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "threats": [
+          { "id": "T-KL-01", "name": "Data Poisoning", "description": "An attacker injects false, misleading, or maliciously crafted information into source bases or vector databases so that agents ground their reasoning in attacker-controlled content. Includes targeted poisoning of specific document types and bulk poisoning of ingestion pipelines.", "mitigations": "Enforce strict ABAC on all data source write paths. Validate and sanitise all new data before ingestion. Maintain cryptographic hashes of knowledge base contents for integrity verification. Audit ingestion pipelines for unauthorised modifications.", "controls": ["C8", "C18"], "affected-nodes": ["source-bases", "vector-dbs"] },
+          { "id": "T-KL-02", "name": "RAG Retrieval Manipulation", "description": "An attacker crafts content that scores highly in semantic similarity search so it is consistently retrieved and injected into the agent context ahead of legitimate authoritative content, without requiring write access to the knowledge base. This threat exploits the retrieval mechanism itself.", "mitigations": "Monitor retrieval patterns for anomalous query distributions or the consistent high-scoring of specific content. Implement retrieval diversity controls to prevent single-source dominance. Apply source trust weighting that favours authoritative internal sources over externally sourced content at equal embedding distance.", "controls": ["C15", "C33"], "affected-nodes": ["vector-dbs"] },
+          { "id": "T-KL-03", "name": "Data Leakage from Knowledge Layer", "description": "An agent retrieves and exposes data from the knowledge layer to an unauthorised caller through over-broad retrieval queries, or is manipulated into returning data beyond the scope of the legitimate request.", "mitigations": "Enforce granular ABAC on all knowledge retrieval paths. Apply DLP scanning to all retrieved content before it is returned to the agent context. Encrypt sensitive knowledge sources at rest. Log all retrieval operations with full query and result attribution.", "controls": ["C8", "C19", "C24"], "affected-nodes": ["knowledge-layer", "source-bases"] },
+          { "id": "T-KL-04", "name": "Embedding Inversion Attack", "description": "An attacker gains access to the raw vector database and reconstructs original source documents from stored embeddings, exposing knowledge base content that may be confidential or regulated, without requiring access to the original document store.", "mitigations": "Restrict access to the raw vector database to the minimum required set of principals. Apply differential privacy techniques to embeddings where the knowledge base contains sensitive content. Encrypt the vector database at rest using keys that are not accessible to the retrieval service.", "controls": ["C8", "C24"], "affected-nodes": ["vector-dbs"] }
+        ]
+      }
+    },
+
+    {
+      "unique-id": "tm-layer-llm",
+      "type": "threat-model",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": ["llm-layer", "model-registry", "llm-gateway", "llm-guardrails"],
+      "data": {
+        "layer": "LLM Layer",
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "threats": [
+          { "id": "T-LLM-01", "name": "Malicious Model Registration", "description": "An attacker registers a backdoored or adversarially fine-tuned model in the Model Registry that behaves normally under standard inputs but produces attacker-controlled outputs for specific trigger sequences.", "mitigations": "Implement a strict vetting, signing, and approval process for all new model registrations. Enforce cryptographic signature verification at model load time. Conduct adversarial input testing before any model is approved for production use.", "controls": ["C10", "C25", "C30"], "affected-nodes": ["model-registry"] },
+          { "id": "T-LLM-02", "name": "Model Theft", "description": "An attacker gains unauthorised access to the Model Registry or inference infrastructure and exfiltrates proprietary model weights, causing intellectual property loss and enabling offline adversarial analysis.", "mitigations": "Enforce strict ABAC on the Model Registry. Encrypt all model artefacts at rest and in transit. Monitor for anomalous access patterns, including bulk model downloads and access outside business hours.", "controls": ["C5", "C8", "C24"], "affected-nodes": ["model-registry"] },
+          { "id": "T-LLM-03", "name": "Prompt Injection at LLM Inference", "description": "An attacker crafts a prompt that causes the LLM to ignore its system instructions, override guardrails at the inference layer, or generate policy-violating output. May be delivered directly by a user or indirectly through content that has reached the inference endpoint.", "mitigations": "Deploy the AI security gateway to validate and sanitise all prompts before they reach the inference endpoint. Apply output filtering at the LLM gateway layer, not only at the agent layer. Monitor for jailbreak patterns and system instruction override attempts.", "controls": ["C2"], "affected-nodes": ["llm-gateway", "llm-guardrails"] },
+          { "id": "T-LLM-04", "name": "System Prompt Leakage", "description": "An attacker manipulates the LLM into revealing its system prompt, which may contain confidential workflow logic, tool configurations, or security controls that can be exploited in subsequent attacks.", "mitigations": "Instruct models explicitly not to reveal system prompt contents. Apply output filtering at the LLM gateway to detect and redact system prompt disclosure. Never embed secrets, credentials, or policy logic in the system prompt; these belong in the secrets management platform and policy engine respectively.", "controls": ["C2", "C13", "C29"], "affected-nodes": ["llm-gateway", "llm-guardrails"] },
+          { "id": "T-LLM-05", "name": "LLM Gateway Guardrail Bypass", "description": "An attacker crafts inputs or exploits misconfiguration to bypass the LLM Gateway's guardrails, including input validation, output filtering, and access controls, causing the gateway to forward harmful content or unauthorised requests to the model.", "mitigations": "Continuously test LLM guardrails against adversarial inputs. Enforce policy-as-code so guardrail rules are version-controlled and cannot be silently modified. Alert on any guardrail failure at the gateway layer.", "controls": ["C5", "C13", "C21"], "affected-nodes": ["llm-gateway", "llm-guardrails"] }
+        ]
+      }
+    },
+
+    {
+      "unique-id": "tm-layer-mcp",
+      "type": "threat-model",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": ["mcp-layer", "mcp-server-registry", "mcp-gateway", "mcp-guardrails"],
+      "data": {
+        "layer": "MCP Layer",
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "threats": [
+          { "id": "T-MCP-01", "name": "MCP Registry Poisoning", "description": "An attacker gains write access to the MCP Server Registry and inserts a malicious server entry so that agents connect to an attacker-controlled server when they believe they are using an authorised enterprise tool.", "mitigations": "Enforce strict ABAC on MCP Registry write operations. Maintain an immutable audit log of all registry changes. Require cryptographic signing of all MCP server entries. Scan the registry regularly for unauthorised additions.", "controls": ["C8", "C9", "C10"], "affected-nodes": ["mcp-server-registry"] },
+          { "id": "T-MCP-02", "name": "Compromised MCP Server", "description": "An attacker compromises a legitimate MCP server to intercept tool call requests, manipulate responses returned to the agent, or pivot to connected enterprise systems using the server's service account credentials.", "mitigations": "Enforce mTLS for all MCP connections. Isolate MCP servers from each other and from the agent runtime using network micro-segmentation. Encrypt all data at rest on MCP servers. Monitor all MCP server traffic for anomalous patterns.", "controls": ["C10", "C11", "C12", "C24"], "affected-nodes": ["mcp-layer", "mcp-gateway"] },
+          { "id": "T-MCP-03", "name": "MCP Gateway Bypass", "description": "An attacker discovers a direct network path to an MCP server that bypasses the MCP Gateway and all associated authentication, authorisation, and policy enforcement.", "mitigations": "Implement zero-trust network segmentation so that MCP servers reject all connections that do not originate from the MCP Gateway. Enforce mTLS with SPIFFE SVIDs on all MCP server inbound connections.", "controls": ["C11", "C12"], "affected-nodes": ["mcp-gateway"] },
+          { "id": "T-MCP-04", "name": "Tool Name Shadowing", "description": "An attacker registers a malicious MCP server that declares a tool with the same name as a legitimate authorised tool on a different server so that routing resolves to the malicious server when an agent requests the tool by name.", "mitigations": "Enforce globally unique, namespaced tool identifiers that include the originating server identity. Resolve tool names by server identity, not by tool name alone. Monitor for duplicate tool name registrations as a high-severity registry anomaly.", "controls": ["C8", "C9", "C10"], "affected-nodes": ["mcp-server-registry", "mcp-gateway"] },
+          { "id": "T-MCP-05", "name": "Data Exfiltration via Tool Parameters", "description": "An agent is manipulated into passing sensitive data as parameters to an MCP tool call that routes them to an attacker-controlled or unapproved third-party server. The data leaves the trust boundary embedded in the call parameters.", "mitigations": "Enforce strict parameter schema validation at the MCP Gateway and reject calls whose parameters contain data from domains not authorised for the target tool. Apply data minimisation by stripping all fields not required for the tool's declared function before dispatch. Enforce egress filtering at the network layer.", "controls": ["C19", "C28", "C32", "C35"], "affected-nodes": ["mcp-gateway", "mcp-guardrails"] },
+          { "id": "T-MCP-06", "name": "MCP Capability Escalation", "description": "A registered MCP server advertises capabilities or data access permissions broader than those approved in its security review, leading agents to request operations they are not authorised to perform.", "mitigations": "Validate all MCP server capability declarations against the approved capability list at registration time. Reject capability updates that were not separately approved. Log all capability declaration changes as high-severity events requiring manual review.", "controls": ["C8", "C10", "C13"], "affected-nodes": ["mcp-server-registry", "mcp-gateway"] }
+        ]
+      }
+    },
+
+    {
+      "unique-id": "tm-layer-evaluation",
+      "type": "threat-model",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": ["evaluation-layer", "feedback-engine", "human-supervision", "runtime-protection"],
+      "data": {
+        "layer": "Evaluation Layer",
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "threats": [
+          { "id": "T-EVL-01", "name": "Feedback Manipulation", "description": "An attacker provides systematically false or adversarially crafted feedback to the Feedback Engine so that the system learns incorrect behaviours, lowers safety thresholds, or increases confidence in attacker-desired outputs over time.", "mitigations": "Verify the identity and authority of all feedback providers. Use a diverse, multi-source feedback aggregation strategy so that no single source can materially shift the aggregate score. Employ anomaly detection to flag feedback distributions that deviate statistically from the established baseline.", "controls": ["C5", "C27"], "affected-nodes": ["feedback-engine"] },
+          { "id": "T-EVL-02", "name": "Bypassing Human Supervision", "description": "An attacker identifies a code path, configuration state, or race condition that allows actions requiring human approval to execute without going through the Human Supervision workflow. In FSI deployments, this directly produces governance and regulatory failures.", "mitigations": "Implement human supervision workflows as non-bypassable enforcement at the platform layer, not as an advisory layer. Maintain a complete, immutable audit trail of every supervision decision and every action authorised. Verify that supervision outcomes are cryptographically bound to the action they authorise before the action is permitted to proceed.", "controls": ["C9", "C26"], "affected-nodes": ["human-supervision"] },
+          { "id": "T-EVL-03", "name": "Runtime Protection Evasion", "description": "An attacker crafts agent outputs or action sequences that individually pass Runtime Protection monitoring rules but in aggregate represent a policy violation or unsafe action, exploiting the stateless nature of most rule-based runtime monitors.", "mitigations": "Implement stateful behavioural analysis in Runtime Protection so that action sequences are evaluated, not only individual actions. Maintain a sliding window of recent agent actions and alert on patterns that individually appear benign but collectively represent a prohibited behaviour.", "controls": ["C5", "C15", "C21"], "affected-nodes": ["runtime-protection"] }
+        ]
+      }
+    },
+
+    {
+      "unique-id": "tm-layer-observability",
+      "type": "threat-model",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": ["observability-layer", "logs", "traces", "metrics", "events", "anomaly-detection", "correlation-engine"],
+      "data": {
+        "layer": "Observability Layer",
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "threats": [
+          { "id": "T-OBL-01", "name": "Log Tampering", "description": "An attacker modifies or deletes existing log entries after gaining access to an agent or gateway to conceal activity, obstruct forensic investigation, or prevent audit trail reconstruction.", "mitigations": "Implement write-once, read-many (WORM) log storage so that no process can modify or delete log entries after they are written. Ensure all logs carry full cryptographic workload identity, including agent ID and SPIFFE SVID, and sufficient contextual detail for forensic reconstruction.", "controls": ["C9", "C20"], "affected-nodes": ["logs"] },
+          { "id": "T-OBL-02", "name": "Log Injection", "description": "A compromised agent crafts log entries containing false attribution, forged agent identities, fabricated timestamps, or content designed to confuse Correlation Engine rules or mislead forensic investigators. The log store is written correctly; the content itself is adversarial.", "mitigations": "Enforce structured log schemas at the point of emission and reject or sanitise any log entry whose fields do not conform to the declared schema. Bind log entries cryptographically to the emitting agent's workload identity. Validate log provenance at SIEM ingestion before correlation is applied.", "controls": ["C9", "C20"], "affected-nodes": ["logs", "correlation-engine"] },
+          { "id": "T-OBL-03", "name": "Alert Fatigue", "description": "An attacker generates a sustained high volume of low-fidelity alerts to desensitise operators so that genuine high-severity events are missed or deprioritised. This may also occur organically through poor alert tuning.", "mitigations": "Continuously tune alerting rules and evaluate false positive rates. Use the Correlation Engine to group related signals before surfacing them as alerts. Deploy SOAR playbooks for high-confidence alert classes to ensure consistent and timely response.", "controls": ["C21"], "affected-nodes": ["anomaly-detection", "correlation-engine"] },
+          { "id": "T-OBL-04", "name": "Trace Poisoning", "description": "A compromised agent injects fabricated or tampered trace spans into the distributed trace for a request so that operators reconstruct a false view of the request lifecycle, masking the actual path taken by a compromised request.", "mitigations": "Cryptographically sign all trace spans at emission. Validate span provenance at the trace aggregation layer. Reject any span whose signature cannot be verified against the emitting workload's identity.", "controls": ["C9", "C20"], "affected-nodes": ["traces"] },
+          { "id": "T-OBL-05", "name": "Anomaly Detection Evasion", "description": "An attacker operates at or just below anomaly detection thresholds through techniques such as slow exfiltration, incremental privilege escalation, or gradual drift in agent behaviour, maintaining persistence without triggering the Anomaly Detection component.", "mitigations": "Implement stateful, longitudinal anomaly baselines that detect gradual drift, not only point-in-time threshold breaches. Use multi-signal correlation across logs, traces, metrics, and events. Periodically recalibrate baselines to account for legitimate operational change.", "controls": ["C5", "C15", "C21"], "affected-nodes": ["anomaly-detection"] }
+        ]
+      }
+    },
+
+    {
+      "unique-id": "tm-cross-layer-fsi",
+      "type": "threat-model",
+      "target": ["finos-ma-ref-arch-jan-2026.calm.json"],
+      "applies-to": [
+        "agent-layer",
+        "knowledge-layer",
+        "mcp-layer",
+        "llm-layer",
+        "evaluation-layer",
+        "human-supervision",
+        "model-registry",
+        "mcp-server-registry"
+      ],
+      "data": {
+        "layer": "Cross-Layer and FSI-Specific",
+        "framework": "FINOS Multi-Agent Reference Architecture Threat Model",
+        "version": "apr-2026",
+        "threats": [
+          { "id": "T-XL-01", "name": "MNPI Leakage Across Agent Boundaries", "description": "Material Non-Public Information handled by an agent authorised for restricted data is passed, intentionally or inadvertently, to an agent or tool not authorised to handle it. In a Supervisor/Worker pattern, a supervisor with broad data access may pass MNPI to a worker whose permitted data domains do not include MNPI. This constitutes a wall-crossing violation and a potential MAR breach.", "mitigations": "Enforce data domain checks at every agent-to-agent handoff so that the receiving agent's permitted data domains include every domain present in the payload. Apply DLP scanning on all inter-agent message payloads. Log all cross-boundary data transfers with full attribution for regulatory audit.", "controls": ["C8", "C16", "C19", "C32"], "affected-nodes": ["agent-layer", "knowledge-layer", "mcp-layer"], "affected-layers": ["Agent Layer", "Knowledge Layer", "MCP Layer"] },
+          { "id": "T-XL-02", "name": "Regulatory Reporting Manipulation", "description": "An agent that produces output used for regulatory submissions generates false, altered, or incomplete output through a successful attack or goal manipulation, and the result is submitted to a regulator without the manipulation being detected.", "mitigations": "Enforce human review with explicit sign-off for all agent-generated content that feeds regulatory submissions. Maintain a cryptographically signed, immutable record of the exact output submitted alongside the complete agent trace that produced it. Implement independent validation of regulatory output against source data before submission.", "controls": ["C3", "C9", "C26"], "affected-nodes": ["agent-layer", "evaluation-layer", "human-supervision"], "affected-layers": ["Agent Layer", "Evaluation Layer"] },
+          { "id": "T-XL-03", "name": "Supply Chain Compromise", "description": "An attacker introduces a backdoored model, library, dataset, or MCP server into the system through the CI/CD or onboarding pipeline, creating a persistent compromise that bypasses runtime controls.", "mitigations": "Maintain an SBOM for all agent components, dependencies, and models. Integrate SBOM generation and vulnerability scanning into the CI/CD pipeline on every build. Enforce cryptographic signing and integrity verification for all registered components.", "controls": ["C25", "C30", "C31"], "affected-nodes": ["llm-layer", "mcp-layer", "agent-layer", "model-registry", "mcp-server-registry"], "affected-layers": ["LLM Layer", "MCP Layer", "Agent Layer"] },
+          { "id": "T-XL-04", "name": "Cascade Failure Propagation", "description": "A failure, resource exhaustion, or compromise in one agent or dependency, such as an MCP server, LLM endpoint, or knowledge source, propagates through agent dependencies and results in system-wide unavailability or degraded behaviour.", "mitigations": "Implement circuit breaker patterns at all inter-agent and agent-to-dependency communication boundaries. Define and enforce graceful degradation behaviours for every agent so that dependency failures produce bounded, predictable outcomes. Test failure scenarios through regular chaos engineering exercises.", "controls": ["C15", "C21", "C22"], "affected-nodes": ["agent-layer", "llm-layer", "mcp-layer"], "affected-layers": ["Agent Layer", "LLM Layer", "MCP Layer"] }
+        ]
+      }
+    }
+
+  ]
+}

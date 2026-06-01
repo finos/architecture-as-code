@@ -182,6 +182,62 @@ export const UpdateViewSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Decorator tool input schemas (#2551)
+// ---------------------------------------------------------------------------
+
+export const GetDecoratorsSchema = z.object({
+  file: z.string().optional(),
+  /** Optional decorator-type filter (e.g. 'threat-model', 'control-catalog'). */
+  type: z.string().optional()
+});
+
+export const GetDecoratorsForNodeSchema = z.object({
+  file: z.string().optional(),
+  /** unique-id of the node to look up. */
+  nodeId: z.string()
+});
+
+export const GetThreatsForNodeSchema = z.object({
+  file: z.string().optional(),
+  nodeId: z.string()
+});
+
+export const GetControlSchema = z.object({
+  file: z.string().optional(),
+  /** Control id (e.g. C8). */
+  controlId: z.string()
+});
+
+const ThreatInputSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  mitigations: z.string(),
+  controls: z.array(z.string()),
+  'affected-nodes': z.array(z.string()).optional(),
+  section: z.string().optional(),
+  'affected-layers': z.array(z.string()).optional()
+});
+
+export const AddThreatDecoratorSchema = z.object({
+  file: z.string().optional(),
+  /** Target arch file ref(s) — written into the decorator's `target` array. */
+  targetFiles: z.array(z.string()).min(1).optional(),
+  decorator: z.object({
+    'unique-id': z.string(),
+    type: z.literal('threat-model'),
+    target: z.array(z.string()).min(1).optional(),
+    'applies-to': z.array(z.string()).min(1),
+    data: z.object({
+      threats: z.array(ThreatInputSchema).min(1),
+      layer: z.string().optional(),
+      framework: z.string().optional(),
+      version: z.string().optional()
+    })
+  })
+});
+
+// ---------------------------------------------------------------------------
 // MCP response helpers
 // ---------------------------------------------------------------------------
 

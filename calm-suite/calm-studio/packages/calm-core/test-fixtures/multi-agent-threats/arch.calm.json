@@ -1,0 +1,740 @@
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/core.json",
+  "nodes": [
+    {
+      "unique-id": "user",
+      "node-type": "actor",
+      "name": "User",
+      "description": "Individual or system initiating a request (employee, customer, analyst, or automated process). Expresses goals, provides inputs, and reviews outputs."
+    },
+
+    {
+      "unique-id": "user-interaction-layer",
+      "node-type": "system",
+      "name": "User Interaction Layer",
+      "description": "Entry point to the multi-agent system. Logical grouping of the presentation and orchestration surface through which users engage the system."
+    },
+    {
+      "unique-id": "application",
+      "node-type": "service",
+      "name": "Application",
+      "description": "Presentation and orchestration surface (web, mobile, chatbot, workflow, or enterprise system). Receives user inputs, forwards them to the agent layer, returns responses, and implements human-in-the-loop controls to review/approve/modify agent outputs before execution or sharing.",
+      "controls": {
+        "human-oversight": {
+          "description": "Human-in-the-loop controls allowing a human to review, approve, or modify agent outputs before they are executed or shared.",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "HITL-001",
+                "name": "Human-in-the-loop output approval",
+                "description": "Agent outputs must be surfaced to a human for review/approve/modify before execution or external sharing."
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "unique-id": "agent-gateway-layer",
+      "node-type": "system",
+      "name": "Agent Gateway Layer",
+      "description": "Controlled entry point into the agent layer. Governs how applications interact with agents and centralizes registration, routing, and guardrails."
+    },
+    {
+      "unique-id": "agent-registry",
+      "node-type": "service",
+      "name": "Agent Registry",
+      "description": "Catalog of available agents, their capabilities, metadata, and configuration. Supports versioning, lifecycle management, and controlled onboarding."
+    },
+    {
+      "unique-id": "agent-gateway",
+      "node-type": "service",
+      "name": "Gateway",
+      "description": "Routes requests from the application to the appropriate agent. Validates requests and applies routing rules."
+    },
+    {
+      "unique-id": "agent-gateway-guardrails",
+      "node-type": "service",
+      "name": "Agent Guardrails and Policies",
+      "description": "Enforces a zero-trust model (all inputs untrusted until verified): authentication and authorization, input validation, content filtering, access control, rate limits, and dynamic policy enforcement.",
+      "controls": {
+        "security": {
+          "description": "Zero-trust guardrails for the agent gateway: authn/authz, input validation, content filtering, access control, rate limiting, and dynamic policy enforcement.",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "ZT-GW-001",
+                "name": "Zero-trust agent gateway enforcement",
+                "description": "All inbound requests to the agent layer are treated as untrusted until authenticated, authorized, validated, content-filtered, and rate-limited under dynamic policy."
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "unique-id": "agent-layer",
+      "node-type": "system",
+      "name": "Agent Layer",
+      "description": "Core reasoning, coordination, and task-execution layer. Interprets validated requests, plans actions, and produces responses."
+    },
+
+    {
+      "unique-id": "agent-collaboration-patterns",
+      "node-type": "system",
+      "name": "Agent Collaboration Patterns",
+      "description": "Collaboration models used by agents: Supervisor/Worker, Skill-Based Routing, and Agent-as-a-Tool."
+    },
+    {
+      "unique-id": "supervisor-worker-pattern",
+      "node-type": "service",
+      "name": "Supervisor / Worker",
+      "description": "Supervisor agent decomposes complex tasks and dispatches subtasks to worker agents, then aggregates results."
+    },
+    {
+      "unique-id": "skill-based-routing-pattern",
+      "node-type": "service",
+      "name": "Skill-Based Routing",
+      "description": "Routes a request to the agent (or agents) best matched to the required skills/capabilities advertised in the Agent Registry."
+    },
+    {
+      "unique-id": "agent-as-tool-pattern",
+      "node-type": "service",
+      "name": "Agent as a Tool",
+      "description": "Exposes one agent as an invocable tool to another agent, enabling composition through tool-call semantics."
+    },
+
+    {
+      "unique-id": "unified-agent-runtime",
+      "node-type": "system",
+      "name": "Unified Agent Runtime",
+      "description": "Secure, sandboxed execution environment for agents. Contains state management, secure execution, collaboration/handoff, adaptive learning, workspace file system, tools, and memory subsystems."
+    },
+    {
+      "unique-id": "state-management",
+      "node-type": "service",
+      "name": "State Management",
+      "description": "Maintains complete task state to support pause, resume, and handoff."
+    },
+    {
+      "unique-id": "secure-execution",
+      "node-type": "service",
+      "name": "Secure Execution",
+      "description": "Intercepts and validates all tool-call requests, and handles execution and credentials securely within the sandbox.",
+      "controls": {
+        "security": {
+          "description": "Runtime sandboxing and tool-call validation: all tool calls are intercepted and validated, and credentials are handled securely within the sandbox.",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "SBX-001",
+                "name": "Sandboxed secure execution",
+                "description": "All tool-call requests are intercepted and validated; execution and credential handling occur within an isolated sandbox."
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "collaboration-handoff",
+      "node-type": "service",
+      "name": "Collaboration / Handoff",
+      "description": "Enables stateful collaboration between agents via shared memory and state."
+    },
+    {
+      "unique-id": "adaptive-learning",
+      "node-type": "service",
+      "name": "Adaptive Learning",
+      "description": "Derives learning signals from execution outcomes to refine prompts, configurations, and tool selection."
+    },
+    {
+      "unique-id": "workspace-file-system",
+      "node-type": "service",
+      "name": "Workspace File System",
+      "description": "Sandboxed, persistent file system for reading and writing files and large artifacts."
+    },
+
+    {
+      "unique-id": "tools-layer",
+      "node-type": "system",
+      "name": "Tools Layer",
+      "description": "Built-in trusted tools available to the agent runtime."
+    },
+    {
+      "unique-id": "mcp-client",
+      "node-type": "service",
+      "name": "MCP Client",
+      "description": "Secure bridge from the agent runtime to the external MCP Layer."
+    },
+    {
+      "unique-id": "shell-tool",
+      "node-type": "service",
+      "name": "Shell Tool",
+      "description": "Sandboxed shell available to the agent runtime."
+    },
+    {
+      "unique-id": "io-tool",
+      "node-type": "service",
+      "name": "I/O Tool",
+      "description": "Reads from and writes to the workspace file system."
+    },
+    {
+      "unique-id": "web-search-tool",
+      "node-type": "service",
+      "name": "Web Search Tool",
+      "description": "Built-in web search capability."
+    },
+
+    {
+      "unique-id": "short-term-memory",
+      "node-type": "system",
+      "name": "Short-Term Memory",
+      "description": "Immediate context for the reasoning loop."
+    },
+    {
+      "unique-id": "in-session-context-manager",
+      "node-type": "service",
+      "name": "In-Session Context Manager",
+      "description": "Trims and summarizes in-session context to manage context length, cost, and latency."
+    },
+
+    {
+      "unique-id": "long-term-memory",
+      "node-type": "system",
+      "name": "Long-Term Memory",
+      "description": "Durable information retained across sessions, including session summaries and user/task personalization."
+    },
+    {
+      "unique-id": "session-summaries",
+      "node-type": "data-asset",
+      "name": "Session Summaries",
+      "description": "Compressed, durable summaries of prior sessions used to seed and ground future interactions."
+    },
+    {
+      "unique-id": "user-task-personalization",
+      "node-type": "data-asset",
+      "name": "User / Task Personalization",
+      "description": "Durable user- and task-level personalization signals (preferences, prior context, task affinity) retained across sessions."
+    },
+
+    {
+      "unique-id": "knowledge-layer",
+      "node-type": "system",
+      "name": "Knowledge Layer",
+      "description": "Information foundation for grounding and retrieval."
+    },
+    {
+      "unique-id": "source-bases",
+      "node-type": "data-asset",
+      "name": "Source Bases",
+      "description": "Internal and external repositories (structured, unstructured, graph) providing authoritative grounding information."
+    },
+    {
+      "unique-id": "vector-dbs",
+      "node-type": "database",
+      "name": "Vector DBs",
+      "description": "Vector-based retrieval stores supporting semantic search and grounding."
+    },
+
+    {
+      "unique-id": "llm-layer",
+      "node-type": "system",
+      "name": "LLM Layer",
+      "description": "Controlled interface to approved LLMs. Standardizes inference requests and enforces model-level policies."
+    },
+    {
+      "unique-id": "model-registry",
+      "node-type": "service",
+      "name": "Model Registry",
+      "description": "Catalog of approved models, metadata, versions, configuration, and usage constraints. Supports lifecycle and onboarding."
+    },
+    {
+      "unique-id": "llm-gateway",
+      "node-type": "service",
+      "name": "LLM Gateway",
+      "description": "Routes inference requests to the appropriate model. Validates requests and applies routing rules."
+    },
+    {
+      "unique-id": "llm-guardrails",
+      "node-type": "service",
+      "name": "LLM Guardrails and Policies",
+      "description": "Zero-trust controls for model interactions applied before and after model execution: per-request authn/authz, input validation (prompt injection), output filtering (redact sensitive / block harmful), access control, rate limits, and cost management.",
+      "controls": {
+        "security": {
+          "description": "Zero-trust guardrails for LLM interactions applied before and after inference.",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "ZT-LLM-001",
+                "name": "Zero-trust LLM guardrails",
+                "description": "Per-request authn/authz, prompt-injection input validation, output filtering (redaction/harm-blocking), access control, rate limiting, and cost management enforced around model execution."
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "unique-id": "mcp-layer",
+      "node-type": "system",
+      "name": "MCP Layer",
+      "description": "Controlled interface to approved MCP servers. Standardizes connections and enforces operational and policy constraints."
+    },
+    {
+      "unique-id": "mcp-server-registry",
+      "node-type": "service",
+      "name": "MCP Server Registry",
+      "description": "Catalog of approved MCP servers, metadata, capabilities, configuration, and constraints. Supports lifecycle and onboarding."
+    },
+    {
+      "unique-id": "mcp-gateway",
+      "node-type": "service",
+      "name": "MCP Gateway",
+      "description": "Routes MCP connection requests to the appropriate server. Validates requests and applies routing rules."
+    },
+    {
+      "unique-id": "mcp-guardrails",
+      "node-type": "service",
+      "name": "MCP Guardrails and Policies",
+      "description": "Zero-trust controls for tool/service interactions via MCP: per-request authn/authz, governance of which agents may use which tools, rate limits, and validation of tool-call parameters.",
+      "controls": {
+        "security": {
+          "description": "Zero-trust guardrails governing tool/service interactions over MCP.",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "ZT-MCP-001",
+                "name": "Zero-trust MCP guardrails",
+                "description": "Per-request authn/authz, agent-to-tool authorization governance, rate limiting, and tool-call parameter validation for all MCP interactions."
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "unique-id": "evaluation-layer",
+      "node-type": "system",
+      "name": "Evaluation Layer",
+      "description": "Continuous oversight, quality assurance, and adaptive improvement. Operates bidirectionally with the agent layer for real-time intervention and post-execution evaluation."
+    },
+    {
+      "unique-id": "feedback-engine",
+      "node-type": "service",
+      "name": "Feedback Engine",
+      "description": "Collects structured and unstructured feedback from users, evaluators, and automated systems, and aggregates the resulting signals."
+    },
+    {
+      "unique-id": "human-supervision",
+      "node-type": "service",
+      "name": "Human Supervision",
+      "description": "Human reviewers inspect, approve, correct, or override agent outputs. Supports human-in-the-loop and human-over-the-loop oversight.",
+      "controls": {
+        "human-oversight": {
+          "description": "Human supervision controls: human reviewers can inspect, approve, correct, or override agent outputs (human-in-the-loop and human-over-the-loop).",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "HITL-002",
+                "name": "Human supervision and override",
+                "description": "Human reviewers must be able to inspect, approve, correct, or override agent outputs in real time (human-in-the-loop) and after the fact (human-over-the-loop)."
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "runtime-protection",
+      "node-type": "service",
+      "name": "Runtime Protection",
+      "description": "Monitors agent actions and model outputs during execution; detects unsafe, non-compliant, or anomalous behavior; enforces policy, blocks actions, and triggers escalation.",
+      "controls": {
+        "security": {
+          "description": "Runtime protection controls: continuous monitoring of agent actions and model outputs with policy enforcement, action blocking, and escalation.",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "RTP-001",
+                "name": "Runtime protection and policy enforcement",
+                "description": "Agent actions and model outputs are monitored during execution to detect unsafe/non-compliant/anomalous behavior, enforce policy, block actions, and trigger escalation."
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "unique-id": "observability-layer",
+      "node-type": "system",
+      "name": "Observability Layer",
+      "description": "End-to-end visibility layer. All layers emit signals into it; it does not send data back."
+    },
+    {
+      "unique-id": "logs",
+      "node-type": "service",
+      "name": "Logs",
+      "description": "Log signal collection within the observability layer."
+    },
+    {
+      "unique-id": "traces",
+      "node-type": "service",
+      "name": "Traces",
+      "description": "Distributed trace collection within the observability layer."
+    },
+    {
+      "unique-id": "metrics",
+      "node-type": "service",
+      "name": "Metrics",
+      "description": "Metric collection within the observability layer."
+    },
+    {
+      "unique-id": "events",
+      "node-type": "service",
+      "name": "Events",
+      "description": "Event collection within the observability layer."
+    },
+    {
+      "unique-id": "anomaly-detection",
+      "node-type": "service",
+      "name": "Anomaly Detection",
+      "description": "Detects anomalous behavior across collected observability signals."
+    },
+    {
+      "unique-id": "correlation-engine",
+      "node-type": "service",
+      "name": "Correlation Engine",
+      "description": "Correlates signals across logs, traces, metrics, and events for end-to-end visibility."
+    }
+  ],
+
+  "relationships": [
+    {
+      "unique-id": "ui-layer-composed-of",
+      "description": "User Interaction Layer is composed of the Application.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "user-interaction-layer",
+          "nodes": ["application"]
+        }
+      }
+    },
+    {
+      "unique-id": "agent-gateway-layer-composed-of",
+      "description": "Agent Gateway Layer is composed of the Agent Registry, Gateway, and Guardrails and Policies.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "agent-gateway-layer",
+          "nodes": ["agent-registry", "agent-gateway", "agent-gateway-guardrails"]
+        }
+      }
+    },
+    {
+      "unique-id": "agent-layer-composed-of",
+      "description": "Agent Layer is composed of the Collaboration Patterns and the Unified Agent Runtime.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "agent-layer",
+          "nodes": ["agent-collaboration-patterns", "unified-agent-runtime"]
+        }
+      }
+    },
+    {
+      "unique-id": "agent-collaboration-patterns-composed-of",
+      "description": "Agent Collaboration Patterns is composed of Supervisor/Worker, Skill-Based Routing, and Agent-as-a-Tool.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "agent-collaboration-patterns",
+          "nodes": ["supervisor-worker-pattern", "skill-based-routing-pattern", "agent-as-tool-pattern"]
+        }
+      }
+    },
+    {
+      "unique-id": "unified-agent-runtime-composed-of",
+      "description": "Unified Agent Runtime is composed of its state, execution, collaboration, learning, file system, tools, and memory subsystems.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "unified-agent-runtime",
+          "nodes": [
+            "state-management",
+            "secure-execution",
+            "collaboration-handoff",
+            "adaptive-learning",
+            "workspace-file-system",
+            "tools-layer",
+            "short-term-memory",
+            "long-term-memory"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "tools-layer-composed-of",
+      "description": "Tools Layer is composed of the built-in trusted tools.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "tools-layer",
+          "nodes": ["mcp-client", "shell-tool", "io-tool", "web-search-tool"]
+        }
+      }
+    },
+    {
+      "unique-id": "short-term-memory-composed-of",
+      "description": "Short-Term Memory is composed of the In-Session Context Manager.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "short-term-memory",
+          "nodes": ["in-session-context-manager"]
+        }
+      }
+    },
+    {
+      "unique-id": "long-term-memory-composed-of",
+      "description": "Long-Term Memory is composed of Session Summaries and User/Task Personalization.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "long-term-memory",
+          "nodes": ["session-summaries", "user-task-personalization"]
+        }
+      }
+    },
+    {
+      "unique-id": "knowledge-layer-composed-of",
+      "description": "Knowledge Layer is composed of the Source Bases and Vector DBs.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "knowledge-layer",
+          "nodes": ["source-bases", "vector-dbs"]
+        }
+      }
+    },
+    {
+      "unique-id": "llm-layer-composed-of",
+      "description": "LLM Layer is composed of the Model Registry, LLM Gateway, and Guardrails and Policies.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "llm-layer",
+          "nodes": ["model-registry", "llm-gateway", "llm-guardrails"]
+        }
+      }
+    },
+    {
+      "unique-id": "mcp-layer-composed-of",
+      "description": "MCP Layer is composed of the MCP Server Registry, MCP Gateway, and Guardrails and Policies.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "mcp-layer",
+          "nodes": ["mcp-server-registry", "mcp-gateway", "mcp-guardrails"]
+        }
+      }
+    },
+    {
+      "unique-id": "evaluation-layer-composed-of",
+      "description": "Evaluation Layer is composed of the Feedback Engine, Human Supervision, and Runtime Protection.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "evaluation-layer",
+          "nodes": ["feedback-engine", "human-supervision", "runtime-protection"]
+        }
+      }
+    },
+    {
+      "unique-id": "observability-layer-composed-of",
+      "description": "Observability Layer is composed of its signal-collection and analysis components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "observability-layer",
+          "nodes": ["logs", "traces", "metrics", "events", "anomaly-detection", "correlation-engine"]
+        }
+      }
+    },
+
+    {
+      "unique-id": "user-interacts-application",
+      "description": "User submits goals/inputs to and reviews outputs from the Application.",
+      "relationship-type": {
+        "interacts": {
+          "actor": "user",
+          "nodes": ["application"]
+        }
+      }
+    },
+    {
+      "unique-id": "application-connects-agent-gateway",
+      "description": "Application forwards requests to the Agent Gateway and receives responses.",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "application" },
+          "destination": { "node": "agent-gateway" }
+        }
+      }
+    },
+    {
+      "unique-id": "agent-gateway-connects-agent-layer",
+      "description": "Agent Gateway routes validated requests into the Agent Layer.",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agent-gateway" },
+          "destination": { "node": "agent-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "agent-layer-connects-llm-layer",
+      "description": "Agent Layer issues inference requests to the LLM Layer and receives responses.",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agent-layer" },
+          "destination": { "node": "llm-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "agent-layer-connects-mcp-layer",
+      "description": "Agent Layer connects to the MCP Layer to invoke external tools/services.",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agent-layer" },
+          "destination": { "node": "mcp-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "agent-layer-connects-knowledge-layer",
+      "description": "Agent Layer retrieves grounding information from the Knowledge Layer.",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agent-layer" },
+          "destination": { "node": "knowledge-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "evaluation-layer-connects-agent-layer",
+      "description": "Evaluation Layer pushes interventions and assessments toward the Agent Layer (forward leg of bidirectional Evaluation <-> Agent).",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "evaluation-layer" },
+          "destination": { "node": "agent-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "agent-layer-connects-evaluation-layer",
+      "description": "Agent Layer sends execution context to the Evaluation Layer (return leg of bidirectional Evaluation <-> Agent).",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agent-layer" },
+          "destination": { "node": "evaluation-layer" }
+        }
+      }
+    },
+
+    {
+      "unique-id": "ui-layer-connects-observability",
+      "description": "User Interaction Layer emits interaction logs and session events to the Observability Layer (one-directional).",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "user-interaction-layer" },
+          "destination": { "node": "observability-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "agent-gateway-layer-connects-observability",
+      "description": "Agent Gateway Layer emits routing, policy, and access signals to the Observability Layer (one-directional).",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agent-gateway-layer" },
+          "destination": { "node": "observability-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "agent-layer-connects-observability",
+      "description": "Agent Layer emits reasoning traces, refinement, and execution metrics to the Observability Layer (one-directional).",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agent-layer" },
+          "destination": { "node": "observability-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "llm-layer-connects-observability",
+      "description": "LLM Layer emits routing, policy, and access signals to the Observability Layer (one-directional).",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "llm-layer" },
+          "destination": { "node": "observability-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "mcp-layer-connects-observability",
+      "description": "MCP Layer emits routing, policy, and access signals to the Observability Layer (one-directional).",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "mcp-layer" },
+          "destination": { "node": "observability-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "knowledge-layer-connects-observability",
+      "description": "Knowledge Layer emits retrieval metrics and search traces to the Observability Layer (one-directional).",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "knowledge-layer" },
+          "destination": { "node": "observability-layer" }
+        }
+      }
+    },
+    {
+      "unique-id": "evaluation-layer-connects-observability",
+      "description": "Evaluation Layer emits feedback events, supervision outcomes, and runtime protection signals to the Observability Layer (one-directional).",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "evaluation-layer" },
+          "destination": { "node": "observability-layer" }
+        }
+      }
+    }
+  ],
+
+  "metadata": {
+    "architecture-name": "Multi-Agent Reference Architecture",
+    "summary": "Modular, governed, extensible multi-agent system for enterprise. Orchestrates agents, models, and tools while enforcing a zero-trust security model ensuring safety, compliance, observability, and human oversight.",
+    "source": "https://github.com/finos/ai-reference-architecture-library/blob/main/Library/reference_architecture/agentic_ai/multi_agent/ra/ma_ref_arch_jan_2026.md",
+    "layers": [
+      "user-interaction-layer",
+      "agent-gateway-layer",
+      "agent-layer",
+      "knowledge-layer",
+      "llm-layer",
+      "mcp-layer",
+      "evaluation-layer",
+      "observability-layer"
+    ]
+  }
+}

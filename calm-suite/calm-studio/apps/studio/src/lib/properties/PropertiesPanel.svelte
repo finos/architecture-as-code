@@ -16,8 +16,10 @@
 	import type { Node, Edge } from '@xyflow/svelte';
 	import NodeProperties from './NodeProperties.svelte';
 	import EdgeProperties from './EdgeProperties.svelte';
+	import NodeThreats from './NodeThreats.svelte';
 	import GovernancePanel from '$lib/governance/GovernancePanel.svelte';
 	import { isAINode } from '@calmstudio/calm-core';
+	import { nodeHasThreats } from '$lib/stores/decorators.svelte';
 
 	let {
 		selectedNode = null,
@@ -53,7 +55,7 @@
 	);
 
 	/** Active tab — reset to 'properties' whenever selection changes. */
-	let activeTab = $state<'properties' | 'governance'>('properties');
+	let activeTab = $state<'properties' | 'governance' | 'threats'>('properties');
 
 	/** Track previous selection ID to detect changes. */
 	let prevSelectionKey = $state<string | null>(null);
@@ -75,6 +77,14 @@
 
 	/** Show Governance tab when a node is selected (not for edges). */
 	const showGovernanceTab = $derived(activeNode !== null);
+
+	/** Selected node id used by NodeThreats panel lookups. */
+	const selectedNodeId = $derived(
+		activeNode ? String(activeNode.data?.calmId ?? activeNode.id) : null
+	);
+
+	/** Show Threats tab only when the selected node has at least one decorator-bound threat. */
+	const showThreatsTab = $derived(selectedNodeId !== null && nodeHasThreats(selectedNodeId));
 </script>
 
 <aside class="properties-panel" class:collapsed={!hasSelection} aria-label="Properties panel">
@@ -107,6 +117,20 @@
 						<span class="tab-badge" aria-label="Governance info available" title="AIGF governance info available for this node"></span>
 					{/if}
 				</button>
+				{#if showThreatsTab}
+					<button
+						type="button"
+						class="tab-btn"
+						class:active={activeTab === 'threats'}
+						role="tab"
+						aria-selected={activeTab === 'threats'}
+						aria-controls="tab-content-threats"
+						onclick={() => (activeTab = 'threats')}
+					>
+						Threats
+						<span class="tab-badge threats-badge" aria-label="Threats reference this node" title="Threat-model decorators reference this node"></span>
+					</button>
+				{/if}
 			</div>
 		{/if}
 
@@ -139,6 +163,8 @@
 					onBeforeFirstEdit={readonly ? undefined : onBeforeFirstEdit}
 					onmutate={readonly ? undefined : onmutate}
 				/>
+			{:else if activeTab === 'threats'}
+				<NodeThreats nodeId={selectedNodeId} />
 			{/if}
 		</div>
 	{:else}
@@ -248,6 +274,14 @@
 
 	:global(.dark) .tab-badge {
 		background: #fbbf24;
+	}
+
+	.tab-badge.threats-badge {
+		background: #cf222e;
+	}
+
+	:global(.dark) .tab-badge.threats-badge {
+		background: #ff8088;
 	}
 
 	/* ─── Panel content ──────────────────────────────────────────── */

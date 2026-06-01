@@ -3,6 +3,7 @@
 <script lang="ts">
 	import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+import ThreatBadge from './ThreatBadge.svelte';
 	let { id, data, selected }: NodeProps = $props();
 
 	let collapsed = $state(data.collapsed ?? false);
@@ -38,6 +39,7 @@
 {#if collapsed}
 	<div class="container collapsed" class:selected>
 		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+	<ThreatBadge nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 		<div class="collapsed-row">
 			<div class="dot"></div>
 			<span class="label">{data.label ?? data.calmId}</span>
@@ -49,6 +51,7 @@
 {:else}
 	<div class="container expanded" class:selected>
 		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+	<ThreatBadge nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 		<div class="header">
 			<div class="header-left">
 				<div class="dot"></div>

@@ -42,6 +42,19 @@ The legacy flat shape (`'relationship-type': 'connects'` + sibling `source`/`des
 
 **Required:** Nodes need `unique-id`, `node-type`, `name`, `description`. Relationships need `unique-id`, `relationship-type`. Controls need `description`, `requirements[]`.
 
+## Decorators (#2551)
+
+CALM 1.2 [decorators](https://calm.finos.org/core-concepts/decorators) attach cross-cutting overlays (governance, threat models, regulatory mappings) to architecture elements via `applies-to[]`. Studio supports them via:
+
+- **Types** in `@calmstudio/calm-core/decorators`: `CalmThreatModelDecorator`, `CalmControlCatalogDecorator`, `CalmThreat`, `CalmControlEntry`.
+- **Helpers**: `getDecoratorsByType`, `getDecoratorsForNode`, `getThreatsForNode`, `getControlById`, `isThreatModelDecorator`, `isControlCatalogDecorator`.
+- **Reactive store**: `apps/studio/src/lib/stores/decorators.svelte.ts` (`threatsForNode`, `nodeHasThreats`, `controlById`, `buildNodeThreatIndex`).
+- **UI**: per-node "Threats" tab in `PropertiesPanel.svelte` → `NodeThreats.svelte`; canvas red triangle badge via `ThreatBadge.svelte` on every node type.
+- **MCP tools** (`packages/mcp-server/src/tools/decorators.ts`): `get_decorators`, `get_decorators_for_node`, `get_threats_for_node`, `get_control`, `add_threat_decorator`.
+- **Sidecar I/O**: `<arch>.threats.calm.json` companion file for `type: "threat-model"` and `type: "control-catalog"` decorators. Loader merges on read; export splits back out. Keeps the architecture file compatible with strict CALM 1.2 validators (decorators field is not in upstream `core.json` root yet).
+
+Other decorator types (`aigf-governance`, `deployment`, …) remain inline in the architecture file's `decorators[]` array.
+
 ## Packs
 `PackDefinition` in `packages/extensions/src/packs/`. Register via `initAllPacks()` in `index.ts`.
 

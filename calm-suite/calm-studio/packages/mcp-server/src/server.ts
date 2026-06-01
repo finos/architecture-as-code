@@ -11,6 +11,7 @@ import { registerRenderTools } from './tools/render.js';
 import { registerGuideTools } from './tools/guide.js';
 import { registerViewTools } from './tools/view.js';
 import { registerFinalizeTools } from './tools/finalize.js';
+import { registerDecoratorTools } from './tools/decorators.js';
 
 /**
  * Create and configure the CalmStudio MCP server with all tool registrations.
@@ -26,6 +27,7 @@ export function createServer(): McpServer {
   registerGuideTools(server);
   registerViewTools(server);
   registerFinalizeTools(server);
+  registerDecoratorTools(server);
 
   return server;
 }
