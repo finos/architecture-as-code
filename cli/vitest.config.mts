@@ -5,7 +5,7 @@ const v8CoverageSettings: CoverageV8Options = {
     enabled: true,
     reporter: ['text', 'json', 'html'],
     thresholds: {
-        branches: 78,
+        branches: 85,
         functions: 75,
         lines: 75,
         statements: 75

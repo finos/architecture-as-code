@@ -134,4 +134,5 @@ describe('runTimelineGenerate', () => {
 
         expect(exitSpy).toHaveBeenCalledWith(1);
     });
+
 });
