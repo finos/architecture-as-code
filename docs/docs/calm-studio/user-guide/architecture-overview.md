@@ -176,7 +176,7 @@ Import a CALM JSON file to start from an existing architecture (e.g., one genera
 
 ## MCP Server Integration
 
-CalmStudio ships a standalone MCP server (`@calmstudio/mcp-server`) that lets AI tools like Claude Code and GitHub Copilot create and modify CALM architectures programmatically. The server exposes 21 tools covering node CRUD, relationship management, rendering, and validation.
+CalmStudio ships a standalone MCP server (`@calmstudio/mcp`) that lets AI tools like Claude Code and GitHub Copilot create and modify CALM architectures programmatically. The server exposes 22 tools covering node CRUD, relationship management, rendering, and validation.
 
 See [MCP Server](../developer-guide/mcp-server.md) for setup and usage.
 

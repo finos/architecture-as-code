@@ -11,7 +11,7 @@ CalmStudio ships a standalone MCP (Model Context Protocol) server that lets AI a
 
 [Model Context Protocol](https://modelcontextprotocol.io/) is an open standard for AI tools to call structured functions — similar to REST APIs, but designed for AI clients. An MCP server exposes a set of **tools** that an AI assistant can invoke.
 
-CalmStudio's MCP server (`@calmstudio/mcp-server`) exposes 22 tools covering the full lifecycle of CALM architecture management: guide, nodes, relationships, architecture-level operations, views, I/O, rendering, and validation.
+CalmStudio's MCP server (`@calmstudio/mcp`) exposes 22 tools covering the full lifecycle of CALM architecture management: guide, nodes, relationships, architecture-level operations, views, I/O, rendering, and validation.
 
 ## Available Tools
 
@@ -78,10 +78,10 @@ Claude Code supports MCP servers via the `.claude/mcp.json` configuration file.
 
 ```bash
 # Install as a dev dependency in your architecture repository
-npm install --save-dev @calmstudio/mcp-server
+npm install --save-dev @calmstudio/mcp
 
 # Or install globally
-npm install -g @calmstudio/mcp-server
+npm install -g @calmstudio/mcp
 ```
 
 ### Configure Claude Code
@@ -93,7 +93,7 @@ Create or edit `.claude/mcp.json` in your project:
   "mcpServers": {
     "calmstudio": {
       "command": "npx",
-      "args": ["@calmstudio/mcp-server"]
+      "args": ["@calmstudio/mcp"]
     }
   }
 }
@@ -137,7 +137,7 @@ Create `.vscode/mcp.json`:
     "calmstudio": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@calmstudio/mcp-server"]
+      "args": ["@calmstudio/mcp"]
     }
   }
 }

@@ -18,7 +18,7 @@ CalmStudio's value proposition includes AI-assisted architecture generation — 
 
 ## Decision Outcome
 
-Chosen: **MCP server**, because it provides native integration with Claude Code and VS Code GitHub Copilot — the two AI tools most used by architects. MCP tools have typed JSON schemas that AI models can introspect, reducing hallucination rates compared to free-form CLI parsing. The MCP server is stateless (reads/writes files) and ships as a standalone npm package `@calmstudio/mcp-server`.
+Chosen: **MCP server**, because it provides native integration with Claude Code and VS Code GitHub Copilot — the two AI tools most used by architects. MCP tools have typed JSON schemas that AI models can introspect, reducing hallucination rates compared to free-form CLI parsing. The MCP server is stateless (reads/writes files) and ships as a standalone npm package `@calmstudio/mcp`.
 
 ### Consequences
 
