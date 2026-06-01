@@ -5,6 +5,23 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.43.0] - 2026-06-01
+
+## [1.43.0](https://github.com/finos/architecture-as-code/compare/cli-v1.42.1...cli-v1.43.0) (2026-06-01)
+
+* CalmHub MCP Default Off (#2533) ([](https://github.com/finos/architecture-as-code/commit/e72bf6f2484c79a12a29018973252d7c5c7ac41a)), closes [#2533](https://github.com/finos/architecture-as-code/issues/2533)
+
+### chore
+
+* **deps:** patch tmp path traversal vulnerability (GHSA-ph9p-34f9-6g65) (#2528) ([](https://github.com/finos/architecture-as-code/commit/457f8e657660aee5cdcb33636b89402f4229043b)), closes [#2528](https://github.com/finos/architecture-as-code/issues/2528)
+
+### feat
+
+* **calm-hub:** Add Timeline Tools and Bug Fix Architecture Version Create (#2524) ([](https://github.com/finos/architecture-as-code/commit/1ba8e19b827d09bb4daf02ef9fc6c79da3c9a3f3)), closes [#2524](https://github.com/finos/architecture-as-code/issues/2524) [#2522](https://github.com/finos/architecture-as-code/issues/2522)
+* **cli:** extend hub commands with patterns, standards, domains, controls, decorators, and auth plugin support (#2472) ([](https://github.com/finos/architecture-as-code/commit/55a10257e9e512872ac447e82d7ed498e37e8b4e)), closes [#2472](https://github.com/finos/architecture-as-code/issues/2472)
+* **docs:** comprehensive VS Code docs (#2532) ([](https://github.com/finos/architecture-as-code/commit/a5225d3239f01a23ac2f8a148ecb28ef08014765)), closes [#2532](https://github.com/finos/architecture-as-code/issues/2532) [#2523](https://github.com/finos/architecture-as-code/issues/2523) [#2530](https://github.com/finos/architecture-as-code/issues/2530) [#2529](https://github.com/finos/architecture-as-code/issues/2529)
+* **vscode:** automated screenshot generation for documentation (#2530) ([](https://github.com/finos/architecture-as-code/commit/e0c92dbc1a8a52f60f34e198a460c9eb3f09b050)), closes [#2530](https://github.com/finos/architecture-as-code/issues/2530)
+
 ## [1.42.1] - 2026-05-27
 
 ## [1.42.1](https://github.com/finos/architecture-as-code/compare/cli-v1.42.0...cli-v1.42.1) (2026-05-27)
