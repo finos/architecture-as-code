@@ -5,14 +5,15 @@
   "description": "CALM-native continuous compliance DevSecOps platform",
   "repository": {
     "type": "git",
-    "url": "https://github.com/finos-labs/dtcch-2026-opsflow-llc.git"
+    "url": "https://github.com/finos/architecture-as-code.git",
+    "directory": "calm-suite/calm-guard"
   },
-  "homepage": "https://github.com/finos-labs/dtcch-2026-opsflow-llc",
+  "homepage": "https://github.com/finos/architecture-as-code/tree/main/calm-suite/calm-guard",
   "bugs": {
-    "url": "https://github.com/finos-labs/dtcch-2026-opsflow-llc/issues"
+    "url": "https://github.com/finos/architecture-as-code/issues"
   },
   "license": "Apache-2.0",
-  "author": "OpsFlow LLC",
+  "author": "FINOS",
   "keywords": [
     "calm",
     "finos",
