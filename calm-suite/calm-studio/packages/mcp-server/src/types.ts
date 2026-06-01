@@ -28,14 +28,48 @@ export const NodeInputSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Relationship schema
+// Relationship schema (CALM 1.2 nested form)
 // ---------------------------------------------------------------------------
+
+const ConnectsEndpointSchema = z.object({
+  node: z.string()
+});
+
+const ConnectsRelationshipSchema = z.object({
+  source: ConnectsEndpointSchema,
+  destination: ConnectsEndpointSchema
+});
+
+const ComposedOfRelationshipSchema = z.object({
+  container: z.string(),
+  nodes: z.array(z.string()).min(1)
+});
+
+const InteractsRelationshipSchema = z.object({
+  actor: z.string(),
+  nodes: z.array(z.string()).min(1)
+});
+
+const DeployedInRelationshipSchema = z.object({
+  container: z.string(),
+  nodes: z.array(z.string()).min(1)
+});
+
+/**
+ * CALM 1.2 nested `relationship-type` discriminated union. Exactly one
+ * variant key must be present per the FINOS meta-schema `oneOf`.
+ */
+export const RelationshipTypeSchema = z.union([
+  z.object({ connects: ConnectsRelationshipSchema }).strict(),
+  z.object({ 'composed-of': ComposedOfRelationshipSchema }).strict(),
+  z.object({ interacts: InteractsRelationshipSchema }).strict(),
+  z.object({ 'deployed-in': DeployedInRelationshipSchema }).strict(),
+  z.object({ options: z.array(z.unknown()) }).strict()
+]);
 
 export const RelationshipInputSchema = z.object({
   'unique-id': z.string(),
-  'relationship-type': z.enum(['connects', 'interacts', 'deployed-in', 'composed-of', 'options']),
-  source: z.string(),
-  destination: z.string(),
+  'relationship-type': RelationshipTypeSchema,
   protocol: z.string().optional(),
   description: z.string().optional()
 });

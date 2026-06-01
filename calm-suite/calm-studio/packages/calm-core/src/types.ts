@@ -17,14 +17,62 @@ export type CalmNodeType =
   | 'data-asset';
 
 /**
- * The 5 CALM relationship types.
+ * The 5 CALM relationship variant keys. Used as discriminator in the nested
+ * `relationship-type` object and as a flat identifier for routing/UI code.
  */
-export type CalmRelationshipType =
+export type CalmRelationshipVariant =
   | 'connects'
   | 'interacts'
   | 'deployed-in'
   | 'composed-of'
   | 'options';
+
+/**
+ * Source/destination endpoint reference inside a `connects` relationship.
+ * CALM 1.2 wraps node refs in an object to allow future extension
+ * (e.g. interface refs alongside node refs).
+ */
+export interface CalmConnectsEndpoint {
+  /** unique-id of the referenced node */
+  node: string;
+}
+
+export interface CalmConnectsRelationship {
+  source: CalmConnectsEndpoint;
+  destination: CalmConnectsEndpoint;
+}
+
+export interface CalmComposedOfRelationship {
+  /** unique-id of the container node */
+  container: string;
+  /** unique-ids of the contained nodes (min 1 per spec) */
+  nodes: string[];
+}
+
+export interface CalmInteractsRelationship {
+  /** unique-id of the actor node */
+  actor: string;
+  /** unique-ids of nodes the actor interacts with (min 1 per spec) */
+  nodes: string[];
+}
+
+export interface CalmDeployedInRelationship {
+  /** unique-id of the deployment container */
+  container: string;
+  /** unique-ids of the deployed nodes (min 1 per spec) */
+  nodes: string[];
+}
+
+/**
+ * CALM 1.2 nested `relationship-type` discriminated union. Exactly one
+ * variant key is present (enforced by meta-schema `oneOf`).
+ */
+export type CalmRelationshipType =
+  | { connects: CalmConnectsRelationship }
+  | { 'composed-of': CalmComposedOfRelationship }
+  | { interacts: CalmInteractsRelationship }
+  | { 'deployed-in': CalmDeployedInRelationship }
+  | { options: unknown[] };
 
 /**
  * A typed interface (endpoint) attached to a CALM node.
@@ -108,22 +156,124 @@ export interface CalmNode {
 }
 
 /**
- * A directed relationship between two CALM nodes.
+ * A relationship between CALM elements. Per CALM 1.2 meta-schema, the
+ * `relationship-type` field is a nested object whose single key identifies
+ * the variant (`connects`, `composed-of`, `interacts`, `deployed-in`,
+ * `options`). Source/destination/container/actor/nodes live inside the
+ * variant object, not at the top level — there is no top-level
+ * `source`/`destination` on this interface.
+ *
+ * For pre-1.2 / legacy / flat producers see `legacyToCalmRelationship` in
+ * `legacy.ts` (added in a follow-up commit if cross-version compatibility
+ * is required).
  */
 export interface CalmRelationship {
   'unique-id': string;
   'relationship-type': CalmRelationshipType;
-  /** unique-id of the source node */
-  source: string;
-  /** unique-id of the destination node */
-  destination: string;
-  /** e.g. 'HTTPS', 'JDBC', 'gRPC' */
+  /** e.g. 'HTTPS', 'JDBC', 'gRPC' — applies primarily to `connects` */
   protocol?: string;
   description?: string;
   /** CALM 1.2 controls applied to this relationship */
   controls?: CalmControls;
   /** Arbitrary structured metadata for extension */
   metadata?: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// Relationship-type accessor helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the variant key actually present on a nested relationship-type.
+ * Useful for switching without exhaustively probing each variant.
+ */
+export function getRelationshipVariant(
+  rt: CalmRelationshipType,
+): CalmRelationshipVariant {
+  if ('connects' in rt) return 'connects';
+  if ('composed-of' in rt) return 'composed-of';
+  if ('interacts' in rt) return 'interacts';
+  if ('deployed-in' in rt) return 'deployed-in';
+  return 'options';
+}
+
+/**
+ * Best-effort extraction of source/destination node ids from any
+ * relationship variant. Returns `null` for either side when the variant
+ * doesn't have a single-source or single-destination concept (composed-of,
+ * deployed-in, interacts produce multi-node payloads on the destination
+ * side; treat them via dedicated accessors).
+ */
+export function getConnectsEndpoints(
+  rel: CalmRelationship,
+): { source: string; destination: string } | null {
+  const rt = rel['relationship-type'];
+  if ('connects' in rt) {
+    return { source: rt.connects.source.node, destination: rt.connects.destination.node };
+  }
+  return null;
+}
+
+/**
+ * Return container + child-node ids for composed-of / deployed-in variants.
+ * `null` otherwise.
+ */
+export function getContainerAndNodes(
+  rel: CalmRelationship,
+): { container: string; nodes: string[] } | null {
+  const rt = rel['relationship-type'];
+  if ('composed-of' in rt) return { container: rt['composed-of'].container, nodes: rt['composed-of'].nodes };
+  if ('deployed-in' in rt) return { container: rt['deployed-in'].container, nodes: rt['deployed-in'].nodes };
+  return null;
+}
+
+/**
+ * Return actor + interacted-with node ids for the interacts variant. `null`
+ * otherwise.
+ */
+export function getActorAndNodes(
+  rel: CalmRelationship,
+): { actor: string; nodes: string[] } | null {
+  const rt = rel['relationship-type'];
+  if ('interacts' in rt) return { actor: rt.interacts.actor, nodes: rt.interacts.nodes };
+  return null;
+}
+
+/**
+ * Flatten any nested relationship to the set of node unique-ids it
+ * references. Used by validation/graph-traversal code that doesn't care
+ * about direction. Returns the union of all node refs in the variant.
+ */
+export function getReferencedNodeIds(rel: CalmRelationship): string[] {
+  const rt = rel['relationship-type'];
+  if ('connects' in rt) {
+    const out: string[] = [];
+    if (rt.connects?.source?.node) out.push(rt.connects.source.node);
+    if (rt.connects?.destination?.node) out.push(rt.connects.destination.node);
+    return out;
+  }
+  if ('composed-of' in rt) {
+    const co = rt['composed-of'];
+    const out: string[] = [];
+    if (co?.container) out.push(co.container);
+    if (Array.isArray(co?.nodes)) out.push(...co.nodes);
+    return out;
+  }
+  if ('deployed-in' in rt) {
+    const d = rt['deployed-in'];
+    const out: string[] = [];
+    if (d?.container) out.push(d.container);
+    if (Array.isArray(d?.nodes)) out.push(...d.nodes);
+    return out;
+  }
+  if ('interacts' in rt) {
+    const i = rt.interacts;
+    const out: string[] = [];
+    if (i?.actor) out.push(i.actor);
+    if (Array.isArray(i?.nodes)) out.push(...i.nodes);
+    return out;
+  }
+  return [];
 }
 
 /**

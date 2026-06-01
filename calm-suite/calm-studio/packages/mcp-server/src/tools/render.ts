@@ -92,6 +92,34 @@ export async function renderArchitectureToSvg(
     );
   }
 
+  // Expand each CALM 1.2 nested relationship into one-or-more ELK edges:
+  //  - connects     → 1 edge  source.node -> destination.node
+  //  - composed-of  → N edges container -> each child
+  //  - deployed-in  → N edges container -> each deployed node
+  //  - interacts    → N edges actor -> each interacted node
+  //  - options      → 0 edges (no graph topology in spec; render-elided)
+  const edges: Array<{ id: string; sources: [string]; targets: [string] }> = [];
+  for (const r of arch.relationships) {
+    const rt = r['relationship-type'];
+    const baseId = r['unique-id'];
+    if ('connects' in rt) {
+      edges.push({ id: baseId, sources: [rt.connects.source.node], targets: [rt.connects.destination.node] });
+    } else if ('composed-of' in rt) {
+      rt['composed-of'].nodes.forEach((child, i) => {
+        edges.push({ id: `${baseId}#${i}`, sources: [rt['composed-of'].container], targets: [child] });
+      });
+    } else if ('deployed-in' in rt) {
+      rt['deployed-in'].nodes.forEach((child, i) => {
+        edges.push({ id: `${baseId}#${i}`, sources: [rt['deployed-in'].container], targets: [child] });
+      });
+    } else if ('interacts' in rt) {
+      rt.interacts.nodes.forEach((node, i) => {
+        edges.push({ id: `${baseId}#${i}`, sources: [rt.interacts.actor], targets: [node] });
+      });
+    }
+    // 'options' has no graph edges
+  }
+
   // Build ELK graph — flat structure matching established pattern (RESEARCH Pitfall 7)
   const graph = {
     id: 'root',
@@ -107,11 +135,7 @@ export async function renderArchitectureToSvg(
       height: 60,
       labels: [{ text: n.name }]
     })),
-    edges: arch.relationships.map((r) => ({
-      id: r['unique-id'],
-      sources: [r.source],
-      targets: [r.destination]
-    }))
+    edges
   };
 
   type ElkChild = { id: string; x?: number; y?: number; width?: number; height?: number; labels?: Array<{ text: string }> };

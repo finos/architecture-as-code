@@ -14,6 +14,11 @@ import {
   type ToolResponse
 } from '../types.js';
 import { resolveFile, readCalmFile, writeCalmFile } from '../file-io.js';
+import {
+  getReferencedNodeIds,
+  getRelationshipVariant,
+  type CalmRelationship
+} from '@calmstudio/calm-core';
 
 type AddRelationshipArgs = z.infer<typeof AddRelationshipSchema>;
 type GetRelationshipArgs = z.infer<typeof GetRelationshipSchema>;
@@ -28,30 +33,30 @@ export function addRelationship(args: AddRelationshipArgs): ToolResponse {
   const filePath = resolveFile(args.file);
   const arch = readCalmFile(filePath);
 
-  // CRITICAL: Validate that both source and destination nodes exist (no dangling refs)
-  const nodeIds = arch.nodes.map((n) => n['unique-id']);
-  const availableIds = nodeIds.join(', ');
+  // CRITICAL: Validate that every node referenced by this relationship's variant
+  // exists in the architecture (no dangling refs across all 5 variants).
+  const nodeIds = new Set(arch.nodes.map((n) => n['unique-id']));
+  const availableIds = [...nodeIds].join(', ');
 
-  if (!nodeIds.includes(args.relationship.source)) {
-    return toolError(
-      `Cannot add relationship: source node "${args.relationship.source}" not found. ` +
-      `Available node IDs: ${availableIds || '(none)'}`
-    );
-  }
-  if (!nodeIds.includes(args.relationship.destination)) {
-    return toolError(
-      `Cannot add relationship: destination node "${args.relationship.destination}" not found. ` +
-      `Available node IDs: ${availableIds || '(none)'}`
-    );
+  // Cast the Zod-validated input to CalmRelationship — Zod's union has already
+  // enforced the nested shape; the type difference is only exactOptionalPropertyTypes.
+  const rel = args.relationship as unknown as CalmRelationship;
+
+  const refs = getReferencedNodeIds(rel);
+  for (const id of refs) {
+    if (!nodeIds.has(id)) {
+      return toolError(
+        `Cannot add relationship: referenced node "${id}" not found. ` +
+        `Available node IDs: ${availableIds || '(none)'}`
+      );
+    }
   }
 
-  arch.relationships.push(
-    args.relationship as import('@calmstudio/calm-core').CalmRelationship
-  );
+  arch.relationships.push(rel);
   writeCalmFile(filePath, arch);
   return toolSuccess(
-    `Relationship added: ${args.relationship['unique-id']} ` +
-    `(${args.relationship.source} -> ${args.relationship.destination})`
+    `Relationship added: ${rel['unique-id']} ` +
+    `(${getRelationshipVariant(rel['relationship-type'])}: ${refs.join(' -> ')})`
   );
 }
 
@@ -65,11 +70,12 @@ export function getRelationship(args: GetRelationshipArgs): ToolResponse {
       `Relationship "${args.id}" not found. Available IDs: ${available || '(none)'}`
     );
   }
+  const variant = getRelationshipVariant(rel['relationship-type']);
+  const refs = getReferencedNodeIds(rel).join(', ');
   return toolSuccess(
     `Relationship: ${rel['unique-id']}\n` +
-    `  Type: ${rel['relationship-type']}\n` +
-    `  Source: ${rel.source}\n` +
-    `  Destination: ${rel.destination}\n` +
+    `  Variant: ${variant}\n` +
+    `  References: ${refs}\n` +
     (rel.protocol ? `  Protocol: ${rel.protocol}\n` : '') +
     (rel.description ? `  Description: ${rel.description}\n` : '')
   );
@@ -85,11 +91,12 @@ export function updateRelationship(args: UpdateRelationshipArgs): ToolResponse {
       `Relationship "${args.id}" not found. Available IDs: ${available || '(none)'}`
     );
   }
-  // Merge — do not replace
+  // Merge — do not replace. Cast through unknown because Zod's union output
+  // shape differs from CalmRelationship only in exactOptionalPropertyTypes.
   arch.relationships[idx] = {
     ...arch.relationships[idx],
     ...args.updates
-  } as import('@calmstudio/calm-core').CalmRelationship;
+  } as unknown as CalmRelationship;
   writeCalmFile(filePath, arch);
   return toolSuccess(`Relationship "${args.id}" updated.`);
 }

@@ -13,6 +13,7 @@ import {
 } from '../types.js';
 import { resolveFile, readCalmFile, writeCalmFile } from '../file-io.js';
 import type { CalmArchitecture } from '@calmstudio/calm-core';
+import { getRelationshipVariant, getReferencedNodeIds } from '@calmstudio/calm-core';
 
 type CreateArchitectureArgs = z.infer<typeof CreateArchitectureSchema>;
 type DescribeArchitectureArgs = z.infer<typeof DescribeArchitectureSchema>;
@@ -26,8 +27,8 @@ export function createArchitecture(args: CreateArchitectureArgs): ToolResponse {
   // Cast from Zod inferred type to CalmArchitecture — Zod ensures required fields present;
   // the type difference is only exactOptionalPropertyTypes (undefined vs absent).
   const arch: CalmArchitecture = {
-    nodes: args.nodes as CalmArchitecture['nodes'],
-    relationships: (args.relationships ?? []) as CalmArchitecture['relationships']
+    nodes: args.nodes as unknown as CalmArchitecture['nodes'],
+    relationships: (args.relationships ?? []) as unknown as CalmArchitecture['relationships']
   };
   writeCalmFile(filePath, arch);
   const nodeCount = arch.nodes.length;
@@ -57,7 +58,11 @@ export function describeArchitecture(args: DescribeArchitectureArgs): ToolRespon
     .join('\n');
 
   const relLines = arch.relationships
-    .map((r) => `  - ${r['unique-id']}: ${r.source} -> ${r.destination} (${r['relationship-type']})`)
+    .map((r) => {
+      const variant = getRelationshipVariant(r['relationship-type']);
+      const refs = getReferencedNodeIds(r).join(' -> ');
+      return `  - ${r['unique-id']} (${variant}): ${refs}`;
+    })
     .join('\n');
 
   return toolSuccess(

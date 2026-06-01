@@ -18,6 +18,7 @@ import {
 } from '../types.js';
 import { resolveFile, readCalmFile, writeCalmFile } from '../file-io.js';
 import { recomputeAigfDecorators } from '../aigf-helpers.js';
+import { getReferencedNodeIds } from '@calmstudio/calm-core';
 
 // Use z.infer so function params match what MCP SDK passes (respects exactOptionalPropertyTypes)
 type AddNodeArgs = z.infer<typeof AddNodeSchema>;
@@ -87,10 +88,10 @@ export function deleteNode(args: DeleteNodeArgs): ToolResponse {
     );
   }
   arch.nodes.splice(idx, 1);
-  // Cascade: remove any relationships that reference this node
+  // Cascade: remove any relationships that reference this node (in any variant).
   const before = arch.relationships.length;
   arch.relationships = arch.relationships.filter(
-    (r) => r.source !== args.id && r.destination !== args.id
+    (r) => !getReferencedNodeIds(r).includes(args.id)
   );
   const removed = before - arch.relationships.length;
   writeCalmFile(filePath, arch);

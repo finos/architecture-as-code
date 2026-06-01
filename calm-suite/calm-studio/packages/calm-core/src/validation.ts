@@ -3,20 +3,31 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * validation.ts — Shared Ajv-based CALM architecture validation engine.
+ * validation.ts — Shared CALM 1.2 architecture validation engine.
  *
  * Validates a CalmArchitecture object against:
- *   1. A JSON Schema that matches CalmStudio's internal model format
- *   2. Semantic rules: dangling refs, duplicates, orphan nodes, self-loops
- *   3. Info-level rules: nodes missing description
+ *   1. The FINOS CALM 1.2 meta-schema (vendored under `./schemas`)
+ *      via Ajv (draft 2020-12).
+ *   2. Semantic rules: dangling refs, duplicates, orphan nodes, self-loops.
+ *   3. Info-level rules: nodes missing description.
  *
- * This module is shared between the studio (reactive store) and the MCP server.
- * It has no Svelte or browser dependencies — pure TypeScript.
+ * Shared between the studio (reactive store) and the MCP server. No Svelte
+ * or browser dependencies — pure TypeScript.
  */
 
-import Ajv from 'ajv';
+import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import type { CalmArchitecture } from './types.js';
+import type { CalmArchitecture, CalmRelationship } from './types.js';
+import { getRelationshipVariant, getReferencedNodeIds } from './types.js';
+
+import calmSchema from './schemas/calm.json' with { type: 'json' };
+import coreSchema from './schemas/core.json' with { type: 'json' };
+import controlSchema from './schemas/control.json' with { type: 'json' };
+import controlRequirementSchema from './schemas/control-requirement.json' with { type: 'json' };
+import interfaceSchema from './schemas/interface.json' with { type: 'json' };
+import flowSchema from './schemas/flow.json' with { type: 'json' };
+import evidenceSchema from './schemas/evidence.json' with { type: 'json' };
+import unitsSchema from './schemas/units.json' with { type: 'json' };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,60 +42,34 @@ export interface ValidationIssue {
 	path?: string;
 }
 
-// ─── JSON Schema (CalmStudio internal format) ─────────────────────────────────
+// ─── Ajv setup (vendored CALM 1.2 meta-schemas) ──────────────────────────────
+
+const ajv = new Ajv2020({ allErrors: true, strict: false, allowUnionTypes: true });
+addFormats.default(ajv);
+for (const s of [
+	coreSchema,
+	controlSchema,
+	controlRequirementSchema,
+	interfaceSchema,
+	flowSchema,
+	evidenceSchema,
+	unitsSchema,
+	calmSchema,
+]) {
+	ajv.addSchema(s as object);
+}
 
 /**
- * JSON Schema for CalmStudio's flat internal format.
- * Note: This is NOT the FINOS meta-schema (which uses nested relationship-type objects).
- * CalmStudio uses a simpler flat format: relationship-type is a plain string.
+ * Returns the compiled CALM 1.2 root validator (`calm.json`).
+ * Compiled lazily so dynamic-import + tree-shaking remain friendly.
  */
-const calmStudioSchema = {
-	$id: 'https://calmstudio.io/internal/architecture',
-	type: 'object',
-	required: ['nodes', 'relationships'],
-	properties: {
-		nodes: {
-			type: 'array',
-			items: {
-				type: 'object',
-				required: ['unique-id', 'node-type', 'name'],
-				properties: {
-					'unique-id': { type: 'string', minLength: 1 },
-					'node-type': { type: 'string', minLength: 1 },
-					name: { type: 'string', minLength: 1 },
-					description: { type: 'string' },
-					interfaces: { type: 'array' },
-					customMetadata: { type: 'object' },
-				},
-				additionalProperties: true,
-			},
-		},
-		relationships: {
-			type: 'array',
-			items: {
-				type: 'object',
-				required: ['unique-id', 'relationship-type', 'source', 'destination'],
-				properties: {
-					'unique-id': { type: 'string', minLength: 1 },
-					'relationship-type': { type: 'string', minLength: 1 },
-					source: { type: 'string', minLength: 1 },
-					destination: { type: 'string', minLength: 1 },
-					protocol: { type: 'string' },
-					description: { type: 'string' },
-				},
-				additionalProperties: true,
-			},
-		},
-	},
-	additionalProperties: true,
-};
+function getCalmValidator() {
+	const v = ajv.getSchema((calmSchema as { $id?: string }).$id ?? '');
+	if (!v) throw new Error('CALM 1.2 root schema not registered with Ajv');
+	return v;
+}
 
-// ─── Ajv setup ────────────────────────────────────────────────────────────────
-
-const ajv = new Ajv({ allErrors: true, strict: false });
-addFormats(ajv);
-
-const validateSchema = ajv.compile(calmStudioSchema);
+const validateSchema = getCalmValidator();
 
 // ─── Main validation function ─────────────────────────────────────────────────
 
@@ -95,12 +80,11 @@ const validateSchema = ajv.compile(calmStudioSchema);
 export function validateCalmArchitecture(arch: CalmArchitecture): ValidationIssue[] {
 	const issues: ValidationIssue[] = [];
 
-	// 1. JSON Schema validation
+	// 1. JSON Schema validation against CALM 1.2 meta-schema
 	const valid = validateSchema(arch);
 	if (!valid && validateSchema.errors) {
 		for (const err of validateSchema.errors) {
-			const issue = schemaErrorToIssue(err, arch);
-			issues.push(issue);
+			issues.push(schemaErrorToIssue(err, arch));
 		}
 	}
 
@@ -120,12 +104,11 @@ export function validateCalmArchitecture(arch: CalmArchitecture): ValidationIssu
 
 function schemaErrorToIssue(
 	err: { instancePath: string; message?: string; keyword?: string },
-	arch: CalmArchitecture
+	arch: CalmArchitecture,
 ): ValidationIssue {
 	const path = err.instancePath;
 	const message = err.message ?? 'Schema validation error';
 
-	// Try to extract nodeId or relationshipId from the path
 	const nodeMatch = path.match(/^\/nodes\/(\d+)/);
 	const relMatch = path.match(/^\/relationships\/(\d+)/);
 
@@ -135,15 +118,11 @@ function schemaErrorToIssue(
 	if (nodeMatch) {
 		const idx = parseInt(nodeMatch[1]!, 10);
 		const node = arch.nodes[idx];
-		if (node && node['unique-id']) {
-			nodeId = node['unique-id'];
-		}
+		if (node && node['unique-id']) nodeId = node['unique-id'];
 	} else if (relMatch) {
 		const idx = parseInt(relMatch[1]!, 10);
 		const rel = arch.relationships[idx];
-		if (rel && rel['unique-id']) {
-			relationshipId = rel['unique-id'];
-		}
+		if (rel && rel['unique-id']) relationshipId = rel['unique-id'];
 	}
 
 	return {
@@ -161,7 +140,7 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 	const issues: ValidationIssue[] = [];
 	const nodeIds = new Set<string>();
 
-	// ── Duplicate node unique-ids ─────────────────────────────────────────────
+	// Duplicate node unique-ids
 	const seenNodeIds = new Set<string>();
 	for (const node of arch.nodes) {
 		if (!node['unique-id']) continue;
@@ -177,7 +156,7 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 		}
 	}
 
-	// ── Duplicate relationship unique-ids ─────────────────────────────────────
+	// Duplicate relationship unique-ids
 	const seenRelIds = new Set<string>();
 	for (const rel of arch.relationships) {
 		if (!rel['unique-id']) continue;
@@ -192,64 +171,15 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 		}
 	}
 
-	// ── Per-relationship rules ─────────────────────────────────────────────────
+	// Per-relationship rules
 	const connectedNodeIds = new Set<string>();
-
 	for (const rel of arch.relationships) {
-		const relId = rel['unique-id'];
-
-		// Missing source/destination (already covered by schema, but semantic gives better messages)
-		if (!rel.source) {
-			issues.push({
-				severity: 'error',
-				message: `Relationship "${relId ?? '?'}" is missing a source node`,
-				...(relId ? { relationshipId: relId } : {}),
-			});
-		} else {
-			connectedNodeIds.add(rel.source);
-			// Dangling source reference
-			if (nodeIds.size > 0 && !nodeIds.has(rel.source)) {
-				issues.push({
-					severity: 'error',
-					message: `Relationship "${relId ?? '?'}" source "${rel.source}" does not reference a known node`,
-					...(relId ? { relationshipId: relId } : {}),
-				});
-			}
-		}
-
-		if (!rel.destination) {
-			issues.push({
-				severity: 'error',
-				message: `Relationship "${relId ?? '?'}" is missing a destination node`,
-				...(relId ? { relationshipId: relId } : {}),
-			});
-		} else {
-			connectedNodeIds.add(rel.destination);
-			// Dangling destination reference
-			if (nodeIds.size > 0 && !nodeIds.has(rel.destination)) {
-				issues.push({
-					severity: 'error',
-					message: `Relationship "${relId ?? '?'}" destination "${rel.destination}" does not reference a known node`,
-					...(relId ? { relationshipId: relId } : {}),
-				});
-			}
-		}
-
-		// Self-loop
-		if (rel.source && rel.destination && rel.source === rel.destination) {
-			issues.push({
-				severity: 'warning',
-				message: `Relationship "${relId ?? '?'}" connects a node to itself (source === destination)`,
-				...(relId ? { relationshipId: relId } : {}),
-			});
-		}
+		issues.push(...validateRelationshipReferences(rel, nodeIds, connectedNodeIds));
 	}
 
-	// ── Per-node rules ────────────────────────────────────────────────────────
+	// Per-node rules
 	for (const node of arch.nodes) {
 		const nodeId = node['unique-id'];
-
-		// Orphan node: in the arch but not referenced by any relationship
 		if (nodeId && !connectedNodeIds.has(nodeId)) {
 			issues.push({
 				severity: 'warning',
@@ -257,13 +187,127 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 				nodeId,
 			});
 		}
-
-		// Info: missing description
 		if (nodeId && (!node.description || node.description.trim() === '')) {
 			issues.push({
 				severity: 'info',
 				message: `Node "${nodeId}" has no description`,
 				nodeId,
+			});
+		}
+	}
+
+	return issues;
+}
+
+/**
+ * Per-relationship semantic checks. Handles all five nested variants.
+ * Accumulates referenced node ids into `connectedNodeIds` for the
+ * orphan-node check downstream.
+ */
+function validateRelationshipReferences(
+	rel: CalmRelationship,
+	nodeIds: Set<string>,
+	connectedNodeIds: Set<string>,
+): ValidationIssue[] {
+	const issues: ValidationIssue[] = [];
+	const relId = rel['unique-id'];
+	const rt = rel['relationship-type'];
+	if (!rt || typeof rt !== 'object') {
+		issues.push({
+			severity: 'error',
+			message: `Relationship "${relId ?? '?'}" is missing relationship-type`,
+			...(relId ? { relationshipId: relId } : {}),
+		});
+		return issues;
+	}
+
+	const variant = getRelationshipVariant(rt);
+	const refs = getReferencedNodeIds(rel);
+	for (const id of refs) connectedNodeIds.add(id);
+
+	// Dangling-ref check (uniform across variants)
+	if (nodeIds.size > 0) {
+		for (const id of refs) {
+			if (!nodeIds.has(id)) {
+				issues.push({
+					severity: 'error',
+					message: `Relationship "${relId ?? '?'}" (${variant}) references unknown node "${id}"`,
+					...(relId ? { relationshipId: relId } : {}),
+				});
+			}
+		}
+	}
+
+	// Variant-specific structural checks
+	if ('connects' in rt) {
+		const c = rt.connects;
+		if (!c.source?.node) {
+			issues.push({
+				severity: 'error',
+				message: `Relationship "${relId ?? '?'}" (connects) is missing source.node`,
+				...(relId ? { relationshipId: relId } : {}),
+			});
+		}
+		if (!c.destination?.node) {
+			issues.push({
+				severity: 'error',
+				message: `Relationship "${relId ?? '?'}" (connects) is missing destination.node`,
+				...(relId ? { relationshipId: relId } : {}),
+			});
+		}
+		if (c.source?.node && c.destination?.node && c.source.node === c.destination.node) {
+			issues.push({
+				severity: 'warning',
+				message: `Relationship "${relId ?? '?'}" (connects) connects a node to itself`,
+				...(relId ? { relationshipId: relId } : {}),
+			});
+		}
+	} else if ('composed-of' in rt) {
+		const co = rt['composed-of'];
+		if (!co.container) {
+			issues.push({
+				severity: 'error',
+				message: `Relationship "${relId ?? '?'}" (composed-of) is missing container`,
+				...(relId ? { relationshipId: relId } : {}),
+			});
+		}
+		if (!Array.isArray(co.nodes) || co.nodes.length === 0) {
+			issues.push({
+				severity: 'error',
+				message: `Relationship "${relId ?? '?'}" (composed-of) must list at least one child node`,
+				...(relId ? { relationshipId: relId } : {}),
+			});
+		}
+	} else if ('interacts' in rt) {
+		const i = rt.interacts;
+		if (!i.actor) {
+			issues.push({
+				severity: 'error',
+				message: `Relationship "${relId ?? '?'}" (interacts) is missing actor`,
+				...(relId ? { relationshipId: relId } : {}),
+			});
+		}
+		if (!Array.isArray(i.nodes) || i.nodes.length === 0) {
+			issues.push({
+				severity: 'error',
+				message: `Relationship "${relId ?? '?'}" (interacts) must list at least one interacted node`,
+				...(relId ? { relationshipId: relId } : {}),
+			});
+		}
+	} else if ('deployed-in' in rt) {
+		const d = rt['deployed-in'];
+		if (!d.container) {
+			issues.push({
+				severity: 'error',
+				message: `Relationship "${relId ?? '?'}" (deployed-in) is missing container`,
+				...(relId ? { relationshipId: relId } : {}),
+			});
+		}
+		if (!Array.isArray(d.nodes) || d.nodes.length === 0) {
+			issues.push({
+				severity: 'error',
+				message: `Relationship "${relId ?? '?'}" (deployed-in) must list at least one deployed node`,
+				...(relId ? { relationshipId: relId } : {}),
 			});
 		}
 	}

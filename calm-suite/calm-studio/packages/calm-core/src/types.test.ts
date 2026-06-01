@@ -125,9 +125,12 @@ describe('CALM 1.2 type definitions', () => {
   it('CalmRelationship accepts controls property without TypeScript error', () => {
     const rel: CalmRelationship = {
       'unique-id': 'r1',
-      'relationship-type': 'connects',
-      source: 'n1',
-      destination: 'n2',
+      'relationship-type': {
+        connects: {
+          source: { node: 'n1' },
+          destination: { node: 'n2' },
+        },
+      },
       controls: {
         'data-encryption': {
           description: 'Encrypt data in transit',
@@ -147,9 +150,12 @@ describe('CALM 1.2 type definitions', () => {
   it('CalmRelationship accepts metadata property without TypeScript error', () => {
     const rel: CalmRelationship = {
       'unique-id': 'r2',
-      'relationship-type': 'interacts',
-      source: 'n1',
-      destination: 'n3',
+      'relationship-type': {
+        interacts: {
+          actor: 'n1',
+          nodes: ['n3'],
+        },
+      },
       metadata: { latency: 'low', protocol: 'gRPC' },
     };
 
