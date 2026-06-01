@@ -5,6 +5,14 @@ description: Convert FINOS Labs–style AI reference architecture markdown into 
 
 # Convert ARB markdown to CALM
 
+## What is an ARB?
+
+An **AI Reference Architecture Blueprint (ARB)** is a markdown document published by [FINOS Labs](https://github.com/finos-labs/ai-reference-architecture-library) that describes a canonical layered design for an AI system — such as a multi-agent pipeline, a RAG application, or an agentic workflow. ARBs define the major components (agents, gateways, LLMs, vector stores, …) and their interactions in human-readable prose and tables, but do not produce a machine-readable artifact on their own.
+
+This guide converts an ARB into a validated CALM 1.2 `.calm.json` file so the architecture can be visualised, version-controlled, and assessed for FINOS AI Governance Framework (AIGF) compliance.
+
+---
+
 How to convert a [FINOS Labs–style AI reference architecture](https://github.com/finos-labs/ai-reference-architecture-library) markdown document into a valid CALM 1.2 architecture using the CALMStudio MCP server.
 
 The conversion is driven by the AI coding agent the operator is already using (Claude Code, Codex, Cursor, …). No LLM logic lives in CALMStudio itself — the agent reads the source markdown, performs extraction in its own session, and calls existing MCP tools to assemble the CALM artifact.

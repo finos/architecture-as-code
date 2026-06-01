@@ -11,7 +11,7 @@ CalmStudio ships a standalone MCP (Model Context Protocol) server that lets AI a
 
 [Model Context Protocol](https://modelcontextprotocol.io/) is an open standard for AI tools to call structured functions — similar to REST APIs, but designed for AI clients. An MCP server exposes a set of **tools** that an AI assistant can invoke.
 
-CalmStudio's MCP server (`@calmstudio/mcp-server`) exposes 21 tools covering the full lifecycle of CALM architecture management: guide, nodes, relationships, architecture-level operations, views, I/O, rendering, and validation.
+CalmStudio's MCP server (`@calmstudio/mcp-server`) exposes 22 tools covering the full lifecycle of CALM architecture management: guide, nodes, relationships, architecture-level operations, views, I/O, rendering, and validation.
 
 ## Available Tools
 
@@ -19,7 +19,7 @@ CalmStudio's MCP server (`@calmstudio/mcp-server`) exposes 21 tools covering the
 
 | Tool | Description |
 |------|-------------|
-| `read_calm_guide` | Returns the CALM reference guide: all 9 node types, 5 relationship types, interface types, a complete 3-node example, and usage tips. Start here. |
+| `read_calm_guide` | Returns the CALM reference guide: all 9 node types, 5 relationship types, interface types, a complete 3-node example, and usage tips. Pass `topic="arb-conversion"` to get the step-by-step [ARB → CALM conversion skill](../guides/convert-arb-to-calm.md). Start here. |
 
 ### Architecture
 
@@ -68,6 +68,7 @@ CalmStudio's MCP server (`@calmstudio/mcp-server`) exposes 21 tools covering the
 |------|-------------|
 | `validate_architecture` | Validate a CALM file and return errors and warnings |
 | `render_diagram` | Generate an SVG diagram using ELK layout with color-coded node types |
+| `finalize_architecture` | Validate, top up AIGF governance decorator, and optionally render SVG in one call — use as the last step of any AI-driven conversion workflow |
 
 ## Setup with Claude Code
 
@@ -110,7 +111,7 @@ If you installed globally, use the binary directly:
 }
 ```
 
-Restart Claude Code. The 21 CalmStudio tools will appear in the tool list.
+Restart Claude Code. The 22 CalmStudio tools will appear in the tool list.
 
 ### HTTP Mode
 
@@ -186,6 +187,26 @@ to each one with requirement-url pointing to our security policy.
 ```
 
 Claude Code calls `query_nodes` to find databases, then `update_node` for each.
+
+### Convert an AI Reference Architecture (ARB) to CALM
+
+[FINOS Labs AI Reference Architecture Blueprints (ARBs)](https://github.com/finos-labs/ai-reference-architecture-library) are markdown documents describing layered AI system designs (multi-agent, RAG, agentic pipelines, …). The MCP server can convert any ARB into a validated CALM 1.2 artifact with FINOS AIGF governance overlay:
+
+```
+Convert the multi-agent reference architecture at
+https://github.com/finos-labs/ai-reference-architecture-library/blob/main/Library/reference-architecture/multi-agent/ma_ref_arch_jan_2026.md
+into a CALM 1.2 architecture. Save to multi-agent.calm.json.
+```
+
+Claude Code will call:
+1. `read_calm_guide` with `topic="arb-conversion"` — load the ARB conversion skill
+2. `create_architecture` — initialise the file
+3. `batch_create_nodes` — create all AI nodes (AIGF decorator auto-attaches)
+4. `add_relationship` — wire up inter-layer connections
+5. `update_node` *(optional)* — attach domain-oriented controls for governance posture
+6. `finalize_architecture` — validate, top up AIGF overlay, render SVG
+
+See the full [Convert ARB markdown to CALM](../guides/convert-arb-to-calm.md) guide for the complete step-by-step, layer-to-node-type mapping, and worked example.
 
 ## How the Server Connects to CalmStudio
 
