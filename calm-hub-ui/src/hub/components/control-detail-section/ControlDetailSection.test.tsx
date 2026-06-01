@@ -25,13 +25,13 @@ const mockFetchConfigurationVersions = vi.fn();
 const mockFetchConfigurationForVersion = vi.fn();
 
 vi.mock('../../../service/control-service.js', () => ({
-    ControlService: vi.fn().mockImplementation(() => ({
+    ControlService: vi.fn().mockImplementation(function () { return {
         fetchRequirementVersions: (...args: unknown[]) => mockFetchRequirementVersions(...args),
         fetchRequirementForVersion: (...args: unknown[]) => mockFetchRequirementForVersion(...args),
         fetchConfigurationsForControl: (...args: unknown[]) => mockFetchConfigurationsForControl(...args),
         fetchConfigurationVersions: (...args: unknown[]) => mockFetchConfigurationVersions(...args),
         fetchConfigurationForVersion: (...args: unknown[]) => mockFetchConfigurationForVersion(...args),
-    })),
+    }; }),
 }));
 
 // ── Test data ─────────────────────────────────────────────
