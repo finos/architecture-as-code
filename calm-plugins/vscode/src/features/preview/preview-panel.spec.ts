@@ -8,28 +8,28 @@ vi.mock('vscode', () => ({
     Beside: 2,
   },
   Uri: {
-    file: vi.fn((path: string) => ({
+    file: vi.fn(function (path: string) { return {
       fsPath: path,
       toString: () => `file://${path}`,
-    })),
-    joinPath: vi.fn((base, ...paths) => ({
+    }; }),
+    joinPath: vi.fn(function (base, ...paths) { return {
       fsPath: `${base.fsPath}/${paths.join('/')}`,
       toString: () => `file://${base.fsPath}/${paths.join('/')}`,
-    })),
+    }; }),
   },
   window: {
-    createWebviewPanel: vi.fn(() => ({
+    createWebviewPanel: vi.fn(function () { return {
       webview: {
         html: '',
         postMessage: vi.fn(),
         onDidReceiveMessage: vi.fn(),
-        asWebviewUri: vi.fn((uri) => ({
+        asWebviewUri: vi.fn(function (uri) { return {
           toString: () => `vscode-webview://${uri.fsPath}`,
-        })),
+        }; }),
       },
       onDidDispose: vi.fn(),
       reveal: vi.fn(),
-    })),
+    }; }),
   },
   workspace: {
     workspaceFolders: [
@@ -42,17 +42,17 @@ vi.mock('vscode', () => ({
     ],
   },
   Disposable: {
-    from: vi.fn(() => ({ dispose: vi.fn() })),
+    from: vi.fn(function () { return { dispose: vi.fn() }; }),
   },
 }))
 
 // Mock other dependencies
 vi.mock('../../models/file-types', () => ({
-  detectFileType: vi.fn(() => ({
+  detectFileType: vi.fn(function () { return {
     type: 'architecture',
     isValid: true,
     architecturePath: undefined,
-  })),
+  }; }),
   FileType: {
     TemplateFile: 'template',
     ArchitectureFile: 'architecture',
@@ -60,39 +60,39 @@ vi.mock('../../models/file-types', () => ({
 }))
 
 vi.mock('@finos/calm-shared', () => ({
-  parseFrontMatter: vi.fn(() => null),
-  parseFrontMatterFromContent: vi.fn((content) => ({ frontMatter: {}, content })),
+  parseFrontMatter: vi.fn(function () { return null; }),
+  parseFrontMatterFromContent: vi.fn(function (content) { return { frontMatter: {}, content }; }),
 }))
 
 vi.mock('../../core/services/model-service', () => ({
-  ModelService: vi.fn().mockImplementation(() => ({
-    readModel: vi.fn(() => ({})),
-    filterBySelection: vi.fn(() => ({})),
-  })),
+  ModelService: vi.fn().mockImplementation(function () { return {
+    readModel: vi.fn(function () { return {}; }),
+    filterBySelection: vi.fn(function () { return {}; }),
+  }; }),
 }))
 
 vi.mock('../../cli/template-service', () => ({
-  TemplateService: vi.fn().mockImplementation(() => ({
-    processTemplateForLabels: vi.fn((content) => content),
-    generateTemplateContent: vi.fn(() => Promise.resolve('generated content')),
-    getTemplateNameForSelection: vi.fn(() => 'test-template'),
-  })),
+  TemplateService: vi.fn().mockImplementation(function () { return {
+    processTemplateForLabels: vi.fn(function (content) { return content; }),
+    generateTemplateContent: vi.fn(function () { return Promise.resolve('generated content'); }),
+    getTemplateNameForSelection: vi.fn(function () { return 'test-template'; }),
+  }; }),
 }))
 
 vi.mock('../../cli/html-builder', () => ({
-  HtmlBuilder: vi.fn().mockImplementation(() => ({
-    getHtml: vi.fn(() => '<html></html>'),
-  })),
+  HtmlBuilder: vi.fn().mockImplementation(function () { return {
+    getHtml: vi.fn(function () { return '<html></html>'; }),
+  }; }),
 }))
 
 vi.mock('../../cli/docify-service', () => ({
-  DocifyService: vi.fn().mockImplementation(() => ({
-    run: vi.fn(() => Promise.resolve({
+  DocifyService: vi.fn().mockImplementation(function () { return {
+    run: vi.fn(function () { return Promise.resolve({
       content: '# Test Content\n![Test Image](./test.png)',
       format: 'markdown',
       sourceFile: '/test/source/file.md',
-    })),
-  })),
+    }); }),
+  }; }),
 }))
 
 describe('CalmPreviewPanel', () => {
@@ -124,9 +124,9 @@ describe('CalmPreviewPanel', () => {
         html: '',
         postMessage: vi.fn(),
         onDidReceiveMessage: vi.fn(),
-        asWebviewUri: vi.fn((uri) => ({
+        asWebviewUri: vi.fn(function (uri) { return {
           toString: () => `vscode-webview://${uri.fsPath}`,
-        })),
+        }; }),
       },
       onDidDispose: vi.fn(),
       reveal: vi.fn(),
@@ -436,7 +436,7 @@ End of document.`
 
     it('should return original content if preprocessing fails', () => {
       // Mock the webview.asWebviewUri to throw an error
-      mockPanel.webview.asWebviewUri = vi.fn(() => {
+      mockPanel.webview.asWebviewUri = vi.fn(function () {
         throw new Error('Mock webview error')
       })
       

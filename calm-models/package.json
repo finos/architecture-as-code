@@ -4,20 +4,24 @@
   "description": "CALM (Common Architecture Language Model) type definitions and model classes",
   "exports": {
     "./model": {
+      "types": "./dist/model/index.d.ts",
       "import": "./dist/model/index.js",
-      "types": "./dist/model/index.d.ts"
+      "default": "./dist/model/index.js"
     },
     "./types": {
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js",
-      "types": "./dist/types/index.d.ts"
+      "default": "./dist/types/index.js"
     },
     "./canonical": {
+      "types": "./dist/canonical/template-models.d.ts",
       "import": "./dist/canonical/template-models.js",
-      "types": "./dist/canonical/template-models.d.ts"
+      "default": "./dist/canonical/template-models.js"
     },
     "./diff": {
+      "types": "./dist/diff/index.d.ts",
       "import": "./dist/diff/index.js",
-      "types": "./dist/diff/index.d.ts"
+      "default": "./dist/diff/index.js"
     }
   },
   "files": [

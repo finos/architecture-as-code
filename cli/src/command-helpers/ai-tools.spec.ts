@@ -8,12 +8,12 @@ const mocks = vi.hoisted(() => ({
     writeFile: vi.fn(),
     readFile: vi.fn(),
     stat: vi.fn(),
-    initLogger: vi.fn(() => ({
+    initLogger: vi.fn(function () { return {
         info: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
         debug: vi.fn(),
-    })),
+    }; }),
 }));
 
 // Mock the fs/promises module
@@ -41,7 +41,7 @@ describe('ai-tools', () => {
         mocks.initLogger.mockReturnValue(mockLogger);
 
         // Default successful mocks
-        mocks.stat.mockImplementation((path: string) => {
+        mocks.stat.mockImplementation(function (path: string) {
             if (path.endsWith('.git')) {
                 return Promise.resolve({}); // Git directory exists
             }
@@ -51,7 +51,7 @@ describe('ai-tools', () => {
         mocks.writeFile.mockResolvedValue(undefined);
 
         // Mock readFile to return appropriate content based on file type
-        mocks.readFile.mockImplementation((path: string) => {
+        mocks.readFile.mockImplementation(function (path: string) {
             const pathStr = normalizePath(path);
             if (pathStr.endsWith('.json')) {
                 // Return mock JSON config for provider config files
@@ -233,7 +233,7 @@ describe('ai-tools', () => {
     // 3. Error handling tests - run once (same behavior for all providers)
     describe('setupAiTools - error handling', () => {
         it('should throw error when target is not a directory', async () => {
-            mocks.stat.mockImplementation((path: string) => {
+            mocks.stat.mockImplementation(function (path: string) {
                 if (path === resolve(targetDirectory)) {
                     return Promise.resolve({ isDirectory: () => false });
                 }
@@ -246,7 +246,7 @@ describe('ai-tools', () => {
         });
 
         it('should warn when not in a git repository', async () => {
-            mocks.stat.mockImplementation((path: string) => {
+            mocks.stat.mockImplementation(function (path: string) {
                 if (path === resolve(targetDirectory)) {
                     return Promise.resolve({ isDirectory: () => true, size: 100 });
                 }
@@ -262,7 +262,7 @@ describe('ai-tools', () => {
         });
 
         it('should handle directory stat failure', async () => {
-            mocks.stat.mockImplementation((path: string) => {
+            mocks.stat.mockImplementation(function (path: string) {
                 if (path === resolve(targetDirectory)) {
                     return Promise.reject(new Error('Permission denied'));
                 }
@@ -274,7 +274,7 @@ describe('ai-tools', () => {
         });
 
         it('should handle agent file verification failure', async () => {
-            mocks.stat.mockImplementation((path: string) => {
+            mocks.stat.mockImplementation(function (path: string) {
                 if (path === resolve(targetDirectory)) {
                     return Promise.resolve({ isDirectory: () => true });
                 }
@@ -291,7 +291,7 @@ describe('ai-tools', () => {
         });
 
         it('should handle empty agent file after creation and throw error', async () => {
-            mocks.stat.mockImplementation((path: string) => {
+            mocks.stat.mockImplementation(function (path: string) {
                 if (path === resolve(targetDirectory)) {
                     return Promise.resolve({ isDirectory: () => true });
                 }

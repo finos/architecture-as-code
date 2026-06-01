@@ -4,22 +4,22 @@ import { assertJsonObject, buildDocumentLoader, DocumentLoaderOptions, DocumentL
 
 const mocks = vi.hoisted(() => {
     return {
-        fsDocLoader: vi.fn(() => ({
+        fsDocLoader: vi.fn(function () { return {
             initialise: vi.fn(),
             loadMissingDocument: vi.fn()
-        })),
-        calmHubDocLoader: vi.fn(() => ({
+        }; }),
+        calmHubDocLoader: vi.fn(function () { return {
             initialise: vi.fn(),
             loadMissingDocument: vi.fn()
-        })),
-        mappedDocLoader: vi.fn(() => ({
+        }; }),
+        mappedDocLoader: vi.fn(function () { return {
             initialise: vi.fn(),
             loadMissingDocument: vi.fn()
-        })),
-        directDocLoader: vi.fn(() => ({
+        }; }),
+        directDocLoader: vi.fn(function () { return {
             initialise: vi.fn(),
             loadMissingDocument: vi.fn()
-        }))
+        }; })
     };
 });
 

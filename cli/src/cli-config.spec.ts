@@ -15,7 +15,7 @@ vi.mock('fs', async () => {
 });
 
 vi.mock('os', () => ({
-    homedir: vi.fn(() => '/home/user'),
+    homedir: vi.fn(function () { return '/home/user'; }),
     
 }));
 

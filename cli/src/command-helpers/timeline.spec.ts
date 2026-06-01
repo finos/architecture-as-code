@@ -119,7 +119,7 @@ describe('runTimelineGenerate', () => {
 
     it('writes to stdout when no output path is provided', () => {
         const a = writeArch('a.json', { name: 'A' });
-        const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(function () { return true; });
 
         runTimelineGenerate({ architecturePaths: [a], verbose: false });
 

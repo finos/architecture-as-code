@@ -4,10 +4,10 @@ import { PreviewViewModel } from './preview.view-model'
 // Mock vscode API (required by preview.view-model.ts for legacy compatibility methods)
 vi.mock('vscode', () => ({
     Uri: {
-        file: vi.fn((path: string) => ({
+        file: vi.fn(function (path: string) { return {
             fsPath: path,
             toString: () => `file://${path}`,
-        })),
+        }; }),
     },
 }))
 
@@ -243,7 +243,7 @@ describe('PreviewViewModel', () => {
         })
 
         it('should implement setGetCurrentTreeSelection method', () => {
-            const mockFn = vi.fn(() => 'tree-selection-id')
+            const mockFn = vi.fn(function () { return 'tree-selection-id'; })
             previewViewModel.setGetCurrentTreeSelection(mockFn)
 
             const result = previewViewModel.getCurrentTreeSelection()

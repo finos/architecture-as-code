@@ -35,9 +35,9 @@ describe('TreeViewModel', () => {
         }
 
         mockStore = {
-            getState: vi.fn(() => mockState),
+            getState: vi.fn(function () { return mockState; }),
             setState: vi.fn(),
-            subscribe: vi.fn(() => {
+            subscribe: vi.fn(function () {
                 return vi.fn()
             }),
             destroy: vi.fn()
@@ -96,16 +96,16 @@ describe('TreeViewModel', () => {
                 idToRange: new Map(),
                 findIdRange: vi.fn(),
                 // Add methods that TreeViewModel might call
-                getNodes: vi.fn(() => [
+                getNodes: vi.fn(function () { return [
                     { id: 'node1', name: 'Service A', type: 'service' },
                     { id: 'node2', name: 'Database B', type: 'database' }
-                ]),
-                getRelationships: vi.fn(() => [
+                ]; }),
+                getRelationships: vi.fn(function () { return [
                     { id: 'rel1', source: 'node1', target: 'node2', type: 'connects' }
-                ]),
-                getFlows: vi.fn(() => [
+                ]; }),
+                getFlows: vi.fn(function () { return [
                     { id: 'flow1', source: 'node1', target: 'node2' }
-                ])
+                ]; })
             } as any
 
             mockState.currentModelIndex = mockModelIndex
@@ -164,7 +164,7 @@ describe('TreeViewModel', () => {
     describe('disposal', () => {
         it('should dispose of subscriptions', () => {
             const unsubscribeMock = vi.fn()
-            mockStore.subscribe = vi.fn(() => unsubscribeMock)
+            mockStore.subscribe = vi.fn(function () { return unsubscribeMock; })
 
             treeViewModel = new TreeViewModel(mockStore)
             treeViewModel.dispose()

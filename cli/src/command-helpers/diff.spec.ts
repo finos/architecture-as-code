@@ -5,7 +5,7 @@ import { runDiffCommand, runTimelineDiffCommand, formatTimelineDiffs } from './d
 const mocks = vi.hoisted(() => ({
     runDiff: vi.fn(),
     runTimelineDiff: vi.fn(),
-    initLogger: vi.fn(() => ({ error: vi.fn(), debug: vi.fn(), info: vi.fn() })),
+    initLogger: vi.fn(function () { return { error: vi.fn(), debug: vi.fn(), info: vi.fn() }; }),
     processExit: vi.fn(),
     stdoutWrite: vi.fn(),
 }));

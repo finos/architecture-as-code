@@ -3,9 +3,9 @@ import { TemplateService } from './template-service'
 
 vi.mock('vscode', () => ({
     workspace: {
-        getConfiguration: vi.fn(() => ({
-            get: vi.fn(() => 'auto')
-        }))
+        getConfiguration: vi.fn(function () { return {
+            get: vi.fn(function () { return 'auto'; })
+        }; })
     }
 }))
 

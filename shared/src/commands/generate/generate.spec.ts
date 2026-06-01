@@ -18,15 +18,15 @@ vi.mock('../../logger', () => {
 });
 
 vi.mock('./components/instantiate', () => ({
-    instantiate: vi.fn(() => Promise.resolve({
+    instantiate: vi.fn(function () { return Promise.resolve({
         nodes: [{ 'unique-id': 'mock-node' }],
         relationships: [{ 'unique-id': 'mock-rel' }],
         $schema: 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway'
-    }))
+    }); })
 }));
 
 vi.mock('./components/flatten-allof', () => ({
-    flattenAllOf: vi.fn((schema) => Promise.resolve(schema))
+    flattenAllOf: vi.fn(function (schema) { return Promise.resolve(schema); })
 }));
 
 
