@@ -102,19 +102,23 @@ export async function renderArchitectureToSvg(
   for (const r of arch.relationships) {
     const rt = r['relationship-type'];
     const baseId = r['unique-id'];
-    if ('connects' in rt) {
-      edges.push({ id: baseId, sources: [rt.connects.source.node], targets: [rt.connects.destination.node] });
-    } else if ('composed-of' in rt) {
-      rt['composed-of'].nodes.forEach((child, i) => {
-        edges.push({ id: `${baseId}#${i}`, sources: [rt['composed-of'].container], targets: [child] });
+    if (rt.connects) {
+      const c = rt.connects;
+      edges.push({ id: baseId, sources: [c.source.node], targets: [c.destination.node] });
+    } else if (rt['composed-of']) {
+      const co = rt['composed-of'];
+      co.nodes.forEach((child, i) => {
+        edges.push({ id: `${baseId}#${i}`, sources: [co.container], targets: [child] });
       });
-    } else if ('deployed-in' in rt) {
-      rt['deployed-in'].nodes.forEach((child, i) => {
-        edges.push({ id: `${baseId}#${i}`, sources: [rt['deployed-in'].container], targets: [child] });
+    } else if (rt['deployed-in']) {
+      const d = rt['deployed-in'];
+      d.nodes.forEach((child, i) => {
+        edges.push({ id: `${baseId}#${i}`, sources: [d.container], targets: [child] });
       });
-    } else if ('interacts' in rt) {
-      rt.interacts.nodes.forEach((node, i) => {
-        edges.push({ id: `${baseId}#${i}`, sources: [rt.interacts.actor], targets: [node] });
+    } else if (rt.interacts) {
+      const i2 = rt.interacts;
+      i2.nodes.forEach((node, i) => {
+        edges.push({ id: `${baseId}#${i}`, sources: [i2.actor], targets: [node] });
       });
     }
     // 'options' has no graph edges

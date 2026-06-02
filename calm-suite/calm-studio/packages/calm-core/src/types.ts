@@ -40,7 +40,11 @@ export type {
   CalmFlowTransitionDirectionSchema,
 } from '@finos/calm-models/types';
 
-import type { CalmArchitectureSchema } from '@finos/calm-models/types';
+import type {
+  CalmArchitectureSchema,
+  CalmNodeSchema,
+  CalmRelationshipSchema,
+} from '@finos/calm-models/types';
 
 import type { CalmNodeInterfaceSchema } from '@finos/calm-models/types';
 
@@ -80,11 +84,26 @@ export interface CalmDecorator {
 }
 
 /**
- * CalmStudio architecture model: the canonical CALM 1.2 core schema plus
- * the studio-only `decorators?: CalmDecorator[]` extension used by the
- * AIGF governance overlay and the threat-model overlay (#2551).
+ * CalmStudio architecture model: the canonical CALM 1.2 core schema with
+ * two studio-specific tightenings:
+ *
+ *   - `nodes` and `relationships` are required (never undefined). The
+ *     canonical `CalmCoreSchema` makes both optional because architectures
+ *     mid-construction may have neither; CalmStudio's producers always
+ *     populate both arrays (empty if the diagram is blank), so promoting
+ *     them to required keeps `exactOptionalPropertyTypes: true` happy and
+ *     removes a flood of `arch.nodes is possibly undefined` errors.
+ *
+ *   - `decorators?: CalmDecorator[]` extension used by the AIGF
+ *     governance overlay and the threat-model overlay (#2551).
+ *     `@finos/calm-models` does not model decorators yet.
  */
-export type CalmArchitecture = CalmArchitectureSchema & {
+export type CalmArchitecture = Omit<
+  CalmArchitectureSchema,
+  'nodes' | 'relationships'
+> & {
+  nodes: CalmNodeSchema[];
+  relationships: CalmRelationshipSchema[];
   decorators?: CalmDecorator[];
 };
 
