@@ -32,7 +32,12 @@ export const NodeInputSchema = z.object({
 // ---------------------------------------------------------------------------
 
 const ConnectsEndpointSchema = z.object({
-  node: z.string()
+  node: z.string(),
+  /**
+   * Optional list of node-interface unique-ids the connection targets.
+   * Mirrors `CalmNodeInterfaceSchema` in @finos/calm-models.
+   */
+  interfaces: z.array(z.string()).optional()
 });
 
 const ConnectsRelationshipSchema = z.object({
