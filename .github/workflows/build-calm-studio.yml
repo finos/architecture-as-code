@@ -8,6 +8,7 @@ on:
         branches: ['main', 'release*']
         paths:
             - 'calm-suite/calm-studio/**'
+            - 'calm-models/**'
             - '.github/workflows/build-calm-studio.yml'
             - 'package.json'
             - 'package-lock.json'
@@ -15,6 +16,7 @@ on:
         branches: ['main', 'release*']
         paths:
             - 'calm-suite/calm-studio/**'
+            - 'calm-models/**'
             - '.github/workflows/build-calm-studio.yml'
             - 'package.json'
             - 'package-lock.json'
@@ -39,6 +41,7 @@ jobs:
 
             - name: Build (in dep order)
               run: |
+                  npm run build --if-present --workspace=@finos/calm-models
                   npm run build --if-present --workspace=@calmstudio/calm-core
                   npm run build --if-present --workspace=@calmstudio/extensions
                   npm run build --if-present --workspace=@calmstudio/mcp
@@ -91,6 +94,7 @@ jobs:
 
             - name: Build
               run: |
+                  npm run build --if-present --workspace=@finos/calm-models
                   npm run build --if-present --workspace=@calmstudio/calm-core
                   npm run build --if-present --workspace=@calmstudio/extensions
                   npm run build --if-present --workspace=@calmstudio/mcp
