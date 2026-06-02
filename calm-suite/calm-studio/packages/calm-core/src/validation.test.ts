@@ -337,8 +337,8 @@ describe('validateCalmArchitecture', () => {
   it('issues are sorted by severity: errors first, then warnings, then info', () => {
     const arch: CalmArchitecture = {
       nodes: [
-        { 'unique-id': 'node-a', 'node-type': 'service' as const, name: 'A' }, // info
-        { 'unique-id': 'node-b', 'node-type': 'service' as const, name: 'B' }  // warning + info
+        { 'unique-id': 'node-a', 'node-type': 'service' as const, name: 'A', description: '' },
+        { 'unique-id': 'node-b', 'node-type': 'service' as const, name: 'B', description: '' }
       ],
       relationships: [makeRel('rel-1', 'node-a', 'ghost')] // error: dangling
     };

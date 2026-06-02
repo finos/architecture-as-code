@@ -30,7 +30,7 @@ describe('CalmFlow and CalmTransition types', () => {
             {
               'relationship-unique-id': 'rel-1',
               'sequence-number': 1,
-              summary: 'User submits credentials',
+              description: 'User submits credentials',
             },
           ],
         },
@@ -53,15 +53,15 @@ describe('CalmFlow and CalmTransition types', () => {
     expect(flow.transitions).toEqual([]);
   });
 
-  it('CalmTransition has required fields: relationship-unique-id, sequence-number, summary', () => {
+  it('CalmTransition has required fields: relationship-unique-id, sequence-number, description', () => {
     const transition: CalmTransition = {
       'relationship-unique-id': 'rel-2',
       'sequence-number': 3,
-      summary: 'Service calls DB',
+      description: 'Service calls DB',
     };
     expect(transition['relationship-unique-id']).toBe('rel-2');
     expect(transition['sequence-number']).toBe(3);
-    expect(transition.summary).toBe('Service calls DB');
+    expect(transition.description).toBe('Service calls DB');
     expect(transition.direction).toBeUndefined();
   });
 
@@ -69,7 +69,7 @@ describe('CalmFlow and CalmTransition types', () => {
     const transition: CalmTransition = {
       'relationship-unique-id': 'rel-3',
       'sequence-number': 1,
-      summary: 'Forward request',
+      description: 'Forward request',
       direction: 'source-to-destination',
     };
     expect(transition.direction).toBe('source-to-destination');
@@ -84,6 +84,7 @@ describe('CALM 1.2 type definitions', () => {
         requirements: [
           {
             'requirement-url': 'https://example.com/req/fw-01',
+            'config-url': 'https://example.com/config/fw-01',
           },
         ],
       },
@@ -93,6 +94,7 @@ describe('CALM 1.2 type definitions', () => {
       'unique-id': 'n1',
       'node-type': 'ai:llm',
       name: 'LLM Node',
+      description: 'LLM node',
       controls,
     };
 
@@ -105,6 +107,7 @@ describe('CALM 1.2 type definitions', () => {
       'unique-id': 'n2',
       'node-type': 'database',
       name: 'Customer DB',
+      description: 'Customer database',
       'data-classification': 'PII',
     };
 
@@ -116,10 +119,12 @@ describe('CALM 1.2 type definitions', () => {
       'unique-id': 'n3',
       'node-type': 'service',
       name: 'API Service',
+      description: 'API service',
       metadata: { tier: 'critical', owner: 'team-alpha' },
     };
 
-    expect(node.metadata?.['tier']).toBe('critical');
+    const meta = node.metadata as Record<string, unknown> | undefined;
+    expect(meta?.['tier']).toBe('critical');
   });
 
   it('CalmRelationship accepts controls property without TypeScript error', () => {
@@ -159,7 +164,8 @@ describe('CALM 1.2 type definitions', () => {
       metadata: { latency: 'low', protocol: 'gRPC' },
     };
 
-    expect(rel.metadata?.['latency']).toBe('low');
+    const meta = rel.metadata as Record<string, unknown> | undefined;
+    expect(meta?.['latency']).toBe('low');
   });
 
   it('CalmArchitecture accepts decorators array without TypeScript error', () => {
@@ -208,14 +214,28 @@ describe('CALM 1.2 type definitions', () => {
     expect(evidence['control-config-url']).toBe('https://example.com/controls/aigf-fw-01');
   });
 
-  it('CalmControlRequirement only requires requirement-url', () => {
-    const minimalReq: CalmControlRequirement = {
+  it('CalmControlRequirement: config-url variant', () => {
+    const req: CalmControlRequirement = {
       'requirement-url': 'https://example.com/req/001',
+      'config-url': 'https://example.com/config/001',
     };
 
-    expect(minimalReq['requirement-url']).toBeDefined();
-    expect(minimalReq['config-url']).toBeUndefined();
-    expect(minimalReq.config).toBeUndefined();
+    expect(req['requirement-url']).toBeDefined();
+    if ('config-url' in req) {
+      expect(req['config-url']).toBe('https://example.com/config/001');
+    }
+  });
+
+  it('CalmControlRequirement: inline config variant', () => {
+    const req: CalmControlRequirement = {
+      'requirement-url': 'https://example.com/req/002',
+      config: { scanLevel: 'deep' },
+    };
+
+    expect(req['requirement-url']).toBeDefined();
+    if ('config' in req) {
+      expect(req.config['scanLevel']).toBe('deep');
+    }
   });
 
   it('CalmControl has description and requirements array', () => {
@@ -231,7 +251,9 @@ describe('CALM 1.2 type definitions', () => {
 
     expect(control.description).toBe('Prevent data leakage from AI systems');
     expect(control.requirements).toHaveLength(1);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    expect(control.requirements[0]!.config?.['scanLevel']).toBe('deep');
+    const first = control.requirements[0]!;
+    if ('config' in first) {
+      expect(first.config['scanLevel']).toBe('deep');
+    }
   });
 });
