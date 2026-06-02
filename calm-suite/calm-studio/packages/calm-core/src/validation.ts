@@ -18,7 +18,7 @@
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import type { CalmArchitecture, CalmRelationship } from './types.js';
-import { getRelationshipVariant, getReferencedNodeIds } from './types.js';
+import { getRelationshipVariant, getReferencedNodeIds } from './helpers.js';
 
 import calmSchema from './schemas/calm.json' with { type: 'json' };
 import coreSchema from './schemas/core.json' with { type: 'json' };
@@ -117,11 +117,11 @@ function schemaErrorToIssue(
 
 	if (nodeMatch) {
 		const idx = parseInt(nodeMatch[1]!, 10);
-		const node = arch.nodes[idx];
+		const node = arch.nodes?.[idx];
 		if (node && node['unique-id']) nodeId = node['unique-id'];
 	} else if (relMatch) {
 		const idx = parseInt(relMatch[1]!, 10);
-		const rel = arch.relationships[idx];
+		const rel = arch.relationships?.[idx];
 		if (rel && rel['unique-id']) relationshipId = rel['unique-id'];
 	}
 
@@ -140,9 +140,12 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 	const issues: ValidationIssue[] = [];
 	const nodeIds = new Set<string>();
 
+	const archNodes = arch.nodes ?? [];
+	const archRelationships = arch.relationships ?? [];
+
 	// Duplicate node unique-ids
 	const seenNodeIds = new Set<string>();
-	for (const node of arch.nodes) {
+	for (const node of archNodes) {
 		if (!node['unique-id']) continue;
 		if (seenNodeIds.has(node['unique-id'])) {
 			issues.push({
@@ -158,7 +161,7 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 
 	// Duplicate relationship unique-ids
 	const seenRelIds = new Set<string>();
-	for (const rel of arch.relationships) {
+	for (const rel of archRelationships) {
 		if (!rel['unique-id']) continue;
 		if (seenRelIds.has(rel['unique-id'])) {
 			issues.push({
@@ -173,12 +176,12 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 
 	// Per-relationship rules
 	const connectedNodeIds = new Set<string>();
-	for (const rel of arch.relationships) {
+	for (const rel of archRelationships) {
 		issues.push(...validateRelationshipReferences(rel, nodeIds, connectedNodeIds));
 	}
 
 	// Per-node rules
-	for (const node of arch.nodes) {
+	for (const node of archNodes) {
 		const nodeId = node['unique-id'];
 		if (nodeId && !connectedNodeIds.has(nodeId)) {
 			issues.push({

@@ -30,7 +30,6 @@ export type {
   CalmOptionsRelationshipSchema as CalmOptionsRelationship,
   CalmDecisionSchema as CalmDecision,
   CalmProtocolSchema as CalmProtocol,
-  CalmArchitectureSchema as CalmArchitecture,
   CalmCoreSchema as CalmCore,
   CalmControlsSchema as CalmControls,
   CalmControlSchema as CalmControl,
@@ -40,6 +39,8 @@ export type {
   CalmFlowTransitionSchema as CalmTransition,
   CalmFlowTransitionDirectionSchema,
 } from '@finos/calm-models/types';
+
+import type { CalmArchitectureSchema } from '@finos/calm-models/types';
 
 import type { CalmNodeInterfaceSchema } from '@finos/calm-models/types';
 
@@ -77,6 +78,15 @@ export interface CalmDecorator {
   'applies-to': string[];
   data: Record<string, unknown>;
 }
+
+/**
+ * CalmStudio architecture model: the canonical CALM 1.2 core schema plus
+ * the studio-only `decorators?: CalmDecorator[]` extension used by the
+ * AIGF governance overlay and the threat-model overlay (#2551).
+ */
+export type CalmArchitecture = CalmArchitectureSchema & {
+  decorators?: CalmDecorator[];
+};
 
 /**
  * CALM 1.2 evidence — links a control to evidence of compliance. Studio
