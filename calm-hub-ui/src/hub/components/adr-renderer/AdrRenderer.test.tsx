@@ -136,4 +136,38 @@ describe('ADR Renderer', () => {
         expect(screen.getByText('30 Apr, 2025', { exact: false })).toBeInTheDocument();
         expect(screen.getByText('12:50', { exact: false })).toBeInTheDocument();
     });
+
+    it('should render the ADR (not a blank page) when no decision outcome is recorded', () => {
+        // ADRs created via the API start in `draft` with no decisionOutcome — this
+        // must not crash the renderer (regression for the blank-page bug).
+        const draftAdr = {
+            namespace: 'finos',
+            id: 2,
+            revision: 1,
+            adr: { ...adrDetails, decisionOutcome: undefined },
+        } as Adr;
+        render(<AdrRenderer adrDetails={draftAdr} />);
+
+        expect(screen.getByText('adr title')).toBeInTheDocument();
+        expect(screen.getByText('Decision Outcome')).toBeInTheDocument();
+        expect(screen.getByText('No decision outcome recorded yet.')).toBeInTheDocument();
+        // The chosen-option content from a populated decision must be absent.
+        expect(screen.queryByText('Decision Rational:')).not.toBeInTheDocument();
+    });
+
+    it('should render safely when a decision outcome is present but has no chosen option', () => {
+        // Defensive: a malformed/partial decisionOutcome must not crash the renderer.
+        const partialAdr = {
+            namespace: 'finos',
+            id: 3,
+            revision: 1,
+            adr: { ...adrDetails, decisionOutcome: { rationale: 'tbd' } },
+        } as Adr;
+        render(<AdrRenderer adrDetails={partialAdr} />);
+
+        expect(screen.getByText('adr title')).toBeInTheDocument();
+        expect(screen.getByText('Decision Outcome')).toBeInTheDocument();
+        // DisplayChosenOption renders nothing when chosenOption is missing.
+        expect(screen.queryByText('Decision Rational:')).not.toBeInTheDocument();
+    });
 });
