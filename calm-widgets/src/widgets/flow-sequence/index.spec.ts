@@ -113,7 +113,7 @@ describe('FlowSequenceWidget (actor → services → system)', () => {
             'unique-id': 'rel-composed',
             'relationship-type': { 'composed-of': { container: 'system-z', nodes: ['service-x'] } },
         });
-        arch.flows[0].transitions.push({
+        arch.flows![0].transitions.push({
             'relationship-unique-id': 'rel-composed',
             'sequence-number': 4,
             description: 'composed-of edge',
@@ -127,7 +127,7 @@ describe('FlowSequenceWidget (actor → services → system)', () => {
 
     it('falls back to "unknown" when the relationship cannot be located', () => {
         const arch = makeArch();
-        arch.flows[0].transitions.push({
+        arch.flows![0].transitions.push({
             'relationship-unique-id': 'rel-missing',
             'sequence-number': 99,
             description: 'dangling',
@@ -144,7 +144,7 @@ describe('FlowSequenceWidget (actor → services → system)', () => {
         arch.relationships.push({
             'unique-id': 'rel-no-type',
         } as never);
-        arch.flows[0].transitions.push({
+        arch.flows![0].transitions.push({
             'relationship-unique-id': 'rel-no-type',
             'sequence-number': 99,
             description: 'no type',
@@ -161,10 +161,10 @@ describe('FlowSequenceWidget (actor → services → system)', () => {
         arch.relationships.push({
             'unique-id': 'rel-options',
             'relationship-type': {
-                options: [{ description: 'an option', nodes: ['service-x'] }],
+                options: [{ description: 'an option', nodes: ['service-x'], relationships: [] }],
             },
         });
-        arch.flows[0].transitions.push({
+        arch.flows![0].transitions.push({
             'relationship-unique-id': 'rel-options',
             'sequence-number': 99,
             description: 'options edge',
@@ -184,7 +184,7 @@ describe('FlowSequenceWidget (actor → services → system)', () => {
                 connects: { source: { node: 'ghost-a' }, destination: { node: 'ghost-b' } },
             },
         });
-        arch.flows[0].transitions.push({
+        arch.flows![0].transitions.push({
             'relationship-unique-id': 'rel-ghost',
             'sequence-number': 99,
             description: 'ghost edge',
