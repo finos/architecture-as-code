@@ -8,7 +8,7 @@ import { createMockWindow } from './test-utils'
 // Mock vscode module
 vi.mock('vscode', () => ({
     commands: {
-        registerCommand: vi.fn((command: string, callback: Function) => {
+        registerCommand: vi.fn(function (command: string, callback: Function) {
             return { command, callback, dispose: vi.fn() }
         }),
         executeCommand: vi.fn()
@@ -51,11 +51,11 @@ describe('WebsiteFormController', () => {
             show: vi.fn(),
             hide: vi.fn(),
             dispose: vi.fn(),
-            onDidAccept: vi.fn((handler: Function) => {
+            onDidAccept: vi.fn(function (handler: Function) {
                 acceptHandler = handler
                 return { dispose: vi.fn() }
             }),
-            onDidHide: vi.fn((handler: Function) => {
+            onDidHide: vi.fn(function (handler: Function) {
                 hideHandler = handler
                 return { dispose: vi.fn() }
             })

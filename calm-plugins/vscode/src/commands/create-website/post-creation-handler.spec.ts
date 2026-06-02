@@ -6,7 +6,7 @@ import { createMockWindow, createMockCommands } from './test-utils'
 // Mock vscode module
 vi.mock('vscode', () => ({
     commands: {
-        registerCommand: vi.fn((command: string, callback: Function) => {
+        registerCommand: vi.fn(function (command: string, callback: Function) {
             return { command, callback, dispose: vi.fn() }
         }),
         executeCommand: vi.fn()

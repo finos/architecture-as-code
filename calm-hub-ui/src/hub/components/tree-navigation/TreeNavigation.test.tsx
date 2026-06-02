@@ -36,7 +36,7 @@ let calmServiceInstance: {
 } | undefined;
 
 vi.mock('../../../service/calm-service.js', () => ({
-    CalmService: vi.fn().mockImplementation(() => {
+    CalmService: vi.fn().mockImplementation(function () {
         calmServiceInstance = {
             fetchNamespaces: vi.fn().mockResolvedValue(['test-namespace', 'another-namespace']),
             fetchPatternSummaries: vi.fn().mockResolvedValue([]),
@@ -65,7 +65,7 @@ let controlServiceInstance: {
 } | undefined;
 
 vi.mock('../../../service/control-service.js', () => ({
-    ControlService: vi.fn().mockImplementation(() => {
+    ControlService: vi.fn().mockImplementation(function () {
         controlServiceInstance = {
             fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
             fetchControlsForDomain: vi.fn().mockResolvedValue([]),
@@ -79,7 +79,7 @@ let interfaceServiceInstance: {
 } | undefined;
 
 vi.mock('../../../service/interface-service.js', () => ({
-    InterfaceService: vi.fn().mockImplementation(() => {
+    InterfaceService: vi.fn().mockImplementation(function () {
         interfaceServiceInstance = {
             fetchInterfacesForNamespace: vi.fn().mockResolvedValue([]),
         };
@@ -93,7 +93,7 @@ let adrServiceInstance: {
     fetchAdr: Mock;
 } | undefined;
 vi.mock('../../../service/adr-service/adr-service.js', () => ({
-    AdrService: vi.fn().mockImplementation(() => {
+    AdrService: vi.fn().mockImplementation(function () {
         adrServiceInstance = {
             fetchAdrSummaries: vi.fn().mockResolvedValue([{ id: 201, title: 'Use CALM', status: 'accepted' }, { id: 202, title: 'Use React', status: 'proposed' }]),
             fetchAdrRevisions: vi.fn().mockResolvedValue(['v1.0', 'v2.0']),
@@ -230,7 +230,7 @@ describe('TreeNavigation', () => {
     });
 
     it('loads data based on deeplink route - interface', async () => {
-        vi.mocked(InterfaceService).mockImplementation(() => {
+        vi.mocked(InterfaceService).mockImplementation(function () {
             interfaceServiceInstance = {
                 fetchInterfacesForNamespace: vi.fn().mockResolvedValue([
                     { id: 301, name: 'Test Interface', description: 'An interface' },
@@ -262,7 +262,7 @@ describe('TreeNavigation', () => {
     });
 
     it('loads data based on deeplink route - control', async () => {
-        vi.mocked(ControlService).mockImplementation(() => {
+        vi.mocked(ControlService).mockImplementation(function () {
             controlServiceInstance = {
                 fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
                 fetchControlsForDomain: vi.fn().mockResolvedValue([
@@ -298,7 +298,7 @@ describe('TreeNavigation', () => {
         vi.mocked(useParams).mockReturnValue({});
         const navigate = vi.fn();
         vi.mocked(useNavigate).mockReturnValue(navigate);
-        vi.mocked(CalmService).mockImplementationOnce(() => ({
+        vi.mocked(CalmService).mockImplementationOnce(function () { return {
             fetchNamespaces: vi.fn().mockResolvedValue(['test-namespace']),
             fetchPatternSummaries: vi.fn().mockResolvedValue([]),
             fetchFlowSummaries: vi.fn().mockResolvedValue([]),
@@ -315,7 +315,7 @@ describe('TreeNavigation', () => {
             fetchMappings: vi.fn().mockResolvedValue([]),
             fetchVersionsByCustomId: vi.fn().mockResolvedValue([]),
             fetchResourceByCustomId: vi.fn().mockResolvedValue({}),
-        }) as unknown as InstanceType<typeof CalmService>);
+        }; } as unknown as InstanceType<typeof CalmService>);
 
         render(<MemoryRouter initialEntries={["/"]}>
             <TreeNavigation {...mockProps} />
@@ -381,7 +381,7 @@ describe('buildNamespaceTree', () => {
 
     it('renders hierarchical namespaces in the tree', async () => {
         vi.mocked(useParams).mockReturnValue({});
-        vi.mocked(CalmService).mockImplementationOnce(() => ({
+        vi.mocked(CalmService).mockImplementationOnce(function () { return {
             fetchNamespaces: vi.fn().mockResolvedValue(['org.finos', 'org.finos.calm', 'com.traderx']),
             fetchPatternSummaries: vi.fn().mockResolvedValue([]),
             fetchFlowSummaries: vi.fn().mockResolvedValue([]),
@@ -398,7 +398,7 @@ describe('buildNamespaceTree', () => {
             fetchMappings: vi.fn().mockResolvedValue([]),
             fetchVersionsByCustomId: vi.fn().mockResolvedValue([]),
             fetchResourceByCustomId: vi.fn().mockResolvedValue({})
-        }));
+        }; });
 
         render(
             <MemoryRouter initialEntries={['/']}>

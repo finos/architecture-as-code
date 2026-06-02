@@ -36,7 +36,7 @@ describe('openFile', () => {
 			.mockReturnValue(mockInput as unknown as HTMLElement);
 
 		// Trigger the input change synchronously after click
-		mockInput.click.mockImplementation(() => {
+		mockInput.click.mockImplementation(function () {
 			const event = new Event('change');
 			if (mockInput.onchange) mockInput.onchange(event);
 		});
@@ -49,8 +49,8 @@ describe('openFile', () => {
 		};
 		vi.stubGlobal(
 			'FileReader',
-			vi.fn(() => {
-				mockReader.readAsText.mockImplementation(() => {
+			vi.fn(function () {
+				mockReader.readAsText.mockImplementation(function () {
 					const event = { target: mockReader } as ProgressEvent<FileReader>;
 					if (mockReader.onload) mockReader.onload(event);
 				});
@@ -92,8 +92,8 @@ describe('saveFile', () => {
 			style: {},
 		};
 		vi.spyOn(document, 'createElement').mockReturnValue(mockAnchor as unknown as HTMLElement);
-		vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
-		vi.spyOn(document.body, 'removeChild').mockImplementation((node) => node);
+		vi.spyOn(document.body, 'appendChild').mockImplementation(function (node) { return node; });
+		vi.spyOn(document.body, 'removeChild').mockImplementation(function (node) { return node; });
 
 		const result = await saveFile('{"nodes":[]}', null, 'arch.calm');
 
@@ -141,8 +141,8 @@ describe('downloadDataUrl', () => {
 		const createElementSpy = vi
 			.spyOn(document, 'createElement')
 			.mockReturnValue(mockAnchor as unknown as HTMLElement);
-		vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
-		vi.spyOn(document.body, 'removeChild').mockImplementation((node) => node);
+		vi.spyOn(document.body, 'appendChild').mockImplementation(function (node) { return node; });
+		vi.spyOn(document.body, 'removeChild').mockImplementation(function (node) { return node; });
 
 		const dataUrl = 'data:image/png;base64,abc123';
 		const filename = 'diagram.png';

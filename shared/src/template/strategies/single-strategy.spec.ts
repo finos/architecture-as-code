@@ -8,7 +8,7 @@ import { Logger } from '../../logger';
 
 vi.mock('fs');
 vi.mock('../front-matter', () => ({
-    injectFrontMatter: vi.fn((content) => `---\ninjected: true\n---\n${content}`)
+    injectFrontMatter: vi.fn(function (content) { return `---\ninjected: true\n---\n${content}`; })
 }));
 
 describe('SingleStrategy', () => {
@@ -32,8 +32,8 @@ describe('SingleStrategy', () => {
 
         strategy = new SingleStrategy(mockEngine);
 
-        vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
-        vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
+        vi.mocked(fs.mkdirSync).mockImplementation(function () { return undefined; });
+        vi.mocked(fs.writeFileSync).mockImplementation(function () { return undefined; });
     });
 
     afterEach(() => {

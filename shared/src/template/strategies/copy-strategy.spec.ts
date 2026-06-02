@@ -29,8 +29,8 @@ describe('CopyStrategy', () => {
 
         strategy = new CopyStrategy(mockEngine);
 
-        vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
-        vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
+        vi.mocked(fs.mkdirSync).mockImplementation(function () { return undefined; });
+        vi.mocked(fs.writeFileSync).mockImplementation(function () { return undefined; });
     });
 
     afterEach(() => {

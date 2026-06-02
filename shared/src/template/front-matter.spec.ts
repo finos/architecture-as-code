@@ -198,7 +198,7 @@ Content`;
         });
 
         it('returns null when file cannot be read', () => {
-            vi.mocked(fs.readFileSync).mockImplementation(() => {
+            vi.mocked(fs.readFileSync).mockImplementation(function () {
                 throw new Error('File not found');
             });
 
@@ -246,7 +246,7 @@ Content`;
         });
 
         it('returns false when file cannot be read', () => {
-            vi.mocked(fs.readFileSync).mockImplementation(() => {
+            vi.mocked(fs.readFileSync).mockImplementation(function () {
                 throw new Error('File not found');
             });
 

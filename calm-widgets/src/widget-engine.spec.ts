@@ -16,9 +16,9 @@ vi.mock('./widget-helpers', () => ({
 
 const render = vi.fn().mockReturnValue('rendered-content');
 vi.mock('./widget-renderer', () => ({
-    WidgetRenderer: vi.fn().mockImplementation(() => ({
-        render: render,
-    })),
+    WidgetRenderer: vi.fn().mockImplementation(function () {
+        return { render: render };
+    }),
 }));
 
 vi.mock('./widgets/json-viewer', () => ({

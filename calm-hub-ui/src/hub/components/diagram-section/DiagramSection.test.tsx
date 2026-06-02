@@ -21,7 +21,7 @@ vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: vi.fn(() => vi.fn()),
+        useNavigate: vi.fn(function () { return vi.fn(); }),
     };
 });
 
@@ -61,13 +61,13 @@ vi.mock('./timeline/TimelineBar.js', () => ({
 }));
 
 vi.mock('../../../service/calm-service.js', () => ({
-    CalmService: vi.fn().mockImplementation(() => ({
+    CalmService: vi.fn().mockImplementation(function () { return {
         fetchDecoratorValues: calmServiceMock.fetchDecoratorValues,
         fetchVersionsByCustomId: calmServiceMock.fetchVersionsByCustomId,
         fetchArchitectureTimeline: calmServiceMock.fetchArchitectureTimeline,
         fetchArchitectureSummaries: calmServiceMock.fetchArchitectureSummaries,
         fetchPatternSummaries: calmServiceMock.fetchPatternSummaries,
-    })),
+    }; }),
 }));
 
 const architectureData: Data & { calmType: 'Architectures' } = {

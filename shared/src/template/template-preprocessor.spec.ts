@@ -529,6 +529,28 @@ describe('TemplatePreprocessor.preprocessTemplate', () => {
         );
     });
 
+    describe('tokenize edge cases', () => {
+        it('returns an empty array for an empty/whitespace-only body', () => {
+            expect(TemplatePreprocessor.tokenize('')).toEqual([]);
+            expect(TemplatePreprocessor.tokenize('   ')).toEqual([]);
+            expect(TemplatePreprocessor.tokenize('\t\n')).toEqual([]);
+        });
+    });
 
+    describe('interpretTokens with no tokens', () => {
+        it('returns the default tuple when given an empty token list', () => {
+            expect(TemplatePreprocessor.interpretTokens([])).toEqual({
+                impliedThis: false,
+                isStandalonePath: false,
+            });
+        });
+    });
+
+    describe('preprocessTemplate happy paths', () => {
+        it('leaves plain markdown with no mustaches untouched', () => {
+            const input = 'Just plain markdown — no mustaches here.';
+            expect(TemplatePreprocessor.preprocessTemplate(input)).toBe(input);
+        });
+    });
 
 });

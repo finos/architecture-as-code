@@ -3,10 +3,10 @@ import { PanZoomManager } from './pan-zoom-manager'
 
 // Mock svg-pan-zoom
 vi.mock('svg-pan-zoom', () => ({
-    default: vi.fn(() => ({
+    default: vi.fn(function () { return {
         zoom: vi.fn(),
-        getZoom: vi.fn(() => 1),
-        getPan: vi.fn(() => ({ x: 0, y: 0 })),
+        getZoom: vi.fn(function () { return 1; }),
+        getPan: vi.fn(function () { return { x: 0, y: 0 }; }),
         pan: vi.fn(),
         resetZoom: vi.fn(),
         resetPan: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock('svg-pan-zoom', () => ({
         disablePan: vi.fn(),
         disableZoom: vi.fn(),
         destroy: vi.fn(),
-    }))
+    }; })
 }))
 
 // Create a mock SVG element
