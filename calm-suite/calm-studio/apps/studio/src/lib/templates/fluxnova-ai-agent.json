@@ -33,7 +33,8 @@
           "description": "All AI agent task dispatches, LLM calls, guardrail verdicts, and tool invocations are recorded in an immutable audit log",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -114,7 +115,8 @@
           "description": "AI agent operates with least-privilege tool access — only tools explicitly granted per process definition are callable",
           "requirements": [
             {
-              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-18"
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-18",
+              "config-url": "https://air-governance-framework.finos.org/mitigations/mi-18/config.json"
             }
           ]
         }
@@ -130,7 +132,8 @@
           "description": "LLM model version is pinned to a specific checkpoint — no automatic model upgrades without governance review and regression testing",
           "requirements": [
             {
-              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-10"
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-10",
+              "config-url": "https://air-governance-framework.finos.org/mitigations/mi-10/config.json"
             }
           ]
         }

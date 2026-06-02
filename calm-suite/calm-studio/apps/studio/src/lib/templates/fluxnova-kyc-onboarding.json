@@ -33,7 +33,8 @@
           "description": "All process execution events, variable changes, task assignments, and decision outcomes are recorded in an immutable audit log for regulatory compliance",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -146,7 +147,8 @@
           "description": "Processes personally identifiable information including identity documents, biometric data, and government IDs — classified as PII",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/data-classification"
+              "requirement-url": "https://calm.finos.org/core-concepts/data-classification",
+              "config-url": "https://calm.finos.org/core-concepts/data-classification/config.json"
             }
           ]
         },
@@ -154,7 +156,8 @@
           "description": "All verification requests, results, and third-party API calls are logged for regulatory audit trail",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -177,7 +180,8 @@
           "description": "All sanctions and PEP screening queries, match results, and investigation outcomes are logged for regulatory compliance",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -200,7 +204,8 @@
           "description": "All risk scoring inputs, decision table evaluations, and output categories are logged with full decision rationale",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -224,7 +229,8 @@
           "description": "Stores and manages personally identifiable documents including passports, driving licenses, and proof of address — classified as PII",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/data-classification"
+              "requirement-url": "https://calm.finos.org/core-concepts/data-classification",
+              "config-url": "https://calm.finos.org/core-concepts/data-classification/config.json"
             }
           ]
         },
@@ -232,7 +238,8 @@
           "description": "All stored documents are encrypted at rest using AES-256 to protect PII",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -282,7 +289,8 @@
           "description": "Contains personally identifiable information including customer identity data, verification results, and compliance decisions — classified as PII",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/data-classification"
+              "requirement-url": "https://calm.finos.org/core-concepts/data-classification",
+              "config-url": "https://calm.finos.org/core-concepts/data-classification/config.json"
             }
           ]
         },
@@ -290,7 +298,8 @@
           "description": "All PII data is encrypted at rest using AES-256 with key management via HSM",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         },
@@ -298,7 +307,8 @@
           "description": "Database access restricted to authorized KYC services only via role-based access control and network segmentation",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -337,7 +347,8 @@
           "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption/config.json"
             }
           ]
         }
@@ -470,7 +481,8 @@
           "description": "All verification task dispatches, completions, and SLA breach escalations are audit-logged",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -495,7 +507,8 @@
           "description": "All screening task dispatches, match results, and routing decisions are audit-logged",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -520,7 +533,8 @@
           "description": "All risk scoring inputs, DMN decision table evaluations, and category outputs are audit-logged with full rationale",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -545,7 +559,8 @@
           "description": "PII document transfers use TLS 1.3 encryption in transit",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -585,7 +600,8 @@
           "description": "All client data persistence and account provisioning events are audit-logged",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -610,7 +626,8 @@
           "description": "PII data transfers to database use TLS-encrypted JDBC",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -635,7 +652,8 @@
           "description": "Screening result transfers to database use TLS-encrypted JDBC",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -675,7 +693,8 @@
           "description": "PII document metadata transfers to database use TLS-encrypted JDBC",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -715,7 +734,8 @@
           "description": "External API calls carrying PII use mTLS for mutual authentication and encryption",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         },
@@ -723,7 +743,8 @@
           "description": "All external IDV API calls and responses are logged for compliance audit trail",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -748,7 +769,8 @@
           "description": "External watchlist API calls use TLS 1.3 encryption for data protection",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         },
@@ -756,7 +778,8 @@
           "description": "All sanctions screening queries and results are logged for regulatory compliance",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }

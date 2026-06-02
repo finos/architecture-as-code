@@ -33,7 +33,8 @@
           "description": "All risk calculation dispatches, results, and exceptions are recorded in an immutable audit log",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -115,7 +116,8 @@
           "description": "Risk computation results are classified Confidential — position data, P&L, and risk factors must not leave the secure perimeter",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification/config.json"
             }
           ]
         }
@@ -139,7 +141,8 @@
           "description": "Cloud risk computations handle Confidential position data — encryption in transit and at rest is mandatory",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification/config.json"
             }
           ]
         },
@@ -147,7 +150,8 @@
           "description": "All position data sent to cloud compute is encrypted in transit using TLS 1.3 minimum",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#cloud-encryption"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#cloud-encryption",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#cloud-encryption/config.json"
             }
           ]
         }
