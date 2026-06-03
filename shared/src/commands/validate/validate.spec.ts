@@ -693,8 +693,27 @@ describe('validate - architecture only', () => {
             getSchema: vi.fn().mockResolvedValue({}),
             getLoadedSchemas: vi.fn().mockReturnValue([
                 'https://calm.finos.org/release/1.0/meta/core.json',
+                'https://calm.finos.org/release/1.10/meta/core.json',
                 'https://calm.finos.org/release/1.2/meta/core.json',
                 'https://calm.finos.org/release/1.1/meta/core.json',
+            ]),
+            getAllSchemas: vi.fn(),
+        } as unknown as SchemaDirectory;
+
+        const dummyArchitecture = { dummy: 'architecture' };
+        await validate(dummyArchitecture, undefined, undefined, schemaDirectory, debugDisabled);
+
+        // 1.10 > 1.2 numerically — lexicographic sort would incorrectly pick 1.9 or 1.2
+        expect(schemaDirectory.getSchema).toHaveBeenCalledWith('https://calm.finos.org/release/1.10/meta/core.json');
+    });
+
+    it('prefers release over draft when both are loaded', async () => {
+        mocks.spectralRun.mockReturnValue([]);
+        schemaDirectory = {
+            getSchema: vi.fn().mockResolvedValue({}),
+            getLoadedSchemas: vi.fn().mockReturnValue([
+                'https://calm.finos.org/draft/2026-03/meta/core.json',
+                'https://calm.finos.org/release/1.2/meta/core.json',
             ]),
             getAllSchemas: vi.fn(),
         } as unknown as SchemaDirectory;

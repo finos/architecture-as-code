@@ -227,7 +227,7 @@ async function validatePatternOnly(pattern: object, schemaDirectory: SchemaDirec
  * @param debug - Whether to log at debug level.
  * @returns the validation outcome with the results of the spectral and JSON schema validations.
  **/
-async function validateArchitectureOnly(architecture: object, schemaDirectory: SchemaDirectory, debug: boolean): Promise<ValidationOutcome> {
+async function validateArchitectureOnly(architecture: object, schemaDirectory: SchemaDirectory | undefined, debug: boolean): Promise<ValidationOutcome> {
     logger.debug('Pattern was not provided, validating Architecture against the most recent loaded CALM core schema');
 
     const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture, 'architecture');
@@ -236,7 +236,7 @@ async function validateArchitectureOnly(architecture: object, schemaDirectory: S
     let errors = spectralResultForArchitecture.errors;
     const warnings = spectralResultForArchitecture.warnings;
 
-    const coreSchemaUrl = findLatestCalmCoreSchemaUrl(schemaDirectory);
+    const coreSchemaUrl = schemaDirectory ? findLatestCalmCoreSchemaUrl(schemaDirectory) : undefined;
     if (!coreSchemaUrl) {
         logger.warn('No CALM core schema found in schema directory — skipping JSON schema validation');
     } else {
@@ -267,17 +267,44 @@ async function validateArchitectureOnly(architecture: object, schemaDirectory: S
 
 /**
  * Finds the URL of the most recent CALM core schema loaded in the schema directory.
- * Schemas are sorted descending by URL, so release versions rank above draft (r > d)
- * and higher release numbers rank above lower ones (1.2 > 1.1 > 1.0).
+ *
+ * Precedence rules (highest first):
+ *   1. release > draft  (a final release outranks an in-progress draft)
+ *   2. Within release: higher version numbers win, compared numerically segment by
+ *      segment so that 1.10 > 1.9 > 1.2 (lexicographic sort would get this wrong).
+ *   3. Within draft: the same numeric segment comparison applies.
+ *
  * Returns undefined if no CALM core schema is loaded.
  */
 function findLatestCalmCoreSchemaUrl(schemaDirectory: SchemaDirectory): string | undefined {
     const coreSchemaPattern = /calm\.finos\.org\/.*\/meta\/core\.json$/;
     const matches = schemaDirectory.getLoadedSchemas()
-        .filter(id => coreSchemaPattern.test(id))
-        .sort()
-        .reverse();
-    return matches[0];
+        .filter(id => coreSchemaPattern.test(id));
+
+    if (matches.length === 0) return undefined;
+
+    return matches.sort((a, b) => {
+        const isRelease = (url: string) => url.includes('/release/');
+        if (isRelease(a) !== isRelease(b)) {
+            return isRelease(a) ? -1 : 1; // release first
+        }
+        return compareVersionSegments(a, b);
+    })[0];
+}
+
+function compareVersionSegments(a: string, b: string): number {
+    const versionPattern = /\/(\d+[\d.-]*)\/meta\/core\.json$/;
+    const parseSegments = (url: string) =>
+        (versionPattern.exec(url)?.[1] ?? '0').split(/[.-]/).map(Number);
+
+    const segA = parseSegments(a);
+    const segB = parseSegments(b);
+    const len = Math.max(segA.length, segB.length);
+    for (let i = 0; i < len; i++) {
+        const diff = (segB[i] ?? 0) - (segA[i] ?? 0);
+        if (diff !== 0) return diff;
+    }
+    return 0;
 }
 
 /**

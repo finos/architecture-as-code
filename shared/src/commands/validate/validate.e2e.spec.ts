@@ -257,6 +257,7 @@ describe('validate E2E', () => {
 
             const response = await validate(validArch, undefined, undefined, schemaDirectory, false);
 
+            expect(response.hasErrors).toBeFalsy();
             expect(response.jsonSchemaValidationOutputs.length).toBe(0);
         });
     });
