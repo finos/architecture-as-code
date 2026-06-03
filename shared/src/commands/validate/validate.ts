@@ -272,6 +272,11 @@ async function validateArchitectureOnly(architecture: object, schemaDirectory: S
  * numeric-aware locale sort so that 1.10 > 1.9 > 1.2 (lexicographic order
  * would get this wrong).
  *
+ * Note: localeCompare with { numeric: true } treats runs of digits as numbers,
+ * which works correctly for all current CALM version formats (1.x, 2026-03).
+ * A version segment containing non-numeric characters (e.g. 1.2-beta) could
+ * sort unexpectedly — if pre-release versions are ever published, revisit this.
+ *
  * Returns undefined if no CALM core schema is loaded.
  */
 function findLatestCalmCoreSchemaUrl(schemaDirectory: SchemaDirectory): string | undefined {

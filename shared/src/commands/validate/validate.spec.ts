@@ -723,6 +723,17 @@ describe('validate - architecture only', () => {
 
         expect(schemaDirectory.getSchema).toHaveBeenCalledWith('https://calm.finos.org/release/1.2/meta/core.json');
     });
+
+    it('skips JSON schema validation and runs Spectral when schemaDirectory is undefined', async () => {
+        mocks.spectralRun.mockReturnValue([]);
+
+        const dummyArchitecture = { dummy: 'architecture' };
+        const response = await validate(dummyArchitecture, undefined, undefined, undefined, debugDisabled);
+
+        expect(response.hasErrors).toBeFalsy();
+        expect(response.jsonSchemaValidationOutputs.length).toBe(0);
+        expect(mocks.jsonSchemaValidatorConstructor).not.toHaveBeenCalled();
+    });
 });
 
 describe('validate timeline and schema', () => {
