@@ -73,7 +73,7 @@ public class TimelineResource {
             summary = "Create timeline for namespace",
             description = "Creates a timeline for a given namespace with an allocated ID and version 1.0.0"
     )
-    @PermissionsAllowed(CalmHubScopes.READ)
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createTimelineForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @Valid @NotNull(message = "Request must not be null") CreateTimelineRequest timelineRequest
