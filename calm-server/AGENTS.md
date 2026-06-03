@@ -8,7 +8,8 @@ The calm-server provides:
 
 - **Bundled CALM Schemas** - All CALM schemas (release and draft) are bundled during build
 - **Health Check Endpoint** (`/health`) - Status endpoint for monitoring
-- **Validation Endpoint** (`/calm/validate`) - POST endpoint for validating CALM architectures
+- **Validation Endpoint** (`/calm/validate`) - POST endpoint for validating CALM architectures against the pre-loaded patterns
+- **Validation Endpoint With Pattern** (`/calm/validate/with-pattern`) - POST endpoint for validating CALM architectures against a pattern provided at runtime. The pattern must include a `$id` field that matches the architecture's `$schema` field
 - **Rate Limiting** - Protects against abuse with 100 requests per 15 minutes per IP
 
 ## Project Structure
@@ -22,7 +23,7 @@ calm-server/
 │   │   └── routes/
 │   │       ├── routes.ts           # Router setup
 │   │       ├── health-route.ts     # Health check endpoint
-│   │       └── validation-route.ts # Architecture validation endpoint
+│   │       └── validation-route.ts # Architecture validation endpoints (/calm/validate, /calm/validate/with-pattern)
 │   └── *.spec.ts                   # Unit tests
 ├── dist/
 │   ├── index.js                    # Compiled executable
@@ -122,6 +123,18 @@ kill $SERVER_PID
 curl -X POST http://localhost:3000/calm/validate \
   -H "Content-Type: application/json" \
   -d '{"architecture": "{\"$schema\": \"https://...\"...}"}'
+```
+
+### Test the validation endpoint with pattern
+```bash
+# With a CALM architecture and pattern JSON
+# The architecture's $schema must match the pattern's $id
+curl -X POST http://localhost:3000/calm/validate/with-pattern \
+  -H "Content-Type: application/json" \
+  -d '{
+    "architecture": "{\"$schema\": \"https://example.com/schema\", \"nodes\": []}",
+    "pattern": "{\"$id\": \"https://example.com/schema\", \"type\": \"object\"}"
+  }'
 ```
 
 ## Dependencies

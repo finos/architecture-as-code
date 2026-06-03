@@ -81,6 +81,16 @@ curl -X POST http://localhost:3000/calm/validate \
   }'
 ```
 
+### Validate Architecture against a Pattern
+
+Validate a CALM architecture document against a pattern:
+
+```bash
+curl -X POST http://localhost:3000/calm/validate/with-pattern \
+  -H "Content-Type: application/json" \
+  -d @calm-server/test_fixtures/validation_route/valid_instantiation_with_pattern.json
+```
+
 Response (success):
 ```json
 {

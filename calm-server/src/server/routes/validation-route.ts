@@ -27,6 +27,7 @@ export class ValidationRouter {
 
     private initializeRoutes(router: Router) {
         router.post('/', this.validateSchema);
+        router.post('/with-pattern', this.validateWithPattern);
     }
 
     private async ensureSchemasLoaded() {
@@ -78,7 +79,59 @@ export class ValidationRouter {
             const outcome = await validate(architecture, foundSchema, undefined, this.schemaDirectory, true);
             return res.status(201).type('json').send(outcome);
         } catch (error) {
-            return res.status(500).type('json').send(new ErrorResponse(error.message));
+            this.logger.error('Failed to validate architecture: ' + error);
+            return res.status(500).type('json').send(new ErrorResponse('Failed to validate architecture'));
+        }
+    };
+
+    private validateWithPattern = async (
+        req: Request<Record<string, never>, ValidationOutcome | ErrorResponse, ValidationWithPatternRequest>,
+        res: Response<ValidationOutcome | ErrorResponse>
+    ) => {
+        let architecture;
+        try {
+            architecture = JSON.parse(req.body.architecture);
+        } catch (error) {
+            this.logger.error('Invalid JSON format for architecture ' + error);
+            return res.status(400).type('json').send(new ErrorResponse('Invalid JSON format for architecture'));
+        }
+
+        let pattern;
+        try {
+            pattern = JSON.parse(req.body.pattern);
+        } catch (error) {
+            this.logger.error('Invalid JSON format for pattern ' + error);
+            return res.status(400).type('json').send(new ErrorResponse('Invalid JSON format for pattern'));
+        }
+
+        const schema = architecture['$schema'];
+        if (!schema) {
+            return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
+        }
+        
+        const patternId = pattern['$id'];
+        if (!patternId) {
+            return res.status(400).type('json').send(new ErrorResponse('The "$id" field is missing from the provided pattern'));
+        }
+
+        if (schema !== patternId) {
+            this.logger.error(`The "$schema" field (${schema}) in the architecture does not match the "$id" field (${patternId}) in the pattern`);
+            return res.status(400).type('json').send(new ErrorResponse(`The "$schema" field (${schema}) in the architecture does not match the "$id" field (${patternId}) in the pattern`));
+        }
+
+        try {
+            await this.ensureSchemasLoaded();
+        } catch (error) {
+            this.logger.error('Failed to load schemas: ' + error);
+            return res.status(500).type('json').send(new ErrorResponse('Failed to load schemas'));
+        }
+
+        try {
+            const outcome = await validate(architecture, pattern, undefined, this.schemaDirectory, true);
+            return res.status(201).type('json').send(outcome);
+        } catch (error) {
+            this.logger.error('Failed to validate architecture against pattern: ' + error);
+            return res.status(500).type('json').send(new ErrorResponse('Failed to validate architecture against pattern'));
         }
     };
 }
@@ -91,5 +144,10 @@ class ErrorResponse {
 }
 
 class ValidationRequest {
-    architecture: string;
+    architecture!: string;
+}
+
+class ValidationWithPatternRequest {
+    architecture!: string;
+    pattern!: string;
 }
