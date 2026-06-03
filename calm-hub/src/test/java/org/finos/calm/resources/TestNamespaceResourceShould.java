@@ -170,6 +170,34 @@ public class TestNamespaceResourceShould {
     }
 
     @Test
+    void return_400_when_namespace_is_the_reserved_GLOBAL_name() throws NamespaceAlreadyExistsException {
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"GLOBAL\",\"description\":\"desc\"}")
+                .when()
+                .post("/calm/namespaces")
+                .then()
+                .statusCode(400)
+                .body(containsString("reserved"));
+
+        verify(namespaceStore, never()).createNamespace(any(), any());
+    }
+
+    @Test
+    void return_400_when_namespace_is_reserved_GLOBAL_name_case_insensitive() throws NamespaceAlreadyExistsException {
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"global\",\"description\":\"desc\"}")
+                .when()
+                .post("/calm/namespaces")
+                .then()
+                .statusCode(400)
+                .body(containsString("reserved"));
+
+        verify(namespaceStore, never()).createNamespace(any(), any());
+    }
+
+    @Test
     void return_409_when_namespace_already_exists() throws NamespaceAlreadyExistsException {
         doThrow(new NamespaceAlreadyExistsException("Namespace already exists: existing-namespace"))
                 .when(namespaceStore).createNamespace("existing-namespace", "desc");

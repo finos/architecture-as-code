@@ -67,6 +67,12 @@ public class DomainResource {
     public Response createDomain(@Valid @NotNull(message = "Request must not be null") Domain domain) {
         String domainName = domain.getName();
 
+        if ("GLOBAL".equalsIgnoreCase(domainName)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\":\"'GLOBAL' is a reserved domain name\"}")
+                    .build();
+        }
+
         try {
             store.createDomain(domainName);
         } catch (DomainAlreadyExistsException e) {

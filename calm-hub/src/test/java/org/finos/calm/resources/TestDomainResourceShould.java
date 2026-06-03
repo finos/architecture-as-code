@@ -88,6 +88,32 @@ public class TestDomainResourceShould {
     }
 
     @Test
+    void return_400_when_domain_name_is_the_reserved_GLOBAL_name() throws DomainAlreadyExistsException {
+        given()
+                .header("Content-Type", "application/json")
+                .body(new Domain("GLOBAL"))
+                .when().post(CALM_DOMAINS)
+                .then()
+                .statusCode(400)
+                .body(containsString("reserved"));
+
+        verify(mockControlStore, never()).createDomain(any());
+    }
+
+    @Test
+    void return_400_when_domain_name_is_reserved_GLOBAL_case_insensitive() throws DomainAlreadyExistsException {
+        given()
+                .header("Content-Type", "application/json")
+                .body(new Domain("global"))
+                .when().post(CALM_DOMAINS)
+                .then()
+                .statusCode(400)
+                .body(containsString("reserved"));
+
+        verify(mockControlStore, never()).createDomain(any());
+    }
+
+    @Test
     void create_a_domain_that_already_exists_returns_a_409() throws DomainAlreadyExistsException {
         Domain expectedDomain = new Domain(TEST_DOMAIN);
         when(mockControlStore.createDomain("test-domain")).thenThrow(new DomainAlreadyExistsException("Domain already exists"));

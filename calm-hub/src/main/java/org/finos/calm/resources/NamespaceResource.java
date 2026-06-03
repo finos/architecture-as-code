@@ -52,6 +52,12 @@ public class NamespaceResource {
         String name = request.getName().trim();
         String description = request.getDescription().trim();
 
+        if ("GLOBAL".equalsIgnoreCase(name)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\":\"'GLOBAL' is a reserved namespace name\"}")
+                    .build();
+        }
+
         try {
             namespaceStore.createNamespace(name, description);
         } catch (NamespaceAlreadyExistsException e) {
