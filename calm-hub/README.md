@@ -138,7 +138,7 @@ From the `calm-hub` directory
 
 ### Secure profile
 
-There are two secure profiles, `secure` and `proxy`.
+There are two secure profiles, `secure` and `proxy-auth`.
 Using either will enable entitlements driven by the database.
 
 The two modes are slightly different:
@@ -167,7 +167,7 @@ The IdP will most likely be managed by your organisation in an enterprise enviro
 
 However, for local testing and development purposes, CalmHub includes a simple pre-configured IdP, Keycloak, that you can spin up locally to simulate a real IdP.
 
-The following sections descibe how to start Keycloak, and how to configure CalmHub to use it correctly.
+The following sections describe how to start Keycloak, and how to configure CalmHub to use it correctly.
 
 #### Launch keycloak
 
