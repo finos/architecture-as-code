@@ -1,12 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getEntry } from 'astro:content';
+import { getEntry, render } from 'astro:content';
 
 const entry = await getEntry('days', 'setup');
 if (!entry) {
   throw new Error('Setup content not found');
 }
-const { Content } = await entry.render();
+const { Content } = await render(entry);
 ---
 
 <Layout title="Setup - Keeping Your CALM Tools Up to Date" description="Learn how to keep your CALM CLI, VS Code Extension, and Copilot Agent up to date">

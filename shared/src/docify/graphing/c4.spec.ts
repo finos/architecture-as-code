@@ -93,6 +93,74 @@ describe('C4Model', () => {
         expect(model.graph).toBeDefined();
     });
 
+    it('warns and skips relationships referencing unknown nodes', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        const knownNode = CalmNode.fromSchema({
+            'unique-id': 'svc-a',
+            'node-type': 'service',
+            name: 'Service A',
+            description: 'present',
+        });
+
+        // interacts: unknown actor
+        const danglingInteractsActor = CalmRelationship.fromSchema({
+            'unique-id': 'rel-int-1',
+            description: 'unknown actor',
+            'relationship-type': { interacts: { actor: 'ghost-actor', nodes: ['svc-a'] } },
+            metadata: [{}],
+        });
+        // interacts: known actor, unknown target node
+        const danglingInteractsNode = CalmRelationship.fromSchema({
+            'unique-id': 'rel-int-2',
+            description: 'unknown target',
+            'relationship-type': { interacts: { actor: 'svc-a', nodes: ['ghost-target'] } },
+            metadata: [{}],
+        });
+        // connects: unknown source
+        const danglingConnectsSource = CalmRelationship.fromSchema({
+            'unique-id': 'rel-conn-1',
+            description: 'unknown source',
+            'relationship-type': {
+                connects: {
+                    source: { node: 'ghost-source', interfaces: [] },
+                    destination: { node: 'svc-a', interfaces: [] },
+                },
+            },
+            metadata: [{}],
+        });
+        // connects: unknown destination
+        const danglingConnectsDest = CalmRelationship.fromSchema({
+            'unique-id': 'rel-conn-2',
+            description: 'unknown destination',
+            'relationship-type': {
+                connects: {
+                    source: { node: 'svc-a', interfaces: [] },
+                    destination: { node: 'ghost-destination', interfaces: [] },
+                },
+            },
+            metadata: [{}],
+        });
+
+        const arch = CalmCore.fromSchema({
+            nodes: [knownNode.toSchema()],
+            relationships: [
+                danglingInteractsActor.toSchema(),
+                danglingInteractsNode.toSchema(),
+                danglingConnectsSource.toSchema(),
+                danglingConnectsDest.toSchema(),
+            ],
+            metadata: [{}],
+        });
+
+        const model = new C4Model(arch);
+
+        // None of these dangling relationships should appear in the model.
+        expect(model.relationships).toEqual([]);
+        expect(warnSpy).toHaveBeenCalled();
+        warnSpy.mockRestore();
+    });
+
     it('should filter out connects relationships between System boundaries', () => {
         // Create nodes where some will become System boundaries
         const system1Node = CalmNode.fromSchema({

@@ -12,7 +12,7 @@ let schemaDirectory: SchemaDirectory = {
 const mocks = vi.hoisted(() => ({
     jsonSchemaValidate: vi.fn().mockReturnValue([]), // default: always valid
     spectralRun: vi.fn(),
-    jsonSchemaValidatorConstructor: vi.fn().mockImplementation(() => {
+    jsonSchemaValidatorConstructor: vi.fn().mockImplementation(function () {
         return {
             validate: mocks.jsonSchemaValidate,
             initialize: vi.fn().mockResolvedValue(undefined), // Mock initialize to resolve immediately
@@ -24,7 +24,7 @@ vi.mock('@stoplight/spectral-core', async () => {
     const spectralCore = await vi.importActual('@stoplight/spectral-core');
     return {
         ...spectralCore,
-        Spectral: vi.fn().mockImplementation(() => {
+        Spectral: vi.fn().mockImplementation(function () {
             return {
                 run: mocks.spectralRun,
                 setRuleset: () => { },
@@ -60,7 +60,7 @@ describe('validation support functions', () => {
 
         beforeEach(() => {
             mockExit = vi.spyOn(process, 'exit')
-                .mockImplementation((code?) => {
+                .mockImplementation(function (code?) {
                     if (code != 0) {
                         throw new Error();
                     }
@@ -70,7 +70,7 @@ describe('validation support functions', () => {
 
         it('exit based off of validation outcomes - non-zero outcome if error', () => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            mockExit = vi.spyOn(process, 'exit').mockImplementation((code?) => undefined as never);
+            mockExit = vi.spyOn(process, 'exit').mockImplementation(function (code?) { return undefined as never; });
             const expectedValidationOutcome: ValidationOutcome = new ValidationOutcome([], [], true, false);
             exitBasedOffOfValidationOutcome(expectedValidationOutcome, false);
             expect(mockExit).toHaveBeenCalledWith(1);
@@ -84,7 +84,7 @@ describe('validation support functions', () => {
 
         it('exit based off of validation outcomes - non-zero outcome if warning but failOnWarnings set to true', () => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            mockExit = vi.spyOn(process, 'exit').mockImplementation((code?) => undefined as never);
+            mockExit = vi.spyOn(process, 'exit').mockImplementation(function (code?) { return undefined as never; });
             const expectedValidationOutcome: ValidationOutcome = new ValidationOutcome([], [], false, true);
             exitBasedOffOfValidationOutcome(expectedValidationOutcome, true);
             expect(mockExit).toHaveBeenCalledWith(1);
@@ -443,7 +443,7 @@ describe('validate pattern and architecture', () => {
         // Use dummy objects
         const dummyPattern = { dummy: 'pattern' };
         const dummyArchitecture = { dummy: 'architecture' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(dummyArchitecture, dummyPattern, undefined, schemaDirectory, debugDisabled);
 
@@ -472,7 +472,7 @@ describe('validate pattern and architecture', () => {
         // Use dummy objects
         const dummyPattern = { dummy: 'pattern' };
         const dummyArchitecture = { dummy: 'architecture' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(dummyArchitecture, dummyPattern, undefined, schemaDirectory, debugDisabled);
 
@@ -501,7 +501,7 @@ describe('validate pattern and architecture', () => {
         // Use dummy objects
         const dummyPattern = { dummy: 'pattern' };
         const dummyArchitecture = { dummy: 'architecture' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(dummyArchitecture, dummyPattern, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
@@ -529,7 +529,7 @@ describe('validate pattern and architecture', () => {
         // Use dummy objects
         const dummyPattern = { dummy: 'pattern' };
         const dummyArchitecture = { dummy: 'architecture' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(dummyArchitecture, dummyPattern, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
@@ -548,7 +548,7 @@ describe('validate pattern only', () => {
             getAllSchemas: vi.fn(),
         } as unknown as SchemaDirectory;
         mocks.jsonSchemaValidatorConstructor.mockReset()
-            .mockImplementation(() => {
+            .mockImplementation(function () {
                 return {
                     validate: mocks.jsonSchemaValidate,
                     initialize: vi.fn().mockResolvedValue(undefined), // Mock initialize to resolve immediately
@@ -571,7 +571,7 @@ describe('validate pattern only', () => {
 
         // Use dummy object
         const dummyPattern = { dummy: 'pattern' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(undefined, dummyPattern, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
@@ -585,7 +585,7 @@ describe('validate pattern only', () => {
         mocks.spectralRun.mockReturnValue([]);
 
         // Mock JsonSchemaValidator constructor to throw when compiling the pattern
-        mocks.jsonSchemaValidatorConstructor.mockImplementation(() => {
+        mocks.jsonSchemaValidatorConstructor.mockImplementation(function () {
             throw new Error('Pattern schema is invalid');
         });
 
@@ -624,7 +624,7 @@ describe('validate - architecture only', () => {
 
         // Use dummy object
         const dummyPattern = { dummy: 'pattern' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(dummyPattern, undefined, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
@@ -641,7 +641,7 @@ describe('validate - architecture only', () => {
 
         // Use dummy object
         const dummyPattern = { dummy: 'pattern' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(dummyPattern, undefined, undefined, schemaDirectory, debugDisabled);
 
@@ -658,7 +658,7 @@ describe('validate timeline and schema', () => {
     beforeEach(() => {
         mocks.jsonSchemaValidate.mockReset().mockReturnValue([]); // default: always valid
         mocks.jsonSchemaValidatorConstructor.mockReset()
-            .mockImplementation(() => {
+            .mockImplementation(function () {
                 return {
                     validate: mocks.jsonSchemaValidate,
                     initialize: vi.fn().mockResolvedValue(undefined), // Mock initialize to resolve immediately
@@ -704,7 +704,7 @@ describe('validate timeline and schema', () => {
         // Use dummy objects
         const dummySchema = { dummy: 'schema' };
         const dummyTimeline = { dummy: 'timeline' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(undefined, dummySchema, dummyTimeline, schemaDirectory, debugDisabled);
 
@@ -733,7 +733,7 @@ describe('validate timeline and schema', () => {
         // Use dummy objects
         const dummySchema = { dummy: 'schema' };
         const dummyTimeline = { dummy: 'timeline' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(undefined, dummySchema, dummyTimeline, schemaDirectory, debugDisabled);
 
@@ -762,7 +762,7 @@ describe('validate timeline and schema', () => {
         // Use dummy objects
         const dummySchema = { dummy: 'schema' };
         const dummyTimeline = { dummy: 'timeline' };
-        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+        schemaDirectory.getSchema = vi.fn(function () { return Promise.resolve({}); });
 
         const response = await validate(undefined, dummySchema, dummyTimeline, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();

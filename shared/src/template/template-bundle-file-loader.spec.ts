@@ -19,11 +19,11 @@ describe('TemplateBundleFileLoader', () => {
     });
 
     it('should load index.json and template files correctly', () => {
-        (fs.existsSync as Mock).mockImplementation((filePath) => {
+        (fs.existsSync as Mock).mockImplementation(function (filePath) {
             return filePath === mockIndexJsonPath || Object.keys(mockTemplateFiles).includes(path.basename(filePath));
         });
 
-        (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
+        (fs.readFileSync as Mock).mockImplementation(function (filePath: string) {
             if (filePath === mockIndexJsonPath) {
                 return JSON.stringify({
                     name: 'mock-template',
@@ -71,8 +71,8 @@ describe('TemplateBundleFileLoader', () => {
     });
 
     it('should return an empty object if no template files exist', () => {
-        (fs.existsSync as Mock).mockImplementation((filePath) => filePath === mockIndexJsonPath);
-        (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
+        (fs.existsSync as Mock).mockImplementation(function (filePath) { return filePath === mockIndexJsonPath; });
+        (fs.readFileSync as Mock).mockImplementation(function (filePath: string) {
             if (filePath === mockIndexJsonPath) {
                 return JSON.stringify({
                     name: 'mock-template',
@@ -237,7 +237,7 @@ widget-options:
         vi.resetAllMocks();
 
         (fs.readdirSync as Mock).mockReturnValue(files);
-        (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
+        (fs.readFileSync as Mock).mockImplementation(function (filePath: string) {
             const fileName = path.basename(filePath);
             return fileContents[fileName] || '';
         });

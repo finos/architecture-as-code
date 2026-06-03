@@ -75,7 +75,7 @@ describe('file-types', () => {
             })
 
             it('should handle file read errors gracefully', () => {
-                vi.mocked(fs.readFileSync).mockImplementation(() => {
+                vi.mocked(fs.readFileSync).mockImplementation(function () {
                     throw new Error('File not found')
                 })
 
@@ -127,7 +127,7 @@ describe('file-types', () => {
             })
 
             it('should return Other file type when parseFrontMatter throws', () => {
-                vi.mocked(parseFrontMatter).mockImplementation(() => {
+                vi.mocked(parseFrontMatter).mockImplementation(function () {
                     throw new Error('Invalid front matter')
                 })
 

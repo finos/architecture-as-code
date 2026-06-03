@@ -20,50 +20,50 @@ const { CALM_SCHEMA_URL_PATTERN } = vi.hoisted(() => ({
 // Mock vscode module
 vi.mock('vscode', () => ({
     languages: {
-        createDiagnosticCollection: vi.fn(() => ({
+        createDiagnosticCollection: vi.fn(function () { return {
             set: vi.fn(),
             delete: vi.fn(),
             clear: vi.fn(),
             dispose: vi.fn()
-        }))
+        }; })
     },
     workspace: {
-        onDidSaveTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
-        onDidCloseTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
-        onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
+        onDidSaveTextDocument: vi.fn(function () { return { dispose: vi.fn() }; }),
+        onDidCloseTextDocument: vi.fn(function () { return { dispose: vi.fn() }; }),
+        onDidChangeConfiguration: vi.fn(function () { return { dispose: vi.fn() }; }),
         textDocuments: [],
-        asRelativePath: vi.fn((uri: any) => typeof uri === 'string' ? uri : uri.fsPath),
+        asRelativePath: vi.fn(function (uri: any) { return typeof uri === 'string' ? uri : uri.fsPath; }),
         workspaceFolders: [{ uri: { fsPath: '/workspace' } }],
         fs: {
             readFile: vi.fn(),
-            readDirectory: vi.fn(() => Promise.resolve([]))
+            readDirectory: vi.fn(function () { return Promise.resolve([]); })
         }
     },
     Uri: {
-        file: vi.fn((path: string) => ({ fsPath: path })),
-        joinPath: vi.fn((_base: any, ...parts: string[]) => ({ fsPath: `/workspace/${parts.join('/')}` }))
+        file: vi.fn(function (path: string) { return { fsPath: path }; }),
+        joinPath: vi.fn(function (_base: any, ...parts: string[]) { return { fsPath: `/workspace/${parts.join('/')}` }; })
     },
     FileType: {
         File: 1,
         Directory: 2
     },
-    Diagnostic: vi.fn().mockImplementation((range, message, severity) => ({
+    Diagnostic: vi.fn().mockImplementation(function (range, message, severity) { return {
         range,
         message,
         severity,
         source: undefined,
         code: undefined
-    })),
+    }; }),
     DiagnosticSeverity: {
         Error: 0,
         Warning: 1,
         Information: 2,
         Hint: 3
     },
-    Range: vi.fn().mockImplementation((startLine, startChar, endLine, endChar) => ({
+    Range: vi.fn().mockImplementation(function (startLine, startChar, endLine, endChar) { return {
         start: { line: startLine, character: startChar },
         end: { line: endLine, character: endChar }
-    }))
+    }; })
 }))
 
 // Mock @finos/calm-shared
@@ -74,25 +74,25 @@ vi.mock('@finos/calm-shared', async () => {
         validate: vi.fn(),
         loadArchitectureAndPattern: vi.fn(),
         loadTimeline: vi.fn(),
-        SchemaDirectory: vi.fn().mockImplementation(() => ({
+        SchemaDirectory: vi.fn().mockImplementation(function () { return {
             loadSchemas: vi.fn()
-        })),
-        buildDocumentLoader: vi.fn(() => ({
+        }; }),
+        buildDocumentLoader: vi.fn(function () { return {
             loadMissingDocument: vi.fn(),
             initialise: vi.fn()
-        }))
+        }; })
     }
 })
 
 // Mock CalmSchemaRegistry
 vi.mock('../../core/services/calm-schema-registry', () => ({
-    CalmSchemaRegistry: vi.fn().mockImplementation(() => ({
+    CalmSchemaRegistry: vi.fn().mockImplementation(function () { return {
         initialize: vi.fn(),
         reset: vi.fn(),
-        isKnownCalmSchema: vi.fn((url: string) => CALM_SCHEMA_URL_PATTERN.test(url)),
+        isKnownCalmSchema: vi.fn(function (url: string) { return CALM_SCHEMA_URL_PATTERN.test(url); }),
         getSchemaPath: vi.fn(),
-        getRegisteredSchemaUrls: vi.fn(() => [])
-    }))
+        getRegisteredSchemaUrls: vi.fn(function () { return []; })
+    }; })
 }))
 
 // Mock detectCalmTimeline from model module (uses in-memory text, not filesystem)
@@ -121,13 +121,13 @@ describe('ValidationService', () => {
         }
 
         mockConfig = {
-            filesGlobs: vi.fn(() => ['calm/*.json', 'calm/**/*.json']),
-            templateGlobs: vi.fn(() => ['**/*.md']),
-            previewLayout: vi.fn(() => 'dagre'),
-            showLabels: vi.fn(() => true),
-            urlMapping: vi.fn(() => undefined),
-            schemaAdditionalFolders: vi.fn(() => []),
-            docifyTheme: vi.fn(() => 'auto')
+            filesGlobs: vi.fn(function () { return ['calm/*.json', 'calm/**/*.json']; }),
+            templateGlobs: vi.fn(function () { return ['**/*.md']; }),
+            previewLayout: vi.fn(function () { return 'dagre'; }),
+            showLabels: vi.fn(function () { return true; }),
+            urlMapping: vi.fn(function () { return undefined; }),
+            schemaAdditionalFolders: vi.fn(function () { return []; }),
+            docifyTheme: vi.fn(function () { return 'auto'; })
         }
 
         service = new ValidationService(mockLogger, mockConfig)

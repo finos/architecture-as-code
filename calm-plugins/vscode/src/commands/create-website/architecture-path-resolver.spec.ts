@@ -5,13 +5,13 @@ import { createMockWindow } from './test-utils'
 
 // Mock @finos/calm-shared
 vi.mock('@finos/calm-shared', () => ({
-    hasArchitectureExtension: vi.fn((filePath: string) => /\.json$/i.test(filePath))
+    hasArchitectureExtension: vi.fn(function (filePath: string) { return /\.json$/i.test(filePath); })
 }))
 
 // Mock vscode module
 vi.mock('vscode', () => ({
     commands: {
-        registerCommand: vi.fn((command: string, callback: Function) => {
+        registerCommand: vi.fn(function (command: string, callback: Function) {
             return { command, callback, dispose: vi.fn() }
         }),
         executeCommand: vi.fn()
