@@ -268,11 +268,9 @@ async function validateArchitectureOnly(architecture: object, schemaDirectory: S
 /**
  * Finds the URL of the most recent CALM core schema loaded in the schema directory.
  *
- * Precedence rules (highest first):
- *   1. release > draft  (a final release outranks an in-progress draft)
- *   2. Within release: higher version numbers win, compared numerically segment by
- *      segment so that 1.10 > 1.9 > 1.2 (lexicographic sort would get this wrong).
- *   3. Within draft: the same numeric segment comparison applies.
+ * Precedence: release > draft. Within each tier, URLs are compared with a
+ * numeric-aware locale sort so that 1.10 > 1.9 > 1.2 (lexicographic order
+ * would get this wrong).
  *
  * Returns undefined if no CALM core schema is loaded.
  */
@@ -285,26 +283,9 @@ function findLatestCalmCoreSchemaUrl(schemaDirectory: SchemaDirectory): string |
 
     return matches.sort((a, b) => {
         const isRelease = (url: string) => url.includes('/release/');
-        if (isRelease(a) !== isRelease(b)) {
-            return isRelease(a) ? -1 : 1; // release first
-        }
-        return compareVersionSegments(a, b);
+        if (isRelease(a) !== isRelease(b)) return isRelease(a) ? -1 : 1;
+        return b.localeCompare(a, undefined, { numeric: true });
     })[0];
-}
-
-function compareVersionSegments(a: string, b: string): number {
-    const versionPattern = /\/(\d+[\d.-]*)\/meta\/core\.json$/;
-    const parseSegments = (url: string) =>
-        (versionPattern.exec(url)?.[1] ?? '0').split(/[.-]/).map(Number);
-
-    const segA = parseSegments(a);
-    const segB = parseSegments(b);
-    const len = Math.max(segA.length, segB.length);
-    for (let i = 0; i < len; i++) {
-        const diff = (segB[i] ?? 0) - (segA[i] ?? 0);
-        if (diff !== 0) return diff;
-    }
-    return 0;
 }
 
 /**
