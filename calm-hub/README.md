@@ -214,18 +214,18 @@ at [http://localhost:8080/q/dev-ui](http://localhost:8080/q/dev-ui).
 
 #### Enabling / disabling
 
-The whole MCP surface is gated by a single config property (default `true`):
+MCP is an **experimental feature** and is disabled by default. `calm.mcp.enabled` gates **tool invocations** — when `false`, every `@Tool` method returns a disabled error to the MCP client. The `/mcp` HTTP endpoint itself remains reachable regardless of this flag; network-level controls or authentication are needed to restrict endpoint access.
 
 ```properties
-calm.mcp.enabled=true
+calm.mcp.enabled=false
 ```
 
-Disable it from the command line or environment:
+Enable it from the command line or environment:
 
 ```shell
-../mvnw quarkus:dev -Dcalm.mcp.enabled=false
+../mvnw quarkus:dev -Dcalm.mcp.enabled=true
 # or
-export CALM_MCP_ENABLED=false
+export CALM_MCP_ENABLED=true
 ```
 
 #### Exposing your local MCP via ngrok
@@ -249,7 +249,7 @@ local CalmHub:
 
 The ngrok URL changes each session unless you use a reserved domain.
 
-> **⚠ Security note** — under the default profile the MCP endpoint runs
+> **⚠ Security note** — when enabled, under the default profile the MCP endpoint runs
 > **without authentication**, the same as the default-profile REST API. The
 > `secure` profile enforces JWT authentication on `/mcp/*` (see
 > `application-secure.properties`), but does **not** yet apply per-tool
@@ -258,8 +258,8 @@ The ngrok URL changes each session unless you use a reserved domain.
 > follow-up. Exposing CalmHub through ngrok publishes the endpoint to the
 > public internet, so when demoing protect the tunnel with ngrok-side controls
 > (for example `ngrok http 8080 --basic-auth 'user:password'`, an OAuth edge,
-> or an IP allowlist), tear the tunnel down when you're done, or set
-> `calm.mcp.enabled=false` while the server is reachable.
+> or an IP allowlist), tear the tunnel down when you're done, or keep
+> `calm.mcp.enabled=false` (the default) while the server is reachable.
 
 ### Building for Deployment
 

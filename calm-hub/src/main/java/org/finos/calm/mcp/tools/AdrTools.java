@@ -38,7 +38,7 @@ public class AdrTools {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Inject
-    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
+    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "false")
     boolean mcpEnabled;
 
     @Inject
