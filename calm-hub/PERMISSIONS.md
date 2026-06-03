@@ -25,6 +25,9 @@ Please note that each entitlement implies all previous levels - i.e. `write` imp
 Some resources aren't tied to any one namespace.
 Creating namespaces and managing core schemas requires the `admin` role, with the namespace `GLOBAL` in the database.
 
+**NOTE**: Global admin also gives you the right to manage domains. 
+There's only one notion of global admin.
+
 ## Global READ mode
 
 It's possible to configure CalmHub to grant `read` to all users by default.
