@@ -319,6 +319,42 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
+    public void testGetPatternVersions_whenVersionsDocumentIsNull_throwsPatternNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document patternDoc = Document.createDocument().put("patternId", PATTERN_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace(NAMESPACE).setId(PATTERN_ID).build();
+
+        assertThrows(PatternNotFoundException.class, () -> patternStore.getPatternVersions(pattern));
+    }
+
+    @Test
+    public void testGetPatternForVersion_whenVersionsDocumentIsNull_throwsPatternVersionNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document patternDoc = Document.createDocument().put("patternId", PATTERN_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace(NAMESPACE).setId(PATTERN_ID).setVersion("1.0.0").build();
+
+        assertThrows(PatternVersionNotFoundException.class, () -> patternStore.getPatternForVersion(pattern));
+    }
+
+    @Test
     public void testGetPatternForVersion_whenVersionExists_returnsPatternJson() throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
         // Arrange
         Pattern pattern = new Pattern.PatternBuilder()
