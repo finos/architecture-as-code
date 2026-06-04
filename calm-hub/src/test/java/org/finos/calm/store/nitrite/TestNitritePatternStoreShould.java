@@ -495,6 +495,29 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
+    public void testCreatePatternForVersion_whenVersionsDocumentIsNull_throwsPatternNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document patternDoc = Document.createDocument().put("patternId", PATTERN_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1.0.0")
+                .setPattern(PATTERN_JSON)
+                .build();
+
+        assertThrows(PatternNotFoundException.class, () -> patternStore.createPatternForVersion(pattern));
+    }
+
+    @Test
     public void testCreatePatternForVersion_whenSuccess_returnsPattern() throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException {
         // Arrange
         Pattern pattern = new Pattern.PatternBuilder()
@@ -572,6 +595,29 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
 
         // Act & Assert
+        assertThrows(PatternNotFoundException.class, () -> patternStore.updatePatternForVersion(pattern));
+    }
+
+    @Test
+    public void testUpdatePatternForVersion_whenVersionsDocumentIsNull_throwsPatternNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document patternDoc = Document.createDocument().put("patternId", PATTERN_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1.0.0")
+                .setPattern(PATTERN_JSON)
+                .build();
+
         assertThrows(PatternNotFoundException.class, () -> patternStore.updatePatternForVersion(pattern));
     }
 

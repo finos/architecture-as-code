@@ -567,6 +567,29 @@ public class TestNitriteTimelineStoreShould {
     }
 
     @Test
+    public void testUpdateTimelineForVersion_whenVersionsDocumentIsNull_throwsTimelineNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document timelineDoc = Document.createDocument().put("timelineId", TIMELINE_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("timelines", List.of(timelineDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Timeline timeline = new Timeline.TimelineBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(TIMELINE_ID)
+                .setVersion(VERSION)
+                .setTimeline(VALID_JSON)
+                .build();
+
+        assertThrows(TimelineNotFoundException.class, () -> timelineStore.updateTimelineForVersion(timeline));
+    }
+
+    @Test
     public void testUpdateTimelineForVersion_whenValidParameters_returnsUpdatedTimeline() throws NamespaceNotFoundException, TimelineNotFoundException {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
