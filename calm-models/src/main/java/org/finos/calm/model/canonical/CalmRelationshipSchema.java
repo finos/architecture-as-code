@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.finos.calm.model.CalmProtocol;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmRelationshipSchema {
+public class CalmRelationshipSchema {
     @JsonProperty("unique-id") private String uniqueId;
     private String description;
     @JsonProperty("relationship-type") private CalmRelationshipTypeSchema relationshipType;

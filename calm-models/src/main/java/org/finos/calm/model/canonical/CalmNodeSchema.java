@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmNodeSchema {
+public class CalmNodeSchema {
     @JsonProperty("unique-id") private String uniqueId;
     @JsonProperty("node-type") private String nodeType;
     private String name;
