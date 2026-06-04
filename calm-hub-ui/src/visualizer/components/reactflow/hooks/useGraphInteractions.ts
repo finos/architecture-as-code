@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { Node, Edge, NodeChange } from 'reactflow';
-import { calculateGroupBounds } from '../utils/layoutUtils.js';
+import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';
 
 interface UseGraphInteractionsOptions {
     setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
@@ -28,35 +28,18 @@ export function useGraphInteractions({
         (changes: NodeChange[]) => {
             onNodesChangeBase(changes);
 
-            const hasPositionChanges = changes.some(
-                (change) => change.type === 'position' && change.dragging === false
-            );
+            // Reflow on every position change (during the drag, not just at the
+            // end) so containers resize live to keep their children enclosed on
+            // all sides. ReactFlow recomputes the dragged node's parent-relative
+            // position each frame, so shifting a container's origin mid-drag
+            // stays consistent with the pointer.
+            const hasPositionChanges = changes.some((change) => change.type === 'position');
 
             if (hasPositionChanges) {
-                setNodes((currentNodes) => {
-                    let updated = false;
-                    const newNodes = currentNodes.map((node) => {
-                        if (!isGroupType(node.type)) return node;
-                        const bounds = calculateGroupBounds(node.id, currentNodes);
-                        if (!bounds) return node;
-                        const currentWidth = (node.style?.width as number) || node.width || 0;
-                        const currentHeight = (node.style?.height as number) || node.height || 0;
-                        if (bounds.width !== currentWidth || bounds.height !== currentHeight) {
-                            updated = true;
-                            return {
-                                ...node,
-                                width: bounds.width,
-                                height: bounds.height,
-                                style: { ...node.style, width: bounds.width, height: bounds.height },
-                            };
-                        }
-                        return node;
-                    });
-                    return updated ? newNodes : currentNodes;
-                });
+                setNodes((currentNodes) => reflowContainersToFitChildren(currentNodes));
             }
         },
-        [onNodesChangeBase, setNodes, isGroupType]
+        [onNodesChangeBase, setNodes]
     );
 
     const handleNodeClick = useCallback(

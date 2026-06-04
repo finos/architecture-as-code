@@ -63,7 +63,7 @@ function createSystemNode(
             label: node.name || id,
             ...node,
         },
-        ...(parentId && { parentId, expandParent: true }),
+        ...(parentId && { parentId }),
     };
 }
 
@@ -86,7 +86,7 @@ function createRegularNode(
             ...node,
             onShowDetails: onShowDetailsCallback,
         },
-        ...(parentId && { parentId, expandParent: true }),
+        ...(parentId && { parentId }),
     };
 }
 
