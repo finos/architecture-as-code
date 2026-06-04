@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmArchitectureSchema {
+public class CalmArchitectureSchema {
     private List<CalmNodeSchema> nodes;
     private List<CalmRelationshipSchema> relationships;
     private List<CalmFlowSchema> flows;
