@@ -38,7 +38,11 @@ export function saveNodePositions(key: string, nodes: Node[]) {
 export function loadStoredNodePositions(key: string): StoredNodePosition[] | null {
     try {
         const data = localStorage.getItem(storageKeyFor(key));
-        return data ? (JSON.parse(data) as StoredNodePosition[]) : null;
+        if (!data) return null;
+        const parsed = JSON.parse(data);
+        // Guard against valid JSON of an unexpected shape (e.g. tampered or
+        // collided storage): only an array is usable downstream.
+        return Array.isArray(parsed) ? (parsed as StoredNodePosition[]) : null;
     } catch (err) {
         console.error('Failed to load node positions:', err);
         return null;

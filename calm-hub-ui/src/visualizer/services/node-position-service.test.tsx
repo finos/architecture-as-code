@@ -58,6 +58,11 @@ describe('node-position-service', () => {
             localStorage.setItem(`${STORAGE_PREFIX}${key}`, 'this is not json');
             expect(loadStoredNodePositions(key)).toBeNull();
         });
+
+        it('returns null for valid JSON that is not an array', () => {
+            localStorage.setItem(`${STORAGE_PREFIX}${key}`, '{"id":"node-1"}');
+            expect(loadStoredNodePositions(key)).toBeNull();
+        });
     });
 
     describe('applyStoredPositions', () => {
