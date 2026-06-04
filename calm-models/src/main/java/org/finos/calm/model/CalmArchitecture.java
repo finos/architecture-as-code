@@ -45,6 +45,19 @@ public final class CalmArchitecture {
         }
     }
 
+    public static CalmArchitecture parse(Object object) {
+        return parse(object, defaultMapper());
+    }
+
+    public static CalmArchitecture parse(Object object, ObjectMapper mapper) {
+        try {
+            CalmArchitectureSchema schema = mapper.convertValue(object, CalmArchitectureSchema.class);
+            return from(schema, mapper);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse CALM architecture from object", e);
+        }
+    }
+
     static CalmArchitecture from(CalmArchitectureSchema schema, ObjectMapper mapper) {
         List<CalmNode> nodes = schema.getNodes() == null ? List.of() :
             schema.getNodes().stream().map(n -> CalmNode.from(n, mapper)).toList();
