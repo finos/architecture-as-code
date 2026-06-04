@@ -1,53 +1,106 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import type { Node } from 'reactflow';
 import {
+    applyStoredPositions,
     loadStoredNodePositions,
     saveNodePositions,
     StoredNodePosition,
 } from './node-position-service.js';
 
-const mockData: StoredNodePosition[] = [
+const STORAGE_PREFIX = 'calm-hub:node-positions:';
+const key = 'finos/conference-signup';
+
+const nodes: Node[] = [
+    { id: 'node-1', position: { x: 100, y: 200 }, data: {} },
+    { id: 'node-2', position: { x: 300, y: 400 }, data: {} },
+];
+
+const storedPositions: StoredNodePosition[] = [
     { id: 'node-1', position: { x: 100, y: 200 } },
     { id: 'node-2', position: { x: 300, y: 400 } },
 ];
-const title = 'test';
-const key = 'test';
 
-describe('PositionStorage', () => {
-    beforeEach(() => {
-        localStorage.clear();
+describe('node-position-service', () => {
+    beforeEach(() => localStorage.clear());
+    afterEach(() => localStorage.clear());
+
+    describe('saveNodePositions', () => {
+        it('stores positions under a namespaced key', () => {
+            saveNodePositions(key, nodes);
+            expect(localStorage.getItem(`${STORAGE_PREFIX}${key}`)).not.toBeNull();
+        });
+
+        it('serialises only id and position from each node', () => {
+            saveNodePositions(key, nodes);
+            const stored = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
+            expect(JSON.parse(stored!)).toEqual(storedPositions);
+        });
+
+        it('keys distinct diagrams separately, avoiding title collisions', () => {
+            saveNodePositions('a/1', [{ id: 'n', position: { x: 1, y: 2 }, data: {} }]);
+            saveNodePositions('b/1', [{ id: 'n', position: { x: 9, y: 9 }, data: {} }]);
+            expect(loadStoredNodePositions('a/1')).toEqual([{ id: 'n', position: { x: 1, y: 2 } }]);
+            expect(loadStoredNodePositions('b/1')).toEqual([{ id: 'n', position: { x: 9, y: 9 } }]);
+        });
     });
 
-    afterEach(() => {
-        localStorage.clear();
+    describe('loadStoredNodePositions', () => {
+        it('loads previously saved positions', () => {
+            saveNodePositions(key, nodes);
+            expect(loadStoredNodePositions(key)).toEqual(storedPositions);
+        });
+
+        it('returns null when nothing is stored', () => {
+            expect(loadStoredNodePositions(key)).toBeNull();
+        });
+
+        it('returns null for malformed JSON', () => {
+            localStorage.setItem(`${STORAGE_PREFIX}${key}`, 'this is not json');
+            expect(loadStoredNodePositions(key)).toBeNull();
+        });
     });
 
-    it('creates storage key for localStrorage', () => {
-        saveNodePositions('title', mockData);
-        const stored = localStorage.getItem('title');
-        expect(stored).not.toBeNull();
-    });
+    describe('applyStoredPositions', () => {
+        it('returns the input nodes unchanged when nothing is stored', () => {
+            const parsed: Node[] = [{ id: 'node-1', position: { x: 0, y: 0 }, data: {} }];
+            expect(applyStoredPositions(key, parsed)).toBe(parsed);
+        });
 
-    it('saves node positions to localStorage', () => {
-        saveNodePositions(title, mockData);
-        const stored = localStorage.getItem(key);
-        expect(stored).not.toBeNull();
-        expect(JSON.parse(stored!)).toEqual(mockData);
-    });
+        it('restores stored positions onto parsed nodes by id', () => {
+            saveNodePositions(key, nodes);
+            const parsed: Node[] = [
+                { id: 'node-1', position: { x: 0, y: 0 }, data: {} },
+                { id: 'node-2', position: { x: 0, y: 0 }, data: {} },
+            ];
+            const result = applyStoredPositions(key, parsed);
+            expect(result.find((n) => n.id === 'node-1')!.position).toEqual({ x: 100, y: 200 });
+            expect(result.find((n) => n.id === 'node-2')!.position).toEqual({ x: 300, y: 400 });
+        });
 
-    it('loads node positions from localStorage', () => {
-        localStorage.setItem(key, JSON.stringify(mockData));
-        const loaded = loadStoredNodePositions(title);
-        expect(loaded).toEqual(mockData);
-    });
+        it('leaves nodes without a stored position untouched', () => {
+            saveNodePositions(key, [{ id: 'node-1', position: { x: 50, y: 60 }, data: {} }]);
+            const parsed: Node[] = [
+                { id: 'node-1', position: { x: 0, y: 0 }, data: {} },
+                { id: 'node-new', position: { x: 7, y: 8 }, data: {} },
+            ];
+            const result = applyStoredPositions(key, parsed);
+            expect(result.find((n) => n.id === 'node-1')!.position).toEqual({ x: 50, y: 60 });
+            expect(result.find((n) => n.id === 'node-new')!.position).toEqual({ x: 7, y: 8 });
+        });
 
-    it('returns null if nothing is stored', () => {
-        const loaded = loadStoredNodePositions(title);
-        expect(loaded).toBeNull();
-    });
-
-    it('handles malformed JSON gracefully', () => {
-        localStorage.setItem(key, 'this is not json');
-        const loaded = loadStoredNodePositions(title);
-        expect(loaded).toBeNull();
+        it('resizes containers to enclose restored children', () => {
+            // A container with one child; storing the child further out should
+            // make the reflow grow the container to keep it enclosed.
+            const child: Node = { id: 'child', parentId: 'group', position: { x: 0, y: 0 }, data: {} };
+            saveNodePositions(key, [{ ...child, position: { x: 500, y: 400 } }]);
+            const parsed: Node[] = [
+                { id: 'group', type: 'group', position: { x: 0, y: 0 }, width: 50, height: 50, data: {} },
+                child,
+            ];
+            const result = applyStoredPositions(key, parsed);
+            const container = result.find((n) => n.id === 'group')!;
+            expect(container.width).toBeGreaterThan(50);
+            expect(container.height).toBeGreaterThan(50);
+        });
     });
 });
