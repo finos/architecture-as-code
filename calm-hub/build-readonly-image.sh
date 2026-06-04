@@ -59,8 +59,8 @@ fi
 echo "[build] Staging calm/ schemas and controls into target/readonly-seed/..."
 mkdir -p "${SCRIPT_DIR}/target/readonly-seed/calm"
 mkdir -p "${SCRIPT_DIR}/target/readonly-seed/controls"
-cp -r "${REPO_ROOT}/calm/."                     "${SCRIPT_DIR}/target/readonly-seed/calm/"
-cp -r "${SCRIPT_DIR}/mongo/controls/."          "${SCRIPT_DIR}/target/readonly-seed/controls/"
+cp -r "${REPO_ROOT}/calm/." "${SCRIPT_DIR}/target/readonly-seed/calm/"
+cp -r "${SCRIPT_DIR}/mongo/controls/." "${SCRIPT_DIR}/target/readonly-seed/controls/"
 echo "[build] Staged:"
 ls "${SCRIPT_DIR}/target/readonly-seed/"
 
