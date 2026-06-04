@@ -17,8 +17,8 @@ public record CalmDecision(
             schema.getDescription(),
             schema.getNodes() == null ? List.of() : List.copyOf(schema.getNodes()),
             schema.getRelationships() == null ? List.of() : List.copyOf(schema.getRelationships()),
-            Optional.ofNullable(schema.getControls()),
-            Optional.ofNullable(schema.getMetadata())
+            Optional.ofNullable(schema.getControls()).map(List::copyOf),
+            Optional.ofNullable(schema.getMetadata()).map(List::copyOf)
         );
     }
 }

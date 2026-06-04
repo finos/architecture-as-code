@@ -74,11 +74,11 @@ public final class CalmArchitecture {
     public List<String> getAdrs() { return adrs; }
 
     public Optional<CalmNode> findNodeById(String uniqueId) {
-        return nodes.stream().filter(n -> n.uniqueId().equals(uniqueId)).findFirst();
+        return nodes.stream().filter(n -> uniqueId.equals(n.uniqueId())).findFirst();
     }
 
     public List<CalmNode> findNodesByType(String nodeType) {
-        return nodes.stream().filter(n -> n.nodeType().equals(nodeType)).toList();
+        return nodes.stream().filter(n -> nodeType.equals(n.nodeType())).toList();
     }
 
     public List<CalmRelationship> getRelationships(String nodeUniqueId) {

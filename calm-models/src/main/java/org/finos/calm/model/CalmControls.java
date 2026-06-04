@@ -9,6 +9,10 @@ import java.util.stream.Collectors;
 
 public record CalmControls(Map<String, CalmControl> controls) {
 
+    public CalmControls {
+        controls = controls == null ? Map.of() : Map.copyOf(controls);
+    }
+
     static CalmControls from(CalmControlsSchema schema, ObjectMapper mapper) {
         Map<String, CalmControl> controls = schema.getControls().entrySet().stream()
             .collect(Collectors.toMap(

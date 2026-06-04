@@ -15,6 +15,10 @@ public record CalmRelationship(
     Optional<CalmControls> controls,
     Map<String, Object> metadata
 ) {
+    public CalmRelationship {
+        metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+    }
+
     static CalmRelationship from(CalmRelationshipSchema schema, ObjectMapper mapper) {
         Optional<CalmControls> controls = schema.getControls() != null
             ? Optional.of(CalmControls.from(schema.getControls(), mapper))

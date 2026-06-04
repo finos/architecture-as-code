@@ -17,6 +17,11 @@ public record CalmFlow(
     Optional<CalmControls> controls,
     Map<String, Object> metadata
 ) {
+    public CalmFlow {
+        transitions = transitions == null ? List.of() : List.copyOf(transitions);
+        metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+    }
+
     static CalmFlow from(CalmFlowSchema schema, ObjectMapper mapper) {
         List<CalmFlowTransition> transitions = schema.getTransitions() == null ? List.of() :
             schema.getTransitions().stream().map(CalmFlowTransition::from).toList();

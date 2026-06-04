@@ -1,6 +1,5 @@
 package org.finos.calm.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -24,9 +23,15 @@ public final class CalmInterface {
 
     public <T> T parseAs(Class<T> type) {
         try {
+            if (!rawJson.isObject()) {
+                throw new CalmExtensionParseException(
+                    "Cannot parse non-object interface JSON as " + type.getSimpleName(), null);
+            }
             ObjectNode stripped = ((ObjectNode) rawJson.deepCopy()).without("unique-id");
             return mapper.treeToValue(stripped, type);
-        } catch (JsonProcessingException e) {
+        } catch (CalmExtensionParseException e) {
+            throw e;
+        } catch (Exception e) {
             throw new CalmExtensionParseException(
                 "Failed to parse interface as " + type.getSimpleName(), e);
         }
