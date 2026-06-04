@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Node, Edge, NodeChange } from 'reactflow';
 import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';
+import { saveNodePositions } from '../../../services/node-position-service.js';
 
 interface UseGraphInteractionsOptions {
     setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
@@ -10,6 +11,9 @@ interface UseGraphInteractionsOptions {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onEdgeClick?: (data: any) => void;
     groupNodeTypes: string[];
+    // Key (namespace/id) under which to persist the layout on drag-end; when
+    // absent, layout changes are not persisted.
+    persistKey?: string;
 }
 
 export function useGraphInteractions({
@@ -18,6 +22,7 @@ export function useGraphInteractions({
     onNodeClick,
     onEdgeClick,
     groupNodeTypes,
+    persistKey,
 }: UseGraphInteractionsOptions) {
     const isGroupType = useCallback(
         (type: string | undefined) => type != null && groupNodeTypes.includes(type),
@@ -34,12 +39,25 @@ export function useGraphInteractions({
             // position each frame, so shifting a container's origin mid-drag
             // stays consistent with the pointer.
             const hasPositionChanges = changes.some((change) => change.type === 'position');
+            // A drag has finished when ReactFlow reports a position change with
+            // dragging explicitly false — the moment to persist the new layout.
+            const dragEnded = changes.some(
+                (change) => change.type === 'position' && change.dragging === false
+            );
 
             if (hasPositionChanges) {
-                setNodes((currentNodes) => reflowContainersToFitChildren(currentNodes));
+                setNodes((currentNodes) => {
+                    const reflowed = reflowContainersToFitChildren(currentNodes);
+                    // Persist the post-reflow positions so a restore needs no
+                    // further adjustment. Writing in the updater reads the
+                    // latest state; the write is idempotent so StrictMode's
+                    // double-invoke is harmless.
+                    if (dragEnded && persistKey) saveNodePositions(persistKey, reflowed);
+                    return reflowed;
+                });
             }
         },
-        [onNodesChangeBase, setNodes]
+        [onNodesChangeBase, setNodes, persistKey]
     );
 
     const handleNodeClick = useCallback(
