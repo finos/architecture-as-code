@@ -77,6 +77,54 @@ public final class CalmArchitecture {
         return nodes.stream().filter(n -> n.uniqueId().equals(uniqueId)).findFirst();
     }
 
+    public List<CalmNode> findNodesByType(String nodeType) {
+        return nodes.stream().filter(n -> n.nodeType().equals(nodeType)).toList();
+    }
+
+    public List<CalmRelationship> getRelationships(String nodeUniqueId) {
+        return relationships.stream()
+            .filter(r -> relationshipInvolvesNode(r, nodeUniqueId))
+            .toList();
+    }
+
+    public List<CalmNode> getLinkedNodes(String nodeUniqueId) {
+        return getRelationships(nodeUniqueId).stream()
+            .flatMap(r -> linkedNodeIds(r, nodeUniqueId).stream())
+            .distinct()
+            .map(this::findNodeById)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .toList();
+    }
+
+    private boolean relationshipInvolvesNode(CalmRelationship rel, String nodeId) {
+        return switch (rel.relationshipType()) {
+            case CalmConnectsType c ->
+                c.source().node().equals(nodeId) || c.destination().node().equals(nodeId);
+            case CalmInteractsType i ->
+                i.actor().equals(nodeId) || i.nodes().contains(nodeId);
+            case CalmDeployedInType d ->
+                d.container().equals(nodeId) || d.nodes().contains(nodeId);
+            case CalmComposedOfType c ->
+                c.container().equals(nodeId) || c.nodes().contains(nodeId);
+            case CalmOptionsType o -> false;
+        };
+    }
+
+    private List<String> linkedNodeIds(CalmRelationship rel, String fromNodeId) {
+        return switch (rel.relationshipType()) {
+            case CalmConnectsType c -> c.source().node().equals(fromNodeId)
+                ? List.of(c.destination().node()) : List.of(c.source().node());
+            case CalmInteractsType i -> i.actor().equals(fromNodeId)
+                ? List.copyOf(i.nodes()) : List.of(i.actor());
+            case CalmDeployedInType d -> d.container().equals(fromNodeId)
+                ? List.copyOf(d.nodes()) : List.of(d.container());
+            case CalmComposedOfType c -> c.container().equals(fromNodeId)
+                ? List.copyOf(c.nodes()) : List.of(c.container());
+            case CalmOptionsType o -> List.of();
+        };
+    }
+
     public Optional<Object> getMetadata(String key) {
         return Optional.ofNullable(metadata.get(key));
     }
