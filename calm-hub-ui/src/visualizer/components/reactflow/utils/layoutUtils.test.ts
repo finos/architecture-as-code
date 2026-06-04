@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { Node, Edge } from 'reactflow';
-import { getLayoutedElements, createTopLevelLayout } from './layoutUtils';
+import {
+    getLayoutedElements,
+    createTopLevelLayout,
+    calculateChildBounds,
+    sortContainersDeepestFirst,
+    getNodeWidth,
+    getNodeHeight,
+} from './layoutUtils';
+import { GRAPH_LAYOUT } from './constants';
 
 describe('getLayoutedElements', () => {
     it('returns empty arrays for empty input', () => {
@@ -74,6 +82,81 @@ describe('getLayoutedElements', () => {
 
         expect(node1.position.x).toBeLessThan(node2.position.x);
         expect(node2.position.x).toBeLessThan(node3.position.x);
+    });
+});
+
+describe('getNodeWidth / getNodeHeight', () => {
+    it('falls back to standard dimensions when none are set', () => {
+        const node: Node = { id: 'n', position: { x: 0, y: 0 }, data: {} };
+        expect(getNodeWidth(node)).toBe(GRAPH_LAYOUT.NODE_WIDTH);
+        expect(getNodeHeight(node)).toBe(GRAPH_LAYOUT.NODE_HEIGHT);
+    });
+
+    it('prefers an explicit width/height over style', () => {
+        const node: Node = {
+            id: 'n',
+            position: { x: 0, y: 0 },
+            data: {},
+            width: 500,
+            height: 400,
+            style: { width: 999, height: 999 },
+        };
+        expect(getNodeWidth(node)).toBe(500);
+        expect(getNodeHeight(node)).toBe(400);
+    });
+
+    it('reads dimensions from style when width/height are absent', () => {
+        const node: Node = {
+            id: 'n',
+            position: { x: 0, y: 0 },
+            data: {},
+            style: { width: 320, height: 210 },
+        };
+        expect(getNodeWidth(node)).toBe(320);
+        expect(getNodeHeight(node)).toBe(210);
+    });
+});
+
+describe('calculateChildBounds', () => {
+    it('respects a child container\'s actual dimensions', () => {
+        const children: Node[] = [
+            { id: 'big', position: { x: 0, y: 0 }, data: {}, width: 600, height: 400 },
+        ];
+        const bounds = calculateChildBounds(children);
+        expect(bounds.maxX).toBe(600);
+        expect(bounds.maxY).toBe(400);
+    });
+
+    it('uses standard dimensions for plain nodes', () => {
+        const children: Node[] = [{ id: 'leaf', position: { x: 10, y: 20 }, data: {} }];
+        const bounds = calculateChildBounds(children);
+        expect(bounds.minX).toBe(10);
+        expect(bounds.minY).toBe(20);
+        expect(bounds.maxX).toBe(10 + GRAPH_LAYOUT.NODE_WIDTH);
+        expect(bounds.maxY).toBe(20 + GRAPH_LAYOUT.NODE_HEIGHT);
+    });
+});
+
+describe('sortContainersDeepestFirst', () => {
+    it('orders inner containers before their parents', () => {
+        const containers: Node[] = [
+            { id: 'outer', position: { x: 0, y: 0 }, data: {} },
+            { id: 'inner', position: { x: 0, y: 0 }, data: {}, parentId: 'outer' },
+            { id: 'innermost', position: { x: 0, y: 0 }, data: {}, parentId: 'inner' },
+        ];
+        const order = sortContainersDeepestFirst(containers).map((n) => n.id);
+        expect(order.indexOf('innermost')).toBeLessThan(order.indexOf('inner'));
+        expect(order.indexOf('inner')).toBeLessThan(order.indexOf('outer'));
+    });
+
+    it('does not mutate the input array', () => {
+        const containers: Node[] = [
+            { id: 'inner', position: { x: 0, y: 0 }, data: {}, parentId: 'outer' },
+            { id: 'outer', position: { x: 0, y: 0 }, data: {} },
+        ];
+        const before = containers.map((n) => n.id);
+        sortContainersDeepestFirst(containers);
+        expect(containers.map((n) => n.id)).toEqual(before);
     });
 });
 
