@@ -175,15 +175,23 @@ export function reflowContainersToFitChildren(nodes: Node[]): Node[] {
         style: { ...n.style },
     }));
 
-    const parentIds = new Set<string>();
+    // Group children by parent in a single pass so the loop below stays O(n)
+    // overall rather than filtering all nodes per container (this runs on every
+    // drag frame). The arrays hold the same working-node references, so an inner
+    // container's mutations are seen when its parent is reflowed.
+    const childrenByParent = new Map<string, Node[]>();
     working.forEach((n) => {
-        if (n.parentId) parentIds.add(n.parentId);
+        if (!n.parentId) return;
+        const siblings = childrenByParent.get(n.parentId);
+        if (siblings) siblings.push(n);
+        else childrenByParent.set(n.parentId, [n]);
     });
-    const containers = working.filter((n) => parentIds.has(n.id));
+
+    const containers = working.filter((n) => childrenByParent.has(n.id));
 
     sortContainersDeepestFirst(containers).forEach((container) => {
-        const children = working.filter((n) => n.parentId === container.id);
-        if (children.length === 0) return;
+        const children = childrenByParent.get(container.id);
+        if (!children || children.length === 0) return;
 
         let minX = Infinity;
         let minY = Infinity;
