@@ -42,36 +42,49 @@ public class NitriteDBConfig {
     @ConfigProperty(name = "calm.standalone.password", defaultValue = "admin")
     String password;
 
+    @ConfigProperty(name = "calm.readonly", defaultValue = "false")
+    boolean readOnly;
+
     private Nitrite db;
 
     @PostConstruct
     void initialize() {
         if ("standalone".equals(databaseMode)) {
-            LOG.info("Starting NitriteDB in standalone mode");
+            LOG.info("Starting NitriteDB in standalone mode (readOnly={})", readOnly);
             try {
-                // Ensure data directory exists
                 Path dataPath = Paths.get(dataDirectory);
-                if (!Files.exists(dataPath)) {
-                    Files.createDirectories(dataPath);
-                }
 
-                // Configure and open NitriteDB
                 Path dbFilePath = dataPath.resolve(databaseName + ".db");
 
-                // Create the database
-                // Create the MVStoreModule with the file path
-                MVStoreModule storeModule = MVStoreModule.withConfig()
-                        .filePath(dbFilePath.toString())
-                        .autoCommit(true)
-                        .build();
-
-                db = Nitrite.builder()
-                        .loadModule(storeModule)
-                        .openOrCreate(username, password);
-
-                initializeDatabase();
-
-                LOG.info("NitriteDB started successfully at {}", dbFilePath);
+                if (readOnly) {
+                    if (!Files.exists(dbFilePath)) {
+                        throw new RuntimeException(
+                                "Read-only mode requires a pre-seeded database file at " + dbFilePath +
+                                " but no such file was found.");
+                    }
+                    MVStoreModule storeModule = MVStoreModule.withConfig()
+                            .filePath(dbFilePath.toString())
+                            .readOnly(true)
+                            .autoCommit(false)
+                            .build();
+                    db = Nitrite.builder()
+                            .loadModule(storeModule)
+                            .openOrCreate(username, password);
+                    LOG.info("NitriteDB opened read-only at {}", dbFilePath);
+                } else {
+                    if (!Files.exists(dataPath)) {
+                        Files.createDirectories(dataPath);
+                    }
+                    MVStoreModule storeModule = MVStoreModule.withConfig()
+                            .filePath(dbFilePath.toString())
+                            .autoCommit(true)
+                            .build();
+                    db = Nitrite.builder()
+                            .loadModule(storeModule)
+                            .openOrCreate(username, password);
+                    initializeDatabase();
+                    LOG.info("NitriteDB started successfully at {}", dbFilePath);
+                }
             } catch (IOException e) {
                 LOG.error("Failed to start NitriteDB", e);
                 throw new RuntimeException("Failed to start NitriteDB", e);
@@ -81,7 +94,7 @@ public class NitriteDBConfig {
 
 
     /**
-     * Initilise the DB.
+     * Initialise the DB collections. Only called in writable mode.
      * @throws IOException
      * @throws JsonParseException
      */
