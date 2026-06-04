@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { parseCALMData } from './calmTransformer';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
+import { GRAPH_LAYOUT } from './constants';
 
 describe('parseCALMData', () => {
     it('returns empty arrays for null data', () => {
@@ -144,6 +145,75 @@ describe('parseCALMData', () => {
         expect(containerNode?.type).toBe('group');
         const childNode = result.nodes.find((n) => n.id === 'node-1');
         expect(childNode?.parentId).toBe('container-1');
+    });
+
+    describe('nested composed-of containers (regression: finos/architecture-as-code#2567)', () => {
+        // outer ⊃ inner ⊃ { leaf-1 → leaf-2 }. The connects edge forces the
+        // inner container to be laid out wider than a standard node, so the
+        // outer container must account for the inner container's true size.
+        const nestedData: CalmArchitectureSchema = {
+            nodes: [
+                { 'unique-id': 'outer', name: 'Outer', 'node-type': 'system' },
+                { 'unique-id': 'inner', name: 'Inner', 'node-type': 'system' },
+                { 'unique-id': 'leaf-1', name: 'Leaf 1', 'node-type': 'service' },
+                { 'unique-id': 'leaf-2', name: 'Leaf 2', 'node-type': 'service' },
+            ],
+            relationships: [
+                {
+                    'unique-id': 'rel-outer',
+                    'relationship-type': { 'composed-of': { container: 'outer', nodes: ['inner'] } },
+                },
+                {
+                    'unique-id': 'rel-inner',
+                    'relationship-type': {
+                        'composed-of': { container: 'inner', nodes: ['leaf-1', 'leaf-2'] },
+                    },
+                },
+                {
+                    'unique-id': 'rel-connects',
+                    'relationship-type': {
+                        connects: { source: { node: 'leaf-1' }, destination: { node: 'leaf-2' } },
+                    },
+                },
+            ],
+        };
+
+        it('sizes the inner container wider than a standard node', () => {
+            const { nodes } = parseCALMData(nestedData);
+            const inner = nodes.find((n) => n.id === 'inner')!;
+            expect(inner.width).toBeGreaterThan(GRAPH_LAYOUT.NODE_WIDTH);
+        });
+
+        it('fully encloses the inner container within the outer container', () => {
+            const { nodes } = parseCALMData(nestedData);
+            const outer = nodes.find((n) => n.id === 'outer')!;
+            const inner = nodes.find((n) => n.id === 'inner')!;
+
+            expect(outer.width).toBeDefined();
+            expect(outer.height).toBeDefined();
+            // The inner container (positioned relative to outer) must not
+            // overflow the outer container's right or bottom edge.
+            expect(inner.position.x).toBeGreaterThanOrEqual(0);
+            expect(inner.position.y).toBeGreaterThanOrEqual(0);
+            expect(inner.position.x + (inner.width as number)).toBeLessThanOrEqual(outer.width as number);
+            expect(inner.position.y + (inner.height as number)).toBeLessThanOrEqual(outer.height as number);
+        });
+
+        it('encloses leaf nodes within the inner container', () => {
+            const { nodes } = parseCALMData(nestedData);
+            const inner = nodes.find((n) => n.id === 'inner')!;
+            const leaves = nodes.filter((n) => n.parentId === 'inner');
+
+            expect(leaves).toHaveLength(2);
+            leaves.forEach((leaf) => {
+                expect(leaf.position.x).toBeGreaterThanOrEqual(0);
+                expect(leaf.position.y).toBeGreaterThanOrEqual(0);
+                expect(leaf.position.x + GRAPH_LAYOUT.NODE_WIDTH).toBeLessThanOrEqual(inner.width as number);
+                expect(leaf.position.y + GRAPH_LAYOUT.NODE_HEIGHT).toBeLessThanOrEqual(
+                    inner.height as number
+                );
+            });
+        });
     });
 
     it('does not create edges for deployed-in relationships', () => {
