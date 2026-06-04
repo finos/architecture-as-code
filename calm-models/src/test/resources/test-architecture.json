@@ -68,7 +68,11 @@
           "destination": { "node": "payment-db" }
         }
       },
-      "protocol": "JDBC"
+      "protocol": "JDBC",
+      "sla": {
+        "max-latency-ms": 50,
+        "availability": "99.9%"
+      }
     },
     {
       "unique-id": "rel-interacts",
