@@ -432,7 +432,7 @@ function createReactFlowNodes(
                 position: { x: 0, y: 0 },
                 style: { zIndex: -1 },
                 data: buildNodeData(node),
-                ...(existingParentId && { parentId: existingParentId, expandParent: true }),
+                ...(existingParentId && { parentId: existingParentId }),
             });
         }
     });
@@ -449,7 +449,7 @@ function createReactFlowNodes(
             type: 'custom',
             position: { x: 0, y: 0 },
             data: buildNodeData(node),
-            ...(parentId && { parentId, expandParent: true }),
+            ...(parentId && { parentId }),
         });
     });
 

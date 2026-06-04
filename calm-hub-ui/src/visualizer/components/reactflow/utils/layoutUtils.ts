@@ -150,30 +150,73 @@ export function createTopLevelLayout(
 }
 
 /**
- * Calculate the minimum bounds for a group node based on its children.
- * Used by both ArchitectureGraph and PatternGraph to resize groups after drag.
+ * Resizes every container node to hug its children with equal padding on all
+ * sides, growing or shrinking in any direction as the children move.
+ *
+ * A ReactFlow child's position is relative to its parent's top-left origin, and
+ * a container only changes size by adjusting width/height (its origin stays
+ * put). So to keep the top/left padding correct we also shift the container's
+ * own origin and compensate the children by the same delta, leaving their
+ * on-screen positions unchanged — a positive shift follows children dragged
+ * past the top/left edge, a negative shift reclaims slack when they move away.
+ * Containers are processed deepest-first so a shifted/resized inner container is
+ * reflected when its parent is reflowed (the shift can cascade outward).
+ *
+ * Used by both ArchitectureGraph and PatternGraph to reflow groups during and
+ * after a drag. Returns a new array; the input nodes are not mutated.
  */
-export function calculateGroupBounds(
-    groupId: string,
-    allNodes: Node[]
-): { width: number; height: number } | null {
-    const children = allNodes.filter((n) => n.parentId === groupId);
-    if (children.length === 0) return null;
-
+export function reflowContainersToFitChildren(nodes: Node[]): Node[] {
     const padding = GRAPH_LAYOUT.SYSTEM_NODE_PADDING;
 
-    let maxX = -Infinity;
-    let maxY = -Infinity;
+    // Shallow-clone nodes (and the fields we mutate) so callers' state is untouched.
+    const working = nodes.map((n) => ({
+        ...n,
+        position: { ...n.position },
+        style: { ...n.style },
+    }));
 
-    children.forEach((child) => {
-        const childRight = child.position.x + getNodeWidth(child);
-        const childBottom = child.position.y + getNodeHeight(child);
-        maxX = Math.max(maxX, childRight);
-        maxY = Math.max(maxY, childBottom);
+    const parentIds = new Set<string>();
+    working.forEach((n) => {
+        if (n.parentId) parentIds.add(n.parentId);
+    });
+    const containers = working.filter((n) => parentIds.has(n.id));
+
+    sortContainersDeepestFirst(containers).forEach((container) => {
+        const children = working.filter((n) => n.parentId === container.id);
+        if (children.length === 0) return;
+
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        children.forEach((child) => {
+            minX = Math.min(minX, child.position.x);
+            minY = Math.min(minY, child.position.y);
+            maxX = Math.max(maxX, child.position.x + getNodeWidth(child));
+            maxY = Math.max(maxY, child.position.y + getNodeHeight(child));
+        });
+
+        // Offset that puts the top/left-most child exactly `padding` from the
+        // container origin. Positive grows up/left, negative shrinks (reclaims
+        // slack) — so the box hugs its children with equal padding on all sides.
+        const shiftX = padding - minX;
+        const shiftY = padding - minY;
+
+        if (shiftX !== 0 || shiftY !== 0) {
+            children.forEach((child) => {
+                child.position.x += shiftX;
+                child.position.y += shiftY;
+            });
+            container.position.x -= shiftX;
+            container.position.y -= shiftY;
+        }
+
+        const width = maxX + shiftX + padding;
+        const height = maxY + shiftY + padding;
+        container.width = width;
+        container.height = height;
+        container.style = { ...container.style, width, height };
     });
 
-    return {
-        width: maxX + padding,
-        height: maxY + padding,
-    };
+    return working;
 }
