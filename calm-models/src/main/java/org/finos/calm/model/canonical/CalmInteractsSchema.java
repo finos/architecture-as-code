@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmInteractsSchema {
+public class CalmInteractsSchema {
     private String actor;
     private List<String> nodes;
 

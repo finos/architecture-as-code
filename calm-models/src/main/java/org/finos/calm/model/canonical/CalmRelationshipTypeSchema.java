@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmRelationshipTypeSchema {
+public class CalmRelationshipTypeSchema {
     private CalmConnectsSchema connects;
     private CalmInteractsSchema interacts;
     @JsonProperty("deployed-in") private CalmDeployedInSchema deployedIn;

@@ -3,7 +3,7 @@ package org.finos.calm.model.canonical;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmConnectsSchema {
+public class CalmConnectsSchema {
     private CalmNodeInterfaceSchema source;
     private CalmNodeInterfaceSchema destination;
 

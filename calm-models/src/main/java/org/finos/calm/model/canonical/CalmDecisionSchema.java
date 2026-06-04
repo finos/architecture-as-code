@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmDecisionSchema {
+public class CalmDecisionSchema {
     private String description;
     private List<String> nodes;
     private List<String> relationships;

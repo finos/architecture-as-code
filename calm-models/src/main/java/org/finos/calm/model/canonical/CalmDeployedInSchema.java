@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmDeployedInSchema {
+public class CalmDeployedInSchema {
     private String container;
     private List<String> nodes;
 
