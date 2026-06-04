@@ -42,7 +42,10 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
             return;
         }
 
-        String path = requestContext.getUriInfo().getPath();
+        // UriInfo#getPath() in RESTEasy may or may not include a leading slash;
+        // normalise so the prefix check is reliable in all deployments.
+        String rawPath = requestContext.getUriInfo().getPath();
+        String path = rawPath.startsWith("/") ? rawPath : "/" + rawPath;
         if (!path.startsWith(CALM_PATH_PREFIX) && !path.equals("/calm")) {
             return;
         }

@@ -30,7 +30,8 @@ public class TestReadOnlyRequestFilterShould {
         MockitoAnnotations.openMocks(this);
         filter = new ReadOnlyRequestFilter();
         when(requestContext.getUriInfo()).thenReturn(uriInfo);
-        when(uriInfo.getPath()).thenReturn("/calm/namespaces");
+        // RESTEasy typically returns paths without a leading slash
+        when(uriInfo.getPath()).thenReturn("calm/namespaces");
     }
 
     @ParameterizedTest
@@ -45,6 +46,21 @@ public class TestReadOnlyRequestFilterShould {
         verify(requestContext).abortWith(captor.capture());
         assertEquals(405, captor.getValue().getStatus());
         assertEquals("GET, HEAD, OPTIONS", captor.getValue().getHeaderString("Allow"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"POST", "PUT", "DELETE", "PATCH"})
+    void reject_mutating_methods_on_calm_path_with_leading_slash_when_readonly(String method) {
+        // Covers runtimes/proxies that may include a leading slash
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn(method);
+        when(uriInfo.getPath()).thenReturn("/calm/namespaces");
+
+        filter.filter(requestContext);
+
+        ArgumentCaptor<Response> captor = ArgumentCaptor.forClass(Response.class);
+        verify(requestContext).abortWith(captor.capture());
+        assertEquals(405, captor.getValue().getStatus());
     }
 
     @ParameterizedTest
@@ -72,6 +88,19 @@ public class TestReadOnlyRequestFilterShould {
     @ParameterizedTest
     @ValueSource(strings = {"POST", "PUT", "DELETE", "PATCH"})
     void allow_mutating_methods_on_non_calm_paths_when_readonly(String method) {
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn(method);
+        // RESTEasy typically returns paths without a leading slash
+        when(uriInfo.getPath()).thenReturn("q/health");
+
+        filter.filter(requestContext);
+
+        verify(requestContext, never()).abortWith(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"POST", "PUT", "DELETE", "PATCH"})
+    void allow_mutating_methods_on_non_calm_paths_with_leading_slash_when_readonly(String method) {
         filter.readOnly = true;
         when(requestContext.getMethod()).thenReturn(method);
         when(uriInfo.getPath()).thenReturn("/q/health");

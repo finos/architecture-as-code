@@ -65,6 +65,7 @@ public class NitriteDBConfig {
                     MVStoreModule storeModule = MVStoreModule.withConfig()
                             .filePath(dbFilePath.toString())
                             .readOnly(true)
+                            .autoCommit(false)
                             .build();
                     db = Nitrite.builder()
                             .loadModule(storeModule)
