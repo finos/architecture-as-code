@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmFlowSchema {
+public class CalmFlowSchema {
     @JsonProperty("unique-id") private String uniqueId;
     private String name;
     private String description;

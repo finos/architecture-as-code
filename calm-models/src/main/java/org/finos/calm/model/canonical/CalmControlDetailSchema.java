@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmControlDetailSchema {
+public class CalmControlDetailSchema {
     @JsonProperty("requirement-url") private String requirementUrl;
     @JsonProperty("config-url") private String configUrl;
     @JsonProperty("config") private JsonNode configRaw;

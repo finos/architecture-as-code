@@ -8,14 +8,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmControlsSchema {
+public class CalmControlsSchema {
     private final Map<String, CalmControlSchema> controls = new HashMap<>();
 
     @JsonAnySetter
-    void addControl(String key, CalmControlSchema value) {
+    public void addControl(String key, CalmControlSchema value) {
         controls.put(key, value);
     }
 
     @JsonAnyGetter
-    Map<String, CalmControlSchema> getControls() { return controls; }
+    public Map<String, CalmControlSchema> getControls() { return controls; }
 }

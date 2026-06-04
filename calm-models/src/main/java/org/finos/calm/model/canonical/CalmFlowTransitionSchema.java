@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.finos.calm.model.FlowDirection;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmFlowTransitionSchema {
+public class CalmFlowTransitionSchema {
     @JsonProperty("relationship-unique-id") private String relationshipUniqueId;
     @JsonProperty("sequence-number") private int sequenceNumber;
     private String description;

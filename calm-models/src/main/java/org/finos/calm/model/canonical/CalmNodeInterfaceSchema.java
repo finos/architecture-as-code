@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmNodeInterfaceSchema {
+public class CalmNodeInterfaceSchema {
     private String node;
     private List<String> interfaces;
 

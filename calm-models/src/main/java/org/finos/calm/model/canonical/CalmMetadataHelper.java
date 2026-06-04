@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-class CalmMetadataHelper {
-    static Map<String, Object> flatten(JsonNode raw, ObjectMapper mapper) {
+public class CalmMetadataHelper {
+    public static Map<String, Object> flatten(JsonNode raw, ObjectMapper mapper) {
         if (raw == null || raw.isNull() || raw.isMissingNode()) return Map.of();
         if (raw.isArray()) {
             Map<String, Object> result = new LinkedHashMap<>();

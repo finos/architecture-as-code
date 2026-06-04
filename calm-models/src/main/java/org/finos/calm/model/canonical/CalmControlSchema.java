@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class CalmControlSchema {
+public class CalmControlSchema {
     private String description;
     private List<CalmControlDetailSchema> requirements;
 
