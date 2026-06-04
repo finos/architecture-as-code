@@ -66,6 +66,7 @@ Key canonical records:
 | `CalmControlSchema` | per-control entry |
 | `CalmControlDetailSchema` | per-requirement entry |
 | `CalmMetadataSchema` | `metadata` object |
+| `CalmNodeDetailsSchema` | `details` object on a node |
 
 ---
 
@@ -113,6 +114,7 @@ String                    node.uniqueId()
 String                    node.nodeType()
 String                    node.name()
 String                    node.description()
+Optional<CalmNodeDetails> node.details()
 List<CalmInterface>       node.interfaces()
 Optional<CalmControls>    node.controls()
 
@@ -128,13 +130,24 @@ Optional<Object>          node.getMetadata(String key)
 <T> Optional<T>           node.parseExtension(String name, Class<T> type)
 ```
 
+### `CalmNodeDetails`
+
+Reference links from a node to related documents. Both fields are optional; a node may have neither, one, or both.
+
+```java
+// Both are reference strings (URLs) pointing to external documents.
+// Parsing the linked document is the caller's responsibility — use CalmArchitecture.parse().
+Optional<String>  details.detailedArchitecture()  // "detailed-architecture" in JSON
+Optional<String>  details.requiredPattern()        // "required-pattern" in JSON
+```
+
 ### `CalmRelationship`
 
 ```java
 String                  rel.uniqueId()
 CalmRelationshipType    rel.relationshipType()   // sealed — see below
 Optional<String>        rel.description()
-Optional<String>        rel.protocol()
+Optional<CalmProtocol>  rel.protocol()   // enum: HTTP, HTTPS, FTP, SFTP, JDBC, WEBSOCKET, SOCKET_IO, LDAP, AMQP, TLS, MTLS, TCP
 Optional<CalmControls>  rel.controls()
 Optional<Object>        rel.getMetadata(String key)
 ```
@@ -197,15 +210,39 @@ Optional<String>             flow.requirementUrl()
 Optional<CalmControls>       flow.controls()
 
 // CalmFlowTransition
-String   transition.relationshipUniqueId()
-int      transition.sequenceNumber()
-String   transition.description()
-String   transition.direction()   // "source-to-destination" | "destination-to-source"
+String         transition.relationshipUniqueId()
+int            transition.sequenceNumber()
+String         transition.description()
+FlowDirection  transition.direction()   // enum: SOURCE_TO_DESTINATION, DESTINATION_TO_SOURCE
 ```
 
 ### `CalmMetadata`
 
 Internal — metadata is surfaced as `getMetadata(key)` and `parseMetadata(Type.class)` on the owning entity rather than as a standalone public type.
+
+---
+
+## Enums
+
+Closed-set string values from the CALM schema are represented as Java enums. `nodeType` is intentionally left as `String` — the CALM schema marks it as an open set (`| string`).
+
+```java
+public enum FlowDirection {
+    SOURCE_TO_DESTINATION,   // "source-to-destination"
+    DESTINATION_TO_SOURCE    // "destination-to-source"
+}
+
+public enum CalmProtocol {
+    HTTP, HTTPS, FTP, SFTP, JDBC,
+    WEBSOCKET,    // "WebSocket"
+    SOCKET_IO,    // "SocketIO"
+    LDAP, AMQP, TLS,
+    MTLS,         // "mTLS"
+    TCP
+}
+```
+
+Jackson deserializes these via `@JsonProperty` on each constant to map the JSON string values (e.g. `"source-to-destination"`, `"mTLS"`) to their enum counterparts.
 
 ---
 
