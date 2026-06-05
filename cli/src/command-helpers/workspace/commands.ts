@@ -12,7 +12,7 @@ import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 import { select, input } from '@inquirer/prompts';
 import { CALM_DOCUMENT_TYPES_LIST } from '@finos/calm-shared/src/document-loader/document-loader';
-import { CalmHubService } from '../../service/calm-hub-service';
+import { CalmHubClient } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { loadCliConfig } from '../../cli-config';
 
 const logger: Logger = initLogger(false, 'workspace');
@@ -329,8 +329,8 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const service = CalmHubService.fromUrl(calmHubUrl);
-                await pushWorkspaceToHub(bundlePath, service);
+                const client = new CalmHubClient({ calmHubUrl, debug: !!process.env.CALM_DEBUG });
+                await pushWorkspaceToHub(bundlePath, client);
             } catch (err) {
                 logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
