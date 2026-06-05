@@ -26,7 +26,17 @@ All output must conform to CALM 1.2. These are non-negotiable:
 
 **Node types:** `actor`, `ecosystem`, `system`, `service`, `database`, `network`, `ldap`, `webclient`, `data-asset`. Extensions: `fluxnova:engine`, `ai:llm`, etc.
 
-**Relationships:** `connects`, `interacts`, `deployed-in`, `composed-of`, `options`
+**Relationships** — nested form per CALM 1.2 meta-schema. `relationship-type` is an **object** keyed by variant. Exactly one variant key is present:
+
+```json
+{ "unique-id": "...", "relationship-type": { "connects": { "source": { "node": "..." }, "destination": { "node": "..." } } } }
+{ "unique-id": "...", "relationship-type": { "composed-of": { "container": "...", "nodes": ["..."] } } }
+{ "unique-id": "...", "relationship-type": { "interacts": { "actor": "...", "nodes": ["..."] } } }
+{ "unique-id": "...", "relationship-type": { "deployed-in": { "container": "...", "nodes": ["..."] } } }
+{ "unique-id": "...", "relationship-type": { "options": [ ... ] } }
+```
+
+The legacy flat shape (`'relationship-type': 'connects'` + sibling `source`/`destination` strings) is **not valid CALM 1.2** and was removed in #2550. Use the variant accessors `getRelationshipVariant`, `getConnectsEndpoints`, `getContainerAndNodes`, `getActorAndNodes`, `getReferencedNodeIds` from `@calmstudio/calm-core` to traverse relationships generically.
 
 **Protocols:** `HTTP`, `HTTPS`, `FTP`, `SFTP`, `JDBC`, `WebSocket`, `SocketIO`, `LDAP`, `AMQP`, `TLS`, `mTLS`, `TCP`
 

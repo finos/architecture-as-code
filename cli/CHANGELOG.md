@@ -5,6 +5,45 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.43.1] - 2026-06-03
+
+## [1.43.1](https://github.com/finos/architecture-as-code/compare/cli-v1.43.0...cli-v1.43.1) (2026-06-03)
+
+* Merge branch 'main' into fix/advent-astro-v6-content-collections ([](https://github.com/finos/architecture-as-code/commit/0e6641e511908f7405c95f8c7120b5967149e71e))
+
+### chore
+
+* **deps:** update dependency astro to v6.3.8 ([](https://github.com/finos/architecture-as-code/commit/0290857d1a15729f69dd760b24c9e9836558dd1b)), closes [#2542](https://github.com/finos/architecture-as-code/issues/2542)
+* **deps:** update dependency vitest to v4 [security] (#2556) ([](https://github.com/finos/architecture-as-code/commit/ecc44bf42b516ab11631a556cafb1362393607d8)), closes [#2556](https://github.com/finos/architecture-as-code/issues/2556)
+
+### ci
+
+* add PR-time build check for advent website ([](https://github.com/finos/architecture-as-code/commit/59fd0e0ef402b21ece64cc286210924f02453a90))
+
+### fix
+
+* **advent:** migrate content collections to astro v6 loader API ([](https://github.com/finos/architecture-as-code/commit/423658ec7a10d6f78adf133982de69c3892c0b78))
+* **advent:** migrate website to Astro v6 content collections + PR build check ([](https://github.com/finos/architecture-as-code/commit/cbc5108764c4a84ad96f135815a50d43ce862ffc))
+* **calm-hub-ui:** render ADR detail when decisionOutcome is absent ([](https://github.com/finos/architecture-as-code/commit/041246c169c1a8101a4e11856885d308a476d109))
+* **calm-hub-ui:** render ADR detail when decisionOutcome is absent ([](https://github.com/finos/architecture-as-code/commit/eab960166684e98040376c8c831aa07d17dcafc5))
+
+## [1.43.0] - 2026-06-01
+
+## [1.43.0](https://github.com/finos/architecture-as-code/compare/cli-v1.42.1...cli-v1.43.0) (2026-06-01)
+
+* CalmHub MCP Default Off (#2533) ([](https://github.com/finos/architecture-as-code/commit/e72bf6f2484c79a12a29018973252d7c5c7ac41a)), closes [#2533](https://github.com/finos/architecture-as-code/issues/2533)
+
+### chore
+
+* **deps:** patch tmp path traversal vulnerability (GHSA-ph9p-34f9-6g65) (#2528) ([](https://github.com/finos/architecture-as-code/commit/457f8e657660aee5cdcb33636b89402f4229043b)), closes [#2528](https://github.com/finos/architecture-as-code/issues/2528)
+
+### feat
+
+* **calm-hub:** Add Timeline Tools and Bug Fix Architecture Version Create (#2524) ([](https://github.com/finos/architecture-as-code/commit/1ba8e19b827d09bb4daf02ef9fc6c79da3c9a3f3)), closes [#2524](https://github.com/finos/architecture-as-code/issues/2524) [#2522](https://github.com/finos/architecture-as-code/issues/2522)
+* **cli:** extend hub commands with patterns, standards, domains, controls, decorators, and auth plugin support (#2472) ([](https://github.com/finos/architecture-as-code/commit/55a10257e9e512872ac447e82d7ed498e37e8b4e)), closes [#2472](https://github.com/finos/architecture-as-code/issues/2472)
+* **docs:** comprehensive VS Code docs (#2532) ([](https://github.com/finos/architecture-as-code/commit/a5225d3239f01a23ac2f8a148ecb28ef08014765)), closes [#2532](https://github.com/finos/architecture-as-code/issues/2532) [#2523](https://github.com/finos/architecture-as-code/issues/2523) [#2530](https://github.com/finos/architecture-as-code/issues/2530) [#2529](https://github.com/finos/architecture-as-code/issues/2529)
+* **vscode:** automated screenshot generation for documentation (#2530) ([](https://github.com/finos/architecture-as-code/commit/e0c92dbc1a8a52f60f34e198a460c9eb3f09b050)), closes [#2530](https://github.com/finos/architecture-as-code/issues/2530)
+
 ## [1.42.1] - 2026-05-27
 
 ## [1.42.1](https://github.com/finos/architecture-as-code/compare/cli-v1.42.0...cli-v1.42.1) (2026-05-27)

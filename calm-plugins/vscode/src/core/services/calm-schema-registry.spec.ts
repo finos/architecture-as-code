@@ -14,8 +14,8 @@ vi.mock('vscode', () => ({
         }
     },
     Uri: {
-        file: vi.fn((path: string) => ({ fsPath: path })),
-        joinPath: vi.fn((_base: any, ...parts: string[]) => ({ fsPath: `${_base.fsPath}/${parts.join('/')}` }))
+        file: vi.fn(function (path: string) { return { fsPath: path }; }),
+        joinPath: vi.fn(function (_base: any, ...parts: string[]) { return { fsPath: `${_base.fsPath}/${parts.join('/')}` }; })
     },
     FileType: {
         File: 1,
@@ -40,12 +40,12 @@ describe('CalmSchemaRegistry', () => {
         }
 
         mockConfig = {
-            filesGlobs: vi.fn(() => []),
-            templateGlobs: vi.fn(() => []),
-            previewLayout: vi.fn(() => 'dagre'),
-            showLabels: vi.fn(() => true),
-            urlMapping: vi.fn(() => undefined),
-            schemaAdditionalFolders: vi.fn(() => [])
+            filesGlobs: vi.fn(function () { return []; }),
+            templateGlobs: vi.fn(function () { return []; }),
+            previewLayout: vi.fn(function () { return 'dagre'; }),
+            showLabels: vi.fn(function () { return true; }),
+            urlMapping: vi.fn(function () { return undefined; }),
+            schemaAdditionalFolders: vi.fn(function () { return []; })
         }
 
         mockExtensionUri = { fsPath: '/extension' }

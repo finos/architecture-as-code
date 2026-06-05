@@ -17,7 +17,11 @@
 
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { ElkNode, ElkExtendedEdge } from 'elkjs/lib/elk.bundled.js';
-import type { CalmArchitecture, CalmRelationship } from '@calmstudio/calm-core';
+import type {
+	CalmArchitecture,
+	CalmRelationship,
+	CalmRelationshipVariant
+} from '@calmstudio/calm-core';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,8 +30,52 @@ export type LayoutDirection = 'DOWN' | 'RIGHT' | 'UP';
 /** Position map: node unique-id -> {x, y, width?, height?} from ELK layout. */
 export type PositionMap = Map<string, { x: number; y: number; width?: number; height?: number }>;
 
-/** The set of CALM edge types that imply containment. */
-const CONTAINMENT_EDGE_TYPES = new Set(['deployed-in', 'composed-of']);
+/** The set of CALM 1.2 variant keys that imply containment. */
+const CONTAINMENT_VARIANTS: ReadonlySet<CalmRelationshipVariant> = new Set([
+	'deployed-in',
+	'composed-of'
+]);
+
+/**
+ * Expand a CALM relationship into flat (source, target) edge pairs for layout.
+ * Mirrors stores/projection.ts but kept local to avoid app→lib coupling.
+ */
+function expandLayoutPairs(
+	rel: CalmRelationship,
+): Array<{ source: string; target: string; variant: CalmRelationshipVariant }> {
+	const rt = rel['relationship-type'];
+	if ('connects' in rt) {
+		return [
+			{
+				source: rt.connects.source.node,
+				target: rt.connects.destination.node,
+				variant: 'connects'
+			}
+		];
+	}
+	if ('composed-of' in rt) {
+		return rt['composed-of'].nodes.map((child) => ({
+			source: rt['composed-of'].container,
+			target: child,
+			variant: 'composed-of' as const
+		}));
+	}
+	if ('deployed-in' in rt) {
+		return rt['deployed-in'].nodes.map((child) => ({
+			source: rt['deployed-in'].container,
+			target: child,
+			variant: 'deployed-in' as const
+		}));
+	}
+	if ('interacts' in rt) {
+		return rt.interacts.nodes.map((peer) => ({
+			source: rt.interacts.actor,
+			target: peer,
+			variant: 'interacts' as const
+		}));
+	}
+	return [];
+}
 
 /** Default node dimensions — sized to fit typical node labels + icons */
 const NODE_WIDTH = 180;
@@ -65,38 +113,43 @@ export async function layoutCalm(
 	const parentChildren = new Map<string, Set<string>>();
 
 	for (const rel of arch.relationships) {
-		if (!CONTAINMENT_EDGE_TYPES.has(rel['relationship-type'])) continue;
-		if (pinnedIds.has(rel.source) || pinnedIds.has(rel.destination)) continue;
+		for (const pair of expandLayoutPairs(rel)) {
+			if (!CONTAINMENT_VARIANTS.has(pair.variant)) continue;
+			if (pinnedIds.has(pair.source) || pinnedIds.has(pair.target)) continue;
 
-		let parentId: string;
-		let childId: string;
+			// In CALM 1.2, composed-of and deployed-in both use `container` as
+			// the source position in the expanded pair → container is parent.
+			const parentId = pair.source;
+			const childId = pair.target;
 
-		if (rel['relationship-type'] === 'deployed-in') {
-			parentId = rel.destination;
-			childId = rel.source;
-		} else {
-			parentId = rel.source;
-			childId = rel.destination;
+			if (!freeNodeIds.has(parentId) || !freeNodeIds.has(childId)) continue;
+
+			childToParent.set(childId, parentId);
+			if (!parentChildren.has(parentId)) {
+				parentChildren.set(parentId, new Set());
+			}
+			parentChildren.get(parentId)!.add(childId);
 		}
-
-		if (!freeNodeIds.has(parentId) || !freeNodeIds.has(childId)) continue;
-
-		childToParent.set(childId, parentId);
-		if (!parentChildren.has(parentId)) {
-			parentChildren.set(parentId, new Set());
-		}
-		parentChildren.get(parentId)!.add(childId);
 	}
 
-	// Non-containment edges (for ELK layout edges)
-	const layoutEdges = arch.relationships.filter(
-		(r) =>
-			!CONTAINMENT_EDGE_TYPES.has(r['relationship-type']) &&
-			freeNodeIds.has(r.source) &&
-			freeNodeIds.has(r.destination) &&
-			!pinnedIds.has(r.source) &&
-			!pinnedIds.has(r.destination)
-	);
+	// Flatten all relationships into (source, target) pairs once, then keep
+	// only the non-containment pairs that connect two free, non-pinned nodes.
+	type LayoutPair = { id: string; source: string; target: string };
+	const layoutEdges: LayoutPair[] = [];
+	for (const rel of arch.relationships) {
+		const pairs = expandLayoutPairs(rel);
+		const multi = pairs.length > 1;
+		pairs.forEach((p, i) => {
+			if (CONTAINMENT_VARIANTS.has(p.variant)) return;
+			if (!freeNodeIds.has(p.source) || !freeNodeIds.has(p.target)) return;
+			if (pinnedIds.has(p.source) || pinnedIds.has(p.target)) return;
+			layoutEdges.push({
+				id: multi ? `${rel['unique-id']}#${i}` : rel['unique-id'],
+				source: p.source,
+				target: p.target
+			});
+		});
+	}
 
 	// Find the direct child of a container that a descendant belongs to.
 	// E.g., for VPC containing subnets containing services,
@@ -150,11 +203,11 @@ export async function layoutCalm(
 			// Add edges between direct children within this container
 			const childSet = children;
 			const innerEdges: ElkExtendedEdge[] = layoutEdges
-				.filter((r) => childSet.has(r.source) && childSet.has(r.destination))
+				.filter((r) => childSet.has(r.source) && childSet.has(r.target))
 				.map((r) => ({
-					id: r['unique-id'],
+					id: r.id,
 					sources: [r.source],
-					targets: [r.destination],
+					targets: [r.target],
 				}));
 
 			// Also find cross-child-container edges: edges between descendants in
@@ -164,11 +217,11 @@ export async function layoutCalm(
 			const allDescendants = getAllDescendants(nodeId);
 			const seenCrossEdgePairs = new Set<string>();
 			for (const r of layoutEdges) {
-				if (childSet.has(r.source) && childSet.has(r.destination)) continue; // already handled
-				if (!allDescendants.has(r.source) || !allDescendants.has(r.destination)) continue;
+				if (childSet.has(r.source) && childSet.has(r.target)) continue; // already handled
+				if (!allDescendants.has(r.source) || !allDescendants.has(r.target)) continue;
 
 				const srcChild = findDirectChildOf(nodeId, r.source);
-				const tgtChild = findDirectChildOf(nodeId, r.destination);
+				const tgtChild = findDirectChildOf(nodeId, r.target);
 				if (!srcChild || !tgtChild || srcChild === tgtChild) continue;
 
 				const pairKey = `${srcChild}->${tgtChild}`;
@@ -268,16 +321,16 @@ export async function layoutCalm(
 	const seenTopEdgePairs = new Set<string>();
 	const topEdges: ElkExtendedEdge[] = [];
 	for (const r of layoutEdges) {
-		if (usedEdgeIds.has(r['unique-id'])) continue;
+		if (usedEdgeIds.has(r.id)) continue;
 		const src = findTopLevelAncestor(r.source, childToParent);
-		const tgt = findTopLevelAncestor(r.destination, childToParent);
+		const tgt = findTopLevelAncestor(r.target, childToParent);
 		// Skip self-loops (both endpoints inside same top-level container)
 		if (src === tgt) continue;
 		const pairKey = `${src}->${tgt}`;
 		if (seenTopEdgePairs.has(pairKey)) continue;
 		seenTopEdgePairs.add(pairKey);
 		topEdges.push({
-			id: r['unique-id'],
+			id: r.id,
 			sources: [src],
 			targets: [tgt],
 		});

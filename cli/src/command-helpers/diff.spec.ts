@@ -5,7 +5,7 @@ import { runDiffCommand, runTimelineDiffCommand, formatTimelineDiffs } from './d
 const mocks = vi.hoisted(() => ({
     runDiff: vi.fn(),
     runTimelineDiff: vi.fn(),
-    initLogger: vi.fn(() => ({ error: vi.fn(), debug: vi.fn(), info: vi.fn() })),
+    initLogger: vi.fn(function () { return { error: vi.fn(), debug: vi.fn(), info: vi.fn() }; }),
     processExit: vi.fn(),
     stdoutWrite: vi.fn(),
 }));
@@ -117,6 +117,30 @@ describe('runDiffCommand', () => {
 
         expect(mocks.processExit).toHaveBeenCalledWith(1);
     });
+
+    it('does not append a trailing newline when formatted output already ends with one', async () => {
+        (runDiff as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+            diff: {},
+            formatted: '{"nodesAdded":[]}\n',
+            hasChanges: false,
+        });
+
+        await runDiffCommand({ ...baseOptions });
+
+        // Only the formatted block should be written, not a follow-up '\n'.
+        expect(mocks.stdoutWrite).toHaveBeenCalledTimes(1);
+        expect(mocks.stdoutWrite).toHaveBeenCalledWith('{"nodesAdded":[]}\n');
+    });
+
+    it('coerces non-Error throws to a string for the logged message', async () => {
+        (runDiff as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => {
+            throw 'plain string failure';
+        });
+
+        await runDiffCommand({ ...baseOptions });
+
+        expect(mocks.processExit).toHaveBeenCalledWith(1);
+    });
 });
 
 const timelineBaseOptions = {
@@ -207,6 +231,16 @@ describe('runTimelineDiffCommand', () => {
 
     it('exits 1 with a logged error when runTimelineDiff throws', async () => {
         (runTimelineDiff as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('moment not found'));
+
+        await runTimelineDiffCommand({ ...timelineBaseOptions });
+
+        expect(mocks.processExit).toHaveBeenCalledWith(1);
+    });
+
+    it('exits 1 with a non-Error throw from runTimelineDiff', async () => {
+        (runTimelineDiff as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => {
+            throw 'timeline failure';
+        });
 
         await runTimelineDiffCommand({ ...timelineBaseOptions });
 

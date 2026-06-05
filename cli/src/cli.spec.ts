@@ -188,7 +188,7 @@ describe('CLI Commands', () => {
 
         it('should exit 1 when --exit-code is set and runDiffCommand reports changes', async () => {
             vi.mocked(diffModule.runDiffCommand).mockResolvedValueOnce(true);
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
                 throw new Error('process.exit called');
             });
 
@@ -239,7 +239,7 @@ describe('CLI Commands', () => {
         beforeEach(() => {
             processorConstructorSpy = vi
                 .spyOn(calmShared, 'TemplateProcessor')
-                .mockImplementation(() => {
+                .mockImplementation(function () {
                     return {
                         processTemplate: vi.fn().mockResolvedValue(undefined),
                     } as unknown as TemplateProcessor; //This works to get round any but prob not spying properly (used in other tests)
@@ -325,11 +325,11 @@ describe('CLI Commands', () => {
         });
 
         it('should exit if multiple template flags are provided', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
                 throw new Error('process.exit called');
             });
 
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'template',
@@ -362,9 +362,9 @@ describe('CLI Commands', () => {
         beforeEach(() => {
             docifierConstructorSpy = vi
                 .spyOn(calmShared, 'Docifier')
-                .mockImplementation(() => ({
+                .mockImplementation(function () { return {
                     docify: vi.fn().mockResolvedValue(undefined),
-                } as unknown as Docifier));
+                } as unknown as Docifier; });
         });
 
         it('should default to WEBSITE mode with bundle', async () => {
@@ -447,10 +447,10 @@ describe('CLI Commands', () => {
         });
 
         it('should exit if both --template and --template-dir are specified', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
                 throw new Error('process.exit called');
             });
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'docify',
@@ -533,10 +533,10 @@ describe('CLI Commands', () => {
         });
 
         it('should exit if --ants is combined with --template', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
                 throw new Error('process.exit called');
             });
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'docify',
@@ -554,10 +554,10 @@ describe('CLI Commands', () => {
         });
 
         it('should exit if --ants is combined with --template-dir', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
                 throw new Error('process.exit called');
             });
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'docify',
@@ -629,10 +629,10 @@ describe('CLI Commands', () => {
         });
 
         it('rejects --format table', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
                 throw new Error('process.exit called');
             });
-            const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+            const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(function () { return true; });
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'hub', 'push', 'architecture',

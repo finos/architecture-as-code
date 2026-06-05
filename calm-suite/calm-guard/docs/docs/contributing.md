@@ -130,7 +130,7 @@ This adds `Signed-off-by: Your Name <email@example.com>` to the commit.
 
 ## License
 
-CALMGuard is licensed under the [Apache 2.0 License](https://github.com/finos/dtcch-2026-opsflow-llc/blob/main/LICENSE).
+CALMGuard is licensed under the [Apache 2.0 License](https://github.com/finos/architecture-as-code/blob/main/LICENSE).
 
 By contributing, you agree that your contributions will be licensed under Apache 2.0.
 

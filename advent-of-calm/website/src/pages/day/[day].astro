@@ -1,20 +1,20 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getDayTitle } from '../../utils/calendar';
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
   const allDays = await getCollection('days');
-  
+
   return allDays.map(entry => ({
-    params: { day: entry.slug.replace('day-', '') },
+    params: { day: entry.id.replace('day-', '') },
     props: { entry }
   }));
 }
 
 const { entry } = Astro.props;
-const { Content } = await entry.render();
-const dayNum = parseInt(entry.slug.replace('day-', ''));
+const { Content } = await render(entry);
+const dayNum = parseInt(entry.id.replace('day-', ''));
 
 const title = getDayTitle(dayNum);
 const prevDay = dayNum > 1 ? dayNum - 1 : null;

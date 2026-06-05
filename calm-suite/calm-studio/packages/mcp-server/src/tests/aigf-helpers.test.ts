@@ -24,8 +24,8 @@ describe('recomputeAigfDecorators', () => {
 
   it('returns architecture unchanged when only non-AI nodes are present', () => {
     const arch = archWithNodes([
-      { 'unique-id': 'svc-1', 'node-type': 'service', name: 'API Service' },
-      { 'unique-id': 'db-1', 'node-type': 'database', name: 'Main DB' },
+      { 'unique-id': 'svc-1', 'node-type': 'service', name: 'API Service', description: 'API Service' },
+      { 'unique-id': 'db-1', 'node-type': 'database', name: 'Main DB', description: 'Main DB' },
     ]);
     const result = recomputeAigfDecorators(arch, 'test.calm.json', FIXED_DATE);
     expect(result.decorators).toBeUndefined();
@@ -33,9 +33,9 @@ describe('recomputeAigfDecorators', () => {
 
   it('attaches an AIGF decorator when AI nodes are present', () => {
     const arch = archWithNodes([
-      { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent' },
-      { 'unique-id': 'mcp-1', 'node-type': 'ai:mcp-server', name: 'Tool Server' },
-      { 'unique-id': 'svc-1', 'node-type': 'service', name: 'Plain Service' },
+      { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent', description: 'Trader Agent' },
+      { 'unique-id': 'mcp-1', 'node-type': 'ai:mcp-server', name: 'Tool Server', description: 'Tool Server' },
+      { 'unique-id': 'svc-1', 'node-type': 'service', name: 'Plain Service', description: 'Plain Service' },
     ]);
     const result = recomputeAigfDecorators(arch, 'multi-agent.calm.json', FIXED_DATE);
     expect(result.decorators).toBeDefined();
@@ -55,7 +55,7 @@ describe('recomputeAigfDecorators', () => {
 
   it('is idempotent — running twice with the same inputs yields equal output', () => {
     const arch = archWithNodes([
-      { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent' },
+      { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent', description: 'Trader Agent' },
     ]);
     const once = recomputeAigfDecorators(arch, 'test.calm.json', FIXED_DATE);
     const twice = recomputeAigfDecorators(once, 'test.calm.json', FIXED_DATE);
@@ -73,7 +73,7 @@ describe('recomputeAigfDecorators', () => {
     };
     const arch: CalmArchitecture = {
       nodes: [
-        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent' },
+        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent', description: 'Trader Agent' },
       ],
       relationships: [],
       decorators: [stale],
@@ -95,7 +95,7 @@ describe('recomputeAigfDecorators', () => {
     };
     const arch: CalmArchitecture = {
       nodes: [
-        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent' },
+        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent', description: 'Trader Agent' },
       ],
       relationships: [],
       decorators: [otherDecorator],
@@ -119,7 +119,7 @@ describe('recomputeAigfDecorators', () => {
     };
     const arch: CalmArchitecture = {
       nodes: [
-        { 'unique-id': 'svc-1', 'node-type': 'service', name: 'Plain Service' },
+        { 'unique-id': 'svc-1', 'node-type': 'service', name: 'Plain Service', description: 'Plain Service' },
       ],
       relationships: [],
       decorators: [stale],

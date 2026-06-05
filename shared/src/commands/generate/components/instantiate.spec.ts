@@ -13,11 +13,11 @@ interface TestInstantiatedPattern {
 vi.mock('fs');
 
 vi.mock('../../../logger', () => ({
-    initLogger: vi.fn(() => ({
+    initLogger: vi.fn(function () { return {
         info: vi.fn(),
         debug: vi.fn(),
         error: vi.fn(),
-    }))
+    }; })
 }));
 
 const schemaDirMocks = vi.hoisted(() => ({
@@ -27,11 +27,11 @@ const schemaDirMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../schema-directory', () => ({
-    SchemaDirectory: vi.fn(() => ({
+    SchemaDirectory: vi.fn(function () { return {
         loadSchemas: schemaDirMocks.loadSchemas,
         loadCurrentPatternAsSchema: schemaDirMocks.loadCurrentPatternAsSchema,
         getDefinition: schemaDirMocks.getDefinition
-    })),
+    }; }),
 }));
 
 async function getDefinitionMock(ref: string): Promise<object> {
@@ -155,7 +155,7 @@ describe('instantiate', () => {
 
     beforeEach(() => {
         vi.resetModules();
-        (fs.readFileSync as Mock).mockImplementation(() => JSON.stringify(patternDocument));
+        (fs.readFileSync as Mock).mockImplementation(function () { return JSON.stringify(patternDocument); });
     });
 
     it('instantiates architecture with correct schema', async () => {
@@ -238,7 +238,7 @@ describe('instantiate', () => {
             }
         };
 
-        (fs.readFileSync as Mock).mockImplementation(() => JSON.stringify(patternWithConstArrayItems));
+        (fs.readFileSync as Mock).mockImplementation(function () { return JSON.stringify(patternWithConstArrayItems); });
 
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
         const result = await instantiate(pattern, true, new SchemaDirectory(null));
@@ -276,7 +276,7 @@ describe('instantiate', () => {
             }
         };
 
-        (fs.readFileSync as Mock).mockImplementation(() => JSON.stringify(patternWithTopLevelConst));
+        (fs.readFileSync as Mock).mockImplementation(function () { return JSON.stringify(patternWithTopLevelConst); });
 
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
         const result = await instantiate(pattern, true, new SchemaDirectory(null));

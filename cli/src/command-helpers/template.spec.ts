@@ -35,12 +35,12 @@ describe('getUrlToLocalFileMap', () => {
     it('should log an error and exit process when file reading fails', () => {
         const fakePath = '/fake/mapping.json';
 
-        vi.spyOn(fs, 'readFileSync').mockImplementation(() => {
+        vi.spyOn(fs, 'readFileSync').mockImplementation(function () {
             throw new Error('read error');
         });
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(function () {});
 
-        const processExitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null) => {
+        const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(function (code?: string | number | null) {
             throw new Error(`process.exit: ${code}`);
         });
 

@@ -8,8 +8,7 @@ import { Logger } from '../../logger';
 
 vi.mock('fs');
 vi.mock('../front-matter', () => ({
-    injectFrontMatter: vi.fn((content, _path, params) =>
-        `---\narch: ${params.architecturePath}\n---\n${content}`)
+    injectFrontMatter: vi.fn(function (content, _path, params) { return `---\narch: ${params.architecturePath}\n---\n${content}`; })
 }));
 
 class TestStrategy extends AbstractOutputStrategy {
@@ -67,8 +66,8 @@ describe('AbstractOutputStrategy', () => {
 
         strategy = new TestStrategy(mockEngine);
 
-        vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
-        vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
+        vi.mocked(fs.mkdirSync).mockImplementation(function () { return undefined; });
+        vi.mocked(fs.writeFileSync).mockImplementation(function () { return undefined; });
     });
 
     afterEach(() => {

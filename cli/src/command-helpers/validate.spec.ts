@@ -19,14 +19,14 @@ const mocks = vi.hoisted(() => ({
     validate: vi.fn(),
     getFormattedOutput: vi.fn(),
     exitBasedOffOfValidationOutcome: vi.fn(),
-    initLogger: vi.fn(() => ({ error: vi.fn(), debug: vi.fn() })),
+    initLogger: vi.fn(function () { return { error: vi.fn(), debug: vi.fn() }; }),
     processExit: vi.fn(),
     mkdirpSync: vi.fn(),
     writeFileSync: vi.fn(),
     parseDocumentLoaderConfig: vi.fn(),
-    buildDocumentLoader: vi.fn(() => ({
+    buildDocumentLoader: vi.fn(function () { return {
         loadMissingDocument: mocks.loadMissingDocument
-    })),
+    }; }),
     loadSchemas: vi.fn(),
     getSchema: vi.fn(),
     loadMissingDocument: vi.fn()
@@ -54,10 +54,10 @@ vi.mock('fs', () => ({
 vi.mock('../cli', async () => ({
     ...(await vi.importActual('../cli')),
     parseDocumentLoaderConfig: mocks.parseDocumentLoaderConfig,
-    buildSchemaDirectory: vi.fn(() => ({
+    buildSchemaDirectory: vi.fn(function () { return {
         loadSchemas: mocks.loadSchemas,
         getSchema: mocks.getSchema
-    })),
+    }; }),
 }));
 
 describe('runValidate', () => {
@@ -70,7 +70,7 @@ describe('runValidate', () => {
 
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
         // Inline mock for loadMissingDocument
-        mocks.loadMissingDocument.mockImplementation((filePath: string, _: string) => {
+        mocks.loadMissingDocument.mockImplementation(function (filePath: string, _: string) {
             if (filePath === 'arch.json') return Promise.resolve(dummyArch);
             if (filePath === 'arch-of-pattern.json') return Promise.resolve(dummyArchOfAPattern);
             if (filePath === 'arch-of-calm.json') return Promise.resolve(dummyArchOfCalmSchema);
@@ -80,7 +80,7 @@ describe('runValidate', () => {
             if (filePath === 'timeline.json') return Promise.resolve(dummyTimeline);
             return Promise.resolve();
         });
-        mocks.getSchema.mockImplementation((schemaId: string) => {
+        mocks.getSchema.mockImplementation(function (schemaId: string) {
             // Handle both relative and resolved absolute paths
             if (schemaId === 'calm-schema.json' || schemaId.endsWith('calm-schema.json')) return dummyCalmSchema;
             if (schemaId === 'calm-timeline-schema.json' || schemaId.endsWith('calm-timeline-schema.json')) return dummyCalmTimelineSchema;
@@ -260,7 +260,7 @@ describe('runValidate', () => {
 
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
         mocks.buildDocumentLoader.mockReturnValue({
-            loadMissingDocument: vi.fn((filePath: string) => {
+            loadMissingDocument: vi.fn(function (filePath: string) {
                 if (filePath === 'arch.json') return dummyArch;
                 if (filePath === 'pattern.json') return dummyPattern;
                 return undefined;
@@ -290,7 +290,7 @@ describe('writeOutputFile', () => {
 
     it('should write output to stdout if no output is provided', () => {
         const content = 'stdout content';
-        const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(function () { return true; });
         writeOutputFile('', content);
         expect(stdoutSpy).toHaveBeenCalledWith(content);
         stdoutSpy.mockRestore();
@@ -301,7 +301,7 @@ describe('writeOutputFile', () => {
 describe('checkValidateOptions', () => {
     it('should call program.error if neither pattern, architecture nor timeline is provided', () => {
         const program = new Command();
-        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation(function (msg: string) { throw new Error(msg); });
         const options = {};
         expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
             '-a, --architecture <file>', '--timeline <file>')).toThrow(/one of the required options/);
@@ -310,7 +310,7 @@ describe('checkValidateOptions', () => {
 
     it('should not call program.error if a pattern is provided', () => {
         const program = new Command();
-        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation(function (msg: string) { throw new Error(msg); });
         const options = { pattern: 'pattern.json' };
         expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
             '-a, --architecture <file>', '--timeline <file>')).not.toThrow();
@@ -319,7 +319,7 @@ describe('checkValidateOptions', () => {
 
     it('should not call program.error if an architecture is provided', () => {
         const program = new Command();
-        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation(function (msg: string) { throw new Error(msg); });
         const options = { architecture: 'arch.json' };
         expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
             '-a, --architecture <file>', '--timeline <file>')).not.toThrow();
@@ -328,7 +328,7 @@ describe('checkValidateOptions', () => {
 
     it('should call program.error if pattern and timeline are provided', () => {
         const program = new Command();
-        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation(function (msg: string) { throw new Error(msg); });
         const options = { pattern: 'pattern.json', timeline: 'timeline.json' };
         expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
             '-a, --architecture <file>', '--timeline <file>')).toThrow(/cannot be used with either of the options/);
@@ -337,7 +337,7 @@ describe('checkValidateOptions', () => {
 
     it('should call program.error if architecture and timeline are provided', () => {
         const program = new Command();
-        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation(function (msg: string) { throw new Error(msg); });
         const options = { architecture: 'arch.json', timeline: 'timeline.json' };
         expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
             '-a, --architecture <file>', '--timeline <file>')).toThrow(/cannot be used with either of the options/);
@@ -346,7 +346,7 @@ describe('checkValidateOptions', () => {
 
     it('should not call program.error if an timeline is provided', () => {
         const program = new Command();
-        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation(function (msg: string) { throw new Error(msg); });
         const options = { timeline: 'timeline.json' };
         expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
             '-a, --architecture <file>', '--timeline <file>')).not.toThrow();

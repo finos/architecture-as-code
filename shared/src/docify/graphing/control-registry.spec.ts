@@ -169,6 +169,88 @@ describe('ControlRegistry', () => {
         });
     });
 
+    describe('getGroupedByDomainConfigurations', () => {
+        it('groups configurations by their domain key', () => {
+            const grouped = controlRegistry.getGroupedByDomainConfigurations();
+            expect(Object.keys(grouped)).toEqual(
+                expect.arrayContaining(['node-control', 'relationship-control', 'flow-control'])
+            );
+        });
+    });
 
+    describe('getControlConfigurations', () => {
+        it('returns the raw per-domain configuration map', () => {
+            const raw = controlRegistry.getControlConfigurations();
+            expect(raw['node-control']).toBeDefined();
+            expect(raw['relationship-control']).toBeDefined();
+            expect(raw['flow-control']).toBeDefined();
+        });
+    });
 
+    describe('processControls edge cases', () => {
+        it('skips nodes, relationships and flows that have no controls', async () => {
+            const emptyNode = CalmNode.fromSchema({
+                'unique-id': 'plain-node',
+                'node-type': 'service',
+                name: 'Plain Node',
+                description: 'no controls',
+                metadata: { created: 'now' },
+                interfaces: [],
+                additionalProperties: {},
+            });
+            const emptyRel = CalmRelationship.fromSchema({
+                'unique-id': 'plain-rel',
+                description: '',
+                'relationship-type': {
+                    connects: {
+                        source: { node: 'plain-node', interfaces: [] },
+                        destination: { node: 'plain-node', interfaces: [] },
+                    },
+                },
+                metadata: [{}],
+            });
+            const emptyFlow = CalmFlow.fromSchema({
+                'unique-id': 'plain-flow',
+                name: 'plain',
+                description: '',
+                transitions: [],
+                'requirement-url': '',
+            });
+            const bareArch = CalmCore.fromSchema({
+                nodes: [emptyNode.toSchema()],
+                relationships: [emptyRel.toSchema()],
+                flows: [emptyFlow.toSchema()],
+                metadata: { created: 'now' },
+            });
+
+            const bareRegistry = new ControlRegistry(bareArch);
+            expect(() => bareRegistry.processControls()).not.toThrow();
+            expect(bareRegistry.getControls()).toEqual([]);
+            expect(bareRegistry.getControlRequirements()).toEqual([]);
+            expect(bareRegistry.getGroupedByDomainRequirements()).toEqual({});
+            expect(bareRegistry.getGroupedByDomainConfigurations()).toEqual({});
+        });
+
+        it('tolerates architectures without a flows section at all', () => {
+            const noFlowsArch = CalmCore.fromSchema({
+                nodes: [],
+                relationships: [],
+                metadata: { created: 'now' },
+            });
+
+            const noFlowsRegistry = new ControlRegistry(noFlowsArch);
+            expect(() => noFlowsRegistry.processControls()).not.toThrow();
+            expect(noFlowsRegistry.getControls()).toEqual([]);
+        });
+
+        it('deduplicates a control that appears in two nodes pointing at the same applied-to scope', async () => {
+            // Reuse the test setup's controlled arch but invoke processControls twice
+            // on the same instance — second pass exercises the isDuplicate / alreadyPresent branches.
+            controlRegistry.processControls();
+            controlRegistry.processControls();
+            // 9 was the canonical count from the existing suite; duplicates should not have piled up.
+            expect(controlRegistry.getControls()).toHaveLength(9);
+            expect(controlRegistry.getControlRequirements()).toHaveLength(9);
+        });
+    });
 });

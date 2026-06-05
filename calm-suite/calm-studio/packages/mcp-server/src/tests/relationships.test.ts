@@ -17,6 +17,29 @@ import {
 let tmpDir: string;
 let filePath: string;
 
+/** Build a nested CALM 1.2 `connects` relationship literal. */
+function connects(id: string, source: string, destination: string) {
+  return {
+    'unique-id': id,
+    'relationship-type': {
+      connects: {
+        source: { node: source },
+        destination: { node: destination }
+      }
+    }
+  };
+}
+
+/** Build a nested CALM 1.2 `interacts` relationship literal. */
+function interacts(id: string, actor: string, ...nodes: string[]) {
+  return {
+    'unique-id': id,
+    'relationship-type': {
+      interacts: { actor, nodes }
+    }
+  };
+}
+
 beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'calm-rels-test-'));
   filePath = join(tmpDir, 'test.calm');
@@ -26,14 +49,7 @@ beforeEach(() => {
       { 'unique-id': 'node-a', 'node-type': 'service', name: 'Service A' },
       { 'unique-id': 'node-b', 'node-type': 'service', name: 'Service B' }
     ],
-    relationships: [
-      {
-        'unique-id': 'rel-existing',
-        'relationship-type': 'connects',
-        source: 'node-a',
-        destination: 'node-b'
-      }
-    ],
+    relationships: [connects('rel-existing', 'node-a', 'node-b')],
     file: filePath
   });
 });
@@ -45,12 +61,7 @@ afterEach(() => {
 describe('add_relationship tool', () => {
   it('appends relationship and writes to file', () => {
     const result = addRelationship({
-      relationship: {
-        'unique-id': 'rel-new',
-        'relationship-type': 'interacts',
-        source: 'node-a',
-        destination: 'node-b'
-      },
+      relationship: interacts('rel-new', 'node-a', 'node-b'),
       file: filePath
     });
 
@@ -63,39 +74,27 @@ describe('add_relationship tool', () => {
 
   it('rejects dangling source ref', () => {
     const result = addRelationship({
-      relationship: {
-        'unique-id': 'rel-bad',
-        'relationship-type': 'connects',
-        source: 'ghost-node',
-        destination: 'node-b'
-      },
+      relationship: connects('rel-bad', 'ghost-node', 'node-b'),
       file: filePath
     });
 
     expect(result.isError).toBe(true);
     expect(result.content[0]!.text).toContain('ghost-node');
-    expect(result.content[0]!.text).toContain('node-a');  // lists available IDs
+    expect(result.content[0]!.text).toContain('node-a');
 
-    // File unchanged
     const written = JSON.parse(readFileSync(filePath, 'utf-8'));
     expect(written.relationships).toHaveLength(1);
   });
 
   it('rejects dangling destination ref', () => {
     const result = addRelationship({
-      relationship: {
-        'unique-id': 'rel-bad',
-        'relationship-type': 'connects',
-        source: 'node-a',
-        destination: 'ghost-node'
-      },
+      relationship: connects('rel-bad', 'node-a', 'ghost-node'),
       file: filePath
     });
 
     expect(result.isError).toBe(true);
     expect(result.content[0]!.text).toContain('ghost-node');
 
-    // File unchanged
     const written = JSON.parse(readFileSync(filePath, 'utf-8'));
     expect(written.relationships).toHaveLength(1);
   });
@@ -116,7 +115,7 @@ describe('get_relationship tool', () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0]!.text).toContain('not found');
-    expect(result.content[0]!.text).toContain('rel-existing'); // lists available IDs
+    expect(result.content[0]!.text).toContain('rel-existing');
   });
 });
 
@@ -131,10 +130,14 @@ describe('update_relationship tool', () => {
     expect(result.isError).toBe(false);
 
     const written = JSON.parse(readFileSync(filePath, 'utf-8'));
-    const rel = written.relationships.find((r: { 'unique-id': string }) => r['unique-id'] === 'rel-existing');
+    const rel = written.relationships.find(
+      (r: { 'unique-id': string }) => r['unique-id'] === 'rel-existing'
+    );
     expect(rel.description).toBe('New description');
     expect(rel.protocol).toBe('HTTPS');
-    expect(rel['relationship-type']).toBe('connects'); // preserved original field
+    // Variant preserved through merge
+    expect(rel['relationship-type'].connects.source.node).toBe('node-a');
+    expect(rel['relationship-type'].connects.destination.node).toBe('node-b');
   });
 
   it('returns error for unknown relationship', () => {
@@ -145,14 +148,8 @@ describe('update_relationship tool', () => {
 
 describe('delete_relationship tool', () => {
   it('removes relationship by ID without affecting others', () => {
-    // Add a second relationship first
     addRelationship({
-      relationship: {
-        'unique-id': 'rel-second',
-        'relationship-type': 'interacts',
-        source: 'node-a',
-        destination: 'node-b'
-      },
+      relationship: interacts('rel-second', 'node-a', 'node-b'),
       file: filePath
     });
 

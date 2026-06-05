@@ -33,7 +33,7 @@ describe('JsonSchemaValidator', () => {
     });
 
     it('initialise propagates errors thrown by ajv', async () => {
-        ajvCompileMock.mockImplementation(() => { throw new Error('compile error'); });
+        ajvCompileMock.mockImplementation(function () { throw new Error('compile error'); });
         expect(async () => {
             const validator = new JsonSchemaValidator(schemaDirectory, pattern);
             await validator.initialize();

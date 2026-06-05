@@ -42,7 +42,7 @@ vi.mock('@finos/calm-shared', () => {
         listControlConfigurationVersions: vi.fn()
     };
     return {
-        CalmHubClient: vi.fn(() => mockClient),
+        CalmHubClient: vi.fn(function () { return mockClient; }),
         HubClientError: class HubClientError extends Error {
             constructor(public status: number, public error: string, public request: string) {
                 super(`${status} ${error}`);
@@ -78,10 +78,10 @@ describe('hub-commands', () => {
         vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ nodes: [] }) as unknown as Uint8Array);
         vi.mocked(fs.writeFile).mockResolvedValue(undefined);
         // Silence output helpers
-        vi.mocked(hubOutput.printJsonSuccess).mockImplementation(() => undefined);
-        vi.mocked(hubOutput.printTableSuccess).mockImplementation(() => undefined);
-        vi.mocked(hubOutput.printError).mockImplementation(() => undefined);
-        vi.mocked(hubOutput.parseOutputFormat).mockImplementation((v) => v === 'pretty' ? 'pretty' : 'json');
+        vi.mocked(hubOutput.printJsonSuccess).mockImplementation(function () { return undefined; });
+        vi.mocked(hubOutput.printTableSuccess).mockImplementation(function () { return undefined; });
+        vi.mocked(hubOutput.printError).mockImplementation(function () { return undefined; });
+        vi.mocked(hubOutput.parseOutputFormat).mockImplementation(function (v) { return v === 'pretty' ? 'pretty' : 'json'; });
     });
 
     afterEach(() => {
@@ -327,7 +327,7 @@ describe('hub-commands', () => {
         it('prints JSON to stdout by default', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.pullArchitecture).mockResolvedValue({ id: 1, architecture: '{}' });
-            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
 
             await runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '1', version: '1.0.0' });
 
@@ -786,7 +786,7 @@ describe('hub-commands', () => {
         it('prints JSON to stdout by default', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.pullPattern).mockResolvedValue({ id: 10, patternJson: '{}' });
-            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
 
             const { runPullPattern } = await import('./hub-commands');
             await runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '10', version: '1.0.0' });
@@ -1028,7 +1028,7 @@ describe('hub-commands', () => {
         it('prints JSON to stdout by default', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.pullStandard).mockResolvedValue({ id: 20, standardJson: 'raw' });
-            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
 
             const { runPullStandard } = await import('./hub-commands');
             await runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '20', version: '1.0.0' });
@@ -1655,7 +1655,7 @@ describe('hub-commands', () => {
     describe('runPullControlRequirement', () => {
         it('writes JSON to stdout', async () => {
             const { mockClient } = await getSharedMocks();
-            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
             vi.mocked(mockClient.pullControlRequirement).mockResolvedValue({ type: 'control-requirement', requirements: [] });
 
             await runPullControlRequirement({
@@ -1808,7 +1808,7 @@ describe('hub-commands', () => {
     describe('runPullControlConfiguration', () => {
         it('writes JSON to stdout', async () => {
             const { mockClient } = await getSharedMocks();
-            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
             vi.mocked(mockClient.pullControlConfiguration).mockResolvedValue({ type: 'control-configuration', config: {} });
 
             await runPullControlConfiguration({

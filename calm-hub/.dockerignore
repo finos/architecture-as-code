@@ -12,3 +12,10 @@
 !target/*-runner.jar
 !target/lib/*
 !target/quarkus-app/*
+
+# Allow nitrite seed scripts (used by Dockerfile.readonly-static)
+!nitrite/
+!nitrite/**
+
+# Allow staged calm/ schemas and controls for the read-only static image build
+!target/readonly-seed/**

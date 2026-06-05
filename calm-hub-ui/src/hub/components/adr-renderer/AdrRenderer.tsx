@@ -58,7 +58,11 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
                 <StyleTitle title="Decision Outcome" />
 
                 <div className="collapse-content ps-0">
-                    <DisplayChosenOption decisionOutcome={adr!.decisionOutcome} />
+                    {adr!.decisionOutcome ? (
+                        <DisplayChosenOption decisionOutcome={adr!.decisionOutcome} />
+                    ) : (
+                        <p className="italic text-xs">No decision outcome recorded yet.</p>
+                    )}
                 </div>
             </div>
 

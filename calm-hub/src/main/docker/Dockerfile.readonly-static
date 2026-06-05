@@ -1,0 +1,98 @@
+####
+# Read-only static calm-hub image.
+#
+# Produces a calm-hub container with a pre-seeded NitriteDB database baked in
+# as a read-only second layer.  No external database is required at runtime.
+# Mutating HTTP verbs (POST, PUT, DELETE, PATCH) are rejected with HTTP 405.
+#
+# Build is two stages:
+#
+#   Stage 1 (seed)  — always linux/amd64; boots the app in writable standalone
+#                     mode, runs init-nitrite.sh to populate the NitriteDB, then
+#                     shuts the app down gracefully so the MVStore file is fully
+#                     flushed.  The resulting calmSchemas.db is architecture-
+#                     neutral (pure-Java H2 MVStore format).
+#
+#   Stage 2 (final) — target platform (linux/amd64, linux/arm64, …); copies the
+#                     app artefacts and the seeded .db from Stage 1, then sets
+#                     the read-only env-vars so the app opens the file with
+#                     readOnly(true) and the HTTP filter rejects mutations.
+#
+# Prerequisites (handled by the CI workflow before `docker build` is called):
+#   • calm-hub Maven build complete: mvn package -DskipITs
+#     → target/quarkus-app/ is populated
+#   • calm/ schema content staged:  target/readonly-seed/calm/
+#   • controls content staged:      target/readonly-seed/controls/
+#
+# Build (from calm-hub/ directory):
+#   docker build -f src/main/docker/Dockerfile.readonly-static \
+#                -t calm-hub:latest-read-only-static .
+####
+
+
+# ── Stage 1: Seed ─────────────────────────────────────────────────────────────
+# Force amd64 so the JVM seeding process runs natively on GitHub Actions runners
+# (x86_64).  The resulting .db file is architecture-neutral and is safe to embed
+# in the arm64 final image.
+FROM --platform=linux/amd64 registry.access.redhat.com/ubi8/openjdk-21 AS seed
+
+USER root
+
+# Install seeding tools (curl for readiness polling + REST calls; jq for JSON)
+RUN microdnf install -y curl jq && microdnf clean all
+
+# App artefacts pre-built by Maven (same layout as Dockerfile.jvm)
+COPY --chown=root target/quarkus-app/lib/ /deployments/lib/
+COPY --chown=root target/quarkus-app/*.jar /deployments/
+COPY --chown=root target/quarkus-app/app/ /deployments/app/
+COPY --chown=root target/quarkus-app/quarkus/ /deployments/quarkus/
+
+# Seeding scripts
+COPY nitrite/seed-readonly.sh /nitrite/seed-readonly.sh
+COPY nitrite/init-nitrite.sh  /nitrite/init-nitrite.sh
+RUN chmod +x /nitrite/seed-readonly.sh /nitrite/init-nitrite.sh
+
+# CALM schema content and controls staged by the CI workflow into target/readonly-seed/
+COPY target/readonly-seed/calm/     /calm/
+COPY target/readonly-seed/controls/ /controls/
+
+# Boot calm-hub (writable standalone), seed all content, stop gracefully.
+# The resulting database file lands at /data/calmSchemas.db.
+RUN DATA_DIR=/data \
+    CALM_SCHEMA_BASE_PATH=/calm \
+    CALM_CONTROLS_BASE_PATH=/controls \
+    bash /nitrite/seed-readonly.sh
+
+
+# ── Stage 2: Final read-only image ────────────────────────────────────────────
+FROM registry.access.redhat.com/ubi8/openjdk-21
+
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en'
+
+# App artefacts (from seed stage; built once, reused across both platforms)
+COPY --chown=185 --from=seed /deployments/lib/     /deployments/lib/
+COPY --chown=185 --from=seed /deployments/*.jar    /deployments/
+COPY --chown=185 --from=seed /deployments/app/     /deployments/app/
+COPY --chown=185 --from=seed /deployments/quarkus/ /deployments/quarkus/
+
+# Bake the seeded database as a read-only file owned by the runtime user
+RUN mkdir -p /deployments/data
+COPY --chown=185 --from=seed /data/calmSchemas.db /deployments/data/calmSchemas.db
+RUN chmod 0444 /deployments/data/calmSchemas.db
+
+EXPOSE 8080
+USER 185
+
+ENV AB_JOLOKIA_OFF=""
+ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+# Activate the standalone profile: sets calm.database.mode=standalone and
+# suppresses MongoDB health-check / dev-services.
+ENV QUARKUS_PROFILE=standalone
+
+# Use a fixed data path (avoids ${user.home} ambiguity for UBI container UID 185)
+ENV CALM_STANDALONE_DATA_DIRECTORY=/deployments/data
+
+# Read-only mode: opens NitriteDB with readOnly(true) and rejects mutating HTTP verbs
+ENV CALM_READONLY=true

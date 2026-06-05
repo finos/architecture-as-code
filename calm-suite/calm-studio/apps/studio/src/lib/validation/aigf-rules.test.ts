@@ -34,13 +34,14 @@ function makeRelationship(
   dest: string,
   description?: string
 ): CalmRelationship {
-  return {
+  const rel: CalmRelationship = {
     'unique-id': id,
-    'relationship-type': 'connects',
-    source,
-    destination: dest,
-    description,
+    'relationship-type': {
+      connects: { source: { node: source }, destination: { node: dest } }
+    }
   };
+  if (description !== undefined) rel.description = description;
+  return rel;
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────

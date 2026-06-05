@@ -31,9 +31,12 @@ beforeEach(() => {
     relationships: [
       {
         'unique-id': 'rel-1',
-        'relationship-type': 'connects',
-        source: 'node-1',
-        destination: 'node-2'
+        'relationship-type': {
+          connects: {
+            source: { node: 'node-1' },
+            destination: { node: 'node-2' }
+          }
+        }
       }
     ],
     file: filePath

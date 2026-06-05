@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/finos-labs/dtcch-2026-opsflow-llc/actions/workflows/ci.yml"><img src="https://github.com/finos-labs/dtcch-2026-opsflow-llc/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/finos-labs/dtcch-2026-opsflow-llc/actions/workflows/semgrep.yml"><img src="https://github.com/finos-labs/dtcch-2026-opsflow-llc/actions/workflows/semgrep.yml/badge.svg" alt="SAST" /></a>
+  <a href="https://github.com/finos/architecture-as-code/actions/workflows/build-calm-guard.yml"><img src="https://github.com/finos/architecture-as-code/actions/workflows/build-calm-guard.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/finos/architecture-as-code/actions/workflows/semgrep-ci.yml"><img src="https://github.com/finos/architecture-as-code/actions/workflows/semgrep-ci.yml/badge.svg" alt="SAST" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
   <img src="https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/FINOS-CALM_1.0--1.2-00A3E0?logo=linux-foundation&logoColor=white" alt="FINOS CALM" />

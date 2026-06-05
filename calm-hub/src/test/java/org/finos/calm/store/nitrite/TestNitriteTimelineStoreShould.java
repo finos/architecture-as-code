@@ -354,6 +354,63 @@ public class TestNitriteTimelineStoreShould {
     }
 
     @Test
+    public void testGetTimelineVersions_whenVersionsDocumentIsNull_throwsTimelineNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document timelineDoc = Document.createDocument().put("timelineId", TIMELINE_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("timelines", List.of(timelineDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(TIMELINE_ID).build();
+
+        assertThrows(TimelineNotFoundException.class, () -> timelineStore.getTimelineVersions(timeline));
+    }
+
+    @Test
+    public void testGetTimelineForVersion_whenVersionsDocumentIsNull_throwsTimelineVersionNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document timelineDoc = Document.createDocument().put("timelineId", TIMELINE_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("timelines", List.of(timelineDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(TIMELINE_ID).setVersion(VERSION).build();
+
+        assertThrows(TimelineVersionNotFoundException.class, () -> timelineStore.getTimelineForVersion(timeline));
+    }
+
+    @Test
+    public void testGetTimelineForVersion_whenVersionObjIsNotAString_throwsTimelineVersionNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document versions = Document.createDocument().put("1-0-0", 12345);
+        Document timelineDoc = Document.createDocument()
+                .put("timelineId", TIMELINE_ID)
+                .put("versions", versions);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("timelines", List.of(timelineDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(TIMELINE_ID).setVersion(VERSION).build();
+
+        assertThrows(TimelineVersionNotFoundException.class, () -> timelineStore.getTimelineForVersion(timeline));
+    }
+
+    @Test
     public void testGetTimelineForVersion_whenVersionExists_returnsTimelineJson() throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
@@ -507,6 +564,29 @@ public class TestNitriteTimelineStoreShould {
 
         assertThrows(TimelineNotFoundException.class, () -> timelineStore.updateTimelineForVersion(timeline));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
+    }
+
+    @Test
+    public void testUpdateTimelineForVersion_whenVersionsDocumentIsNull_throwsTimelineNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document timelineDoc = Document.createDocument().put("timelineId", TIMELINE_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("timelines", List.of(timelineDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Timeline timeline = new Timeline.TimelineBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(TIMELINE_ID)
+                .setVersion(VERSION)
+                .setTimeline(VALID_JSON)
+                .build();
+
+        assertThrows(TimelineNotFoundException.class, () -> timelineStore.updateTimelineForVersion(timeline));
     }
 
     @Test

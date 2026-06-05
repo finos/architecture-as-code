@@ -14,7 +14,11 @@
  */
 
 import type { CalmArchitecture, CalmNode, ValidationIssue } from '@calmstudio/calm-core';
-import { isAINode, AIGF_CONTROL_KEYS } from '@calmstudio/calm-core';
+import {
+  isAINode,
+  AIGF_CONTROL_KEYS,
+  getConnectsEndpoints
+} from '@calmstudio/calm-core';
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -107,7 +111,13 @@ function checkAIGF005(arch: CalmArchitecture): ValidationIssue[] {
 
     if (!hasMCP) continue;
 
-    const sourceNode = nodeMap.get(rel.source);
+    // AIGF rules historically reason about source→destination (connects). For
+    // multi-target variants (composed-of, deployed-in, interacts) the source
+    // semantics don't carry the same enforcement meaning, so we skip.
+    const endpoints = getConnectsEndpoints(rel);
+    if (!endpoints) continue;
+
+    const sourceNode = nodeMap.get(endpoints.source);
     if (!sourceNode) continue;
 
     if (!hasControl(sourceNode, 'mcp-security')) {
@@ -184,9 +194,11 @@ function checkAIGF009(arch: CalmArchitecture): ValidationIssue[] {
   );
 
   for (const rel of arch.relationships) {
-    const sourceNode = nodeMap.get(rel.source);
+    const endpoints = getConnectsEndpoints(rel);
+    if (!endpoints) continue;
+    const sourceNode = nodeMap.get(endpoints.source);
     if (!sourceNode || sourceNode['node-type'] !== 'ai:agent') continue;
-    if (!toolIds.has(rel.destination)) continue;
+    if (!toolIds.has(endpoints.destination)) continue;
 
     if (!hasControl(sourceNode, 'tool-chain-validation')) {
       issues.push({

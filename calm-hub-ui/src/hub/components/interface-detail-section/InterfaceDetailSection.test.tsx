@@ -22,10 +22,10 @@ const mockFetchInterfaceVersions = vi.fn();
 const mockFetchInterfaceForVersion = vi.fn();
 
 vi.mock('../../../service/interface-service.js', () => ({
-    InterfaceService: vi.fn().mockImplementation(() => ({
+    InterfaceService: vi.fn().mockImplementation(function () { return {
         fetchInterfaceVersions: (...args: unknown[]) => mockFetchInterfaceVersions(...args),
         fetchInterfaceForVersion: (...args: unknown[]) => mockFetchInterfaceForVersion(...args),
-    })),
+    }; }),
 }));
 
 // ── Test data ─────────────────────────────────────────────
