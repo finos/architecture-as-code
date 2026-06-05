@@ -48,6 +48,10 @@ export class CalmHubService {
         }
     }
 
+    static fromUrl(url: string): CalmHubService {
+        return new CalmHubService(url);
+    }
+
     static fromCliConfig(config: CLIConfig): CalmHubService {
         if (!config.calmHubUrl) {
             throw new Error('No CalmHub instance configured. Please set --calm-hub-url or calmHubUrl in ~/.calm.json!');

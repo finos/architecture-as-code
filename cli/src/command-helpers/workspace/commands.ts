@@ -329,7 +329,7 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const service = new CalmHubService(calmHubUrl);
+                const service = CalmHubService.fromUrl(calmHubUrl);
                 await pushWorkspaceToHub(bundlePath, service);
             } catch (err) {
                 logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));

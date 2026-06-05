@@ -22,7 +22,7 @@ const mocks = vi.hoisted(() => {
         loadManifest: vi.fn(async () => ({})),
         removeDocumentFromManifest: vi.fn(async () => true),
         loadCliConfig: vi.fn(async () => ({ calmHubUrl: 'https://calmhub.example.com' })),
-        CalmHubService: vi.fn(() => ({ isMockService: true })),
+        CalmHubService: { fromUrl: vi.fn(() => ({ isMockService: true })) },
         select: vi.fn(async () => 'architecture'),
         input: vi.fn(async () => 'prompted-name'),
         readFile: vi.fn(async () => JSON.stringify({ title: 'My Architecture' })),
@@ -404,7 +404,7 @@ describe('setupWorkspaceCommands', () => {
     describe('workspace push', () => {
         it('calls pushWorkspaceToHub with a CalmHubService instance', async () => {
             await program.parseAsync(['node', 'test', 'workspace', 'push']);
-            expect(mocks.CalmHubService).toHaveBeenCalledWith('https://calmhub.example.com');
+            expect(mocks.CalmHubService.fromUrl).toHaveBeenCalledWith('https://calmhub.example.com');
             expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
                 '/fake/bundle',
                 expect.objectContaining({ isMockService: true })
@@ -413,7 +413,7 @@ describe('setupWorkspaceCommands', () => {
 
         it('uses --calm-hub-url over the value from config', async () => {
             await program.parseAsync(['node', 'test', 'workspace', 'push', '--calm-hub-url', 'https://override.example.com']);
-            expect(mocks.CalmHubService).toHaveBeenCalledWith('https://override.example.com');
+            expect(mocks.CalmHubService.fromUrl).toHaveBeenCalledWith('https://override.example.com');
         });
 
         it('exits when no workspace bundle is found', async () => {
