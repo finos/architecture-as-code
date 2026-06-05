@@ -425,13 +425,13 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('exits when no workspace bundle is found', async () => {
-            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null as unknown as string);
             await expect(program.parseAsync(['node', 'test', 'workspace', 'push'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
 
         it('exits when no CalmHub URL is configured', async () => {
-            mocks.loadCliConfig.mockResolvedValueOnce({});
+            mocks.loadCliConfig.mockResolvedValueOnce({} as never);
             await expect(program.parseAsync(['node', 'test', 'workspace', 'push'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
@@ -459,14 +459,14 @@ describe('setupWorkspaceCommands', () => {
         it('logs "no references needed" when there are no changes', async () => {
             mocks.updateWorkspaceRefs.mockResolvedValueOnce([
                 { docId: 'doc-a', filePath: '/fake/bundle/files/doc-a.json', changeCount: 0 },
-            ]);
+            ] as never);
             await program.parseAsync(['node', 'test', 'workspace', 'update-refs']);
             // No error thrown — success path
             expect(mocks.updateWorkspaceRefs).toHaveBeenCalled();
         });
 
         it('exits when no workspace bundle is found', async () => {
-            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null as unknown as string);
             await expect(program.parseAsync(['node', 'test', 'workspace', 'update-refs'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
