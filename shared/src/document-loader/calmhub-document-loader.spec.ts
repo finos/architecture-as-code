@@ -17,9 +17,9 @@ mock.onGet('/schemas/2025-03/meta/core.json').reply(200, {
 
 describe('calmhub-document-loader', () => {
     let calmHubDocumentLoader: CalmHubDocumentLoader;
-    let schemaDirectory: SchemaDirectory;
+    const schemaDirectory: SchemaDirectory = {} as unknown as SchemaDirectory;
     beforeEach(() => {
-        calmHubDocumentLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, null, ax);
+        calmHubDocumentLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, undefined, ax);
         calmHubDocumentLoader.initialise(schemaDirectory);
     });
 

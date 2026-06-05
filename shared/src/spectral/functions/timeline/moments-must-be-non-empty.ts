@@ -4,7 +4,7 @@ import { TimelineInput } from './timeline-types';
 /**
  * Checks that the moments array exists and is non-empty.
  */
-export function momentsMustBeNonEmpty(input: TimelineInput | null | undefined, _: unknown, _context: unknown): IFunctionResult[] {
+export function momentsMustBeNonEmpty(input: TimelineInput | null | undefined, _?: unknown, _context?: unknown): IFunctionResult[] {
     if (!input) {
         return [];
     }

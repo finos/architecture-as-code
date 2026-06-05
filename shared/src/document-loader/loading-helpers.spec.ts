@@ -161,7 +161,7 @@ describe('loading helpers', () => {
         it('should load pattern only if architecture fails to load', async () => {
             const pattern = { kind: 'pattern' };
             vi.mocked(mockDocLoader.loadMissingDocument)
-                .mockResolvedValueOnce(undefined) // architecture
+                .mockResolvedValueOnce(undefined as unknown as object) // architecture
                 .mockResolvedValueOnce(pattern);  // pattern
 
             const result = await loadArchitectureAndPattern('arch.json', 'pattern.json', mockDocLoader, mockSchemaDirectory, mockLogger);

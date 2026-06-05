@@ -26,7 +26,7 @@ const expectedPlainPath = join(expectedDir, 'conference-signup.arch.json');
 const expectedSecurePath = join(expectedDir, 'conference-secure-signup.arch.json');
 
 describe('runGenerate E2E', () => {
-    let schemaDirectory;
+    let schemaDirectory: SchemaDirectory;
     beforeEach(() => {
         if (existsSync(outputDir)) {
             rmSync(outputDir, { recursive: true, force: true });

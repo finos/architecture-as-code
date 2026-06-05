@@ -4,7 +4,7 @@ import { TimelineInput } from './timeline-types';
 /**
  * Checks that moments with valid-from are ordered by date.
  */
-export function momentsSortedByValidFrom(input: TimelineInput | null | undefined, _: unknown, _context: unknown): IFunctionResult[] {
+export function momentsSortedByValidFrom(input: TimelineInput | null | undefined, _?: unknown, _context?: unknown): IFunctionResult[] {
     if (!input) {
         return [];
     }

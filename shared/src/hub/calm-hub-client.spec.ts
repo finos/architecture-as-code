@@ -1,3 +1,4 @@
+import { AuthPlugin } from '../auth/auth-plugin';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
@@ -214,7 +215,7 @@ describe('CalmHubClient', () => {
             const ax = axios.create({ baseURL: 'http://localhost:8080' });
             authMock = new AxiosMockAdapter(ax);
             authClient = new CalmHubClient(
-                { calmHubUrl: 'http://localhost:8080', authPlugin: { getAuthHeaders } },
+                { calmHubUrl: 'http://localhost:8080', authPlugin: { getAuthHeaders } as unknown as AuthPlugin },
                 ax
             );
         });
@@ -957,7 +958,7 @@ describe('CalmHubClient', () => {
 
         beforeEach(() => {
             getAuthHeaders = vi.fn().mockResolvedValue({ Authorization: 'Bearer test-token' });
-            const authPlugin = { getAuthHeaders };
+            const authPlugin = { getAuthHeaders } as unknown as AuthPlugin;
             const ax = axios.create({ baseURL: 'http://localhost:8080' });
             authMock = new AxiosMockAdapter(ax);
             authClient = new CalmHubClient({ calmHubUrl: 'http://localhost:8080', authPlugin }, ax);

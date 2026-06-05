@@ -183,7 +183,7 @@ describe('RepeatedStrategy', () => {
             expect(mockCompiledTemplate).toHaveBeenCalledWith(
                 expect.objectContaining({
                     _root: context.data,
-                    _architecture: context.data.document,
+                    _architecture: (context.data as Record<string, unknown>).document,
                     'node-id': 'node-1'
                 })
             );

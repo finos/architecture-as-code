@@ -255,10 +255,10 @@ describe('TemplateProcessor E2E', () => {
         expect(actualContent).toEqual(expectedContent);
     }, 20_000);
 
-    function simulateAmendmentsPostGenerate(archPath, amendedPath) {
+    function simulateAmendmentsPostGenerate(archPath: string, amendedPath: string) {
         const original = fs.readFileSync(archPath, 'utf-8');
 
-        const AMENDMENTS = {
+        const AMENDMENTS: Record<string, Record<string, Record<string, unknown>>> = {
             'load-balancer': {
                 'load-balancer-host-port': { port: 80, host: 'localhost' },
             },
@@ -278,7 +278,7 @@ describe('TemplateProcessor E2E', () => {
             const updates = AMENDMENTS[node['unique-id']];
             if (!updates) return;
 
-            node.interfaces = node.interfaces.map(
+            node.interfaces = (node.interfaces ?? []).map(
                 (iface: CalmInterfaceTypeSchema) => {
                     const patch = updates[iface['unique-id']];
                     return patch ? { ...iface, ...patch } : iface;
