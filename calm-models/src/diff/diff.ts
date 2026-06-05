@@ -30,9 +30,11 @@ function valuesEqual(a: unknown, b: unknown): boolean {
 }
 
 /**
- * A stable, order-insensitive string key for a value: object keys are sorted
- * recursively before serialising, so two structurally-equal values produce the
- * same key. Used by the pattern diff to match id-less items by content.
+ * A stable content key for a value: object keys are sorted recursively before
+ * serialising, so two values differing only in object-key order produce the
+ * same key. Array element order is preserved (and therefore significant),
+ * matching {@link valuesEqual}. Used by the pattern diff to match id-less items
+ * by content.
  */
 export function canonicalKey(value: unknown): string {
     return JSON.stringify(normalizeValue(value));
