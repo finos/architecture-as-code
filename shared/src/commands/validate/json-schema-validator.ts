@@ -21,7 +21,11 @@ export class JsonSchemaValidator {
             loadSchema: async (schemaId: string): Promise<AnySchemaObject> => {
                 this.logger.debug(`AJV is loading missing schema with ID: ${schemaId} from schema directory.`);
                 try {
-                    return await schemaDirectory.getSchema(schemaId) as AnySchemaObject;
+                    const schema = await schemaDirectory.getSchema(schemaId);
+                    if (!schema) {
+                        throw new Error(`Schema with ID '${schemaId}' could not be found in the schema directory.`);
+                    }
+                    return schema as AnySchemaObject;
                 } catch (error) {
                     this.logger.error(`Error fetching schema from schema directory: ${error}`);
                     throw error;

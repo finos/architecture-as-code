@@ -63,8 +63,9 @@ export class SchemaDirectory {
         this.logger.debug(`Recursively resolving the reference, ref: ${ref}`);
         const definition = await this.lookupDefinition(newSchemaId, ref);
         if (!definition) {
-            // schema not defined
-            // schemaDirectory will return an empty schema in this case, so this code should never trigger.
+            // Unreachable in practice: lookupDefinition returns a placeholder object
+            // (getMissingSchemaPlaceholder) rather than a falsy value when a schema
+            // cannot be resolved. Kept as a defensive guard.
             throw Error('schema missing!');
         }
         const definitionRef = (definition as { $ref?: string })['$ref'];

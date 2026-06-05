@@ -1,4 +1,4 @@
-import { getErrorMessage } from '../error-utils';
+import { getErrorMessage } from '../error-utils.js';
 
 export interface AddressableEntry {
     path: string;
