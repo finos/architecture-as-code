@@ -123,10 +123,13 @@ function findConnectedPeers(
 ): CalmNode[] {
 	const peers: CalmNode[] = [];
 	for (const rel of relationships) {
-		if (rel['relationship-type'] !== 'connects') continue;
+		const rt = rel['relationship-type'];
+		if (!('connects' in rt)) continue;
+		const src = rt.connects.source.node;
+		const dst = rt.connects.destination.node;
 		let peerId: string | null = null;
-		if (rel.source === nodeId) peerId = rel.destination;
-		else if (rel.destination === nodeId) peerId = rel.source;
+		if (src === nodeId) peerId = dst;
+		else if (dst === nodeId) peerId = src;
 		if (peerId !== null) {
 			const peer = nodeMap.get(peerId);
 			if (peer) peers.push(peer);

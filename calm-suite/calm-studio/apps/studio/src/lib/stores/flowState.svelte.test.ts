@@ -22,15 +22,11 @@ const testArch: CalmArchitecture = {
 	relationships: [
 		{
 			'unique-id': 'rel-1',
-			'relationship-type': 'connects',
-			source: 'node-a',
-			destination: 'node-b',
+			'relationship-type': { connects: { source: { node: 'node-a' }, destination: { node: 'node-b' } } },
 		},
 		{
 			'unique-id': 'rel-2',
-			'relationship-type': 'connects',
-			source: 'node-b',
-			destination: 'node-c',
+			'relationship-type': { connects: { source: { node: 'node-b' }, destination: { node: 'node-c' } } },
 		},
 	],
 	flows: [

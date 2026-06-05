@@ -133,7 +133,7 @@ export async function validate(
             // `patternOrSchema` should really be a CALM pattern in this case.
             return await validatePatternOnly(patternOrSchema, schemaDirectory, debug);
         } else if (architecture) {
-            return await validateArchitectureOnly(architecture);
+            return await validateArchitectureOnly(architecture, schemaDirectory, debug);
         } else {
             logger.debug('You must provide an architecture, a pattern, or a timeline');
             throw new Error('You must provide an architecture, a pattern, or a timeline');
@@ -219,24 +219,78 @@ async function validatePatternOnly(pattern: object, schemaDirectory: SchemaDirec
 }
 
 /**
- * Run the spectral validations for the case where only the architecture is provided.
- * Note that if only the architecture is provided, the CLI tool will attempt to validate the architecture against its specified CALM schema.
- * i.e. the validateArchitectureAgainstPattern method will be called instead of this method.
- * 
+ * Run the spectral and JSON schema validations for the case where only the architecture is provided.
+ * Discovers the most recent available CALM core schema from the schema directory and validates against it.
+ *
  * @param architecture - The architecture, as a JS object.
- * @returns the validation outcome with the results of the spectral validation 
+ * @param schemaDirectory - SchemaDirectory instance for schema resolution.
+ * @param debug - Whether to log at debug level.
+ * @returns the validation outcome with the results of the spectral and JSON schema validations.
  **/
-async function validateArchitectureOnly(architecture: object): Promise<ValidationOutcome> {
-    logger.debug('Pattern was not provided, validating Architecture against its specified CALM schema');
+async function validateArchitectureOnly(architecture: object, schemaDirectory: SchemaDirectory | undefined, debug: boolean): Promise<ValidationOutcome> {
+    logger.debug('Pattern was not provided, validating Architecture against the most recent loaded CALM core schema');
 
     const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture, 'architecture');
 
-    const jsonSchemaValidations = [];
-    const errors = spectralResultForArchitecture.errors;
+    let jsonSchemaValidations = [];
+    let errors = spectralResultForArchitecture.errors;
     const warnings = spectralResultForArchitecture.warnings;
+
+    const coreSchemaUrl = schemaDirectory ? findLatestCalmCoreSchemaUrl(schemaDirectory) : undefined;
+    if (!coreSchemaUrl) {
+        logger.warn('No CALM core schema found in schema directory — skipping JSON schema validation');
+    } else {
+        logger.debug(`Validating architecture against CALM core schema: ${coreSchemaUrl}`);
+        const coreSchema = await schemaDirectory.getSchema(coreSchemaUrl);
+        try {
+            const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, coreSchema, debug);
+            await jsonSchemaValidator.initialize();
+            const schemaErrors = jsonSchemaValidator.validate(architecture);
+            if (schemaErrors.length > 0) {
+                logger.debug(`JSON Schema validation raw output: ${prettifyJson(schemaErrors)}`);
+                errors = true;
+                jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(schemaErrors, 'architecture');
+            }
+        } catch (error) {
+            const errorMessage = toErrorMessage(error);
+            logger.error(`JSON Schema compilation failed: ${errorMessage}`);
+            jsonSchemaValidations = [
+                new ValidationOutput('json-schema', 'error', errorMessage, '/', undefined, undefined, undefined, undefined, undefined, 'architecture')
+            ];
+            errors = true;
+        }
+    }
 
     logger.debug(`Returning validation outcome with ${jsonSchemaValidations.length} JSON schema validations, errors: ${errors}`);
     return new ValidationOutcome(jsonSchemaValidations, spectralResultForArchitecture.spectralIssues, errors, warnings);
+}
+
+/**
+ * Finds the URL of the most recent CALM core schema loaded in the schema directory.
+ *
+ * Precedence: release > draft. Within each tier, URLs are compared with a
+ * numeric-aware locale sort so that 1.10 > 1.9 > 1.2 (lexicographic order
+ * would get this wrong).
+ *
+ * Note: localeCompare with { numeric: true } treats runs of digits as numbers,
+ * which works correctly for all current CALM version formats (1.x, 2026-03).
+ * A version segment containing non-numeric characters (e.g. 1.2-beta) could
+ * sort unexpectedly — if pre-release versions are ever published, revisit this.
+ *
+ * Returns undefined if no CALM core schema is loaded.
+ */
+function findLatestCalmCoreSchemaUrl(schemaDirectory: SchemaDirectory): string | undefined {
+    const coreSchemaPattern = /calm\.finos\.org\/.*\/meta\/core\.json$/;
+    const matches = schemaDirectory.getLoadedSchemas()
+        .filter(id => coreSchemaPattern.test(id));
+
+    if (matches.length === 0) return undefined;
+
+    return matches.sort((a, b) => {
+        const isRelease = (url: string) => url.includes('/release/');
+        if (isRelease(a) !== isRelease(b)) return isRelease(a) ? -1 : 1;
+        return b.localeCompare(a, undefined, { numeric: true });
+    })[0];
 }
 
 /**

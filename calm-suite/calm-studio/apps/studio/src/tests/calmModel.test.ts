@@ -40,9 +40,7 @@ const baseArch: CalmArchitecture = {
 	relationships: [
 		{
 			'unique-id': 'rel-1',
-			'relationship-type': 'connects',
-			source: 'svc-1',
-			destination: 'db-1',
+			'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'db-1' } } },
 			protocol: 'HTTPS',
 			description: 'API to DB',
 		},
@@ -176,9 +174,10 @@ describe('edge property mutations', () => {
 	});
 
 	test('updateEdgeProperty changes relationship-type', () => {
-		updateEdgeProperty('rel-1', 'relationship-type', 'interacts');
+		const newRelType = { interacts: { actor: 'svc-1', nodes: ['db-1'] } };
+		updateEdgeProperty('rel-1', 'relationship-type', newRelType);
 		const rel = getModel().relationships.find((r) => r['unique-id'] === 'rel-1')!;
-		expect(rel['relationship-type']).toBe('interacts');
+		expect(rel['relationship-type']).toEqual(newRelType);
 	});
 });
 

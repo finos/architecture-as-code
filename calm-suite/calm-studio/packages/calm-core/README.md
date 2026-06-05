@@ -45,9 +45,12 @@ const arch: CalmArchitecture = {
   relationships: [
     {
       'unique-id': 'web-to-api',
-      'relationship-type': 'connects',
-      source: 'web-app',
-      destination: 'api-gateway',
+      'relationship-type': {
+        connects: {
+          source: { node: 'web-app' },
+          destination: { node: 'api-gateway' },
+        },
+      },
       protocol: 'HTTPS',
     },
   ],

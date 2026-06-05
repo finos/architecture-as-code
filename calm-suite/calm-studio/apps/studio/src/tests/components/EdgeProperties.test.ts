@@ -33,9 +33,7 @@ beforeEach(() => {
 		relationships: [
 			{
 				'unique-id': 'rel-1',
-				'relationship-type': 'connects',
-				source: 'svc-1',
-				destination: 'db-1',
+				'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'db-1' } } },
 				protocol: 'HTTPS',
 				description: 'Test edge description',
 			},

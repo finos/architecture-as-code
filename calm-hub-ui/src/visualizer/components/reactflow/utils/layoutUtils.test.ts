@@ -1,6 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { Node, Edge } from 'reactflow';
-import { getLayoutedElements, createTopLevelLayout } from './layoutUtils';
+import {
+    getLayoutedElements,
+    createTopLevelLayout,
+    calculateChildBounds,
+    sortContainersDeepestFirst,
+    getNodeWidth,
+    getNodeHeight,
+    reflowContainersToFitChildren,
+} from './layoutUtils';
+import { GRAPH_LAYOUT } from './constants';
+
+const PAD = GRAPH_LAYOUT.SYSTEM_NODE_PADDING;
+const W = GRAPH_LAYOUT.NODE_WIDTH;
+const H = GRAPH_LAYOUT.NODE_HEIGHT;
 
 describe('getLayoutedElements', () => {
     it('returns empty arrays for empty input', () => {
@@ -74,6 +87,184 @@ describe('getLayoutedElements', () => {
 
         expect(node1.position.x).toBeLessThan(node2.position.x);
         expect(node2.position.x).toBeLessThan(node3.position.x);
+    });
+});
+
+describe('getNodeWidth / getNodeHeight', () => {
+    it('falls back to standard dimensions when none are set', () => {
+        const node: Node = { id: 'n', position: { x: 0, y: 0 }, data: {} };
+        expect(getNodeWidth(node)).toBe(GRAPH_LAYOUT.NODE_WIDTH);
+        expect(getNodeHeight(node)).toBe(GRAPH_LAYOUT.NODE_HEIGHT);
+    });
+
+    it('prefers an explicit width/height over style', () => {
+        const node: Node = {
+            id: 'n',
+            position: { x: 0, y: 0 },
+            data: {},
+            width: 500,
+            height: 400,
+            style: { width: 999, height: 999 },
+        };
+        expect(getNodeWidth(node)).toBe(500);
+        expect(getNodeHeight(node)).toBe(400);
+    });
+
+    it('reads dimensions from style when width/height are absent', () => {
+        const node: Node = {
+            id: 'n',
+            position: { x: 0, y: 0 },
+            data: {},
+            style: { width: 320, height: 210 },
+        };
+        expect(getNodeWidth(node)).toBe(320);
+        expect(getNodeHeight(node)).toBe(210);
+    });
+});
+
+describe('calculateChildBounds', () => {
+    it('respects a child container\'s actual dimensions', () => {
+        const children: Node[] = [
+            { id: 'big', position: { x: 0, y: 0 }, data: {}, width: 600, height: 400 },
+        ];
+        const bounds = calculateChildBounds(children);
+        expect(bounds.maxX).toBe(600);
+        expect(bounds.maxY).toBe(400);
+    });
+
+    it('uses standard dimensions for plain nodes', () => {
+        const children: Node[] = [{ id: 'leaf', position: { x: 10, y: 20 }, data: {} }];
+        const bounds = calculateChildBounds(children);
+        expect(bounds.minX).toBe(10);
+        expect(bounds.minY).toBe(20);
+        expect(bounds.maxX).toBe(10 + GRAPH_LAYOUT.NODE_WIDTH);
+        expect(bounds.maxY).toBe(20 + GRAPH_LAYOUT.NODE_HEIGHT);
+    });
+});
+
+describe('sortContainersDeepestFirst', () => {
+    it('orders inner containers before their parents', () => {
+        const containers: Node[] = [
+            { id: 'outer', position: { x: 0, y: 0 }, data: {} },
+            { id: 'inner', position: { x: 0, y: 0 }, data: {}, parentId: 'outer' },
+            { id: 'innermost', position: { x: 0, y: 0 }, data: {}, parentId: 'inner' },
+        ];
+        const order = sortContainersDeepestFirst(containers).map((n) => n.id);
+        expect(order.indexOf('innermost')).toBeLessThan(order.indexOf('inner'));
+        expect(order.indexOf('inner')).toBeLessThan(order.indexOf('outer'));
+    });
+
+    it('does not mutate the input array', () => {
+        const containers: Node[] = [
+            { id: 'inner', position: { x: 0, y: 0 }, data: {}, parentId: 'outer' },
+            { id: 'outer', position: { x: 0, y: 0 }, data: {} },
+        ];
+        const before = containers.map((n) => n.id);
+        sortContainersDeepestFirst(containers);
+        expect(containers.map((n) => n.id)).toEqual(before);
+    });
+});
+
+describe('reflowContainersToFitChildren', () => {
+    it('hugs a child with equal padding on all sides, preserving on-screen position', () => {
+        const nodes: Node[] = [
+            { id: 'box', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'child', type: 'custom', parentId: 'box', position: { x: 300, y: 220 }, data: {} },
+        ];
+        const result = reflowContainersToFitChildren(nodes);
+        const box = result.find((n) => n.id === 'box')!;
+        const child = result.find((n) => n.id === 'child')!;
+        // Child is pulled to the padding offset; the box shifts to keep it on-screen.
+        expect(child.position).toEqual({ x: PAD, y: PAD });
+        expect(box.position.x + child.position.x).toBe(0 + 300);
+        expect(box.position.y + child.position.y).toBe(0 + 220);
+        expect(box.width).toBe(W + 2 * PAD);
+        expect(box.height).toBe(H + 2 * PAD);
+    });
+
+    it('shrinks a previously-grown box back to hug its children', () => {
+        const nodes: Node[] = [
+            {
+                id: 'box',
+                type: 'group',
+                position: { x: 0, y: 0 },
+                data: {},
+                width: 2000,
+                height: 2000,
+                style: { width: 2000, height: 2000 },
+            },
+            { id: 'a', type: 'custom', parentId: 'box', position: { x: 400, y: 300 }, data: {} },
+            { id: 'b', type: 'custom', parentId: 'box', position: { x: 700, y: 520 }, data: {} },
+        ];
+        const result = reflowContainersToFitChildren(nodes);
+        const box = result.find((n) => n.id === 'box')!;
+        const a = result.find((n) => n.id === 'a')!;
+        const b = result.find((n) => n.id === 'b')!;
+        // Leftmost/topmost child sits at the padding offset; box tightly fits both.
+        expect(Math.min(a.position.x, b.position.x)).toBe(PAD);
+        expect(Math.min(a.position.y, b.position.y)).toBe(PAD);
+        expect(box.width).toBe(Math.max(a.position.x, b.position.x) + W + PAD);
+        expect(box.height).toBe(Math.max(a.position.y, b.position.y) + H + PAD);
+        expect(box.width as number).toBeLessThan(2000);
+        expect(box.height as number).toBeLessThan(2000);
+    });
+
+    it('shifts the origin to enclose a child dragged above/left, preserving on-screen position', () => {
+        const nodes: Node[] = [
+            { id: 'box', type: 'group', position: { x: 1000, y: 1000 }, data: {} },
+            { id: 'child', type: 'custom', parentId: 'box', position: { x: -50, y: -30 }, data: {} },
+        ];
+        const absX = 1000 - 50;
+        const absY = 1000 - 30;
+        const result = reflowContainersToFitChildren(nodes);
+        const box = result.find((n) => n.id === 'box')!;
+        const child = result.find((n) => n.id === 'child')!;
+        const shiftX = PAD + 50;
+        const shiftY = PAD + 30;
+        // Child reclaims its top/left padding; container origin moves to compensate.
+        expect(child.position).toEqual({ x: PAD, y: PAD });
+        expect(box.position).toEqual({ x: 1000 - shiftX, y: 1000 - shiftY });
+        // On-screen (absolute) position is unchanged.
+        expect(box.position.x + child.position.x).toBe(absX);
+        expect(box.position.y + child.position.y).toBe(absY);
+        expect(box.width).toBe(-50 + W + shiftX + PAD);
+        expect(box.height).toBe(-30 + H + shiftY + PAD);
+    });
+
+    it('does not mutate the input nodes', () => {
+        const nodes: Node[] = [
+            { id: 'box', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'child', type: 'custom', parentId: 'box', position: { x: -10, y: -10 }, data: {} },
+        ];
+        reflowContainersToFitChildren(nodes);
+        expect(nodes[0].position).toEqual({ x: 0, y: 0 });
+        expect(nodes[1].position).toEqual({ x: -10, y: -10 });
+    });
+
+    it('cascades an inner container shift outward so nesting stays enclosed', () => {
+        const nodes: Node[] = [
+            { id: 'outer', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            {
+                id: 'inner',
+                type: 'group',
+                parentId: 'outer',
+                position: { x: PAD, y: PAD },
+                data: {},
+                width: W + 2 * PAD,
+                height: H + 2 * PAD,
+                style: { width: W + 2 * PAD, height: H + 2 * PAD },
+            },
+            { id: 'leaf', type: 'custom', parentId: 'inner', position: { x: -40, y: -40 }, data: {} },
+        ];
+        const result = reflowContainersToFitChildren(nodes);
+        const outer = result.find((n) => n.id === 'outer')!;
+        const inner = result.find((n) => n.id === 'inner')!;
+        // Inner shifted up/left to enclose the leaf; outer then grew/shifted to
+        // keep the inner container fully enclosed.
+        expect(inner.position.x).toBeGreaterThanOrEqual(0);
+        expect(inner.position.y).toBeGreaterThanOrEqual(0);
+        expect(inner.position.x + (inner.width as number)).toBeLessThanOrEqual(outer.width as number);
+        expect(inner.position.y + (inner.height as number)).toBeLessThanOrEqual(outer.height as number);
     });
 });
 

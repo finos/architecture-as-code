@@ -162,6 +162,9 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             if (architecture.getId() == architectureDoc.get(ARCHITECTURE_ID_FIELD, Integer.class)) {
                 // Extract the versions map from the matching architecture
                 Document versions = architectureDoc.get(VERSIONS_FIELD, Document.class);
+                if (versions == null) {
+                    throw new ArchitectureNotFoundException();
+                }
                 Set<String> versionKeys = versions.getFields();
 
                 // Convert from Nitrite representation
@@ -205,20 +208,21 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             if (architecture.getId() == architectureDoc.get(ARCHITECTURE_ID_FIELD, Integer.class)) {
                 // Retrieve the versions map from the matching architecture
                 Document versions = architectureDoc.get(VERSIONS_FIELD, Document.class);
+                if (versions == null) {
+                    throw new ArchitectureVersionNotFoundException();
+                }
 
                 // Return the architecture JSON blob for the specified version
                 String mongoVersion = architecture.getMongoVersion();
                 Object versionObj = versions.get(mongoVersion);
                 LOG.info("VersionDoc: [{}], Mongo Version: [{}]", versions, mongoVersion);
 
-                if (versionObj == null) {
+                if (!(versionObj instanceof String)) {
                     LOG.warn("Version '{}' not found for architecture {} in namespace '{}'",
                             architecture.getDotVersion(), architecture.getId(), architecture.getNamespace());
                     throw new ArchitectureVersionNotFoundException();
                 }
 
-                // In NitriteDB, we're storing the JSON as a string directly
-                // No need to convert to JSON string
                 return (String) versionObj;
             }
         }
@@ -285,6 +289,9 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                         if (architectureDoc.get(ARCHITECTURE_ID_FIELD, Integer.class) == architecture.getId()) {
                             // Found the architecture, update its version
                             Document versions = architectureDoc.get(VERSIONS_FIELD, Document.class);
+                            if (versions == null) {
+                                throw new ArchitectureNotFoundException();
+                            }
                             versions.put(architecture.getMongoVersion(), architecture.getArchitectureJson());
                             architectureDoc.put(NAME_FIELD, architecture.getName());
                             architectureDoc.put(DESCRIPTION_FIELD, architecture.getDescription());

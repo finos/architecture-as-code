@@ -9,6 +9,7 @@
  * animated dot overlays with sequence badges on active flow edges.
  */
 import type { CalmArchitecture, CalmTransition } from '@calmstudio/calm-core';
+import { getReferencedNodeIds } from '@calmstudio/calm-core';
 
 // Reactive state — module-level $state so it is shared across all consumers.
 let activeFlowId = $state<string | null>(null);
@@ -61,6 +62,6 @@ export function isNodeInActiveFlow(arch: CalmArchitecture, nodeId: string): bool
 	const flowEdgeIds = getActiveFlowEdgeIds(arch);
 	if (flowEdgeIds.size === 0) return true;
 	return arch.relationships.some(
-		(r) => flowEdgeIds.has(r['unique-id']) && (r.source === nodeId || r.destination === nodeId)
+		(r) => flowEdgeIds.has(r['unique-id']) && getReferencedNodeIds(r).includes(nodeId)
 	);
 }

@@ -22,6 +22,7 @@ import { EmptyGraphState } from './EmptyGraphState.js';
 import { parsePatternData } from './utils/patternTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
+import { applyStoredPositions } from '../../services/node-position-service.js';
 import { DecisionSelectorPanel } from './DecisionSelectorPanel.js';
 import {
     extractDecisionPoints,
@@ -79,17 +80,20 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
         onNodeClick,
         onEdgeClick,
         groupNodeTypes: GROUP_NODE_TYPES,
+        persistKey: viewportKey,
     });
 
     useEffect(() => {
         const { nodes: parsedNodes, edges: parsedEdges } = parsePatternData(patternData);
         sourceNodesRef.current = parsedNodes;
         sourceEdgesRef.current = parsedEdges;
-        setNodes(parsedNodes);
+        // Restore any custom layout the user dragged for this diagram, falling
+        // back to the parsed auto-layout when none is stored.
+        setNodes(viewportKey ? applyStoredPositions(viewportKey, parsedNodes) : parsedNodes);
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
         setDecisionPoints(extractDecisionPoints(parsedNodes));
-    }, [patternData, setNodes, setEdges]);
+    }, [patternData, setNodes, setEdges, viewportKey]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';

@@ -139,4 +139,45 @@ public class NitriteDBConfigTest {
         assertTrue(exception.getMessage().contains("Failed to start NitriteDB"), 
                 "Exception message should indicate failure to start NitriteDB");
     }
+
+    @Test
+    public void testReadOnlyModeFailsFastWhenDbFileMissing() {
+        // Given
+        nitriteDBConfig.readOnly = true;
+        // dataDirectory exists (tempDir) but the .db file has never been seeded
+
+        // When/Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            nitriteDBConfig.initialize();
+        });
+
+        assertTrue(exception.getMessage().contains("Read-only mode requires a pre-seeded database file"),
+                "Exception should explain that a pre-seeded .db is required");
+    }
+
+    @Test
+    public void testReadOnlyModeOpensExistingDbWithoutCreatingCollections() throws Exception {
+        // First create a writable database so the .db file exists
+        nitriteDBConfig.initialize();
+        nitriteDBConfig.shutdown();
+
+        // Re-open in read-only mode
+        NitriteDBConfig readOnlyConfig = new NitriteDBConfig();
+        readOnlyConfig.databaseMode = "standalone";
+        readOnlyConfig.dataDirectory = tempDir.toString();
+        readOnlyConfig.username = "testuser";
+        readOnlyConfig.password = "testpass";
+        readOnlyConfig.databaseName = "testdb";
+        readOnlyConfig.readOnly = true;
+
+        // When
+        readOnlyConfig.initialize();
+
+        // Then
+        Nitrite db = readOnlyConfig.getNitriteDb();
+        assertNotNull(db, "Database should be opened in read-only mode");
+        assertFalse(db.isClosed(), "Database should be open");
+
+        readOnlyConfig.shutdown();
+    }
 }

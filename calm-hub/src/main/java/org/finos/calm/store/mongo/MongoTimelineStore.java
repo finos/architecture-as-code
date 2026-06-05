@@ -117,6 +117,9 @@ public class MongoTimelineStore implements TimelineStore {
             if (timeline.getId() == timelineDoc.getInteger("timelineId")) {
                 // Extract the versions map from the matching timeline
                 Document versions = (Document) timelineDoc.get("versions");
+                if (versions == null) {
+                    throw new TimelineNotFoundException();
+                }
                 Set<String> versionKeys = versions.keySet();
 
                 // Convert from Mongo representation
@@ -157,6 +160,9 @@ public class MongoTimelineStore implements TimelineStore {
             if (timeline.getId() == timelineDoc.getInteger("timelineId")) {
                 // Retrieve the versions map from the matching timeline
                 Document versions = (Document) timelineDoc.get("versions");
+                if (versions == null) {
+                    throw new TimelineVersionNotFoundException();
+                }
 
                 // Return the timeline JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(timeline.getMongoVersion());

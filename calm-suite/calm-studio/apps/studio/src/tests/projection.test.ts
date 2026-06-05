@@ -30,9 +30,7 @@ const connectsArch: CalmArchitecture = {
 	relationships: [
 		{
 			'unique-id': 'rel-1',
-			'relationship-type': 'connects',
-			source: 'svc-1',
-			destination: 'db-1',
+			'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'db-1' } } },
 			protocol: 'HTTPS',
 			description: 'API to DB',
 		},
@@ -104,15 +102,16 @@ describe('flowToCalm', () => {
 		expect(cn.name).toBe('User');
 	});
 
-	test('maps edge source/target back to relationship source/destination', () => {
+	test('maps edge source/target back to nested relationship-type endpoints', () => {
 		const { nodes, edges } = calmToFlow(connectsArch);
 		const result = flowToCalm(nodes, edges);
 		expect(result.relationships).toHaveLength(1);
-		const rel = result.relationships[0];
+		const rel = result.relationships[0]!;
 		expect(rel['unique-id']).toBe('rel-1');
-		expect(rel.source).toBe('svc-1');
-		expect(rel.destination).toBe('db-1');
-		expect(rel['relationship-type']).toBe('connects');
+		const rt = rel['relationship-type'];
+		if (!('connects' in rt)) throw new Error('expected connects variant');
+		expect(rt.connects.source.node).toBe('svc-1');
+		expect(rt.connects.destination.node).toBe('db-1');
 		expect(rel.protocol).toBe('HTTPS');
 	});
 
