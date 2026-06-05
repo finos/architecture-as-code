@@ -561,6 +561,22 @@ public class TestNitriteTimelineStoreShould {
     }
 
     @Test
+    public void testUpdateTimelineForVersion_whenNullJson_throwsJsonParseException() {
+        // null JSON is rejected by the explicit null guard before any parse/lookup
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Timeline timeline = new Timeline.TimelineBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(TIMELINE_ID)
+                .setVersion(VERSION)
+                .setTimeline(null)
+                .build();
+
+        assertThrows(JsonParseException.class, () -> timelineStore.updateTimelineForVersion(timeline));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
     public void testUpdateTimelineForVersion_whenNamespaceDoesNotExist_throwsException() {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 

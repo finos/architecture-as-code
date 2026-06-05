@@ -269,12 +269,17 @@ public class NitriteTimelineStore implements TimelineStore {
      * @param timelineJson the raw timeline JSON to validate
      */
     private void validateTimelineJson(String timelineJson) {
+        if (timelineJson == null) {
+            LOG.error("Timeline JSON must not be null");
+            throw new JsonParseException("Timeline JSON must not be null");
+        }
         try {
             // Use org.bson.Document to validate JSON
             org.bson.Document.parse(timelineJson);
-        } catch (Exception e) {
+        } catch (JsonParseException e) {
+            // Rethrow the original so the parse failure's stack trace is preserved for observability
             LOG.error("Invalid JSON format for timeline: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
+            throw e;
         }
     }
 

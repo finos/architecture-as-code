@@ -669,6 +669,23 @@ public class TestNitriteArchitectureStoreShould {
     }
 
     @Test
+    public void testUpdateArchitectureForVersion_whenNullJson_throwsJsonParseException() {
+        // Arrange - null JSON is rejected by the explicit null guard before any parse/lookup
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Architecture architecture = new Architecture.ArchitectureBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(ARCHITECTURE_ID)
+                .setVersion(VERSION)
+                .setArchitecture(null)
+                .build();
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> architectureStore.updateArchitectureForVersion(architecture));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
     public void testVersionExists_whenVersionDoesNotExist_returnsFalse() {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);

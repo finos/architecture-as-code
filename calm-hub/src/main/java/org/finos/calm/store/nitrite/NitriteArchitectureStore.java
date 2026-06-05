@@ -270,12 +270,17 @@ public class NitriteArchitectureStore implements ArchitectureStore {
      * @param architectureJson the raw architecture JSON to validate
      */
     private void validateArchitectureJson(String architectureJson) {
+        if (architectureJson == null) {
+            LOG.error("Architecture JSON must not be null");
+            throw new JsonParseException("Architecture JSON must not be null");
+        }
         try {
             // Use org.bson.Document to validate JSON
             org.bson.Document.parse(architectureJson);
-        } catch (Exception e) {
+        } catch (JsonParseException e) {
+            // Rethrow the original so the parse failure's stack trace is preserved for observability
             LOG.error("Invalid JSON format for architecture: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
+            throw e;
         }
     }
 

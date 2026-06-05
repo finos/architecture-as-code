@@ -357,12 +357,17 @@ public class NitritePatternStore implements PatternStore {
      * @param patternJson the raw pattern JSON to validate
      */
     private void validatePatternJson(String patternJson) {
+        if (patternJson == null) {
+            LOG.error("Pattern JSON must not be null");
+            throw new JsonParseException("Pattern JSON must not be null");
+        }
         try {
             // Validate JSON by attempting to parse it
             org.bson.Document.parse(patternJson);
-        } catch (Exception e) {
+        } catch (JsonParseException e) {
+            // Rethrow the original so the parse failure's stack trace is preserved for observability
             LOG.error("Invalid JSON format for pattern: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
+            throw e;
         }
     }
 

@@ -463,6 +463,23 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
+    public void testUpdatePatternForVersion_whenNullJson_throwsJsonParseException() {
+        // Arrange - null JSON is rejected by the explicit null guard before any parse/lookup
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1-0-0")
+                .setPattern(null)
+                .build();
+
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> patternStore.updatePatternForVersion(pattern));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
     public void testCreatePatternForVersion_whenNamespaceDocumentDoesNotExist_throwsPatternNotFoundException() {
         // Arrange
         Pattern pattern = new Pattern.PatternBuilder()
