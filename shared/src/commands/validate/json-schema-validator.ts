@@ -1,10 +1,10 @@
-import Ajv2020, { ErrorObject, ValidateFunction } from 'ajv/dist/2020.js';
+import Ajv2020, { AnySchemaObject, ErrorObject, ValidateFunction } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { SchemaDirectory } from '../../schema-directory.js';
 import { initLogger, Logger } from '../../logger.js';
 
 export class JsonSchemaValidator {
-    private validateFn: ValidateFunction<object>;
+    private validateFn?: ValidateFunction<object>;
     private ajv: Ajv2020;
     private logger: Logger;
     private pattern: object;
@@ -18,12 +18,13 @@ export class JsonSchemaValidator {
         this.ajv = new Ajv2020({
             strict: strictType,
             allErrors: true,
-            loadSchema: async (schemaId) => {
+            loadSchema: async (schemaId: string): Promise<AnySchemaObject> => {
                 this.logger.debug(`AJV is loading missing schema with ID: ${schemaId} from schema directory.`);
                 try {
-                    return await schemaDirectory.getSchema(schemaId);
+                    return await schemaDirectory.getSchema(schemaId) as AnySchemaObject;
                 } catch (error) {
                     this.logger.error(`Error fetching schema from schema directory: ${error}`);
+                    throw error;
                 }
             }
         });

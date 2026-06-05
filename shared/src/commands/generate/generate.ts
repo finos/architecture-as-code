@@ -32,7 +32,8 @@ export async function runGenerate(pattern: object, outputPath: string, debug: bo
         fs.writeFileSync(outputPath, output);
         logger.info(`Successfully generated architecture to [${outputPath}]`);
     } catch (err) {
-        logger.error('Error while generating architecture from pattern: ' + err.message);
-        logger.debug(err.stack);
+        const error = err instanceof Error ? err : new Error(String(err));
+        logger.error('Error while generating architecture from pattern: ' + error.message);
+        logger.debug(error.stack ?? '');
     }
 }
