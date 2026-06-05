@@ -226,11 +226,12 @@ describe('TemplateEngine', () => {
     });
 
     it('should log a warning for an unknown output type', () => {
-        const templateConfig: IndexFile = {
+        // Deliberately invalid output-type to exercise the unknown-type warning path.
+        const templateConfig = {
             name: 'Test Template',
             transformer: 'mock-transformer',
             templates: [{ template: 'main.hbs', from: 'data', output: 'output.txt', 'output-type': 'invalid-type' }],
-        };
+        } as unknown as IndexFile;
 
         const templateFiles = {
             'main.hbs': 'User: {{name}}',

@@ -56,7 +56,7 @@ const debugDisabled = false;
 
 describe('validation support functions', () => {
     describe('exitBasedOffOfValidationOutcome', () => {
-        let mockExit;
+        let mockExit: ReturnType<typeof vi.spyOn>;
 
         beforeEach(() => {
             mockExit = vi.spyOn(process, 'exit')

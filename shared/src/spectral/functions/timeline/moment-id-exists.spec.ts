@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { momentIdExists } from './moment-id-exists';
 
 describe('momentIdExists', () => {
@@ -9,7 +10,7 @@ describe('momentIdExists', () => {
             }
         };
 
-        const result = momentIdExists(input, null, context);
+        const result = momentIdExists(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -26,7 +27,7 @@ describe('momentIdExists', () => {
             }
         };
 
-        const result = momentIdExists(input, null, context);
+        const result = momentIdExists(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -44,7 +45,7 @@ describe('momentIdExists', () => {
             path: ['/current-moment']
         };
 
-        const result = momentIdExists(input, null, context);
+        const result = momentIdExists(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`'${input}' does not refer to the unique-id of an existing moment.`);
         expect(result[0].path).toEqual(['/current-moment']);

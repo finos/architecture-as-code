@@ -5,7 +5,7 @@ describe('updateStringValuesRecursively', () => {
         const object = {
             'stringKey': 'abcd'
         };
-        const mapped = updateStringValuesRecursively(object, (key, value) => value.toUpperCase());
+        const mapped = updateStringValuesRecursively(object, (key, value) => value.toUpperCase()) as Record<string, unknown>;
         expect(mapped['stringKey']).toEqual('ABCD');
     });
 
@@ -33,9 +33,9 @@ describe('updateStringValuesRecursively', () => {
         };
         const mapped = updateStringValuesRecursively(object, (key, value) => key === 'modify'
             ? value.toUpperCase()
-            : value);
-        expect(mapped['innerObj']['modify']).toEqual('ABCD');
-        expect(mapped['innerObj2']['ignore']).toEqual('abcd');
+            : value) as Record<string, unknown>;
+        expect((mapped['innerObj'] as Record<string, unknown>)['modify']).toEqual('ABCD');
+        expect((mapped['innerObj2'] as Record<string, unknown>)['ignore']).toEqual('abcd');
     });
 
     it('Should recurse into objects nested within arrays', () => {
@@ -44,7 +44,7 @@ describe('updateStringValuesRecursively', () => {
         const object = {
             'items': ['a', { 'nested': 'b' }, 'c']
         };
-        const mapped = updateStringValuesRecursively(object, (_key, value) => value.toUpperCase());
+        const mapped = updateStringValuesRecursively(object, (_key, value) => value.toUpperCase()) as Record<string, unknown>;
         expect(mapped['items']).toEqual(['a', { 'nested': 'B' }, 'c']);
     });
 });

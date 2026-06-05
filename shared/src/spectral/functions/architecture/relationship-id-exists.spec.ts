@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { relationshipIdExists } from './relationship-id-exists';
 
 describe('relationshipIdExists', () => {
@@ -9,7 +10,7 @@ describe('relationshipIdExists', () => {
             }
         };
 
-        const result = relationshipIdExists(input, null, context);
+        const result = relationshipIdExists(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -25,7 +26,7 @@ describe('relationshipIdExists', () => {
             }
         };
 
-        const result = relationshipIdExists(input, null, context);
+        const result = relationshipIdExists(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -42,7 +43,7 @@ describe('relationshipIdExists', () => {
             path: ['/relationships/0']
         };
 
-        const result = relationshipIdExists(input, null, context);
+        const result = relationshipIdExists(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`'${input}' does not refer to the unique-id of an existing relationship.`);
         expect(result[0].path).toEqual(['/relationships/0']);
