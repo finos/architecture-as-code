@@ -299,7 +299,7 @@ public class TestNitritePatternStoreShould {
 
         // Mock the versionsDoc with the fields we need
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get(anyString(), eq(String.class))).thenReturn(null); // Version not found
+        when(versionsDoc.get(anyString())).thenReturn(null); // Version not found
 
         // Mock the pattern document
         Document patternDoc = mock(Document.class);
@@ -356,6 +356,27 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
+    public void testGetPatternForVersion_whenVersionObjIsNotAString_throwsPatternVersionNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document versions = Document.createDocument().put("1-0-0", 12345);
+        Document patternDoc = Document.createDocument()
+                .put("patternId", PATTERN_ID)
+                .put("versions", versions);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace(NAMESPACE).setId(PATTERN_ID).setVersion("1.0.0").build();
+
+        assertThrows(PatternVersionNotFoundException.class, () -> patternStore.getPatternForVersion(pattern));
+    }
+
+    @Test
     public void testGetPatternForVersion_whenVersionExists_returnsPatternJson() throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
         // Arrange
         Pattern pattern = new Pattern.PatternBuilder()
@@ -368,7 +389,7 @@ public class TestNitritePatternStoreShould {
 
         // Mock the versionsDoc with the fields we need
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get(eq("1-0-0"), eq(String.class))).thenReturn(PATTERN_JSON);
+        when(versionsDoc.get("1-0-0")).thenReturn(PATTERN_JSON);
 
         // Mock the pattern document
         Document patternDoc = mock(Document.class);

@@ -113,6 +113,9 @@ public class MongoStandardStore implements StandardStore {
             if (standardId.equals(standardDoc.getInteger("standardId"))) {
                 // Extract the versions map from the matching standard
                 Document versions = (Document) standardDoc.get("versions");
+                if (versions == null) {
+                    throw new StandardNotFoundException();
+                }
                 Set<String> versionKeys = versions.keySet();
 
                 //Convert from Mongo representation
@@ -154,6 +157,9 @@ public class MongoStandardStore implements StandardStore {
         for (Document standardDoc : standards) {
             if (standardId.equals(standardDoc.getInteger("standardId"))) {
                 Document versions = (Document) standardDoc.get("versions");
+                if (versions == null) {
+                    throw new StandardVersionNotFoundException();
+                }
                 Document versionDoc = (Document) versions.get(version.replace('.', '-'));
                 if(versionDoc == null) {
                     throw new StandardVersionNotFoundException();

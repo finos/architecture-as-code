@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -18,7 +19,6 @@ import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
 import org.finos.calm.domain.timeline.CreateTimelineRequest;
 import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.TimelineStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
-import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.*;
 
 /**
  * Resource for managing explicit timelines in a given namespace.
@@ -57,7 +53,7 @@ public class TimelineResource {
             summary = "Retrieve timelines in a given namespace",
             description = "Timelines stored in a given namespace"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getTimelinesForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
@@ -77,7 +73,7 @@ public class TimelineResource {
             summary = "Create timeline for namespace",
             description = "Creates a timeline for a given namespace with an allocated ID and version 1.0.0"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createTimelineForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @Valid @NotNull(message = "Request must not be null") CreateTimelineRequest timelineRequest
@@ -101,7 +97,7 @@ public class TimelineResource {
             summary = "Retrieve a list of versions for a given timeline",
             description = "Timeline versions are not opinionated, outside of the first version created"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getTimelineVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("timelineId") int timelineId
@@ -129,7 +125,7 @@ public class TimelineResource {
             summary = "Retrieve a specific timeline at a given version",
             description = "Retrieve timelines at a specific version"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("timelineId") int timelineId,
@@ -163,7 +159,7 @@ public class TimelineResource {
             summary = "Create a new version of an existing timeline",
             description = "Stores a new version of the timeline under the supplied {version}. The request body is an envelope containing `name`, optional `description`, and the inner `timelineJson` document; only the inner document is persisted as the version contents."
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createVersionedTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("timelineId") int timelineId,
@@ -205,7 +201,7 @@ public class TimelineResource {
             summary = "Updates a Timeline (if available)",
             description = "In mutable version stores timeline updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified. The request body uses the same envelope as POST."
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateVersionedTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("timelineId") int timelineId,

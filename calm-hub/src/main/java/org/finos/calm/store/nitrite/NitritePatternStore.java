@@ -206,9 +206,9 @@ public class NitritePatternStore implements PatternStore {
         if (versions == null) {
             throw new PatternVersionNotFoundException();
         }
-        String patternJson = versions.get(pattern.getMongoVersion(), String.class);
+        Object versionObj = versions.get(pattern.getMongoVersion());
 
-        if (patternJson == null) {
+        if (!(versionObj instanceof String)) {
             LOG.warn("Version '{}' not found for pattern {} in namespace '{}'",
                     pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
             throw new PatternVersionNotFoundException();
@@ -216,7 +216,7 @@ public class NitritePatternStore implements PatternStore {
 
         LOG.debug("Retrieved version '{}' for pattern {} in namespace '{}'",
                 pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
-        return patternJson;
+        return (String) versionObj;
     }
 
     @Override

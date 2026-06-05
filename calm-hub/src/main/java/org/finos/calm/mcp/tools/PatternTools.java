@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -13,6 +14,7 @@ import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,7 @@ public class PatternTools {
     PatternStore patternStore;
 
     @Tool(description = "List all patterns in a CalmHub namespace. Returns pattern IDs, names, and descriptions.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listPatterns(
             @ToolArg(description = "The namespace to list patterns from (e.g. 'workshop', 'finos')") String namespace) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
@@ -61,6 +64,7 @@ public class PatternTools {
     }
 
     @Tool(description = "List available versions of a pattern in a CalmHub namespace.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listPatternVersions(
             @ToolArg(description = "The namespace containing the pattern") String namespace,
             @ToolArg(description = "The pattern ID (positive integer)") int patternId) {
@@ -87,6 +91,7 @@ public class PatternTools {
     }
 
     @Tool(description = "Get the full JSON content of a specific pattern version.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getPattern(
             @ToolArg(description = "The namespace containing the pattern") String namespace,
             @ToolArg(description = "The pattern ID (positive integer)") int patternId,
@@ -118,6 +123,7 @@ public class PatternTools {
     }
 
     @Tool(description = "Create a new pattern in a namespace. Returns the allocated pattern ID and version.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createPattern(
             @ToolArg(description = "The namespace to create the pattern in") String namespace,
             @ToolArg(description = "The name of the pattern") String name,
@@ -146,6 +152,7 @@ public class PatternTools {
     }
 
     @Tool(description = "Publish a new version of an existing pattern. Use this to add a new semantic version (e.g. '1.1.0') against an existing pattern ID without allocating a new identity.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createPatternVersion(
             @ToolArg(description = "The namespace containing the pattern") String namespace,
             @ToolArg(description = "The pattern ID to publish a new version for (positive integer)") int patternId,
@@ -184,6 +191,7 @@ public class PatternTools {
     }
 
     @Tool(description = "Update the content of an existing pattern version. Requires PUT operations to be enabled on this CalmHub instance.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse updatePattern(
             @ToolArg(description = "The namespace containing the pattern") String namespace,
             @ToolArg(description = "The pattern ID (positive integer)") int patternId,
