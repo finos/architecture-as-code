@@ -1006,6 +1006,158 @@ describe('CalmHubClient', () => {
         });
     });
 
+    // ── Front controller ─────────────────────────────────────────────────────────
+
+    describe('createResource', () => {
+        const data = { $id: 'my-arch', version: '1.0.0' };
+        const locationUrl = '/calm/namespaces/com.example/my-arch/versions/1.0.0';
+
+        it('POSTs to /calm/namespaces/{ns}/{name} with type uppercased and returns Location', async () => {
+            mock.onPost('/calm/namespaces/com.example/my-arch').reply(201, null, { location: locationUrl });
+
+            const result = await client.createResource('com.example', 'my-arch', 'architecture', data);
+
+            expect(result).toBe(locationUrl);
+            const body = JSON.parse(mock.history.post[0].data as string);
+            expect(body).toMatchObject({ type: 'ARCHITECTURE', name: 'my-arch', json: JSON.stringify(data) });
+        });
+
+        it('uses the provided description', async () => {
+            mock.onPost('/calm/namespaces/com.example/my-arch').reply(201, null, { location: locationUrl });
+
+            await client.createResource('com.example', 'my-arch', 'architecture', data, 'My desc');
+
+            const body = JSON.parse(mock.history.post[0].data as string);
+            expect(body.description).toBe('My desc');
+        });
+
+        it('generates a description when none is provided', async () => {
+            mock.onPost('/calm/namespaces/com.example/my-arch').reply(201, null, { location: locationUrl });
+
+            await client.createResource('com.example', 'my-arch', 'architecture', data);
+
+            const body = JSON.parse(mock.history.post[0].data as string);
+            expect(typeof body.description).toBe('string');
+            expect(body.description.length).toBeGreaterThan(0);
+        });
+
+        it('throws HubClientError when no Location header is returned', async () => {
+            mock.onPost('/calm/namespaces/com.example/my-arch').reply(201, null, {});
+
+            await expect(client.createResource('com.example', 'my-arch', 'architecture', data))
+                .rejects.toMatchObject({ status: 0 });
+        });
+
+        it('throws HubClientError on HTTP error', async () => {
+            mock.onPost('/calm/namespaces/com.example/my-arch').reply(400, 'Bad request');
+
+            await expect(client.createResource('com.example', 'my-arch', 'architecture', data))
+                .rejects.toMatchObject({ status: 400 });
+        });
+    });
+
+    describe('updateResource', () => {
+        const data = { $id: 'my-arch', version: '2.0.0' };
+        const locationUrl = '/calm/namespaces/com.example/my-arch/versions/1.1.0';
+
+        it('POSTs changeType MINOR and returns Location', async () => {
+            mock.onPost('/calm/namespaces/com.example/my-arch').reply(200, null, { location: locationUrl });
+
+            const result = await client.updateResource('com.example', 'my-arch', data);
+
+            expect(result).toBe(locationUrl);
+            const body = JSON.parse(mock.history.post[0].data as string);
+            expect(body).toMatchObject({ json: JSON.stringify(data), changeType: 'MINOR' });
+        });
+
+        it('handles a capitalised Location header', async () => {
+            mock.onPost('/calm/namespaces/com.example/my-arch').reply(200, null, { Location: locationUrl });
+
+            const result = await client.updateResource('com.example', 'my-arch', data);
+
+            expect(result).toBe(locationUrl);
+        });
+
+        it('throws HubClientError when no Location header is returned', async () => {
+            mock.onPost('/calm/namespaces/com.example/my-arch').reply(200, null, {});
+
+            await expect(client.updateResource('com.example', 'my-arch', data))
+                .rejects.toMatchObject({ status: 0 });
+        });
+
+        it('throws HubClientError on HTTP error', async () => {
+            mock.onPost('/calm/namespaces/com.example/my-arch').reply(500, 'Server error');
+
+            await expect(client.updateResource('com.example', 'my-arch', data))
+                .rejects.toMatchObject({ status: 500 });
+        });
+    });
+
+    describe('getResource', () => {
+        const doc = { $id: 'my-arch', version: '1.0.0' };
+
+        it('GETs /calm/namespaces/{ns}/{name} and returns the document', async () => {
+            mock.onGet('/calm/namespaces/com.example/my-arch').reply(200, doc);
+
+            const result = await client.getResource('com.example', 'my-arch');
+
+            expect(result).toEqual(doc);
+        });
+
+        it('throws HubClientError(404) when not found', async () => {
+            mock.onGet('/calm/namespaces/com.example/missing').reply(404, 'Not found');
+
+            await expect(client.getResource('com.example', 'missing'))
+                .rejects.toMatchObject({ status: 404 });
+        });
+    });
+
+    describe('listResourceVersions', () => {
+        it('GETs /calm/namespaces/{ns}/{name}/versions and returns version strings', async () => {
+            mock.onGet('/calm/namespaces/com.example/my-arch/versions').reply(200, {
+                values: ['1.0.0', '1.1.0', '2.0.0']
+            });
+
+            const result = await client.listResourceVersions('com.example', 'my-arch');
+
+            expect(result).toEqual(['1.0.0', '1.1.0', '2.0.0']);
+        });
+
+        it('returns empty array when values is absent', async () => {
+            mock.onGet('/calm/namespaces/com.example/my-arch/versions').reply(200, {});
+
+            const result = await client.listResourceVersions('com.example', 'my-arch');
+
+            expect(result).toEqual([]);
+        });
+
+        it('throws HubClientError on HTTP error', async () => {
+            mock.onGet('/calm/namespaces/com.example/missing/versions').reply(404, 'Not found');
+
+            await expect(client.listResourceVersions('com.example', 'missing'))
+                .rejects.toMatchObject({ status: 404 });
+        });
+    });
+
+    describe('getResourceVersion', () => {
+        const doc = { $id: 'my-arch', version: '1.2.3' };
+
+        it('GETs /calm/namespaces/{ns}/{name}/versions/{version} and returns the document', async () => {
+            mock.onGet('/calm/namespaces/com.example/my-arch/versions/1.2.3').reply(200, doc);
+
+            const result = await client.getResourceVersion('com.example', 'my-arch', '1.2.3');
+
+            expect(result).toEqual(doc);
+        });
+
+        it('throws HubClientError(404) when not found', async () => {
+            mock.onGet('/calm/namespaces/com.example/my-arch/versions/9.9.9').reply(404, 'Not found');
+
+            await expect(client.getResourceVersion('com.example', 'my-arch', '9.9.9'))
+                .rejects.toMatchObject({ status: 404 });
+        });
+    });
+
     // ── auth plugin: domains/controls ─────────────────────────────────────────
 
     describe('auth plugin: domains/controls', () => {

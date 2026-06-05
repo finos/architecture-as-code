@@ -1,5 +1,6 @@
 import axios, { Axios } from 'axios';
 import { AuthPlugin } from '../auth/auth-plugin';
+import { CalmDocumentType } from '../document-loader/document-loader';
 
 export interface CalmHubOptions {
     calmHubUrl?: string;
@@ -779,6 +780,80 @@ export class CalmHubClient {
         try {
             const response = await this.ax.get(`/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`);
             return (response.data?.values ?? []) as string[];
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    // ── Front controller ─────────────────────────────────────────────────────────
+
+    async createResource(
+        namespace: string,
+        name: string,
+        type: CalmDocumentType,
+        data: object,
+        description?: string
+    ): Promise<string> {
+        const endpoint = `POST /calm/namespaces/${namespace}/${name}`;
+        try {
+            const response = await this.ax.post(`/calm/namespaces/${namespace}/${name}`, {
+                type: type.toUpperCase(),
+                json: JSON.stringify(data),
+                name,
+                description: description ?? `Created via CALM CLI on ${new Date().toISOString()}`
+            });
+            const location = response.headers['location'] || response.headers['Location'];
+            if (!location) {
+                throw new HubClientError(0, 'No Location header returned from CalmHub on create', endpoint);
+            }
+            return location as string;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async updateResource(namespace: string, name: string, data: object): Promise<string> {
+        const endpoint = `POST /calm/namespaces/${namespace}/${name}`;
+        try {
+            const response = await this.ax.post(`/calm/namespaces/${namespace}/${name}`, {
+                json: JSON.stringify(data),
+                changeType: 'MINOR'
+            });
+            const location = response.headers['location'] || response.headers['Location'];
+            if (!location) {
+                throw new HubClientError(0, 'No Location header returned from CalmHub on update', endpoint);
+            }
+            return location as string;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async getResource(namespace: string, name: string): Promise<object> {
+        const endpoint = `GET /calm/namespaces/${namespace}/${name}`;
+        try {
+            const response = await this.ax.get(`/calm/namespaces/${namespace}/${name}`);
+            return response.data as object;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async listResourceVersions(namespace: string, name: string): Promise<string[]> {
+        const endpoint = `GET /calm/namespaces/${namespace}/${name}/versions`;
+        try {
+            const response = await this.ax.get(`/calm/namespaces/${namespace}/${name}/versions`);
+            return (response.data?.values ?? []) as string[];
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async getResourceVersion(namespace: string, name: string, version: string): Promise<object> {
+        const endpoint = `GET /calm/namespaces/${namespace}/${name}/versions/${version}`;
+        try {
+            const response = await this.ax.get(`/calm/namespaces/${namespace}/${name}/versions/${version}`);
+            return response.data as object;
         } catch (err) {
             throw this.wrapError(err, endpoint);
         }
