@@ -107,13 +107,7 @@ public class NitritePatternStore implements PatternStore {
             throw new NamespaceNotFoundException();
         }
 
-        try {
-            // Validate JSON by attempting to parse it
-            org.bson.Document.parse(patternRequest.getPatternJson());
-        } catch (Exception e) {
-            LOG.error("Invalid JSON format for pattern: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
-        }
+        validatePatternJson(patternRequest.getPatternJson());
 
         lock.lock();
         try {
@@ -232,6 +226,8 @@ public class NitritePatternStore implements PatternStore {
             throw new NamespaceNotFoundException();
         }
 
+        validatePatternJson(pattern.getPatternJson());
+
         lock.lock();
         try {
             Filter namespaceFilter = where(NAMESPACE_FIELD).eq(pattern.getNamespace());
@@ -301,6 +297,8 @@ public class NitritePatternStore implements PatternStore {
             throw new NamespaceNotFoundException();
         }
 
+        validatePatternJson(pattern.getPatternJson());
+
         Filter namespaceFilter = where(NAMESPACE_FIELD).eq(pattern.getNamespace());
         Document namespaceDocument = patternCollection.find(namespaceFilter).firstOrNull();
 
@@ -349,6 +347,28 @@ public class NitritePatternStore implements PatternStore {
         LOG.info("Updated version '{}' for pattern {} in namespace '{}'",
                 pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
         return pattern;
+    }
+
+    /**
+     * Validates that the supplied pattern JSON is parseable, throwing {@link JsonParseException} if not so the
+     * REST layer can surface a 400. Validation runs immediately after the namespace check, before any existence or
+     * version checks, so a malformed payload is rejected consistently regardless of the operation.
+     *
+     * @param patternJson the raw pattern JSON to validate
+     */
+    private void validatePatternJson(String patternJson) {
+        if (patternJson == null) {
+            LOG.error("Pattern JSON must not be null");
+            throw new JsonParseException("Pattern JSON must not be null");
+        }
+        try {
+            // Validate JSON by attempting to parse it
+            org.bson.Document.parse(patternJson);
+        } catch (JsonParseException e) {
+            // Rethrow the original so the parse failure's stack trace is preserved for observability
+            LOG.error("Invalid JSON format for pattern: {}", e.getMessage());
+            throw e;
+        }
     }
 
     /**

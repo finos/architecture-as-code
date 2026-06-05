@@ -346,6 +346,7 @@ public class TestArchitectureResourceShould {
                 Arguments.of(new NamespaceNotFoundException(), 404),
                 Arguments.of(new ArchitectureNotFoundException(), 404),
                 Arguments.of(new ArchitectureVersionExistsException(), 409),
+                Arguments.of(new JsonParseException(), 400),
                 Arguments.of(null, 201)
         );
     }

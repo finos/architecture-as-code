@@ -35,6 +35,7 @@ import java.net.URISyntaxException;
 
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
@@ -112,8 +113,8 @@ public class ArchitectureResource {
             logger.error("Invalid namespace [{}] when creating architecture", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (JsonParseException e) {
-            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture request : [{}]", namespace, architectureRequest, e);
-            return invalidArchitectureJsonResponse(namespace);
+            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, STRICT_SANITIZATION_POLICY.sanitize(architectureRequest.getArchitectureJson()), e);
+            return CalmResourceErrorResponses.invalidJsonResponse("architecture");
         }
     }
 
@@ -209,6 +210,9 @@ public class ArchitectureResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting an architecture", architecture, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (JsonParseException e) {
+            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, STRICT_SANITIZATION_POLICY.sanitize(architectureRequest.getArchitectureJson()), e);
+            return CalmResourceErrorResponses.invalidJsonResponse("architecture");
         }
     }
 
@@ -248,6 +252,9 @@ public class ArchitectureResource {
         } catch (ArchitectureNotFoundException e) {
             logger.error("Invalid architecture [{}] when trying to put architecture", architecture, e);
             return invalidArchitectureResponse(architectureId);
+        } catch (JsonParseException e) {
+            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, STRICT_SANITIZATION_POLICY.sanitize(architectureRequest.getArchitectureJson()), e);
+            return CalmResourceErrorResponses.invalidJsonResponse("architecture");
         }
 
 
@@ -283,10 +290,6 @@ public class ArchitectureResource {
 
     private Response architectureWithLocationResponse(Architecture architecture) throws URISyntaxException {
         return Response.created(new URI("/calm/namespaces/" + architecture.getNamespace() + "/architectures/" + architecture.getId() + "/versions/" + architecture.getDotVersion())).build();
-    }
-
-    private Response invalidArchitectureJsonResponse(String architectureJson) {
-        return Response.status(Response.Status.BAD_REQUEST).entity("The architecture JSON could not be parsed: " + architectureJson).build();
     }
 
     private Response invalidArchitectureResponse(int architectureId) {

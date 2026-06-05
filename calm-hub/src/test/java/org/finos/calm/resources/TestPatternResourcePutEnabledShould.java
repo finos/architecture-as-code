@@ -8,6 +8,7 @@ import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.store.PatternStore;
+import org.bson.json.JsonParseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -59,6 +60,7 @@ public class TestPatternResourcePutEnabledShould {
         return Stream.of(
                 Arguments.of( new NamespaceNotFoundException(), 404),
                 Arguments.of( new PatternNotFoundException(), 404),
+                Arguments.of(new JsonParseException(), 400),
                 Arguments.of(null, 201)
         );
     }
