@@ -36,6 +36,16 @@ mvn -P integration verify
 
 Development mode is designed to provide a great developer experience from using modern tools and build systems.
 
+### Skipping `npm` build
+
+CalmHub will install and build the frontend every time you run it by default.
+This takes a while and can be rather tedious.
+To disable this, set `skip.npm`, which disables the NPM commands of the frontend Maven plugin:
+
+```shell
+../mvnw quarkus:dev -Dskip.npm
+```
+
 ### Storage Modes
 
 Calm Hub supports two different storage modes:
@@ -127,6 +137,37 @@ From the `calm-hub` directory
 
 
 ### Secure profile
+
+There are two secure profiles, `secure` and `proxy-auth`.
+Using either will enable entitlements driven by the database.
+
+The two modes are slightly different:
+- `secure`: Enables JWT-based authentication using Quarkus' OAuth 2 libraries.
+  - User identities will be extracted from the provided JWT which will be validated against the Authorization Server's Json Web Key Set (JWKS.)
+- `proxy-auth`: Assumes CalmHub will be deployed behind an additional proxy component, such as `nginx` or `apache`, that performs OAuth 2 (or other) authentication for you.
+  - User identity is expected to be passed via a header; by default this is `Remote-User`.
+
+#### Proxy profile
+
+To launch CalmHub with the proxy auth mode enabled:
+
+```bash
+../mvnw quarkus:dev -Dquarkus.profile=proxy-auth
+```
+
+**Important notes**:
+- It is strongly recommended that the sidecar runs in the same pod or container as CalmHub, and that **CalmHub should only be accessible via this proxy.**
+
+- This is because if users can directly call CalmHub, they can simply set the header to trivially impersonate any identity.
+
+#### Secure profile
+
+The secure profile requires an Identity Provider (IdP) to authenticate users. 
+The IdP will most likely be managed by your organisation in an enterprise environment, or by your Cloud Service Provider if you're deploying on public cloud.
+
+However, for local testing and development purposes, CalmHub includes a simple pre-configured IdP, Keycloak, that you can spin up locally to simulate a real IdP.
+
+The following sections describe how to start Keycloak, and how to configure CalmHub to use it correctly.
 
 #### Launch keycloak
 

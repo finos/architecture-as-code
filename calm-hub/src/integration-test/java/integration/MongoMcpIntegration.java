@@ -7,6 +7,7 @@ import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -40,6 +41,7 @@ import static org.hamcrest.Matchers.not;
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestSecurity(authorizationEnabled = false)
 public class MongoMcpIntegration {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoMcpIntegration.class);

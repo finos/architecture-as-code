@@ -2,17 +2,12 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
-import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
-import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
-import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
-import org.finos.calm.domain.exception.ControlNotFoundException;
-import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
-import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
-import org.finos.calm.domain.exception.DomainNotFoundException;
+import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.ControlStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,14 +24,10 @@ import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_M
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 public class TestControlResourceShould {

@@ -1,5 +1,7 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.Authenticated;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -8,11 +10,9 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.search.GroupedSearchResults;
-import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.store.SearchStore;
 import org.slf4j.Logger;
@@ -30,15 +30,19 @@ public class SearchResource {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final SearchStore searchStore;
     private final Instance<UserAccessValidator> userAccessValidatorInstance;
-    private final Instance<JsonWebToken> jwtInstance;
+
+    @Inject
+    SecurityIdentity identity;
+
+    @Inject
+    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
 
     @Inject
     public SearchResource(SearchStore searchStore,
-                          Instance<UserAccessValidator> userAccessValidatorInstance,
-                          Instance<JsonWebToken> jwtInstance) {
+                          Instance<UserAccessValidator> userAccessValidatorInstance) {
         this.searchStore = searchStore;
         this.userAccessValidatorInstance = userAccessValidatorInstance;
-        this.jwtInstance = jwtInstance;
     }
 
     @GET
@@ -47,7 +51,7 @@ public class SearchResource {
             summary = "Global Search",
             description = "Search across all resource types (architectures, patterns, flows, standards, interfaces, controls, ADRs) with results grouped by type"
     )
-    @PermittedScopes({CalmHubScopes.SEARCH_READ})
+    @Authenticated
     public Response search(@QueryParam("q") String query) {
         if (query == null || query.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -73,20 +77,11 @@ public class SearchResource {
         }
     }
 
-    /**
-     * Returns the set of namespaces the current caller is permitted to read, or
-     * {@link Optional#empty()} when no namespace-based filtering should be applied
-     * (i.e. the secure profile is not active or the JWT has no username).
-     */
     private Optional<Set<String>> resolveReadableNamespaces() {
-        if (!userAccessValidatorInstance.isResolvable() || !jwtInstance.isResolvable()) {
+        if (!authEnabled || !userAccessValidatorInstance.isResolvable()) {
             return Optional.empty();
         }
-        String username = jwtInstance.get().getClaim("preferred_username");
-        if (username == null) {
-            return Optional.empty();
-        }
-        return Optional.of(userAccessValidatorInstance.get().getReadableNamespaces(username));
+        return Optional.of(userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName()));
     }
 
     /**
