@@ -1,5 +1,11 @@
+import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 
-export function detectDuplicates(matches, seenIds, messages) {
+interface JSONPathMatch {
+    value: unknown;
+    pointer: string;
+}
+
+export function detectDuplicates(matches: JSONPathMatch[], seenIds: Set<unknown>, messages: IFunctionResult[]) {
     for (const match of matches) {
         const id = match['value'];
 
@@ -15,7 +21,7 @@ export function detectDuplicates(matches, seenIds, messages) {
     }
 }
 
-export function numericalPlaceHolder(input, _, context) {
+export function numericalPlaceHolder(input: unknown, _: unknown, context: RulesetFunctionContext): IFunctionResult[] | void {
     if (input == -1) {
         return [{
             message: 'Value was equal to -1 - placeholder property detected',

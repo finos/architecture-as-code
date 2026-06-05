@@ -1,10 +1,16 @@
 import { JSONPath } from 'jsonpath-plus';
 import { difference } from 'lodash';
+import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
+
+interface ConnectsRelationship {
+    node?: string;
+    interfaces?: string[];
+}
 
 /**
  * Checks that the input value exists as an interface with matching unique ID defined under a node in the document.
  */
-export function interfaceIdExistsOnNode(input, _, context) {
+export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | undefined, _: unknown, context: RulesetFunctionContext): IFunctionResult[] {
     if (!input || !input.interfaces) {
         return [];
     }
@@ -17,7 +23,7 @@ export function interfaceIdExistsOnNode(input, _, context) {
     }
 
     const nodeId = input.node;
-    const nodeMatch: object[] = JSONPath({ path: `$.nodes[?(@['unique-id'] == '${nodeId}')]`, json: context.document.data });
+    const nodeMatch: object[] = JSONPath({ path: `$.nodes[?(@['unique-id'] == '${nodeId}')]`, json: context.document.data as object });
     if (!nodeMatch || nodeMatch.length === 0) {
         // other rule will report undefined node
         return [];
@@ -41,7 +47,7 @@ export function interfaceIdExistsOnNode(input, _, context) {
     if (missingInterfaces.length === 0) {
         return [];
     }
-    const results = [];
+    const results: IFunctionResult[] = [];
 
     for (const missing of missingInterfaces) {
         results.push({

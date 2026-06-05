@@ -1,17 +1,18 @@
 import { JSONPath } from 'jsonpath-plus';
+import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 
 /**
  * Checks that the sequence numbers within a flow's transitions are unique.
  */
-export function sequenceNumbersAreUnique(input, _, context) {
+export function sequenceNumbersAreUnique(input: unknown, _: unknown, context: RulesetFunctionContext): IFunctionResult[] {
     if (!input) {
         return [];
     }
     // get sequence-number of all transitions
-    const sequenceNumbers = JSONPath({path: '$[*].sequence-number', json: input, resultType: 'all'});
+    const sequenceNumbers = JSONPath({path: '$[*].sequence-number', json: input as object, resultType: 'all'});
 
     const seen = new Set();
-    const messages = [];
+    const messages: IFunctionResult[] = [];
     for (const match of sequenceNumbers) {
         const number = match['value'];
 
