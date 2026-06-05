@@ -631,10 +631,6 @@ export class CalmHubClient {
         requirementJson: string
     ): Promise<HubCreateResult> {
         const endpoint = `POST /calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
-        // print debug all parameters except requirementJson which may be large
-        console.debug(`pushControlRequirement called with domain=${domain}, controlId=${controlId}, version=${version}, name=${name}, description=${description}`);
-        // print debug first 200 characters of requirementJson
-        console.debug(`requirementJson: ${requirementJson.substring(0, 200)}${requirementJson.length > 200 ? '... (truncated)' : ''}`);
         try {
             const response = await this.ax.post(
                 `/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`,
@@ -787,6 +783,7 @@ export class CalmHubClient {
 
     // ── Front controller ─────────────────────────────────────────────────────────
 
+    /** Creates a new versioned resource under the given namespace. Returns the Location header path. */
     async createResource(
         namespace: string,
         name: string,
@@ -795,6 +792,7 @@ export class CalmHubClient {
         description?: string
     ): Promise<string> {
         const endpoint = `POST /calm/namespaces/${namespace}/${name}`;
+        let location: string | undefined;
         try {
             const response = await this.ax.post(`/calm/namespaces/${namespace}/${name}`, {
                 type: type.toUpperCase(),
@@ -802,33 +800,36 @@ export class CalmHubClient {
                 name,
                 description: description ?? `Created via CALM CLI on ${new Date().toISOString()}`
             });
-            const location = response.headers['location'] || response.headers['Location'];
-            if (!location) {
-                throw new HubClientError(0, 'No Location header returned from CalmHub on create', endpoint);
-            }
-            return location as string;
+            location = response.headers['location'] || response.headers['Location'];
         } catch (err) {
             throw this.wrapError(err, endpoint);
         }
+        if (!location) {
+            throw new HubClientError(0, 'No Location header returned from CalmHub on create', endpoint);
+        }
+        return location;
     }
 
+    /** Creates a new minor version of an existing resource. Returns the Location header path. */
     async updateResource(namespace: string, name: string, data: object): Promise<string> {
-        const endpoint = `POST /calm/namespaces/${namespace}/${name}`;
+        const endpoint = `POST (update) /calm/namespaces/${namespace}/${name}`;
+        let location: string | undefined;
         try {
             const response = await this.ax.post(`/calm/namespaces/${namespace}/${name}`, {
                 json: JSON.stringify(data),
                 changeType: 'MINOR'
             });
-            const location = response.headers['location'] || response.headers['Location'];
-            if (!location) {
-                throw new HubClientError(0, 'No Location header returned from CalmHub on update', endpoint);
-            }
-            return location as string;
+            location = response.headers['location'] || response.headers['Location'];
         } catch (err) {
             throw this.wrapError(err, endpoint);
         }
+        if (!location) {
+            throw new HubClientError(0, 'No Location header returned from CalmHub on update', endpoint);
+        }
+        return location;
     }
 
+    /** Retrieves the latest version of a resource from the given namespace. */
     async getResource(namespace: string, name: string): Promise<object> {
         const endpoint = `GET /calm/namespaces/${namespace}/${name}`;
         try {
@@ -839,6 +840,7 @@ export class CalmHubClient {
         }
     }
 
+    /** Lists available version strings for a resource. */
     async listResourceVersions(namespace: string, name: string): Promise<string[]> {
         const endpoint = `GET /calm/namespaces/${namespace}/${name}/versions`;
         try {
@@ -849,6 +851,7 @@ export class CalmHubClient {
         }
     }
 
+    /** Retrieves a specific version of a resource. */
     async getResourceVersion(namespace: string, name: string, version: string): Promise<object> {
         const endpoint = `GET /calm/namespaces/${namespace}/${name}/versions/${version}`;
         try {
