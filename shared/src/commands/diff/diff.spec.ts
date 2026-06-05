@@ -147,6 +147,31 @@ describe('runDiff', () => {
         expect(result.hasChanges).toBe(true);
     });
 
+    it('warns about undiffable pattern items and treats them as changes', async () => {
+        const undiffablePattern = {
+            $schema: 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+            type: 'object',
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [
+                        { properties: { 'unique-id': { const: 'svc-a' }, name: { const: 'A' }, 'node-type': { const: 'service' } } },
+                        { properties: { 'unique-id': { type: 'string' } } },
+                    ],
+                },
+                relationships: { type: 'array', prefixItems: [] },
+            },
+        };
+        const a = writeArch('a.pattern.json', undiffablePattern);
+        const b = writeArch('b.pattern.json', undiffablePattern);
+
+        const result = await runDiff(a, b);
+
+        expect(loggerMock.warn).toHaveBeenCalledTimes(1);
+        expect(loggerMock.warn.mock.calls[0][0]).toMatch(/constrain no comparable content/);
+        expect(result.hasChanges).toBe(true);
+    });
+
     it('diffs two pattern files and reports a pattern-titled summary', async () => {
         const a = writeArch('a.pattern.json', makePattern('Service A'));
         const b = writeArch('b.pattern.json', makePattern('Service A v2'));
@@ -238,6 +263,14 @@ describe('hasChanges', () => {
         };
         expect(hasChanges(r)).toBe(true);
     });
+
+    it('returns true when only undiffable items are present', () => {
+        const r: DiffResult = {
+            ...emptyResult,
+            undiffableItems: { nodes: [{ name: 'unpinned' }], relationships: [] },
+        };
+        expect(hasChanges(r)).toBe(true);
+    });
 });
 
 describe('formatDiff', () => {
@@ -259,5 +292,24 @@ describe('formatDiff', () => {
         };
         const out = formatDiff(r, 'summary');
         expect(out).toContain('Invalid items: 1 node(s) + 2 relationship(s)');
+    });
+
+    it('surfaces undiffable item counts in the summary view', () => {
+        const r: DiffResult = {
+            ...emptyResult,
+            undiffableItems: { nodes: [{ a: 1 }], relationships: [{ b: 2 }] },
+        };
+        const out = formatDiff(r, 'summary');
+        expect(out).toContain('Undiffable items: 1 node(s) + 1 relationship(s)');
+    });
+
+    it('labels id-less pattern nodes by content instead of undefined', () => {
+        const r: DiffResult = {
+            ...emptyResult,
+            nodesAdded: [{ name: 'Worker', 'node-type': 'service' } as never],
+        };
+        const out = formatDiff(r, 'summary', 'pattern');
+        expect(out).toContain('  - (unpinned service Worker)');
+        expect(out).not.toContain('undefined');
     });
 });

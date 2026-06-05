@@ -29,6 +29,15 @@ function valuesEqual(a: unknown, b: unknown): boolean {
     return JSON.stringify(normalizeValue(a)) === JSON.stringify(normalizeValue(b));
 }
 
+/**
+ * A stable, order-insensitive string key for a value: object keys are sorted
+ * recursively before serialising, so two structurally-equal values produce the
+ * same key. Used by the pattern diff to match id-less items by content.
+ */
+export function canonicalKey(value: unknown): string {
+    return JSON.stringify(normalizeValue(value));
+}
+
 function omitUniqueId(item: Record<string, unknown>): Record<string, unknown> {
     const { 'unique-id': _omit, ...rest } = item;
     void _omit;

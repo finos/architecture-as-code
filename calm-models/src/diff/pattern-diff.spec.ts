@@ -42,6 +42,19 @@ describe('normalisePatternToInstance', () => {
         expect(normalisePatternToInstance(null)).toEqual({ nodes: [], relationships: [] });
         expect(normalisePatternToInstance('not a pattern')).toEqual({ nodes: [], relationships: [] });
     });
+
+    it('includes id-less but constrained nodes in the instance', () => {
+        const { nodes } = normalisePatternToInstance(testPatterns.contentBasePattern);
+        expect(nodes).toHaveLength(2);
+        expect(nodes).toContainEqual({ 'unique-id': 'api-gateway', name: 'API Gateway', 'node-type': 'service' });
+        expect(nodes).toContainEqual({ name: 'Worker', 'node-type': 'service' });
+    });
+
+    it('omits items that pin nothing comparable from the instance', () => {
+        // api-gateway is pinned; the unconstrained-id node and bare $ref are dropped.
+        const { nodes } = normalisePatternToInstance(testPatterns.undiffablePattern);
+        expect(nodes.map((n) => n['unique-id'])).toEqual(['api-gateway']);
+    });
 });
 
 describe('diffPatterns', () => {
@@ -91,5 +104,48 @@ describe('diffPatterns', () => {
         const addedIds = result.nodesAdded.map((n) => n['unique-id']);
         expect(addedIds).toContain('postgres-store');
         expect(addedIds).toContain('dynamo-store');
+    });
+
+    it('diffs id-less constrained nodes by content', () => {
+        const result = diffPatterns(testPatterns.contentBasePattern, testPatterns.contentBasePattern);
+        expect(result.nodesAdded).toHaveLength(0);
+        expect(result.nodesRemoved).toHaveLength(0);
+        // api-gateway (by id) + Worker (by content) both unchanged.
+        expect(result.nodesSame).toHaveLength(2);
+    });
+
+    it('treats reordering of identical nodes as no change', () => {
+        const result = diffPatterns(testPatterns.contentBasePattern, testPatterns.contentReorderedPattern);
+        expect(result.nodesAdded).toHaveLength(0);
+        expect(result.nodesRemoved).toHaveLength(0);
+        expect(result.nodesSame).toHaveLength(2);
+    });
+
+    it('reports a changed id-less node as remove + add, not modified', () => {
+        const result = diffPatterns(testPatterns.contentBasePattern, testPatterns.contentModifiedPattern);
+        expect(result.nodesModified).toHaveLength(0);
+        expect(result.nodesRemoved).toContainEqual({ name: 'Worker', 'node-type': 'service' });
+        expect(result.nodesAdded).toContainEqual({ name: 'Worker v2', 'node-type': 'service' });
+        // api-gateway is pinned and unchanged.
+        expect(result.nodesSame).toHaveLength(1);
+    });
+
+    it('counts identical id-less nodes as a multiset', () => {
+        const result = diffPatterns(testPatterns.contentBasePattern, testPatterns.contentDuplicatePattern);
+        // Base has one Worker, duplicate has two: exactly one Worker added.
+        expect(result.nodesAdded).toEqual([{ name: 'Worker', 'node-type': 'service' }]);
+        expect(result.nodesRemoved).toHaveLength(0);
+    });
+
+    it('surfaces items that pin nothing comparable under undiffableItems', () => {
+        const result = diffPatterns(testPatterns.undiffablePattern, testPatterns.undiffablePattern);
+        // One unconstrained-id node per side; the bare $ref is skipped silently.
+        expect(result.undiffableItems?.nodes).toHaveLength(2);
+        expect(result.undiffableItems?.relationships ?? []).toHaveLength(0);
+    });
+
+    it('leaves undiffableItems unset for fully-constrained patterns', () => {
+        const result = diffPatterns(testPatterns.basePattern, testPatterns.additionPattern);
+        expect(result.undiffableItems).toBeUndefined();
     });
 });
