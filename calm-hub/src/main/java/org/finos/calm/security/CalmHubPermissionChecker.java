@@ -18,57 +18,78 @@ import java.util.function.Predicate;
 @ApplicationScoped
 public class CalmHubPermissionChecker {
     private static final Logger logger = LoggerFactory.getLogger(CalmHubPermissionChecker.class);
+    public static final String GLOBAL_ACCESS = "GLOBAL";
 
     private final UserAccessStore userAccessStore;
 
     @Inject
-    @ConfigProperty(name = "calm.hub.no.auth.enabled", defaultValue = "false")
-    boolean noAuthEnabled;
+    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
 
     @Inject
-    @ConfigProperty(name = "calm.hub.allow.public.read", defaultValue = "false")
+    @ConfigProperty(name = "calm.auth.allow-public-read", defaultValue = "false")
     boolean allowPublicRead;
 
     public CalmHubPermissionChecker(UserAccessStore userAccessStore) {
         this.userAccessStore = userAccessStore;
+        if (!authEnabled) {
+            logger.warn("Caution: CalmHub is starting with authentication disabled. All user access will be granted by default.");
+        }
+    }
+
+    private boolean isAuthDisabled() {
+        if (!authEnabled) {
+            logger.debug("Authentication is disabled. Granting user access unconditionally.");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isAllowPublicRead() {
+        if (allowPublicRead) {
+            logger.debug("calm.auth.allow-public-read is true. Granting unconditional read access to all users.");
+            return true;
+        }
+        return false;
     }
 
     @PermissionChecker(CalmHubScopes.ADMIN)
     public boolean allowNamespaceAdmin(SecurityIdentity identity, String namespace) {
-        if (noAuthEnabled) return true;
-        return hasNamespaceAccess(identity, namespace, UserAction.ADMIN);
+        return isAuthDisabled()
+                || hasNamespaceAccess(identity, namespace, UserAction.ADMIN);
     }
 
     @PermissionChecker(CalmHubScopes.READ)
     public boolean canRead(SecurityIdentity identity, String namespace) {
-        if (noAuthEnabled) return true;
-        if (allowPublicRead) return true;
-        return hasNamespaceAccess(identity, namespace, UserAction.READ);
+        return isAuthDisabled()
+                || isAllowPublicRead()
+                || hasNamespaceAccess(identity, namespace, UserAction.READ);
     }
 
     @PermissionChecker(CalmHubScopes.DOMAIN_READ)
     public boolean canReadByDomain(SecurityIdentity identity, String domain) {
-        if (noAuthEnabled) return true;
-        if (allowPublicRead) return true;
-        return hasDomainAccess(identity, domain, UserAction.READ);
+        return isAuthDisabled()
+                || isAllowPublicRead()
+                || hasDomainAccess(identity, domain, UserAction.READ);
     }
 
     @PermissionChecker(CalmHubScopes.WRITE)
     public boolean canWrite(SecurityIdentity identity, String namespace) {
-        return noAuthEnabled
+        return isAuthDisabled()
                 || hasNamespaceAccess(identity, namespace, UserAction.WRITE);
     }
 
     @PermissionChecker(CalmHubScopes.DOMAIN_WRITE)
     public boolean canWriteByDomain(SecurityIdentity identity, String domain) {
-        return noAuthEnabled
+        return isAuthDisabled()
                 || hasDomainAccess(identity, domain, UserAction.WRITE);
     }
 
     @PermissionChecker(CalmHubScopes.GLOBAL_ADMIN)
     public boolean hasGlobalAdmin(SecurityIdentity identity) {
-        if (noAuthEnabled) {
-            logger.warn("CalmHub is running with no authentication. Granting user access unconditionally.");
+        if (!authEnabled) {
+            // specific WARN-level log for admin access
+            logger.warn("CalmHub is running with no authentication. Granting user access to ADMIN endpoints unconditionally.");
             return true;
         }
         String username = identity.getPrincipal().getName();
@@ -77,7 +98,7 @@ public class CalmHubPermissionChecker {
             boolean granted =
                     userAccessStore.getUserAccessForUsername(username)
                             .stream()
-                            .anyMatch(grant -> "GLOBAL".equals(grant.getNamespace())
+                            .anyMatch(grant -> GLOBAL_ACCESS.equals(grant.getNamespace())
                                     && permissionSufficient(grant, UserAction.ADMIN));
 
             if (granted) {
@@ -123,6 +144,8 @@ public class CalmHubPermissionChecker {
     }
 
     private boolean permissionSufficient(UserAccess grant, UserAction action) {
+        // NB this is entitlement -> requested action
+        // user's roles on left and the thing they're trying to get access to on the right.
         return switch (grant.getPermission()) {
             case read -> action == UserAction.READ;
             case write -> action == UserAction.READ || action == UserAction.WRITE;

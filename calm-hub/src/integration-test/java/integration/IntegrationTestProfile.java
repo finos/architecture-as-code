@@ -28,7 +28,7 @@ public class IntegrationTestProfile implements QuarkusTestProfile {
         return Map.of(
                 "allow.put.operations", "true",
                 "calm.mcp.enabled", "true",
-                "calm.hub.no.auth.enabled","true"
+                "calm.auth.enabled","false"
         );
     }
 }

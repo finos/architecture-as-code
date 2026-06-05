@@ -34,6 +34,7 @@ class TestCalmHubPermissionCheckerShould {
     @BeforeEach
     void setUp() {
         checker = new CalmHubPermissionChecker(mockUserAccessStore);
+        checker.authEnabled = true;
     }
 
     private void givenAuthenticatedUser(String username) throws UserAccessNotFoundException {
@@ -258,39 +259,39 @@ class TestCalmHubPermissionCheckerShould {
         assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
     }
 
-    // --- noAuthEnabled ---
+    // --- authEnabled=false (no-auth mode) ---
 
     @Test
     void no_auth_mode_grants_read_without_store_lookup() {
-        checker.noAuthEnabled = true;
+        checker.authEnabled = false;
 
         assertTrue(checker.canRead(mockIdentity, "foo"));
     }
 
     @Test
     void no_auth_mode_grants_write_without_store_lookup() {
-        checker.noAuthEnabled = true;
+        checker.authEnabled = false;
 
         assertTrue(checker.canWrite(mockIdentity, "foo"));
     }
 
     @Test
     void no_auth_mode_grants_namespace_admin_without_store_lookup() {
-        checker.noAuthEnabled = true;
+        checker.authEnabled = false;
 
         assertTrue(checker.allowNamespaceAdmin(mockIdentity, "foo"));
     }
 
     @Test
     void no_auth_mode_grants_global_admin_without_store_lookup() {
-        checker.noAuthEnabled = true;
+        checker.authEnabled = false;
 
         assertTrue(checker.hasGlobalAdmin(mockIdentity));
     }
 
     @Test
     void no_auth_mode_grants_domain_read_and_write_without_store_lookup() {
-        checker.noAuthEnabled = true;
+        checker.authEnabled = false;
 
         assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
         assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));

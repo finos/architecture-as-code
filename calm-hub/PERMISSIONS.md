@@ -32,6 +32,6 @@ There's only one notion of global admin.
 
 It's possible to configure CalmHub to grant `read` to all users by default.
 
-To do this, set the property `calm.hub.allow.public.read=true`.
+To do this, set the property `calm.auth.allow-public-read=true`.
 By default this property is `false`.
 

@@ -44,7 +44,7 @@ class TestNoAuthAuthenticationMechanismShould {
 
     @Test
     void return_empty_when_no_auth_disabled() {
-        mechanism.noAuthEnabled = false;
+        mechanism.authEnabled = true;
 
         SecurityIdentity result = mechanism.authenticate(mockRoutingContext, mockIdentityProviderManager)
                 .await().indefinitely();
@@ -55,7 +55,7 @@ class TestNoAuthAuthenticationMechanismShould {
 
     @Test
     void authenticate_with_no_auth_principal_when_no_auth_enabled() {
-        mechanism.noAuthEnabled = true;
+        mechanism.authEnabled = false;
         when(mockRoutingContext.request()).thenReturn(mockRequest);
         when(mockRequest.path()).thenReturn("/test");
         when(mockIdentityProviderManager.authenticate(any(TrustedAuthenticationRequest.class)))

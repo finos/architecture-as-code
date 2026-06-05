@@ -17,11 +17,11 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 
 /**
- * When calm.hub.no.auth.enabled=true (the default profile), every request is given a
+ * When calm.auth.enabled=false (the default), every request is given a
  * non-anonymous identity so that Quarkus calls the @PermissionChecker methods rather than
- * short-circuiting with 401. The checkers then grant access unconditionally via the same flag.
+ * short-circuiting with 401. The checkers then grant access unconditionally.
  *
- * In secure and proxy-auth profiles this mechanism is disabled via config and is a no-op.
+ * In secure and proxy-auth profiles calm.auth.enabled=true and this mechanism is a no-op.
  */
 @ApplicationScoped
 public class NoAuthAuthenticationMechanism implements HttpAuthenticationMechanism {
@@ -29,12 +29,12 @@ public class NoAuthAuthenticationMechanism implements HttpAuthenticationMechanis
     private static final Logger logger = LoggerFactory.getLogger(NoAuthAuthenticationMechanism.class);
     static final String NO_AUTH_PRINCIPAL = "no-auth";
 
-    @ConfigProperty(name = "calm.hub.no.auth.enabled", defaultValue = "false")
-    boolean noAuthEnabled;
+    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
-        if (!noAuthEnabled) {
+        if (authEnabled) {
             return Uni.createFrom().optional(Optional.empty());
         }
         logger.debug("No-auth mode: granting open identity to request for {}", context.request().path());
