@@ -636,26 +636,8 @@ public class TestNitriteArchitectureStoreShould {
 
     @Test
     public void testCreateArchitectureForVersion_whenInvalidJson_throwsJsonParseException() {
-        // Arrange
+        // Arrange - JSON is validated immediately after the namespace check, before any version/existence lookup
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        Document versions = Document.createDocument()
-                .put("2-0-0", VALID_JSON); // Different version so versionExists returns false
-
-        Document architectureDoc = Document.createDocument()
-                .put("architectureId", ARCHITECTURE_ID)
-                .put("versions", versions);
-
-        List<Document> architectures = new ArrayList<>();
-        architectures.add(architectureDoc);
-
-        Document namespaceDoc = Document.createDocument()
-                .put("namespace", NAMESPACE)
-                .put("architectures", architectures);
-
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(NAMESPACE)

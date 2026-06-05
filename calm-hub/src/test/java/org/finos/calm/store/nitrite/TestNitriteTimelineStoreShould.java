@@ -531,25 +531,8 @@ public class TestNitriteTimelineStoreShould {
 
     @Test
     public void testCreateTimelineForVersion_whenInvalidJson_throwsJsonParseException() {
+        // JSON is validated immediately after the namespace check, before any version/existence lookup
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        Document versions = Document.createDocument()
-                .put("2-0-0", VALID_JSON); // Different version so versionExists returns false
-
-        Document timelineDoc = Document.createDocument()
-                .put("timelineId", TIMELINE_ID)
-                .put("versions", versions);
-
-        List<Document> timelines = new ArrayList<>();
-        timelines.add(timelineDoc);
-
-        Document namespaceDoc = Document.createDocument()
-                .put("namespace", NAMESPACE)
-                .put("timelines", timelines);
-
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         Timeline timeline = new Timeline.TimelineBuilder()
                 .setNamespace(NAMESPACE)

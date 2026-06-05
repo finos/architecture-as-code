@@ -99,14 +99,7 @@ public class NitriteTimelineStore implements TimelineStore {
             throw new NamespaceNotFoundException();
         }
 
-        // Validate JSON
-        try {
-            // Use org.bson.Document to validate JSON
-            org.bson.Document.parse(timelineRequest.getTimelineJson());
-        } catch (Exception e) {
-            LOG.error("Invalid JSON format for timeline: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
-        }
+        validateTimelineJson(timelineRequest.getTimelineJson());
 
         lock.lock();
         try {
@@ -236,6 +229,8 @@ public class NitriteTimelineStore implements TimelineStore {
             throw new NamespaceNotFoundException();
         }
 
+        validateTimelineJson(timeline.getTimelineJson());
+
         lock.lock();
         try {
             if (versionExists(timeline)) {
@@ -258,22 +253,32 @@ public class NitriteTimelineStore implements TimelineStore {
             throw new NamespaceNotFoundException();
         }
 
+        validateTimelineJson(timeline.getTimelineJson());
+
         writeTimelineToNitrite(timeline);
         LOG.info("Updated version '{}' for timeline {} in namespace '{}'",
                 timeline.getDotVersion(), timeline.getId(), timeline.getNamespace());
         return timeline;
     }
 
-    private void writeTimelineToNitrite(Timeline timeline) throws TimelineNotFoundException, NamespaceNotFoundException {
-        // Validate JSON before persisting so malformed payloads are rejected with a 400, consistent with the Mongo store
+    /**
+     * Validates that the supplied timeline JSON is parseable, throwing {@link JsonParseException} if not so the
+     * REST layer can surface a 400. Validation runs immediately after the namespace check, before any existence or
+     * version checks, so a malformed payload is rejected consistently regardless of the operation.
+     *
+     * @param timelineJson the raw timeline JSON to validate
+     */
+    private void validateTimelineJson(String timelineJson) {
         try {
             // Use org.bson.Document to validate JSON
-            org.bson.Document.parse(timeline.getTimelineJson());
+            org.bson.Document.parse(timelineJson);
         } catch (Exception e) {
             LOG.error("Invalid JSON format for timeline: {}", e.getMessage());
             throw new JsonParseException(e.getMessage());
         }
+    }
 
+    private void writeTimelineToNitrite(Timeline timeline) throws TimelineNotFoundException, NamespaceNotFoundException {
         // First verify the timeline exists
         retrieveTimelineVersions(timeline);
 

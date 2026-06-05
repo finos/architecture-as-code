@@ -350,15 +350,9 @@ public class NitritePatternStore implements PatternStore {
     }
 
     /**
-     * Helper method to find a pattern document by namespace and pattern ID.
-     *
-     * @param namespace The namespace
-     * @param patternId The pattern ID
-     * @return The pattern document, or null if not found
-     */
-    /**
      * Validates that the supplied pattern JSON is parseable, throwing {@link JsonParseException} if not so the
-     * REST layer can surface a 400 (consistent with the Mongo store, which parses on write).
+     * REST layer can surface a 400. Validation runs immediately after the namespace check, before any existence or
+     * version checks, so a malformed payload is rejected consistently regardless of the operation.
      *
      * @param patternJson the raw pattern JSON to validate
      */
@@ -372,6 +366,13 @@ public class NitritePatternStore implements PatternStore {
         }
     }
 
+    /**
+     * Helper method to find a pattern document by namespace and pattern ID.
+     *
+     * @param namespace The namespace
+     * @param patternId The pattern ID
+     * @return The pattern document, or null if not found
+     */
     private Document findPatternDocument(String namespace, int patternId) {
         Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         Document namespaceDocument = patternCollection.find(filter).firstOrNull();

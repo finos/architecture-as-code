@@ -97,14 +97,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
-        // Validate JSON
-        try {
-            // Use org.bson.Document to validate JSON
-            org.bson.Document.parse(architecture.getArchitectureJson());
-        } catch (Exception e) {
-            LOG.error("Invalid JSON format for architecture: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
-        }
+        validateArchitectureJson(architecture.getArchitectureJson());
 
         lock.lock();
         try {
@@ -239,6 +232,8 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
+        validateArchitectureJson(architecture.getArchitectureJson());
+
         lock.lock();
         try {
             if (versionExists(architecture)) {
@@ -261,20 +256,30 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
+        validateArchitectureJson(architecture.getArchitectureJson());
+
         writeArchitectureToNitrite(architecture);
         return architecture;
     }
 
-    private void writeArchitectureToNitrite(Architecture architecture) throws ArchitectureNotFoundException {
-        // Validate JSON before persisting so malformed payloads are rejected with a 400, consistent with the Mongo store
+    /**
+     * Validates that the supplied architecture JSON is parseable, throwing {@link JsonParseException} if not so the
+     * REST layer can surface a 400. Validation runs immediately after the namespace check, before any existence or
+     * version checks, so a malformed payload is rejected consistently regardless of the operation.
+     *
+     * @param architectureJson the raw architecture JSON to validate
+     */
+    private void validateArchitectureJson(String architectureJson) {
         try {
             // Use org.bson.Document to validate JSON
-            org.bson.Document.parse(architecture.getArchitectureJson());
+            org.bson.Document.parse(architectureJson);
         } catch (Exception e) {
             LOG.error("Invalid JSON format for architecture: {}", e.getMessage());
             throw new JsonParseException(e.getMessage());
         }
+    }
 
+    private void writeArchitectureToNitrite(Architecture architecture) throws ArchitectureNotFoundException {
         try {
             // First verify the architecture exists
             retrieveArchitectureVersions(architecture);
