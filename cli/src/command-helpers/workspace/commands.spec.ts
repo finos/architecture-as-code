@@ -273,6 +273,12 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.loadManifest).not.toHaveBeenCalled();
         });
 
+        it('logs "no documents" when manifest is empty', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({});
+            await program.parseAsync(['node', 'test', 'workspace', 'show']);
+            expect(mocks.loadManifest).toHaveBeenCalled();
+        });
+
         it('should exit when no git root found', async () => {
             mocks.findGitRoot.mockReturnValueOnce(null);
             await expect(program.parseAsync(['node', 'test', 'workspace', 'show'])).rejects.toThrow();
@@ -463,6 +469,22 @@ describe('setupWorkspaceCommands', () => {
             await program.parseAsync(['node', 'test', 'workspace', 'update-refs']);
             // No error thrown — success path
             expect(mocks.updateWorkspaceRefs).toHaveBeenCalled();
+        });
+
+        it('logs dry-run summary when changes exist and --dry-run is set', async () => {
+            mocks.updateWorkspaceRefs.mockResolvedValueOnce([
+                { docId: 'doc-a', filePath: '/fake/bundle/files/doc-a.json', changeCount: 3 },
+            ] as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'update-refs', '--dry-run']);
+            expect(mocks.updateWorkspaceRefs).toHaveBeenCalledWith('/fake/bundle', { dryRun: true });
+        });
+
+        it('logs updated summary when changes exist without --dry-run', async () => {
+            mocks.updateWorkspaceRefs.mockResolvedValueOnce([
+                { docId: 'doc-a', filePath: '/fake/bundle/files/doc-a.json', changeCount: 2 },
+            ] as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'update-refs']);
+            expect(mocks.updateWorkspaceRefs).toHaveBeenCalledWith('/fake/bundle', { dryRun: undefined });
         });
 
         it('exits when no workspace bundle is found', async () => {

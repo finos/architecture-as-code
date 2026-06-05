@@ -26,6 +26,14 @@ describe('workspace', () => {
             await mkdir(calmWorkspacePath, { recursive: true });
         });
 
+        it('should return null when workspace.json does not exist', async () => {
+            // Remove workspace.json if it was created by a previous test
+            const fp = path.join(calmWorkspacePath, 'workspace.json');
+            if (existsSync(fp)) await rm(fp);
+            const result = await getActiveWorkspace(testDir);
+            expect(result).toBeNull();
+        });
+
         it('should throw error when workspace.json contains invalid JSON', async () => {
             await writeFile(workspaceJsonPath, 'not valid json');
             await expect(() => getActiveWorkspace(testDir))
@@ -52,6 +60,15 @@ describe('workspace', () => {
         });
     });
 
+    describe('listWorkspaces', () => {
+        it('returns empty array when bundles directory does not exist', async () => {
+            const emptyDir = path.join(testDir, 'no-bundles-here');
+            await mkdir(emptyDir, { recursive: true });
+            const result = await listWorkspaces(emptyDir);
+            expect(result).toEqual([]);
+        });
+    });
+
     describe('cleanWorkspaceBundle', () => {
         beforeEach(async () => {
             // Setup dummy workspaces with files directories
@@ -66,6 +83,16 @@ describe('workspace', () => {
             await mkdir(anotherFilesPath, { recursive: true });
             await writeFile(path.join(anotherFilesPath, 'file2.json'), '{}');
             await writeFile(path.join(bundlesPath, 'another-bundle', MANIFEST_FILENAME), '{"doc2": "files/file2.json"}');
+        });
+
+        it('does nothing when the bundle path does not exist', async () => {
+            await expect(cleanWorkspaceBundle(testDir, 'nonexistent-bundle')).resolves.not.toThrow();
+        });
+
+        it('does not throw when files directory is already absent', async () => {
+            await ensureWorkspaceBundle(testDir, 'no-files-bundle');
+            // Don't create a files sub-directory
+            await expect(cleanWorkspaceBundle(testDir, 'no-files-bundle')).resolves.not.toThrow();
         });
 
         it('should delete files directory and reset manifest but keep the workspace', async () => {
@@ -103,6 +130,21 @@ describe('workspace', () => {
             await writeFile(path.join(bundlesPath, 'test-bundle', 'file1.json'), '{}');
             await ensureWorkspaceBundle(testDir, 'another-bundle');
             await writeFile(path.join(bundlesPath, 'another-bundle', 'file2.json'), '{}');
+        });
+
+        it('does nothing when .calm-workspace directory does not exist', async () => {
+            const freshDir = path.join(testDir, 'fresh-no-workspace');
+            await mkdir(freshDir, { recursive: true });
+            await expect(cleanAllWorkspaces(freshDir)).resolves.not.toThrow();
+        });
+
+        it('cleans bundles but does nothing to workspace.json when it is absent', async () => {
+            const freshDir = path.join(testDir, 'fresh-no-json');
+            const calmPath = path.join(freshDir, '.calm-workspace');
+            const bundlesPath2 = path.join(calmPath, 'bundles');
+            await mkdir(bundlesPath2, { recursive: true });
+            // workspace.json intentionally absent
+            await expect(cleanAllWorkspaces(freshDir)).resolves.not.toThrow();
         });
 
         it('should delete all bundles and reset the manifest', async () => {

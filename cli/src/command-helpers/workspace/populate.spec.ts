@@ -264,5 +264,37 @@ describe('populate', () => {
             // Should not throw with empty manifest
             await expect(populateWorkspaceBundle(bundlePath)).resolves.not.toThrow();
         });
+
+        it('throws when no bundlePath provided and no workspace bundle found', async () => {
+            vi.mock('../../workspace-resolver', () => ({
+                findWorkspaceManifestPath: vi.fn(() => null),
+            }));
+            // Pass explicit null to force the "no bundle found" branch
+            await expect(populateWorkspaceBundle(undefined, {})).rejects.toThrow('No CALM workspace bundle found.');
+        });
+
+        it('falls back to loadJsonFile when resolvePath returns a local path and remote fetch fails', async () => {
+            const localDoc = { '$id': 'https://example.com/fallback.json', type: 'fallback' };
+            const localFile = path.join(testDir, 'fallback.json');
+            const { writeFile: wf } = await import('fs/promises');
+            await wf(localFile, JSON.stringify(localDoc));
+
+            await writeFile(path.join(filesPath, 'root.json'), JSON.stringify({
+                '$id': 'root',
+                '$ref': 'https://example.com/fallback.json'
+            }));
+            await saveManifest(bundlePath, {
+                'root': { path: 'files/root.json', type: 'unknown' }
+            });
+
+            const mockLoader = {
+                resolvePath: vi.fn((_: string) => localFile),
+                loadMissingDocument: vi.fn().mockRejectedValue(new Error('network error')),
+                initialise: vi.fn(),
+                getLoadedDocuments: vi.fn(() => ({})),
+            };
+
+            await expect(populateReferencesFromBundle(bundlePath, mockLoader)).resolves.not.toThrow();
+        });
     });
 });

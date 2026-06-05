@@ -6,6 +6,7 @@ import {
     addFileToBundle,
     addObjectToBundle,
     buildDependencyGraph,
+    printBundleTree,
     extractReferenceValue,
     MANIFEST_FILENAME,
     REFERENCE_PROPERTIES
@@ -467,6 +468,22 @@ describe('bundle', () => {
             expect(graph.edges['bad']).toBeUndefined();
         });
 
+        it('resolves a relative file path reference to a manifest entry', async () => {
+            await writeFile(path.join(filesPath, 'parent.json'), JSON.stringify({
+                '$id': 'parent',
+                '$ref': './files/child.json'
+            }));
+            await writeFile(path.join(filesPath, 'child.json'), JSON.stringify({ '$id': 'child' }));
+            await saveManifest(bundlePath, {
+                'parent': { path: 'files/parent.json', type: 'unknown' },
+                'child': { path: 'files/child.json', type: 'unknown' }
+            });
+
+            const graph = await buildDependencyGraph(bundlePath);
+
+            expect(graph.edges['parent']).toContain('child');
+        });
+
         it('should ignore http/https references not in manifest', async () => {
             await writeFile(path.join(filesPath, 'doc.json'), JSON.stringify({
                 '$id': 'doc',
@@ -479,6 +496,12 @@ describe('bundle', () => {
             const graph = await buildDependencyGraph(bundlePath);
 
             expect(graph.edges['doc']).toEqual([]);
+        });
+
+        it('printBundleTree calls buildDependencyGraph and prints without throwing', async () => {
+            await writeFile(path.join(filesPath, 'doc.json'), JSON.stringify({ '$id': 'doc' }));
+            await saveManifest(bundlePath, { 'doc': { path: 'files/doc.json', type: 'unknown' } });
+            await expect(printBundleTree(bundlePath)).resolves.not.toThrow();
         });
 
         it('should detect nested $ref properties', async () => {

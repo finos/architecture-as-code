@@ -45,6 +45,21 @@ describe('pushWorkspaceToHub', () => {
         await mkdir(filesPath, { recursive: true });
     });
 
+    it('resolves file path when entry.path is absolute', async () => {
+        const absoluteFilePath = path.join(filesPath, 'doc-a.json');
+        await writeFile(absoluteFilePath, JSON.stringify(docA));
+        await saveManifest(bundlePath, {
+            'doc-a': { path: absoluteFilePath, type: 'architecture', namespace: 'com.example' }
+        });
+        const client = makeClient({
+            getResource: vi.fn().mockResolvedValue(docA),
+        });
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect(client.getResource).toHaveBeenCalledWith('com.example', 'doc-a');
+    });
+
     it('warns and returns early when manifest is empty', async () => {
         await saveManifest(bundlePath, {});
         const client = makeClient();
