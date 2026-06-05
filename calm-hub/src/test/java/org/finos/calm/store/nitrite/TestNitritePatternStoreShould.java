@@ -5,6 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -404,6 +405,40 @@ public class TestNitritePatternStoreShould {
 
         // Act & Assert
         assertThrows(NamespaceNotFoundException.class, () -> patternStore.createPatternForVersion(pattern));
+    }
+
+    @Test
+    public void testCreatePatternForVersion_whenInvalidJson_throwsJsonParseException() {
+        // Arrange
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1-0-0")
+                .setPattern("{ not json")
+                .build();
+
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> patternStore.createPatternForVersion(pattern));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void testUpdatePatternForVersion_whenInvalidJson_throwsJsonParseException() {
+        // Arrange
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1-0-0")
+                .setPattern("{ not json")
+                .build();
+
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> patternStore.updatePatternForVersion(pattern));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
     }
 
     @Test

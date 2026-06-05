@@ -265,6 +265,15 @@ public class NitriteTimelineStore implements TimelineStore {
     }
 
     private void writeTimelineToNitrite(Timeline timeline) throws TimelineNotFoundException, NamespaceNotFoundException {
+        // Validate JSON before persisting so malformed payloads are rejected with a 400, consistent with the Mongo store
+        try {
+            // Use org.bson.Document to validate JSON
+            org.bson.Document.parse(timeline.getTimelineJson());
+        } catch (Exception e) {
+            LOG.error("Invalid JSON format for timeline: {}", e.getMessage());
+            throw new JsonParseException(e.getMessage());
+        }
+
         // First verify the timeline exists
         retrieveTimelineVersions(timeline);
 

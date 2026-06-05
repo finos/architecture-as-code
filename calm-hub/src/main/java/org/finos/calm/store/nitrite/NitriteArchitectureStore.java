@@ -266,6 +266,15 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     }
 
     private void writeArchitectureToNitrite(Architecture architecture) throws ArchitectureNotFoundException {
+        // Validate JSON before persisting so malformed payloads are rejected with a 400, consistent with the Mongo store
+        try {
+            // Use org.bson.Document to validate JSON
+            org.bson.Document.parse(architecture.getArchitectureJson());
+        } catch (Exception e) {
+            LOG.error("Invalid JSON format for architecture: {}", e.getMessage());
+            throw new JsonParseException(e.getMessage());
+        }
+
         try {
             // First verify the architecture exists
             retrieveArchitectureVersions(architecture);

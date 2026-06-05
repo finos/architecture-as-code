@@ -5,6 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.exception.TimelineVersionExistsException;
@@ -526,6 +527,54 @@ public class TestNitriteTimelineStoreShould {
         assertThat(result, is(timeline));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCollection).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void testCreateTimelineForVersion_whenInvalidJson_throwsJsonParseException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document versions = Document.createDocument()
+                .put("2-0-0", VALID_JSON); // Different version so versionExists returns false
+
+        Document timelineDoc = Document.createDocument()
+                .put("timelineId", TIMELINE_ID)
+                .put("versions", versions);
+
+        List<Document> timelines = new ArrayList<>();
+        timelines.add(timelineDoc);
+
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("timelines", timelines);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Timeline timeline = new Timeline.TimelineBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(TIMELINE_ID)
+                .setVersion(VERSION)
+                .setTimeline("{ not json")
+                .build();
+
+        assertThrows(JsonParseException.class, () -> timelineStore.createTimelineForVersion(timeline));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void testUpdateTimelineForVersion_whenInvalidJson_throwsJsonParseException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Timeline timeline = new Timeline.TimelineBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(TIMELINE_ID)
+                .setVersion(VERSION)
+                .setTimeline("{ not json")
+                .build();
+
+        assertThrows(JsonParseException.class, () -> timelineStore.updateTimelineForVersion(timeline));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
     }
 
     @Test

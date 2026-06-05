@@ -107,13 +107,7 @@ public class NitritePatternStore implements PatternStore {
             throw new NamespaceNotFoundException();
         }
 
-        try {
-            // Validate JSON by attempting to parse it
-            org.bson.Document.parse(patternRequest.getPatternJson());
-        } catch (Exception e) {
-            LOG.error("Invalid JSON format for pattern: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
-        }
+        validatePatternJson(patternRequest.getPatternJson());
 
         lock.lock();
         try {
@@ -232,6 +226,8 @@ public class NitritePatternStore implements PatternStore {
             throw new NamespaceNotFoundException();
         }
 
+        validatePatternJson(pattern.getPatternJson());
+
         lock.lock();
         try {
             Filter namespaceFilter = where(NAMESPACE_FIELD).eq(pattern.getNamespace());
@@ -301,6 +297,8 @@ public class NitritePatternStore implements PatternStore {
             throw new NamespaceNotFoundException();
         }
 
+        validatePatternJson(pattern.getPatternJson());
+
         Filter namespaceFilter = where(NAMESPACE_FIELD).eq(pattern.getNamespace());
         Document namespaceDocument = patternCollection.find(namespaceFilter).firstOrNull();
 
@@ -358,6 +356,22 @@ public class NitritePatternStore implements PatternStore {
      * @param patternId The pattern ID
      * @return The pattern document, or null if not found
      */
+    /**
+     * Validates that the supplied pattern JSON is parseable, throwing {@link JsonParseException} if not so the
+     * REST layer can surface a 400 (consistent with the Mongo store, which parses on write).
+     *
+     * @param patternJson the raw pattern JSON to validate
+     */
+    private void validatePatternJson(String patternJson) {
+        try {
+            // Validate JSON by attempting to parse it
+            org.bson.Document.parse(patternJson);
+        } catch (Exception e) {
+            LOG.error("Invalid JSON format for pattern: {}", e.getMessage());
+            throw new JsonParseException(e.getMessage());
+        }
+    }
+
     private Document findPatternDocument(String namespace, int patternId) {
         Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         Document namespaceDocument = patternCollection.find(filter).firstOrNull();

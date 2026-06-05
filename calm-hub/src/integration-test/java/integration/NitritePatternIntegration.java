@@ -142,4 +142,32 @@ public class NitritePatternIntegration {
                 .body("values.find { it.id == " + id + " }.name", equalTo("third-name"))
                 .body("values.find { it.id == " + id + " }.description", equalTo("third description"));
     }
+
+    @Test
+    @Order(8)
+    void end_to_end_reject_malformed_json_on_versioned_post() {
+        String envelope = "{\"name\": \"n\", \"description\": \"d\", \"patternJson\": \"{ not json\"}";
+
+        given()
+                .body(envelope)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/9.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("could not be parsed"));
+    }
+
+    @Test
+    @Order(9)
+    void end_to_end_reject_malformed_json_on_versioned_put() {
+        String envelope = "{\"name\": \"n\", \"description\": \"d\", \"patternJson\": \"{ not json\"}";
+
+        given()
+                .body(envelope)
+                .header("Content-Type", "application/json")
+                .when().put("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/1.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("could not be parsed"));
+    }
 }
