@@ -44,8 +44,9 @@ describe('validate E2E', () => {
 
     it('rejects pattern with invalid JSON Schema', async () => {
         // AJV2020 ignores references to the JSON 2020-12 draft, but will
-        // attempt to load any other JSON schema draft but not register it,
-        // leading to an infinite loop.
+        // attempt to load any other JSON schema draft. The schema directory
+        // refuses to load standard JSON Schema drafts, and that failure is
+        // now surfaced directly rather than swallowed into a later null deref.
         const badPattern = { '$schema': 'https://json-schema.org/draft/2019-09/schema' };
         const response = await validate(undefined, badPattern, undefined, schemaDirectory, false);
 
@@ -53,7 +54,7 @@ describe('validate E2E', () => {
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
         expect(response.jsonSchemaValidationOutputs).toHaveLength(1);
-        expect(response.jsonSchemaValidationOutputs[0].message).toContain('reading \'$schema\'');
+        expect(response.jsonSchemaValidationOutputs[0].message).toContain('is not supported');
     });
 
     it('accepts pattern with valid JSON Schema', async () => {

@@ -1,6 +1,7 @@
 import { JSONPath } from 'jsonpath-plus';
 import _ from 'lodash';
 import { initLogger, Logger } from '../logger.js';
+import { getErrorMessage } from '../error-utils.js';
 
 export interface PathExtractionOptions {
     filter?: Record<string, JsonFragment>;
@@ -93,7 +94,7 @@ export class TemplatePathExtractor {
                         ? this.parseFilter(options.filter)
                         : options.filter;
 
-                    arrayContents = arrayContents.filter(item => this.matchesFilter(item, filterObj!));
+                    arrayContents = arrayContents.filter((item: JsonFragment) => this.matchesFilter(item, filterObj!));
                     logger.debug(`After filtering: ${beforeFilter} -> ${arrayContents.length} items`);
                 }
 
@@ -125,7 +126,7 @@ export class TemplatePathExtractor {
                 const filterObj = typeof options.filter === 'string'
                     ? this.parseFilter(options.filter)
                     : options.filter;
-                result = result.filter(item => this.matchesFilter(item, filterObj!));
+                result = result.filter((item: JsonFragment) => this.matchesFilter(item, filterObj!));
                 logger.debug(`After filtering: ${beforeFilter} -> ${result.length} items`);
             }
 
@@ -153,7 +154,7 @@ export class TemplatePathExtractor {
             logger.debug(`Final result: ${JSON.stringify(result[0], null, 2)}`);
             return result[0];
         } catch (err) {
-            logger.warn(`Failed to extract path "${path}": ${err.message}`);
+            logger.warn(`Failed to extract path "${path}": ${getErrorMessage(err)}`);
             return [];
         }
     }

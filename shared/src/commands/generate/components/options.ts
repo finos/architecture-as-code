@@ -1,5 +1,13 @@
 import { initLogger } from '../../../logger';
 
+/**
+ * A node within a CALM pattern's JSON schema. The pattern is unvalidated JSON
+ * that is traversed via deeply nested property chains, so values are typed as
+ * `any` to allow that traversal without a cast at every level.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SchemaNode = { [key: string]: any };
+
 export interface CalmChoice {
     description: string,
     nodes: string[],
@@ -13,19 +21,19 @@ export interface CalmOption {
     choices: CalmChoice[],
 }
 
-function isOptionsRelationship(relationship: object): boolean {
+function isOptionsRelationship(relationship: SchemaNode): boolean {
     return relationship['properties']?.['relationship-type']?.['properties']?.['options'] !== undefined;
 }
 
-function getItemsInOptionsRelationship(optionsRelationship: object): object[] {
+function getItemsInOptionsRelationship(optionsRelationship: SchemaNode): SchemaNode[] {
     return optionsRelationship['properties']['relationship-type']['properties']['options']['prefixItems'];
 }
 
-function extractOptionsFromBlock(optionsRelationship: object, blockType: 'oneOf' | 'anyOf'): CalmOption[] {
+function extractOptionsFromBlock(optionsRelationship: SchemaNode, blockType: 'oneOf' | 'anyOf'): CalmOption[] {
     return getItemsInOptionsRelationship(optionsRelationship)
-        .filter((prefixItem: object) => blockType in prefixItem)
-        .map((prefixItem: object) => prefixItem[blockType] as object[])
-        .map((choices: object[]) => ({
+        .filter((prefixItem: SchemaNode) => blockType in prefixItem)
+        .map((prefixItem: SchemaNode) => prefixItem[blockType] as SchemaNode[])
+        .map((choices: SchemaNode[]) => ({
             optionType: blockType,
             optionId: optionsRelationship['properties']['unique-id']['const'],
             prompt: optionsRelationship['properties']['description']['const'],
@@ -42,7 +50,7 @@ function extractOptionsFromBlock(optionsRelationship: object, blockType: 'oneOf'
  * @param pattern - The pattern object
  * @returns The prefixItems array from relationships, or empty array if not found
  */
-function getRelationshipsPrefixItems(pattern: object): object[] {
+function getRelationshipsPrefixItems(pattern: SchemaNode): SchemaNode[] {
     // Direct access for standard patterns
     if (pattern['properties']?.['relationships']?.['prefixItems']) {
         return pattern['properties']['relationships']['prefixItems'];
@@ -68,7 +76,7 @@ function getRelationshipsPrefixItems(pattern: object): object[] {
  */
 export function extractOptions(pattern: object, debug: boolean = false): CalmOption[] {
     const logger = initLogger(debug, 'calm-generate-options');
-    const calmItems: object[] = getRelationshipsPrefixItems(pattern);
+    const calmItems: SchemaNode[] = getRelationshipsPrefixItems(pattern as SchemaNode);
 
     if (calmItems.length === 0) {
         logger.debug('No relationship prefixItems found in pattern');
@@ -76,8 +84,8 @@ export function extractOptions(pattern: object, debug: boolean = false): CalmOpt
     }
 
     const options: CalmOption[] = calmItems
-        .filter((rel: object) => isOptionsRelationship(rel))
-        .flatMap((optionsRel: object) => [
+        .filter((rel: SchemaNode) => isOptionsRelationship(rel))
+        .flatMap((optionsRel: SchemaNode) => [
             ...extractOptionsFromBlock(optionsRel, 'oneOf'),
             ...extractOptionsFromBlock(optionsRel, 'anyOf')
         ]);
@@ -98,43 +106,43 @@ type Item = {
  * @param selectionPredicate - A function that takes an item and returns true if it should be included in the flattened result
  * @returns A list of items that match the selection predicate, or the item itself if it is not a oneOf or anyOf block
  */
-function flattenOneOfAndAnyOf(item: Item, selectionPredicate: (item: object) => boolean): object[] {
+function flattenOneOfAndAnyOf(item: Item, selectionPredicate: (item: SchemaNode) => boolean): object[] {
     if (!(item.oneOf || item.anyOf)) {
         // If it isn't a oneOf or anyOf block, there isn't anything to flatten so return the item
         return [item];
     }
 
-    const items: object[] = item.oneOf || item.anyOf;
+    const items: object[] = item.oneOf ?? item.anyOf ?? [];
 
     return items
         .flatMap((x: object) => x)
-        .filter((x: object) => selectionPredicate(x));
+        .filter((x: SchemaNode) => selectionPredicate(x));
 }
 
-function flattenCalmItems(pattern: object, calmType: 'nodes' | 'relationships', ids: string[]): void {
+function flattenCalmItems(pattern: SchemaNode, calmType: 'nodes' | 'relationships', ids: string[]): void {
     const calmItems = pattern['properties'][calmType]['prefixItems'];
 
-    const selectionPredicate = (x: object) => ids.includes(x['properties']['unique-id']['const']);
+    const selectionPredicate = (x: SchemaNode) => ids.includes(x['properties']['unique-id']['const']);
     pattern['properties'][calmType]['prefixItems'] = calmItems
-        .flatMap((item: object) => flattenOneOfAndAnyOf(item, selectionPredicate));
+        .flatMap((item: Item) => flattenOneOfAndAnyOf(item, selectionPredicate));
 }
 
-function flattenOptionsRelationship(relationship: object, choices: CalmChoice[]): object {
+function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoice[]): SchemaNode {
     if (!isOptionsRelationship(relationship)) {
         return relationship;
     }
 
-    const selectionPredicate = (x: object) => choices.map(choice => choice.description).includes(x['properties']['description']['const']);
+    const selectionPredicate = (x: SchemaNode) => choices.map(choice => choice.description).includes(x['properties']['description']['const']);
     const newItems = getItemsInOptionsRelationship(relationship)
-        .flatMap((item: object) => flattenOneOfAndAnyOf(item, selectionPredicate));
+        .flatMap((item: Item) => flattenOneOfAndAnyOf(item, selectionPredicate));
 
     relationship['properties']['relationship-type']['properties']['options']['prefixItems'] = newItems;
     return relationship;
 }
 
-function flattenOptionsRelationships(pattern: object, choices: CalmChoice[]): void {
+function flattenOptionsRelationships(pattern: SchemaNode, choices: CalmChoice[]): void {
     pattern['properties']['relationships']['prefixItems'] = pattern['properties']['relationships']['prefixItems']
-        .map((rel: object) => flattenOptionsRelationship(rel, choices));
+        .map((rel: SchemaNode) => flattenOptionsRelationship(rel, choices));
 }
 
 /**
@@ -148,7 +156,7 @@ export function selectChoices(inputPattern: object, choices: CalmChoice[], debug
     const logger = initLogger(debug, 'calm-generate-options');
     logger.debug(`Selecting these choices from the pattern [${JSON.stringify(choices)}]`);
 
-    const pattern = {...inputPattern}; // make a copy so we don't mutate the input pattern
+    const pattern = {...inputPattern} as SchemaNode; // make a copy so we don't mutate the input pattern
     const nodeIds: string[] = choices.flatMap(choice => choice.nodes);
     const relationshipIds: string[] = choices.flatMap(choice => choice.relationships);
 

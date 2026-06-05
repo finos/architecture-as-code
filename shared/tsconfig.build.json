@@ -1,7 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "strict": true
   },
   "exclude": ["**/*.spec.ts", "src/docify/**/*"]
 }
