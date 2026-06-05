@@ -3,7 +3,7 @@ import { Logger } from '../logger';
 import { DocumentLoader, CALM_HUB_PROTO } from './document-loader';
 import { SchemaDirectory } from '../schema-directory';
 
-export async function loadArchitectureAndPattern(architecturePath: string, patternPath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<{ architecture: object | undefined, pattern: object | undefined }> {
+export async function loadArchitectureAndPattern(architecturePath: string, patternPath: string | undefined, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<{ architecture: object | undefined, pattern: object | undefined }> {
     const architecture = await loadArchitecture(architecturePath, docLoader, logger);
     if (!architecture) {
         // we have already validated that at least one of the options is provided, so pattern must be set
@@ -46,7 +46,7 @@ export function resolveSchemaRef(schemaRef: string, architecturePath: string, lo
     return schemaRef;
 }
 
-export async function loadPatternFromDocumentIfPresent(document: object, documentPath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<object | undefined> {
+export async function loadPatternFromDocumentIfPresent(document: object | undefined, documentPath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<object | undefined> {
     const schemaId = document ? (document as { $schema?: string }).$schema : undefined;
     if (!schemaId) {
         return undefined;
@@ -65,7 +65,7 @@ export async function loadPatternFromDocumentIfPresent(document: object, documen
     return pattern;
 }
 
-export async function loadPattern(patternPath: string, docLoader: DocumentLoader, logger: Logger): Promise<object | undefined> {
+export async function loadPattern(patternPath: string | undefined, docLoader: DocumentLoader, logger: Logger): Promise<object | undefined> {
     if (!patternPath) {
         return undefined;
     }
@@ -74,7 +74,7 @@ export async function loadPattern(patternPath: string, docLoader: DocumentLoader
     return pattern;
 }
 
-export async function loadArchitecture(architecturePath: string, docLoader: DocumentLoader, logger: Logger): Promise<object | undefined> {
+export async function loadArchitecture(architecturePath: string | undefined, docLoader: DocumentLoader, logger: Logger): Promise<object | undefined> {
     if (!architecturePath) {
         return undefined;
     }

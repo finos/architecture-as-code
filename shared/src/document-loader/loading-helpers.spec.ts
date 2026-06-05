@@ -82,7 +82,7 @@ describe('loading helpers', () => {
 
     describe('loadArchitecture', () => {
         it('should return undefined if architecturePath is not provided', async () => {
-            const result = await loadArchitecture(undefined as unknown as string, mockDocLoader, mockLogger);
+            const result = await loadArchitecture(undefined, mockDocLoader, mockLogger);
             expect(result).toBeUndefined();
         });
 
@@ -97,7 +97,7 @@ describe('loading helpers', () => {
 
     describe('loadPattern', () => {
         it('should return undefined if patternPath is not provided', async () => {
-            const result = await loadPattern(undefined as unknown as string, mockDocLoader, mockLogger);
+            const result = await loadPattern(undefined, mockDocLoader, mockLogger);
             expect(result).toBeUndefined();
         });
 
@@ -112,7 +112,7 @@ describe('loading helpers', () => {
 
     describe('loadPatternFromDocumentIfPresent', () => {
         it('should return undefined if architecture is missing', async () => {
-            const result = await loadPatternFromDocumentIfPresent(undefined as unknown as object, 'arch.json', mockDocLoader, mockSchemaDirectory, mockLogger);
+            const result = await loadPatternFromDocumentIfPresent(undefined, 'arch.json', mockDocLoader, mockSchemaDirectory, mockLogger);
             expect(result).toBeUndefined();
         });
 
@@ -175,7 +175,7 @@ describe('loading helpers', () => {
             vi.mocked(mockDocLoader.loadMissingDocument).mockResolvedValueOnce(arch);
             vi.mocked(mockSchemaDirectory.getSchema).mockResolvedValue(pattern);
 
-            const result = await loadArchitectureAndPattern('arch.json', undefined as unknown as string, mockDocLoader, mockSchemaDirectory, mockLogger);
+            const result = await loadArchitectureAndPattern('arch.json', undefined, mockDocLoader, mockSchemaDirectory, mockLogger);
 
             expect(result).toEqual({ architecture: arch, pattern });
         });

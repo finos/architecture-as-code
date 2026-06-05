@@ -1,4 +1,3 @@
-import { WidgetsOptions } from '@finos/calm-widgets';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -340,7 +339,7 @@ Content`;
 
         it('should handle no widget options', () => {
             const content = 'Template content';
-            const widgetOptions = undefined as unknown as WidgetsOptions;
+            const widgetOptions = undefined;
 
             const result = injectWidgetOptionsIntoContent(content, widgetOptions);
 
