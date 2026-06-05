@@ -4,6 +4,7 @@ import { AuthPlugin } from '../auth/auth-plugin';
 export interface CalmHubOptions {
     calmHubUrl?: string;
     authPlugin?: AuthPlugin;
+    debug?: boolean;
 }
 
 export interface HubNamespaceSummary {
@@ -112,6 +113,31 @@ export class CalmHubClient {
                 Object.assign(config.headers, authHeaders);
                 return config;
             });
+        }
+
+        if (options.debug) {
+            this.ax.interceptors.request.use((config) => {
+                const url = `${config.baseURL ?? ''}${config.url ?? ''}`;
+                console.debug(`[CalmHub] ${config.method?.toUpperCase()} ${url}`);
+                if (config.data) console.debug('[CalmHub] body:', config.data);
+                return config;
+            });
+            this.ax.interceptors.response.use(
+                (response) => {
+                    const url = `${response.config.baseURL ?? ''}${response.config.url ?? ''}`;
+                    console.debug(`[CalmHub] Response from ${url}:`, response.status, response.data);
+                    return response;
+                },
+                (error) => {
+                    if (error.config) {
+                        const url = `${error.config.baseURL ?? ''}${error.config.url ?? ''}`;
+                        console.error(`[CalmHub] Error response from ${url}:`, error.response?.status, error.response?.data);
+                    } else {
+                        console.error('[CalmHub] Axios error without config:', error);
+                    }
+                    return Promise.reject(error);
+                }
+            );
         }
     }
 

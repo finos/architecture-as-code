@@ -948,6 +948,49 @@ describe('CalmHubClient', () => {
         });
     });
 
+    // ── debug option ─────────────────────────────────────────────────────────────
+
+    describe('debug option', () => {
+        it('logs to console.debug on a successful request when debug is true', async () => {
+            const ax = axios.create({ baseURL: 'http://localhost:8080' });
+            const debugMock = new AxiosMockAdapter(ax);
+            debugMock.onGet('/calm/namespaces').reply(200, { values: [] });
+            const debugClient = new CalmHubClient({ calmHubUrl: 'http://localhost:8080', debug: true }, ax);
+            const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+            await debugClient.listNamespaces();
+
+            expect(spy).toHaveBeenCalled();
+            spy.mockRestore();
+        });
+
+        it('does not log to console.debug when debug is false', async () => {
+            const ax = axios.create({ baseURL: 'http://localhost:8080' });
+            const debugMock = new AxiosMockAdapter(ax);
+            debugMock.onGet('/calm/namespaces').reply(200, { values: [] });
+            const quietClient = new CalmHubClient({ calmHubUrl: 'http://localhost:8080', debug: false }, ax);
+            const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+            await quietClient.listNamespaces();
+
+            expect(spy).not.toHaveBeenCalled();
+            spy.mockRestore();
+        });
+
+        it('logs to console.error on a failed request when debug is true', async () => {
+            const ax = axios.create({ baseURL: 'http://localhost:8080' });
+            const debugMock = new AxiosMockAdapter(ax);
+            debugMock.onGet('/calm/namespaces').reply(500, { error: 'boom' });
+            const debugClient = new CalmHubClient({ calmHubUrl: 'http://localhost:8080', debug: true }, ax);
+            const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            await expect(debugClient.listNamespaces()).rejects.toBeInstanceOf(HubClientError);
+
+            expect(errSpy).toHaveBeenCalled();
+            errSpy.mockRestore();
+        });
+    });
+
     // ── auth plugin: domains/controls ─────────────────────────────────────────
 
     describe('auth plugin: domains/controls', () => {
