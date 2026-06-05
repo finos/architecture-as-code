@@ -115,6 +115,9 @@ public class MongoInterfaceStore implements InterfaceStore {
         for (Document interfaceDoc : interfaces) {
             if (interfaceId.equals(interfaceDoc.getInteger("interfaceId"))) {
                 Document versions = (Document) interfaceDoc.get("versions");
+                if (versions == null) {
+                    throw new InterfaceNotFoundException();
+                }
                 Set<String> versionKeys = versions.keySet();
 
                 List<String> resourceVersions = new ArrayList<>();
@@ -152,6 +155,9 @@ public class MongoInterfaceStore implements InterfaceStore {
         for (Document interfaceDoc : interfaces) {
             if (interfaceId.equals(interfaceDoc.getInteger("interfaceId"))) {
                 Document versions = (Document) interfaceDoc.get("versions");
+                if (versions == null) {
+                    throw new InterfaceVersionNotFoundException();
+                }
                 Document versionDoc = (Document) versions.get(version.replace('.', '-'));
                 if (versionDoc == null) {
                     throw new InterfaceVersionNotFoundException();
