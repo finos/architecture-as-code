@@ -16,9 +16,7 @@ const twoNodeArch: CalmArchitecture = {
 	relationships: [
 		{
 			'unique-id': 'rel-1',
-			'relationship-type': 'connects',
-			source: 'svc-1',
-			destination: 'db-1',
+			'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'db-1' } } },
 		},
 	],
 };
@@ -30,8 +28,8 @@ const threeNodeArch: CalmArchitecture = {
 		{ 'unique-id': 'c', 'node-type': 'database', name: 'DB' },
 	],
 	relationships: [
-		{ 'unique-id': 'r1', 'relationship-type': 'connects', source: 'a', destination: 'b' },
-		{ 'unique-id': 'r2', 'relationship-type': 'connects', source: 'b', destination: 'c' },
+		{ 'unique-id': 'r1', 'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } } },
+		{ 'unique-id': 'r2', 'relationship-type': { connects: { source: { node: 'b' }, destination: { node: 'c' } } } },
 	],
 };
 

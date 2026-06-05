@@ -25,11 +25,14 @@ describe('finalize_architecture tool', () => {
   it('returns success on a valid architecture and writes AIGF decorator', async () => {
     createArchitecture({
       nodes: [
-        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent' },
-        { 'unique-id': 'llm-1', 'node-type': 'ai:llm', name: 'Inference Endpoint' }
+        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent', description: 'Trader agent' },
+        { 'unique-id': 'llm-1', 'node-type': 'ai:llm', name: 'Inference Endpoint', description: 'LLM inference endpoint' }
       ],
       relationships: [
-        { 'unique-id': 'rel-1', 'relationship-type': 'interacts', source: 'agent-1', destination: 'llm-1' }
+        {
+          'unique-id': 'rel-1',
+          'relationship-type': { interacts: { actor: 'agent-1', nodes: ['llm-1'] } }
+        }
       ],
       file: filePath
     });
@@ -56,11 +59,14 @@ describe('finalize_architecture tool', () => {
   it('reports validation errors but still writes the AIGF decorator', async () => {
     createArchitecture({
       nodes: [
-        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent' }
+        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent', description: 'Trader agent' }
       ],
       relationships: [
-        // dangling reference — destination does not exist
-        { 'unique-id': 'rel-1', 'relationship-type': 'interacts', source: 'agent-1', destination: 'nonexistent' }
+        // dangling reference — `nonexistent` is not in nodes[]
+        {
+          'unique-id': 'rel-1',
+          'relationship-type': { interacts: { actor: 'agent-1', nodes: ['nonexistent'] } }
+        }
       ],
       file: filePath
     });
@@ -78,7 +84,7 @@ describe('finalize_architecture tool', () => {
   it('does not attach a decorator when the architecture has no AI nodes', async () => {
     createArchitecture({
       nodes: [
-        { 'unique-id': 'svc-1', 'node-type': 'service', name: 'API' }
+        { 'unique-id': 'svc-1', 'node-type': 'service', name: 'API', description: 'API service' }
       ],
       relationships: [],
       file: filePath
@@ -97,7 +103,7 @@ describe('finalize_architecture tool', () => {
   it('renders SVG when render=true', async () => {
     createArchitecture({
       nodes: [
-        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent' }
+        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent', description: 'Trader agent' }
       ],
       relationships: [],
       file: filePath
@@ -116,7 +122,7 @@ describe('finalize_architecture tool', () => {
   it('is idempotent — re-running on the same file leaves contents stable', async () => {
     createArchitecture({
       nodes: [
-        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent' }
+        { 'unique-id': 'agent-1', 'node-type': 'ai:agent', name: 'Trader Agent', description: 'Trader agent' }
       ],
       relationships: [],
       file: filePath

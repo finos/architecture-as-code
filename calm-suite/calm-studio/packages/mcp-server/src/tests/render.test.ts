@@ -18,8 +18,18 @@ const sampleArch: CalmArchitecture = {
     { 'unique-id': 'node-3', 'node-type': 'database', name: 'DB', description: 'Relational database' }
   ],
   relationships: [
-    { 'unique-id': 'rel-1', 'relationship-type': 'connects', source: 'node-1', destination: 'node-2' },
-    { 'unique-id': 'rel-2', 'relationship-type': 'connects', source: 'node-2', destination: 'node-3' }
+    {
+      'unique-id': 'rel-1',
+      'relationship-type': {
+        connects: { source: { node: 'node-1' }, destination: { node: 'node-2' } }
+      }
+    },
+    {
+      'unique-id': 'rel-2',
+      'relationship-type': {
+        connects: { source: { node: 'node-2' }, destination: { node: 'node-3' } }
+      }
+    }
   ]
 };
 
@@ -100,9 +110,12 @@ describe('validate_architecture tool', () => {
 
   it('returns error for dangling relationship reference', () => {
     const arch = {
-      nodes: [{ 'unique-id': 'a', 'node-type': 'system', name: 'A' }],
+      nodes: [{ 'unique-id': 'a', 'node-type': 'system', name: 'A', description: 'A node' }],
       relationships: [
-        { 'unique-id': 'r1', 'relationship-type': 'connects', source: 'a', destination: 'missing-node' }
+        {
+          'unique-id': 'r1',
+          'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'missing-node' } } }
+        }
       ]
     };
     writeFileSync(tmpFile, JSON.stringify(arch, null, 2), 'utf-8');
@@ -115,8 +128,8 @@ describe('validate_architecture tool', () => {
   it('returns error for duplicate node IDs', () => {
     const arch = {
       nodes: [
-        { 'unique-id': 'dup', 'node-type': 'system', name: 'First' },
-        { 'unique-id': 'dup', 'node-type': 'service', name: 'Second' }
+        { 'unique-id': 'dup', 'node-type': 'system', name: 'First', description: 'First' },
+        { 'unique-id': 'dup', 'node-type': 'service', name: 'Second', description: 'Second' }
       ],
       relationships: []
     };
@@ -130,11 +143,14 @@ describe('validate_architecture tool', () => {
   it('returns warning for orphan node', () => {
     const arch = {
       nodes: [
-        { 'unique-id': 'connected', 'node-type': 'system', name: 'Connected' },
-        { 'unique-id': 'orphan', 'node-type': 'service', name: 'Orphan' }
+        { 'unique-id': 'connected', 'node-type': 'system', name: 'Connected', description: 'Connected node' },
+        { 'unique-id': 'orphan', 'node-type': 'service', name: 'Orphan', description: 'Orphan node' }
       ],
       relationships: [
-        { 'unique-id': 'r1', 'relationship-type': 'connects', source: 'connected', destination: 'connected' }
+        {
+          'unique-id': 'r1',
+          'relationship-type': { connects: { source: { node: 'connected' }, destination: { node: 'connected' } } }
+        }
       ]
     };
     writeFileSync(tmpFile, JSON.stringify(arch, null, 2), 'utf-8');

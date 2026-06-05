@@ -96,7 +96,8 @@ describe('applyFromJson -> calmToFlow -> applyFromCanvas round-trip', () => {
 		applyFromCanvas(nodes, edges);
 
 		const result = getModel();
-		expect(result.relationships[0]['relationship-type']).toBe('connects');
+		const rt = result.relationships[0]!['relationship-type'];
+		expect('connects' in rt).toBe(true);
 	});
 
 	it('preserves source and destination through the round-trip', () => {
@@ -107,9 +108,10 @@ describe('applyFromJson -> calmToFlow -> applyFromCanvas round-trip', () => {
 		applyFromCanvas(nodes, edges);
 
 		const result = getModel();
-		const rel = result.relationships[0];
-		expect(rel.source).toBe('api-service');
-		expect(rel.destination).toBe('main-db');
+		const rt = result.relationships[0]!['relationship-type'];
+		if (!('connects' in rt)) throw new Error('expected connects variant');
+		expect(rt.connects.source.node).toBe('api-service');
+		expect(rt.connects.destination.node).toBe('main-db');
 	});
 
 	it('preserves node descriptions through the round-trip', () => {

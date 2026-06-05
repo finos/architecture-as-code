@@ -25,9 +25,9 @@ export function createNode(overrides?: Partial<CalmNode>): CalmNode {
 export function createRelationship(overrides?: Partial<CalmRelationship>): CalmRelationship {
   return {
     'unique-id': 'rel-1',
-    'relationship-type': 'connects',
-    source: 'node-1',
-    destination: 'node-2',
+    'relationship-type': {
+      connects: { source: { node: 'node-1' }, destination: { node: 'node-2' } }
+    },
     ...overrides,
   };
 }
@@ -56,9 +56,9 @@ export function createMinimalArch(overrides?: Partial<CalmArchitecture>): CalmAr
     relationships: [
       {
         'unique-id': 'api-to-db',
-        'relationship-type': 'connects',
-        source: 'api-service',
-        destination: 'main-db',
+        'relationship-type': {
+          connects: { source: { node: 'api-service' }, destination: { node: 'main-db' } }
+        },
         protocol: 'HTTPS',
         description: 'API connects to database',
       },
@@ -110,23 +110,23 @@ export function createFluxNovaArch(overrides?: Partial<CalmArchitecture>): CalmA
     relationships: [
       {
         'unique-id': 'engine-in-platform',
-        'relationship-type': 'deployed-in',
-        source: 'fluxnova-engine',
-        destination: 'fluxnova-platform',
+        'relationship-type': {
+          'deployed-in': { container: 'fluxnova-platform', nodes: ['fluxnova-engine'] }
+        },
         description: 'Engine deployed in FluxNova platform',
       },
       {
         'unique-id': 'rest-api-in-platform',
-        'relationship-type': 'deployed-in',
-        source: 'fluxnova-rest-api',
-        destination: 'fluxnova-platform',
+        'relationship-type': {
+          'deployed-in': { container: 'fluxnova-platform', nodes: ['fluxnova-rest-api'] }
+        },
         description: 'REST API deployed in FluxNova platform',
       },
       {
         'unique-id': 'cockpit-in-platform',
-        'relationship-type': 'deployed-in',
-        source: 'fluxnova-cockpit',
-        destination: 'fluxnova-platform',
+        'relationship-type': {
+          'deployed-in': { container: 'fluxnova-platform', nodes: ['fluxnova-cockpit'] }
+        },
         description: 'Cockpit deployed in FluxNova platform',
       },
     ],
@@ -186,23 +186,17 @@ export function createAIGovernanceArch(overrides?: Partial<CalmArchitecture>): C
     relationships: [
       {
         'unique-id': 'orchestrator-to-agent',
-        'relationship-type': 'interacts',
-        source: 'ai-orchestrator',
-        destination: 'ai-agent',
+        'relationship-type': { interacts: { actor: 'ai-orchestrator', nodes: ['ai-agent'] } },
         description: 'Orchestrator directs agent tasks',
       },
       {
         'unique-id': 'agent-to-llm',
-        'relationship-type': 'interacts',
-        source: 'ai-agent',
-        destination: 'ai-llm',
+        'relationship-type': { interacts: { actor: 'ai-agent', nodes: ['ai-llm'] } },
         description: 'Agent calls LLM for inference',
       },
       {
         'unique-id': 'agent-to-vector-store',
-        'relationship-type': 'interacts',
-        source: 'ai-agent',
-        destination: 'ai-vector-store',
+        'relationship-type': { interacts: { actor: 'ai-agent', nodes: ['ai-vector-store'] } },
         description: 'Agent retrieves context from vector store',
       },
     ],

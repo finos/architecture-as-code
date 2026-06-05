@@ -41,6 +41,7 @@ jobs:
                   cache: npm
                   cache-dependency-path: package-lock.json
             - run: npm ci
+            - run: npm run build --if-present --workspace=@finos/calm-models
             - run: npm run build --if-present --workspace=@calmstudio/calm-core
             - name: Build sidecar bundle
               run: npm run build:bundle --workspace=@calmstudio/mcp
@@ -117,6 +118,7 @@ jobs:
 
             - name: Build calm-core and studio (pre-Tauri)
               run: |
+                  npm run build --if-present --workspace=@finos/calm-models
                   npm run build --if-present --workspace=@calmstudio/calm-core
                   npm run build --if-present --workspace=@calmstudio/extensions
                   npm run build --if-present --workspace=@calmstudio/studio

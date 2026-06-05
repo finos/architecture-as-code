@@ -22,7 +22,10 @@ describe('validate_architecture tool (dedicated)', () => {
         { 'unique-id': 'b', 'node-type': 'service', name: 'Beta', description: 'The Beta service' }
       ],
       relationships: [
-        { 'unique-id': 'r1', 'relationship-type': 'connects', source: 'a', destination: 'b' }
+        {
+          'unique-id': 'r1',
+          'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } }
+        }
       ]
     };
     writeFileSync(tmpFile, JSON.stringify(arch, null, 2), 'utf-8');
@@ -33,9 +36,12 @@ describe('validate_architecture tool (dedicated)', () => {
 
   it('returns error for dangling ref in relationship', () => {
     const arch = {
-      nodes: [{ 'unique-id': 'x', 'node-type': 'system', name: 'X' }],
+      nodes: [{ 'unique-id': 'x', 'node-type': 'system', name: 'X', description: 'X system' }],
       relationships: [
-        { 'unique-id': 'r1', 'relationship-type': 'connects', source: 'x', destination: 'ghost' }
+        {
+          'unique-id': 'r1',
+          'relationship-type': { connects: { source: { node: 'x' }, destination: { node: 'ghost' } } }
+        }
       ]
     };
     writeFileSync(tmpFile, JSON.stringify(arch, null, 2), 'utf-8');
@@ -48,8 +54,8 @@ describe('validate_architecture tool (dedicated)', () => {
   it('returns error for duplicate node IDs', () => {
     const arch = {
       nodes: [
-        { 'unique-id': 'same-id', 'node-type': 'system', name: 'First' },
-        { 'unique-id': 'same-id', 'node-type': 'service', name: 'Second' }
+        { 'unique-id': 'same-id', 'node-type': 'system', name: 'First', description: 'First node' },
+        { 'unique-id': 'same-id', 'node-type': 'service', name: 'Second', description: 'Second node' }
       ],
       relationships: []
     };
@@ -63,7 +69,7 @@ describe('validate_architecture tool (dedicated)', () => {
   it('returns warning for orphan node', () => {
     const arch = {
       nodes: [
-        { 'unique-id': 'lone', 'node-type': 'database', name: 'Lone DB' }
+        { 'unique-id': 'lone', 'node-type': 'database', name: 'Lone DB', description: 'Lone database' }
       ],
       relationships: []
     };

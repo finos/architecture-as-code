@@ -4,7 +4,14 @@
     "name": "OpenGRIS: Market Risk (Waterfall)",
     "description": "Financial risk calculation with waterfall scaling — burst on-premise first, overflow to ECS cloud. Priority 1 native workers handle primary load; priority 2 ECS handles burst.",
     "category": "opengris",
-    "tags": ["opengris", "market-risk", "waterfall", "ecs", "financial-services", "hybrid-cloud"],
+    "tags": [
+      "opengris",
+      "market-risk",
+      "waterfall",
+      "ecs",
+      "financial-services",
+      "hybrid-cloud"
+    ],
     "version": "1.0.0",
     "author": "CalmStudio Contributors"
   },
@@ -87,65 +94,121 @@
   "relationships": [
     {
       "unique-id": "ogmr-client-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogmr-client",
-      "destination": "ogmr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogmr-client"
+          },
+          "destination": {
+            "node": "ogmr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "Risk engine client submits market risk calculation tasks to the scheduler (ZeroMQ TCP)"
     },
     {
       "unique-id": "ogmr-scheduler-to-object-storage",
-      "relationship-type": "connects",
-      "source": "ogmr-scheduler",
-      "destination": "ogmr-object-storage",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogmr-scheduler"
+          },
+          "destination": {
+            "node": "ogmr-object-storage"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "Scheduler reads portfolio inputs and writes risk results via object store"
     },
     {
       "unique-id": "ogmr-worker-1-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogmr-worker-1",
-      "destination": "ogmr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogmr-worker-1"
+          },
+          "destination": {
+            "node": "ogmr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "Worker receives risk tasks and returns results to the scheduler (ZeroMQ TCP)"
     },
     {
       "unique-id": "ogmr-worker-2-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogmr-worker-2",
-      "destination": "ogmr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogmr-worker-2"
+          },
+          "destination": {
+            "node": "ogmr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "Worker receives risk tasks and returns results to the scheduler (ZeroMQ TCP)"
     },
     {
       "unique-id": "ogmr-worker-3-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogmr-worker-3",
-      "destination": "ogmr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogmr-worker-3"
+          },
+          "destination": {
+            "node": "ogmr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "Worker receives risk tasks and returns results to the scheduler (ZeroMQ TCP)"
     },
     {
       "unique-id": "ogmr-worker-4-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogmr-worker-4",
-      "destination": "ogmr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogmr-worker-4"
+          },
+          "destination": {
+            "node": "ogmr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "Worker receives risk tasks and returns results to the scheduler (ZeroMQ TCP)"
     },
     {
       "unique-id": "ogmr-native-manager-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogmr-worker-manager-native",
-      "destination": "ogmr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogmr-worker-manager-native"
+          },
+          "destination": {
+            "node": "ogmr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "Native worker manager registers with scheduler; spawns on-premise workers as first waterfall tier"
     },
     {
       "unique-id": "ogmr-ecs-manager-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogmr-worker-manager-ecs",
-      "destination": "ogmr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogmr-worker-manager-ecs"
+          },
+          "destination": {
+            "node": "ogmr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "ECS worker manager registers with scheduler; launches ECS tasks as second waterfall tier when on-premise is saturated"
     }

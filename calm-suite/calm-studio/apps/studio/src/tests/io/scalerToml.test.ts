@@ -40,14 +40,32 @@ function makeRelationship(
 	id: string,
 	source: string,
 	destination: string,
-	type: CalmRelationship['relationship-type'] = 'connects'
+	variant: 'connects' | 'composed-of' | 'interacts' | 'deployed-in' = 'connects'
 ): CalmRelationship {
-	return {
-		'unique-id': id,
-		'relationship-type': type,
-		source,
-		destination,
-	};
+	switch (variant) {
+		case 'connects':
+			return {
+				'unique-id': id,
+				'relationship-type': {
+					connects: { source: { node: source }, destination: { node: destination } }
+				}
+			};
+		case 'composed-of':
+			return {
+				'unique-id': id,
+				'relationship-type': { 'composed-of': { container: source, nodes: [destination] } }
+			};
+		case 'interacts':
+			return {
+				'unique-id': id,
+				'relationship-type': { interacts: { actor: source, nodes: [destination] } }
+			};
+		case 'deployed-in':
+			return {
+				'unique-id': id,
+				'relationship-type': { 'deployed-in': { container: source, nodes: [destination] } }
+			};
+	}
 }
 
 function makeArch(nodes: CalmNode[], relationships: CalmRelationship[] = []): CalmArchitecture {
