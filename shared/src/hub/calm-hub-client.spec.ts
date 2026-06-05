@@ -960,7 +960,8 @@ describe('CalmHubClient', () => {
 
             await debugClient.listNamespaces();
 
-            expect(spy).toHaveBeenCalled();
+            expect(spy).toHaveBeenCalledTimes(2);
+            expect(spy.mock.calls[0][0]).toContain('http://localhost:8080/calm/namespaces');
             spy.mockRestore();
         });
 
@@ -988,6 +989,20 @@ describe('CalmHubClient', () => {
 
             expect(errSpy).toHaveBeenCalled();
             errSpy.mockRestore();
+        });
+
+        it('logs the request body to console.debug when debug is true and body is present', async () => {
+            const ax = axios.create({ baseURL: 'http://localhost:8080' });
+            const bodyMock = new AxiosMockAdapter(ax);
+            bodyMock.onPost('/calm/namespaces').reply(201, null, { location: '/calm/namespaces/test-org' });
+            const debugClient = new CalmHubClient({ calmHubUrl: 'http://localhost:8080', debug: true }, ax);
+            const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+            await debugClient.createNamespace('test-org', 'Test org');
+
+            const bodyCall = spy.mock.calls.find(call => String(call[0]).includes('[CalmHub] body:'));
+            expect(bodyCall).toBeDefined();
+            spy.mockRestore();
         });
     });
 
