@@ -251,11 +251,11 @@ async function validateArchitectureOnly(architecture: object, schemaDirectory: S
     const warnings = spectralResultForArchitecture.warnings;
 
     const coreSchemaUrl = schemaDirectory ? findLatestCalmCoreSchemaUrl(schemaDirectory) : undefined;
-    if (!schemaDirectory || !coreSchemaUrl) {
+    const coreSchema = (schemaDirectory && coreSchemaUrl) ? await schemaDirectory.getSchema(coreSchemaUrl) : undefined;
+    if (!schemaDirectory || !coreSchema) {
         logger.warn('No CALM core schema found in schema directory — skipping JSON schema validation');
     } else {
         logger.debug(`Validating architecture against CALM core schema: ${coreSchemaUrl}`);
-        const coreSchema = await schemaDirectory.getSchema(coreSchemaUrl);
         try {
             const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, coreSchema, debug);
             await jsonSchemaValidator.initialize();

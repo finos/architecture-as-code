@@ -1,3 +1,5 @@
+import { getErrorMessage } from '../error-utils';
+
 export interface AddressableEntry {
     path: string;
     key: string;
@@ -11,7 +13,7 @@ export function extractNetworkAddressables(jsonString: string): AddressableEntry
     try {
         data = JSON.parse(jsonString);
     } catch (err) {
-        throw new Error(`Invalid JSON string provided: ${err.message}`);
+        throw new Error(`Invalid JSON string provided: ${getErrorMessage(err)}`);
     }
     const results: AddressableEntry[] = [];
     traverse(data, 'root', results);

@@ -556,6 +556,11 @@ describe('validate pattern only', () => {
             });
     });
 
+    it('throws when no schema directory is provided for pattern validation', async () => {
+        await expect(validate(undefined, { dummy: 'pattern' }, undefined, undefined, debugDisabled))
+            .rejects.toThrow('A schema directory is required for schema validation');
+    });
+
     it('has errors when the pattern does not pass all the spectral validations ', async () => {
         const expectedSpectralOutput: ISpectralDiagnostic[] = [
             {

@@ -67,11 +67,12 @@ export class SchemaDirectory {
             // schemaDirectory will return an empty schema in this case, so this code should never trigger.
             throw Error('schema missing!');
         }
-        if (!definition['$ref']) {
+        const definitionRef = (definition as { $ref?: string })['$ref'];
+        if (!definitionRef) {
             this.logger.debug('Reached a definition with no ref, terminating recursive lookup.');
             return this.qualifyLocalReferences(definition, newSchemaId);
         }
-        const newRef: string = definition['$ref'];
+        const newRef: string = definitionRef;
         if (visitedDefinitions.includes(newRef)) {
             this.logger.warn('Circular reference detected. Terminating reference lookup. Visited definitions: ' + visitedDefinitions);
             return definition;
@@ -133,7 +134,7 @@ export class SchemaDirectory {
      * @param schemaId The ID of the schema to load.
      * @returns An entire schema as an object.
      */
-    public async getSchema(schemaId: string): Promise<object> {
+    public async getSchema(schemaId: string): Promise<object | undefined> {
         if (!this.schemas.has(schemaId)) {
             try {
                 if (/^https?:\/\/json-schema\.org/.test(schemaId)) {
@@ -149,7 +150,7 @@ export class SchemaDirectory {
                 if (err instanceof DocumentLoadError) {
                     if (err.name === 'OPERATION_NOT_IMPLEMENTED') {
                         const registered = this.getLoadedSchemas();
-                        this.logger.warn(`Schema with $id ${schemaId} not found. Returning empty object. Registered schemas: ${registered}`);
+                        this.logger.warn(`Schema with $id ${schemaId} not found. Returning undefined. Registered schemas: ${registered}`);
                         return undefined;
                     }
                 }
@@ -159,7 +160,7 @@ export class SchemaDirectory {
         return this.schemas.get(schemaId);
     }
 
-    public async getPattern(patternId: string): Promise<object> {
+    public async getPattern(patternId: string): Promise<object | undefined> {
         return await this.getSchema(patternId);
     }
 

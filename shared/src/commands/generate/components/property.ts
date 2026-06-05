@@ -74,7 +74,9 @@ export function getPropertyValue(keyName: string, detail: JsonSchema): string | 
 }
 
 export function getEnumPlaceholder(ref: string): string {
-    const refName = /[^/#]*$/.exec(ref)?.[0] ?? '';
+    // The pattern matches the trailing segment of any string (including the empty
+    // string), so exec never returns null here.
+    const refName = /[^/#]*$/.exec(ref)![0];
     const refPlaceholder = refName.toUpperCase().replaceAll('-', '_');
     return `[[ ENUM_${refPlaceholder} ]]`;
 }

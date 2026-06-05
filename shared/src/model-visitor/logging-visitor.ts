@@ -22,7 +22,7 @@ export class LoggingVisitor implements CalmModelVisitor {
         if (!obj || typeof obj !== 'object') return;
         const keys = Object.keys(obj);
         for (const key of keys) {
-            const value = (obj as unknown)[key];
+            const value = (obj as Record<string, unknown>)[key];
             const fullPath = [...path, key].join('.');
 
             if (value instanceof Resolvable) {
