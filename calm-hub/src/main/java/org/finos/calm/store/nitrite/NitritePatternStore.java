@@ -181,6 +181,9 @@ public class NitritePatternStore implements PatternStore {
         }
 
         Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
+        if (versions == null) {
+            throw new PatternNotFoundException();
+        }
         Set<String> fieldNames = versions.getFields();
         List<String> versionList = new ArrayList<>();
         for (String fieldName : fieldNames) {
@@ -206,6 +209,9 @@ public class NitritePatternStore implements PatternStore {
         }
 
         Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
+        if (versions == null) {
+            throw new PatternVersionNotFoundException();
+        }
         String patternJson = versions.get(pattern.getMongoVersion(), String.class);
 
         if (patternJson == null) {
@@ -243,6 +249,9 @@ public class NitritePatternStore implements PatternStore {
             }
 
             Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
+            if (versions == null) {
+                throw new PatternNotFoundException();
+            }
             if (versions.containsKey(pattern.getMongoVersion())) {
                 LOG.warn("Version '{}' already exists for pattern {} in namespace '{}'",
                         pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
@@ -307,6 +316,9 @@ public class NitritePatternStore implements PatternStore {
         }
 
         Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
+        if (versions == null) {
+            throw new PatternNotFoundException();
+        }
         versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
         patternDoc.put(VERSIONS_FIELD, versions);
 
