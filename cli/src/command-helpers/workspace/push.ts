@@ -2,7 +2,7 @@ import path from 'path';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { loadManifest, saveManifest } from './bundle';
-import { CalmHubService } from '../../service/calm-hub-service';
+import { CalmHubClient, HubClientError } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { CalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 
@@ -12,7 +12,7 @@ function minifyJson(obj: object): string {
     return JSON.stringify(obj);
 }
 
-export async function pushWorkspaceToHub(bundlePath: string, service: CalmHubService): Promise<void> {
+export async function pushWorkspaceToHub(bundlePath: string, client: CalmHubClient): Promise<void> {
     const manifest = await loadManifest(bundlePath);
     const entries = Object.entries(manifest);
 
@@ -46,11 +46,9 @@ export async function pushWorkspaceToHub(bundlePath: string, service: CalmHubSer
 
         let remoteJson: object | null = null;
         try {
-            const response = await service.getCalmHubResourceLatestVersion(namespace, id) as unknown as { data: object };
-            remoteJson = response.data;
+            remoteJson = await client.getResource(namespace, id);
         } catch (e: unknown) {
-            const axiosError = e as { response?: { status?: number } };
-            if (axiosError?.response?.status === 404) {
+            if (e instanceof HubClientError && e.status === 404) {
                 remoteJson = null;
             } else {
                 logger.error(`Failed to fetch '${id}' from CalmHub: ${e instanceof Error ? e.message : String(e)}`);
@@ -60,7 +58,7 @@ export async function pushWorkspaceToHub(bundlePath: string, service: CalmHubSer
 
         if (remoteJson === null) {
             try {
-                const calmHubId = await service.createNewCalmResource(namespace, id, entry.type as CalmDocumentType, localJson);
+                const calmHubId = await client.createResource(namespace, id, entry.type as CalmDocumentType, localJson);
                 manifest[id] = { ...entry, calmHubId };
                 await saveManifest(bundlePath, manifest);
                 logger.info(`Created '${id}' -> ${calmHubId}`);
@@ -69,7 +67,7 @@ export async function pushWorkspaceToHub(bundlePath: string, service: CalmHubSer
             }
         } else if (minifyJson(localJson) !== minifyJson(remoteJson)) {
             try {
-                const calmHubId = await service.updateCalmResource(namespace, id, localJson);
+                const calmHubId = await client.updateResource(namespace, id, localJson);
                 manifest[id] = { ...entry, calmHubId };
                 await saveManifest(bundlePath, manifest);
                 logger.info(`Updated '${id}' -> ${calmHubId}`);

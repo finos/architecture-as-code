@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { pushWorkspaceToHub } from './push';
 import { loadManifest, saveManifest } from './bundle';
-import { CalmHubService } from '../../service/calm-hub-service';
+import { CalmHubClient, HubClientError } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
 
-const makeService = (overrides: Partial<{ [K in keyof CalmHubService]: CalmHubService[K] }> = {}): CalmHubService => ({
-    getCalmHubResourceLatestVersion: vi.fn(),
-    createNewCalmResource: vi.fn(async () => '/calm/namespaces/com.example/doc/versions/1.0.0'),
-    updateCalmResource: vi.fn(async () => '/calm/namespaces/com.example/doc/versions/1.1.0'),
+const makeClient = (overrides: Partial<Pick<CalmHubClient, 'getResource' | 'createResource' | 'updateResource'>> = {}): CalmHubClient => ({
+    getResource: vi.fn(),
+    createResource: vi.fn(async () => '/calm/namespaces/com.example/doc/versions/1.0.0'),
+    updateResource: vi.fn(async () => '/calm/namespaces/com.example/doc/versions/1.1.0'),
     ...overrides,
-} as unknown as CalmHubService);
+} as unknown as CalmHubClient);
 
 vi.mock('@finos/calm-shared/src/logger', () => ({
     initLogger: () => ({
@@ -47,10 +47,10 @@ describe('pushWorkspaceToHub', () => {
 
     it('warns and returns early when manifest is empty', async () => {
         await saveManifest(bundlePath, {});
-        const service = makeService();
-        await pushWorkspaceToHub(bundlePath, service as never);
-        expect(service.getCalmHubResourceLatestVersion).not.toHaveBeenCalled();
-        expect(service.createNewCalmResource).not.toHaveBeenCalled();
+        const client = makeClient();
+        await pushWorkspaceToHub(bundlePath, client as never);
+        expect(client.getResource).not.toHaveBeenCalled();
+        expect(client.createResource).not.toHaveBeenCalled();
     });
 
     it('skips entries that have no namespace', async () => {
@@ -58,18 +58,18 @@ describe('pushWorkspaceToHub', () => {
         await saveManifest(bundlePath, {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture' }
         });
-        const service = makeService();
-        await pushWorkspaceToHub(bundlePath, service as never);
-        expect(service.getCalmHubResourceLatestVersion).not.toHaveBeenCalled();
+        const client = makeClient();
+        await pushWorkspaceToHub(bundlePath, client as never);
+        expect(client.getResource).not.toHaveBeenCalled();
     });
 
     it('skips entries whose file does not exist', async () => {
         await saveManifest(bundlePath, {
             'missing': { path: 'files/missing.json', type: 'architecture', namespace: 'com.example' }
         });
-        const service = makeService();
-        await pushWorkspaceToHub(bundlePath, service as never);
-        expect(service.getCalmHubResourceLatestVersion).not.toHaveBeenCalled();
+        const client = makeClient();
+        await pushWorkspaceToHub(bundlePath, client as never);
+        expect(client.getResource).not.toHaveBeenCalled();
     });
 
     it('skips entries whose file is invalid JSON', async () => {
@@ -77,9 +77,9 @@ describe('pushWorkspaceToHub', () => {
         await saveManifest(bundlePath, {
             'bad': { path: 'files/bad.json', type: 'architecture', namespace: 'com.example' }
         });
-        const service = makeService();
-        await pushWorkspaceToHub(bundlePath, service as never);
-        expect(service.getCalmHubResourceLatestVersion).not.toHaveBeenCalled();
+        const client = makeClient();
+        await pushWorkspaceToHub(bundlePath, client as never);
+        expect(client.getResource).not.toHaveBeenCalled();
     });
 
     it('creates a resource when CalmHub returns 404 and saves the Location URL to the manifest', async () => {
@@ -87,19 +87,18 @@ describe('pushWorkspaceToHub', () => {
         await saveManifest(bundlePath, {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
         });
-        const notFound = Object.assign(new Error('Not Found'), { response: { status: 404 } });
         const locationUrl = '/calm/namespaces/com.example/doc-a/versions/1.0.0';
-        const service = makeService({
-            getCalmHubResourceLatestVersion: vi.fn().mockRejectedValue(notFound),
-            createNewCalmResource: vi.fn().mockResolvedValue(locationUrl),
+        const client = makeClient({
+            getResource: vi.fn().mockRejectedValue(new HubClientError(404, 'Not Found', 'GET /calm/namespaces/com.example/doc-a')),
+            createResource: vi.fn().mockResolvedValue(locationUrl),
         });
 
-        await pushWorkspaceToHub(bundlePath, service as never);
+        await pushWorkspaceToHub(bundlePath, client as never);
 
-        expect(service.createNewCalmResource).toHaveBeenCalledWith(
+        expect(client.createResource).toHaveBeenCalledWith(
             'com.example', 'doc-a', 'architecture', docA
         );
-        expect(service.updateCalmResource).not.toHaveBeenCalled();
+        expect(client.updateResource).not.toHaveBeenCalled();
 
         const manifest = await loadManifest(bundlePath);
         expect(manifest['doc-a'].calmHubId).toBe(locationUrl);
@@ -110,15 +109,14 @@ describe('pushWorkspaceToHub', () => {
         await saveManifest(bundlePath, {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
         });
-        const service = makeService({
-            // Remote returns same content (with extra whitespace — should still match)
-            getCalmHubResourceLatestVersion: vi.fn().mockResolvedValue({ data: docA }),
+        const client = makeClient({
+            getResource: vi.fn().mockResolvedValue(docA),
         });
 
-        await pushWorkspaceToHub(bundlePath, service as never);
+        await pushWorkspaceToHub(bundlePath, client as never);
 
-        expect(service.updateCalmResource).not.toHaveBeenCalled();
-        expect(service.createNewCalmResource).not.toHaveBeenCalled();
+        expect(client.updateResource).not.toHaveBeenCalled();
+        expect(client.createResource).not.toHaveBeenCalled();
     });
 
     it('updates when local and remote content differ and saves the new Location URL to the manifest', async () => {
@@ -128,53 +126,50 @@ describe('pushWorkspaceToHub', () => {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
         });
         const locationUrl = '/calm/namespaces/com.example/doc-a/versions/1.1.0';
-        const service = makeService({
-            getCalmHubResourceLatestVersion: vi.fn().mockResolvedValue({ data: docA }),
-            updateCalmResource: vi.fn().mockResolvedValue(locationUrl),
+        const client = makeClient({
+            getResource: vi.fn().mockResolvedValue(docA),
+            updateResource: vi.fn().mockResolvedValue(locationUrl),
         });
 
-        await pushWorkspaceToHub(bundlePath, service as never);
+        await pushWorkspaceToHub(bundlePath, client as never);
 
-        expect(service.updateCalmResource).toHaveBeenCalledWith('com.example', 'doc-a', localDoc);
-        expect(service.createNewCalmResource).not.toHaveBeenCalled();
+        expect(client.updateResource).toHaveBeenCalledWith('com.example', 'doc-a', localDoc);
+        expect(client.createResource).not.toHaveBeenCalled();
 
         const manifest = await loadManifest(bundlePath);
         expect(manifest['doc-a'].calmHubId).toBe(locationUrl);
     });
 
     it('treats extra whitespace in local file as equal to minified remote', async () => {
-        // Write doc with extra indentation / newlines
         await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA, null, 4));
         await saveManifest(bundlePath, {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
         });
-        const service = makeService({
-            // Remote returns the same content but minified
-            getCalmHubResourceLatestVersion: vi.fn().mockResolvedValue({ data: docA }),
+        const client = makeClient({
+            getResource: vi.fn().mockResolvedValue(docA),
         });
 
-        await pushWorkspaceToHub(bundlePath, service as never);
+        await pushWorkspaceToHub(bundlePath, client as never);
 
-        expect(service.updateCalmResource).not.toHaveBeenCalled();
+        expect(client.updateResource).not.toHaveBeenCalled();
     });
 
     it('continues processing remaining entries after a create error', async () => {
         await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
         await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docB));
-        const notFound = Object.assign(new Error('Not Found'), { response: { status: 404 } });
         await saveManifest(bundlePath, {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
             'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
         });
-        const service = makeService({
-            getCalmHubResourceLatestVersion: vi.fn().mockRejectedValue(notFound),
-            createNewCalmResource: vi.fn()
+        const client = makeClient({
+            getResource: vi.fn().mockRejectedValue(new HubClientError(404, 'Not Found', 'GET ...')),
+            createResource: vi.fn()
                 .mockRejectedValueOnce(new Error('create failed'))
                 .mockResolvedValueOnce('/calm/namespaces/com.example/doc-b/versions/1.0.0'),
         });
 
-        await expect(pushWorkspaceToHub(bundlePath, service as never)).resolves.not.toThrow();
-        expect(service.createNewCalmResource).toHaveBeenCalledTimes(2);
+        await expect(pushWorkspaceToHub(bundlePath, client as never)).resolves.not.toThrow();
+        expect(client.createResource).toHaveBeenCalledTimes(2);
     });
 
     it('continues processing remaining entries after an update error', async () => {
@@ -186,16 +181,15 @@ describe('pushWorkspaceToHub', () => {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
             'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
         });
-        const service = makeService({
-            getCalmHubResourceLatestVersion: vi.fn()
-                .mockResolvedValue({ data: docA }),  // older version for both
-            updateCalmResource: vi.fn()
+        const client = makeClient({
+            getResource: vi.fn().mockResolvedValue(docA),
+            updateResource: vi.fn()
                 .mockRejectedValueOnce(new Error('update failed'))
                 .mockResolvedValueOnce('/calm/namespaces/com.example/doc-b/versions/1.1.0'),
         });
 
-        await expect(pushWorkspaceToHub(bundlePath, service as never)).resolves.not.toThrow();
-        expect(service.updateCalmResource).toHaveBeenCalledTimes(2);
+        await expect(pushWorkspaceToHub(bundlePath, client as never)).resolves.not.toThrow();
+        expect(client.updateResource).toHaveBeenCalledTimes(2);
     });
 
     it('logs error and continues when CalmHub fetch fails with non-404', async () => {
@@ -205,18 +199,15 @@ describe('pushWorkspaceToHub', () => {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
             'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
         });
-        const serverError = Object.assign(new Error('Internal Server Error'), { response: { status: 500 } });
-        const notFound = Object.assign(new Error('Not Found'), { response: { status: 404 } });
-        const service = makeService({
-            getCalmHubResourceLatestVersion: vi.fn()
-                .mockRejectedValueOnce(serverError)
-                .mockRejectedValueOnce(notFound),
+        const client = makeClient({
+            getResource: vi.fn()
+                .mockRejectedValueOnce(new HubClientError(500, 'Internal Server Error', 'GET ...'))
+                .mockRejectedValueOnce(new HubClientError(404, 'Not Found', 'GET ...')),
         });
 
-        await expect(pushWorkspaceToHub(bundlePath, service as never)).resolves.not.toThrow();
-        // doc-a errored with 500 (skipped), doc-b got 404 so was created
-        expect(service.createNewCalmResource).toHaveBeenCalledTimes(1);
-        expect(service.createNewCalmResource).toHaveBeenCalledWith(
+        await expect(pushWorkspaceToHub(bundlePath, client as never)).resolves.not.toThrow();
+        expect(client.createResource).toHaveBeenCalledTimes(1);
+        expect(client.createResource).toHaveBeenCalledWith(
             'com.example', 'doc-b', 'architecture', docB
         );
     });
