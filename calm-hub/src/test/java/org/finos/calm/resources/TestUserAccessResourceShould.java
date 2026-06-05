@@ -3,18 +3,21 @@ package org.finos.calm.resources;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.Test;
+
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 public class TestUserAccessResourceShould {
 
@@ -29,7 +32,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("finos");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.patterns);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -58,7 +60,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("invalid");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.all);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -83,7 +84,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("invalid");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.all);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -108,7 +108,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("finos");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.all);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 

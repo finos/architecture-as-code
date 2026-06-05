@@ -97,14 +97,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
-        // Validate JSON
-        try {
-            // Use org.bson.Document to validate JSON
-            org.bson.Document.parse(architecture.getArchitectureJson());
-        } catch (Exception e) {
-            LOG.error("Invalid JSON format for architecture: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
-        }
+        validateArchitectureJson(architecture.getArchitectureJson());
 
         lock.lock();
         try {
@@ -239,6 +232,8 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
+        validateArchitectureJson(architecture.getArchitectureJson());
+
         lock.lock();
         try {
             if (versionExists(architecture)) {
@@ -261,8 +256,32 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
+        validateArchitectureJson(architecture.getArchitectureJson());
+
         writeArchitectureToNitrite(architecture);
         return architecture;
+    }
+
+    /**
+     * Validates that the supplied architecture JSON is parseable, throwing {@link JsonParseException} if not so the
+     * REST layer can surface a 400. Validation runs immediately after the namespace check, before any existence or
+     * version checks, so a malformed payload is rejected consistently regardless of the operation.
+     *
+     * @param architectureJson the raw architecture JSON to validate
+     */
+    private void validateArchitectureJson(String architectureJson) {
+        if (architectureJson == null) {
+            LOG.error("Architecture JSON must not be null");
+            throw new JsonParseException("Architecture JSON must not be null");
+        }
+        try {
+            // Use org.bson.Document to validate JSON
+            org.bson.Document.parse(architectureJson);
+        } catch (JsonParseException e) {
+            // Rethrow the original so the parse failure's stack trace is preserved for observability
+            LOG.error("Invalid JSON format for architecture: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private void writeArchitectureToNitrite(Architecture architecture) throws ArchitectureNotFoundException {

@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -16,7 +17,6 @@ import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.InterfaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
-import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.*;
 
 @Path("/calm/namespaces")
 public class InterfaceResource {
@@ -45,7 +41,7 @@ public class InterfaceResource {
     @GET
     @Path("{namespace}/interfaces")
     @Produces(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getInterfacesForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
@@ -61,7 +57,7 @@ public class InterfaceResource {
     @Path("{namespace}/interfaces")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createInterfaceForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @Valid @NotNull(message = "Request must not be null") CreateInterfaceRequest interfaceRequest
@@ -81,7 +77,7 @@ public class InterfaceResource {
     @GET
     @Path("{namespace}/interfaces/{interfaceId}/versions")
     @Produces(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getInterfaceVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId
@@ -100,7 +96,7 @@ public class InterfaceResource {
     @GET
     @Path("{namespace}/interfaces/{interfaceId}/versions/{version}")
     @Produces(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getInterfaceForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId,
@@ -124,7 +120,7 @@ public class InterfaceResource {
     @Path("{namespace}/interfaces/{interfaceId}/versions/{version}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createInterfaceForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId,

@@ -57,7 +57,6 @@ public class TestNitriteUserAccessStoreShould {
                 .setNamespace("finos")
                 .setUsername("testuser")
                 .setPermission(UserAccess.Permission.read)
-                .setResourceType(UserAccess.ResourceType.patterns)
                 .build();
         userAccess.setCreationDateTime(LocalDateTime.now());
         userAccess.setUpdateDateTime(LocalDateTime.now());
@@ -83,7 +82,6 @@ public class TestNitriteUserAccessStoreShould {
                 .setNamespace("nonexistent")
                 .setUsername("testuser")
                 .setPermission(UserAccess.Permission.read)
-                .setResourceType(UserAccess.ResourceType.patterns)
                 .build();
 
         when(mockNamespaceStore.namespaceExists("nonexistent")).thenReturn(false);
@@ -101,8 +99,8 @@ public class TestNitriteUserAccessStoreShould {
         
         when(mockDoc.get("username", String.class)).thenReturn("testuser");
         when(mockDoc.get("namespace", String.class)).thenReturn("finos");
+        when(mockDoc.get("domain", String.class)).thenReturn(null);
         when(mockDoc.get("permission", String.class)).thenReturn("read");
-        when(mockDoc.get("resourceType", String.class)).thenReturn("patterns");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(1);
 
         // Act
@@ -134,8 +132,8 @@ public class TestNitriteUserAccessStoreShould {
         
         when(mockDoc.get("username", String.class)).thenReturn("testuser");
         when(mockDoc.get("namespace", String.class)).thenReturn("finos");
+        when(mockDoc.get("domain", String.class)).thenReturn(null);
         when(mockDoc.get("permission", String.class)).thenReturn("read");
-        when(mockDoc.get("resourceType", String.class)).thenReturn("patterns");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(1);
 
         // Act
@@ -165,8 +163,8 @@ public class TestNitriteUserAccessStoreShould {
         
         when(mockDoc.get("username", String.class)).thenReturn("testuser");
         when(mockDoc.get("namespace", String.class)).thenReturn("finos");
+        when(mockDoc.get("domain", String.class)).thenReturn(null);
         when(mockDoc.get("permission", String.class)).thenReturn("read");
-        when(mockDoc.get("resourceType", String.class)).thenReturn("patterns");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(1);
 
         // Act
@@ -187,5 +185,79 @@ public class TestNitriteUserAccessStoreShould {
 
         // Act & Assert
         assertThrows(UserAccessNotFoundException.class, () -> userAccessStore.getUserAccessForNamespaceAndId("finos", 1));
+    }
+
+    @Test
+    public void testCreateUserAccessForDomain() {
+        UserAccess userAccess = new UserAccess.UserAccessBuilder()
+                .setDomain("payments")
+                .setUsername("testuser")
+                .setPermission(UserAccess.Permission.write)
+                .build();
+        userAccess.setCreationDateTime(java.time.LocalDateTime.now());
+        userAccess.setUpdateDateTime(java.time.LocalDateTime.now());
+
+        when(mockCounterStore.getNextUserAccessSequenceValue()).thenReturn(2);
+
+        UserAccess result = userAccessStore.createUserAccessForDomain(userAccess);
+
+        assertThat(result, is(notNullValue()));
+        assertThat(result.getUserAccessId(), is(2));
+        assertThat(result.getDomain(), is("payments"));
+        assertThat(result.getUsername(), is("testuser"));
+        verify(mockCollection).insert(any(Document.class));
+    }
+
+    @Test
+    public void testGetUserAccessForDomain() throws UserAccessNotFoundException {
+        Document mockDoc = mock(Document.class);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.iterator()).thenReturn(Collections.singletonList(mockDoc).iterator());
+
+        when(mockDoc.get("username", String.class)).thenReturn("testuser");
+        when(mockDoc.get("namespace", String.class)).thenReturn(null);
+        when(mockDoc.get("domain", String.class)).thenReturn("payments");
+        when(mockDoc.get("permission", String.class)).thenReturn("write");
+        when(mockDoc.get("userAccessId", Integer.class)).thenReturn(2);
+
+        List<UserAccess> result = userAccessStore.getUserAccessForDomain("payments");
+
+        assertThat(result, hasSize(1));
+        assertThat(result.getFirst().getDomain(), is("payments"));
+    }
+
+    @Test
+    public void testGetUserAccessForDomain_ThrowsExceptionWhenNotFound() {
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.iterator()).thenReturn(Collections.emptyIterator());
+
+        assertThrows(UserAccessNotFoundException.class, () -> userAccessStore.getUserAccessForDomain("payments"));
+    }
+
+    @Test
+    public void testGetUserAccessForDomainAndId() throws UserAccessNotFoundException {
+        Document mockDoc = mock(Document.class);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.firstOrNull()).thenReturn(mockDoc);
+
+        when(mockDoc.get("username", String.class)).thenReturn("testuser");
+        when(mockDoc.get("namespace", String.class)).thenReturn(null);
+        when(mockDoc.get("domain", String.class)).thenReturn("payments");
+        when(mockDoc.get("permission", String.class)).thenReturn("write");
+        when(mockDoc.get("userAccessId", Integer.class)).thenReturn(2);
+
+        UserAccess result = userAccessStore.getUserAccessForDomainAndId("payments", 2);
+
+        assertThat(result, is(notNullValue()));
+        assertThat(result.getDomain(), is("payments"));
+        assertThat(result.getUserAccessId(), is(2));
+    }
+
+    @Test
+    public void testGetUserAccessForDomainAndId_ThrowsExceptionWhenNotFound() {
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.firstOrNull()).thenReturn(null);
+
+        assertThrows(UserAccessNotFoundException.class, () -> userAccessStore.getUserAccessForDomainAndId("payments", 2));
     }
 }

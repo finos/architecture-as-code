@@ -4,6 +4,7 @@ import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.finos.calm.mcp.tools.ArchitectureTools;
 import org.finos.calm.mcp.tools.ControlTools;
@@ -34,6 +35,7 @@ import static org.hamcrest.Matchers.not;
 @QuarkusTest
 @TestProfile(NitriteIntegrationTestProfile.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestSecurity(authorizationEnabled = false)
 public class NitriteMcpIntegration {
 
     private static final Logger logger = LoggerFactory.getLogger(NitriteMcpIntegration.class);

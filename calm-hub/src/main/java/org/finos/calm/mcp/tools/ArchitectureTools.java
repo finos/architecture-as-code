@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -12,6 +13,7 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.ArchitectureStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,7 @@ public class ArchitectureTools {
     ArchitectureStore architectureStore;
 
     @Tool(description = "List all architectures in a CalmHub namespace. Returns architecture IDs, names, and descriptions.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listArchitectures(
             @ToolArg(description = "The namespace to list architectures from (e.g. 'workshop', 'finos')") String namespace) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
@@ -61,6 +64,7 @@ public class ArchitectureTools {
     }
 
     @Tool(description = "List available versions of an architecture in a CalmHub namespace.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listArchitectureVersions(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
             @ToolArg(description = "The architecture ID (positive integer)") int architectureId) {
@@ -87,6 +91,7 @@ public class ArchitectureTools {
     }
 
     @Tool(description = "Get the full JSON content of a specific architecture version. Use this to analyse architecture nodes, relationships, and controls.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getArchitecture(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
             @ToolArg(description = "The architecture ID (positive integer)") int architectureId,
@@ -118,6 +123,7 @@ public class ArchitectureTools {
     }
 
     @Tool(description = "Publish a new version of an existing architecture. Use this to add a new semantic version (e.g. '1.1.0') against an existing architecture ID without allocating a new identity.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createArchitectureVersion(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
             @ToolArg(description = "The architecture ID to publish a new version for (positive integer)") int architectureId,
@@ -173,6 +179,7 @@ public class ArchitectureTools {
     }
 
     @Tool(description = "Update the content of an existing architecture version. Requires PUT operations to be enabled on this CalmHub instance.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse updateArchitecture(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
             @ToolArg(description = "The architecture ID (positive integer)") int architectureId,
@@ -232,6 +239,7 @@ public class ArchitectureTools {
     }
 
     @Tool(description = "Create a new architecture in a namespace. Returns the allocated architecture ID and version.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createArchitecture(
             @ToolArg(description = "The namespace to create the architecture in") String namespace,
             @ToolArg(description = "The name of the architecture") String name,
