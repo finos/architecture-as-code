@@ -12,6 +12,7 @@ import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.Domain;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
+import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.DomainStore;
 
@@ -67,7 +68,7 @@ public class DomainResource {
     public Response createDomain(@Valid @NotNull(message = "Request must not be null") Domain domain) {
         String domainName = domain.getName();
 
-        if ("GLOBAL".equalsIgnoreCase(domainName)) {
+        if (CalmHubPermissionChecker.GLOBAL_ACCESS.equalsIgnoreCase(domainName)) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("{\"error\":\"'GLOBAL' is a reserved domain name\"}")
                     .build();

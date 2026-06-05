@@ -13,6 +13,7 @@ import org.finos.calm.domain.NamespaceRequest;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
+import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.NamespaceStore;
 
@@ -52,7 +53,7 @@ public class NamespaceResource {
         String name = request.getName().trim();
         String description = request.getDescription().trim();
 
-        if ("GLOBAL".equalsIgnoreCase(name)) {
+        if (CalmHubPermissionChecker.GLOBAL_ACCESS.equalsIgnoreCase(name)) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("{\"error\":\"'GLOBAL' is a reserved namespace name\"}")
                     .build();
