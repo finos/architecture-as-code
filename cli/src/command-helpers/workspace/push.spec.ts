@@ -11,7 +11,7 @@ const makeClient = (overrides: Partial<Pick<CalmHubClient, 'getResource' | 'crea
     createResource: vi.fn(async () => '/calm/namespaces/com.example/doc/versions/1.0.0'),
     updateResource: vi.fn(async () => '/calm/namespaces/com.example/doc/versions/1.1.0'),
     ...overrides,
-} as unknown as CalmHubClient);
+}) as CalmHubClient;
 
 vi.mock('@finos/calm-shared/src/logger', () => ({
     initLogger: () => ({
@@ -48,7 +48,7 @@ describe('pushWorkspaceToHub', () => {
     it('warns and returns early when manifest is empty', async () => {
         await saveManifest(bundlePath, {});
         const client = makeClient();
-        await pushWorkspaceToHub(bundlePath, client as never);
+        await pushWorkspaceToHub(bundlePath, client);
         expect(client.getResource).not.toHaveBeenCalled();
         expect(client.createResource).not.toHaveBeenCalled();
     });
@@ -59,7 +59,7 @@ describe('pushWorkspaceToHub', () => {
             'doc-a': { path: 'files/doc-a.json', type: 'architecture' }
         });
         const client = makeClient();
-        await pushWorkspaceToHub(bundlePath, client as never);
+        await pushWorkspaceToHub(bundlePath, client);
         expect(client.getResource).not.toHaveBeenCalled();
     });
 
@@ -68,7 +68,7 @@ describe('pushWorkspaceToHub', () => {
             'missing': { path: 'files/missing.json', type: 'architecture', namespace: 'com.example' }
         });
         const client = makeClient();
-        await pushWorkspaceToHub(bundlePath, client as never);
+        await pushWorkspaceToHub(bundlePath, client);
         expect(client.getResource).not.toHaveBeenCalled();
     });
 
@@ -78,7 +78,7 @@ describe('pushWorkspaceToHub', () => {
             'bad': { path: 'files/bad.json', type: 'architecture', namespace: 'com.example' }
         });
         const client = makeClient();
-        await pushWorkspaceToHub(bundlePath, client as never);
+        await pushWorkspaceToHub(bundlePath, client);
         expect(client.getResource).not.toHaveBeenCalled();
     });
 
@@ -93,7 +93,7 @@ describe('pushWorkspaceToHub', () => {
             createResource: vi.fn().mockResolvedValue(locationUrl),
         });
 
-        await pushWorkspaceToHub(bundlePath, client as never);
+        await pushWorkspaceToHub(bundlePath, client);
 
         expect(client.createResource).toHaveBeenCalledWith(
             'com.example', 'doc-a', 'architecture', docA
@@ -113,7 +113,7 @@ describe('pushWorkspaceToHub', () => {
             getResource: vi.fn().mockResolvedValue(docA),
         });
 
-        await pushWorkspaceToHub(bundlePath, client as never);
+        await pushWorkspaceToHub(bundlePath, client);
 
         expect(client.updateResource).not.toHaveBeenCalled();
         expect(client.createResource).not.toHaveBeenCalled();
@@ -131,7 +131,7 @@ describe('pushWorkspaceToHub', () => {
             updateResource: vi.fn().mockResolvedValue(locationUrl),
         });
 
-        await pushWorkspaceToHub(bundlePath, client as never);
+        await pushWorkspaceToHub(bundlePath, client);
 
         expect(client.updateResource).toHaveBeenCalledWith('com.example', 'doc-a', localDoc);
         expect(client.createResource).not.toHaveBeenCalled();
@@ -149,7 +149,7 @@ describe('pushWorkspaceToHub', () => {
             getResource: vi.fn().mockResolvedValue(docA),
         });
 
-        await pushWorkspaceToHub(bundlePath, client as never);
+        await pushWorkspaceToHub(bundlePath, client);
 
         expect(client.updateResource).not.toHaveBeenCalled();
     });
@@ -168,7 +168,7 @@ describe('pushWorkspaceToHub', () => {
                 .mockResolvedValueOnce('/calm/namespaces/com.example/doc-b/versions/1.0.0'),
         });
 
-        await expect(pushWorkspaceToHub(bundlePath, client as never)).resolves.not.toThrow();
+        await expect(pushWorkspaceToHub(bundlePath, client)).resolves.not.toThrow();
         expect(client.createResource).toHaveBeenCalledTimes(2);
     });
 
@@ -188,7 +188,7 @@ describe('pushWorkspaceToHub', () => {
                 .mockResolvedValueOnce('/calm/namespaces/com.example/doc-b/versions/1.1.0'),
         });
 
-        await expect(pushWorkspaceToHub(bundlePath, client as never)).resolves.not.toThrow();
+        await expect(pushWorkspaceToHub(bundlePath, client)).resolves.not.toThrow();
         expect(client.updateResource).toHaveBeenCalledTimes(2);
     });
 
@@ -205,7 +205,7 @@ describe('pushWorkspaceToHub', () => {
                 .mockRejectedValueOnce(new HubClientError(404, 'Not Found', 'GET ...')),
         });
 
-        await expect(pushWorkspaceToHub(bundlePath, client as never)).resolves.not.toThrow();
+        await expect(pushWorkspaceToHub(bundlePath, client)).resolves.not.toThrow();
         expect(client.createResource).toHaveBeenCalledTimes(1);
         expect(client.createResource).toHaveBeenCalledWith(
             'com.example', 'doc-b', 'architecture', docB
