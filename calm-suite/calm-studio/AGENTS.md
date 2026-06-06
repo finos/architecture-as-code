@@ -39,7 +39,7 @@ All output must conform to CALM 1.2. These are non-negotiable:
 { "unique-id": "...", "relationship-type": { "options": [ ... ] } }
 ```
 
-The legacy flat shape (`'relationship-type': 'connects'` + sibling `source`/`destination` strings) is **not valid CALM 1.2** and was removed in #2550. Use the variant accessors `getRelationshipVariant`, `getConnectsEndpoints`, `getContainerAndNodes`, `getActorAndNodes`, `getReferencedNodeIds` from `@calmstudio/calm-core` to traverse relationships generically.
+The flat shape (`'relationship-type': 'connects'` + sibling `source`/`destination` strings) was a **local CalmStudio divergence** — it has **never** been valid in any published CALM release. The nested `relationship-type` object above is canonical across CALM 1.0/1.1/1.2 (identical in `calm/release/1.1/meta/core.json` and `calm/release/1.2/meta/core.json`); CalmStudio was brought onto it in #2550/#2553. Use the variant accessors `getRelationshipVariant`, `getConnectsEndpoints`, `getContainerAndNodes`, `getActorAndNodes`, `getReferencedNodeIds` from `@calmstudio/calm-core` to traverse relationships generically.
 
 **Protocols:** `HTTP`, `HTTPS`, `FTP`, `SFTP`, `JDBC`, `WebSocket`, `SocketIO`, `LDAP`, `AMQP`, `TLS`, `mTLS`, `TCP`
 
