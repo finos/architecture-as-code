@@ -4,9 +4,10 @@ import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.container.PreMatching;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,7 @@ import java.util.Set;
  */
 @ApplicationScoped
 @Provider
+@PreMatching
 @Priority(0)
 public class ReadOnlyRequestFilter implements ContainerRequestFilter {
 
@@ -33,12 +35,18 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
     private static final String ALLOW_HEADER = "Allow";
     private static final String ALLOWED_METHODS = "GET, HEAD, OPTIONS";
 
-    @ConfigProperty(name = "calm.readonly", defaultValue = "false")
-    boolean readOnly;
+    // Package-private to allow direct assignment in unit tests.
+    // When null (production), the filter resolves the value from config at request time,
+    // which guarantees the runtime env var (CALM_READONLY) is visible in native mode.
+    Boolean readOnly = null;
 
     @Override
     public void filter(ContainerRequestContext requestContext) {
-        if (!readOnly) {
+        boolean effectiveReadOnly = readOnly != null ? readOnly
+                : ConfigProvider.getConfig()
+                        .getOptionalValue("calm.readonly", Boolean.class)
+                        .orElse(false);
+        if (!effectiveReadOnly) {
             return;
         }
 

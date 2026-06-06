@@ -1,0 +1,46 @@
+####
+# Native (GraalVM) calm-hub image — MongoDB-backed.
+#
+# Runs the standard MongoDB-backed calm-hub as a GraalVM Mandrel native binary
+# (no JVM at runtime).  This is the native equivalent of Dockerfile.jvm and uses
+# the default database mode (calm.database.mode=mongo); it connects to MongoDB at
+# runtime and is NOT read-only (cf. Dockerfile.readonly-native, which bakes in a
+# read-only NitriteDB).
+#
+# The native binary is architecture-specific: it must be produced on, and run on,
+# the same architecture (linux/amd64 in CI).
+#
+# Before building, compile the native binary (handled by build-native-image.sh):
+#
+#   ./mvnw package -Dnative -Dquarkus.native.container-build=true \
+#       -DskipITs -DskipTests -Ddependency-check.skip=true
+#   → target/*-runner is populated (Linux native binary)
+#
+# Build (from calm-hub/ directory):
+#
+#   docker build -f src/main/docker/Dockerfile.native -t calm-hub:native .
+#
+# Run (connecting to a MongoDB reachable at mongodb://mongodb:27017):
+#
+#   docker run --rm -p 8080:8080 \
+#       -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongodb:27017 \
+#       calm-hub:native
+#
+# Note: native binaries do NOT read JAVA_OPTS.  Pass configuration via Quarkus
+# environment variables (e.g. QUARKUS_MONGODB_CONNECTION_STRING) or -D flags.
+####
+
+# UBI9 minimal: no JDK, includes the glibc/libz/libstdc++ runtime libs that the
+# Mandrel jdk-25 native binary requires.  GLIBC 2.34 on UBI9 satisfies the
+# requirement (UBI8 only provides GLIBC 2.28).
+FROM registry.access.redhat.com/ubi9/ubi-minimal
+
+# Native runner pre-built by the Maven native build (build-native-image.sh).
+# The glob *-runner matches calm-hub-<version>-runner (no extension on Linux).
+COPY --chown=1001:root target/*-runner /deployments/calm-hub-runner
+RUN chmod 0755 /deployments/calm-hub-runner
+
+EXPOSE 8080
+USER 1001
+
+ENTRYPOINT ["/deployments/calm-hub-runner", "-Dquarkus.http.host=0.0.0.0"]
