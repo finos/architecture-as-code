@@ -77,7 +77,45 @@ jobs:
                       type=ref,event=branch
                       type=ref,event=tag
 
-            # Step 8: Build and push Docker image
+            # Step 8: Smoke test — build a local linux/amd64 image and verify the API
+            # contract before pushing to the registry.  A transient MongoDB container
+            # is started on a private Docker network so the app can connect.  The test
+            # asserts: GET /calm/namespaces -> 200 and POST /calm/namespaces -> 201
+            # (writes enabled; this is the writable MongoDB-backed JVM image).
+            # The cache-to here primes the GHA layer cache so the multi-arch push
+            # below is a cache hit for the amd64 layer.
+            - name: Build image for smoke test
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: calm-hub
+                  file: calm-hub/src/main/docker/Dockerfile.jvm
+                  platforms: linux/amd64
+                  load: true
+                  tags: calm-hub:smoke
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
+
+            - name: Smoke test
+              run: |
+                  docker network create smoke-net
+                  docker run -d --name mongo --network smoke-net mongo:8
+                  docker run -d --name calmhub --network smoke-net \
+                    -p 8080:8080 \
+                    -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongo:27017 \
+                    calm-hub:smoke
+                  bash calm-hub/smoke-test.sh http://localhost:8080 readwrite
+
+            - name: Dump container logs on failure
+              if: failure()
+              run: docker logs calmhub 2>/dev/null || true
+
+            - name: Cleanup smoke test containers
+              if: always()
+              run: |
+                  docker rm -f calmhub mongo 2>/dev/null || true
+                  docker network rm smoke-net 2>/dev/null || true
+
+            # Step 9: Build and push Docker image
             - name: Build and push
               uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
               with:
