@@ -73,20 +73,19 @@ RUN DATA_DIR=/data \
 
 
 # ── Stage 2: Final read-only native image ─────────────────────────────────────
-# UBI9 minimal: no JDK, includes the glibc/libz/libstdc++ runtime libs that the
-# Mandrel jdk-25 native binary requires.  GLIBC 2.34 on UBI9 satisfies the
-# requirement (UBI8 only provides GLIBC 2.28).
-FROM registry.access.redhat.com/ubi9/ubi-minimal AS final
+# distroless/cc: no shell or package manager; ships only glibc, libstdc++, and
+# libz — exactly the runtime libs a Mandrel native binary requires (~20 MB vs
+# ~90 MB for UBI9 minimal).  No RUN commands are possible in this layer, so
+# permissions are set via COPY --chmod (requires BuildKit).
+FROM gcr.io/distroless/cc-debian12 AS final
 
 # Native runner
-COPY --chown=1001:root target/*-runner /deployments/calm-hub-runner
-RUN chmod 0755 /deployments/calm-hub-runner
+COPY --chmod=0755 --chown=1001:root target/*-runner /deployments/calm-hub-runner
 
 # Bake the seeded database (produced by the JVM seed stage) as a read-only file
-# owned by the runtime user.
-RUN mkdir -p /deployments/data
-COPY --chown=1001:root --from=seed /data/calmSchemas.db /deployments/data/calmSchemas.db
-RUN chmod 0444 /deployments/data/calmSchemas.db
+# owned by the runtime user.  COPY auto-creates parent directories, so no
+# mkdir is needed.
+COPY --chmod=0444 --chown=1001:root --from=seed /data/calmSchemas.db /deployments/data/calmSchemas.db
 
 EXPOSE 8080
 USER 1001
