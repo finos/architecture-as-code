@@ -52,28 +52,24 @@ for arg in "$@"; do
     esac
 done
 
-# ── Step 1: Maven builds (JVM fast-jar + native binary) ───────────────────────
+# ── Step 1: Maven build (JVM fast-jar + native binary in one invocation) ──────
 # Two artefacts are required by Dockerfile.readonly-native:
 #   • target/quarkus-app/  — JVM fast-jar, used by the seed stage (seeding runs on
 #                            the JVM because the native binary cannot WRITE NitriteDB).
 #   • target/*-runner      — native binary, used by the final read-only stage.
-# The native profile disables the jar (quarkus.package.jar.enabled=false), so the
-# fast-jar must be produced by a separate, non-native build.  The native build runs
-# WITHOUT `clean` so the quarkus-app from step 1a is preserved.
+# The 'native' profile in pom.xml sets quarkus.package.jar.enabled=false by default,
+# which suppresses the fast-jar.  Overriding it back to true on the command line lets
+# a single Maven invocation produce BOTH artefacts, halving CI build time vs running
+# Maven twice.
 if [[ "${RUN_MAVEN}" == true ]]; then
-    echo "[build] Building calm-hub JVM fast-jar (target/quarkus-app, for the seed stage)..."
-    cd "${SCRIPT_DIR}"
-    "${REPO_ROOT}/mvnw" package \
-        -DskipITs \
-        -DskipTests \
-        -Ddependency-check.skip=true
-
-    echo "[build] Building calm-hub native binary with Maven..."
+    echo "[build] Building calm-hub native binary + JVM fast-jar with Maven..."
     echo "[build] Quarkus will pull and run the Mandrel builder container automatically."
     echo "[build] This step may take 5–15 minutes and requires ≥8 GB Docker memory."
+    cd "${SCRIPT_DIR}"
     "${REPO_ROOT}/mvnw" package \
         -Dnative \
         -Dquarkus.native.container-build=true \
+        -Dquarkus.package.jar.enabled=true \
         -DskipITs \
         -DskipTests \
         -Ddependency-check.skip=true
