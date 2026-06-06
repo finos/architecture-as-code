@@ -30,23 +30,38 @@ architecture-as-code/
 ├── calm/                      # CALM specification (JSON schemas)
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
+├── calm-hub-ui/               # React frontend for CALM Hub
+├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
 ├── calm-ai/                   # AI agent tools & prompts
+├── calm-suite/                # Sub-monorepos (see below)
+│   ├── calm-studio/           #   SvelteKit visual CALM editor — nested npm-workspace monorepo
+│   └── calm-guard/            #   Next.js continuous-compliance platform (CALMGuard)
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
 ├── advent-of-calm/            # Educational content (24-day challenge)
-├── calm-hub-ui/               # React frontend for CALM Hub
-└── experimental/              # Experimental features
+├── experimental/              # Experimental features
+├── template-bundles/          # Reusable Handlebars template bundles
+├── conferences/               # Conference/workshop material
+├── brand/                     # Logo and brand assets
+└── scripts/                   # Repo maintenance scripts (e.g. lockfile validation)
 ```
+
+### `calm-suite/` — nested workspaces
+
+`calm-suite/` holds two products whose packages are wired directly into the **root** npm workspaces (run all npm commands from the repo root, never from inside these folders):
+
+- **`calm-studio/`** (`calmstudio-workspace`) — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo. Sub-packages and the app are root workspaces via `calm-suite/calm-studio/packages/*` and `calm-suite/calm-studio/apps/*`: `@calmstudio/calm-core`, `@calmstudio/calmscript`, `@calmstudio/extensions`, `@calmstudio/github-action`, `@calmstudio/mcp`, `@calmstudio/diagram` (web-component), `calmstudio` (vscode-extension), and `@calmstudio/studio` (app).
+- **`calm-guard/`** (`calmguard`) — a Next.js 14 (App Router) continuous-compliance platform, plus its Docusaurus docs (`calmguard-docs`). Both are root workspaces.
 
 ## Technology Stack
 
 **TypeScript/Node.js** (npm workspaces):
-- CLI, models, widgets, shared, VSCode plugin, Hub UI
+- CLI, models, widgets, shared, VSCode plugin, Hub UI, calm-server, calm-ai, and the `calm-suite/` products (CalmStudio's 8 packages/app + CALMGuard)
 - Build: tsup (esbuild), vitest for testing
-- Package manager: npm workspaces
+- Package manager: npm workspaces (single root lockfile; see [Lockfile Regeneration](#lockfile-regeneration))
 
 **Java/Maven** (Maven reactor build):
 - Root pom.xml defines multi-module reactor
@@ -57,7 +72,7 @@ architecture-as-code/
 - Maven reactor allows building all modules from root: `./mvnw clean install`
 
 **Documentation**:
-- Docusaurus for main docs
+- Docusaurus for main docs (and for CalmStudio's `docs-site` / CALMGuard's `calmguard-docs`)
 - Astro for advent-of-calm website
 
 ## Node Version Requirements
@@ -78,7 +93,7 @@ brew install node@22
 export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
 
 # If using nvm:
-nvm use   # reads .nvmrc → 22.14.0
+nvm use   # reads .nvmrc → 22.22.2
 ```
 
 ### Known Node 25 Bug — localStorage
@@ -87,9 +102,9 @@ Node 25 introduces a built-in `localStorage` global that is an **incomplete stub
 
 ### Configuration Details
 
-- **`.nvmrc`** pins `22.14.0` — run `nvm use` to switch automatically
+- **`.nvmrc`** pins `22.22.2` — run `nvm use` to switch automatically
 - **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on Node versions outside the `engines` range (e.g. Node 18, 20, or 23)
-- **`@types/node`** is overridden to `^22.0.0` in root `package.json` to prevent transitive dependencies from pulling in a different major version
+- **`@types/node`** is overridden to `^22.19.15` in root `package.json` to prevent transitive dependencies from pulling in a different major version
 - **Renovate** is configured with `allowedVersions: "<23.0.0"` for `@types/node`
 
 ### Lockfile Regeneration
@@ -120,8 +135,12 @@ For detailed guidance on specific packages, see:
 - **[cli/AGENTS.md](cli/AGENTS.md)** - CLI commands, build pipeline, Commander.js patterns
 - **[calm-hub/AGENTS.md](calm-hub/AGENTS.md)** - Java/Quarkus backend, storage modes, security
 - **[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md)** - React frontend, service patterns, component conventions
+- **[calm-server/AGENTS.md](calm-server/AGENTS.md)** - TypeScript CALM server
 - **[calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md)** - VSCode extension, MVVM architecture
 - **[calm-widgets/AGENTS.md](calm-widgets/AGENTS.md)** - Widget system, Handlebars templates, common pitfalls
+- **[shared/AGENTS.md](shared/AGENTS.md)** - Shared TypeScript utilities consumed across packages
+- **[calm-suite/calm-studio/AGENTS.md](calm-suite/calm-studio/AGENTS.md)** - CalmStudio visual editor, CALM 1.2 rules, nested workspaces
+- **[calm-suite/calm-guard/AGENTS.md](calm-suite/calm-guard/AGENTS.md)** - CALMGuard compliance platform, agents/skills
 - **[advent-of-calm/AGENTS.md](advent-of-calm/AGENTS.md)** - Educational content, day format, testing
 
 ### When to Use Package-Specific Guides
