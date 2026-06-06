@@ -56,7 +56,7 @@ const debugDisabled = false;
 
 describe('validation support functions', () => {
     describe('exitBasedOffOfValidationOutcome', () => {
-        let mockExit;
+        let mockExit: ReturnType<typeof vi.spyOn>;
 
         beforeEach(() => {
             mockExit = vi.spyOn(process, 'exit')
@@ -554,6 +554,11 @@ describe('validate pattern only', () => {
                     initialize: vi.fn().mockResolvedValue(undefined), // Mock initialize to resolve immediately
                 };
             });
+    });
+
+    it('throws when no schema directory is provided for pattern validation', async () => {
+        await expect(validate(undefined, { dummy: 'pattern' }, undefined, undefined, debugDisabled))
+            .rejects.toThrow('A schema directory is required for schema validation');
     });
 
     it('has errors when the pattern does not pass all the spectral validations ', async () => {

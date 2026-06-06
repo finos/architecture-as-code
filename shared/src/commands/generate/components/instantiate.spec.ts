@@ -2,11 +2,13 @@ import {describe, it, expect, vi, beforeEach, Mock} from 'vitest';
 import * as fs from 'fs';
 import { instantiate } from './instantiate'; // replace with actual relative path
 import { SchemaDirectory } from '../../../schema-directory';
+import { DocumentLoader } from '../../../document-loader/document-loader';
 
 interface TestInstantiatedPattern {
-    $schema?: string;
-    nodes?: Array<Record<string, unknown>>;
-    relationships?: Array<Record<string, unknown>>;
+    $schema: string;
+    nodes: Array<Record<string, unknown>>;
+    relationships: Array<Record<string, unknown>>;
+    [key: string]: unknown;
 }
 
 
@@ -161,7 +163,7 @@ describe('instantiate', () => {
     it('instantiates architecture with correct schema', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result: TestInstantiatedPattern = await instantiate(pattern, true,  new SchemaDirectory({} as any));
+        const result = await instantiate(pattern, true,  new SchemaDirectory({} as any)) as TestInstantiatedPattern;
 
         expect(result.$schema).toEqual('test-pattern');
     });
@@ -169,7 +171,7 @@ describe('instantiate', () => {
     it('instantiates nodes with schema-required and const fields', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result: TestInstantiatedPattern = await instantiate(pattern, true,  new SchemaDirectory({} as any));
+        const result = await instantiate(pattern, true,  new SchemaDirectory({} as any)) as TestInstantiatedPattern;
 
         expect(result.nodes[0]).toEqual({
             'unique-id': 'my-node',
@@ -184,7 +186,7 @@ describe('instantiate', () => {
     it('instantiates nested controls with patternProperties and consts', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result: TestInstantiatedPattern = await instantiate(pattern, true,  new SchemaDirectory({} as any));
+        const result = await instantiate(pattern, true,  new SchemaDirectory({} as any)) as TestInstantiatedPattern;
 
         expect(result.relationships[0]).toEqual({
             'unique-id': 'rel-1',
@@ -205,10 +207,10 @@ describe('instantiate', () => {
     it('handles missing required schema fields by generating placeholders', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result: TestInstantiatedPattern = await instantiate(pattern, true, new SchemaDirectory({} as any));
+        const result = await instantiate(pattern, true, new SchemaDirectory({} as any)) as TestInstantiatedPattern;
 
         expect(result.nodes[0]['node-type']).toBe('[[ NODE_TYPE ]]');
-        expect(result.nodes[0]['details']['arch']).toBe('[[ ARCH ]]');
+        expect((result.nodes[0]['details'] as Record<string, unknown>)['arch']).toBe('[[ ARCH ]]');
     });
 
     it('uses const values directly for array items', async () => {
@@ -241,7 +243,7 @@ describe('instantiate', () => {
         (fs.readFileSync as Mock).mockImplementation(function () { return JSON.stringify(patternWithConstArrayItems); });
 
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
-        const result = await instantiate(pattern, true, new SchemaDirectory(null));
+        const result = await instantiate(pattern, true, new SchemaDirectory(null as unknown as DocumentLoader)) as TestInstantiatedPattern;
 
         expect(result['simpleArray']).toEqual([
             'string-value',
@@ -279,7 +281,7 @@ describe('instantiate', () => {
         (fs.readFileSync as Mock).mockImplementation(function () { return JSON.stringify(patternWithTopLevelConst); });
 
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
-        const result = await instantiate(pattern, true, new SchemaDirectory(null));
+        const result = await instantiate(pattern, true, new SchemaDirectory(null as unknown as DocumentLoader)) as TestInstantiatedPattern;
 
         expect(result['simple-const']).toBe('simple-value');
         expect(result['object-const']).toEqual({ nested: 'object-value' });

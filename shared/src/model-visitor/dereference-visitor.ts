@@ -1,6 +1,7 @@
 import {CalmReferenceResolver} from '../resolver/calm-reference-resolver';
 import {Resolvable,ResolvableAndAdaptable} from '@finos/calm-models/model';
 import {CalmModelVisitor} from './calm-model-visitor';
+import {getErrorMessage} from '../error-utils';
 
 export class DereferencingVisitor implements CalmModelVisitor {
     private resolver: CalmReferenceResolver;
@@ -17,7 +18,7 @@ export class DereferencingVisitor implements CalmModelVisitor {
                 try {
                     await obj.dereference(this.resolver.resolve.bind(this.resolver));
                 } catch (err) {
-                    console.warn('Failed to dereference Resolvable:', obj.reference, err.message);
+                    console.warn('Failed to dereference Resolvable:', obj.reference, getErrorMessage(err));
                 }
             }
             if (obj.isResolved) {

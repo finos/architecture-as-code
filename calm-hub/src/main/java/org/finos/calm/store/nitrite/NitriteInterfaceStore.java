@@ -169,6 +169,9 @@ public class NitriteInterfaceStore implements InterfaceStore {
         }
 
         Document versions = interfaceDoc.get(VERSIONS_FIELD, Document.class);
+        if (versions == null) {
+            throw new InterfaceNotFoundException();
+        }
         Set<String> fieldNames = versions.getFields();
         List<String> versionList = new ArrayList<>();
         for (String fieldName : fieldNames) {
@@ -193,10 +196,14 @@ public class NitriteInterfaceStore implements InterfaceStore {
         }
 
         Document versions = interfaceDocument.get(VERSIONS_FIELD, Document.class);
-        String storedVersion = version.replace('.', '-');
-        String storedInterface = versions.get(storedVersion, String.class);
+        if (versions == null) {
+            throw new InterfaceVersionNotFoundException();
+        }
 
-        if (storedInterface == null) {
+        String storedVersion = version.replace('.', '-');
+        Object versionObj = versions.get(storedVersion);
+
+        if (!(versionObj instanceof String)) {
             LOG.warn("Version '{}' not found for interface {} in namespace '{}'",
                     storedVersion, interfaceId, namespace);
             throw new InterfaceVersionNotFoundException();
@@ -205,7 +212,7 @@ public class NitriteInterfaceStore implements InterfaceStore {
         LOG.debug("Retrieved version '{}' for interface {} in namespace '{}'",
                 storedVersion, interfaceId, namespace);
 
-        return storedInterface;
+        return (String) versionObj;
     }
 
     @Override
@@ -233,6 +240,9 @@ public class NitriteInterfaceStore implements InterfaceStore {
             String mongoVersion = version.replace('.', '-');
 
             Document versions = interfaceDoc.get(VERSIONS_FIELD, Document.class);
+            if (versions == null) {
+                throw new InterfaceNotFoundException();
+            }
             if (versions.containsKey(mongoVersion)) {
                 LOG.warn("Version '{}' already exists for interface {} in namespace '{}'",
                         mongoVersion, interfaceId, namespace);

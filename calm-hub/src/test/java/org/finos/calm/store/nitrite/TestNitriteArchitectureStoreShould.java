@@ -5,6 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
@@ -30,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -630,6 +632,57 @@ public class TestNitriteArchitectureStoreShould {
         assertThat(result, is(architecture));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCollection).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void testCreateArchitectureForVersion_whenInvalidJson_throwsJsonParseException() {
+        // Arrange - JSON is validated immediately after the namespace check, before any version/existence lookup
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Architecture architecture = new Architecture.ArchitectureBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(ARCHITECTURE_ID)
+                .setVersion(VERSION)
+                .setArchitecture("{ not json")
+                .build();
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> architectureStore.createArchitectureForVersion(architecture));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void testUpdateArchitectureForVersion_whenInvalidJson_throwsJsonParseException() {
+        // Arrange
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Architecture architecture = new Architecture.ArchitectureBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(ARCHITECTURE_ID)
+                .setVersion(VERSION)
+                .setArchitecture("{ not json")
+                .build();
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> architectureStore.updateArchitectureForVersion(architecture));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void testUpdateArchitectureForVersion_whenNullJson_throwsJsonParseException() {
+        // Arrange - null JSON is rejected by the explicit null guard before any parse/lookup
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Architecture architecture = new Architecture.ArchitectureBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(ARCHITECTURE_ID)
+                .setVersion(VERSION)
+                .setArchitecture(null)
+                .build();
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> architectureStore.updateArchitectureForVersion(architecture));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
     }
 
     @Test

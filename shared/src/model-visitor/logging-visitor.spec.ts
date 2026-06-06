@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { LoggingVisitor } from './logging-visitor';
+import { Logger } from '../logger';
 import { CalmCore } from '@finos/calm-models/model';
 import { CalmCoreSchema } from '@finos/calm-models/types';
 
@@ -84,7 +85,7 @@ describe('LoggingVisitor', () => {
         const json = JSON.stringify(testArch, null, 2);
         const architecture: CalmCoreSchema = JSON.parse(json);
         const core = CalmCore.fromSchema(architecture);
-        const visitor = new LoggingVisitor((logger as Logger));
+        const visitor = new LoggingVisitor((logger as unknown as Logger));
         await visitor.visit(core);
 
         const logLines = logger.info.mock.calls.map(args => args[0]);

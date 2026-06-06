@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
@@ -29,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 public class TestTimelineResourceShould {
 
@@ -269,6 +271,7 @@ public class TestTimelineResourceShould {
                 Arguments.of(new NamespaceNotFoundException(), 404),
                 Arguments.of(new TimelineNotFoundException(), 404),
                 Arguments.of(new TimelineVersionExistsException(), 409),
+                Arguments.of(new JsonParseException(), 400),
                 Arguments.of(null, 201)
         );
     }

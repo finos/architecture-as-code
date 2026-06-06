@@ -4,6 +4,7 @@ import { readdir, readFile } from 'fs/promises';
 import { join, isAbsolute } from 'path';
 import { SchemaDirectory } from '../schema-directory';
 import { existsSync } from 'fs';
+import { getErrorMessage } from '../error-utils';
 
 export class FileSystemDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;
@@ -37,15 +38,15 @@ export class FileSystemDocumentLoader implements DocumentLoader {
                     // loaded schema can't be used due to having no identifier
                     continue;
                 }
-                const schemaId = schemaDef['$id'];
+                const schemaId = (schemaDef as { $id: string })['$id'];
                 schemaDirectory.storeDocument(schemaId, 'schema', schemaDef);
                 this.logger.debug(`Loaded schema with ID ${schemaId} from ${schemaPath}.`);
             }
         } catch (err) {
-            if (err.code === 'ENOENT') {
-                this.logger.error('Specified directory not found while loading documents: ' + directoryPath + ', error: ' + err.message);
+            if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') {
+                this.logger.error('Specified directory not found while loading documents: ' + directoryPath + ', error: ' + getErrorMessage(err));
             } else {
-                this.logger.error(err);
+                this.logger.error(getErrorMessage(err));
             }
             throw err;
         }
@@ -56,17 +57,23 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         const resolvedPath = this.resolvePath(documentId);
         if (resolvedPath && existsSync(resolvedPath)) {
             this.logger.debug(`Resolved relative path: ${documentId} -> ${resolvedPath}`);
-            return this.loadDocument(resolvedPath, type);
+            const doc = await this.loadDocument(resolvedPath, type);
+            if (doc) {
+                return doc;
+            }
         }
 
         // 2. Fallback to checking exact path (existing behavior)
         try {
             if (existsSync(documentId)) {
                 this.logger.info(`${documentId} exists, loading as file...`);
-                return this.loadDocument(documentId, type);
+                const doc = await this.loadDocument(documentId, type);
+                if (doc) {
+                    return doc;
+                }
             }
         } catch (err) {
-            this.logger.error(`Error checking existence of document ID ${documentId}: ${err.message}. This could be because it isn't a file path.`);
+            this.logger.error(`Error checking existence of document ID ${documentId}: ${getErrorMessage(err)}. This could be because it isn't a file path.`);
         }
 
         this.logger.debug(`Document ID ${documentId} does not exist in file system, cannot load.`);
@@ -79,7 +86,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         });
     }
 
-    private async loadDocument(schemaPath: string, type: CalmDocumentType): Promise<object> {
+    private async loadDocument(schemaPath: string, type: CalmDocumentType): Promise<object | undefined> {
         this.logger.debug('Loading ' + schemaPath);
         const str = await readFile(schemaPath, 'utf-8');
         const parsed = JSON.parse(str);
@@ -90,7 +97,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
 
         if (!parsed || !parsed['$id']) {
             this.logger.warn('Warning: bad schema found, no $id property was defined. Path: ' + schemaPath);
-            return;
+            return undefined;
         }
 
         const schemaId = parsed['$id'];

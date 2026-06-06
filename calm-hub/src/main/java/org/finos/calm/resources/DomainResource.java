@@ -1,5 +1,7 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.Authenticated;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -10,8 +12,8 @@ import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.Domain;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
+import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.DomainStore;
 
 import java.net.URI;
@@ -45,7 +47,7 @@ public class DomainResource {
             summary = "Available Domains",
             description = "The available domains in this Calm Hub"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @Authenticated
     public Response getDomains() {
         return Response.ok(new ValueWrapper<>(store.getDomains())).build();
     }
@@ -62,9 +64,15 @@ public class DomainResource {
             summary = "Create Domain",
             description = "Create a new domain in the Calm Hub"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response createDomain(@Valid @NotNull(message = "Request must not be null") Domain domain) {
         String domainName = domain.getName();
+
+        if (CalmHubPermissionChecker.GLOBAL_ACCESS.equalsIgnoreCase(domainName)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\":\"'GLOBAL' is a reserved domain name\"}")
+                    .build();
+        }
 
         try {
             store.createDomain(domainName);

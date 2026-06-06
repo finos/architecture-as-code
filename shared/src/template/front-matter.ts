@@ -122,7 +122,7 @@ export function replaceVariables(content: string, frontMatter: Record<string, un
     return result;
 }
 
-export function injectWidgetOptionsIntoContent(content: string, widgetOptions: WidgetsOptions): string {
+export function injectWidgetOptionsIntoContent(content: string, widgetOptions: WidgetsOptions | undefined): string {
     if (widgetOptions === undefined) {
         return content;
     }

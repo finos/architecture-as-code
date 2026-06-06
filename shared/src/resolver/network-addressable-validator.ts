@@ -1,5 +1,6 @@
 import { CalmReferenceResolver, HttpReferenceResolver } from './calm-reference-resolver.js';
 import { AddressableEntry } from './network-addressable-extractor.js';
+import { getErrorMessage } from '../error-utils.js';
 
 export interface ValidationResult {
     entry: AddressableEntry;
@@ -35,7 +36,7 @@ export class NetworkAddressableValidator {
                     result.isSchemaImplementation = this.isJsonSchemaImplementation(doc);
                 }
             } catch (err) {
-                result.error = err.message;
+                result.error = getErrorMessage(err);
                 result.isSchemaDefinition = false;
                 result.isSchemaImplementation = false;
             }

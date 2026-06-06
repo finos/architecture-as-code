@@ -16,7 +16,10 @@ export default class TemplateDefaultTransformer implements CalmTemplateTransform
 
     }
 
-    registerTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
+    // Matches the CalmTemplateTransformer interface: Handlebars helpers accept and
+    // return arbitrary values, so the loose signature is intentional here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    registerTemplateHelpers(): Record<string, (...args: any[]) => any> {
         // TODO: if this is the default transformer even used by docify then this will clash with widget helpers.
         // Move these out in subsequent PR
 

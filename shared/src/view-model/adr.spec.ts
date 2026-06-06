@@ -12,7 +12,7 @@ import {
     CalmAdrOptionSchema,
     CalmAdrDecisionSchema,
     CalmAdrLinkSchema,
-} from '../types/adr-types';
+} from '@finos/calm-models/types';
 
 describe('CalmAdrMeta', () => {
     it('should create a CalmAdrMeta instance from JSON data', () => {

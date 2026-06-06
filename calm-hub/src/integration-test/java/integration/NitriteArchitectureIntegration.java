@@ -69,4 +69,44 @@ public class NitriteArchitectureIntegration {
                 .statusCode(200)
                 .body(equalTo(ARCHITECTURE));
     }
+
+    @Test
+    @Order(5)
+    void end_to_end_reject_malformed_json_on_versioned_post() {
+        String payload = """
+                {
+                     "name": "name",
+                     "description": "description",
+                     "architectureJson": "{ not json"
+                }
+                """;
+
+        given()
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/architectures/1/versions/9.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("could not be parsed"));
+    }
+
+    @Test
+    @Order(6)
+    void end_to_end_reject_malformed_json_on_versioned_put() {
+        String payload = """
+                {
+                     "name": "name",
+                     "description": "description",
+                     "architectureJson": "{ not json"
+                }
+                """;
+
+        given()
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().put("/calm/namespaces/finos/architectures/1/versions/1.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("could not be parsed"));
+    }
 }

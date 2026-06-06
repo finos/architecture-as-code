@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -7,33 +8,21 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
-import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
-import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
-import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
-import org.finos.calm.domain.exception.ControlNotFoundException;
-import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
-import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
-import org.finos.calm.domain.exception.DomainNotFoundException;
+import org.finos.calm.domain.exception.*;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.ControlStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.bson.json.JsonParseException;
-
 import java.net.URI;
 
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_REGEX;
-import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.*;
 
 /**
  * REST resource for managing controls within domains.
@@ -57,7 +46,7 @@ public class ControlResource {
             summary = "Retrieve controls for a given domain",
             description = "Controls stored in a given domain"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getControlsForDomain(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -78,7 +67,7 @@ public class ControlResource {
             summary = "Create a control requirement for a given domain",
             description = "Creates a new control requirement within the specified domain"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlForDomain(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -100,7 +89,7 @@ public class ControlResource {
             summary = "Retrieve requirement versions for a control",
             description = "Returns the list of versions for a control requirement"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementVersions(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -124,7 +113,7 @@ public class ControlResource {
             summary = "Retrieve requirement at a specific version",
             description = "Returns the requirement JSON for a control at a given version"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementForVersion(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -155,7 +144,7 @@ public class ControlResource {
             summary = "Create a new requirement version for a control",
             description = "Creates a new version of the requirement for an existing control. The request body is an envelope containing the wrapper-level `name`, `description`, and inner `requirementJson` document; only the inner document is persisted as the version contents, and the wrapper-level name/description used by the control listing endpoint are taken directly from the envelope fields."
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createRequirementForVersion(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -190,7 +179,7 @@ public class ControlResource {
             summary = "Retrieve configurations for a control",
             description = "Returns the list of configuration IDs for a given control"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationsForControl(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -215,7 +204,7 @@ public class ControlResource {
             summary = "Create a new configuration for a control",
             description = "Creates a new configuration within the specified control with an initial version 1.0.0"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlConfiguration(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -241,7 +230,7 @@ public class ControlResource {
             summary = "Retrieve versions for a control configuration",
             description = "Returns the list of versions for a specific control configuration"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationVersions(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -269,7 +258,7 @@ public class ControlResource {
             summary = "Retrieve a specific configuration version",
             description = "Returns the configuration JSON at a specific version"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationForVersion(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
@@ -304,7 +293,7 @@ public class ControlResource {
             summary = "Create a new version of a control configuration",
             description = "Creates a new version of the configuration for an existing control configuration. The request body is an envelope containing the inner `configurationJson` document; only the inner document is persisted as the version contents."
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createConfigurationForVersion(
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)

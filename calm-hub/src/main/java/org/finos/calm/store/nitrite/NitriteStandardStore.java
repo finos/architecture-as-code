@@ -172,6 +172,9 @@ public class NitriteStandardStore implements StandardStore {
         }
 
         Document versions = standardDoc.get(VERSIONS_FIELD, Document.class);
+        if (versions == null) {
+            throw new StandardNotFoundException();
+        }
         Set<String> fieldNames = versions.getFields();
         List<String> versionList = new ArrayList<>();
         for (String fieldName : fieldNames) {
@@ -196,10 +199,14 @@ public class NitriteStandardStore implements StandardStore {
         }
 
         Document versions = standardDocument.get(VERSIONS_FIELD, Document.class);
-        String mongoVersion = version.replace('.', '-');
-        String storedStandard = versions.get(mongoVersion, String.class);
+        if (versions == null) {
+            throw new StandardVersionNotFoundException();
+        }
 
-        if (storedStandard == null) {
+        String mongoVersion = version.replace('.', '-');
+        Object versionObj = versions.get(mongoVersion);
+
+        if (!(versionObj instanceof String)) {
             LOG.warn("Version '{}' not found for standard {} in namespace '{}'",
                     mongoVersion, standardId, namespace);
             throw new StandardVersionNotFoundException();
@@ -208,7 +215,7 @@ public class NitriteStandardStore implements StandardStore {
         LOG.debug("Retrieved version '{}' for standard {} in namespace '{}'",
                 mongoVersion, standardId, namespace);
 
-        return storedStandard;
+        return (String) versionObj;
     }
 
     @Override
@@ -236,6 +243,9 @@ public class NitriteStandardStore implements StandardStore {
             String mongoVersion = version.replace('.','-');
 
             Document versions = standardDoc.get(VERSIONS_FIELD, Document.class);
+            if (versions == null) {
+                throw new StandardNotFoundException();
+            }
             if (versions.containsKey(mongoVersion)) {
                 LOG.warn("Version '{}' already exists for standard {} in namespace '{}'",
                         mongoVersion, standardId, namespace);
