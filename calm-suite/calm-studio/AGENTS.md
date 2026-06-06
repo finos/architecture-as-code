@@ -4,10 +4,13 @@ Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, npm wo
 
 ## Structure
 - `packages/calm-core/` — CALM types, validation
-- `packages/extensions/` — Node type packs (core, fluxnova, ai, aws, gcp, azure, k8s)
+- `packages/extensions/` — Node type packs (core, fluxnova, ai, aws, gcp, azure, k8s, messaging, identity, opengris)
 - `packages/calmscript/` — DSL compiler
-- `packages/mcp-server/` — MCP server (21 tools)
-- `apps/studio/src/lib/` — canvas, editor, io, layout, palette, properties, stores, validation, governance, templates
+- `packages/mcp-server/` — MCP server (20 tools)
+- `packages/github-action/` — GitHub Action build target
+- `packages/vscode-extension/` — VSCode extension build target
+- `packages/web-component/` — embeddable web component build target
+- `apps/studio/src/lib/` — canvas, editor, io, layout, palette, properties, stores, validation, governance, templates (also c4, desktop, search, toolbar; list illustrative)
 
 ## Commands
 `npm run dev --workspace=@calmstudio/studio` | `npm run build --workspace=@calmstudio/studio` | `npm run test --workspace=@calmstudio/studio` | `npm run typecheck --workspace=@calmstudio/studio` (from repo root)
