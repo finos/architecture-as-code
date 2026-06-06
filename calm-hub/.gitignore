@@ -118,6 +118,16 @@ fabric.properties
 ### Java ###
 # META-INF
 META-INF/
+# ...but keep hand-authored GraalVM native-image metadata under source control.
+# The broad META-INF/ rule (intended for generated output) otherwise excludes
+# src/main/resources/META-INF/native-image/, which the native build REQUIRES
+# (e.g. --initialize-at-run-time for SnowflakeIdGenerator's SecureRandom). Without
+# it, CI native builds fail with "Random/SplittableRandom in the image heap".
+# The generated META-INF/resources/ (UI + brand assets) stays ignored.
+!src/main/resources/META-INF/
+src/main/resources/META-INF/*
+!src/main/resources/META-INF/native-image/
+!src/main/resources/META-INF/native-image/**
 
 # Compiled class file
 *.class
