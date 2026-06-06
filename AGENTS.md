@@ -54,7 +54,7 @@ architecture-as-code/
 `calm-suite/` holds two products whose packages are wired directly into the **root** npm workspaces (run all npm commands from the repo root, never from inside these folders):
 
 - **`calm-studio/`** (`calmstudio-workspace`) — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo. Sub-packages and the app are root workspaces via `calm-suite/calm-studio/packages/*` and `calm-suite/calm-studio/apps/*`: `@calmstudio/calm-core`, `@calmstudio/calmscript`, `@calmstudio/extensions`, `@calmstudio/github-action`, `@calmstudio/mcp`, `@calmstudio/diagram` (web-component), `calmstudio` (vscode-extension), and `@calmstudio/studio` (app).
-- **`calm-guard/`** (`calmguard`) — a Next.js 14 (App Router) continuous-compliance platform, plus its Docusaurus docs (`calmguard-docs`). Both are root workspaces.
+- **`calm-guard/`** (`calmguard`) — a Next.js (App Router) continuous-compliance platform, plus its Docusaurus docs (`calmguard-docs`). Both are root workspaces.
 
 ## Technology Stack
 
@@ -72,7 +72,7 @@ architecture-as-code/
 - Maven reactor allows building all modules from root: `./mvnw clean install`
 
 **Documentation**:
-- Docusaurus for main docs (and for CalmStudio's `docs-site` / CALMGuard's `calmguard-docs`)
+- Docusaurus for main docs (and for CALMGuard's `calmguard-docs`)
 - Astro for advent-of-calm website
 
 ## Node Version Requirements
