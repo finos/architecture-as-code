@@ -68,8 +68,8 @@ export function relationshipStructureMatches(
 
 /**
  * Generates the diff between two CALM architecture instances.
- * @param archA 
- * @param archB 
+ * @param archA Architecture "before", on which changes are to be made 
+ * @param archB Arhcitecture "after" which is changed with respect to architecture A
  * @returns Object representing diffs across different properties of the CALM schema.
  */
 export function diffArchitectures(
