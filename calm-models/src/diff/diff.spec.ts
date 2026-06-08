@@ -26,6 +26,7 @@ describe('diff', () => {
                 'unique-id': 'payment-service',
                 'node-type': 'service',
                 name: 'Payment Service',
+                description: 'Handles payments',
                 metadata: { version: '1.0', details: { priority: 'high', owner: 'finance' } },
             };
             const node2: CalmNodeSchema = {
@@ -33,6 +34,7 @@ describe('diff', () => {
                 'node-type': 'service',
                 metadata: { details: { owner: 'finance', priority: 'high' }, version: '1.0' },
                 name: 'Payment Service',
+                description: 'Handles payments',
             };
             expect(nodeStructureMatches(node1, node2)).toBe(true);
         });
@@ -42,11 +44,13 @@ describe('diff', () => {
                 'unique-id': 'payment-service',
                 'node-type': 'service',
                 name: 'Payment Service',
+                description: 'Handles payments',
             };
             const node2: CalmNodeSchema = {
                 'unique-id': 'payment-processor',
                 'node-type': 'service',
                 name: 'Different Name',
+                description: 'Handles payments',
             };
             expect(nodeStructureMatches(node1, node2)).toBe(false);
         });
@@ -56,12 +60,14 @@ describe('diff', () => {
                 'unique-id': 'payment-service',
                 'node-type': 'service',
                 name: 'Payment Service',
+                description: 'Handles payments',
                 metadata: { tags: ['api', 'web'] },
             };
             const node2: CalmNodeSchema = {
                 'unique-id': 'payment-processor',
                 'node-type': 'service',
                 name: 'Payment Service',
+                description: 'Handles payments',
                 metadata: { tags: ['web', 'api'] },
             };
             expect(nodeStructureMatches(node1, node2)).toBe(false);
@@ -272,7 +278,7 @@ describe('diff', () => {
         });
 
         it('skips nodes missing unique-id but surfaces them via invalidItems', () => {
-            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.invalidShapeArchitecture);
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.invalidShapeArchitecture as CalmArchitectureSchema);
             expect(
                 result.nodesAdded.length +
                     result.nodesRemoved.length +
@@ -300,12 +306,52 @@ describe('diff', () => {
         });
     });
 
+    describe('diffArchitectures - ADR changes', () => {
+        it('records the unchanged and added ADR when an ADR is added', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrAdditionArchitecture);
+            expect(result.adrDiffItems).toEqual([
+                {
+                    content: testArchitectures.baseArchitecture.adrs[0],
+                    changeType: 'unchanged'
+                },
+                {
+                    content: testArchitectures.adrAdditionArchitecture.adrs[1],
+                    changeType: 'added'
+                }
+            ]);
+        });
+
+        it('records the removed ADR when an ADR is removed', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrRemovalArchitecture);
+            expect(result.adrDiffItems).toEqual([
+                {
+                    content: testArchitectures.baseArchitecture.adrs[0],
+                    changeType: 'removed'
+                }
+            ]);
+        });
+
+        it('records the removed then added ADR when an ADR is modified', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrModificationArchitecture);
+            expect(result.adrDiffItems).toEqual([
+                {
+                    content: testArchitectures.baseArchitecture.adrs[0],
+                    changeType: 'removed'
+                },
+                {
+                    content: testArchitectures.adrModificationArchitecture.adrs[0],
+                    changeType: 'added'
+                }
+            ]);
+        });
+    });
+
     describe('diffArchitectures - comprehensive scenarios', () => {
         const empty = (): CalmArchitectureSchema => ({
             $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
             nodes: [],
             relationships: [],
-        });
+        } as CalmArchitectureSchema);
 
         it('handles empty architectures', () => {
             const result = diffArchitectures(empty(), empty());

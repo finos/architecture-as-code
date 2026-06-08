@@ -50,7 +50,12 @@ export interface UndiffableDiffItems {
     relationships: unknown[];
 }
 
-export interface DiffResult {
+interface AdrDiffItem {
+    content: string;
+    changeType: 'added' | 'removed' | 'unchanged';
+}
+
+export interface NodesAndRelationshipsDiffResult {
     nodesAdded: CalmNodeSchema[];
     nodesRemoved: CalmNodeSchema[];
     nodesModified: NodeChange[];
@@ -66,3 +71,15 @@ export interface DiffResult {
     invalidItems?: InvalidDiffItems;
     undiffableItems?: UndiffableDiffItems;
 }
+
+/**
+ * Represents the result of diffing two lists of ADRs, including which ADRs were added, removed, or unchanged.
+ */
+export interface AdrDiffResult {
+    adrDiffItems: AdrDiffItem[];
+}
+
+/**
+ * Represents the result of diffing two CAM architecture instances: includes nodes, relationships and ADRs. TODO: incorporate controls, flows and metadata.
+ */
+export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult;
