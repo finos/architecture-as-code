@@ -9,6 +9,7 @@ on:
             - main
         paths:
             - 'calm-hub/**'
+            - 'calm-hub-ui/**'
             - '.github/workflows/docker-publish-calm-hub-native.yml'
     # Manual trigger from GitHub UI (allows custom tag)
     workflow_dispatch:

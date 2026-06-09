@@ -4,6 +4,12 @@ title: CALM Hub
 sidebar_position: 4
 ---
 
+import DocCardList from '@theme/DocCardList';
+
+:::tip CALM Hub documentation
+This page covers the **visual interface** of CALM Hub. For the full technical reference — runtimes, read-only mode, CI status, Docker images, developer guide, and MCP/API docs — see the [**CALM Hub section**](/calm-hub/).
+:::
+
 # CALM Hub
 
 **CALM Hub** is the central artifact store for the CALM ecosystem—similar in purpose to Maven Central, but built specifically for publishing, versioning, and distributing CALM architecture models and compliance assets. 

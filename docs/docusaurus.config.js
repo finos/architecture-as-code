@@ -88,6 +88,12 @@ const config = {
                     },
                     {
                         type: 'docSidebar',
+                        sidebarId: 'calmHubSidebar',
+                        label: 'CALM Hub',
+                        position: 'left',
+                    },
+                    {
+                        type: 'docSidebar',
                         sidebarId: 'calmStudioSidebar',
                         label: 'CALM Studio',
                         position: 'left',

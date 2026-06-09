@@ -125,6 +125,13 @@ const sidebars = {
     },
   ],
 
+  // CALM Hub sidebar — features, runtimes, read-only mode, CI/Docker, developer guide, MCP/API
+  calmHubSidebar: [
+    'calm-hub/calm-hub-overview',
+    'calm-hub/calm-hub-developer-guide',
+    'calm-hub/calm-hub-mcp-api',
+  ],
+
   // CALM Studio sidebar — migrated from calm-suite/calm-studio/docs-site/sidebars.ts
   calmStudioSidebar: [
     'calm-studio/intro',
