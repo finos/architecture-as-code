@@ -30,15 +30,15 @@
 # environment variables (e.g. QUARKUS_MONGODB_CONNECTION_STRING) or -D flags.
 ####
 
-# UBI9 minimal: no JDK, includes the glibc/libz/libstdc++ runtime libs that the
-# Mandrel jdk-25 native binary requires.  GLIBC 2.34 on UBI9 satisfies the
-# requirement (UBI8 only provides GLIBC 2.28).
-FROM registry.access.redhat.com/ubi9/ubi-minimal
+# distroless/cc: no shell or package manager; ships only glibc, libstdc++, and
+# libz — exactly the runtime libs a Mandrel native binary requires (~20 MB vs
+# ~90 MB for UBI9 minimal).  No RUN commands are possible in this layer, so
+# permissions are set via COPY --chmod (requires BuildKit).
+FROM gcr.io/distroless/cc-debian12
 
 # Native runner pre-built by the Maven native build (build-native-image.sh).
 # The glob *-runner matches calm-hub-<version>-runner (no extension on Linux).
-COPY --chown=1001:root target/*-runner /deployments/calm-hub-runner
-RUN chmod 0755 /deployments/calm-hub-runner
+COPY --chmod=0755 --chown=1001:root target/*-runner /deployments/calm-hub-runner
 
 EXPOSE 8080
 USER 1001
