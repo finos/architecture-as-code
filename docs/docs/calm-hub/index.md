@@ -168,6 +168,6 @@ cd calm-hub && ../mvnw quarkus:dev
 
 ## Further Reading
 
-- [UI Walkthrough](../working-with-calm/calm-hub.md) — visual interface guide (namespace explorer, diagram canvas, timeline, compare mode)
-- [Developer Guide](./developer-guide.md) — test pyramid, storage extension points, running CALM Hub from any data source
-- [MCP & API Reference](./mcp-and-api.md) — Model Context Protocol tools, OpenAPI spec, Swagger UI
+- [UI Walkthrough](../working-with-calm/calm-hub.md) - visual interface guide (namespace explorer, diagram canvas, timeline, compare mode)
+- [Developer Guide](./developer-guide.md) - test pyramid, storage extension points, running CALM Hub from any data source
+- [MCP & API Reference](./mcp-and-api.md) - Model Context Protocol tools, OpenAPI spec, Swagger UI

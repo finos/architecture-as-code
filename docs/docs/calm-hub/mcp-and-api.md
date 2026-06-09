@@ -9,8 +9,8 @@ sidebar_position: 2
 
 CALM Hub exposes two API surfaces:
 
-1. **REST API** — the primary interface, fully documented via OpenAPI/Swagger UI.
-2. **MCP server** — an experimental [Model Context Protocol](https://modelcontextprotocol.io) endpoint for AI-agent integrations.
+1. **REST API** - the primary interface, fully documented via OpenAPI/Swagger UI.
+2. **MCP server** - an experimental [Model Context Protocol](https://modelcontextprotocol.io) endpoint for AI-agent integrations.
 
 ---
 
@@ -159,6 +159,6 @@ Example `mcp.json` entry for Claude Desktop or a compatible client:
 
 ## Further Reading
 
-- [Overview & runtimes](./index.md) — feature summary, image variants, read-only mode
-- [Developer Guide](./developer-guide.md) — test pyramid, storage extension points
-- [UI Walkthrough](../working-with-calm/calm-hub.md) — visual interface guide
+- [Overview & runtimes](./index.md) - feature summary, image variants, read-only mode
+- [Developer Guide](./developer-guide.md) - test pyramid, storage extension points
+- [UI Walkthrough](../working-with-calm/calm-hub.md) - visual interface guide

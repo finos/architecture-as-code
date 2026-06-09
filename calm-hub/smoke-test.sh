@@ -7,14 +7,22 @@
 #   TIMEOUT   - seconds to wait for readiness (default: 120)
 #
 # Readonly mode assertions:
-#   GET    /calm/namespaces        -> 200  (reads work)
-#   POST   /calm/namespaces        -> 405  (writes blocked by ReadOnlyRequestFilter)
-#   PUT    /calm/namespaces/smoke  -> 405
-#   DELETE /calm/namespaces/smoke  -> 405
+#   GET    /calm/namespaces                         -> 200  (reads work)
+#   GET    /calm/namespaces/finos/architectures      -> 200  (seeded namespace)
+#   GET    /calm/namespaces/finos/patterns           -> 200
+#   GET    /calm/namespaces/traderx/architectures    -> 200
+#   POST   /calm/namespaces                         -> 405  (blocked by ReadOnlyRequestFilter)
+#   PUT    /calm/namespaces/smoke                   -> 405
+#   DELETE /calm/namespaces/smoke                   -> 405
 #
 # Readwrite mode assertions:
-#   GET    /calm/namespaces        -> 200  (reads work)
-#   POST   /calm/namespaces        -> 201  (writes allowed; namespace created)
+#   GET    /calm/namespaces                                        -> 200
+#   POST   /calm/namespaces                                        -> 201  (create namespace)
+#   GET    /calm/namespaces                                        -> 200
+#   POST   /calm/namespaces/smoke-test/architectures               -> 201  (create architecture)
+#   GET    /calm/namespaces/smoke-test/architectures               -> 200
+#   GET    /calm/namespaces/smoke-test/architectures/1/versions              -> 200
+#   GET    /calm/namespaces/smoke-test/architectures/1/versions/1.0.0        -> 200
 #
 # Readiness polling uses /q/swagger-ui rather than /q/health/ready because the
 # MongoDB health check is disabled in standalone profile, causing /q/health/ready
@@ -61,14 +69,28 @@ assert() {
 # ── Assertions ────────────────────────────────────────────────────────────────
 echo "[smoke] Running assertions (mode: ${MODE})..."
 
-assert GET /calm/namespaces 200
-
 if [[ "${MODE}" == "readonly" ]]; then
+    # Read access to pre-seeded namespaces
+    assert GET /calm/namespaces 200
+    assert GET /calm/namespaces/finos/architectures 200
+    assert GET /calm/namespaces/finos/patterns 200
+    assert GET /calm/namespaces/traderx/architectures 200
+    # All mutating methods must be blocked
     assert POST   /calm/namespaces       405 -H 'Content-Type: application/json' -d '{"name":"smoke-test","description":"smoke test namespace"}'
     assert PUT    /calm/namespaces/smoke  405
     assert DELETE /calm/namespaces/smoke  405
 else
+    # Reads work before any writes
+    assert GET /calm/namespaces 200
+    # Create and verify namespace
     assert POST /calm/namespaces 201 -H 'Content-Type: application/json' -d '{"name":"smoke-test","description":"smoke test namespace"}'
+    assert GET  /calm/namespaces 200
+    # Create an architecture, then retrieve by list, ID, and version
+    arch_body='{"name":"smoke-arch","description":"smoke architecture","architectureJson":"{}"}'
+    assert POST /calm/namespaces/smoke-test/architectures 201 -H 'Content-Type: application/json' -d "${arch_body}"
+    assert GET  /calm/namespaces/smoke-test/architectures 200
+    assert GET  /calm/namespaces/smoke-test/architectures/1/versions 200
+    assert GET  /calm/namespaces/smoke-test/architectures/1/versions/1.0.0 200
 fi
 
 echo "[smoke] All assertions passed (mode: ${MODE})."

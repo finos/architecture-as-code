@@ -47,23 +47,22 @@ calm-hub/
 CALM Hub uses a three-layer test pyramid designed so that the majority of logic is covered by fast, isolated unit tests, with integration and end-to-end tests providing confidence at the system boundary.
 
 ```
-          ┌──────────────────────┐
-          │   Docker smoke tests  │  ← 4 scripts; gate every Docker publish
-          ├──────────────────────┤
-          │   Integration tests   │  ← TestContainers; ~36 test classes
-          │   (Maven -P integration│     real MongoDB or in-memory NitriteDB
-          │    verify)            │     via @QuarkusTest
-          ├──────────────────────┤
-          │      Unit tests       │  ← Mockito; no containers; fast
-          │   (mvn test)          │     90% JaCoCo line coverage enforced
-          └──────────────────────┘
+     ┌────────────────────────────┐
+     │    Docker smoke tests      │  <- gate every Docker publish
+     ├────────────────────────────┤
+     │    Integration tests       │  <- TestContainers; ~36 tests
+     │  mvn -P integration verify │     real MongoDB or NitriteDB
+     ├────────────────────────────┤
+     │        Unit tests          │  <- Mockito; no containers; fast
+     │       (mvn test)           │     90% JaCoCo enforced
+     └────────────────────────────┘
 ```
 
 ### Unit Tests
 
 Located in `src/test/java/`. These test individual classes in complete isolation using Mockito mocks for all dependencies.
 
-- **No containers, no network** — run anywhere in milliseconds.
+- **No containers, no network** - run anywhere in milliseconds.
 - **JaCoCo coverage gate**: 90% line coverage per class is enforced by CI. The build fails if any non-excluded class falls below this threshold.
 - **Test naming**: class `TestXxxShould`, method names in `snake_case` describing the scenario.
 
@@ -92,9 +91,8 @@ cd calm-hub
 
 It:
 1. Polls `/q/swagger-ui` until the application is ready (Swagger UI endpoint is always available, regardless of storage profile).
-2. Asserts `GET /calm/namespaces` returns HTTP 200.
-3. In **`readonly`** mode: asserts `POST`, `PUT`, and `DELETE` each return HTTP 405.
-4. In **`readwrite`** mode: asserts `POST /calm/namespaces` returns HTTP 201.
+2. In **`readonly`** mode: asserts read access across pre-seeded namespaces (`finos`, `traderx`), then verifies `POST`, `PUT`, and `DELETE` each return HTTP 405.
+3. In **`readwrite`** mode: creates a namespace, creates an architecture within it, then retrieves the architecture by list, version list, and specific version.
 
 ```bash
 # Test a locally running image
@@ -128,7 +126,7 @@ There are 13 store interfaces in `org.finos.calm.store`, one for each resource t
 | `UserAccessStore` | User access rules |
 | `ResourceMappingStore` | Slug → numeric ID mappings |
 
-Each interface exposes the same CRUD contract (list all, get by ID/version, create, update, delete). REST resources depend only on the interface — never on a concrete implementation.
+Each interface exposes the same CRUD contract (list all, get by ID/version, create, update, delete). REST resources depend only on the interface, not on any concrete implementation.
 
 ### CDI Producers
 
@@ -145,7 +143,7 @@ Quarkus CDI resolves the correct bean at application startup. The REST resources
 
 To support a new data source (e.g. a cloud object store, an in-memory cache, or a read-through adapter for a legacy system):
 
-1. **Create your implementation package** — e.g. `org.finos.calm.store.mybackend`.
+1. **Create your implementation package**, e.g. `org.finos.calm.store.mybackend`.
 2. **Implement all 13 store interfaces**. Each implementation is a Quarkus `@ApplicationScoped` CDI bean annotated with `@LookupIfProperty(name = "calm.database.mode", stringValue = "mybackend")` so Quarkus only instantiates it when that mode is active.
 3. **Update all 13 CDI producers** in `store/producer/` to inject your new class and add a branch for `"mybackend"`.
 4. **Add a Maven/Quarkus profile** if your backend requires specific configuration (connection strings, credentials) that should not appear in the default `application.properties`.
@@ -159,7 +157,7 @@ The read-only image mechanism generalises to any pre-seeded dataset:
 2. Extend the two-stage Dockerfile pattern: Stage 1 seeds the database, Stage 2 copies the file into a minimal runtime image and sets `CALM_READONLY=true`.
 3. Your custom image starts in seconds with no runtime dependencies and serves exactly the dataset you seeded.
 
-This is how the published `latest-read-only-static` and `latest-read-only-native` images are built — the `calm/` schema directory and `controls/` directory from the repository are seeded during the Docker build, producing an image that ships the canonical CALM specification.
+This is how the published `latest-read-only-static` and `latest-read-only-native` images are built: the `calm/` schema directory and `controls/` directory from the repository are seeded during the Docker build, producing an image that ships the canonical CALM specification.
 
 ---
 
@@ -190,13 +188,13 @@ This is how the published `latest-read-only-static` and `latest-read-only-native
 ## Coverage and CI Requirements
 
 - **JaCoCo**: 90% line coverage per class, enforced by `mvn verify`. Exclusions: `domain/**`, `*Constants`, `CalmHubScopes`, `LogSanitizationPolicy`.
-- **Integration tests require Docker** — they cannot be run from an IDE without Docker configured.
+- **Integration tests require Docker** - they cannot be run from an IDE without Docker configured.
 - Always run `../mvnw clean verify -Ddependency-check.skip=true` before opening a pull request. This runs the same check as CI.
 
 ---
 
 ## Further Reading
 
-- [Overview & runtimes](./index.md) — feature summary, image variants, read-only mode deep-dive
-- [MCP & API Reference](./mcp-and-api.md) — MCP tools, OpenAPI, Swagger UI
-- [UI Walkthrough](../working-with-calm/calm-hub.md) — visual interface guide
+- [Overview & runtimes](./index.md) - feature summary, image variants, read-only mode
+- [MCP & API Reference](./mcp-and-api.md) - MCP tools, OpenAPI, Swagger UI
+- [UI Walkthrough](../working-with-calm/calm-hub.md) - visual interface guide
