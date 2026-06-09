@@ -5,6 +5,14 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.1] - 2026-06-09
+
+## [1.44.1](https://github.com/finos/architecture-as-code/compare/cli-v1.44.0...cli-v1.44.1) (2026-06-09)
+
+### fix
+
+* **shared:** allow calmhub document loader to resolve https and http urls as well as calm:// (#2612) ([](https://github.com/finos/architecture-as-code/commit/0573cb08671851ea8f9c96cc32905159290f28ec)), closes [#2612](https://github.com/finos/architecture-as-code/issues/2612)
+
 ## [1.44.0] - 2026-06-08
 
 ## [1.44.0](https://github.com/finos/architecture-as-code/compare/cli-v1.43.1...cli-v1.44.0) (2026-06-08)
