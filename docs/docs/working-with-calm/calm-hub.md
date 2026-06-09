@@ -1,13 +1,14 @@
 ---
 id: calm-hub
 title: CALM Hub
+sidebar_label: UI Walkthrough
 sidebar_position: 4
 ---
 
 import DocCardList from '@theme/DocCardList';
 
 :::tip CALM Hub documentation
-This page covers the **visual interface** of CALM Hub. For the full technical reference — runtimes, read-only mode, CI status, Docker images, developer guide, and MCP/API docs — see the [**CALM Hub section**](/calm-hub/).
+This page covers the **visual interface** of CALM Hub. For the technical reference see the [overview and runtimes](/calm-hub/), the [developer guide](/calm-hub/calm-hub-developer-guide), and the [MCP and API reference](/calm-hub/calm-hub-mcp-api).
 :::
 
 # CALM Hub

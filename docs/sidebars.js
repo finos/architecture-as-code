@@ -48,7 +48,6 @@ const sidebars = {
       label: 'Working with CALM',
       link: {type: 'doc', id: 'working-with-calm/working-with-calm-index'},
       items: [
-        'working-with-calm/calm-hub',
         'working-with-calm/vscode-extension',
         'working-with-calm/calm-ai-tools',
         'working-with-calm/cli',
@@ -128,6 +127,7 @@ const sidebars = {
   // CALM Hub sidebar — features, runtimes, read-only mode, CI/Docker, developer guide, MCP/API
   calmHubSidebar: [
     'calm-hub/calm-hub-overview',
+    'working-with-calm/calm-hub',
     'calm-hub/calm-hub-developer-guide',
     'calm-hub/calm-hub-mcp-api',
   ],
