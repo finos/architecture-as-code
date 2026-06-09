@@ -5,7 +5,7 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 ## Tech Stack
 
 - **Language**: Java 21
-- **Framework**: Quarkus 3.34+ (Reactive REST, CDI) — `quarkus.platform.version` is pinned to `3.34.2` in the root `pom.xml`
+- **Framework**: Quarkus 3.34+ (Reactive REST, CDI) — `quarkus.platform.version` is pinned to `3.34.7` in the root `pom.xml`
 - **Build Tool**: Maven (via parent POM)
 - **Databases**: 
   - MongoDB (production default)
