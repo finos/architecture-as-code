@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resolveSchemaRef, loadArchitectureAndPattern, loadArchitecture, loadPattern, loadPatternFromDocumentIfPresent } from './loading-helpers';
-import { CALM_HUB_PROTO, DocumentLoader } from './document-loader';
+import { DocumentLoader } from './document-loader';
 import { SchemaDirectory } from '../schema-directory';
 import { Logger } from '../logger';
 
@@ -22,9 +22,9 @@ describe('resolveSchemaRef', () => {
         expect(result).toBe('https://calm.finos.org/schema.json');
     });
 
-    it(`should return ${CALM_HUB_PROTO} protocol URLs unchanged`, () => {
-        const result = resolveSchemaRef(`${CALM_HUB_PROTO}//namespace/schema`, '/path/to/arch.json', mockLogger);
-        expect(result).toBe(`${CALM_HUB_PROTO}//namespace/schema`);
+    it('should return calm:// protocol URLs unchanged', () => {
+        const result = resolveSchemaRef('calm://namespace/schema', '/path/to/arch.json', mockLogger);
+        expect(result).toBe('calm://namespace/schema');
     });
 
     it('should return file:// URLs unchanged', () => {

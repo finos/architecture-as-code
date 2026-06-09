@@ -1,6 +1,6 @@
 import path from 'path';
 import { Logger } from '../logger';
-import { DocumentLoader, CALM_HUB_PROTO } from './document-loader';
+import { DocumentLoader, CALM_HUB_PROTOS } from './document-loader';
 import { SchemaDirectory } from '../schema-directory';
 
 export async function loadArchitectureAndPattern(architecturePath: string, patternPath: string | undefined, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<{ architecture: object | undefined, pattern: object | undefined }> {
@@ -28,7 +28,7 @@ export async function loadTimeline(timelinePath: string, docLoader: DocumentLoad
 
 export function resolveSchemaRef(schemaRef: string, architecturePath: string, logger: Logger): string {
     // If it's an absolute URL (http, https, file) or calm: protocol, use as-is
-    if (schemaRef.startsWith('http://') || schemaRef.startsWith('https://') || schemaRef.startsWith('file://') || schemaRef.startsWith(CALM_HUB_PROTO)) {
+    if (schemaRef.startsWith('file://') || CALM_HUB_PROTOS.some(p => schemaRef.startsWith(p))) {
         return schemaRef;
     }
     // If it's an absolute file path, use as-is

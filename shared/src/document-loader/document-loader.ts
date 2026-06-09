@@ -9,7 +9,7 @@ import { AuthPlugin } from '..';
 
 export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline';
 
-export const CALM_HUB_PROTO = 'calm:';
+export const CALM_HUB_PROTOS = ['http:', 'https:', 'calm:'];
 
 export interface DocumentLoader {
     initialise(schemaDirectory: SchemaDirectory): Promise<void>;
