@@ -60,6 +60,37 @@
                 <artifactId>quarkus-mcp-server-sse-client</artifactId>
                 <version>1.12.1</version>
             </dependency>
+            <!-- Override MCP server to a version with native-image fixes.
+                 quarkus-mcp-server-bom:3.34.7 (from root pom) resolves all MCP
+                 artifacts to 1.10.5, which predates the native-image fixes added
+                 in 1.12.0 (quarkiverse/quarkus-mcp-server#684 / #685).  All five
+                 artifacts (runtime + deployment) must be aligned to the same version
+                 to avoid mixed-version augmentation failures. -->
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-http</artifactId>
+                <version>1.12.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-http-deployment</artifactId>
+                <version>1.12.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-core</artifactId>
+                <version>1.12.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-core-deployment</artifactId>
+                <version>1.12.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-sse-client</artifactId>
+                <version>1.12.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
