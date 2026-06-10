@@ -4,8 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
 
 /**
  * Represents a domain in the CALM system.
@@ -30,7 +30,7 @@ public class  Domain {
 
     }
 
-    @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+    @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
     @NotBlank(message = "domain name must not be blank")
     @NotNull(message = "domain name must not be null")
     private String name;
