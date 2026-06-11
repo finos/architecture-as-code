@@ -78,7 +78,7 @@ export class Docifier {
 
     private async renderDiagrams(): Promise<void> {
         const logger = initLogger(false, 'docify-diagram-export');
-        const format = this.exportDiagrams;
+        const format = this.exportDiagrams!;
         const startTime = Date.now();
 
         logger.info(`ℹ️ --export-diagrams ${format}: rendering mermaid diagrams via a local browser. ` +
