@@ -94,115 +94,197 @@
   "relationships": [
     {
       "unique-id": "user-to-web",
-      "relationship-type": "interacts",
-      "source": "user",
-      "destination": "web-app",
+      "relationship-type": {
+        "interacts": {
+          "actor": "user",
+          "nodes": [
+            "web-app"
+          ]
+        }
+      },
       "description": "User opens the web application"
     },
     {
       "unique-id": "web-to-gateway",
-      "relationship-type": "connects",
-      "source": "web-app",
-      "destination": "api-gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-app"
+          },
+          "destination": {
+            "node": "api-gateway"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Browser issues authenticated requests to the agent gateway"
     },
     {
       "unique-id": "gateway-to-guardrail",
-      "relationship-type": "interacts",
-      "source": "api-gateway",
-      "destination": "input-guardrail",
+      "relationship-type": {
+        "interacts": {
+          "actor": "api-gateway",
+          "nodes": [
+            "input-guardrail"
+          ]
+        }
+      },
       "description": "Inbound prompts pass through input validation"
     },
     {
       "unique-id": "guardrail-to-orchestrator",
-      "relationship-type": "interacts",
-      "source": "input-guardrail",
-      "destination": "orchestrator",
+      "relationship-type": {
+        "interacts": {
+          "actor": "input-guardrail",
+          "nodes": [
+            "orchestrator"
+          ]
+        }
+      },
       "description": "Validated prompts are dispatched to the orchestrator"
     },
     {
       "unique-id": "orchestrator-to-trader",
-      "relationship-type": "interacts",
-      "source": "orchestrator",
-      "destination": "trader-agent",
+      "relationship-type": {
+        "interacts": {
+          "actor": "orchestrator",
+          "nodes": [
+            "trader-agent"
+          ]
+        }
+      },
       "description": "Orchestrator delegates trade proposal tasks to the trader agent"
     },
     {
       "unique-id": "orchestrator-to-risk",
-      "relationship-type": "interacts",
-      "source": "orchestrator",
-      "destination": "risk-agent",
+      "relationship-type": {
+        "interacts": {
+          "actor": "orchestrator",
+          "nodes": [
+            "risk-agent"
+          ]
+        }
+      },
       "description": "Orchestrator delegates risk evaluation tasks to the risk agent"
     },
     {
       "unique-id": "trader-to-llm",
-      "relationship-type": "interacts",
-      "source": "trader-agent",
-      "destination": "inference-llm",
+      "relationship-type": {
+        "interacts": {
+          "actor": "trader-agent",
+          "nodes": [
+            "inference-llm"
+          ]
+        }
+      },
       "description": "Trader agent calls the LLM for reasoning and tool selection"
     },
     {
       "unique-id": "trader-to-vector-store",
-      "relationship-type": "interacts",
-      "source": "trader-agent",
-      "destination": "vector-store",
+      "relationship-type": {
+        "interacts": {
+          "actor": "trader-agent",
+          "nodes": [
+            "vector-store"
+          ]
+        }
+      },
       "description": "Trader agent retrieves comparable historical trades via semantic search"
     },
     {
       "unique-id": "trader-to-mcp",
-      "relationship-type": "interacts",
-      "source": "trader-agent",
-      "destination": "mcp-tools",
+      "relationship-type": {
+        "interacts": {
+          "actor": "trader-agent",
+          "nodes": [
+            "mcp-tools"
+          ]
+        }
+      },
       "description": "Trader agent invokes execution-side tools via MCP"
     },
     {
       "unique-id": "risk-to-llm",
-      "relationship-type": "interacts",
-      "source": "risk-agent",
-      "destination": "inference-llm",
+      "relationship-type": {
+        "interacts": {
+          "actor": "risk-agent",
+          "nodes": [
+            "inference-llm"
+          ]
+        }
+      },
       "description": "Risk agent uses the LLM to reason over policy text"
     },
     {
       "unique-id": "risk-to-knowledge",
-      "relationship-type": "interacts",
-      "source": "risk-agent",
-      "destination": "knowledge-base",
+      "relationship-type": {
+        "interacts": {
+          "actor": "risk-agent",
+          "nodes": [
+            "knowledge-base"
+          ]
+        }
+      },
       "description": "Risk agent looks up policy rules in the structured knowledge base"
     },
     {
       "unique-id": "vector-to-embedding",
-      "relationship-type": "interacts",
-      "source": "vector-store",
-      "destination": "embedding-model",
+      "relationship-type": {
+        "interacts": {
+          "actor": "vector-store",
+          "nodes": [
+            "embedding-model"
+          ]
+        }
+      },
       "description": "Vector store generates embeddings for inbound documents on the fly"
     },
     {
       "unique-id": "mcp-to-tool",
-      "relationship-type": "composed-of",
-      "source": "mcp-tools",
-      "destination": "execution-tool",
+      "relationship-type": {
+        "composed-of": {
+          "container": "mcp-tools",
+          "nodes": [
+            "execution-tool"
+          ]
+        }
+      },
       "description": "MCP server exposes the execution tool to authorised agents"
     },
     {
       "unique-id": "orchestrator-to-eval",
-      "relationship-type": "interacts",
-      "source": "orchestrator",
-      "destination": "eval-monitor",
+      "relationship-type": {
+        "interacts": {
+          "actor": "orchestrator",
+          "nodes": [
+            "eval-monitor"
+          ]
+        }
+      },
       "description": "Orchestrator emits run summaries to the evaluation monitor"
     },
     {
       "unique-id": "orchestrator-to-observability",
-      "relationship-type": "interacts",
-      "source": "orchestrator",
-      "destination": "observability",
+      "relationship-type": {
+        "interacts": {
+          "actor": "orchestrator",
+          "nodes": [
+            "observability"
+          ]
+        }
+      },
       "description": "Orchestrator emits traces and metrics for the run"
     },
     {
       "unique-id": "llm-to-observability",
-      "relationship-type": "interacts",
-      "source": "inference-llm",
-      "destination": "observability",
+      "relationship-type": {
+        "interacts": {
+          "actor": "inference-llm",
+          "nodes": [
+            "observability"
+          ]
+        }
+      },
       "description": "LLM emits inference latency and token-cost metrics"
     }
   ]

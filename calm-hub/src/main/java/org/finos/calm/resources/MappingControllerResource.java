@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -13,18 +14,15 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.*;
-import org.finos.calm.domain.Semver;
-import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.flow.CreateFlowRequest;
-import org.finos.calm.domain.frontcontroller.ChangeType;
-import org.finos.calm.domain.frontcontroller.FrontControllerCreateRequest;
-import org.finos.calm.domain.frontcontroller.FrontControllerUpdateRequest;
+import org.finos.calm.domain.mapping.MappingCreateRequest;
+import org.finos.calm.domain.mapping.MappingLinkRequest;
+import org.finos.calm.domain.mapping.MappingUpdateRequest;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,16 +36,17 @@ import java.util.Optional;
 import static org.finos.calm.resources.ResourceValidationConstants.*;
 
 /**
- * Front controller that provides a type-agnostic REST API for addressing resources
+ * Mapping controller that provides a type-agnostic REST API for addressing resources
  * by human-readable custom IDs (slugs) instead of numeric IDs.
  *
  * <p>This resource lives alongside the existing type-specific resources (PatternResource,
- * ArchitectureResource, etc.) and dispatches to the same underlying stores.</p>
+ * ArchitectureResource, etc.) and dispatches to the same underlying stores. Mappings are
+ * nested under {@code /mappings/} so a custom ID can never shadow a reserved path segment.</p>
  */
 @Path("/calm/namespaces")
-public class FrontControllerResource {
+public class MappingControllerResource {
 
-    private final Logger logger = LoggerFactory.getLogger(FrontControllerResource.class);
+    private final Logger logger = LoggerFactory.getLogger(MappingControllerResource.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final ResourceMappingStore mappingStore;
@@ -61,7 +60,7 @@ public class FrontControllerResource {
     Optional<String> baseUrl;
 
     @Inject
-    public FrontControllerResource(ResourceMappingStore mappingStore,
+    public MappingControllerResource(ResourceMappingStore mappingStore,
                                    PatternStore patternStore,
                                    ArchitectureStore architectureStore,
                                    FlowStore flowStore,
@@ -76,14 +75,14 @@ public class FrontControllerResource {
     }
 
     @POST
-    @Path("{namespace}/{customId}")
+    @Path("{namespace}/mappings/{customId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Create or update a resource by custom ID",
             description = "First POST creates the resource at version 1.0.0. Subsequent POSTs require a changeType to bump the version."
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createOrUpdateResource(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("customId") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String customId,
@@ -101,13 +100,13 @@ public class FrontControllerResource {
     }
 
     @GET
-    @Path("{namespace}/{customId}")
+    @Path("{namespace}/mappings/{customId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Get the latest version of a resource by custom ID",
             description = "Resolves the custom ID to a resource and returns the latest version"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getLatestResource(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("customId") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String customId
@@ -136,13 +135,13 @@ public class FrontControllerResource {
     }
 
     @GET
-    @Path("{namespace}/{customId}/versions/{version}")
+    @Path("{namespace}/mappings/{customId}/versions/{version}")
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Get a specific version of a resource by custom ID",
             description = "Resolves the custom ID and returns the resource at the specified version"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getResourceVersion(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("customId") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String customId,
@@ -169,13 +168,13 @@ public class FrontControllerResource {
     }
 
     @GET
-    @Path("{namespace}/{customId}/versions")
+    @Path("{namespace}/mappings/{customId}/versions")
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "List versions of a resource by custom ID",
             description = "Resolves the custom ID and returns all available versions"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response listResourceVersions(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("customId") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String customId
@@ -207,7 +206,7 @@ public class FrontControllerResource {
             summary = "Look up resource mappings",
             description = "Returns all resource mappings for a namespace, optionally filtered by type and/or numeric ID"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response lookupMappings(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @QueryParam("type") String type,
@@ -238,12 +237,77 @@ public class FrontControllerResource {
         }
     }
 
+    @PUT
+    @Path("{namespace}/mappings/{customId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Link a custom ID to an existing resource",
+            description = "Creates a mapping from the custom ID to an existing resource identified by its type and numeric ID within the same namespace."
+    )
+    @PermissionsAllowed(CalmHubScopes.WRITE)
+    public Response linkExistingResource(
+            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("customId") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String customId,
+            @Valid @NotNull(message = "Request must not be null") MappingLinkRequest request
+    ) throws URISyntaxException {
+        ResourceType resourceType;
+        try {
+            resourceType = ResourceType.valueOf(request.getType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid resource type: " + STRICT_SANITIZATION_POLICY.sanitize(request.getType())).build();
+        }
+
+        int resourceId = request.getResourceId();
+
+        try {
+            // Reject if the custom ID is already mapped — a custom ID is permanent once assigned.
+            try {
+                mappingStore.getMapping(namespace, customId);
+                return Response.status(Response.Status.CONFLICT).entity("Custom ID already exists in namespace: " + STRICT_SANITIZATION_POLICY.sanitize(customId)).build();
+            } catch (MappingNotFoundException ignored) {
+                // expected — the custom ID is free to use
+            }
+
+            // Verify the target resource exists within this namespace before linking.
+            ResourceMapping target = new ResourceMapping.ResourceMappingBuilder()
+                    .setNamespace(namespace)
+                    .setResourceType(resourceType)
+                    .setNumericId(resourceId)
+                    .build();
+            List<String> versions;
+            try {
+                versions = getVersionsForMapping(target);
+            } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException | StandardNotFoundException | InterfaceNotFoundException e) {
+                return resourceNotFoundResponse(resourceType, resourceId);
+            }
+            if (versions.isEmpty()) {
+                return resourceNotFoundResponse(resourceType, resourceId);
+            }
+
+            mappingStore.createMapping(namespace, customId, resourceType, resourceId);
+
+            String latestVersion = getLatestVersion(versions);
+            URI location = new URI("/calm/namespaces/" + namespace + "/mappings/" + customId + "/versions/" + latestVersion);
+            return Response.created(location).build();
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when linking resource", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (DuplicateMappingException e) {
+            return Response.status(Response.Status.CONFLICT).entity("Custom ID already exists in namespace: " + STRICT_SANITIZATION_POLICY.sanitize(customId)).build();
+        } catch (Exception e) {
+            logger.error("Error linking resource [{}] in namespace [{}]", STRICT_SANITIZATION_POLICY.sanitize(customId), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error";
+            return Response.status(Response.Status.BAD_REQUEST).entity("Failed to link resource: " + STRICT_SANITIZATION_POLICY.sanitize(errorMsg)).build();
+        }
+    }
+
     // --- Private helpers ---
 
     private Response createNewResource(String namespace, String customId, String requestBody) throws URISyntaxException {
-        FrontControllerCreateRequest request;
+        MappingCreateRequest request;
         try {
-            request = OBJECT_MAPPER.readValue(requestBody, FrontControllerCreateRequest.class);
+            request = OBJECT_MAPPER.readValue(requestBody, MappingCreateRequest.class);
         } catch (JsonProcessingException e) {
             return invalidJsonResponse("Cannot parse request body");
         }
@@ -281,7 +345,7 @@ public class FrontControllerResource {
                 }
                 throw e;
             }
-            URI location = new URI("/calm/namespaces/" + namespace + "/" + customId + "/versions/" + version);
+            URI location = new URI("/calm/namespaces/" + namespace + "/mappings/" + customId + "/versions/" + version);
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating resource", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -296,9 +360,9 @@ public class FrontControllerResource {
     }
 
     private Response updateExistingResource(String namespace, String customId, ResourceMapping mapping, String requestBody) throws URISyntaxException {
-        FrontControllerUpdateRequest request;
+        MappingUpdateRequest request;
         try {
-            request = OBJECT_MAPPER.readValue(requestBody, FrontControllerUpdateRequest.class);
+            request = OBJECT_MAPPER.readValue(requestBody, MappingUpdateRequest.class);
         } catch (JsonProcessingException e) {
             return invalidJsonResponse("Cannot parse request body");
         }
@@ -320,7 +384,7 @@ public class FrontControllerResource {
 
             createVersionedResourceInStore(mapping.getResourceType(), namespace, mapping.getNumericId(), newVersion, request.getJson());
 
-            URI location = new URI("/calm/namespaces/" + namespace + "/" + customId + "/versions/" + newVersion);
+            URI location = new URI("/calm/namespaces/" + namespace + "/mappings/" + customId + "/versions/" + newVersion);
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when updating resource", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -493,7 +557,7 @@ public class FrontControllerResource {
                 String normalizedBase = configuredBaseUrl.endsWith("/")
                         ? configuredBaseUrl.substring(0, configuredBaseUrl.length() - 1)
                         : configuredBaseUrl;
-                String friendlyUrl = normalizedBase + "/calm/namespaces/" + namespace + "/" + customId + "/versions/" + version;
+                String friendlyUrl = normalizedBase + "/calm/namespaces/" + namespace + "/mappings/" + customId + "/versions/" + version;
                 ((ObjectNode) tree).put("$id", friendlyUrl);
                 return OBJECT_MAPPER.writeValueAsString(tree);
             }
@@ -525,6 +589,10 @@ public class FrontControllerResource {
 
     private Response mappingNotFoundResponse(String customId) {
         return Response.status(Response.Status.NOT_FOUND).entity("Resource mapping not found: " + STRICT_SANITIZATION_POLICY.sanitize(customId)).build();
+    }
+
+    private Response resourceNotFoundResponse(ResourceType type, int resourceId) {
+        return Response.status(Response.Status.NOT_FOUND).entity("Resource not found: " + type + " with id " + resourceId).build();
     }
 
     private Response invalidJsonResponse(String message) {

@@ -99,14 +99,7 @@ public class NitriteTimelineStore implements TimelineStore {
             throw new NamespaceNotFoundException();
         }
 
-        // Validate JSON
-        try {
-            // Use org.bson.Document to validate JSON
-            org.bson.Document.parse(timelineRequest.getTimelineJson());
-        } catch (Exception e) {
-            LOG.error("Invalid JSON format for timeline: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
-        }
+        validateTimelineJson(timelineRequest.getTimelineJson());
 
         lock.lock();
         try {
@@ -162,14 +155,15 @@ public class NitriteTimelineStore implements TimelineStore {
             if (timeline.getId() == timelineDoc.get(TIMELINE_ID_FIELD, Integer.class)) {
                 // Extract the versions map from the matching timeline
                 Document versions = timelineDoc.get(VERSIONS_FIELD, Document.class);
+                if (versions == null) {
+                    throw new TimelineNotFoundException();
+                }
 
                 // Convert from Nitrite representation
                 List<String> resourceVersions = new ArrayList<>();
-                if (versions != null) {
-                    Set<String> versionKeys = versions.getFields();
-                    for (String versionKey : versionKeys) {
-                        resourceVersions.add(versionKey.replace('-', '.'));
-                    }
+                Set<String> versionKeys = versions.getFields();
+                for (String versionKey : versionKeys) {
+                    resourceVersions.add(versionKey.replace('-', '.'));
                 }
                 return resourceVersions;
             }
@@ -204,19 +198,21 @@ public class NitriteTimelineStore implements TimelineStore {
             if (timeline.getId() == timelineDoc.get(TIMELINE_ID_FIELD, Integer.class)) {
                 // Retrieve the versions map from the matching timeline
                 Document versions = timelineDoc.get(VERSIONS_FIELD, Document.class);
+                if (versions == null) {
+                    throw new TimelineVersionNotFoundException();
+                }
 
                 // Return the timeline JSON blob for the specified version
                 String mongoVersion = timeline.getMongoVersion();
                 Object versionObj = versions.get(mongoVersion);
                 LOG.info("VersionDoc: [{}], Mongo Version: [{}]", versions, mongoVersion);
 
-                if (versionObj == null) {
+                if (!(versionObj instanceof String)) {
                     LOG.warn("Version '{}' not found for timeline {} in namespace '{}'",
                             timeline.getDotVersion(), timeline.getId(), timeline.getNamespace());
                     throw new TimelineVersionNotFoundException();
                 }
 
-                // In NitriteDB, we're storing the JSON as a string directly
                 return (String) versionObj;
             }
         }
@@ -232,6 +228,8 @@ public class NitriteTimelineStore implements TimelineStore {
             LOG.warn("Namespace '{}' not found when creating timeline version", timeline.getNamespace());
             throw new NamespaceNotFoundException();
         }
+
+        validateTimelineJson(timeline.getTimelineJson());
 
         lock.lock();
         try {
@@ -255,10 +253,34 @@ public class NitriteTimelineStore implements TimelineStore {
             throw new NamespaceNotFoundException();
         }
 
+        validateTimelineJson(timeline.getTimelineJson());
+
         writeTimelineToNitrite(timeline);
         LOG.info("Updated version '{}' for timeline {} in namespace '{}'",
                 timeline.getDotVersion(), timeline.getId(), timeline.getNamespace());
         return timeline;
+    }
+
+    /**
+     * Validates that the supplied timeline JSON is parseable, throwing {@link JsonParseException} if not so the
+     * REST layer can surface a 400. Validation runs immediately after the namespace check, before any existence or
+     * version checks, so a malformed payload is rejected consistently regardless of the operation.
+     *
+     * @param timelineJson the raw timeline JSON to validate
+     */
+    private void validateTimelineJson(String timelineJson) {
+        if (timelineJson == null) {
+            LOG.error("Timeline JSON must not be null");
+            throw new JsonParseException("Timeline JSON must not be null");
+        }
+        try {
+            // Use org.bson.Document to validate JSON
+            org.bson.Document.parse(timelineJson);
+        } catch (JsonParseException e) {
+            // Rethrow the original so the parse failure's stack trace is preserved for observability
+            LOG.error("Invalid JSON format for timeline: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private void writeTimelineToNitrite(Timeline timeline) throws TimelineNotFoundException, NamespaceNotFoundException {
@@ -280,6 +302,9 @@ public class NitriteTimelineStore implements TimelineStore {
                     if (timelineDoc.get(TIMELINE_ID_FIELD, Integer.class) == timeline.getId()) {
                         // Found the timeline, update its version
                         Document versions = timelineDoc.get(VERSIONS_FIELD, Document.class);
+                        if (versions == null) {
+                            throw new TimelineNotFoundException();
+                        }
                         versions.put(timeline.getMongoVersion(), timeline.getTimelineJson());
                         timelineDoc.put(VERSIONS_FIELD, versions);
                         // Defensive: the REST layer enforces @NotBlank on name/description via CreateTimelineRequest,

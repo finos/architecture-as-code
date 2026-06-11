@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { idsAreUnique } from './ids-are-unique';
 
 describe('idsAreUnique', () => {
@@ -10,7 +11,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -36,7 +37,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -53,7 +54,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: node1, path: /nodes/1/unique-id');
     });
@@ -71,7 +72,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: rel1, path: /relationships/1/unique-id');
     });
@@ -96,7 +97,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: intf1, path: /nodes/1/interfaces/0/unique-id');
     });
@@ -120,7 +121,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: node1, path: /relationships/0/unique-id');
     });

@@ -1,7 +1,10 @@
+import { IFunctionResult } from '@stoplight/spectral-core';
+import { TimelineInput } from './timeline-types';
+
 /**
  * Checks that moments with valid-from are ordered by date.
  */
-export function momentsSortedByValidFrom(input, _, _context) {
+export function momentsSortedByValidFrom(input: TimelineInput | null | undefined, _?: unknown, _context?: unknown): IFunctionResult[] {
     if (!input) {
         return [];
     }
@@ -11,7 +14,7 @@ export function momentsSortedByValidFrom(input, _, _context) {
         return [];
     }
 
-    const results = [];
+    const results: IFunctionResult[] = [];
     let lastValidFromTimestamp: number | null = null;
     let lastValidFromValue: string | null = null;
 

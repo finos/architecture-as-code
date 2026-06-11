@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    { "unique-id": "svc.payment-service", "node-type": "service", "name": "payment-service", "description": "Handles payment processing", "interfaces": [] },
+    { "unique-id": "topic.payment-topic", "node-type": "message-broker", "name": "payment-topic", "description": "Payment events topic", "interfaces": [] }
+  ],
+  "relationships": [
+    {
+      "unique-id": "rel.payment-service.publish.payment-topic",
+      "source": "svc.payment-service",
+      "target": "topic.payment-topic",
+      "interaction": "publish"
+    }
+  ]
+}

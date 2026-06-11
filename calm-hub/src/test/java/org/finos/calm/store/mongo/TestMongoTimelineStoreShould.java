@@ -250,6 +250,38 @@ public class TestMongoTimelineStoreShould {
     }
 
     @Test
+    void throw_timeline_not_found_when_versions_document_is_missing_on_get_versions() {
+        Document timelineWithNoVersions = new Document("namespace", NAMESPACE)
+                .append("timelines", List.of(new Document("timelineId", 42)));
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(timelineCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(timelineWithNoVersions);
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(42).build();
+
+        assertThrows(TimelineNotFoundException.class,
+                () -> mongoTimelineStore.getTimelineVersions(timeline));
+    }
+
+    @Test
+    void throw_timeline_version_not_found_when_versions_document_is_missing_on_get_for_version() {
+        Document timelineWithNoVersions = new Document("namespace", NAMESPACE)
+                .append("timelines", List.of(new Document("timelineId", 42)));
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(timelineCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(timelineWithNoVersions);
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(42).setVersion("1.0.0").build();
+
+        assertThrows(TimelineVersionNotFoundException.class,
+                () -> mongoTimelineStore.getTimelineForVersion(timeline));
+    }
+
+    @Test
     void get_timeline_versions_for_valid_timeline_returns_list_of_versions() throws TimelineNotFoundException, NamespaceNotFoundException {
         mockSetupTimelineDocumentWithVersions();
 

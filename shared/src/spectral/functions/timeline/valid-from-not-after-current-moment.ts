@@ -1,22 +1,23 @@
 import { JSONPath } from 'jsonpath-plus';
+import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 
 /**
  * Checks that the current-moment has no moments after it with a valid-from date.
  */
-export function validFromNotAfterCurrentMoment(input, _, context) {
+export function validFromNotAfterCurrentMoment(input: unknown, _: unknown, context: RulesetFunctionContext): IFunctionResult[] {
     if (!input) {
         return [];
     }
 
-    const moments: object[] = JSONPath({ path: '$.moments[*]', json: context.document.data, resultType: 'value' });
+    const moments: object[] = JSONPath({ path: '$.moments[*]', json: context.document.data as object, resultType: 'value' });
     if (!moments || moments.length === 0) {
         // other rule will report no moments defined
         return [];
     }
 
-    const currentMomentId: string = input;
+    const currentMomentId = input as string;
     let checkingValidFroms = false;
-    const results = [];
+    const results: IFunctionResult[] = [];
     for (const moment of moments) {
         const momentId: string = JSONPath({ path: '$.unique-id', json: moment, wrap: false }) as string;
         if (momentId && momentId === currentMomentId) {

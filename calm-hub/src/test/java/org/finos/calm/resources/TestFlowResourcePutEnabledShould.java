@@ -3,6 +3,7 @@ package org.finos.calm.resources;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -21,6 +22,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSA
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 @TestProfile(AllowPutProfile.class)

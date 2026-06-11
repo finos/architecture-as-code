@@ -152,6 +152,17 @@ public class TestMongoStandardStoreShould {
         when(findIterable.first()).thenReturn(mainDocument);
     }
 
+    private void mockSetupStandardDocumentWithoutVersions() {
+        Document standardWithNoVersions = new Document("namespace", "finos")
+                .append("standards", List.of(new Document("standardId", 42)));
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(standardCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(standardWithNoVersions);
+    }
+
     @Test
     void return_a_namespace_exception_when_namespace_does_not_exist_when_creating_standard() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
@@ -244,6 +255,22 @@ public class TestMongoStandardStoreShould {
         List<String> standardVersions = mongoStandardStore.getStandardVersions("finos", 42);
 
         assertThat(standardVersions, is(List.of("1.0.0")));
+    }
+
+    @Test
+    void throw_standard_not_found_when_versions_document_is_missing_on_get_versions() {
+        mockSetupStandardDocumentWithoutVersions();
+
+        assertThrows(StandardNotFoundException.class,
+                () -> mongoStandardStore.getStandardVersions("finos", 42));
+    }
+
+    @Test
+    void throw_standard_version_not_found_when_versions_document_is_missing_on_get_for_version() {
+        mockSetupStandardDocumentWithoutVersions();
+
+        assertThrows(StandardVersionNotFoundException.class,
+                () -> mongoStandardStore.getStandardForVersion("finos", 42, "1.0.0"));
     }
 
     @Test

@@ -6,6 +6,16 @@
   "engines": {
     "node": "^22.14.0 || >=24.10.0"
   },
+  "workspaces": [
+    "apps/studio",
+    "packages/calm-core",
+    "packages/extensions",
+    "packages/calmscript",
+    "packages/mcp-server",
+    "packages/github-action",
+    "packages/vscode-extension",
+    "packages/web-component"
+  ],
   "scripts": {
     "prepare": "husky || true",
     "build": "npm run build --workspaces --if-present",

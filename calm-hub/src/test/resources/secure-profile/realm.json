@@ -8,185 +8,40 @@
       "protocol": "openid-connect",
       "publicClient": false,
       "secret": "calm-hub-client-app-secret",
-      "authorizationServicesEnabled": true,
       "directAccessGrantsEnabled": true,
-      "attributes": {
-        "access.token.lifespan": "300",
-        "refresh.token.lifespan": "1800"
-      },
       "defaultClientScopes": [
         "openid",
         "profile",
         "email"
       ],
-      "optionalClientScopes": [
-        "address",
-        "phone",
-        "architectures:read",
-        "architectures:all",
-        "namespace:admin",
-        "adrs:read",
-        "adrs:all",
-        "deny:all"
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "calm-hub-producer-app",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
       ]
     },
     {
       "clientId": "calm-hub-producer-app",
       "enabled": true,
       "protocol": "openid-connect",
-      "publicClient": false,
-      "authorizationServicesEnabled": true
+      "publicClient": false
     }
   ],
-  "roles": {
-    "realm": [
-      {
-        "name": "admin",
-        "clientRole": false
-      }
-    ],
-    "client": {
-      "calm-hub-client-app": [
-        {
-          "name": "architectures:read"
-        },
-        {
-          "name": "architectures:all"
-        },
-        {
-          "name": "adrs:all"
-        },
-        {
-          "name": "adrs:read"
-        },
-        {
-          "name": "deny:all"
-        }
-      ]
-    }
-  },
   "clientScopes": [
-    {
-      "name": "architectures:read",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true"
-      },
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "architectures:all",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true"
-      },
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "adrs:all",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true"
-      },
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "adrs:read",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true"
-      },
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "deny:all",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true"
-      },
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "namespace:admin",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true"
-      },
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
     {
       "name": "profile",
       "description": "OpenID Connect built-in scope: profile",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true",
-        "consent.screen.text": "${profileScopeConsentText}",
         "display.on.consent.screen": "true"
       },
       "protocolMappers": [
@@ -221,43 +76,6 @@
       ]
     }
   ],
-  "scopeMappings": [
-    {
-      "client": "calm-hub-client-app",
-      "clientScope": "architectures:read",
-      "roles": [
-        "architectures:read"
-      ]
-    },
-    {
-      "client": "calm-hub-client-app",
-      "clientScope": "architectures:all",
-      "roles": [
-        "architectures:all"
-      ]
-    },
-    {
-      "client": "calm-hub-client-app",
-      "clientScope": "adrs:read",
-      "roles": [
-        "adrs:read"
-      ]
-    },
-    {
-      "client": "calm-hub-client-app",
-      "clientScope": "adrs:all",
-      "roles": [
-        "adrs:all"
-      ]
-    },
-    {
-      "client": "calm-hub-client-app",
-      "clientScope": "deny:all",
-      "roles": [
-        "deny:all"
-      ]
-    }
-  ],
   "users": [
     {
       "username": "test-user",
@@ -272,15 +90,7 @@
           "value": "changeme",
           "temporary": false
         }
-      ],
-      "realmRoles": [
-        "admin"
-      ],
-      "clientRoles": {
-        "calm-hub-client-app": [
-          "architectures:read"
-        ]
-      }
+      ]
     }
   ]
 }

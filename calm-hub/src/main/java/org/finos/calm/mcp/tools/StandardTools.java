@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -13,6 +14,7 @@ import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.standards.NamespaceStandardSummary;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.StandardStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +40,7 @@ public class StandardTools {
     StandardStore standardStore;
 
     @Tool(description = "List all standards in a CalmHub namespace. Returns standard IDs, names, and descriptions.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listStandards(
             @ToolArg(description = "The namespace to list standards from (e.g. 'workshop', 'finos')") String namespace) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
@@ -58,6 +61,7 @@ public class StandardTools {
     }
 
     @Tool(description = "List available versions of a standard in a CalmHub namespace.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listStandardVersions(
             @ToolArg(description = "The namespace containing the standard") String namespace,
             @ToolArg(description = "The standard ID (positive integer)") int standardId) {
@@ -80,6 +84,7 @@ public class StandardTools {
     }
 
     @Tool(description = "Get the full JSON content of a specific standard version.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getStandard(
             @ToolArg(description = "The namespace containing the standard") String namespace,
             @ToolArg(description = "The standard ID (positive integer)") int standardId,
@@ -106,6 +111,7 @@ public class StandardTools {
     }
 
     @Tool(description = "Create a new standard in a namespace. Returns the allocated standard ID and version.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createStandard(
             @ToolArg(description = "The namespace to create the standard in") String namespace,
             @ToolArg(description = "The name of the standard") String name,
@@ -133,6 +139,7 @@ public class StandardTools {
     }
 
     @Tool(description = "Publish a new version of an existing standard. Use this to add a new semantic version (e.g. '1.1.0') without allocating a new identity.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createStandardVersion(
             @ToolArg(description = "The namespace containing the standard") String namespace,
             @ToolArg(description = "The standard ID (positive integer)") int standardId,

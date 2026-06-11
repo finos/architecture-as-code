@@ -4,7 +4,14 @@
     "name": "OpenGRIS: Scientific Research (HPC Batch)",
     "description": "Research institution HPC deployment with AWS HPC Batch worker management. Uses task graphs for parallel scientific workloads — simulations, genomics, climate modelling.",
     "category": "opengris",
-    "tags": ["opengris", "scientific-research", "hpc", "aws-hpc", "batch", "high-performance-computing"],
+    "tags": [
+      "opengris",
+      "scientific-research",
+      "hpc",
+      "aws-hpc",
+      "batch",
+      "high-performance-computing"
+    ],
     "version": "1.0.0",
     "author": "CalmStudio Contributors"
   },
@@ -100,89 +107,166 @@
   "relationships": [
     {
       "unique-id": "ogsr-task-graph-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-task-graph",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-task-graph"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "Task graph submits parallel computation tasks to the scheduler based on the DAG topology"
     },
     {
       "unique-id": "ogsr-scheduler-to-object-storage",
-      "relationship-type": "connects",
-      "source": "ogsr-scheduler",
-      "destination": "ogsr-object-storage",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-scheduler"
+          },
+          "destination": {
+            "node": "ogsr-object-storage"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "Scheduler reads research task inputs and writes results to the object store"
     },
     {
       "unique-id": "ogsr-worker-1-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-worker-1",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-worker-1"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "HPC worker receives simulation tasks and returns results to the scheduler"
     },
     {
       "unique-id": "ogsr-worker-2-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-worker-2",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-worker-2"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "HPC worker receives simulation tasks and returns results to the scheduler"
     },
     {
       "unique-id": "ogsr-worker-3-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-worker-3",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-worker-3"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "HPC worker receives simulation tasks and returns results to the scheduler"
     },
     {
       "unique-id": "ogsr-worker-4-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-worker-4",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-worker-4"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "HPC worker receives simulation tasks and returns results to the scheduler"
     },
     {
       "unique-id": "ogsr-worker-5-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-worker-5",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-worker-5"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "HPC worker receives simulation tasks and returns results to the scheduler"
     },
     {
       "unique-id": "ogsr-worker-6-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-worker-6",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-worker-6"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "HPC worker receives simulation tasks and returns results to the scheduler"
     },
     {
       "unique-id": "ogsr-worker-7-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-worker-7",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-worker-7"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "HPC worker receives simulation tasks and returns results to the scheduler"
     },
     {
       "unique-id": "ogsr-worker-8-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-worker-8",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-worker-8"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "HPC worker receives simulation tasks and returns results to the scheduler"
     },
     {
       "unique-id": "ogsr-aws-hpc-manager-to-scheduler",
-      "relationship-type": "connects",
-      "source": "ogsr-worker-manager-aws-hpc",
-      "destination": "ogsr-scheduler",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ogsr-worker-manager-aws-hpc"
+          },
+          "destination": {
+            "node": "ogsr-scheduler"
+          }
+        }
+      },
       "protocol": "TCP",
       "description": "AWS HPC Batch manager registers with scheduler and submits Scaler worker jobs to the HPC queue"
     }

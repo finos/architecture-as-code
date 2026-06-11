@@ -35,7 +35,7 @@ export default function createJUnitReport(
     return builder.build();
 }
 
-function createTestSuite(builder, testSuiteName: string){
+function createTestSuite(builder: ReturnType<typeof junitReportBuilder.newBuilder>, testSuiteName: string): TestSuite {
     return builder
         .testSuite()
         .name(testSuiteName);

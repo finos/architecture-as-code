@@ -12,7 +12,11 @@
       "name": "Web Application",
       "description": "React-based storefront SPA",
       "interfaces": [
-        { "unique-id": "web-url", "type": "url", "value": "https://shop.example.com" }
+        {
+          "unique-id": "web-url",
+          "type": "url",
+          "value": "https://shop.example.com"
+        }
       ]
     },
     {
@@ -21,7 +25,11 @@
       "name": "API Gateway",
       "description": "Kong API gateway handling routing, rate limiting, and auth",
       "interfaces": [
-        { "unique-id": "gateway-url", "type": "url", "value": "https://api.example.com" }
+        {
+          "unique-id": "gateway-url",
+          "type": "url",
+          "value": "https://api.example.com"
+        }
       ]
     },
     {
@@ -30,7 +38,11 @@
       "name": "Product Service",
       "description": "Manages product catalog, search, and inventory",
       "interfaces": [
-        { "unique-id": "product-api", "type": "url", "value": "https://api.example.com/v1/products" }
+        {
+          "unique-id": "product-api",
+          "type": "url",
+          "value": "https://api.example.com/v1/products"
+        }
       ]
     },
     {
@@ -39,7 +51,11 @@
       "name": "Order Service",
       "description": "Handles order placement, tracking, and fulfillment",
       "interfaces": [
-        { "unique-id": "order-api", "type": "url", "value": "https://api.example.com/v1/orders" }
+        {
+          "unique-id": "order-api",
+          "type": "url",
+          "value": "https://api.example.com/v1/orders"
+        }
       ]
     },
     {
@@ -48,7 +64,11 @@
       "name": "Auth Service",
       "description": "User authentication and authorization via JWT",
       "interfaces": [
-        { "unique-id": "auth-api", "type": "url", "value": "https://api.example.com/v1/auth" }
+        {
+          "unique-id": "auth-api",
+          "type": "url",
+          "value": "https://api.example.com/v1/auth"
+        }
       ]
     },
     {
@@ -63,7 +83,11 @@
       "name": "Product Database",
       "description": "PostgreSQL storing product catalog and inventory",
       "interfaces": [
-        { "unique-id": "product-db-port", "type": "host-port", "value": "product-db:5432" }
+        {
+          "unique-id": "product-db-port",
+          "type": "host-port",
+          "value": "product-db:5432"
+        }
       ]
     },
     {
@@ -72,7 +96,11 @@
       "name": "Order Database",
       "description": "PostgreSQL storing orders and transaction history",
       "interfaces": [
-        { "unique-id": "order-db-port", "type": "host-port", "value": "order-db:5432" }
+        {
+          "unique-id": "order-db-port",
+          "type": "host-port",
+          "value": "order-db:5432"
+        }
       ]
     },
     {
@@ -81,7 +109,11 @@
       "name": "User Database",
       "description": "PostgreSQL storing user accounts and credentials",
       "interfaces": [
-        { "unique-id": "user-db-port", "type": "host-port", "value": "user-db:5432" }
+        {
+          "unique-id": "user-db-port",
+          "type": "host-port",
+          "value": "user-db:5432"
+        }
       ]
     },
     {
@@ -90,7 +122,11 @@
       "name": "Redis Cache",
       "description": "In-memory cache for sessions and product data",
       "interfaces": [
-        { "unique-id": "cache-port", "type": "host-port", "value": "redis:6379" }
+        {
+          "unique-id": "cache-port",
+          "type": "host-port",
+          "value": "redis:6379"
+        }
       ]
     },
     {
@@ -115,134 +151,243 @@
   "relationships": [
     {
       "unique-id": "customer-to-web",
-      "relationship-type": "interacts",
-      "source": "customer",
-      "destination": "web-app",
-      "description": "Customer browses and shops via web app"
+      "description": "Customer browses and shops via web app",
+      "relationship-type": {
+        "interacts": {
+          "actor": "customer",
+          "nodes": [
+            "web-app"
+          ]
+        }
+      }
     },
     {
       "unique-id": "web-to-gateway",
-      "relationship-type": "connects",
-      "source": "web-app",
-      "destination": "api-gateway",
       "protocol": "HTTPS",
-      "description": "Web app sends API requests through gateway"
+      "description": "Web app sends API requests through gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-app"
+          },
+          "destination": {
+            "node": "api-gateway"
+          }
+        }
+      }
     },
     {
       "unique-id": "gateway-to-products",
-      "relationship-type": "connects",
-      "source": "api-gateway",
-      "destination": "product-service",
       "protocol": "HTTPS",
-      "description": "Routes product requests to product service"
+      "description": "Routes product requests to product service",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "product-service"
+          }
+        }
+      }
     },
     {
       "unique-id": "gateway-to-orders",
-      "relationship-type": "connects",
-      "source": "api-gateway",
-      "destination": "order-service",
       "protocol": "HTTPS",
-      "description": "Routes order requests to order service"
+      "description": "Routes order requests to order service",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "order-service"
+          }
+        }
+      }
     },
     {
       "unique-id": "gateway-to-auth",
-      "relationship-type": "connects",
-      "source": "api-gateway",
-      "destination": "auth-service",
       "protocol": "HTTPS",
-      "description": "Routes auth requests and validates tokens"
+      "description": "Routes auth requests and validates tokens",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "auth-service"
+          }
+        }
+      }
     },
     {
       "unique-id": "products-to-db",
-      "relationship-type": "connects",
-      "source": "product-service",
-      "destination": "product-db",
       "protocol": "TCP",
-      "description": "Product service reads/writes catalog data"
+      "description": "Product service reads/writes catalog data",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "product-service"
+          },
+          "destination": {
+            "node": "product-db"
+          }
+        }
+      }
     },
     {
       "unique-id": "products-to-cache",
-      "relationship-type": "connects",
-      "source": "product-service",
-      "destination": "cache",
       "protocol": "TCP",
-      "description": "Caches frequently accessed product data"
+      "description": "Caches frequently accessed product data",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "product-service"
+          },
+          "destination": {
+            "node": "cache"
+          }
+        }
+      }
     },
     {
       "unique-id": "orders-to-db",
-      "relationship-type": "connects",
-      "source": "order-service",
-      "destination": "order-db",
       "protocol": "TCP",
-      "description": "Order service persists order data"
+      "description": "Order service persists order data",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service"
+          },
+          "destination": {
+            "node": "order-db"
+          }
+        }
+      }
     },
     {
       "unique-id": "orders-to-payment",
-      "relationship-type": "connects",
-      "source": "order-service",
-      "destination": "payment-gateway",
       "protocol": "HTTPS",
-      "description": "Processes payments via Stripe API"
+      "description": "Processes payments via Stripe API",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service"
+          },
+          "destination": {
+            "node": "payment-gateway"
+          }
+        }
+      }
     },
     {
       "unique-id": "orders-to-queue",
-      "relationship-type": "connects",
-      "source": "order-service",
-      "destination": "message-queue",
       "protocol": "AMQP",
-      "description": "Publishes order events for async processing"
+      "description": "Publishes order events for async processing",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service"
+          },
+          "destination": {
+            "node": "message-queue"
+          }
+        }
+      }
     },
     {
       "unique-id": "notifications-from-queue",
-      "relationship-type": "connects",
-      "source": "message-queue",
-      "destination": "notification-service",
       "protocol": "AMQP",
-      "description": "Notification service consumes order events"
+      "description": "Notification service consumes order events",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "message-queue"
+          },
+          "destination": {
+            "node": "notification-service"
+          }
+        }
+      }
     },
     {
       "unique-id": "auth-to-db",
-      "relationship-type": "connects",
-      "source": "auth-service",
-      "destination": "user-db",
       "protocol": "TCP",
-      "description": "Auth service verifies credentials and manages users"
+      "description": "Auth service verifies credentials and manages users",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "auth-service"
+          },
+          "destination": {
+            "node": "user-db"
+          }
+        }
+      }
     },
     {
       "unique-id": "auth-to-cache",
-      "relationship-type": "connects",
-      "source": "auth-service",
-      "destination": "cache",
       "protocol": "TCP",
-      "description": "Caches session tokens and auth state"
+      "description": "Caches session tokens and auth state",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "auth-service"
+          },
+          "destination": {
+            "node": "cache"
+          }
+        }
+      }
     },
     {
       "unique-id": "products-in-cloud",
-      "relationship-type": "deployed-in",
-      "source": "product-service",
-      "destination": "cloud-platform",
-      "description": "Product service deployed in AWS"
+      "description": "Product service deployed in AWS",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "cloud-platform",
+          "nodes": [
+            "product-service"
+          ]
+        }
+      }
     },
     {
       "unique-id": "orders-in-cloud",
-      "relationship-type": "deployed-in",
-      "source": "order-service",
-      "destination": "cloud-platform",
-      "description": "Order service deployed in AWS"
+      "description": "Order service deployed in AWS",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "cloud-platform",
+          "nodes": [
+            "order-service"
+          ]
+        }
+      }
     },
     {
       "unique-id": "auth-in-cloud",
-      "relationship-type": "deployed-in",
-      "source": "auth-service",
-      "destination": "cloud-platform",
-      "description": "Auth service deployed in AWS"
+      "description": "Auth service deployed in AWS",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "cloud-platform",
+          "nodes": [
+            "auth-service"
+          ]
+        }
+      }
     },
     {
       "unique-id": "notifications-in-cloud",
-      "relationship-type": "deployed-in",
-      "source": "notification-service",
-      "destination": "cloud-platform",
-      "description": "Notification service deployed in AWS"
+      "description": "Notification service deployed in AWS",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "cloud-platform",
+          "nodes": [
+            "notification-service"
+          ]
+        }
+      }
     }
   ]
 }

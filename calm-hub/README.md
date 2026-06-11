@@ -14,6 +14,8 @@ docker-compose up
 A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)  
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 
+> **Note:** The `deploy/docker-compose.yml` starts CalmHub with the `no-auth` profile for local convenience. The default profile is **secure** (see [Auth Profiles](#auth-profiles) below) and rejects all requests with 401 unless you explicitly select an auth profile.
+
 ## Working with the project
 
 There are three main locations for the Java code base:
@@ -35,6 +37,16 @@ mvn -P integration verify
 ## Running in Development Mode
 
 Development mode is designed to provide a great developer experience from using modern tools and build systems.
+
+### Skipping `npm` build
+
+CalmHub will install and build the frontend every time you run it by default.
+This takes a while and can be rather tedious.
+To disable this, set `skip.npm`, which disables the NPM commands of the frontend Maven plugin:
+
+```shell
+../mvnw quarkus:dev -Dskip.npm
+```
 
 ### Storage Modes
 
@@ -123,10 +135,65 @@ public class AdrStoreProducer {
 From the `calm-hub` directory
 
 1. `../mvnw package`
-2. `../mvnw quarkus:dev`
+2. `../mvnw quarkus:dev -Dquarkus.profile=no-auth`
+
+> **Note:** The default profile is secure and rejects all requests with 401. Pass `-Dquarkus.profile=no-auth` for local development without an IdP, or `-Dquarkus.profile=secure` / `-Dquarkus.profile=proxy-auth` for authenticated modes.
 
 
-### Secure profile
+### Auth Profiles
+
+The default profile is **secure by default**: no authentication mechanism is wired, so all requests are rejected with 401. You must explicitly activate one of the following profiles:
+
+| Profile | How to activate | When to use |
+|---|---|---|
+| `no-auth` | `-Dquarkus.profile=no-auth` | Local development and testing — **not for production** |
+| `secure` | `-Dquarkus.profile=secure` | Production with JWT/OIDC (Keycloak or another IdP) |
+| `proxy-auth` | `-Dquarkus.profile=proxy-auth` | Production behind an authenticating reverse proxy |
+
+#### no-auth profile
+
+For local development and testing where you do not want to configure an IdP:
+
+```bash
+# MongoDB backend
+../mvnw quarkus:dev -Dquarkus.profile=no-auth
+
+# Standalone (NitriteDB) backend — no-auth is implicit, just use -Pstandalone
+../mvnw quarkus:dev -Pstandalone
+```
+
+> **Warning:** The `no-auth` profile disables all authentication. Never use it in a production or shared environment.
+
+There are two authenticated profiles, `secure` and `proxy-auth`.
+Using either will enable entitlements driven by the database.
+
+The two modes are slightly different:
+- `secure`: Enables JWT-based authentication using Quarkus' OAuth 2 libraries.
+  - User identities will be extracted from the provided JWT which will be validated against the Authorization Server's Json Web Key Set (JWKS.)
+- `proxy-auth`: Assumes CalmHub will be deployed behind an additional proxy component, such as `nginx` or `apache`, that performs OAuth 2 (or other) authentication for you.
+  - User identity is expected to be passed via a header; by default this is `Remote-User`.
+
+#### Proxy profile
+
+To launch CalmHub with the proxy auth mode enabled:
+
+```bash
+../mvnw quarkus:dev -Dquarkus.profile=proxy-auth
+```
+
+**Important notes**:
+- It is strongly recommended that the sidecar runs in the same pod or container as CalmHub, and that **CalmHub should only be accessible via this proxy.**
+
+- This is because if users can directly call CalmHub, they can simply set the header to trivially impersonate any identity.
+
+#### Secure profile
+
+The secure profile requires an Identity Provider (IdP) to authenticate users. 
+The IdP will most likely be managed by your organisation in an enterprise environment, or by your Cloud Service Provider if you're deploying on public cloud.
+
+However, for local testing and development purposes, CalmHub includes a simple pre-configured IdP, Keycloak, that you can spin up locally to simulate a real IdP.
+
+The following sections describe how to start Keycloak, and how to configure CalmHub to use it correctly.
 
 #### Launch keycloak
 

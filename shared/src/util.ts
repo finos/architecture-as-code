@@ -9,10 +9,10 @@ import pointer from 'json-pointer';
  * @returns A new merged schema
  */
 export function mergeSchemas(s1: object, s2: object) {
-    const s1Required = (s1 ?? {}) ['required'] ?? [];
-    const s2Required = (s2 ?? {}) ['required'] ?? [];
+    const s1Required = (s1 as { required?: string[] })?.required ?? [];
+    const s2Required = (s2 as { required?: string[] })?.required ?? [];
     const newRequired = _.uniq([...s1Required, ...s2Required]);
-    const newSchema = _.merge({}, s1, s2);
+    const newSchema = _.merge({}, s1, s2) as Record<string, unknown>;
 
     newSchema['required'] = newRequired;
     return newSchema;
@@ -34,20 +34,21 @@ export function renderPath(path: string[]): string {
  * @returns 
  */
 export function updateStringValuesRecursively(def: object, mappingFunction: (key: string, value: string) => string): object {
-    const update = (obj) => {
+    const update = (obj: unknown) => {
         if (Array.isArray(obj)) {
             for (let i = 0; i < obj.length; i++) {
                 update(obj[i]);
             }
         }
-        else if (typeof obj == 'object') {
-            for (const key in obj) {
-                const value = obj[key];
+        else if (obj && typeof obj == 'object') {
+            const record = obj as Record<string, unknown>;
+            for (const key in record) {
+                const value = record[key];
                 if (typeof value === 'string') {
-                    obj[key] = mappingFunction(key, value);
+                    record[key] = mappingFunction(key, value);
                 }
                 else {
-                    update(obj[key]);
+                    update(record[key]);
                 }
             }
         }

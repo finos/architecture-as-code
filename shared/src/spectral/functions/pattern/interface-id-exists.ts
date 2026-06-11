@@ -1,15 +1,16 @@
 import { JSONPath } from 'jsonpath-plus';
+import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 
 /**
  * Checks that the input value exists as an interface with matching unique ID defined under a node in the document.
  */
-export function interfaceIdExists(input, _, context) {
+export function interfaceIdExists(input: unknown, _: unknown, context: RulesetFunctionContext): IFunctionResult[] {
     if (!input) {
         return [];
     }
-    // get uniqueIds of all interfaces 
-    const uniqueIds = JSONPath({path: '$..interfaces.prefixItems[*].properties.unique-id.const', json: context.document.data});
-    const results = [];
+    // get uniqueIds of all interfaces
+    const uniqueIds = JSONPath({path: '$..interfaces.prefixItems[*].properties.unique-id.const', json: context.document.data as object});
+    const results: IFunctionResult[] = [];
 
     if (!uniqueIds.includes(input)) {
         results.push({

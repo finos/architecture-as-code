@@ -98,16 +98,12 @@ describe('E2E: create_architecture → add_node → add_relationship → validat
       relationships: [
         {
           'unique-id': 'rel-1',
-          'relationship-type': 'interacts',
-          source: 'actor-1',
-          destination: 'svc-1',
+          'relationship-type': { interacts: { actor: 'actor-1', nodes: ['svc-1'] } },
           protocol: 'HTTPS'
         },
         {
           'unique-id': 'rel-2',
-          'relationship-type': 'connects',
-          source: 'svc-1',
-          destination: 'db-1',
+          'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'db-1' } } },
           protocol: 'TCP'
         }
       ]
@@ -153,9 +149,7 @@ describe('E2E: create_architecture → add_node → add_relationship → validat
       file: archFile,
       relationship: {
         'unique-id': 'dangling-rel',
-        'relationship-type': 'connects',
-        source: 'svc-1',
-        destination: 'nonexistent-node'
+        'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'nonexistent-node' } } }
       }
     });
     const text = assertToolError(result, 'add_relationship dangling');
@@ -177,9 +171,7 @@ describe('E2E: create_architecture → add_node → add_relationship → validat
       file: archFile,
       relationship: {
         'unique-id': 'rel-cache',
-        'relationship-type': 'connects',
-        source: 'svc-1',
-        destination: 'cache-1',
+        'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'cache-1' } } },
         protocol: 'TCP'
       }
     });
@@ -200,15 +192,11 @@ describe('E2E: create_architecture → add_node → add_relationship → validat
       relationships: [
         {
           'unique-id': 'rel-1',
-          'relationship-type': 'interacts',
-          source: 'actor-1',
-          destination: 'svc-1'
+          'relationship-type': { interacts: { actor: 'actor-1', nodes: ['svc-1'] } }
         },
         {
           'unique-id': 'rel-2',
-          'relationship-type': 'connects',
-          source: 'svc-1',
-          destination: 'db-1'
+          'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'db-1' } } }
         }
       ]
     });
@@ -229,9 +217,7 @@ describe('E2E: create_architecture → add_node → add_relationship → validat
       relationships: [
         {
           'unique-id': 'rel-1',
-          'relationship-type': 'interacts',
-          source: 'actor-1',
-          destination: 'svc-1'
+          'relationship-type': { interacts: { actor: 'actor-1', nodes: ['svc-1'] } }
         }
       ]
     });
@@ -255,9 +241,7 @@ describe('E2E: create_architecture → add_node → add_relationship → validat
       relationships: [
         {
           'unique-id': 'rel-1',
-          'relationship-type': 'interacts',
-          source: 'actor-1',
-          destination: 'svc-1'
+          'relationship-type': { interacts: { actor: 'actor-1', nodes: ['svc-1'] } }
         }
       ]
     });
@@ -305,16 +289,12 @@ describe('E2E: full workflow smoke test', () => {
       relationships: [
         {
           'unique-id': 'rel-1',
-          'relationship-type': 'interacts',
-          source: 'actor-1',
-          destination: 'svc-1',
+          'relationship-type': { interacts: { actor: 'actor-1', nodes: ['svc-1'] } },
           protocol: 'HTTPS'
         },
         {
           'unique-id': 'rel-2',
-          'relationship-type': 'connects',
-          source: 'svc-1',
-          destination: 'db-1',
+          'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'db-1' } } },
           protocol: 'TCP'
         }
       ]
@@ -333,9 +313,7 @@ describe('E2E: full workflow smoke test', () => {
       file: archFile,
       relationship: {
         'unique-id': 'bad-rel',
-        'relationship-type': 'connects',
-        source: 'svc-1',
-        destination: 'does-not-exist'
+        'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'does-not-exist' } } }
       }
     });
     expect(step3bad.isError).toBe(true);
@@ -345,9 +323,7 @@ describe('E2E: full workflow smoke test', () => {
       file: archFile,
       relationship: {
         'unique-id': 'rel-3',
-        'relationship-type': 'connects',
-        source: 'svc-1',
-        destination: 'cache-1',
+        'relationship-type': { connects: { source: { node: 'svc-1' }, destination: { node: 'cache-1' } } },
         protocol: 'TCP'
       }
     });

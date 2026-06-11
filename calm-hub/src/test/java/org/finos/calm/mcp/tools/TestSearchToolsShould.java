@@ -1,8 +1,11 @@
 package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.enterprise.inject.Instance;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
+import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.store.SearchStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,12 +14,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -26,12 +35,23 @@ class TestSearchToolsShould {
     @Mock
     SearchStore searchStore;
 
+    @Mock
+    Instance<UserAccessValidator> userAccessValidatorInstance;
+
+    @Mock
+    SecurityIdentity identity;
+
+    @Mock
+    Principal mockPrincipal;
+
     @InjectMocks
     SearchTools searchTools;
 
     @BeforeEach
     void setup() {
         searchTools.mcpEnabled = true;
+        searchTools.authEnabled = false;
+        lenient().when(userAccessValidatorInstance.isResolvable()).thenReturn(false);
     }
 
     private static final List<SearchResult> EMPTY = List.of();
@@ -53,7 +73,7 @@ class TestSearchToolsShould {
         GroupedSearchResults grouped = new GroupedSearchResults(
                 archResults, EMPTY, EMPTY, EMPTY, EMPTY, controlResults, EMPTY);
 
-        when(searchStore.search("trade")).thenReturn(grouped);
+        when(searchStore.search(eq("trade"), any())).thenReturn(grouped);
 
         String result = text(searchTools.searchHub("trade"));
 
@@ -70,7 +90,7 @@ class TestSearchToolsShould {
         GroupedSearchResults grouped = new GroupedSearchResults(
                 EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
 
-        when(searchStore.search("nonexistent")).thenReturn(grouped);
+        when(searchStore.search(eq("nonexistent"), any())).thenReturn(grouped);
 
         String result = text(searchTools.searchHub("nonexistent"));
 
@@ -112,7 +132,7 @@ class TestSearchToolsShould {
 
         GroupedSearchResults grouped = new GroupedSearchResults(
                 EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
-        when(searchStore.search(maxQuery)).thenReturn(grouped);
+        when(searchStore.search(eq(maxQuery), any())).thenReturn(grouped);
 
         String result = text(searchTools.searchHub(maxQuery));
 
@@ -128,13 +148,43 @@ class TestSearchToolsShould {
         GroupedSearchResults grouped = new GroupedSearchResults(
                 archResults, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
 
-        when(searchStore.search("arch")).thenReturn(grouped);
+        when(searchStore.search(eq("arch"), any())).thenReturn(grouped);
 
         String result = text(searchTools.searchHub("arch"));
 
         assertThat(result, containsString("architectures:"));
         assertThat(result, not(containsString("controls:")));
         assertThat(result, not(containsString("patterns:")));
+    }
+
+    // --- namespace filtering ---
+
+    @Test
+    void pass_empty_optional_to_store_when_auth_disabled() {
+        GroupedSearchResults grouped = new GroupedSearchResults(EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
+        when(searchStore.search(eq("trade"), any())).thenReturn(grouped);
+
+        searchTools.searchHub("trade");
+
+        verify(searchStore).search(eq("trade"), eq(Optional.empty()));
+    }
+
+    @Test
+    void pass_readable_namespaces_to_store_when_auth_enabled() {
+        UserAccessValidator mockValidator = org.mockito.Mockito.mock(UserAccessValidator.class);
+        searchTools.authEnabled = true;
+        when(userAccessValidatorInstance.isResolvable()).thenReturn(true);
+        when(identity.getPrincipal()).thenReturn(mockPrincipal);
+        when(mockPrincipal.getName()).thenReturn("alice");
+        when(userAccessValidatorInstance.get()).thenReturn(mockValidator);
+        when(mockValidator.getReadableNamespaces("alice")).thenReturn(Set.of("finos"));
+
+        GroupedSearchResults grouped = new GroupedSearchResults(EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
+        when(searchStore.search(eq("trade"), any())).thenReturn(grouped);
+
+        searchTools.searchHub("trade");
+
+        verify(searchStore).search(eq("trade"), eq(Optional.of(Set.of("finos"))));
     }
 
     // --- MCP disabled ---

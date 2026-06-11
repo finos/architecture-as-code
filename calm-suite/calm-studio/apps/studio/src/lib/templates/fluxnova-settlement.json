@@ -4,7 +4,14 @@
     "name": "FluxNova: Post-Trade Settlement",
     "description": "Post-trade settlement blueprint with counterparty gateway, clearing house connector, regulatory reporting, and settlement database built on FluxNova BPM platform",
     "category": "fluxnova",
-    "tags": ["fluxnova", "settlement", "post-trade", "financial-services", "clearing", "regulatory"],
+    "tags": [
+      "fluxnova",
+      "settlement",
+      "post-trade",
+      "financial-services",
+      "clearing",
+      "regulatory"
+    ],
     "version": "1.0.0",
     "author": "CalmStudio Contributors",
     "sourceRef": "finos/fluxnova-examples/process-examples/financial-services/settlement/post-trade"
@@ -26,7 +33,8 @@
           "description": "All settlement process events, trade state transitions, and regulatory submissions are recorded in an immutable audit log",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -107,7 +115,8 @@
           "description": "All counterparty communications use mTLS to authenticate both parties and encrypt trade confirmation data",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#counterparty-auth"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#counterparty-auth",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#counterparty-auth/config.json"
             }
           ]
         },
@@ -115,7 +124,8 @@
           "description": "All inbound and outbound counterparty messages are logged with timestamps for regulatory audit trails",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -138,7 +148,8 @@
           "description": "Clearing house connectivity uses leased line or dedicated VPN with TLS for trade submission integrity",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#ccp-connectivity"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#ccp-connectivity",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#ccp-connectivity/config.json"
             }
           ]
         }
@@ -161,7 +172,8 @@
           "description": "All trade reports are validated against ESMA and CFTC schemas before submission; submission receipts are archived for 7 years",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/regulatory-reporting"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/regulatory-reporting",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/regulatory-reporting/config.json"
             }
           ]
         }
@@ -184,7 +196,8 @@
           "description": "All connections to the settlement database use TLS-encrypted JDBC",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption/config.json"
             }
           ]
         }
@@ -201,123 +214,223 @@
   "relationships": [
     {
       "unique-id": "st-engine-to-process-db",
-      "relationship-type": "connects",
-      "source": "st-fluxnova-engine",
-      "destination": "st-fluxnova-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-fluxnova-process-db"
+          }
+        }
+      },
       "protocol": "JDBC",
       "description": "Engine persists settlement process state, history, and audit data to the process database"
     },
     {
       "unique-id": "st-rest-api-to-engine",
-      "relationship-type": "connects",
-      "source": "st-fluxnova-rest-api",
-      "destination": "st-fluxnova-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "st-fluxnova-engine"
+          }
+        }
+      },
       "protocol": "HTTP",
       "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
     },
     {
       "unique-id": "st-cockpit-to-rest-api",
-      "relationship-type": "connects",
-      "source": "st-fluxnova-cockpit",
-      "destination": "st-fluxnova-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "st-fluxnova-rest-api"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Cockpit queries settlement process instances and compliance deadlines via the REST API"
     },
     {
       "unique-id": "st-admin-to-rest-api",
-      "relationship-type": "connects",
-      "source": "st-fluxnova-admin",
-      "destination": "st-fluxnova-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-admin"
+          },
+          "destination": {
+            "node": "st-fluxnova-rest-api"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Admin manages counterparty onboarding, users, and platform configuration via the REST API"
     },
     {
       "unique-id": "st-tasklist-to-rest-api",
-      "relationship-type": "connects",
-      "source": "st-fluxnova-tasklist",
-      "destination": "st-fluxnova-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "st-fluxnova-rest-api"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Tasklist retrieves and completes trade exception and compliance review tasks via the REST API"
     },
     {
       "unique-id": "st-platform-has-engine",
-      "relationship-type": "composed-of",
-      "source": "st-fluxnova-platform",
-      "destination": "st-fluxnova-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-engine"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the BPM engine"
     },
     {
       "unique-id": "st-platform-has-rest-api",
-      "relationship-type": "composed-of",
-      "source": "st-fluxnova-platform",
-      "destination": "st-fluxnova-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-rest-api"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the REST API"
     },
     {
       "unique-id": "st-platform-has-cockpit",
-      "relationship-type": "composed-of",
-      "source": "st-fluxnova-platform",
-      "destination": "st-fluxnova-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-cockpit"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the Cockpit monitoring app"
     },
     {
       "unique-id": "st-platform-has-admin",
-      "relationship-type": "composed-of",
-      "source": "st-fluxnova-platform",
-      "destination": "st-fluxnova-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-admin"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the Admin management app"
     },
     {
       "unique-id": "st-platform-has-tasklist",
-      "relationship-type": "composed-of",
-      "source": "st-fluxnova-platform",
-      "destination": "st-fluxnova-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-tasklist"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the Tasklist app"
     },
     {
       "unique-id": "st-platform-has-process-db",
-      "relationship-type": "composed-of",
-      "source": "st-fluxnova-platform",
-      "destination": "st-fluxnova-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-process-db"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the process database"
     },
     {
       "unique-id": "st-engine-to-counterparty-gateway",
-      "relationship-type": "connects",
-      "source": "st-fluxnova-engine",
-      "destination": "st-counterparty-gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-counterparty-gateway"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Engine invokes the counterparty gateway for trade confirmation matching and settlement instruction exchange"
     },
     {
       "unique-id": "st-engine-to-clearing-house",
-      "relationship-type": "connects",
-      "source": "st-fluxnova-engine",
-      "destination": "st-clearing-house-connector",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-clearing-house-connector"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Engine submits cleared trades for novation and netting via the clearing house connector"
     },
     {
       "unique-id": "st-engine-to-regulatory-reporting",
-      "relationship-type": "connects",
-      "source": "st-fluxnova-engine",
-      "destination": "st-regulatory-reporting-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-regulatory-reporting-svc"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Engine triggers regulatory report generation after trade confirmation and settlement instruction creation"
     },
     {
       "unique-id": "st-engine-to-settlement-db",
-      "relationship-type": "connects",
-      "source": "st-fluxnova-engine",
-      "destination": "st-settlement-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-settlement-db"
+          }
+        }
+      },
       "protocol": "JDBC",
       "description": "Engine reads and writes settlement positions and obligations to the settlement database during workflow execution"
     },
     {
       "unique-id": "st-regulatory-reporting-to-settlement-db",
-      "relationship-type": "connects",
-      "source": "st-regulatory-reporting-svc",
-      "destination": "st-settlement-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-regulatory-reporting-svc"
+          },
+          "destination": {
+            "node": "st-settlement-db"
+          }
+        }
+      },
       "protocol": "JDBC",
       "description": "Regulatory reporting service reads consolidated settlement positions from the settlement database for report generation"
     }

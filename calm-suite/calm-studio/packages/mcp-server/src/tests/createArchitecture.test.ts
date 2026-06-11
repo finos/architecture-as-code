@@ -29,9 +29,12 @@ const sampleNodes = [
 const sampleRelationships = [
   {
     'unique-id': 'rel-1',
-    'relationship-type': 'connects' as const,
-    source: 'node-1',
-    destination: 'node-2'
+    'relationship-type': {
+      connects: {
+        source: { node: 'node-1' },
+        destination: { node: 'node-2' }
+      }
+    }
   }
 ];
 

@@ -239,7 +239,7 @@ public class TestNitriteInterfaceStoreShould {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get("2-0-0", String.class)).thenReturn(null);
+        when(versionsDoc.get("2-0-0")).thenReturn(null);
 
         Document interfaceDoc = mock(Document.class);
         when(interfaceDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
@@ -260,7 +260,7 @@ public class TestNitriteInterfaceStoreShould {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get(eq("2-0-0"), any())).thenReturn("{}");
+        when(versionsDoc.get("2-0-0")).thenReturn("{}");
 
         Document interfaceDoc = mock(Document.class);
         when(interfaceDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
@@ -276,6 +276,82 @@ public class TestNitriteInterfaceStoreShould {
         String result = interfaceStore.getInterfaceForVersion(NAMESPACE, INTERFACE_ID, "2.0.0");
 
         assertThat(result, equalTo("{}"));
+    }
+
+    @Test
+    public void testGetInterfaceVersions_whenVersionsDocumentIsNull_throwsInterfaceNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document interfaceDoc = Document.createDocument()
+                .put("interfaceId", INTERFACE_ID);
+
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("interfaces", List.of(interfaceDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        assertThrows(InterfaceNotFoundException.class, () -> interfaceStore.getInterfaceVersions(NAMESPACE, INTERFACE_ID));
+    }
+
+    @Test
+    public void testGetInterfaceForVersion_whenVersionsDocumentIsNull_throwsInterfaceVersionNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document interfaceDoc = Document.createDocument()
+                .put("interfaceId", INTERFACE_ID);
+
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("interfaces", List.of(interfaceDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        assertThrows(InterfaceVersionNotFoundException.class, () -> interfaceStore.getInterfaceForVersion(NAMESPACE, INTERFACE_ID, "1.0.0"));
+    }
+
+    @Test
+    public void testGetInterfaceForVersion_whenVersionObjIsNotAString_throwsInterfaceVersionNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document versions = Document.createDocument()
+                .put("1-0-0", 12345);
+
+        Document interfaceDoc = Document.createDocument()
+                .put("interfaceId", INTERFACE_ID)
+                .put("versions", versions);
+
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("interfaces", List.of(interfaceDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        assertThrows(InterfaceVersionNotFoundException.class, () -> interfaceStore.getInterfaceForVersion(NAMESPACE, INTERFACE_ID, "1.0.0"));
+    }
+
+    @Test
+    public void testCreateInterfaceForVersion_whenVersionsDocumentIsNull_throwsInterfaceNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document interfaceDoc = Document.createDocument()
+                .put("interfaceId", INTERFACE_ID);
+
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("interfaces", List.of(interfaceDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        assertThrows(InterfaceNotFoundException.class, () -> interfaceStore.createInterfaceForVersion(getInterfaceToPersist(), NAMESPACE, INTERFACE_ID, "1.0.1"));
     }
 
     @Test

@@ -27,6 +27,7 @@ npm --prefix calm-plugins/vscode/screenshots run test
 # Static checks (run in CI)
 npm --prefix calm-plugins/vscode/screenshots run typecheck
 npm --prefix calm-plugins/vscode/screenshots run lint
+npm --prefix calm-plugins/vscode/screenshots run lint-fix   # Auto-fix lint issues
 ```
 
 The extension must be built first. The orchestrator will fail with a helpful message if `calm-plugins/vscode/dist/extension.js` is missing.
