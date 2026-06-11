@@ -274,7 +274,7 @@ bash calm-hub/smoke-test.sh http://localhost:8080 readwrite 120
 
 CALM Hub includes an experimental [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server.
 
-**Dependency:** `io.quarkiverse.mcp:quarkus-mcp-server-http:1.12.0`  
+**Dependency:** `io.quarkiverse.mcp:quarkus-mcp-server-http:1.12.1`  
 **Endpoint:** `POST /mcp` (HTTP Streamable JSON-RPC 2.0)  
 **Config:** `calm.mcp.enabled=false` (env: `CALM_MCP_ENABLED`)
 
