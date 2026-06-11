@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -24,6 +25,38 @@ public class TestDomainUserAccessResourceShould {
     UserAccessStore mockUserAccessStore;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @Test
+    void return_400_when_invalid_domain_format_provided_on_create_user_access() {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .when()
+                .post("/calm/domains/invalid_domain/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString(DOMAIN_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_invalid_domain_format_provided_on_get_user_access() {
+        given()
+                .when()
+                .get("/calm/domains/invalid_domain/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString(DOMAIN_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_invalid_domain_format_provided_on_get_user_access_by_id() {
+        given()
+                .when()
+                .get("/calm/domains/invalid_domain/user-access/1")
+                .then()
+                .statusCode(400)
+                .body(containsString(DOMAIN_MESSAGE));
+    }
 
     @Test
     void return_201_created_with_location_header_when_domain_user_access_is_created() throws Exception {
