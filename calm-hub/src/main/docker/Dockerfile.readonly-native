@@ -73,11 +73,20 @@ RUN DATA_DIR=/data \
 
 
 # ── Stage 2: Final read-only native image ─────────────────────────────────────
-# distroless/cc: no shell or package manager; ships only glibc, libstdc++, and
-# libz — exactly the runtime libs a Mandrel native binary requires (~20 MB vs
-# ~90 MB for UBI9 minimal).  No RUN commands are possible in this layer, so
-# permissions are set via COPY --chmod (requires BuildKit).
+# The Mandrel native binary dynamically links libz.so.1, which is NOT included
+# in distroless/cc-debian12 (it ships only glibc/libgcc/libstdc++).  Stage libz
+# from debian so it can be copied into the final image.
+FROM debian:12-slim AS libz
+RUN mkdir -p /libz-out && cp -a /usr/lib/*-linux-gnu/libz.so.1* /libz-out/
+
+# distroless/cc: no shell or package manager; ships glibc, libgcc, and libstdc++
+# (~20 MB vs ~90 MB for UBI9 minimal).  No RUN commands are possible in this
+# layer, so permissions are set via COPY --chmod (requires BuildKit).
 FROM gcr.io/distroless/cc-debian12 AS final
+
+# Provide libz.so.1 on the default loader search path (/usr/lib) — required by
+# the native binary but absent from distroless/cc.
+COPY --from=libz /libz-out/ /usr/lib/
 
 # Native runner
 COPY --chmod=0755 --chown=1001:root target/*-runner /deployments/calm-hub-runner

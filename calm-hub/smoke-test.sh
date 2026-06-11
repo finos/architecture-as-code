@@ -11,6 +11,8 @@
 #   GET    /calm/namespaces/finos/architectures      -> 200  (seeded namespace)
 #   GET    /calm/namespaces/finos/patterns           -> 200
 #   GET    /calm/namespaces/traderx/architectures    -> 200
+#   GET    /calm/namespaces/finos/architectures      body contains "name","description"
+#   GET    /calm/namespaces/finos/patterns           body contains "name"
 #   POST   /calm/namespaces                         -> 405  (blocked by ReadOnlyRequestFilter)
 #   PUT    /calm/namespaces/smoke                   -> 405
 #   DELETE /calm/namespaces/smoke                   -> 405
@@ -21,6 +23,7 @@
 #   GET    /calm/namespaces                                        -> 200
 #   POST   /calm/namespaces/smoke-test/architectures               -> 201  (create architecture)
 #   GET    /calm/namespaces/smoke-test/architectures               -> 200
+#   GET    /calm/namespaces/smoke-test/architectures               body contains "name"
 #   GET    /calm/namespaces/smoke-test/architectures/1/versions              -> 200
 #   GET    /calm/namespaces/smoke-test/architectures/1/versions/1.0.0        -> 200
 #
@@ -66,6 +69,23 @@ assert() {
     fi
 }
 
+# assert_body_contains GET PATH SUBSTRING
+# Fetches the response body and fails unless it contains SUBSTRING. This guards
+# against the native-image serialization regression where summary endpoints
+# returned HTTP 200 but with empty objects (e.g. {"values":[{}]}) because the
+# DTOs returned via raw Response were not registered for reflection.
+assert_body_contains() {
+    local method="$1" path="$2" needle="$3"
+    local body
+    body=$(curl -s -X "${method}" "${BASE_URL}${path}")
+    if [[ "${body}" == *"${needle}"* ]]; then
+        echo "[smoke] OK   ${method} ${path} body contains '${needle}'"
+    else
+        echo "[smoke] FAIL ${method} ${path} body missing '${needle}' -> ${body}" >&2
+        exit 1
+    fi
+}
+
 # ── Assertions ────────────────────────────────────────────────────────────────
 echo "[smoke] Running assertions (mode: ${MODE})..."
 
@@ -75,6 +95,11 @@ if [[ "${MODE}" == "readonly" ]]; then
     assert GET /calm/namespaces/finos/architectures 200
     assert GET /calm/namespaces/finos/patterns 200
     assert GET /calm/namespaces/traderx/architectures 200
+    # Summary payloads must be populated, not empty objects (native serialization
+    # regression guard): a seeded summary must carry name and description fields.
+    assert_body_contains GET /calm/namespaces/finos/architectures '"name"'
+    assert_body_contains GET /calm/namespaces/finos/architectures '"description"'
+    assert_body_contains GET /calm/namespaces/finos/patterns '"name"'
     # All mutating methods must be blocked
     assert POST   /calm/namespaces       405 -H 'Content-Type: application/json' -d '{"name":"smoke-test","description":"smoke test namespace"}'
     assert PUT    /calm/namespaces/smoke  405
@@ -89,6 +114,9 @@ else
     arch_body='{"name":"smoke-arch","description":"smoke architecture","architectureJson":"{}"}'
     assert POST /calm/namespaces/smoke-test/architectures 201 -H 'Content-Type: application/json' -d "${arch_body}"
     assert GET  /calm/namespaces/smoke-test/architectures 200
+    # Summary payload must be populated, not an empty object (native serialization
+    # regression guard): the created architecture must surface its name.
+    assert_body_contains GET /calm/namespaces/smoke-test/architectures '"name"'
     assert GET  /calm/namespaces/smoke-test/architectures/1/versions 200
     assert GET  /calm/namespaces/smoke-test/architectures/1/versions/1.0.0 200
 fi

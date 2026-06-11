@@ -19,6 +19,10 @@ services:
     # Native binaries do NOT read JAVA_OPTS; configure via Quarkus env vars.
     environment:
       - QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongodb:27017
+      # Local demo only: disable auth so the UI works without an IdP.
+      # WARNING: never run with auth disabled in production.
+      - QUARKUS_PROFILE=no-auth
+      - CALM_AUTH_ENABLED=false
     networks:
       - calm-net
 networks:

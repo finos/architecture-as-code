@@ -41,7 +41,7 @@ export class AdrService {
             .get(`/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions`, {
                 headers,
             })
-            .then((res) => res.data.values)
+            .then((res) => (Array.isArray(res.data?.values) ? res.data.values : []))
             .catch((error) => {
                 const errorMessage = `Error fetching revisions for ADR ID ${adrID}:`;
                 console.error('Error fetching revisions for ADR ID %s:', adrID, error);

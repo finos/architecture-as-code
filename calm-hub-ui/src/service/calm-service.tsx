@@ -89,7 +89,7 @@ export class CalmService {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`, { headers })
-            .then((res) => res.data.values)
+            .then((res) => (Array.isArray(res.data?.values) ? res.data.values : []))
             .catch((error) => {
                 const errorMessage = `Error fetching versions for pattern ID ${patternID}:`;
                 // arg1 is %s to prevent format string injection from `patternID`.
@@ -102,7 +102,7 @@ export class CalmService {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/flows/${flowID}/versions`, { headers })
-            .then((res) => res.data.values)
+            .then((res) => (Array.isArray(res.data?.values) ? res.data.values : []))
             .catch((error) => {
                 const errorMessage = `Error fetching versions for flow ID ${flowID}:`;
                 // arg1 is %s to prevent format string injection from `flowID`.
@@ -117,7 +117,7 @@ export class CalmService {
             .get(`/calm/namespaces/${namespace}/architectures/${architectureID}/versions`, {
                 headers,
             })
-            .then((res) => res.data.values)
+            .then((res) => (Array.isArray(res.data?.values) ? res.data.values : []))
             .catch((error) => {
                 const errorMessage = `Error fetching versions for architecture ID ${architectureID}:`;
                 // arg1 is %s to prevent format string injection from `architectureID`.
@@ -213,7 +213,7 @@ export class CalmService {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${encodeURIComponent(namespace)}/standards/${standardID}/versions`, { headers })
-            .then((res) => res.data.values)
+            .then((res) => (Array.isArray(res.data?.values) ? res.data.values : []))
             .catch((error) => {
                 const errorMessage = `Error fetching versions for standard ID ${standardID}:`;
                 // arg1 is %s to prevent format string injection from `standardID`.
@@ -317,7 +317,7 @@ export class CalmService {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(customId)}/versions`, { headers })
-            .then((res) => res.data.values)
+            .then((res) => (Array.isArray(res.data?.values) ? res.data.values : []))
             .catch((error) => {
                 const errorMessage = `Error fetching versions for custom ID ${customId}:`;
                 console.error('%s', errorMessage, error);
