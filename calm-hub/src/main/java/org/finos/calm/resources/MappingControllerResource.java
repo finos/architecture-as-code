@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -247,22 +249,8 @@ public class MappingControllerResource {
     public Response linkExistingResource(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("customId") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String customId,
-            String requestBody
+            @Valid @NotNull(message = "Request must not be null") MappingLinkRequest request
     ) throws URISyntaxException {
-        MappingLinkRequest request;
-        try {
-            request = OBJECT_MAPPER.readValue(requestBody, MappingLinkRequest.class);
-        } catch (JsonProcessingException e) {
-            return invalidJsonResponse("Cannot parse request body");
-        }
-
-        if (request.getType() == null || request.getType().isBlank()) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Field 'type' is required").build();
-        }
-        if (request.getResourceId() == null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Field 'resourceId' is required").build();
-        }
-
         ResourceType resourceType;
         try {
             resourceType = ResourceType.valueOf(request.getType().toUpperCase());
