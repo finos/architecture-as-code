@@ -20,6 +20,7 @@ import { EmptyGraphState } from './EmptyGraphState.js';
 import { parseCALMData } from './utils/calmTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
+import { applyStoredPositions } from '../../services/node-position-service.js';
 import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
 
 const edgeTypes = { custom: FloatingEdge };
@@ -58,15 +59,18 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         onNodeClick,
         onEdgeClick,
         groupNodeTypes: GROUP_NODE_TYPES,
+        persistKey: viewportKey,
     });
 
     useEffect(() => {
         const { nodes: parsedNodes, edges: parsedEdges } = parseCALMData(jsonData, onNodeClick);
         sourceNodesRef.current = parsedNodes;
-        setNodes(parsedNodes);
+        // Restore any custom layout the user dragged for this diagram, falling
+        // back to the parsed auto-layout when none is stored.
+        setNodes(viewportKey ? applyStoredPositions(viewportKey, parsedNodes) : parsedNodes);
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
-    }, [jsonData, setNodes, setEdges, onNodeClick]);
+    }, [jsonData, setNodes, setEdges, onNodeClick, viewportKey]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';

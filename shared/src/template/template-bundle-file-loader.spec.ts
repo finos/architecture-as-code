@@ -9,7 +9,7 @@ vi.mock('fs');
 describe('TemplateBundleFileLoader', () => {
     const mockBundlePath = '/mock/template-bundle';
     const mockIndexJsonPath = path.join(mockBundlePath, 'index.json');
-    const mockTemplateFiles = {
+    const mockTemplateFiles: Record<string, string> = {
         'template1.hbs': '{{name}} template',
         'template2.hbs': '{{name}} another template',
     };
@@ -215,7 +215,7 @@ widget-options:
 describe('SelfProvidedDirectoryTemplateLoader', () => {
     const templateDir = '/mock/templates';
     const files = ['doc1.md', 'doc2.hbs', 'doc3.md', 'readme.txt'];
-    const fileContents = {
+    const fileContents: Record<string, string> = {
         'doc1.md': `---
 name: Sample Document
 widget-options:

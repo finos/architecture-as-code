@@ -43,37 +43,57 @@ npm run copy-ai-tools         # Copy AI agent files from ../calm-ai/
 ## Architecture Overview
 
 ### Entry Point & Command Structure
-- **Entry**: `src/index.ts` - Sets up Commander.js and registers commands
-- **Commands**: `src/cli.ts` - Main command implementations
-- **Pattern**: Each command is a separate function (generateArchitecture, validateArchitecture, etc.)
+- **Entry**: `src/index.ts` - Thin (~13-line) bin bootstrap. Imports Commander's `program`, calls `setupCLI(program)`, then `program.parseAsync(...)`. No command definitions live here.
+- **Commands**: `src/cli.ts` - Exports `setupCLI(program)`, which registers every command and its options/actions. This is where all command wiring lives.
+- **Pattern**: Each command is registered inline in `setupCLI`; the heavier action logic is dynamically imported from `src/command-helpers/` (see below).
 
 ### Key Commands
 1. **generate** - Generate architecture from CALM pattern
-2. **validate** - Validate architecture against pattern
+2. **validate** - Validate a CALM document (architecture, pattern, and/or timeline) against schemas
 3. **init-ai** - Install AI Assistant support for CALM
 4. **template** - Generate files from Handlebars templates
 5. **docify** - Generate documentation websites (supports `--scaffold` for two-stage workflow)
+6. **diff** - Compare two CALM documents (architectures or patterns), or adjacent/explicit moments of a CALM timeline, and report what changed. Supports `--exit-code` to gate CI on detected changes.
+7. **timeline** - Synthesise an implied CALM timeline from a set of local versioned architecture files (one moment per input).
+8. **init-config** - Create or update the CLI configuration file (`~/.calm.json`), e.g. allowed remote hosts and CALM Hub URL.
+9. **hub** - Command **group** for interacting with CALM Hub. Subcommands:
+   - `hub push <resource> <file>` / `hub pull <resource>` / `hub list <resources>` / `hub create <resource>`
+   - Resources span architectures, patterns, standards, control-requirements, control-configurations, namespaces, and domains (which subcommands exist varies per verb).
 
 ### Important Directories
 ```
 src/
-├── cli.ts                    # Main command implementations
-├── cli-config.ts             # Configuration helpers
-├── index.ts                  # Entry point
-├── command-helpers/          # Shared utilities for commands
+├── cli.ts                    # setupCLI: registers all commands, options, and actions
+├── cli-config.ts             # Configuration helpers (~/.calm.json loading/saving)
+├── index.ts                  # Thin bin bootstrap (calls setupCLI + parseAsync)
+├── command-helpers/          # Action logic for commands (see below)
 └── test_helpers/             # Test utilities
 ```
+
+The `command-helpers/` directory now holds the substantial per-command logic that
+`cli.ts` dynamically imports:
+- `diff.ts` - document and timeline diffing
+- `timeline.ts` - timeline synthesis
+- `hub-commands.ts` - CALM Hub push/pull/list/create implementations
+- `hub-output.ts` - formatting of Hub command output
+- `template.ts` - template processing helpers (e.g. URL-to-local-file mapping)
+- `validate.ts` - validation option checks and execution
+- `generate-options.ts` - interactive/option-choice handling for `generate`
+- `ai-tools.ts` - `init-ai` provider setup
 
 ### Build Artifacts
 After `npm run build`, the `dist/` directory contains:
 ```
 dist/
 ├── index.js              # Compiled CLI entry point (bin)
-├── calm/release/         # Copied CALM schemas
+├── calm/                 # Copied CALM meta schemas only (release + draft **/meta/* files)
 ├── calm-ai/              # Copied AI agent files
 ├── template-bundles/     # Copied docify templates
-└── cli/widgets/          # Copied widget files
+└── widgets/              # Copied widget files (copy-widgets uses --up 4)
 ```
+
+Note: `copy-calm-schema` only bundles `**/meta/*` files (not every CALM schema)
+into `dist/calm/`.
 
 ## Key Concepts
 
@@ -88,7 +108,7 @@ dist/
 - Supports both file paths and URLs for pattern/architecture files
 
 ### Verbose Mode
-- All commands support `-v, --verbose` flag
+- Most top-level commands support `-v, --verbose` (generate, validate, template, docify, init-ai, diff, timeline). `init-config` and the `hub` subcommands do not.
 - Use for debugging command execution
 
 ### Configuration

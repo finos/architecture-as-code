@@ -1,6 +1,5 @@
 import { Docifier } from './docifier';
 import { TemplateProcessor } from '../template/template-processor';
-import { Mock } from 'vitest';
 import * as urlMapping from '../template/url-mapping';
 import * as browserLaunch from './diagram-rendering/browser-launch';
 import * as diagramProcessor from './diagram-rendering/markdown-diagram-processor';
@@ -28,7 +27,7 @@ vi.mock('../logger', async (importOriginal) => {
     return { ...actual, initLogger: vi.fn(() => mockLogger) };
 });
 
-const MockedTemplateProcessor: Mock = vi.mocked(TemplateProcessor);
+const MockedTemplateProcessor = vi.mocked(TemplateProcessor);
 
 describe('Docifier', () => {
     const inputPath = 'some/input/path';

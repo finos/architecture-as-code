@@ -106,9 +106,10 @@ export class CalmHubClient {
         }
         
         if (options.authPlugin) {
+            const authPlugin = options.authPlugin;
             this.ax.interceptors.request.use(async (config) => {
                 const fullUrl = (config.baseURL || '') + (config.url || '');
-                const authHeaders = await options.authPlugin.getAuthHeaders(fullUrl, config.data);
+                const authHeaders = await authPlugin.getAuthHeaders(fullUrl, config.data);
                 Object.assign(config.headers, authHeaders);
                 return config;
             });

@@ -1,6 +1,6 @@
 package org.finos.calm.domain;
 
-import org.finos.calm.domain.frontcontroller.ChangeType;
+import org.finos.calm.domain.mapping.ChangeType;
 
 /**
  * Immutable value object representing a semantic version (major.minor.patch).

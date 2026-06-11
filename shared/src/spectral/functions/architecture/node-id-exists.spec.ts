@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { nodeIdExists } from './node-id-exists';
 
 describe('nodeIdExists', () => {
@@ -9,7 +10,7 @@ describe('nodeIdExists', () => {
             }
         };
 
-        const result = nodeIdExists(input, null, context);
+        const result = nodeIdExists(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -25,7 +26,7 @@ describe('nodeIdExists', () => {
             }
         };
 
-        const result = nodeIdExists(input, null, context);
+        const result = nodeIdExists(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -42,7 +43,7 @@ describe('nodeIdExists', () => {
             path: ['/relationships/0/connects/destination']
         };
 
-        const result = nodeIdExists(input, null, context);
+        const result = nodeIdExists(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`'${input}' does not refer to the unique-id of an existing node.`);
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);

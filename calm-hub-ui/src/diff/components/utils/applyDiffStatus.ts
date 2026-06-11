@@ -25,7 +25,10 @@ export function applyDiffStatus(
         let diffStatus: DiffNodeData['diffStatus'] = 'unchanged';
         let originalId: string | undefined;
 
-        if (isFirst) {
+        // Only match by a real unique-id. Unconstrained pattern nodes have no
+        // id, and matching them by `undefined === undefined` would tar every
+        // id-less node with the same status, so leave them unchanged.
+        if (uniqueId && isFirst) {
             if (diffResult.nodesRemoved.some((n) => n['unique-id'] === uniqueId)) {
                 diffStatus = 'removed';
             } else if (diffResult.nodesModified.some((m) => m.original['unique-id'] === uniqueId)) {
@@ -34,7 +37,7 @@ export function applyDiffStatus(
                 diffStatus = 'renamed';
                 originalId = diffResult.nodesRenamed.find((r) => r.newId === uniqueId)?.oldId;
             }
-        } else {
+        } else if (uniqueId) {
             if (diffResult.nodesAdded.some((n) => n['unique-id'] === uniqueId)) {
                 diffStatus = 'added';
             } else if (diffResult.nodesModified.some((m) => m.updated['unique-id'] === uniqueId)) {
@@ -65,7 +68,9 @@ export function applyDiffStatus(
         let diffStatus: DiffEdgeData['diffStatus'] = 'unchanged';
         let originalId: string | undefined;
 
-        if (isFirst) {
+        // See the node loop above: id-less pattern edges must not match by
+        // `undefined === undefined`, so leave them unchanged.
+        if (uniqueId && isFirst) {
             if (diffResult.edgesRemoved.some((e) => e['unique-id'] === uniqueId)) {
                 diffStatus = 'removed';
             } else if (diffResult.edgesModified.some((m) => m.original['unique-id'] === uniqueId)) {
@@ -74,7 +79,7 @@ export function applyDiffStatus(
                 diffStatus = 'renamed';
                 originalId = diffResult.edgesRenamed.find((r) => r.newId === uniqueId)?.oldId;
             }
-        } else {
+        } else if (uniqueId) {
             if (diffResult.edgesAdded.some((e) => e['unique-id'] === uniqueId)) {
                 diffStatus = 'added';
             } else if (diffResult.edgesModified.some((m) => m.updated['unique-id'] === uniqueId)) {

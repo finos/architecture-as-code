@@ -23,21 +23,25 @@ export default defineConfig({
 			// The package.json exports map only exposes '.', so test-fixtures must be aliased here.
 			'@calmstudio/calm-core/test-fixtures': path.resolve('../../packages/calm-core/test-fixtures/index.ts'),
 		},
+		// CodeMirror uses internal symbols + instanceof checks across @codemirror/state,
+		// @codemirror/view and @codemirror/language. Multiple module copies break those
+		// checks ("Unrecognized extension value in extension set"). Force single instance.
+		dedupe: [
+			'codemirror',
+			'svelte-codemirror-editor',
+			'@codemirror/state',
+			'@codemirror/view',
+			'@codemirror/language',
+			'@codemirror/lang-json',
+			'@codemirror/lint',
+			'@codemirror/theme-one-dark',
+		],
 	},
 	ssr: {
 		noExternal: ['@xyflow/svelte']
 	},
 	optimizeDeps: {
 		include: ['ajv', 'ajv-formats'],
-		exclude: [
-			'svelte-codemirror-editor',
-			'codemirror',
-			'@codemirror/view',
-			'@codemirror/state',
-			'@codemirror/lang-json',
-			'@codemirror/lint',
-			'@codemirror/theme-one-dark',
-		]
 	},
 	test: {
 		include: ['src/**/*.test.ts'],

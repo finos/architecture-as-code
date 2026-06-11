@@ -17,9 +17,9 @@ mock.onGet('/schemas/2025-03/meta/core.json').reply(200, {
 
 describe('calmhub-document-loader', () => {
     let calmHubDocumentLoader: CalmHubDocumentLoader;
-    let schemaDirectory: SchemaDirectory;
+    const schemaDirectory: SchemaDirectory = {} as unknown as SchemaDirectory;
     beforeEach(() => {
-        calmHubDocumentLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, null, ax);
+        calmHubDocumentLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, undefined, ax);
         calmHubDocumentLoader.initialise(schemaDirectory);
     });
 
@@ -30,6 +30,11 @@ describe('calmhub-document-loader', () => {
             '$id': 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
             'value': 'test'
         });
+    });
+    
+    it('fails to load a document with invalid url scheme', async () => {
+        const calmHubUrl = 'ftp://schemas/2025-03/meta/core.json';
+        await expect(async () => await calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
     });
     
     it('calls configured auth plugin if provided', async () => {

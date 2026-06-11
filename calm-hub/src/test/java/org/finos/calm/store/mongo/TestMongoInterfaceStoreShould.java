@@ -155,6 +155,17 @@ public class TestMongoInterfaceStoreShould {
         when(findIterable.first()).thenReturn(mainDocument);
     }
 
+    private void mockSetupInterfaceDocumentWithoutVersions() {
+        Document interfaceWithNoVersions = new Document("namespace", "finos")
+                .append("interfaces", List.of(new Document("interfaceId", 42)));
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(interfaceCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(interfaceWithNoVersions);
+    }
+
     @Test
     void return_a_namespace_exception_when_namespace_does_not_exist_when_creating_interface() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
@@ -227,6 +238,22 @@ public class TestMongoInterfaceStoreShould {
         List<String> interfaceVersions = mongoInterfaceStore.getInterfaceVersions("finos", 42);
 
         assertThat(interfaceVersions, is(List.of("1.0.0")));
+    }
+
+    @Test
+    void throw_interface_not_found_when_versions_document_is_missing_on_get_versions() {
+        mockSetupInterfaceDocumentWithoutVersions();
+
+        assertThrows(InterfaceNotFoundException.class,
+                () -> mongoInterfaceStore.getInterfaceVersions("finos", 42));
+    }
+
+    @Test
+    void throw_interface_version_not_found_when_versions_document_is_missing_on_get_for_version() {
+        mockSetupInterfaceDocumentWithoutVersions();
+
+        assertThrows(InterfaceVersionNotFoundException.class,
+                () -> mongoInterfaceStore.getInterfaceForVersion("finos", 42, "1.0.0"));
     }
 
     @Test

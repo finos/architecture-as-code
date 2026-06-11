@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { sequenceNumbersAreUnique } from './sequence-numbers-are-unique';
 
 describe('sequenceNumbersAreUnique', () => {
@@ -10,7 +11,7 @@ describe('sequenceNumbersAreUnique', () => {
             path: ['flows', 0, 'transitions']
         };
 
-        const result = sequenceNumbersAreUnique(input, null, context);
+        const result = sequenceNumbersAreUnique(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -26,7 +27,7 @@ describe('sequenceNumbersAreUnique', () => {
             path: ['flows', 0, 'transitions']
         };
 
-        const result = sequenceNumbersAreUnique(input, null, context);
+        const result = sequenceNumbersAreUnique(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -42,7 +43,7 @@ describe('sequenceNumbersAreUnique', () => {
             path: ['flows', 0, 'transitions']
         };
 
-        const result = sequenceNumbersAreUnique(input, null, context);
+        const result = sequenceNumbersAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate sequence-number 1 detected. path: /1/sequence-number');
     });

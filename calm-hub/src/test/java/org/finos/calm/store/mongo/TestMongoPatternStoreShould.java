@@ -254,6 +254,38 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
+    void throw_pattern_not_found_when_versions_document_is_missing_on_get_versions() {
+        Document patternWithNoVersions = new Document("namespace", "finos")
+                .append("patterns", List.of(new Document("patternId", 42)));
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(patternWithNoVersions);
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(42).build();
+
+        assertThrows(PatternNotFoundException.class,
+                () -> mongoPatternStore.getPatternVersions(pattern));
+    }
+
+    @Test
+    void throw_pattern_version_not_found_when_versions_document_is_missing_on_get_for_version() {
+        Document patternWithNoVersions = new Document("namespace", "finos")
+                .append("patterns", List.of(new Document("patternId", 42)));
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(patternWithNoVersions);
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(42).setVersion("1.0.0").build();
+
+        assertThrows(PatternVersionNotFoundException.class,
+                () -> mongoPatternStore.getPatternForVersion(pattern));
+    }
+
+    @Test
     void get_pattern_versions_for_valid_pattern_returns_list_of_versions() throws PatternNotFoundException, NamespaceNotFoundException {
         mockSetupPatternDocumentWithVersions();
 

@@ -29,6 +29,17 @@ function valuesEqual(a: unknown, b: unknown): boolean {
     return JSON.stringify(normalizeValue(a)) === JSON.stringify(normalizeValue(b));
 }
 
+/**
+ * A stable content key for a value: object keys are sorted recursively before
+ * serialising, so two values differing only in object-key order produce the
+ * same key. Array element order is preserved (and therefore significant),
+ * matching {@link valuesEqual}. Used by the pattern diff to match id-less items
+ * by content.
+ */
+export function canonicalKey(value: unknown): string {
+    return JSON.stringify(normalizeValue(value));
+}
+
 function omitUniqueId(item: Record<string, unknown>): Record<string, unknown> {
     const { 'unique-id': _omit, ...rest } = item;
     void _omit;

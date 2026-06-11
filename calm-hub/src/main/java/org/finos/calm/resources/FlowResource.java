@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -10,14 +11,14 @@ import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.finos.calm.domain.*;
-import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.Flow;
+import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.FlowStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,7 @@ public class FlowResource {
             summary = "Retrieve flows in a given namespace",
             description = "Flows stored in a given namespace"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getFlowsForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
@@ -74,7 +75,7 @@ public class FlowResource {
             summary = "Create flow for namespace",
             description = "Creates a flow for a given namespace with an allocated ID and version 1.0.0"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createFlowForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
@@ -98,7 +99,7 @@ public class FlowResource {
             summary = "Retrieve the latest flow version",
             description = "Fetch the latest version of the flow by flowId"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getLatestFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId
@@ -129,7 +130,7 @@ public class FlowResource {
             summary = "Retrieve a list of versions for a given flow",
             description = "Flow versions are not opinionated, outside of the first version created"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getFlowVersions(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId
@@ -157,7 +158,7 @@ public class FlowResource {
             summary = "Retrieve a specific flow at a given version",
             description = "Retrieve flows at a specific version"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,
@@ -191,11 +192,11 @@ public class FlowResource {
     @Path("{namespace}/flows/{flowId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     @Operation(
             summary = "Create a new version of an existing flow",
             description = "Stores a new version of the flow under the supplied {version}. The request body is an envelope containing `name`, optional `description`, and the inner `flowJson` document; only the inner document is persisted as the version contents."
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,
@@ -234,7 +235,7 @@ public class FlowResource {
             summary = "Updates a Flow (if available)",
             description = "In mutable version stores flow updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified. The request body uses the same envelope as POST."
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,

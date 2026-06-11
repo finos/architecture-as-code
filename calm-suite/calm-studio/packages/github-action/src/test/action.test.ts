@@ -18,7 +18,12 @@ const sampleArch: CalmArchitecture = {
     { 'unique-id': 'node-2', 'node-type': 'service', name: 'API', description: 'REST API service' }
   ],
   relationships: [
-    { 'unique-id': 'rel-1', 'relationship-type': 'connects', source: 'node-1', destination: 'node-2' }
+    {
+      'unique-id': 'rel-1',
+      'relationship-type': {
+        connects: { source: { node: 'node-1' }, destination: { node: 'node-2' } }
+      }
+    }
   ]
 };
 

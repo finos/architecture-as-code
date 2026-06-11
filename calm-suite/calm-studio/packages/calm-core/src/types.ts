@@ -3,69 +3,77 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * The 9 built-in CALM node types. Custom types are represented as plain strings.
+ * types.ts — Canonical CALM type re-exports from @finos/calm-models with
+ * backwards-compatible aliases for CalmStudio consumers.
+ *
+ * Per https://github.com/finos/architecture-as-code/pull/2553 review:
+ * calm-studio reuses the canonical types maintained in calm-models rather
+ * than maintaining a parallel vendored copy. Schema drift and feature drift
+ * (e.g. interface-level endpoint refs on connects relationships) are
+ * eliminated by depending on calm-models directly.
+ *
+ * Calm-studio-specific extensions (decorators, evidence) stay local because
+ * calm-models does not define them yet. Variant accessor helpers live in
+ * helpers.ts.
  */
-export type CalmNodeType =
-  | 'actor'
-  | 'system'
-  | 'service'
-  | 'database'
-  | 'network'
-  | 'webclient'
-  | 'ecosystem'
-  | 'ldap'
-  | 'data-asset';
+
+export type {
+  CalmNodeSchema as CalmNode,
+  CalmNodeTypeSchema as CalmNodeType,
+  CalmInterfaceSchema as CalmInterface,
+  CalmRelationshipSchema as CalmRelationship,
+  CalmRelationshipTypeSchema as CalmRelationshipType,
+  CalmConnectsRelationshipSchema as CalmConnectsRelationship,
+  CalmComposedOfRelationshipSchema as CalmComposedOfRelationship,
+  CalmInteractsRelationshipSchema as CalmInteractsRelationship,
+  CalmDeployedInRelationshipSchema as CalmDeployedInRelationship,
+  CalmOptionsRelationshipSchema as CalmOptionsRelationship,
+  CalmDecisionSchema as CalmDecision,
+  CalmProtocolSchema as CalmProtocol,
+  CalmCoreSchema as CalmCore,
+  CalmControlsSchema as CalmControls,
+  CalmControlSchema as CalmControl,
+  CalmControlDetailSchema as CalmControlRequirement,
+  CalmMetadataSchema as CalmMetadata,
+  CalmFlowSchema as CalmFlow,
+  CalmFlowTransitionSchema as CalmTransition,
+  CalmFlowTransitionDirectionSchema,
+} from '@finos/calm-models/types';
+
+import type {
+  CalmArchitectureSchema,
+  CalmNodeSchema,
+  CalmRelationshipSchema,
+} from '@finos/calm-models/types';
+
+import type { CalmNodeInterfaceSchema } from '@finos/calm-models/types';
 
 /**
- * The 5 CALM relationship types.
+ * Backwards-compatible alias. Per calm-models the connects-endpoint shape
+ * is `{ node: string; interfaces?: string[] }` (interfaces refer to
+ * unique-ids of CalmInterface{Type,Definition}Schema). PR #2553 originally
+ * dropped the `interfaces` field; the alias restores it.
  */
-export type CalmRelationshipType =
+export type CalmConnectsEndpoint = CalmNodeInterfaceSchema;
+
+/**
+ * Variant key alias — string literal union for routing/UI code that
+ * doesn't need the full discriminated payload.
+ */
+export type CalmRelationshipVariant =
   | 'connects'
   | 'interacts'
   | 'deployed-in'
   | 'composed-of'
   | 'options';
 
-/**
- * A typed interface (endpoint) attached to a CALM node.
- * Represents things like URLs, host-port pairs, container images, etc.
- */
-export interface CalmInterface {
-  'unique-id': string;
-  /** e.g. 'url', 'host-port', 'container-image', 'port' */
-  type: string;
-  value?: string;
-}
-
-/**
- * A single control requirement linking to an external requirement URL.
- * Per CALM 1.2 control.json schema — requirement-url is required; config-url and config are optional.
- */
-export interface CalmControlRequirement {
-  'requirement-url': string;
-  'config-url'?: string;
-  config?: Record<string, unknown>;
-}
-
-/**
- * A control applied to a node or relationship.
- * Keys in CalmControls use kebab-case identifiers (e.g. 'aigf-data-leakage-prevention').
- */
-export interface CalmControl {
-  description: string;
-  requirements: CalmControlRequirement[];
-}
-
-/**
- * A map of control key to control detail, applied to nodes or relationships.
- * Keys follow kebab-case convention (e.g. 'aigf-firewalling-filtering').
- */
-export type CalmControls = Record<string, CalmControl>;
+// ─── CalmStudio-only extensions (not in calm-models) ────────────────────────
 
 /**
  * A CALM 1.2 decorator — architecture-wide overlay for cross-cutting concerns
- * such as AIGF governance summaries, regulatory mappings, or security posture.
- * Read by CalmGuard for reporting.
+ * such as AIGF governance summaries, regulatory mappings, threat models, or
+ * security posture. Not yet in @finos/calm-models; lives locally until
+ * upstreamed.
  */
 export interface CalmDecorator {
   'unique-id': string;
@@ -76,93 +84,35 @@ export interface CalmDecorator {
 }
 
 /**
- * CALM 1.2 evidence — links a control to evidence of compliance.
- * Evidence collection/linking is CalmGuard's responsibility at build/runtime.
- * CalmStudio supports this type for roundtrip completeness only.
+ * CalmStudio architecture model: the canonical CALM 1.2 core schema with
+ * two studio-specific tightenings:
+ *
+ *   - `nodes` and `relationships` are required (never undefined). The
+ *     canonical `CalmCoreSchema` makes both optional because architectures
+ *     mid-construction may have neither; CalmStudio's producers always
+ *     populate both arrays (empty if the diagram is blank), so promoting
+ *     them to required keeps `exactOptionalPropertyTypes: true` happy and
+ *     removes a flood of `arch.nodes is possibly undefined` errors.
+ *
+ *   - `decorators?: CalmDecorator[]` extension used by the AIGF
+ *     governance overlay and the threat-model overlay (#2551).
+ *     `@finos/calm-models` does not model decorators yet.
+ */
+export type CalmArchitecture = Omit<
+  CalmArchitectureSchema,
+  'nodes' | 'relationships'
+> & {
+  nodes: CalmNodeSchema[];
+  relationships: CalmRelationshipSchema[];
+  decorators?: CalmDecorator[];
+};
+
+/**
+ * CALM 1.2 evidence — links a control to evidence of compliance. Studio
+ * supports the type for round-trip completeness only.
  */
 export interface CalmEvidence {
   'unique-id': string;
   'evidence-paths': string[];
   'control-config-url': string;
-}
-
-/**
- * A node in the CALM architecture graph.
- * Corresponds to services, databases, actors, and other system components.
- */
-export interface CalmNode {
-  'unique-id': string;
-  /** node-type is CalmNodeType for built-in types; plain string allows custom types */
-  'node-type': CalmNodeType | string;
-  name: string;
-  description?: string;
-  interfaces?: CalmInterface[];
-  /** Arbitrary key-value metadata for extension without schema changes */
-  customMetadata?: Record<string, string>;
-  /** CALM 1.2 controls applied to this node */
-  controls?: CalmControls;
-  /** Data classification label (e.g. 'PII', 'Confidential', 'Public') */
-  'data-classification'?: string;
-  /** Arbitrary structured metadata for extension */
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * A directed relationship between two CALM nodes.
- */
-export interface CalmRelationship {
-  'unique-id': string;
-  'relationship-type': CalmRelationshipType;
-  /** unique-id of the source node */
-  source: string;
-  /** unique-id of the destination node */
-  destination: string;
-  /** e.g. 'HTTPS', 'JDBC', 'gRPC' */
-  protocol?: string;
-  description?: string;
-  /** CALM 1.2 controls applied to this relationship */
-  controls?: CalmControls;
-  /** Arbitrary structured metadata for extension */
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * A single step in a CALM flow sequence, referencing a relationship.
- * Corresponds to CALM 1.2 flow.json transition schema.
- */
-export interface CalmTransition {
-  /** unique-id of the relationship this step traverses */
-  'relationship-unique-id': string;
-  /** 1-based ordering within the flow */
-  'sequence-number': number;
-  /** Human-readable description of what this step does */
-  summary: string;
-  /** Optional — explicit direction override for bidirectional relationships */
-  direction?: 'source-to-destination' | 'destination-to-source';
-}
-
-/**
- * A named sequence of transitions describing a runtime flow through the architecture.
- * Corresponds to CALM 1.2 flow.json schema.
- */
-export interface CalmFlow {
-  'unique-id': string;
-  name: string;
-  description: string;
-  'requirement-url'?: string;
-  transitions: CalmTransition[];
-  controls?: CalmControls;
-  metadata?: Record<string, unknown>[];
-}
-
-/**
- * A complete CALM architecture document — nodes + relationships.
- */
-export interface CalmArchitecture {
-  nodes: CalmNode[];
-  relationships: CalmRelationship[];
-  /** CALM 1.2 decorators — architecture-wide overlays for governance and cross-cutting concerns */
-  decorators?: CalmDecorator[];
-  /** CALM 1.2 flows — named sequences of transitions describing runtime behaviour */
-  flows?: CalmFlow[];
 }

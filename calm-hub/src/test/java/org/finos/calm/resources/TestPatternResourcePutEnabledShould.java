@@ -1,16 +1,14 @@
 package org.finos.calm.resources;
 
-import static io.restassured.RestAssured.given;
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
-import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Mockito.when;
-
-import java.util.stream.Stream;
-
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.store.PatternStore;
+import org.bson.json.JsonParseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -18,10 +16,14 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import java.util.stream.Stream;
 
+import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.when;
+
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 @TestProfile(AllowPutProfile.class)
@@ -58,6 +60,7 @@ public class TestPatternResourcePutEnabledShould {
         return Stream.of(
                 Arguments.of( new NamespaceNotFoundException(), 404),
                 Arguments.of( new PatternNotFoundException(), 404),
+                Arguments.of(new JsonParseException(), 400),
                 Arguments.of(null, 201)
         );
     }

@@ -4,6 +4,7 @@ import { IndexFile, TemplateEntry } from './types.js';
 import { initLogger, Logger } from '../logger.js';
 import { parseFrontMatterFromContent, replaceVariables } from './front-matter.js';
 import { WidgetsOptions } from '@finos/calm-widgets';
+import { getErrorMessage } from '../error-utils.js';
 
 
 export interface ITemplateBundleLoader {
@@ -188,8 +189,9 @@ export class TemplateBundleFileLoader implements ITemplateBundleLoader {
             logger.info(`✅ Successfully loaded template bundle: ${rawConfig.name}`);
             return rawConfig as IndexFile;
         } catch (error) {
-            logger.error(`❌ Error reading index.json: ${error.message}`);
-            throw new Error(`Failed to parse index.json: ${error.message}`);
+            const message = getErrorMessage(error);
+            logger.error(`❌ Error reading index.json: ${message}`);
+            throw new Error(`Failed to parse index.json: ${message}`);
         }
     }
 

@@ -136,6 +136,9 @@ public class MongoArchitectureStore implements ArchitectureStore {
             if (architecture.getId() == architectureDoc.getInteger("architectureId")) {
                 // Extract the versions map from the matching pattern
                 Document versions = (Document) architectureDoc.get("versions");
+                if (versions == null) {
+                    throw new ArchitectureNotFoundException();
+                }
                 Set<String> versionKeys = versions.keySet();
 
                 //Convert from Mongo representation
@@ -176,6 +179,9 @@ public class MongoArchitectureStore implements ArchitectureStore {
             if (architecture.getId() == architectureDoc.getInteger("architectureId")) {
                 // Retrieve the versions map from the matching pattern
                 Document versions = (Document) architectureDoc.get("versions");
+                if (versions == null) {
+                    throw new ArchitectureVersionNotFoundException();
+                }
 
                 // Return the pattern JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(architecture.getMongoVersion());

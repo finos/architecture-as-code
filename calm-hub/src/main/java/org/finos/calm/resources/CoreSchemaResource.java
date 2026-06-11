@@ -1,20 +1,17 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.Authenticated;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.CoreSchemaStore;
 import org.owasp.html.PolicyFactory;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -37,7 +34,7 @@ public class CoreSchemaResource {
             summary = "Published CALM Schema Versions",
             description = "Retrieve the CALM Schema versions published by this CALM Hub"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @Authenticated
     public ValueWrapper<String> schemaVersions() {
         return new ValueWrapper<>(coreSchemaStore.getVersions());
     }
@@ -48,7 +45,7 @@ public class CoreSchemaResource {
             summary = "Published CALM Schemas for Version",
             description = "Retrieve the names of CALM Schemas in a given version"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @Authenticated
     public Response schemasForVersion(@PathParam("version") String version) {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
         if (schemas == null) {
@@ -65,7 +62,7 @@ public class CoreSchemaResource {
             summary = "Retrieve a specific schema by schema name",
             description = "Retrieve a specific schema from the CALM Hub"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @Authenticated
     public Response getSchema(@PathParam("version") String version,
                               @PathParam("schemaName") String schemaName) {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
@@ -89,7 +86,7 @@ public class CoreSchemaResource {
             summary = "Create Schema Version",
             description = "Create a new schema version with associated schemas"
     )
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response createSchemaVersion(SchemaVersionRequest request) throws URISyntaxException {
         if (request == null || request.getVersion() == null || request.getVersion().trim().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)

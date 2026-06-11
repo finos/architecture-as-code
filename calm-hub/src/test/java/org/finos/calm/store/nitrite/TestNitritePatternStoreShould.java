@@ -5,6 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -298,7 +299,7 @@ public class TestNitritePatternStoreShould {
 
         // Mock the versionsDoc with the fields we need
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get(anyString(), eq(String.class))).thenReturn(null); // Version not found
+        when(versionsDoc.get(anyString())).thenReturn(null); // Version not found
 
         // Mock the pattern document
         Document patternDoc = mock(Document.class);
@@ -319,6 +320,63 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
+    public void testGetPatternVersions_whenVersionsDocumentIsNull_throwsPatternNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document patternDoc = Document.createDocument().put("patternId", PATTERN_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace(NAMESPACE).setId(PATTERN_ID).build();
+
+        assertThrows(PatternNotFoundException.class, () -> patternStore.getPatternVersions(pattern));
+    }
+
+    @Test
+    public void testGetPatternForVersion_whenVersionsDocumentIsNull_throwsPatternVersionNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document patternDoc = Document.createDocument().put("patternId", PATTERN_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace(NAMESPACE).setId(PATTERN_ID).setVersion("1.0.0").build();
+
+        assertThrows(PatternVersionNotFoundException.class, () -> patternStore.getPatternForVersion(pattern));
+    }
+
+    @Test
+    public void testGetPatternForVersion_whenVersionObjIsNotAString_throwsPatternVersionNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document versions = Document.createDocument().put("1-0-0", 12345);
+        Document patternDoc = Document.createDocument()
+                .put("patternId", PATTERN_ID)
+                .put("versions", versions);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace(NAMESPACE).setId(PATTERN_ID).setVersion("1.0.0").build();
+
+        assertThrows(PatternVersionNotFoundException.class, () -> patternStore.getPatternForVersion(pattern));
+    }
+
+    @Test
     public void testGetPatternForVersion_whenVersionExists_returnsPatternJson() throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
         // Arrange
         Pattern pattern = new Pattern.PatternBuilder()
@@ -331,7 +389,7 @@ public class TestNitritePatternStoreShould {
 
         // Mock the versionsDoc with the fields we need
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get(eq("1-0-0"), eq(String.class))).thenReturn(PATTERN_JSON);
+        when(versionsDoc.get("1-0-0")).thenReturn(PATTERN_JSON);
 
         // Mock the pattern document
         Document patternDoc = mock(Document.class);
@@ -368,6 +426,57 @@ public class TestNitritePatternStoreShould {
 
         // Act & Assert
         assertThrows(NamespaceNotFoundException.class, () -> patternStore.createPatternForVersion(pattern));
+    }
+
+    @Test
+    public void testCreatePatternForVersion_whenInvalidJson_throwsJsonParseException() {
+        // Arrange
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1-0-0")
+                .setPattern("{ not json")
+                .build();
+
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> patternStore.createPatternForVersion(pattern));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void testUpdatePatternForVersion_whenInvalidJson_throwsJsonParseException() {
+        // Arrange
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1-0-0")
+                .setPattern("{ not json")
+                .build();
+
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> patternStore.updatePatternForVersion(pattern));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void testUpdatePatternForVersion_whenNullJson_throwsJsonParseException() {
+        // Arrange - null JSON is rejected by the explicit null guard before any parse/lookup
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1-0-0")
+                .setPattern(null)
+                .build();
+
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(JsonParseException.class, () -> patternStore.updatePatternForVersion(pattern));
+        verify(mockCollection, never()).update(any(Filter.class), any(Document.class));
     }
 
     @Test
@@ -459,6 +568,29 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
+    public void testCreatePatternForVersion_whenVersionsDocumentIsNull_throwsPatternNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document patternDoc = Document.createDocument().put("patternId", PATTERN_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1.0.0")
+                .setPattern(PATTERN_JSON)
+                .build();
+
+        assertThrows(PatternNotFoundException.class, () -> patternStore.createPatternForVersion(pattern));
+    }
+
+    @Test
     public void testCreatePatternForVersion_whenSuccess_returnsPattern() throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException {
         // Arrange
         Pattern pattern = new Pattern.PatternBuilder()
@@ -536,6 +668,29 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
 
         // Act & Assert
+        assertThrows(PatternNotFoundException.class, () -> patternStore.updatePatternForVersion(pattern));
+    }
+
+    @Test
+    public void testUpdatePatternForVersion_whenVersionsDocumentIsNull_throwsPatternNotFoundException() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document patternDoc = Document.createDocument().put("patternId", PATTERN_ID);
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("patterns", List.of(patternDoc));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Pattern pattern = new Pattern.PatternBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(PATTERN_ID)
+                .setVersion("1.0.0")
+                .setPattern(PATTERN_JSON)
+                .build();
+
         assertThrows(PatternNotFoundException.class, () -> patternStore.updatePatternForVersion(pattern));
     }
 

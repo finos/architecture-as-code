@@ -97,6 +97,17 @@ async function runSpectralValidations(
 
 
 /**
+ * Asserts that a schema directory was provided. Validating a pattern, a timeline,
+ * or an architecture against a pattern all require schema resolution, so a missing
+ * directory is a caller error rather than a recoverable condition.
+ */
+function assertSchemaDirectory(schemaDirectory: SchemaDirectory | undefined): asserts schemaDirectory is SchemaDirectory {
+    if (!schemaDirectory) {
+        throw new Error('A schema directory is required for schema validation');
+    }
+}
+
+/**
  * Validation - with simple input parameters and output validation outcomes.
  * @param architecture The architecture as a JS object, or undefined if not provided
  * @param patternOrSchema The pattern (or schema) as a JS object, or undefined if not provided
@@ -123,17 +134,20 @@ export async function validate(
                 throw new Error('You must provide a schema to validate the timeline against, or the timeline must reference it internally');
             }
             // It is acceptable, in fact desired, for `patternOrSchema` to be set, and be the CALM timeline schema.
+            assertSchemaDirectory(schemaDirectory);
             return await validateTimeline(timeline, patternOrSchema, schemaDirectory, debug);
         } else if (architecture && patternOrSchema) {
             // Note that patternOrSchema may be a CALM pattern, or might be the CALM core schema.
             // The caller is responsible for honoring the architecture's `$schema`, or using an explicitly provided pattern.
             // In either case, we validate the architecture against it.
+            assertSchemaDirectory(schemaDirectory);
             return await validateArchitectureAgainstPattern(architecture, patternOrSchema, schemaDirectory, debug);
         } else if (patternOrSchema) {
             // `patternOrSchema` should really be a CALM pattern in this case.
+            assertSchemaDirectory(schemaDirectory);
             return await validatePatternOnly(patternOrSchema, schemaDirectory, debug);
         } else if (architecture) {
-            return await validateArchitectureOnly(architecture);
+            return await validateArchitectureOnly(architecture, schemaDirectory, debug);
         } else {
             logger.debug('You must provide an architecture, a pattern, or a timeline');
             throw new Error('You must provide an architecture, a pattern, or a timeline');
@@ -164,7 +178,7 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
 
     const patternResolved = applyArchitectureOptionsToPattern(architecture, pattern, debug);
 
-    let jsonSchemaValidations = [];
+    let jsonSchemaValidations: ValidationOutput[] = [];
     let jsonSchemaValidator: JsonSchemaValidator;
     try {
         jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, patternResolved, debug);
@@ -219,24 +233,78 @@ async function validatePatternOnly(pattern: object, schemaDirectory: SchemaDirec
 }
 
 /**
- * Run the spectral validations for the case where only the architecture is provided.
- * Note that if only the architecture is provided, the CLI tool will attempt to validate the architecture against its specified CALM schema.
- * i.e. the validateArchitectureAgainstPattern method will be called instead of this method.
- * 
+ * Run the spectral and JSON schema validations for the case where only the architecture is provided.
+ * Discovers the most recent available CALM core schema from the schema directory and validates against it.
+ *
  * @param architecture - The architecture, as a JS object.
- * @returns the validation outcome with the results of the spectral validation 
+ * @param schemaDirectory - SchemaDirectory instance for schema resolution.
+ * @param debug - Whether to log at debug level.
+ * @returns the validation outcome with the results of the spectral and JSON schema validations.
  **/
-async function validateArchitectureOnly(architecture: object): Promise<ValidationOutcome> {
-    logger.debug('Pattern was not provided, validating Architecture against its specified CALM schema');
+async function validateArchitectureOnly(architecture: object, schemaDirectory: SchemaDirectory | undefined, debug: boolean): Promise<ValidationOutcome> {
+    logger.debug('Pattern was not provided, validating Architecture against the most recent loaded CALM core schema');
 
     const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture, 'architecture');
 
-    const jsonSchemaValidations = [];
-    const errors = spectralResultForArchitecture.errors;
+    let jsonSchemaValidations: ValidationOutput[] = [];
+    let errors = spectralResultForArchitecture.errors;
     const warnings = spectralResultForArchitecture.warnings;
+
+    const coreSchemaUrl = schemaDirectory ? findLatestCalmCoreSchemaUrl(schemaDirectory) : undefined;
+    const coreSchema = (schemaDirectory && coreSchemaUrl) ? await schemaDirectory.getSchema(coreSchemaUrl) : undefined;
+    if (!schemaDirectory || !coreSchema) {
+        logger.warn('No CALM core schema found in schema directory — skipping JSON schema validation');
+    } else {
+        logger.debug(`Validating architecture against CALM core schema: ${coreSchemaUrl}`);
+        try {
+            const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, coreSchema, debug);
+            await jsonSchemaValidator.initialize();
+            const schemaErrors = jsonSchemaValidator.validate(architecture);
+            if (schemaErrors.length > 0) {
+                logger.debug(`JSON Schema validation raw output: ${prettifyJson(schemaErrors)}`);
+                errors = true;
+                jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(schemaErrors, 'architecture');
+            }
+        } catch (error) {
+            const errorMessage = toErrorMessage(error);
+            logger.error(`JSON Schema compilation failed: ${errorMessage}`);
+            jsonSchemaValidations = [
+                new ValidationOutput('json-schema', 'error', errorMessage, '/', undefined, undefined, undefined, undefined, undefined, 'architecture')
+            ];
+            errors = true;
+        }
+    }
 
     logger.debug(`Returning validation outcome with ${jsonSchemaValidations.length} JSON schema validations, errors: ${errors}`);
     return new ValidationOutcome(jsonSchemaValidations, spectralResultForArchitecture.spectralIssues, errors, warnings);
+}
+
+/**
+ * Finds the URL of the most recent CALM core schema loaded in the schema directory.
+ *
+ * Precedence: release > draft. Within each tier, URLs are compared with a
+ * numeric-aware locale sort so that 1.10 > 1.9 > 1.2 (lexicographic order
+ * would get this wrong).
+ *
+ * Note: localeCompare with { numeric: true } treats runs of digits as numbers,
+ * which works correctly for all current CALM version formats (1.x, 2026-03).
+ * A version segment containing non-numeric characters (e.g. 1.2-beta) could
+ * sort unexpectedly — if pre-release versions are ever published, revisit this.
+ *
+ * Returns undefined if no CALM core schema is loaded.
+ */
+function findLatestCalmCoreSchemaUrl(schemaDirectory: SchemaDirectory): string | undefined {
+    const coreSchemaPattern = /calm\.finos\.org\/.*\/meta\/core\.json$/;
+    const matches = schemaDirectory.getLoadedSchemas()
+        .filter(id => coreSchemaPattern.test(id));
+
+    if (matches.length === 0) return undefined;
+
+    return matches.sort((a, b) => {
+        const isRelease = (url: string) => url.includes('/release/');
+        if (isRelease(a) !== isRelease(b)) return isRelease(a) ? -1 : 1;
+        return b.localeCompare(a, undefined, { numeric: true });
+    })[0];
 }
 
 /**
@@ -259,7 +327,7 @@ async function validateTimeline(timeline: object, schema: object, schemaDirector
     const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, schema, debug);
     await jsonSchemaValidator.initialize();
 
-    let jsonSchemaValidations = [];
+    let jsonSchemaValidations: ValidationOutput[] = [];
 
     const schemaErrors = jsonSchemaValidator.validate(timeline);
     if (schemaErrors.length > 0) {
@@ -295,10 +363,15 @@ export function extractChoicesFromArchitecture(architecture: object): CalmChoice
         return [];
     }
 
-    return architecture['relationships']
-        .filter((rel: object) => rel['relationship-type'] && Object.prototype.hasOwnProperty.call(rel['relationship-type'], 'options'))
-        .map((rel: object) => rel['relationship-type']['options'][0])
-        .map((rel: object) => ({
+    // architecture is unvalidated CALM JSON traversed via nested property access,
+    // so a permissive index type is used here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const relationships = (architecture as Record<string, any>)['relationships'] as Record<string, any>[];
+
+    return relationships
+        .filter((rel) => rel['relationship-type'] && Object.prototype.hasOwnProperty.call(rel['relationship-type'], 'options'))
+        .map((rel) => rel['relationship-type']['options'][0])
+        .map((rel) => ({
             description: rel['description'],
             nodes: rel['nodes'] || [],
             relationships: rel['relationships'] || []
@@ -315,7 +388,7 @@ function getRuleNamesFromRuleset(ruleset: RulesetDefinition): string[] {
     return Object.keys((ruleset as { rules: Record<string, unknown> }).rules);
 }
 
-function prettifyJson(json) {
+function prettifyJson(json: unknown) {
     return JSON.stringify(json, null, 4);
 }
 

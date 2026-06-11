@@ -1,0 +1,103 @@
+####
+# Native read-only calm-hub image.
+#
+# Produces a calm-hub container with a pre-seeded NitriteDB database baked in.
+# No JVM is required at runtime; the application runs as a native binary compiled
+# by GraalVM Mandrel (via Quarkus container-build, invoked by
+# build-readonly-native-image.sh before this Dockerfile runs).
+#
+# Build is two stages:
+#
+#   Stage 1 (seed)  — ubi9/openjdk-21 (JVM); boots calm-hub from the runnable JAR
+#                     in writable standalone mode, runs init-nitrite.sh to populate
+#                     NitriteDB, then shuts down gracefully so the MVStore file is
+#                     fully flushed.  Seeding is performed with the JVM (not the
+#                     native binary) on purpose: NitriteDB persists documents to
+#                     the H2 MVStore via Java serialization, and the writable
+#                     commit path is only reliable on the JVM.  The native binary
+#                     fully supports the READ path (serialization metadata is
+#                     registered in META-INF/native-image), which is all the
+#                     read-only runtime image needs.  The resulting calmSchemas.db
+#                     is architecture-neutral (pure-Java H2 MVStore format).
+#
+#   Stage 2 (final) — ubi9/ubi-minimal (no JDK); copies only the native runner and
+#                     the seeded .db.
+#
+# Prerequisites (handled by build-readonly-native-image.sh):
+#   • calm-hub Maven native build:
+#       ./mvnw package -Dnative -Dquarkus.native.container-build=true -DskipITs
+#     → target/*-runner (native binary) and target/quarkus-app/ (JVM app) populated
+#   • calm/ schemas staged:   target/readonly-seed/calm/
+#   • controls staged:        target/readonly-seed/controls/
+#
+# Build (from calm-hub/ directory):
+#   docker build -f src/main/docker/Dockerfile.readonly-native -t calm-hub:read-only-native .
+####
+
+
+# ── Stage 1: Seed (JVM) ───────────────────────────────────────────────────────
+# Boot calm-hub from the runnable JAR in writable standalone mode, populate
+# NitriteDB, then stop cleanly so the MVStore file is fully flushed.  The DB file
+# is architecture-neutral (H2 MVStore / pure-Java format) and is read by the
+# native binary in the final stage.
+FROM registry.access.redhat.com/ubi9/openjdk-21 AS seed
+
+USER root
+
+# Install seeding tools (curl-minimal is pre-installed on ubi9; jq for JSON)
+RUN microdnf install -y jq && microdnf clean all
+
+# JVM app artefacts pre-built by Maven (same layout as Dockerfile.jvm)
+COPY --chown=root target/quarkus-app/lib/     /deployments/lib/
+COPY --chown=root target/quarkus-app/*.jar    /deployments/
+COPY --chown=root target/quarkus-app/app/     /deployments/app/
+COPY --chown=root target/quarkus-app/quarkus/ /deployments/quarkus/
+
+# Seeding scripts
+COPY nitrite/seed-readonly.sh /nitrite/seed-readonly.sh
+COPY nitrite/init-nitrite.sh  /nitrite/init-nitrite.sh
+RUN chmod +x /nitrite/seed-readonly.sh /nitrite/init-nitrite.sh
+
+# CALM schema content and controls staged by the build script into target/readonly-seed/
+COPY target/readonly-seed/calm/     /calm/
+COPY target/readonly-seed/controls/ /controls/
+
+# Boot calm-hub (writable standalone, JVM mode), seed all content, stop gracefully.
+# CALM_HUB_NATIVE_BINARY is intentionally left unset so seed-readonly.sh launches
+# the JVM (java -jar /deployments/quarkus-run.jar). The resulting database file
+# lands at /data/calmSchemas.db.
+RUN DATA_DIR=/data \
+    CALM_SCHEMA_BASE_PATH=/calm \
+    CALM_CONTROLS_BASE_PATH=/controls \
+    bash /nitrite/seed-readonly.sh
+
+
+# ── Stage 2: Final read-only native image ─────────────────────────────────────
+# distroless/cc: no shell or package manager; ships only glibc, libstdc++, and
+# libz — exactly the runtime libs a Mandrel native binary requires (~20 MB vs
+# ~90 MB for UBI9 minimal).  No RUN commands are possible in this layer, so
+# permissions are set via COPY --chmod (requires BuildKit).
+FROM gcr.io/distroless/cc-debian12 AS final
+
+# Native runner
+COPY --chmod=0755 --chown=1001:root target/*-runner /deployments/calm-hub-runner
+
+# Bake the seeded database (produced by the JVM seed stage) as a read-only file
+# owned by the runtime user.  COPY auto-creates parent directories, so no
+# mkdir is needed.
+COPY --chmod=0444 --chown=1001:root --from=seed /data/calmSchemas.db /deployments/data/calmSchemas.db
+
+EXPOSE 8080
+USER 1001
+
+# Activate the standalone profile: sets calm.database.mode=standalone and
+# suppresses MongoDB health-check / dev-services.
+ENV QUARKUS_PROFILE=standalone
+
+# Use a fixed data path (avoids ${user.home} ambiguity for container user 1001)
+ENV CALM_STANDALONE_DATA_DIRECTORY=/deployments/data
+
+# Read-only mode: opens NitriteDB with readOnly(true) and rejects mutating HTTP verbs
+ENV CALM_READONLY=true
+
+ENTRYPOINT ["/deployments/calm-hub-runner", "-Dquarkus.http.host=0.0.0.0"]

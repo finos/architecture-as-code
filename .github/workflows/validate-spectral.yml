@@ -10,7 +10,7 @@ on:
         paths:
             - 'calm/draft/**'
             - 'calm/pattern/**'
-            - 'calm/samples/**'
+            - 'calm/architecture/**'
             - 'shared/src/spectral/**'
     push:
         branches:
@@ -18,7 +18,7 @@ on:
         paths:
             - 'calm/draft/**'
             - 'calm/pattern/**'
-            - 'calm/samples/**'
+            - 'calm/architecture/**'
             - 'shared/src/spectral/**'
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             # Check out the repository
-            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+            - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
             # Run Spectral
             - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
@@ -37,11 +37,14 @@ jobs:
             - name: Install workspace
               run: npm ci
 
-            - name: Build workspace
-              run: npm run build
+            # Only the shared package (and its build dependencies) is needed to
+            # produce the Spectral ruleset under shared/dist/spectral. Building the
+            # whole monorepo couples this job to unrelated packages.
+            - name: Build shared Spectral ruleset
+              run: npm run build:shared
 
             - name: Install dependencies for Spectral
               run: npm install @stoplight/spectral-cli rollup
 
             - name: Run Example Spectral Linting
-              run: npx spectral lint --ruleset ./shared/dist/spectral/rules-architecture.js 'calm/samples/api-gateway-architecture(*.json|*.yaml)'
+              run: npx spectral lint --ruleset ./shared/dist/spectral/rules-architecture.js 'calm/architecture/calm-*.json'
