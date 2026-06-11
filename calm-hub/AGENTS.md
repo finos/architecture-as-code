@@ -12,7 +12,7 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
   - NitriteDB (embedded, standalone mode)
 - **Testing**: JUnit 5, TestContainers
 - **API Docs**: OpenAPI/Swagger UI
-- **Security**: Per-namespace permissions enforced via Quarkus Security (`org.finos.calm.security`); three auth modes — open (default), OIDC/Keycloak (`secure`), and proxy-injected header (`proxy-auth`)
+- **Security**: Per-namespace permissions enforced via Quarkus Security (`org.finos.calm.security`); four auth modes — the default is **secure** (rejects all requests with 401), `no-auth` (open, local testing only), OIDC/Keycloak (`secure` profile), and proxy-injected header (`proxy-auth`)
 
 > **Note**: Netty is pinned to `4.1.x` (currently `4.1.132.Final` via `netty-bom` in the root `pom.xml`) to mitigate CVEs. It must stay on 4.1.x — Quarkus 3.x applies a `CleanerJava9` bytecode transformation incompatible with Netty 4.2.
 
@@ -25,8 +25,9 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 ../mvnw test                              # Unit tests only
 
 # Development Mode (Hot Reload)
-../mvnw quarkus:dev                       # Default (MongoDB)
-../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — use -Pstandalone, NOT -Dquarkus.profile=standalone
+# NOTE: The default profile is secure (401 on all requests). Use no-auth for local testing.
+../mvnw quarkus:dev -Dquarkus.profile=no-auth        # No-auth (local testing, MongoDB)
+../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — no-auth is implicit
 ../mvnw quarkus:dev -Dquarkus.profile=secure         # Secure mode (Keycloak)
 
 # Docker
@@ -156,11 +157,17 @@ Security: `@PermissionsAllowed` on resource methods is resolved by
 `CalmHubPermissionChecker`, which consults `UserAccessValidator` against the
 caller's grants. See [PERMISSIONS.md](./PERMISSIONS.md) for the full model.
 
-There are **three auth modes**, each selected by a separate property file:
+There are **four auth modes**, each selected by a separate property file:
 
-**Default** (open, no auth) — `application.properties`:
-- `quarkus.oidc.tenant-enabled=false`, `calm.auth.enabled` unset (permission checks pass)
-- All endpoints open; good for development
+**Default** (secure, no mechanism configured) — `application.properties`:
+- `calm.auth.enabled=true`, `quarkus.oidc.tenant-enabled=false`
+- No auth mechanism provides an identity → all requests return 401
+- Forces explicit profile selection; nothing works until you choose an auth mode
+
+**No-auth** (open, local development only) — `application-no-auth.properties`:
+- `quarkus.oidc.tenant-enabled=false`, `calm.auth.enabled=false`
+- `NoAuthAuthenticationMechanism` supplies a non-anonymous identity so all permission checks pass
+- **Never use in production**; activate with `-Dquarkus.profile=no-auth`
 
 **Secure** (OIDC / Keycloak) — `application-secure.properties`:
 - `quarkus.oidc.tenant-enabled=true`, `calm.auth.enabled=true`
@@ -173,9 +180,6 @@ There are **three auth modes**, each selected by a separate property file:
 - The upstream proxy injects the authenticated username in a header (default
   `Remote-User`, overridable via `calm.security.proxy.username-header`), handled by
   `ProxyAuthenticationMechanism` / `ProxyIdentityProvider`
-
-In the open default, `NoAuthAuthenticationMechanism` supplies an identity so
-permission checks pass without a token.
 
 ## Docker Image Variants
 
@@ -521,7 +525,8 @@ private static final int PATTERN_ID = 42;
 ## Configuration Files
 
 - `pom.xml` - Maven dependencies and build config
-- `src/main/resources/application.properties` - Default (open) config
+- `src/main/resources/application.properties` - Default (secure, rejects all requests) config
+- `src/main/resources/application-no-auth.properties` - No-auth profile (local testing only, no IdP)
 - `src/main/resources/application-secure.properties` - Secure (OIDC/Keycloak) profile config
 - `src/main/resources/application-proxy-auth.properties` - Proxy-auth profile config (proxy-injected `Remote-User` header)
 - `PERMISSIONS.md` - Per-namespace permission model reference
