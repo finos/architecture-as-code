@@ -1,4 +1,4 @@
-import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, DiagramExportFormat, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions, loadChoicesFromInput } from './command-helpers/generate-options';
@@ -223,6 +223,14 @@ Validation requires:
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option('--scaffold', 'Copy template files without processing (for customization/live docify)', false)
         .addOption(new Option('--ants').default(false).hideHelp())
+        .addOption(new Option('--export-diagrams <format>',
+            'Render mermaid diagrams to image files using a local Chromium-based browser ' +
+            '(adds roughly 10-40s depending on diagram count)').choices(['svg', 'png']))
+        .option('--browser-path <path>',
+            'Path to a Chromium-based browser executable, only needed if automatic detection fails (run with --export-diagrams to see guidance)')
+        .option('--diagram-render-timeout <ms>',
+            'Per-diagram render timeout in milliseconds, only used with --export-diagrams (default: 30000). ' +
+            'Increase this for large/complex diagrams that time out during rendering.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { Docifier } = await import('@finos/calm-shared');
@@ -241,6 +249,30 @@ Validation requires:
             if (options.ants && flagsUsed.length > 0) {
                 console.error('❌ --ants cannot be combined with --template or --template-dir');
                 process.exit(1);
+            }
+
+            if (options.exportDiagrams && options.scaffold) {
+                console.error('❌ --export-diagrams cannot be combined with --scaffold (scaffold output is unrendered)');
+                process.exit(1);
+            }
+
+            if (options.browserPath && !options.exportDiagrams) {
+                console.error('❌ --browser-path requires --export-diagrams <svg|png>');
+                process.exit(1);
+            }
+
+            if (options.diagramRenderTimeout && !options.exportDiagrams) {
+                console.error('❌ --diagram-render-timeout requires --export-diagrams <svg|png>');
+                process.exit(1);
+            }
+
+            let diagramRenderTimeoutMs: number | undefined;
+            if (options.diagramRenderTimeout) {
+                diagramRenderTimeoutMs = Number(options.diagramRenderTimeout);
+                if (!Number.isFinite(diagramRenderTimeoutMs) || diagramRenderTimeoutMs <= 0) {
+                    console.error('❌ --diagram-render-timeout must be a positive number of milliseconds');
+                    process.exit(1);
+                }
             }
 
             let docifyMode: DocifyMode = 'WEBSITE';
@@ -267,7 +299,10 @@ Validation requires:
                 templateProcessingMode,
                 templatePath,
                 options.clearOutputDirectory,
-                options.scaffold
+                options.scaffold,
+                options.exportDiagrams as DiagramExportFormat | undefined,
+                options.browserPath,
+                diagramRenderTimeoutMs
             );
 
             await docifier.docify();

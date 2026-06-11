@@ -12,8 +12,11 @@ export default defineConfig([
         dts: false,
         // Bundle runtime dependencies into the extension so the installed VSIX does
         // not rely on node_modules being present in the target environment.
-        // Keep 'vscode' external (provided by the host).
-        external: ['vscode'],
+        // Keep 'vscode' external (provided by the host). 'playwright-core' is also
+        // external: it's only required lazily by Docifier's --export-diagrams path
+        // (never used by the extension), and bundling it fails (esbuild can't
+        // resolve playwright-core's chromium-bidi subpath imports).
+        external: ['vscode', 'playwright-core'],
         noExternal: [
             'yaml',
             'lodash',
