@@ -452,6 +452,9 @@ Options:
   -t, --template <path>                   Path to a single .hbs or .md template file
   -d, --template-dir <path>               Path to a directory of .hbs/.md templates
   -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
+      --export-diagrams <svg|png>         Render mermaid diagrams to image files using a local Chromium-based browser (adds roughly 10-40s depending on diagram count).
+      --browser-path <path>               Path to a Chromium-based browser executable, only needed if automatic detection fails.
+      --diagram-render-timeout <ms>       Per-diagram render timeout in milliseconds, only used with --export-diagrams (default: 30000).
   -v, --verbose                           Enable verbose logging. (default: false)
   -h, --help                              display help for command
 ```
@@ -486,6 +489,32 @@ Sample usage for you to try is as follows (assuming at root of project)
 ```shell
 calm docify -a ./cli/test_fixtures/template/model/document-system.json -o ./output/documentation -u ./cli/test_fixtures/template/model/url-to-file-directory.json
 ```
+
+### Exporting Diagrams as Images
+
+By default, generated documentation contains Mermaid diagrams as ` ```mermaid ` code
+blocks. The `--export-diagrams <svg|png>` option renders these diagrams to image
+files using a local Chromium-based browser, replacing each code block with an image
+reference (e.g. `![Diagram 1](_diagrams/my-page-1.svg)`).
+
+```shell
+calm docify -a ./architecture.json -o ./output/documentation --export-diagrams svg
+```
+
+This requires Google Chrome or Microsoft Edge to be installed locally (both are
+detected automatically). If neither is found, the command prints guidance for
+locating another Chromium-based browser, and the documentation is still generated
+with the Mermaid code blocks left as-is.
+
+- `--browser-path <path>`: use a specific Chromium-based browser (e.g. Brave,
+  Vivaldi, Chromium) instead of relying on automatic detection.
+- `--diagram-render-timeout <ms>`: per-diagram render timeout, useful for very
+  large or complex diagrams (default: `30000`).
+
+Rendering adds roughly 10-40 seconds to the command depending on the number of
+diagrams. If an individual diagram fails to render (e.g. a timeout or invalid
+syntax), it is left as a Mermaid code block and a warning is logged — the rest of
+the documentation is unaffected.
 
 ### Default options for widgets in templates
 
