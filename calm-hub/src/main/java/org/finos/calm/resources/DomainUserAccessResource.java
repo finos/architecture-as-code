@@ -1,6 +1,9 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.PermissionsAllowed;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -15,6 +18,9 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
+
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
 
 @Path("/calm/domains")
 public class DomainUserAccessResource {
@@ -35,8 +41,8 @@ public class DomainUserAccessResource {
             description = "Creates a user-access grant for a given domain"
     )
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
-    public Response createUserAccessForDomain(@PathParam("domain") String domain,
-                                              UserAccess createUserAccessRequest) {
+    public Response createUserAccessForDomain(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain,
+                                              @Valid @NotNull UserAccess createUserAccessRequest) {
 
         createUserAccessRequest.setCreationDateTime(LocalDateTime.now());
         createUserAccessRequest.setUpdateDateTime(LocalDateTime.now());
@@ -63,7 +69,7 @@ public class DomainUserAccessResource {
             description = "Get user-access details for a given domain"
     )
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
-    public Response getUserAccessForDomain(@PathParam("domain") String domain) {
+    public Response getUserAccessForDomain(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain) {
         try {
             return Response.ok(store.getUserAccessForDomain(domain)).build();
         } catch (UserAccessNotFoundException ex) {
@@ -82,8 +88,8 @@ public class DomainUserAccessResource {
             description = "Get user-access details for a given domain and Id"
     )
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
-    public Response getUserAccessForDomainAndId(@PathParam("domain") String domain,
-                                                @PathParam("userAccessId") Integer userAccessId) {
+    public Response getUserAccessForDomainAndId(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain,
+                                                @PathParam("userAccessId") @NotNull Integer userAccessId) {
         try {
             return Response.ok(store.getUserAccessForDomainAndId(domain, userAccessId)).build();
         } catch (UserAccessNotFoundException ex) {
