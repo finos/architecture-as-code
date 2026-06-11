@@ -91,7 +91,7 @@ POST /mcp
 Content-Type: application/json
 ```
 
-CALM Hub uses the **HTTP Streamable** MCP transport (Quarkiverse `quarkus-mcp-server-http`, version 1.12.0). This transport uses JSON-RPC 2.0 over HTTP POST.
+CALM Hub uses the **HTTP Streamable** MCP transport (Quarkiverse `quarkus-mcp-server-http`, version 1.12.1). This transport uses JSON-RPC 2.0 over HTTP POST.
 
 ### Available Tools
 
