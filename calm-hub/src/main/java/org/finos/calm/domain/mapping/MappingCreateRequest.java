@@ -1,9 +1,9 @@
-package org.finos.calm.domain.frontcontroller;
+package org.finos.calm.domain.mapping;
 
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 
-public class FrontControllerCreateRequest {
+public class MappingCreateRequest {
     @NotBlank(message = "Type must not be blank")
     private String type;
     @NotBlank(message = "JSON must not be blank")
@@ -11,11 +11,11 @@ public class FrontControllerCreateRequest {
     private String name;
     private String description;
 
-    public FrontControllerCreateRequest() {
+    public MappingCreateRequest() {
         // Default constructor
     }
 
-    public FrontControllerCreateRequest(String type, String json, String name, String description) {
+    public MappingCreateRequest(String type, String json, String name, String description) {
         this.type = type;
         this.json = json;
         this.name = name;
@@ -57,7 +57,7 @@ public class FrontControllerCreateRequest {
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        FrontControllerCreateRequest that = (FrontControllerCreateRequest) o;
+        MappingCreateRequest that = (MappingCreateRequest) o;
         return Objects.equals(type, that.type) && Objects.equals(json, that.json) && Objects.equals(name, that.name) && Objects.equals(description, that.description);
     }
 

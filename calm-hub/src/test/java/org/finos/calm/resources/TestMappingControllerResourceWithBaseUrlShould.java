@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 @TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @TestProfile(BaseUrlConfiguredProfile.class)
-public class TestFrontControllerResourceWithBaseUrlShould {
+public class TestMappingControllerResourceWithBaseUrlShould {
 
     @InjectMock
     ResourceMappingStore mockMappingStore;
@@ -48,10 +48,10 @@ public class TestFrontControllerResourceWithBaseUrlShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway")
+                .get("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(200)
-                .body(containsString("https://hub.example.com/calm/namespaces/finos/api-gateway/versions/1.0.0"))
+                .body(containsString("https://hub.example.com/calm/namespaces/finos/mappings/api-gateway/versions/1.0.0"))
                 .body(containsString("original"));
     }
 
@@ -65,7 +65,7 @@ public class TestFrontControllerResourceWithBaseUrlShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway")
+                .get("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(200)
                 .body(containsString("[1, 2, 3]"));
@@ -81,7 +81,7 @@ public class TestFrontControllerResourceWithBaseUrlShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway")
+                .get("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(200)
                 .body(containsString("not-json"));
