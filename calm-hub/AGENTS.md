@@ -298,10 +298,12 @@ void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_pattern
 ```
 
 Import validation constants from `ResourceValidationConstants`:
+
 ```java
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.USERNAME_MESSAGE;
 ```
 
 #### Mongo Store Tests (`@QuarkusTest` + `@InjectMock`)

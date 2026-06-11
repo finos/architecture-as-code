@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,7 +57,7 @@ public class TestControlResourceShould {
                 .get("/calm/domains/invalid_domain/controls")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test    void return_a_list_of_control_details_for_a_domain() {
@@ -134,7 +134,7 @@ public class TestControlResourceShould {
                 .post("/calm/domains/invalid_domain/controls")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
     // --- Requirement Version Endpoints ---
 
@@ -145,7 +145,7 @@ public class TestControlResourceShould {
                 .get("/calm/domains/invalid_domain/controls/1/requirement/versions")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForRequirementVersionTests() {
@@ -193,7 +193,7 @@ public class TestControlResourceShould {
                 .get("/calm/domains/invalid_domain/controls/1/requirement/versions/1.0.0")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test
@@ -251,7 +251,7 @@ public class TestControlResourceShould {
                 .get("/calm/domains/invalid_domain/controls/1/configurations")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetConfigurationsTests() {
@@ -314,7 +314,7 @@ public class TestControlResourceShould {
                 .get("/calm/domains/invalid_domain/controls/1/configurations/10/versions")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetConfigurationVersionsTests() {
@@ -364,7 +364,7 @@ public class TestControlResourceShould {
                 .get("/calm/domains/invalid_domain/controls/1/configurations/10/versions/1.0.0")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test
@@ -425,7 +425,7 @@ public class TestControlResourceShould {
                 .post("/calm/domains/invalid_domain/controls/1/requirement/versions/2.0.0")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test
@@ -537,7 +537,7 @@ public class TestControlResourceShould {
                 .post("/calm/domains/invalid_domain/controls/1/configurations")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     // --- createConfigurationForVersion ---
@@ -551,7 +551,7 @@ public class TestControlResourceShould {
                 .post("/calm/domains/invalid_domain/controls/1/configurations/10/versions/2.0.0")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test
