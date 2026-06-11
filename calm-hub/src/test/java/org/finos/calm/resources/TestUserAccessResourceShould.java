@@ -77,6 +77,46 @@ public class TestUserAccessResourceShould {
     }
 
     @Test
+    void return_400_when_invalid_namespace_format() throws Exception {
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
+                .thenThrow(new NamespaceNotFoundException());
+
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("invalid &%*$% NAMESPACE");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setUsername("test_user");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(requestBody)
+                .when()
+                .post("/calm/namespaces/invalid/user-access")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void return_400_when_invalid_username_format() throws Exception {
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
+                .thenThrow(new NamespaceNotFoundException());
+
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("invalid");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setUsername("INVALID USER!");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(requestBody)
+                .when()
+                .post("/calm/namespaces/invalid/user-access")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
     void return_400_when_creating_user_access_with_invalid_namespace() throws Exception {
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
                 .thenThrow(new NamespaceNotFoundException());

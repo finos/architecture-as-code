@@ -49,7 +49,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getControlsForDomain(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain) {
         try {
             return Response.ok(new ValueWrapper<>(store.getControlsForDomain(domain))).build();
@@ -70,7 +70,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlForDomain(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
         try {
@@ -92,7 +92,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementVersions(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId) {
         try {
@@ -116,7 +116,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("version")
@@ -147,7 +147,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createRequirementForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("version")
@@ -182,7 +182,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationsForControl(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId) {
         try {
@@ -207,7 +207,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlConfiguration(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
@@ -233,7 +233,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationVersions(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("configId") int configId) {
@@ -261,7 +261,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("configId") int configId,
@@ -296,7 +296,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createConfigurationForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("configId") int configId,
