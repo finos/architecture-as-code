@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 @TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
-public class TestFrontControllerResourceShould {
+public class TestMappingControllerResourceShould {
 
     @InjectMock
     ResourceMappingStore mockMappingStore;
@@ -66,10 +66,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/api-gateway")
+                .post("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/api-gateway/versions/1.0.0"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/api-gateway/versions/1.0.0"));
 
         verify(mockMappingStore).updateMappingNumericId("finos", "api-gateway", 1);
     }
@@ -92,10 +92,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/my-flow")
+                .post("/calm/namespaces/finos/mappings/my-flow")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-flow/versions/1.0.0"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/my-flow/versions/1.0.0"));
 
         verify(mockMappingStore).updateMappingNumericId("finos", "my-flow", 5);
     }
@@ -110,7 +110,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/no-type")
+                .post("/calm/namespaces/finos/mappings/no-type")
                 .then()
                 .statusCode(400)
                 .body(containsString("type"));
@@ -126,7 +126,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/bad-type")
+                .post("/calm/namespaces/finos/mappings/bad-type")
                 .then()
                 .statusCode(400)
                 .body(containsString("Invalid resource type"));
@@ -142,7 +142,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/invalid/test-resource")
+                .post("/calm/namespaces/invalid/mappings/test-resource")
                 .then()
                 .statusCode(404);
     }
@@ -153,7 +153,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body("{ \"type\": \"PATTERN\", \"json\": \"{}\" }")
                 .when()
-                .post("/calm/namespaces/finos/INVALID_ID")
+                .post("/calm/namespaces/finos/mappings/INVALID_ID")
                 .then()
                 .statusCode(400);
     }
@@ -174,10 +174,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/api-gateway")
+                .post("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/api-gateway/versions/1.1.0"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/api-gateway/versions/1.1.0"));
     }
 
     @Test
@@ -192,7 +192,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/api-gateway")
+                .post("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(400)
                 .body(containsString("changeType"));
@@ -206,7 +206,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/api-gateway")
+                .post("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(400)
                 .body(containsString("Cannot parse request body"));
@@ -224,7 +224,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway")
+                .get("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(200)
                 .body(containsString("test"));
@@ -236,7 +236,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/nonexistent")
+                .get("/calm/namespaces/finos/mappings/nonexistent")
                 .then()
                 .statusCode(404)
                 .body(containsString("nonexistent"));
@@ -248,7 +248,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/test")
+                .get("/calm/namespaces/invalid/mappings/test")
                 .then()
                 .statusCode(404);
     }
@@ -264,7 +264,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway/versions/1.0.0")
+                .get("/calm/namespaces/finos/mappings/api-gateway/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("1.0.0"));
@@ -276,7 +276,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/nonexistent/versions/1.0.0")
+                .get("/calm/namespaces/finos/mappings/nonexistent/versions/1.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -292,7 +292,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway/versions")
+                .get("/calm/namespaces/finos/mappings/api-gateway/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2))
@@ -306,7 +306,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/nonexistent/versions")
+                .get("/calm/namespaces/finos/mappings/nonexistent/versions")
                 .then()
                 .statusCode(404);
     }
@@ -405,7 +405,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/named-pattern")
+                .post("/calm/namespaces/finos/mappings/named-pattern")
                 .then()
                 .statusCode(201);
 
@@ -434,7 +434,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/no-meta")
+                .post("/calm/namespaces/finos/mappings/no-meta")
                 .then()
                 .statusCode(201);
 
@@ -456,7 +456,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/sorted-test/versions")
+                .get("/calm/namespaces/finos/mappings/sorted-test/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(4))
@@ -485,7 +485,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/fail-create")
+                .post("/calm/namespaces/finos/mappings/fail-create")
                 .then()
                 .statusCode(400);
 
@@ -505,7 +505,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/dup-id")
+                .post("/calm/namespaces/finos/mappings/dup-id")
                 .then()
                 .statusCode(409)
                 .body(containsString("already exists"));
@@ -531,10 +531,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/my-arch")
+                .post("/calm/namespaces/finos/mappings/my-arch")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-arch/versions/1.0.0"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/my-arch/versions/1.0.0"));
 
         verify(mockMappingStore).updateMappingNumericId("finos", "my-arch", 2);
     }
@@ -557,10 +557,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/my-standard")
+                .post("/calm/namespaces/finos/mappings/my-standard")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-standard/versions/1.0.0"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/my-standard/versions/1.0.0"));
 
         verify(mockMappingStore).updateMappingNumericId("finos", "my-standard", 3);
     }
@@ -583,10 +583,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/my-interface")
+                .post("/calm/namespaces/finos/mappings/my-interface")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-interface/versions/1.0.0"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/my-interface/versions/1.0.0"));
 
         verify(mockMappingStore).updateMappingNumericId("finos", "my-interface", 4);
     }
@@ -603,7 +603,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway")
+                .get("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(200);
 
@@ -620,7 +620,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway/versions/1.0.0")
+                .get("/calm/namespaces/finos/mappings/api-gateway/versions/1.0.0")
                 .then()
                 .statusCode(200);
 
@@ -636,7 +636,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway/versions")
+                .get("/calm/namespaces/finos/mappings/api-gateway/versions")
                 .then()
                 .statusCode(200);
 
@@ -670,10 +670,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/my-arch")
+                .post("/calm/namespaces/finos/mappings/my-arch")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-arch/versions/1.1.0"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/my-arch/versions/1.1.0"));
 
         verify(mockArchitectureStore).createArchitectureForVersion(any(Architecture.class));
     }
@@ -691,10 +691,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/my-flow")
+                .post("/calm/namespaces/finos/mappings/my-flow")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-flow/versions/2.0.0"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/my-flow/versions/2.0.0"));
 
         verify(mockFlowStore).createFlowForVersion(any(Flow.class));
     }
@@ -712,10 +712,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/my-standard")
+                .post("/calm/namespaces/finos/mappings/my-standard")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-standard/versions/1.0.1"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/my-standard/versions/1.0.1"));
 
         verify(mockStandardStore).createStandardForVersion(any(CreateStandardRequest.class), eq("finos"), eq(3), eq("1.0.1"));
     }
@@ -733,10 +733,10 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/my-interface")
+                .post("/calm/namespaces/finos/mappings/my-interface")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/my-interface/versions/1.1.0"));
+                .header("Location", containsString("/calm/namespaces/finos/mappings/my-interface/versions/1.1.0"));
 
         verify(mockInterfaceStore).createInterfaceForVersion(any(CreateInterfaceRequest.class), eq("finos"), eq(4), eq("1.1.0"));
     }
@@ -753,7 +753,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-arch")
+                .get("/calm/namespaces/finos/mappings/my-arch")
                 .then()
                 .statusCode(200)
                 .body(containsString("arch"));
@@ -769,7 +769,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-flow")
+                .get("/calm/namespaces/finos/mappings/my-flow")
                 .then()
                 .statusCode(200)
                 .body(containsString("flow"));
@@ -785,7 +785,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-standard")
+                .get("/calm/namespaces/finos/mappings/my-standard")
                 .then()
                 .statusCode(200)
                 .body(containsString("standard"));
@@ -801,7 +801,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-interface")
+                .get("/calm/namespaces/finos/mappings/my-interface")
                 .then()
                 .statusCode(200)
                 .body(containsString("iface"));
@@ -818,7 +818,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-arch/versions/1.0.0")
+                .get("/calm/namespaces/finos/mappings/my-arch/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("1.0.0"));
@@ -833,7 +833,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-flow/versions/1.0.0")
+                .get("/calm/namespaces/finos/mappings/my-flow/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("1.0.0"));
@@ -848,7 +848,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-standard/versions/1.0.0")
+                .get("/calm/namespaces/finos/mappings/my-standard/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("1.0.0"));
@@ -863,7 +863,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-interface/versions/1.0.0")
+                .get("/calm/namespaces/finos/mappings/my-interface/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("1.0.0"));
@@ -880,7 +880,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-arch/versions")
+                .get("/calm/namespaces/finos/mappings/my-arch/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2));
@@ -895,7 +895,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-flow/versions")
+                .get("/calm/namespaces/finos/mappings/my-flow/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1));
@@ -910,7 +910,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-standard/versions")
+                .get("/calm/namespaces/finos/mappings/my-standard/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1));
@@ -925,7 +925,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/my-interface/versions")
+                .get("/calm/namespaces/finos/mappings/my-interface/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1));
@@ -942,7 +942,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway/versions/9.9.9")
+                .get("/calm/namespaces/finos/mappings/api-gateway/versions/9.9.9")
                 .then()
                 .statusCode(404);
     }
@@ -956,7 +956,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway")
+                .get("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(404);
     }
@@ -969,7 +969,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body("not valid json {{{")
                 .when()
-                .post("/calm/namespaces/finos/bad-json")
+                .post("/calm/namespaces/finos/mappings/bad-json")
                 .then()
                 .statusCode(400);
     }
@@ -984,7 +984,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body("not valid json {{{")
                 .when()
-                .post("/calm/namespaces/finos/api-gateway")
+                .post("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(400);
     }
@@ -1001,7 +1001,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/api-gateway")
+                .post("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(400)
                 .body(containsString("json"));
@@ -1017,7 +1017,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/no-json")
+                .post("/calm/namespaces/finos/mappings/no-json")
                 .then()
                 .statusCode(400)
                 .body(containsString("json"));
@@ -1034,7 +1034,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/badns/api-gateway")
+                .get("/calm/namespaces/badns/mappings/api-gateway")
                 .then()
                 .statusCode(404);
     }
@@ -1048,7 +1048,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/badns/api-gateway/versions/1.0.0")
+                .get("/calm/namespaces/badns/mappings/api-gateway/versions/1.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -1062,7 +1062,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/badns/api-gateway/versions")
+                .get("/calm/namespaces/badns/mappings/api-gateway/versions")
                 .then()
                 .statusCode(404);
     }
@@ -1080,7 +1080,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/dup-id")
+                .post("/calm/namespaces/finos/mappings/dup-id")
                 .then()
                 .statusCode(409);
     }
@@ -1098,7 +1098,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/badns/new-res")
+                .post("/calm/namespaces/badns/mappings/new-res")
                 .then()
                 .statusCode(404);
     }
@@ -1118,7 +1118,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/badns/api-gateway")
+                .post("/calm/namespaces/badns/mappings/api-gateway")
                 .then()
                 .statusCode(404);
     }
@@ -1147,7 +1147,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/empty-ver")
+                .get("/calm/namespaces/finos/mappings/empty-ver")
                 .then()
                 .statusCode(404);
     }
@@ -1164,7 +1164,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/bad-type")
+                .post("/calm/namespaces/finos/mappings/bad-type")
                 .then()
                 .statusCode(400)
                 .body(containsString("Invalid resource type"));
@@ -1181,7 +1181,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/err-resource")
+                .get("/calm/namespaces/finos/mappings/err-resource")
                 .then()
                 .statusCode(500);
     }
@@ -1195,7 +1195,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/missing-pattern/versions/1.0.0")
+                .get("/calm/namespaces/finos/mappings/missing-pattern/versions/1.0.0")
                 .then()
                 .statusCode(404)
                 .body(containsString("missing-pattern"));
@@ -1210,7 +1210,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/missing-versions/versions")
+                .get("/calm/namespaces/finos/mappings/missing-versions/versions")
                 .then()
                 .statusCode(404)
                 .body(containsString("missing-versions"));
@@ -1225,7 +1225,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/err-version/versions/1.0.0")
+                .get("/calm/namespaces/finos/mappings/err-version/versions/1.0.0")
                 .then()
                 .statusCode(500);
     }
@@ -1239,7 +1239,7 @@ public class TestFrontControllerResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/err-list-versions/versions")
+                .get("/calm/namespaces/finos/mappings/err-list-versions/versions")
                 .then()
                 .statusCode(500);
     }
@@ -1262,7 +1262,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/rollback-me")
+                .post("/calm/namespaces/finos/mappings/rollback-me")
                 .then()
                 .statusCode(400);
 
@@ -1285,7 +1285,7 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/null-msg")
+                .post("/calm/namespaces/finos/mappings/null-msg")
                 .then()
                 .statusCode(400)
                 .body(containsString("Unknown error"));
@@ -1304,9 +1304,177 @@ public class TestFrontControllerResourceShould {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .when()
-                .post("/calm/namespaces/finos/orphan")
+                .post("/calm/namespaces/finos/mappings/orphan")
                 .then()
                 .statusCode(404)
                 .body(containsString("orphan"));
+    }
+
+    // --- PUT: link a custom ID to an existing resource ---
+
+    @Test
+    void return_201_when_linking_custom_id_to_existing_pattern() throws Exception {
+        when(mockMappingStore.getMapping("finos", "gateway-alias")).thenThrow(new MappingNotFoundException());
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0", "1.1.0"));
+
+        String body = "{ \"type\": \"PATTERN\", \"resourceId\": 7 }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .put("/calm/namespaces/finos/mappings/gateway-alias")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/mappings/gateway-alias/versions/1.1.0"));
+
+        verify(mockMappingStore).createMapping("finos", "gateway-alias", ResourceType.PATTERN, 7);
+    }
+
+    @Test
+    void return_409_when_linking_custom_id_that_already_exists() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("taken").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", "taken")).thenReturn(existing);
+
+        String body = "{ \"type\": \"PATTERN\", \"resourceId\": 7 }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .put("/calm/namespaces/finos/mappings/taken")
+                .then()
+                .statusCode(409)
+                .body(containsString("already exists"));
+
+        verify(mockMappingStore, never()).createMapping(any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void return_404_when_linking_to_nonexistent_resource() throws Exception {
+        when(mockMappingStore.getMapping("finos", "ghost-alias")).thenThrow(new MappingNotFoundException());
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(new PatternNotFoundException());
+
+        String body = "{ \"type\": \"PATTERN\", \"resourceId\": 999 }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .put("/calm/namespaces/finos/mappings/ghost-alias")
+                .then()
+                .statusCode(404)
+                .body(containsString("999"));
+
+        verify(mockMappingStore, never()).createMapping(any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void return_404_when_linking_to_resource_with_no_versions() throws Exception {
+        when(mockMappingStore.getMapping("finos", "empty-alias")).thenThrow(new MappingNotFoundException());
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of());
+
+        String body = "{ \"type\": \"PATTERN\", \"resourceId\": 3 }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .put("/calm/namespaces/finos/mappings/empty-alias")
+                .then()
+                .statusCode(404);
+
+        verify(mockMappingStore, never()).createMapping(any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void return_400_when_linking_with_missing_type() throws Exception {
+        String body = "{ \"resourceId\": 7 }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .put("/calm/namespaces/finos/mappings/no-type-link")
+                .then()
+                .statusCode(400)
+                .body(containsString("type"));
+    }
+
+    @Test
+    void return_400_when_linking_with_missing_resource_id() throws Exception {
+        String body = "{ \"type\": \"PATTERN\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .put("/calm/namespaces/finos/mappings/no-id-link")
+                .then()
+                .statusCode(400)
+                .body(containsString("resourceId"));
+    }
+
+    @Test
+    void return_400_when_linking_with_invalid_type() throws Exception {
+        String body = "{ \"type\": \"BANANAS\", \"resourceId\": 7 }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .put("/calm/namespaces/finos/mappings/bad-type-link")
+                .then()
+                .statusCode(400)
+                .body(containsString("Invalid resource type"));
+    }
+
+    @Test
+    void return_400_when_link_body_is_malformed_json() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("not valid json {{{")
+                .when()
+                .put("/calm/namespaces/finos/mappings/bad-json-link")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void return_404_when_linking_in_nonexistent_namespace() throws Exception {
+        when(mockMappingStore.getMapping("badns", "ns-link")).thenThrow(new MappingNotFoundException());
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
+        doThrow(new NamespaceNotFoundException()).when(mockMappingStore)
+                .createMapping("badns", "ns-link", ResourceType.PATTERN, 7);
+
+        String body = "{ \"type\": \"PATTERN\", \"resourceId\": 7 }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .put("/calm/namespaces/badns/mappings/ns-link")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_409_when_link_create_mapping_reports_duplicate() throws Exception {
+        when(mockMappingStore.getMapping("finos", "race-link")).thenThrow(new MappingNotFoundException());
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
+        doThrow(new DuplicateMappingException()).when(mockMappingStore)
+                .createMapping("finos", "race-link", ResourceType.PATTERN, 7);
+
+        String body = "{ \"type\": \"PATTERN\", \"resourceId\": 7 }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .put("/calm/namespaces/finos/mappings/race-link")
+                .then()
+                .statusCode(409)
+                .body(containsString("already exists"));
     }
 }
