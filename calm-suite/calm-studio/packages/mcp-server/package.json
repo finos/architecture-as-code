@@ -31,7 +31,7 @@
     "@calmstudio/calm-core": "file:../calm-core",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.1.0",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.0"
   }
