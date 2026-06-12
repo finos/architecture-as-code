@@ -281,31 +281,32 @@ export async function runPushArchitecture(options: PushOptions): Promise<void> {
 
 // ── pull architecture ─────────────────────────────────────────────────────────
 
-export interface PullArchitectureOptions {
+export interface PullOptions {
     calmHubOptions: CalmHubOptions;
     namespace: string;
-    id: string;
-    version: string;
+    mapping: string;
+    version?: string;
     output?: string;
-    mapping?: string;
 }
 
-/**
- * Pulls an architecture version from CALM Hub and writes it to stdout or a file.
- * @param options Command options.
- */
-export async function runPullArchitecture(options: PullArchitectureOptions): Promise<void> {
+export async function pullDocument(options: PullOptions, resourceType: ResourceType): Promise<void> {
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions);
     const client = new CalmHubClient(calmHubOptions);
 
-    const parsedId = parseInt(options.id, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'pull architecture', 'json');
-        process.exit(1);
-    }
+    const mapping = options.mapping;
+    const namespace = options.namespace;
+    const version = options.version;
+    const pullLatest = !version;
+
+    console.log(`Pulling ${resourceType.toLowerCase()} from CALM Hub with namespace=${namespace}, mapping=${mapping}, version=${version ?? 'latest'}`);
 
     try {
-        const result = await client.pullArchitecture(options.namespace, parsedId, options.version);
+        let result;
+        if (pullLatest) {
+            result = await client.getMappedResourceLatestVersion(namespace, mapping);
+        } else {
+            result = await client.getMappedResourceByVersion(namespace, mapping, version);
+        }
         const pretty = JSON.stringify(result, null, 2);
 
         if (options.output) {
@@ -316,6 +317,14 @@ export async function runPullArchitecture(options: PullArchitectureOptions): Pro
     } catch (err) {
         handleHubError(err, 'json');
     }
+}
+
+/**
+ * Pulls an architecture version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
+export async function runPullArchitecture(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'ARCHITECTURE');
 }
 
 // ── list architectures ────────────────────────────────────────────────────────
@@ -446,38 +455,17 @@ export async function runPushPattern(options: PushOptions): Promise<void> {
 export interface PullPatternOptions {
     calmHubOptions: CalmHubOptions;
     namespace: string;
-    id: string;
-    version: string;
+    version?: string;
     output?: string;
-    mapping?: string;
+    mapping: string;
 }
 
 /**
  * Pulls a pattern version from CALM Hub and writes it to stdout or a file.
  * @param options Command options.
  */
-export async function runPullPattern(options: PullPatternOptions): Promise<void> {
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
-    const client = new CalmHubClient(calmHubOptions);
-
-    const parsedId = parseInt(options.id, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'pull pattern', 'json');
-        process.exit(1);
-    }
-
-    try {
-        const result = await client.pullPattern(options.namespace, parsedId, options.version);
-        const pretty = JSON.stringify(result, null, 2);
-
-        if (options.output) {
-            await writeFile(options.output, pretty, 'utf-8');
-        } else {
-            console.log(pretty);
-        }
-    } catch (err) {
-        handleHubError(err, 'json');
-    }
+export async function runPullPattern(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'PATTERN');
 }
 
 // ── list patterns ─────────────────────────────────────────────────────────────
@@ -529,41 +517,12 @@ export async function runPushStandard(options: PushOptions): Promise<void> {
 
 // ── pull standard ─────────────────────────────────────────────────────────────
 
-export interface PullStandardOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    id: string;
-    version: string;
-    output?: string;
-    mapping?: string;
-}
-
 /**
  * Pulls a standard version from CALM Hub and writes it to stdout or a file.
  * @param options Command options.
  */
-export async function runPullStandard(options: PullStandardOptions): Promise<void> {
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
-    const client = new CalmHubClient(calmHubOptions);
-
-    const parsedId = parseInt(options.id, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'pull standard', 'json');
-        process.exit(1);
-    }
-
-    try {
-        const result = await client.pullStandard(options.namespace, parsedId, options.version);
-        const pretty = JSON.stringify(result, null, 2);
-
-        if (options.output) {
-            await writeFile(options.output, pretty, 'utf-8');
-        } else {
-            console.log(pretty);
-        }
-    } catch (err) {
-        handleHubError(err, 'json');
-    }
+export async function runPullStandard(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'STANDARD');
 }
 
 // ── list standards ────────────────────────────────────────────────────────────

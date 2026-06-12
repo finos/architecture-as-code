@@ -11,12 +11,8 @@ import {
     ListNamespacesOptions,
     ListPatternsOptions,
     ListStandardsOptions,
-    PullArchitectureOptions,
-    PullPatternOptions,
-    PullStandardOptions,
-    PushArchitectureOptions,
-    PushPatternOptions,
-    PushStandardOptions,
+    PushOptions,
+    PullOptions,
     runCreateNamespace,
     runListArchitectures,
     runListNamespaces,
@@ -47,8 +43,9 @@ import {
     CreateControlConfigurationOptions,
     ListControlConfigurationsOptions,
     runCreateControlConfiguration,
-    runListControlConfigurations
+    runListControlConfigurations,
 } from './command-helpers/hub-commands';
+import { ResourceChangeType } from '@finos/calm-shared/dist/hub/calm-hub-client';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -87,7 +84,9 @@ const HUB_VERSION_OPTION = '--ver <version>'; // --version conflicts with Comman
 const DOMAIN_OPTION = '--domain <domain>';
 const CONTROL_ID_OPTION = '--control-id <controlId>';
 const CONFIG_ID_OPTION = '--config-id <configId>';
+const MAPPING_OPTION = '--mapping <mappingName>';
 
+const MAPPING_OPTION_DESCRIPTION = 'CalmHub mapping slug to use. Will create this resource if it exists, or bump version. otherwise.';
 export function setupCLI(program: Command) {
     program
         .name('calm')
@@ -435,6 +434,10 @@ Example:
 
     const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'pretty']).default('json');
 
+    const hubVersionBumpOption = new Option("-t, --change-type <type>", "Type of change for version bump when pushing a new version of an existing resource. Defaults to 'patch'")
+        .choices(['patch', 'minor', 'major'])
+        .default('patch');
+
     const hubCmd = new Command('hub').description('Interact with CALM Hub');
 
     // hub push
@@ -442,24 +445,23 @@ Example:
 
     hubPushCmd
         .command('architecture <architecture-file>')
-        .description('Push a CALM architecture file to CALM Hub')
+        .description('Push a CALM architecture file to CALM Hub. $id of document must contain a mapping slug.')
         .option(NAME_OPTION, 'Name for the architecture in CALM Hub (required when creating a new architecture)')
         .option(DESCRIPTION_OPTION, 'Description for the architecture')
-        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default') // TODO can we just remove this, or leave as override?
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option(ID_OPTION, 'Existing architecture ID (required when adding a new version)')
-        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
+        .option(MAPPING_OPTION, MAPPING_OPTION_DESCRIPTION)
         .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
         .action(async (architectureFile, options) => {
-            const pushOptions: PushArchitectureOptions = {
+            const pushOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
                 name: options.name,
                 description: options.description,
                 file: architectureFile,
-                id: options.id,
-                version: options.ver,
-                format: options.format
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType
             };
             await runPushArchitecture(pushOptions);
         });
@@ -474,16 +476,16 @@ Example:
         .option(ID_OPTION, 'Existing pattern ID (required when adding a new version)')
         .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
         .action(async (patternFile, options) => {
-            const pushPatternOptions: PushPatternOptions = {
+            const pushPatternOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
                 name: options.name,
                 description: options.description,
                 file: patternFile,
-                id: options.id,
-                version: options.ver,
-                format: options.format
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
             };
             await runPushPattern(pushPatternOptions);
         });
@@ -499,15 +501,14 @@ Example:
         .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
         .action(async (standardFile, options) => {
-            const pushStandardOptions: PushStandardOptions = {
+            const pushStandardOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
                 name: options.name,
                 description: options.description,
                 file: standardFile,
-                id: options.id,
-                version: options.ver,
-                format: options.format
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
             };
             await runPushStandard(pushStandardOptions);
         });
@@ -565,15 +566,15 @@ Example:
         .command('architecture')
         .description('Pull a specific version of a CALM architecture from CALM Hub')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
-        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
-        .requiredOption(ID_OPTION, 'Architecture ID to pull')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the architecture to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const pullOptions: PullArchitectureOptions = {
+            const pullOptions: PullOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
-                id: options.id,
+                mapping: options.mapping,
                 version: options.ver,
                 output: options.output
             };
@@ -584,15 +585,15 @@ Example:
         .command('pattern')
         .description('Pull a specific version of a CALM pattern from CALM Hub')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
-        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
-        .requiredOption(ID_OPTION, 'Pattern ID to pull')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the pattern to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const pullPatternOptions: PullPatternOptions = {
+            const pullPatternOptions: PullOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
-                id: options.id,
+                mapping: options.mapping,
                 version: options.ver,
                 output: options.output
             };
@@ -603,15 +604,15 @@ Example:
         .command('standard')
         .description('Pull a specific version of a CALM standard from CALM Hub')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
-        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
-        .requiredOption(ID_OPTION, 'Standard ID to pull')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the standard to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const pullStandardOptions: PullStandardOptions = {
+            const pullStandardOptions: PullOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
-                id: options.id,
+                mapping: options.mapping,
                 version: options.ver,
                 output: options.output
             };

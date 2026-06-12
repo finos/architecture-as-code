@@ -16,15 +16,14 @@ vi.mock('@finos/calm-shared', () => {
         createNamespace: vi.fn(),
         listNamespaces: vi.fn(),
         listArchitectures: vi.fn(),
-        pullArchitecture: vi.fn(),
         listPatterns: vi.fn(),
-        pullPattern: vi.fn(),
         listStandards: vi.fn(),
-        pullStandard: vi.fn(),
-        // mapping-based push primitives used by orchestratePush
+        // mapping-based push/pull primitives used by orchestratePush/pullDocument
         getMappedResourceVersions: vi.fn(),
         createNewMappedResource: vi.fn(),
         updateMappedResource: vi.fn(),
+        getMappedResourceLatestVersion: vi.fn(),
+        getMappedResourceByVersion: vi.fn(),
         createDomain: vi.fn(),
         listDomains: vi.fn(),
         createControl: vi.fn(),
@@ -313,46 +312,47 @@ describe('hub-commands', () => {
     // ── runPullArchitecture ────────────────────────────────────────────────
 
     describe('runPullArchitecture', () => {
-        it('prints JSON to stdout by default', async () => {
+        it('pulls a specific version by mapping and prints JSON to stdout', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pullArchitecture).mockResolvedValue({ id: 1, architecture: '{}' });
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ id: 1, architecture: '{}' });
             const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
 
-            await runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '1', version: '1.0.0' });
+            await runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-arch', version: '1.0.0' });
 
+            expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-arch', '1.0.0');
+            expect(mockClient.getMappedResourceLatestVersion).not.toHaveBeenCalled();
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"id": 1'));
             consoleSpy.mockRestore();
         });
 
+        it('pulls the latest version when no version is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceLatestVersion).mockResolvedValue({ id: 1 });
+
+            await runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-arch' });
+
+            expect(mockClient.getMappedResourceLatestVersion).toHaveBeenCalledWith('finos', 'my-arch');
+            expect(mockClient.getMappedResourceByVersion).not.toHaveBeenCalled();
+        });
+
         it('writes to file when --output is provided', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pullArchitecture).mockResolvedValue({ id: 1 });
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ id: 1 });
 
-            await runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '1', version: '1.0.0', output: 'out.json' });
+            await runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-arch', version: '1.0.0', output: 'out.json' });
 
             expect(fs.writeFile).toHaveBeenCalledWith('out.json', expect.any(String), 'utf-8');
         });
 
         it('exits on HubClientError', async () => {
             const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.pullArchitecture).mockRejectedValue(
-                new shared.HubClientError(404, 'Not found', 'GET /calm/namespaces/finos/architectures/99/versions/1.0.0')
+            vi.mocked(mockClient.getMappedResourceByVersion).mockRejectedValue(
+                new shared.HubClientError(404, 'Not found', 'GET /calm/namespaces/finos/mappings/my-arch/versions/1.0.0')
             );
 
-            await expect(runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '99', version: '1.0.0' }))
+            await expect(runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-arch', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Not found', expect.any(String), 'json');
-        });
-
-        it('exits with error when --id is not a valid integer', async () => {
-            await expect(runPullArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: 'not-a-number', version: '1.0.0' }))
-                .rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(
-                0,
-                '--id must be a valid integer',
-                'pull architecture',
-                'json'
-            );
         });
     });
 
@@ -626,45 +626,48 @@ describe('hub-commands', () => {
     // ── runPullPattern ─────────────────────────────────────────────────────
 
     describe('runPullPattern', () => {
-        it('prints JSON to stdout by default', async () => {
+        it('pulls a specific version by mapping and prints JSON to stdout', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pullPattern).mockResolvedValue({ id: 10, patternJson: '{}' });
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ id: 10, patternJson: '{}' });
             const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
 
             const { runPullPattern } = await import('./hub-commands');
-            await runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '10', version: '1.0.0' });
+            await runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-pattern', version: '1.0.0' });
 
+            expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-pattern', '1.0.0');
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"id": 10'));
             consoleSpy.mockRestore();
         });
 
-        it('writes to file when --output is provided', async () => {
+        it('pulls the latest version when no version is provided', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pullPattern).mockResolvedValue({ id: 10 });
+            vi.mocked(mockClient.getMappedResourceLatestVersion).mockResolvedValue({ id: 10 });
 
             const { runPullPattern } = await import('./hub-commands');
-            await runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '10', version: '1.0.0', output: 'out.json' });
+            await runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-pattern' });
+
+            expect(mockClient.getMappedResourceLatestVersion).toHaveBeenCalledWith('finos', 'my-pattern');
+            expect(mockClient.getMappedResourceByVersion).not.toHaveBeenCalled();
+        });
+
+        it('writes to file when --output is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ id: 10 });
+
+            const { runPullPattern } = await import('./hub-commands');
+            await runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-pattern', version: '1.0.0', output: 'out.json' });
 
             expect(fs.writeFile).toHaveBeenCalledWith('out.json', expect.any(String), 'utf-8');
         });
 
-        it('exits with error when --id is not a valid integer', async () => {
-            const { runPullPattern } = await import('./hub-commands');
-            await expect(runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: 'bad', version: '1.0.0' }))
-                .rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(
-                0, '--id must be a valid integer', 'pull pattern', 'json'
-            );
-        });
-
         it('exits on HubClientError', async () => {
             const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.pullPattern).mockRejectedValue(
-                new shared.HubClientError(404, 'Pattern not found', 'GET /calm/namespaces/finos/patterns/99/versions/1.0.0')
+            vi.mocked(mockClient.getMappedResourceByVersion).mockRejectedValue(
+                new shared.HubClientError(404, 'Pattern not found', 'GET /calm/namespaces/finos/mappings/my-pattern/versions/1.0.0')
             );
 
             const { runPullPattern } = await import('./hub-commands');
-            await expect(runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '99', version: '1.0.0' }))
+            await expect(runPullPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-pattern', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Pattern not found', expect.any(String), 'json');
         });
@@ -839,45 +842,48 @@ describe('hub-commands', () => {
     // ── runPullStandard ────────────────────────────────────────────────────
 
     describe('runPullStandard', () => {
-        it('prints JSON to stdout by default', async () => {
+        it('pulls a specific version by mapping and prints JSON to stdout', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pullStandard).mockResolvedValue({ id: 20, standardJson: 'raw' });
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ id: 20, standardJson: 'raw' });
             const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
 
             const { runPullStandard } = await import('./hub-commands');
-            await runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '20', version: '1.0.0' });
+            await runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-standard', version: '1.0.0' });
 
+            expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-standard', '1.0.0');
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"id": 20'));
             consoleSpy.mockRestore();
         });
 
-        it('writes to file when --output is provided', async () => {
+        it('pulls the latest version when no version is provided', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pullStandard).mockResolvedValue({ id: 20 });
+            vi.mocked(mockClient.getMappedResourceLatestVersion).mockResolvedValue({ id: 20 });
 
             const { runPullStandard } = await import('./hub-commands');
-            await runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '20', version: '1.0.0', output: 'out.txt' });
+            await runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-standard' });
+
+            expect(mockClient.getMappedResourceLatestVersion).toHaveBeenCalledWith('finos', 'my-standard');
+            expect(mockClient.getMappedResourceByVersion).not.toHaveBeenCalled();
+        });
+
+        it('writes to file when --output is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ id: 20 });
+
+            const { runPullStandard } = await import('./hub-commands');
+            await runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-standard', version: '1.0.0', output: 'out.txt' });
 
             expect(fs.writeFile).toHaveBeenCalledWith('out.txt', expect.any(String), 'utf-8');
         });
 
-        it('exits with error when --id is not a valid integer', async () => {
-            const { runPullStandard } = await import('./hub-commands');
-            await expect(runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: 'bad', version: '1.0.0' }))
-                .rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(
-                0, '--id must be a valid integer', 'pull standard', 'json'
-            );
-        });
-
         it('exits on HubClientError', async () => {
             const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.pullStandard).mockRejectedValue(
-                new shared.HubClientError(404, 'Standard not found', 'GET /calm/namespaces/finos/standards/99/versions/1.0.0')
+            vi.mocked(mockClient.getMappedResourceByVersion).mockRejectedValue(
+                new shared.HubClientError(404, 'Standard not found', 'GET /calm/namespaces/finos/mappings/my-standard/versions/1.0.0')
             );
 
             const { runPullStandard } = await import('./hub-commands');
-            await expect(runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', id: '99', version: '1.0.0' }))
+            await expect(runPullStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-standard', version: '1.0.0' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Standard not found', expect.any(String), 'json');
         });

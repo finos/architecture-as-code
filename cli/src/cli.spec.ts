@@ -584,20 +584,32 @@ describe('CLI Commands', () => {
             }));
         });
 
-        it('passes --id and --version for versioned push', async () => {
+        it('passes the change type through for a versioned push', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'hub', 'push', 'architecture',
                 'arch.json',
                 '--name', 'my-arch',
                 '--namespace', 'finos',
                 '--calm-hub-url', 'http://hub',
-                '--id', '42',
-                '--ver', '2.0.0',
+                '--change-type', 'minor',
             ]);
 
             expect(hubCommandsModule.runPushArchitecture).toHaveBeenCalledWith(expect.objectContaining({
-                id: '42',
-                version: '2.0.0',
+                changeType: 'MINOR',
+            }));
+        });
+
+        it('defaults the change type to PATCH when not provided', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'architecture',
+                'arch.json',
+                '--name', 'my-arch',
+                '--namespace', 'finos',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushArchitecture).toHaveBeenCalledWith(expect.objectContaining({
+                changeType: 'PATCH',
             }));
         });
 
@@ -644,14 +656,14 @@ describe('CLI Commands', () => {
         it('calls runPullArchitecture with correct arguments', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'hub', 'pull', 'architecture',
-                '--id', '1',
+                '--mapping', 'my-arch',
                 '--namespace', 'finos',
                 '--ver', '1.0.0',
                 '--calm-hub-url', 'http://hub',
             ]);
 
             expect(hubCommandsModule.runPullArchitecture).toHaveBeenCalledWith(expect.objectContaining({
-                id: '1',
+                mapping: 'my-arch',
                 namespace: 'finos',
                 version: '1.0.0',
                 calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
@@ -661,7 +673,7 @@ describe('CLI Commands', () => {
         it('passes --output when provided', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'hub', 'pull', 'architecture',
-                '--id', '1',
+                '--mapping', 'my-arch',
                 '--namespace', 'finos',
                 '--ver', '1.0.0',
                 '--calm-hub-url', 'http://hub',
