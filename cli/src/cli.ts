@@ -474,7 +474,7 @@ Example:
         .option(NAMESPACE_OPTION, 'Target namespace', 'default')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(ID_OPTION, 'Existing pattern ID (required when adding a new version)')
-        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
+        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)') // TODO update descriptions 
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
         .action(async (patternFile, options) => {

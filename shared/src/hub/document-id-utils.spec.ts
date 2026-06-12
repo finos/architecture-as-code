@@ -1,4 +1,5 @@
-import { constructDocumentId, DocumentMetadata, parseDocumentId, extractDocumentMetadata, updateDocumentId } from "./document-id-utils";
+import { describe, it, expect } from 'vitest';
+import { constructDocumentId, DocumentMetadata, parseDocumentId, extractDocumentMetadata, updateDocumentId } from './document-id-utils';
 
 describe('Document ID Utils', () => {
     describe('parseDocumentId', () => {
@@ -12,7 +13,7 @@ describe('Document ID Utils', () => {
                 mapping: 'my-mapping'
             });
         });
-        
+
         it('should extract metadata from a valid document ID with version', () => {
             const documentId = 'https://example.com/calm/namespaces/my-namespace/mappings/my-mapping/versions/1.0.0';
             const metadata = parseDocumentId(documentId);
@@ -82,7 +83,7 @@ describe('Document ID Utils', () => {
         });
 
         it('should throw an error if the document is not valid JSON', () => {
-            const invalidDocument = "not a json";
+            const invalidDocument = 'not a json';
             expect(() => extractDocumentMetadata(invalidDocument)).toThrow();
         });
 

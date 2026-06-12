@@ -1,6 +1,7 @@
-import axios, { Axios } from 'axios';
+import axios, { Axios, AxiosError } from 'axios';
 import { AuthPlugin } from '../auth/auth-plugin';
 import { initLogger, Logger } from '../logger';
+import { extractDocumentMetadata } from './document-id-utils';
 
 export interface CalmHubOptions {
     calmHubUrl?: string;
@@ -68,7 +69,17 @@ export interface HubControlRequirementSummary {
     
 export type ResourceChangeType = 'MAJOR' | 'MINOR' | 'PATCH';
 
-export type ResourceType = 'PATTERN' | 'ARCHITECTURE' | 'STANDARD' | 'INTERFACE';
+export type ResourceType = 'patterns' | 'architectures' | 'standards' | 'interfaces';
+export const RESOURCE_TYPES = ['patterns', 'architectures', 'standards', 'interfaces'];
+
+export function isValidResourceType(input: string): input is ResourceType {
+    return RESOURCE_TYPES.includes(input);
+}
+
+export function convertResourceTypeForCalmHubUrl(rt: ResourceType): string {
+    // return (rt as string) + 's';
+    return rt as string;
+}
 
 export class HubClientError extends Error {
     /**
@@ -613,6 +624,10 @@ export class CalmHubClient {
         requirementJson: string
     ): Promise<HubCreateResult> {
         const endpoint = `POST /api/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
+        // print debug all parameters except requirementJson which may be large
+        console.debug(`pushControlRequirement called with domain=${domain}, controlId=${controlId}, version=${version}, name=${name}, description=${description}`);
+        // print debug first 200 characters of requirementJson
+        console.debug(`requirementJson: ${requirementJson.substring(0, 200)}${requirementJson.length > 200 ? '... (truncated)' : ''}`);
         try {
             const response = await this.ax.post(
                 `/api/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`,
@@ -763,108 +778,119 @@ export class CalmHubClient {
         }
     }
 
-    async getNamespaceMappings(namespace: string, type?: ResourceType): Promise<string[]> {
+    async getNamespaceMappings(namespace: string, type: ResourceType): Promise<string[]> {
         this.logger.debug(`Getting mappings for namespace=${namespace} with type=${type ?? 'ANY'}`);
-        const endpoint = `GET /calm/namespaces/${namespace}/mappings`;
+        const endpoint = `/api/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(type)}`;
         try {
-            // TODO does it ignore null properties
-            const response = await this.ax.get(`/calm/namespaces/${namespace}/mappings`, {
-                params: {
-                    type,
-                }
-            });
+            const response = await this.ax.get(endpoint);
             this.logger.debug(`Received mappings response: ${JSON.stringify(response.data)}`);
             return (response.data?.values ?? []) as string[];
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
 
-    async createNewMappedResource(
+    async createMappedResourceVersion(
             namespace: string, 
             mappingId: string, 
-            resourceType: ResourceType, 
-            name: string, 
-            description: string, 
+            resourceType: ResourceType,
+            version: string,
+            name: string,
+            description: string,
             json: string): Promise<string> {
+        // const endpoint = `/calm`;
+        console.log(json);
+        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(resourceType)}/${mappingId}/versions/${version}`;
 
-        this.logger.debug(`Creating new mapped resource in namespace=${namespace} with mappingId=${mappingId}, resourceType=${resourceType}, name=${name}`);
-        const endpoint = `POST /calm/namespaces/${namespace}/mappings/${mappingId}`;
-        const body = {
-            type: resourceType,
-            name,
-            description,
-            json
+        this.logger.debug(`Updating mapped resource in namespace=${namespace} with mappingId=${mappingId}`);
+
+        // TODO handle name/description
+
+        const metadata = extractDocumentMetadata(json);
+        if (!metadata) {
+            throw new HubClientError(0, 'Failed to extract document metadata for mapping update', endpoint);
         }
 
-        this.logger.debug(`Request for create new mapped resource: ${JSON.stringify(body)}`);
+        if (!metadata.version) {
+            metadata.version = '1.0.0';
+        }
+
+        // TODO dedupe
+        if (metadata.namespace !== namespace) {
+            throw new HubClientError(0, 
+                `Document metadata does not match the specified namespace. Expected ${namespace}, got ${metadata.namespace}`, 
+                `POST ${endpoint}`);
+        }
+        if (metadata.mapping !== mappingId) {
+            throw new HubClientError(0, 
+                `Document metadata does not match the specified mapping. Expected ${mappingId}, got ${metadata.mapping}`, 
+                `POST ${endpoint}`);
+        }
+        if (metadata.version !== version) {
+            throw new HubClientError(0, 
+                `Document metadata does not match the specified version. Expected ${version}, got ${metadata.version}`, 
+                `POST ${endpoint}`);
+        }
+        if (metadata.type !== resourceType) {
+            throw new HubClientError(0, 
+                `Document metadata does not match the specified resource Type. Expected ${resourceType}, got ${metadata.type}`, 
+                `POST ${endpoint}`);
+        }
 
         try {
-            const response = await this.ax.post(`/calm/namespaces/${namespace}/mappings/${mappingId}`, body);
-            this.logger.debug(`Received create mapping response: ${JSON.stringify(response.data)}`);
-            return response.data?.location as string;
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-
-    }
-
-    async updateMappedResource(
-            namespace: string, 
-            mappingId: string, 
-            changeType: ResourceChangeType, 
-            json: string): Promise<string> {
-        const endpoint = `POST /calm/namespaces/${namespace}/mappings/${mappingId}`;
-        const body = {
-            json,
-            changeType
-        }
-
-        this.logger.debug(`Updating mapped resource in namespace=${namespace} with mappingId=${mappingId}, changeType=${changeType}`);
-        this.logger.debug(`Request for update mapped resource: ${JSON.stringify(body)}`);
-
-        try {
-            const response = await this.ax.post(`/calm/namespaces/${namespace}/mappings/${mappingId}`, body);
+            const response = await this.ax.post(endpoint, json);
             this.logger.debug(`Received update mapping response: ${JSON.stringify(response.headers)}`);
             return response.headers.location as string;
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            throw this.wrapError(err, `POST ${endpoint}`);
         }
     }
     
-    async getMappedResourceVersions(namespace: string, mappingId: string): Promise<string[]> {
-        this.logger.debug(`Getting mapped resource versions for namespace=${namespace} and mappingId=${mappingId}`);
-        const endpoint = `GET /calm/namespaces/${namespace}/mappings/${mappingId}/versions`;
+    /**
+     * Return the list of versions fo a resource, or [] if none exist.
+     * @param namespace The namespace to query
+     * @param mappingId The mapping ID to query versions for
+     * @param resourceType The resource type that this mapping ID belongs to
+     * @returns The list of versions of that resource, or an empty list if the resource doesn't exist
+     */
+    async getMappedResourceVersions(namespace: string, mappingId: string, resourceType: ResourceType): Promise<string[]> {
+        this.logger.debug(`Getting mapped resource versions for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
+        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(resourceType)}/${mappingId}/versions`;
         try {
-            const response = await this.ax.get(`/calm/namespaces/${namespace}/mappings/${mappingId}/versions`);
+            const response = await this.ax.get(endpoint);
             this.logger.debug(`Received mapped resource versions response: ${JSON.stringify(response.data)}`);
             return (response.data?.values ?? []) as string[];
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            if (err instanceof AxiosError) {
+                if (err.status === 404) {
+                    return [];
+                }
+            }
+            throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
 
-    async getMappedResourceLatestVersion(namespace: string, mappingId: string): Promise<string> {
-        this.logger.debug(`Getting latest version for namespace=${namespace} and mappingId=${mappingId}`);
-        const endpoint = `GET /calm/namespaces/${namespace}/mappings/${mappingId}`;
+    async getMappedResourceLatestVersion(namespace: string, mappingId: string, resourceType: ResourceType): Promise<string> {
+        this.logger.debug(`Getting latest version for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
+        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(resourceType)}/${mappingId}`;
         try {
-            const response = await this.ax.get(`/calm/namespaces/${namespace}/mappings/${mappingId}`);
+            const response = await this.ax.get(endpoint);
             this.logger.debug(`Received latest version response: ${JSON.stringify(response.data)}`);
             return response.data as string;
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
 
-    async getMappedResourceByVersion(namespace: string, mappingId: string, version: string): Promise<string> {
-        this.logger.debug(`Getting version ${version} for namespace=${namespace} and mappingId=${mappingId}`);
-        const endpoint = `GET /calm/namespaces/${namespace}/mappings/${mappingId}/versions/${version}`;
+    async getMappedResourceByVersion(namespace: string, mappingId: string, version: string, resourceType: ResourceType): Promise<string> {
+        this.logger.debug(`Getting version ${version} for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
+        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(resourceType)}/${mappingId}/versions/${version}`;
         try {
-            const response = await this.ax.get(`/calm/namespaces/${namespace}/mappings/${mappingId}/versions/${version}`);
+            const response = await this.ax.get(endpoint);
             this.logger.debug(`Received version response: ${JSON.stringify(response.data)}`);
             return response.data as string;
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
     
@@ -892,7 +918,7 @@ export class CalmHubClient {
 
     /**
      * Parses a resource id from a Location header of the form
-     * /calm/.../{id} or /calm/.../{id}/
+     * /api/calm/.../{id} or /api/calm/.../{id}/
      */
     private parseIdFromLocation(location: string, endpoint: string): number {
         const match = /\/(\d+)\/?$/.exec(location);

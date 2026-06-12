@@ -970,8 +970,8 @@ describe('CalmHubClient', () => {
         it('forwards the resource type as a query parameter when provided', async () => {
             mock.onGet('/calm/namespaces/finos/mappings').reply(200, { values: [] });
 
-            await client.getNamespaceMappings('finos', 'PATTERN');
-            expect(mock.history.get[0].params).toEqual({ type: 'PATTERN' });
+            await client.getNamespaceMappings('finos', 'pattern');
+            expect(mock.history.get[0].params).toEqual({ type: 'pattern' });
         });
 
         it('throws HubClientError on 500', async () => {
@@ -994,7 +994,7 @@ describe('CalmHubClient', () => {
                 location: 'http://hub/calm/namespaces/finos/mappings/my-arch/versions/1.0.0'
             });
 
-            const result = await client.createNewMappedResource('finos', 'my-arch', 'ARCHITECTURE', 'my-arch', 'A desc', json);
+            const result = await client.createNewMappedResource('finos', 'my-arch', 'architecture', 'my-arch', 'A desc', json);
             expect(result).toBe('http://hub/calm/namespaces/finos/mappings/my-arch/versions/1.0.0');
             expect(JSON.parse(mock.history.post[0].data)).toEqual({
                 type: 'ARCHITECTURE',
@@ -1007,7 +1007,7 @@ describe('CalmHubClient', () => {
         it('throws HubClientError(409) when the mapping already exists', async () => {
             mock.onPost('/calm/namespaces/finos/mappings/my-arch').reply(409, { error: 'Mapping already exists' });
 
-            await expect(client.createNewMappedResource('finos', 'my-arch', 'ARCHITECTURE', 'my-arch', 'A desc', json))
+            await expect(client.createNewMappedResource('finos', 'my-arch', 'architecture', 'my-arch', 'A desc', json))
                 .rejects.toMatchObject({
                     status: 409,
                     error: 'Mapping already exists',
@@ -1018,7 +1018,7 @@ describe('CalmHubClient', () => {
         it('throws HubClientError on network failure', async () => {
             mock.onPost('/calm/namespaces/finos/mappings/my-arch').networkError();
 
-            await expect(client.createNewMappedResource('finos', 'my-arch', 'ARCHITECTURE', 'my-arch', 'A desc', json))
+            await expect(client.createNewMappedResource('finos', 'my-arch', 'architecture', 'my-arch', 'A desc', json))
                 .rejects.toBeInstanceOf(HubClientError);
         });
     });

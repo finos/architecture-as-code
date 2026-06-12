@@ -74,8 +74,18 @@ export {
     type HubDomainSummary,
     type HubControlSummary,
     type HubControlRequirementSummary,
-    type CalmHubOptions
+    type CalmHubOptions,
+    type ResourceType,
+    type ResourceChangeType,
+    isValidResourceType
 } from './hub/calm-hub-client.js';
+export {
+    constructDocumentId,
+    extractDocumentMetadata,
+    updateDocumentMetadata,
+    type DocumentMetadata
+} from './hub/document-id-utils.js';
+export { computeSemVerBump } from './hub/semver.js';
 export {
     enrichWithDocumentPositions,
     parseDocumentWithPositions,

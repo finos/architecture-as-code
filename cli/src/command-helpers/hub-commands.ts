@@ -1,10 +1,8 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary, HubDomainSummary, HubControlRequirementSummary, HubDomainCreateResult } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlRequirementSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, ResourceChangeType, ResourceType, updateDocumentMetadata } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
-// TODO fix imports to not use dist
-import { ResourceChangeType, ResourceType } from '@finos/calm-shared/dist/hub/calm-hub-client';
-import { DocumentMetadata, extractDocumentMetadata, parseDocumentId, updateDocumentId } from './utils/document-id-utils';
+import { version } from 'os';
 
 // ── Hub URL resolution ────────────────────────────────────────────────────────
 
@@ -183,38 +181,55 @@ export async function pushDocument(
         changeType: ResourceChangeType,
         options: PushOptions, 
         format: OutputFormat): Promise<DocumentMetadata> {
-    const resourceTypeString: string = resourceType.toLowerCase();
-    let newDocumentMetadata;
-    const mappingExists = await client.getMappedResourceVersions(namespace, mapping)
-        .then(versions => versions.length > 0);
+    // const existingDocumentMetadata = extractDocumentMetadata(fileContent);
 
+    // allow changing of name/description if not already set.
+    const name = options.name ?? metadata.name;
+    const description = options.description ?? metadata.description ?? '';
+
+    // const resourceTypeString: string = resourceType;
+    const mappedResourceVersions = await client.getMappedResourceVersions(namespace, mapping, resourceType);
+    const mappingExists = mappedResourceVersions.length > 0;
+
+    // override name/description if set
+    let newDocumentMetadata = {
+        ...metadata,
+        name,
+        description
+    };
     if (mappingExists) {
-        const version = metadata.version;
-        // TODO calculate the new version after update and update in the document, before pushing
-        // CalmHub should do this for us eventually but right now it doesn't.
-        const newId = await client.updateMappedResource(namespace, mapping, changeType, fileContent);
-        newDocumentMetadata = parseDocumentId(newId);
-
+        // TODO do these come back sorted? should we sort them just in case?
+        const latestVersion = mappedResourceVersions[mappedResourceVersions.length - 1];
+        const newVersion = computeSemVerBump(latestVersion, changeType);
+        await client.createMappedResourceVersion(
+            namespace, 
+            mapping, 
+            resourceType, 
+            newVersion, 
+            name, 
+            description, 
+            fileContent);
+        newDocumentMetadata.version = newVersion;
     } else {
         // new mapping
-        if (!options.name) {
-            printError(0, `--name is required when creating a new ${resourceTypeString}`, `push ${resourceTypeString}`, format);
-            process.exit(1);
-        }
+        // if (!name) {
+        //     printError(0, `--name is required when creating a new ${resourceTypeString}`, `push ${resourceTypeString}`, format);
+        //     process.exit(1);
+        // }
 
-        if (!options.description) {
-            printError(0, `--description is required when creating a new ${resourceTypeString}`, `push ${resourceTypeString}`, format);
-            process.exit(1);
-        }
-        const newId = await client.createNewMappedResource(
+        // if (!description) {
+        //     printError(0, `--description is required when creating a new ${resourceTypeString}`, `push ${resourceTypeString}`, format);
+        //     process.exit(1);
+        // }
+        await client.createMappedResourceVersion(
             namespace,
             mapping,
             resourceType,
-            options.name,
-            // TODO update description in the document as well if it's a pattern
-            options.description,
+            '1.0.0',
+            name,
+            description,
             fileContent);
-        newDocumentMetadata = parseDocumentId(newId);
+        newDocumentMetadata.version = "1.0.0";
     }
     return newDocumentMetadata;
 }
@@ -232,7 +247,7 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);
 
-    const requestedCommand = `push ${resourceType.toLowerCase()} ${options.file}`;
+    const requestedCommand = `push ${resourceType} ${options.file}`;
     let fileContent = await loadFileContent(options.file, requestedCommand, format);
 
     // Validate the file is parseable JSON before sending
@@ -247,15 +262,21 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
     const namespace = metadata.namespace;
     const mapping = metadata.mapping;
 
-    // TODO parse change type
-    // TODO do change bump in CLI: in future calmhub *will no longer handle this.*
-    // to wait for Jim's version of CalmHub.
     let documentMetadata: DocumentMetadata;
     try {
-        documentMetadata = await pushDocument(client, namespace, mapping, metadata, fileContent, resourceType, 'MINOR', options, format);
+        documentMetadata = await pushDocument(
+            client, 
+            namespace, 
+            mapping, 
+            metadata, 
+            fileContent, 
+            resourceType, 
+            options.changeType ?? 'PATCH', 
+            options, 
+            format);
         // TODO logging
         console.log("Document version is now ", documentMetadata.version);
-        const newDocument = updateDocumentId(fileContent, documentMetadata);
+        const newDocument = updateDocumentMetadata(fileContent, documentMetadata);
         console.log("Updating document on file system with new version and id...");
         await writeFile(options.file, newDocument, 'utf-8');
         const result: PushResult = {
@@ -275,7 +296,7 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
  * @param options Command options.
  */
 export async function runPushArchitecture(options: PushOptions): Promise<void> {
-    return await orchestratePush(options, 'ARCHITECTURE');
+    return await orchestratePush(options, 'architectures');
 }
 
 
@@ -298,14 +319,14 @@ export async function pullDocument(options: PullOptions, resourceType: ResourceT
     const version = options.version;
     const pullLatest = !version;
 
-    console.log(`Pulling ${resourceType.toLowerCase()} from CALM Hub with namespace=${namespace}, mapping=${mapping}, version=${version ?? 'latest'}`);
+    console.log(`Pulling ${resourceType} from CALM Hub with namespace=${namespace}, mapping=${mapping}, version=${version ?? 'latest'}`);
 
     try {
         let result;
         if (pullLatest) {
-            result = await client.getMappedResourceLatestVersion(namespace, mapping);
+            result = await client.getMappedResourceLatestVersion(namespace, mapping, resourceType);
         } else {
-            result = await client.getMappedResourceByVersion(namespace, mapping, version);
+            result = await client.getMappedResourceByVersion(namespace, mapping, version, resourceType);
         }
         const pretty = JSON.stringify(result, null, 2);
 
@@ -324,7 +345,7 @@ export async function pullDocument(options: PullOptions, resourceType: ResourceT
  * @param options Command options.
  */
 export async function runPullArchitecture(options: PullOptions): Promise<void> {
-    return await pullDocument(options, 'ARCHITECTURE');
+    return await pullDocument(options, 'architectures');
 }
 
 // ── list architectures ────────────────────────────────────────────────────────
@@ -447,7 +468,7 @@ export async function runListNamespaces(options: ListNamespacesOptions): Promise
  * @param options Command options.
  */
 export async function runPushPattern(options: PushOptions): Promise<void> {
-    return orchestratePush(options, 'PATTERN');
+    return orchestratePush(options, 'patterns');
 }
 
 // ── pull pattern ──────────────────────────────────────────────────────────────
@@ -465,7 +486,7 @@ export interface PullPatternOptions {
  * @param options Command options.
  */
 export async function runPullPattern(options: PullOptions): Promise<void> {
-    return await pullDocument(options, 'PATTERN');
+    return await pullDocument(options, 'patterns');
 }
 
 // ── list patterns ─────────────────────────────────────────────────────────────
@@ -512,7 +533,7 @@ export async function runListPatterns(options: ListPatternsOptions): Promise<voi
  * @param options Command options.
  */
 export async function runPushStandard(options: PushOptions): Promise<void> {
-    return orchestratePush(options, 'STANDARD');
+    return orchestratePush(options, 'standards');
 }
 
 // ── pull standard ─────────────────────────────────────────────────────────────
@@ -522,7 +543,7 @@ export async function runPushStandard(options: PushOptions): Promise<void> {
  * @param options Command options.
  */
 export async function runPullStandard(options: PullOptions): Promise<void> {
-    return await pullDocument(options, 'STANDARD');
+    return await pullDocument(options, 'standards');
 }
 
 // ── list standards ────────────────────────────────────────────────────────────

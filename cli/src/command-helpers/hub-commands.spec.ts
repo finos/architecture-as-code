@@ -10,8 +10,10 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces,
     printIdCreateResult,
     runCreateControlConfiguration, runListControlConfigurations } from './hub-commands';
 
-// We stub the entire @finos/calm-shared module so no real HTTP is made
-vi.mock('@finos/calm-shared', () => {
+// We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
+// real (pure) document-id-utils helpers that orchestratePush relies on.
+vi.mock('@finos/calm-shared', async () => {
+    const documentIdUtils = await vi.importActual('@finos/calm-shared/dist/hub/document-id-utils');
     const mockClient = {
         createNamespace: vi.fn(),
         listNamespaces: vi.fn(),
@@ -39,6 +41,7 @@ vi.mock('@finos/calm-shared', () => {
         listControlConfigurationVersions: vi.fn()
     };
     return {
+        ...documentIdUtils,
         CalmHubClient: vi.fn(function () { return mockClient; }),
         HubClientError: class HubClientError extends Error {
             constructor(public status: number, public error: string, public request: string) {
@@ -155,7 +158,7 @@ describe('hub-commands', () => {
 
             expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-arch');
             expect(mockClient.createNewMappedResource).toHaveBeenCalledWith(
-                'finos', 'my-arch', 'ARCHITECTURE', 'my-arch', 'desc', expect.any(String)
+                'finos', 'my-arch', 'architecture', 'my-arch', 'desc', expect.any(String)
             );
             expect(mockClient.updateMappedResource).not.toHaveBeenCalled();
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
@@ -525,7 +528,7 @@ describe('hub-commands', () => {
 
             expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-pattern');
             expect(mockClient.createNewMappedResource).toHaveBeenCalledWith(
-                'finos', 'my-pattern', 'PATTERN', 'my-pattern', 'desc', expect.any(String)
+                'finos', 'my-pattern', 'pattern', 'my-pattern', 'desc', expect.any(String)
             );
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
                 expect.objectContaining({ mapping: 'my-pattern', namespace: 'finos', version: '1.0.0' })
@@ -735,7 +738,7 @@ describe('hub-commands', () => {
 
             expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-standard');
             expect(mockClient.createNewMappedResource).toHaveBeenCalledWith(
-                'finos', 'my-standard', 'STANDARD', 'my-standard', 'desc', expect.any(String)
+                'finos', 'my-standard', 'standard', 'my-standard', 'desc', expect.any(String)
             );
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
                 expect.objectContaining({ mapping: 'my-standard', namespace: 'finos', version: '1.0.0' })
