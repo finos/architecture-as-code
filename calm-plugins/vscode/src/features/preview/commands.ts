@@ -9,6 +9,7 @@ export type InMsg =
   | { type: 'requestTemplateData' }
   | { type: 'refreshAll' }
   | { type: 'toggleLabels'; showLabels: boolean }
+  | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string; diagramIndex: number }
   | { type: 'log'; message: string }
   | { type: 'error'; message: string; stack?: string }
 
@@ -27,6 +28,7 @@ export interface PreviewCommandTarget {
   handleRequestTemplateData(): void
   handleRefreshAll(): void
   handleToggleLabels(showLabels: boolean): void
+  handleExportDiagram(format: 'svg' | 'png', data: string, diagramIndex: number): void | Promise<void>
   handleLog(message: string): void
   handleError(message: string, stack?: string): void
 }
@@ -88,6 +90,13 @@ export class ToggleLabelsCmd implements WebviewCommand<{ type: 'toggleLabels'; s
   readonly type = 'toggleLabels' as const
   constructor(private p: PreviewCommandTarget) { }
   execute(m: { type: 'toggleLabels'; showLabels: boolean }) { this.p.handleToggleLabels(!!m.showLabels) }
+}
+export class ExportDiagramCmd implements WebviewCommand<{ type: 'exportDiagram'; format: 'svg' | 'png'; data: string; diagramIndex: number }> {
+  readonly type = 'exportDiagram' as const
+  constructor(private p: PreviewCommandTarget) { }
+  execute(m: { type: 'exportDiagram'; format: 'svg' | 'png'; data: string; diagramIndex: number }) {
+    return this.p.handleExportDiagram(m.format, m.data, m.diagramIndex)
+  }
 }
 export class LogCmd implements WebviewCommand<{ type: 'log'; message: string }> {
   readonly type = 'log' as const

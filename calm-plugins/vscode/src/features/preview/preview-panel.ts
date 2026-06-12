@@ -21,6 +21,7 @@ import {
   RequestTemplateDataCmd,
   RefreshAllCmd,
   ToggleLabelsCmd,
+  ExportDiagramCmd,
   LogCmd,
   ErrorCmd,
 } from './commands'
@@ -148,6 +149,7 @@ export class CalmPreviewPanel {
     this.commands.register(new RequestTemplateDataCmd(this))
     this.commands.register(new RefreshAllCmd(this))
     this.commands.register(new ToggleLabelsCmd(this))
+    this.commands.register(new ExportDiagramCmd(this))
     this.commands.register(new LogCmd(this))
     this.commands.register(new ErrorCmd(this))
 
@@ -332,6 +334,30 @@ export class CalmPreviewPanel {
 
   public async handleToggleLabels(showLabels: boolean) {
     this.viewModel.handleToggleLabels(showLabels)
+  }
+
+  public async handleExportDiagram(format: 'svg' | 'png', data: string, diagramIndex: number): Promise<void> {
+    const currentUri = this.getCurrentUri()
+    const dir = currentUri
+      ? path.dirname(currentUri.fsPath)
+      : (vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '.')
+    const baseName = currentUri
+      ? path.basename(currentUri.fsPath, path.extname(currentUri.fsPath))
+      : 'diagram'
+    const defaultUri = vscode.Uri.file(path.join(dir, `${baseName}-diagram-${diagramIndex}.${format}`))
+
+    const filters = format === 'svg' ? { 'SVG Image': ['svg'] } : { 'PNG Image': ['png'] }
+    const saveUri = await vscode.window.showSaveDialog({ defaultUri, filters })
+    if (!saveUri) return
+
+    try {
+      const buffer = format === 'svg' ? Buffer.from(data, 'utf8') : Buffer.from(data, 'base64')
+      await vscode.workspace.fs.writeFile(saveUri, buffer)
+      vscode.window.showInformationMessage(`Diagram exported to ${saveUri.fsPath}`)
+    } catch (error) {
+      this.log.error?.(`[preview] Failed to export diagram: ${String(error)}`)
+      vscode.window.showErrorMessage(`Failed to export diagram: ${String(error)}`)
+    }
   }
 
   public handleLog(message: string) {

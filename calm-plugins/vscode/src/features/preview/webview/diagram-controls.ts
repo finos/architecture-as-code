@@ -9,6 +9,8 @@ export interface DiagramControlsOptions {
     onZoomOut?: () => void;
     onReset?: () => void;
     onFit?: () => void;
+    onExportSvg?: () => void;
+    onExportPng?: () => void;
 }
 
 /**
@@ -54,6 +56,22 @@ export class DiagramControls {
             this.options.onFit?.();
         });
         controls.appendChild(fitBtn);
+
+        // Export as SVG button
+        if (this.options.onExportSvg) {
+            const exportSvgBtn = this.createButton('SVG', 'Export diagram as SVG', () => {
+                this.options.onExportSvg?.();
+            });
+            controls.appendChild(exportSvgBtn);
+        }
+
+        // Export as PNG button
+        if (this.options.onExportPng) {
+            const exportPngBtn = this.createButton('PNG', 'Export diagram as PNG', () => {
+                this.options.onExportPng?.();
+            });
+            controls.appendChild(exportPngBtn);
+        }
 
         // Store reference and inject into parent
         this.container = controls;

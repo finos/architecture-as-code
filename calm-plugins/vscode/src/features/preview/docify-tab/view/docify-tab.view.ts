@@ -2,6 +2,7 @@ import type { DocifyViewModel } from '../view-model/docify.view-model'
 import type { VsCodeApi } from '../../webview/panel.view-model'
 import MermaidRenderer from '../../webview/mermaid-renderer'
 import { DiagramControls } from '../../webview/diagram-controls'
+import { exportDiagram } from '../../webview/diagram-export'
 
 const DOM_SETTLE_DELAY_MS = 150
 const MIN_CLICKABLE_STROKE_WIDTH = 8
@@ -77,7 +78,7 @@ export class DocifyTabView {
         setTimeout(() => {
             const diagramContainers = this.container.querySelectorAll('.mermaid-diagram-container')
 
-            diagramContainers.forEach(container => {
+            diagramContainers.forEach((container, index) => {
             const diagramId = container.getAttribute('data-diagram-id')
             if (!diagramId) return
 
@@ -91,7 +92,10 @@ export class DocifyTabView {
 
             if (panZoomManager) {
                 // Create controls for this diagram
-                const controls = new DiagramControls(panZoomManager)
+                const controls = new DiagramControls(panZoomManager, {
+                    onExportSvg: () => this.handleExportDiagram(container as HTMLElement, 'svg', index + 1),
+                    onExportPng: () => this.handleExportDiagram(container as HTMLElement, 'png', index + 1),
+                })
                 controls.createControls(container as HTMLElement)
                 this.diagramControls.set(diagramId, controls)
             }
@@ -100,6 +104,18 @@ export class DocifyTabView {
             this.addClickHandlersToMermaidDiagram(container as HTMLElement)
             })
         }, DOM_SETTLE_DELAY_MS)
+    }
+
+    /**
+     * Export a diagram as SVG or PNG and send it to the extension host for saving
+     */
+    private async handleExportDiagram(container: HTMLElement, format: 'svg' | 'png', diagramIndex: number): Promise<void> {
+        try {
+            const message = await exportDiagram(container, format, diagramIndex)
+            this.vscode.postMessage(message)
+        } catch (error) {
+            console.error(`[docify-tab] Failed to export diagram as ${format}:`, error)
+        }
     }
 
     /**
