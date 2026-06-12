@@ -54,7 +54,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_pattern_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -68,7 +68,7 @@ public class MongoConcurrencyIntegration {
                                     "patternJson": "{\\"test\\": true}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/patterns")
+                        .when().post("/api/calm/namespaces/finos/patterns")
                         .thenReturn()
         );
 
@@ -80,7 +80,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -92,7 +92,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_architecture_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/architectures")
+                .when().get("/api/calm/namespaces/finos/architectures")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -106,7 +106,7 @@ public class MongoConcurrencyIntegration {
                                     "architectureJson": "{\\"test\\": true}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/architectures")
+                        .when().post("/api/calm/namespaces/finos/architectures")
                         .thenReturn()
         );
 
@@ -118,7 +118,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/architectures")
+                .when().get("/api/calm/namespaces/finos/architectures")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -130,7 +130,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_flow_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/flows")
+                .when().get("/api/calm/namespaces/finos/flows")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -144,7 +144,7 @@ public class MongoConcurrencyIntegration {
                                     "flowJson": "{\\"test\\": true}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/flows")
+                        .when().post("/api/calm/namespaces/finos/flows")
                         .thenReturn()
         );
 
@@ -156,7 +156,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/flows")
+                .when().get("/api/calm/namespaces/finos/flows")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -168,7 +168,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_standard_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/standards")
+                .when().get("/api/calm/namespaces/finos/standards")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -182,7 +182,7 @@ public class MongoConcurrencyIntegration {
                                     "standardJson": "{}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/standards")
+                        .when().post("/api/calm/namespaces/finos/standards")
                         .thenReturn()
         );
 
@@ -194,7 +194,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/standards")
+                .when().get("/api/calm/namespaces/finos/standards")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -206,7 +206,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_interface_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/interfaces")
+                .when().get("/api/calm/namespaces/finos/interfaces")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -220,7 +220,7 @@ public class MongoConcurrencyIntegration {
                                     "interfaceJson": "{}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/interfaces")
+                        .when().post("/api/calm/namespaces/finos/interfaces")
                         .thenReturn()
         );
 
@@ -232,7 +232,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/interfaces")
+                .when().get("/api/calm/namespaces/finos/interfaces")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -244,7 +244,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_decorator_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/decorators")
+                .when().get("/api/calm/namespaces/finos/decorators")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -255,13 +255,13 @@ public class MongoConcurrencyIntegration {
                                 {
                                     "unique-id": "concurrent-decorator",
                                     "type": "deployment",
-                                    "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                                    "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
                                     "target-type": ["architecture"],
                                     "applies-to": ["example-node"],
                                     "data": {"status": "test"}
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/decorators")
+                        .when().post("/api/calm/namespaces/finos/decorators")
                         .thenReturn()
         );
 
@@ -273,7 +273,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/decorators")
+                .when().get("/api/calm/namespaces/finos/decorators")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -376,7 +376,7 @@ public class MongoConcurrencyIntegration {
                             "patternJson": "{\\"v\\": \\"1.0.0\\"}"
                         }
                         """)
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .thenReturn();
         assertEquals(201, createResponse.getStatusCode());
 
@@ -387,7 +387,7 @@ public class MongoConcurrencyIntegration {
                 given()
                         .contentType(ContentType.JSON)
                         .body("{\"name\":\"version-test-pattern\",\"description\":\"for version concurrency test\",\"patternJson\":\"{\\\"v\\\": \\\"" + (index + 2) + ".0.0\\\"}\"}")
-                        .when().post("/calm/namespaces/finos/patterns/" + patternId + "/versions/" + (index + 2) + ".0.0")
+                        .when().post("/api/calm/namespaces/finos/patterns/" + patternId + "/versions/" + (index + 2) + ".0.0")
                         .thenReturn()
         );
 
@@ -395,7 +395,7 @@ public class MongoConcurrencyIntegration {
         assertAllStatusCodes(result.successfulResults(), 201);
 
         int versionCount = given()
-                .when().get("/calm/namespaces/finos/patterns/" + patternId + "/versions")
+                .when().get("/api/calm/namespaces/finos/patterns/" + patternId + "/versions")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 

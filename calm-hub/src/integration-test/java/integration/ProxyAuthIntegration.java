@@ -131,7 +131,7 @@ public class ProxyAuthIntegration {
     @Order(1)
     void request_without_proxy_header_is_rejected_with_401() {
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(401);
     }
@@ -141,7 +141,7 @@ public class ProxyAuthIntegration {
     void request_with_unknown_user_who_has_no_db_grants_is_forbidden() {
         given()
                 .header(PROXY_HEADER, "unknown-user")
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(403);
     }
@@ -153,7 +153,7 @@ public class ProxyAuthIntegration {
     void user_with_read_grant_can_read_patterns_for_their_namespace() {
         given()
                 .header(PROXY_HEADER, USER_ALICE)
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", notNullValue());
@@ -166,7 +166,7 @@ public class ProxyAuthIntegration {
                 .header(PROXY_HEADER, USER_ALICE)
                 .header("Content-Type", "application/json")
                 .body(PATTERN_JSON)
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(403);
     }
@@ -176,7 +176,7 @@ public class ProxyAuthIntegration {
     void user_with_read_grant_is_forbidden_from_accessing_a_different_namespace() {
         given()
                 .header(PROXY_HEADER, USER_ALICE)
-                .when().get("/calm/namespaces/workshop/patterns")
+                .when().get("/api/calm/namespaces/workshop/patterns")
                 .then()
                 .statusCode(403);
     }
@@ -188,7 +188,7 @@ public class ProxyAuthIntegration {
     void user_with_write_grant_can_read_patterns_because_write_implies_read() {
         given()
                 .header(PROXY_HEADER, USER_BOB)
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200);
     }
@@ -200,7 +200,7 @@ public class ProxyAuthIntegration {
                 .header(PROXY_HEADER, USER_BOB)
                 .header("Content-Type", "application/json")
                 .body(PATTERN_JSON)
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(201);
     }
@@ -212,7 +212,7 @@ public class ProxyAuthIntegration {
                 .header(PROXY_HEADER, USER_BOB)
                 .header("Content-Type", "application/json")
                 .body(PATTERN_JSON)
-                .when().post("/calm/namespaces/workshop/patterns")
+                .when().post("/api/calm/namespaces/workshop/patterns")
                 .then()
                 .statusCode(403);
     }
@@ -226,7 +226,7 @@ public class ProxyAuthIntegration {
                 .header(PROXY_HEADER, USER_CHARLIE)
                 .header("Content-Type", "application/json")
                 .body(USER_ACCESS_FINOS_JSON)
-                .when().post("/calm/namespaces/finos/user-access")
+                .when().post("/api/calm/namespaces/finos/user-access")
                 .then()
                 .statusCode(201);
     }
@@ -238,7 +238,7 @@ public class ProxyAuthIntegration {
                 .header(PROXY_HEADER, USER_CHARLIE)
                 .header("Content-Type", "application/json")
                 .body(USER_ACCESS_WORKSHOP_JSON)
-                .when().post("/calm/namespaces/workshop/user-access")
+                .when().post("/api/calm/namespaces/workshop/user-access")
                 .then()
                 .statusCode(403);
     }
@@ -252,7 +252,7 @@ public class ProxyAuthIntegration {
                 .header(PROXY_HEADER, USER_DAVE)
                 .header("Content-Type", "application/json")
                 .body(NAMESPACE_JSON)
-                .when().post("/calm/namespaces")
+                .when().post("/api/calm/namespaces")
                 .then()
                 .statusCode(201);
     }
@@ -264,7 +264,7 @@ public class ProxyAuthIntegration {
                 .header(PROXY_HEADER, USER_BOB)
                 .header("Content-Type", "application/json")
                 .body("{\"name\": \"blocked-ns\", \"description\": \"should be blocked\"}")
-                .when().post("/calm/namespaces")
+                .when().post("/api/calm/namespaces")
                 .then()
                 .statusCode(403);
     }

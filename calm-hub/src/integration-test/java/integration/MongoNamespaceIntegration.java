@@ -42,7 +42,7 @@ public class MongoNamespaceIntegration {
     @Test
     void end_to_end_confirmation_of_namespaces() {
         given()
-                .when().get("/calm/namespaces")
+                .when().get("/api/calm/namespaces")
                 .then()
                 .statusCode(200)
                 .body("values.name", hasItem("finos"))

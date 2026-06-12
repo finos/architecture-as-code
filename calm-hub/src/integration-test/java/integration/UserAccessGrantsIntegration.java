@@ -107,7 +107,7 @@ public class UserAccessGrantsIntegration {
                 .auth().oauth2(token)
                 .body(GRANT_FOR_FINOS)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/user-access")
+                .when().post("/api/calm/namespaces/finos/user-access")
                 .then()
                 .statusCode(201);
     }
@@ -122,7 +122,7 @@ public class UserAccessGrantsIntegration {
                 .auth().oauth2(token)
                 .body(GRANT_FOR_WORKSHOP)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/workshop/user-access")
+                .when().post("/api/calm/namespaces/workshop/user-access")
                 .then()
                 .statusCode(403);
     }

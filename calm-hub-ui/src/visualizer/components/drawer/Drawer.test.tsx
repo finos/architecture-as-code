@@ -142,7 +142,7 @@ describe('Drawer — decorator fetching', () => {
         await waitFor(() => {
             expect(mockFetchDecoratorValues).toHaveBeenCalledWith(
                 'my-namespace',
-                '/calm/namespaces/my-namespace/my-arch/versions/1-0-0',
+                '/api/calm/namespaces/my-namespace/my-arch/versions/1-0-0',
                 'deployment'
             );
         });
@@ -161,7 +161,7 @@ describe('Drawer — decorator fetching', () => {
         await waitFor(() => {
             expect(mockFetchDecoratorValues).toHaveBeenCalledWith(
                 'my-namespace',
-                '/calm/namespaces/my-namespace/architectures/42/versions/1-0-0',
+                '/api/calm/namespaces/my-namespace/architectures/42/versions/1-0-0',
                 'deployment'
             );
         });
@@ -188,7 +188,7 @@ describe('Drawer — decorator fetching', () => {
             schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
             uniqueId: 'dec-1',
             type: 'deployment',
-            target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+            target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
             appliesTo: ['node-a'],
             data: {
                 status: 'completed',
@@ -210,7 +210,7 @@ describe('Drawer — decorator fetching', () => {
             schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
             uniqueId: 'dec-ext',
             type: 'deployment',
-            target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+            target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
             appliesTo: ['node-a'],
             data: {
                 status: 'failed',

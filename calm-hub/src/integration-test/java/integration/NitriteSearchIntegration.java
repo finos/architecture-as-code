@@ -48,7 +48,7 @@ public class NitriteSearchIntegration {
                         }
                         """)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/architectures")
+                .when().post("/api/calm/namespaces/finos/architectures")
                 .then()
                 .statusCode(201);
     }
@@ -101,7 +101,7 @@ public class NitriteSearchIntegration {
                         }
                         """)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(201);
     }

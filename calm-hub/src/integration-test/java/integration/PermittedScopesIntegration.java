@@ -92,7 +92,7 @@ public class PermittedScopesIntegration {
 
         given()
                 .auth().oauth2(token)
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -108,7 +108,7 @@ public class PermittedScopesIntegration {
                 .auth().oauth2(token)
                 .body(PATTERN)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(403);
     }
@@ -119,7 +119,7 @@ public class PermittedScopesIntegration {
         given()
                 .body(PATTERN)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(401);
     }
@@ -132,7 +132,7 @@ public class PermittedScopesIntegration {
 
         given()
                 .auth().oauth2(token)
-                .when().get("/calm/namespaces")
+                .when().get("/api/calm/namespaces")
                 .then()
                 .statusCode(200)
                 .body("values.name", hasItem("finos"))
@@ -143,7 +143,7 @@ public class PermittedScopesIntegration {
     @Order(5)
     void unauthenticated_request_for_namespaces_is_rejected() {
         given()
-                .when().get("/calm/namespaces")
+                .when().get("/api/calm/namespaces")
                 .then()
                 .statusCode(401);
     }

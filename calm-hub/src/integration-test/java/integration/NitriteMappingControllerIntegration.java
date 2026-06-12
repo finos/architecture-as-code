@@ -19,28 +19,23 @@ public class NitriteMappingControllerIntegration {
 
     @Test
     @Order(1)
-    void create_pattern_via_front_controller() {
-        String payload = """
-                {
-                    "type": "PATTERN",
-                    "json": "{\\"name\\": \\"front-controller-test\\"}"
-                }
-                """;
+    void create_pattern_via_name_based_api() {
+        String payload = "{\"name\": \"front-controller-test\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern\"}";
 
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/mappings/test-pattern")
+                .when().post("/calm/namespaces/finos/patterns/test-pattern")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/mappings/test-pattern/versions/1.0.0"));
+                .header("Location", containsString("/calm/namespaces/finos/patterns/test-pattern/versions/1.0.0"));
     }
 
     @Test
     @Order(2)
-    void get_latest_version_by_custom_id() {
+    void get_latest_version_by_name() {
         given()
-                .when().get("/calm/namespaces/finos/mappings/test-pattern")
+                .when().get("/calm/namespaces/finos/patterns/test-pattern")
                 .then()
                 .statusCode(200)
                 .body(containsString("front-controller-test"));
@@ -48,9 +43,9 @@ public class NitriteMappingControllerIntegration {
 
     @Test
     @Order(3)
-    void get_specific_version_by_custom_id() {
+    void get_specific_version_by_name() {
         given()
-                .when().get("/calm/namespaces/finos/mappings/test-pattern/versions/1.0.0")
+                .when().get("/calm/namespaces/finos/patterns/test-pattern/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("front-controller-test"));
@@ -58,9 +53,9 @@ public class NitriteMappingControllerIntegration {
 
     @Test
     @Order(4)
-    void list_versions_by_custom_id() {
+    void list_versions_by_name() {
         given()
-                .when().get("/calm/namespaces/finos/mappings/test-pattern/versions")
+                .when().get("/calm/namespaces/finos/patterns/test-pattern/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -69,28 +64,23 @@ public class NitriteMappingControllerIntegration {
 
     @Test
     @Order(5)
-    void update_resource_with_minor_version_bump() {
-        String payload = """
-                {
-                    "json": "{\\"name\\": \\"front-controller-test-v2\\"}",
-                    "changeType": "MINOR"
-                }
-                """;
+    void update_resource_bumps_patch_version() {
+        String payload = "{\"name\": \"front-controller-test-v2\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern\"}";
 
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/mappings/test-pattern")
+                .when().post("/calm/namespaces/finos/patterns/test-pattern")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/mappings/test-pattern/versions/1.1.0"));
+                .header("Location", containsString("/calm/namespaces/finos/patterns/test-pattern/versions/1.0.1"));
     }
 
     @Test
     @Order(6)
     void get_latest_returns_newest_version() {
         given()
-                .when().get("/calm/namespaces/finos/mappings/test-pattern")
+                .when().get("/calm/namespaces/finos/patterns/test-pattern")
                 .then()
                 .statusCode(200)
                 .body(containsString("front-controller-test-v2"));
@@ -98,20 +88,30 @@ public class NitriteMappingControllerIntegration {
 
     @Test
     @Order(7)
-    void list_versions_shows_both() {
+    void original_version_still_accessible() {
         given()
-                .when().get("/calm/namespaces/finos/mappings/test-pattern/versions")
+                .when().get("/calm/namespaces/finos/patterns/test-pattern/versions/1.0.0")
                 .then()
                 .statusCode(200)
-                .body("values", hasSize(2))
-                .body("values", hasItems("1.0.0", "1.1.0"));
+                .body(containsString("front-controller-test"));
     }
 
     @Test
     @Order(8)
-    void lookup_mappings_includes_created_mapping() {
+    void list_versions_shows_both() {
         given()
-                .when().get("/calm/namespaces/finos/mappings?type=PATTERN")
+                .when().get("/calm/namespaces/finos/patterns/test-pattern/versions")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2))
+                .body("values", hasItems("1.0.0", "1.0.1"));
+    }
+
+    @Test
+    @Order(9)
+    void list_named_patterns_includes_created_resource() {
+        given()
+                .when().get("/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(greaterThanOrEqualTo(1)))
@@ -119,61 +119,78 @@ public class NitriteMappingControllerIntegration {
     }
 
     @Test
-    @Order(9)
-    void return_404_for_nonexistent_custom_id() {
+    @Order(10)
+    void return_404_for_nonexistent_name() {
         given()
-                .when().get("/calm/namespaces/finos/mappings/nonexistent-resource")
+                .when().get("/calm/namespaces/finos/patterns/nonexistent-resource")
                 .then()
                 .statusCode(404);
-    }
-
-    @Test
-    @Order(10)
-    void link_existing_resource_to_new_custom_id() {
-        Integer numericId = given()
-                .when().get("/calm/namespaces/finos/mappings?type=PATTERN")
-                .then()
-                .statusCode(200)
-                .extract().path("values.find { it.customId == 'test-pattern' }.numericId");
-
-        String payload = """
-                {
-                    "type": "PATTERN",
-                    "resourceId": %d
-                }
-                """.formatted(numericId);
-
-        given()
-                .body(payload)
-                .header("Content-Type", "application/json")
-                .when().put("/calm/namespaces/finos/mappings/test-pattern-alias")
-                .then()
-                .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/mappings/test-pattern-alias/versions/"));
-
-        // The alias resolves to the same underlying resource
-        given()
-                .when().get("/calm/namespaces/finos/mappings/test-pattern-alias")
-                .then()
-                .statusCode(200)
-                .body(containsString("front-controller-test"));
     }
 
     @Test
     @Order(11)
-    void link_to_nonexistent_resource_returns_404() {
-        String payload = """
-                {
-                    "type": "PATTERN",
-                    "resourceId": 9999
-                }
-                """;
+    void return_400_for_invalid_type() {
+        given()
+                .body("{}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/bananas/test-resource")
+                .then()
+                .statusCode(400)
+                .body(containsString("Unsupported resource type"));
+    }
+
+    @Test
+    @Order(12)
+    void add_specific_version_via_versioned_endpoint() {
+        String payload = "{\"name\": \"front-controller-test-v4\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/2.0.0\"}";
 
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().put("/calm/namespaces/finos/mappings/ghost-alias")
+                .when().post("/calm/namespaces/finos/patterns/test-pattern/versions/2.0.0")
                 .then()
-                .statusCode(404);
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/test-pattern/versions/2.0.0"));
+    }
+
+    @Test
+    @Order(13)
+    void return_409_when_specific_version_already_exists() {
+        String payload = "{\"name\": \"front-controller-test-dup\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/2.0.0\"}";
+
+        given()
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/test-pattern/versions/2.0.0")
+                .then()
+                .statusCode(409);
+    }
+
+    @Test
+    @Order(14)
+    void return_400_when_versioned_id_does_not_match_path() {
+        String payload = "{\"name\": \"mismatch\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/4.0.0\"}";
+
+        given()
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/test-pattern/versions/3.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("does not match"));
+    }
+
+    @Test
+    @Order(15)
+    void return_400_when_first_version_is_not_1_0_0() {
+        String payload = "{\"name\": \"seeded\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/seeded-pattern/versions/2.0.0\"}";
+
+        given()
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/seeded-pattern/versions/2.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("first version of a resource must be 1.0.0"));
     }
 }
