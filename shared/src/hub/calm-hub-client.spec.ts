@@ -547,19 +547,19 @@ describe('CalmHubClient', () => {
 
     describe('createDomain', () => {
         it('returns name and location on 201', async () => {
-            mock.onPost('/calm/domains').reply(201, null, {});
+            mock.onPost('/api/calm/domains').reply(201, null, {});
 
             const result = await client.createDomain('risk');
-            expect(result).toEqual({ name: 'risk', location: '/calm/domains/risk' });
+            expect(result).toEqual({ name: 'risk', location: '/api/calm/domains/risk' });
         });
 
         it('throws HubClientError(409) on conflict', async () => {
-            mock.onPost('/calm/domains').reply(409, { error: 'Domain already exists' });
+            mock.onPost('/api/calm/domains').reply(409, { error: 'Domain already exists' });
 
             await expect(client.createDomain('risk')).rejects.toMatchObject({
                 status: 409,
                 error: 'Domain already exists',
-                request: 'POST /calm/domains'
+                request: 'POST /api/calm/domains'
             });
         });
     });
@@ -568,7 +568,7 @@ describe('CalmHubClient', () => {
 
     describe('listDomains', () => {
         it('returns array of domain summaries', async () => {
-            mock.onGet('/calm/domains').reply(200, {
+            mock.onGet('/api/calm/domains').reply(200, {
                 values: [{ name: 'risk' }, { name: 'compliance' }]
             });
 
@@ -578,7 +578,7 @@ describe('CalmHubClient', () => {
         });
 
         it('returns empty array when values is absent', async () => {
-            mock.onGet('/calm/domains').reply(200, {});
+            mock.onGet('/api/calm/domains').reply(200, {});
             const result = await client.listDomains();
             expect(result).toEqual([]);
         });
@@ -590,19 +590,19 @@ describe('CalmHubClient', () => {
         const reqJson = JSON.stringify({ type: 'control-requirement', requirements: [] });
 
         it('returns id and location on 201', async () => {
-            mock.onPost('/calm/domains/risk/controls').reply(201, null, {
-                location: '/calm/domains/risk/controls/42'
+            mock.onPost('/api/calm/domains/risk/controls').reply(201, null, {
+                location: '/api/calm/domains/risk/controls/42'
             });
 
             const result = await client.createControl('risk', 'my-control', 'A control', reqJson);
-            expect(result).toEqual({ id: 42, location: '/calm/domains/risk/controls/42' });
+            expect(result).toEqual({ id: 42, location: '/api/calm/domains/risk/controls/42' });
         });
 
         it('sends correct body fields including requirementJson', async () => {
             let capturedBody: unknown;
-            mock.onPost('/calm/domains/risk/controls').reply((config) => {
+            mock.onPost('/api/calm/domains/risk/controls').reply((config) => {
                 capturedBody = JSON.parse(config.data as string);
-                return [201, null, { location: '/calm/domains/risk/controls/1' }];
+                return [201, null, { location: '/api/calm/domains/risk/controls/1' }];
             });
 
             await client.createControl('risk', 'my-control', 'A control', reqJson);
@@ -610,11 +610,11 @@ describe('CalmHubClient', () => {
         });
 
         it('throws HubClientError(409) on conflict', async () => {
-            mock.onPost('/calm/domains/risk/controls').reply(409, { error: 'Control already exists' });
+            mock.onPost('/api/calm/domains/risk/controls').reply(409, { error: 'Control already exists' });
 
             await expect(client.createControl('risk', 'dup', 'desc', reqJson)).rejects.toMatchObject({
                 status: 409,
-                request: 'POST /calm/domains/risk/controls'
+                request: 'POST /api/calm/domains/risk/controls'
             });
         });
     });
@@ -623,7 +623,7 @@ describe('CalmHubClient', () => {
 
     describe('listControls', () => {
         it('returns array of control summaries', async () => {
-            mock.onGet('/calm/domains/risk/controls').reply(200, {
+            mock.onGet('/api/calm/domains/risk/controls').reply(200, {
                 values: [
                     { id: 1, name: 'control-a' },
                     { id: 2, name: 'control-b' }
@@ -636,7 +636,7 @@ describe('CalmHubClient', () => {
         });
 
         it('returns empty array when values is absent', async () => {
-            mock.onGet('/calm/domains/risk/controls').reply(200, {});
+            mock.onGet('/api/calm/domains/risk/controls').reply(200, {});
             const result = await client.listControls('risk');
             expect(result).toEqual([]);
         });
@@ -650,28 +650,28 @@ describe('CalmHubClient', () => {
         const reqJson = JSON.stringify({ type: 'control-requirement', requirements: [] });
 
         it('returns id, version and location on 201 with Location header', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {
-                location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            mock.onPost('/api/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {
+                location: '/api/calm/domains/risk/controls/1/requirement/versions/1.0.0'
             });
 
             const result = await client.pushControlRequirement('risk', 1, '1.0.0', reqName, reqDescription, reqJson);
             expect(result).toEqual({
                 id: 1,
                 version: '1.0.0',
-                location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+                location: '/api/calm/domains/risk/controls/1/requirement/versions/1.0.0'
             });
         });
 
         it('returns constructed location when header is absent', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {});
+            mock.onPost('/api/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {});
 
             const result = await client.pushControlRequirement('risk', 1, '1.0.0', reqName, reqDescription, reqJson);
-            expect(result.location).toBe('/calm/domains/risk/controls/1/requirement/versions/1.0.0');
+            expect(result.location).toBe('/api/calm/domains/risk/controls/1/requirement/versions/1.0.0');
         });
 
         it('sends wrapper payload with name, description and requirementJson', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {
-                location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            mock.onPost('/api/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {
+                location: '/api/calm/domains/risk/controls/1/requirement/versions/1.0.0'
             });
 
             await client.pushControlRequirement('risk', 1, '1.0.0', reqName, reqDescription, reqJson);
@@ -685,10 +685,10 @@ describe('CalmHubClient', () => {
         });
 
         it('throws HubClientError(400) on bad request', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(400, 'Bad request');
+            mock.onPost('/api/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(400, 'Bad request');
             await expect(client.pushControlRequirement('risk', 1, '1.0.0', reqName, reqDescription, reqJson)).rejects.toMatchObject({
                 status: 400,
-                request: 'POST /calm/domains/risk/controls/1/requirement/versions/1.0.0'
+                request: 'POST /api/calm/domains/risk/controls/1/requirement/versions/1.0.0'
             });
         });
     });
@@ -698,14 +698,14 @@ describe('CalmHubClient', () => {
     describe('pullControlRequirement', () => {
         it('returns the requirement detail object', async () => {
             const detail = { type: 'control-requirement', requirements: [] };
-            mock.onGet('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(200, detail);
+            mock.onGet('/api/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(200, detail);
 
             const result = await client.pullControlRequirement('risk', 1, '1.0.0');
             expect(result).toEqual(detail);
         });
 
         it('throws HubClientError(404) when not found', async () => {
-            mock.onGet('/calm/domains/risk/controls/99/requirement/versions/1.0.0').reply(404, 'Not found');
+            mock.onGet('/api/calm/domains/risk/controls/99/requirement/versions/1.0.0').reply(404, 'Not found');
             await expect(client.pullControlRequirement('risk', 99, '1.0.0')).rejects.toMatchObject({ status: 404 });
         });
     });
@@ -716,28 +716,28 @@ describe('CalmHubClient', () => {
         const configJson = JSON.stringify({ type: 'control-configuration', config: {} });
 
         it('returns id, version and location on 201 with Location header', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(201, null, {
-                location: '/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
+            mock.onPost('/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(201, null, {
+                location: '/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
             });
 
             const result = await client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson);
             expect(result).toEqual({
                 id: 5,
                 version: '1.0.0',
-                location: '/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
+                location: '/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
             });
         });
 
         it('returns constructed location when header is absent', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(201, null, {});
+            mock.onPost('/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(201, null, {});
 
             const result = await client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson);
-            expect(result.location).toBe('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0');
+            expect(result.location).toBe('/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0');
         });
 
         it('sends wrapper payload with configurationJson', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(201, null, {
-                location: '/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
+            mock.onPost('/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(201, null, {
+                location: '/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
             });
 
             await client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson);
@@ -749,10 +749,10 @@ describe('CalmHubClient', () => {
         });
 
         it('throws HubClientError(400) on bad request', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(400, 'Bad request');
+            mock.onPost('/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(400, 'Bad request');
             await expect(client.pushControlConfiguration('risk', 1, 5, '1.0.0', configJson)).rejects.toMatchObject({
                 status: 400,
-                request: 'POST /calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
+                request: 'POST /api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0'
             });
         });
     });
@@ -762,14 +762,14 @@ describe('CalmHubClient', () => {
     describe('pullControlConfiguration', () => {
         it('returns the config detail object', async () => {
             const detail = { type: 'control-configuration', config: {} };
-            mock.onGet('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(200, detail);
+            mock.onGet('/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(200, detail);
 
             const result = await client.pullControlConfiguration('risk', 1, 5, '1.0.0');
             expect(result).toEqual(detail);
         });
 
         it('throws HubClientError(404) when not found', async () => {
-            mock.onGet('/calm/domains/risk/controls/99/configurations/5/versions/1.0.0').reply(404, 'Not found');
+            mock.onGet('/api/calm/domains/risk/controls/99/configurations/5/versions/1.0.0').reply(404, 'Not found');
             await expect(client.pullControlConfiguration('risk', 99, 5, '1.0.0')).rejects.toMatchObject({ status: 404 });
         });
     });
@@ -780,19 +780,19 @@ describe('CalmHubClient', () => {
         const configJson = JSON.stringify({ type: 'control-configuration', config: {} });
 
         it('returns id and location on 201 with Location header', async () => {
-            mock.onPost('/calm/domains/risk/controls/1/configurations').reply(201, null, {
-                location: '/calm/domains/risk/controls/1/configurations/5'
+            mock.onPost('/api/calm/domains/risk/controls/1/configurations').reply(201, null, {
+                location: '/api/calm/domains/risk/controls/1/configurations/5'
             });
 
             const result = await client.createControlConfiguration('risk', 1, configJson);
             expect(result).toEqual({
                 id: 5,
-                location: '/calm/domains/risk/controls/1/configurations/5'
+                location: '/api/calm/domains/risk/controls/1/configurations/5'
             });
         });
 
         it('throws HubClientError(404) when control not found', async () => {
-            mock.onPost('/calm/domains/risk/controls/99/configurations').reply(404, 'Not found');
+            mock.onPost('/api/calm/domains/risk/controls/99/configurations').reply(404, 'Not found');
             await expect(client.createControlConfiguration('risk', 99, configJson)).rejects.toMatchObject({ status: 404 });
         });
     });
@@ -801,21 +801,21 @@ describe('CalmHubClient', () => {
 
     describe('listControlConfigurations', () => {
         it('returns list of config IDs', async () => {
-            mock.onGet('/calm/domains/risk/controls/1/configurations').reply(200, { values: [1, 2, 3] });
+            mock.onGet('/api/calm/domains/risk/controls/1/configurations').reply(200, { values: [1, 2, 3] });
 
             const result = await client.listControlConfigurations('risk', 1);
             expect(result).toEqual([1, 2, 3]);
         });
 
         it('returns empty array when no configurations', async () => {
-            mock.onGet('/calm/domains/risk/controls/1/configurations').reply(200, { values: [] });
+            mock.onGet('/api/calm/domains/risk/controls/1/configurations').reply(200, { values: [] });
 
             const result = await client.listControlConfigurations('risk', 1);
             expect(result).toEqual([]);
         });
 
         it('throws HubClientError(404) when control not found', async () => {
-            mock.onGet('/calm/domains/risk/controls/99/configurations').reply(404, 'Not found');
+            mock.onGet('/api/calm/domains/risk/controls/99/configurations').reply(404, 'Not found');
             await expect(client.listControlConfigurations('risk', 99)).rejects.toMatchObject({ status: 404 });
         });
     });
@@ -824,21 +824,21 @@ describe('CalmHubClient', () => {
 
     describe('listControlRequirementVersions', () => {
         it('returns list of version strings', async () => {
-            mock.onGet('/calm/domains/risk/controls/1/requirement/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
+            mock.onGet('/api/calm/domains/risk/controls/1/requirement/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
 
             const result = await client.listControlRequirementVersions('risk', 1);
             expect(result).toEqual(['1.0.0', '2.0.0']);
         });
 
         it('returns empty array when no versions', async () => {
-            mock.onGet('/calm/domains/risk/controls/1/requirement/versions').reply(200, { values: [] });
+            mock.onGet('/api/calm/domains/risk/controls/1/requirement/versions').reply(200, { values: [] });
 
             const result = await client.listControlRequirementVersions('risk', 1);
             expect(result).toEqual([]);
         });
 
         it('throws HubClientError(404) when control not found', async () => {
-            mock.onGet('/calm/domains/risk/controls/99/requirement/versions').reply(404, 'Not found');
+            mock.onGet('/api/calm/domains/risk/controls/99/requirement/versions').reply(404, 'Not found');
             await expect(client.listControlRequirementVersions('risk', 99)).rejects.toMatchObject({ status: 404 });
         });
     });
@@ -847,14 +847,14 @@ describe('CalmHubClient', () => {
 
     describe('listControlRequirements', () => {
         it('returns control requirements with versions', async () => {
-            mock.onGet('/calm/domains/risk/controls').reply(200, {
+            mock.onGet('/api/calm/domains/risk/controls').reply(200, {
                 values: [
                     { id: 20, name: 'Encryption At Rest Requirement Updated', description: 'Updated control for encryption at rest' },
                     { id: 21, name: 'Data Retention Requirement', description: 'Control for data retention' }
                 ]
             });
-            mock.onGet('/calm/domains/risk/controls/20/requirement/versions').reply(200, { values: ['1.0.0'] });
-            mock.onGet('/calm/domains/risk/controls/21/requirement/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
+            mock.onGet('/api/calm/domains/risk/controls/20/requirement/versions').reply(200, { values: ['1.0.0'] });
+            mock.onGet('/api/calm/domains/risk/controls/21/requirement/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
 
             const result = await client.listControlRequirements('risk');
 
@@ -875,7 +875,7 @@ describe('CalmHubClient', () => {
         });
 
         it('returns empty array when no controls exist', async () => {
-            mock.onGet('/calm/domains/risk/controls').reply(200, { values: [] });
+            mock.onGet('/api/calm/domains/risk/controls').reply(200, { values: [] });
 
             const result = await client.listControlRequirements('risk');
 
@@ -883,10 +883,10 @@ describe('CalmHubClient', () => {
         });
 
         it('includes controls with empty version lists', async () => {
-            mock.onGet('/calm/domains/risk/controls').reply(200, {
+            mock.onGet('/api/calm/domains/risk/controls').reply(200, {
                 values: [{ id: 22, name: 'Logging Requirement', description: 'Control for logging' }]
             });
-            mock.onGet('/calm/domains/risk/controls/22/requirement/versions').reply(200, { values: [] });
+            mock.onGet('/api/calm/domains/risk/controls/22/requirement/versions').reply(200, { values: [] });
 
             const result = await client.listControlRequirements('risk');
 
@@ -901,27 +901,27 @@ describe('CalmHubClient', () => {
         });
 
         it('fails when listing controls fails', async () => {
-            mock.onGet('/calm/domains/risk/controls').reply(500, { error: 'Internal server error' });
+            mock.onGet('/api/calm/domains/risk/controls').reply(500, { error: 'Internal server error' });
 
             await expect(client.listControlRequirements('risk')).rejects.toMatchObject({
                 status: 500,
-                request: 'GET /calm/domains/risk/controls'
+                request: 'GET /api/calm/domains/risk/controls'
             });
         });
 
         it('fails when one control version lookup fails', async () => {
-            mock.onGet('/calm/domains/risk/controls').reply(200, {
+            mock.onGet('/api/calm/domains/risk/controls').reply(200, {
                 values: [
                     { id: 20, name: 'Encryption At Rest Requirement Updated', description: 'Updated control for encryption at rest' },
                     { id: 21, name: 'Data Retention Requirement', description: 'Control for data retention' }
                 ]
             });
-            mock.onGet('/calm/domains/risk/controls/20/requirement/versions').reply(200, { values: ['1.0.0'] });
-            mock.onGet('/calm/domains/risk/controls/21/requirement/versions').reply(404, 'Not found');
+            mock.onGet('/api/calm/domains/risk/controls/20/requirement/versions').reply(200, { values: ['1.0.0'] });
+            mock.onGet('/api/calm/domains/risk/controls/21/requirement/versions').reply(404, 'Not found');
 
             await expect(client.listControlRequirements('risk')).rejects.toMatchObject({
                 status: 404,
-                request: 'GET /calm/domains/risk/controls/21/requirement/versions'
+                request: 'GET /api/calm/domains/risk/controls/21/requirement/versions'
             });
         });
     });
@@ -930,21 +930,21 @@ describe('CalmHubClient', () => {
 
     describe('listControlConfigurationVersions', () => {
         it('returns list of version strings', async () => {
-            mock.onGet('/calm/domains/risk/controls/1/configurations/5/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
+            mock.onGet('/api/calm/domains/risk/controls/1/configurations/5/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
 
             const result = await client.listControlConfigurationVersions('risk', 1, 5);
             expect(result).toEqual(['1.0.0', '2.0.0']);
         });
 
         it('returns empty array when no versions', async () => {
-            mock.onGet('/calm/domains/risk/controls/1/configurations/5/versions').reply(200, { values: [] });
+            mock.onGet('/api/calm/domains/risk/controls/1/configurations/5/versions').reply(200, { values: [] });
 
             const result = await client.listControlConfigurationVersions('risk', 1, 5);
             expect(result).toEqual([]);
         });
 
         it('throws HubClientError(404) when configuration not found', async () => {
-            mock.onGet('/calm/domains/risk/controls/1/configurations/99/versions').reply(404, 'Not found');
+            mock.onGet('/api/calm/domains/risk/controls/1/configurations/99/versions').reply(404, 'Not found');
             await expect(client.listControlConfigurationVersions('risk', 1, 99)).rejects.toMatchObject({ status: 404 });
         });
     });
@@ -965,22 +965,22 @@ describe('CalmHubClient', () => {
         });
 
         it('injects auth headers on createDomain', async () => {
-            authMock.onPost('/calm/domains').reply(201, null, {});
+            authMock.onPost('/api/calm/domains').reply(201, null, {});
 
             await authClient.createDomain('risk');
             expect(getAuthHeaders).toHaveBeenCalled();
         });
 
         it('injects auth headers on listDomains', async () => {
-            authMock.onGet('/calm/domains').reply(200, { values: [] });
+            authMock.onGet('/api/calm/domains').reply(200, { values: [] });
 
             await authClient.listDomains();
             expect(getAuthHeaders).toHaveBeenCalled();
         });
 
         it('injects auth headers on pushControlRequirement', async () => {
-            authMock.onPost('/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {
-                location: '/calm/domains/risk/controls/1/requirement/versions/1.0.0'
+            authMock.onPost('/api/calm/domains/risk/controls/1/requirement/versions/1.0.0').reply(201, null, {
+                location: '/api/calm/domains/risk/controls/1/requirement/versions/1.0.0'
             });
 
             await authClient.pushControlRequirement('risk', 1, '1.0.0', 'req-name', 'req-description', '{}');
@@ -988,7 +988,7 @@ describe('CalmHubClient', () => {
         });
 
         it('injects auth headers on pullControlConfiguration', async () => {
-            authMock.onGet('/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(200, {});
+            authMock.onGet('/api/calm/domains/risk/controls/1/configurations/5/versions/1.0.0').reply(200, {});
 
             await authClient.pullControlConfiguration('risk', 1, 5, '1.0.0');
             expect(getAuthHeaders).toHaveBeenCalled();

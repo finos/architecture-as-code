@@ -16,7 +16,7 @@ export class ControlService {
     public async fetchDomains(): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get('/calm/domains', { headers })
+            .get('/api/calm/domains', { headers })
             .then((res) => {
                 const values = Array.isArray(res.data?.values) ? res.data.values : [];
                 return values.filter((v: unknown): v is string => typeof v === 'string');
@@ -31,7 +31,7 @@ export class ControlService {
     public async fetchControlsForDomain(domain: string): Promise<ControlDetail[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/domains/${encodeURIComponent(domain)}/controls`, { headers })
+            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -45,7 +45,7 @@ export class ControlService {
     public async fetchRequirementVersions(domain: string, controlId: number): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions`, { headers })
+            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -59,7 +59,7 @@ export class ControlService {
     public async fetchRequirementForVersion(domain: string, controlId: number, version: string): Promise<unknown> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions/${encodeURIComponent(version)}`, { headers })
+            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions/${encodeURIComponent(version)}`, { headers })
             .then((res) => res.data)
             .catch((error) => {
                 const errorMessage = `Error fetching requirement version ${version} for control ${controlId}:`;
@@ -71,7 +71,7 @@ export class ControlService {
     public async fetchConfigurationsForControl(domain: string, controlId: number): Promise<number[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations`, { headers })
+            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -85,7 +85,7 @@ export class ControlService {
     public async fetchConfigurationVersions(domain: string, controlId: number, configId: number): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions`, { headers })
+            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -99,7 +99,7 @@ export class ControlService {
     public async fetchConfigurationForVersion(domain: string, controlId: number, configId: number, version: string): Promise<unknown> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions/${encodeURIComponent(version)}`, { headers })
+            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions/${encodeURIComponent(version)}`, { headers })
             .then((res) => res.data)
             .catch((error) => {
                 const errorMessage = `Error fetching configuration version ${version} for config ${configId}:`;

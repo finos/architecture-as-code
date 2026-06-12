@@ -7,12 +7,18 @@ import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
+import org.finos.calm.domain.controls.ControlConfigDetail;
+import org.finos.calm.domain.controls.ControlDetail;
+import org.finos.calm.domain.controls.CreateControlConfiguration;
+import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
+import org.finos.calm.security.CalmHubPermissionChecker;
 import org.mockito.ArgumentCaptor;
 
+import java.util.Collections;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
@@ -47,6 +53,21 @@ public class TestMappingControllerResourceWithBaseUrlShould {
 
     @InjectMock
     FlowStore mockFlowStore;
+
+    @InjectMock
+    DomainStore mockDomainStore;
+
+    @InjectMock
+    ControlStore mockControlStore;
+
+    @InjectMock
+    CalmHubPermissionChecker mockPermissionChecker;
+
+    @org.junit.jupiter.api.BeforeEach
+    void allowWritesByDefault() {
+        when(mockPermissionChecker.canWrite(any(), any())).thenReturn(true);
+        when(mockPermissionChecker.canWriteByDomain(any(), any())).thenReturn(true);
+    }
 
     /** GET latest rewrites $id to the versionless canonical URL. */
     @Test
@@ -359,5 +380,109 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 captor.getValue().getPatternJson(), not(containsString("$id")));
         assertThat("store receives the full document content",
                 captor.getValue().getPatternJson(), containsString("my-pattern"));
+    }
+
+    // =========================================================================
+    // POST /calm — domain-control document-driven endpoints
+    // =========================================================================
+
+    /** POST /calm with a control requirement $id creates a new control at version 1.0.0. */
+    @Test
+    void return_201_when_post_to_calm_creates_new_control_requirement_1_0_0() throws Exception {
+        // No existing control → resolveControlId returns empty list → new control branch
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(Collections.emptyList());
+        ControlDetail created = new ControlDetail(10, "data-encryption", "Desc");
+        when(mockControlStore.createControlRequirement(any(CreateControlRequirement.class), eq("security")))
+                .thenReturn(created);
+
+        String body = "{ \"$id\": \"https://hub.example.com/calm/domains/security/controls/data-encryption/requirement/versions/1.0.0\","
+                + " \"description\": \"Encryption requirement\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/security/controls/data-encryption/requirement/versions/1.0.0"));
+    }
+
+    /** POST /calm with a control requirement $id > 1.0.0 on a new control is rejected with 400. */
+    @Test
+    void return_400_when_post_to_calm_creates_new_control_with_version_above_1_0_0() throws Exception {
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(Collections.emptyList());
+
+        String body = "{ \"$id\": \"https://hub.example.com/calm/domains/security/controls/data-encryption/requirement/versions/2.0.0\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm")
+                .then()
+                .statusCode(400)
+                .body(containsString("first version"));
+    }
+
+    /** POST /calm with a control requirement $id adds a new version to an existing control. */
+    @Test
+    void return_201_when_post_to_calm_adds_requirement_version_to_existing_control() throws Exception {
+        ControlDetail existing = new ControlDetail(10, "data-encryption", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(existing));
+
+        String body = "{ \"$id\": \"https://hub.example.com/calm/domains/security/controls/data-encryption/requirement/versions/2.0.0\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/security/controls/data-encryption/requirement/versions/2.0.0"));
+    }
+
+    /** POST /calm with a configuration $id creates a new configuration at version 1.0.0. */
+    @Test
+    void return_201_when_post_to_calm_creates_new_configuration_1_0_0() throws Exception {
+        ControlDetail control = new ControlDetail(10, "data-encryption", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
+        // Empty list → resolveConfigId throws → new config branch
+        when(mockControlStore.getConfigurationDetailsForControl("security", 10))
+                .thenReturn(Collections.emptyList());
+        when(mockControlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq("security"), eq(10)))
+                .thenReturn(5);
+
+        String body = "{ \"$id\": \"https://hub.example.com/calm/domains/security/controls/data-encryption/configurations/tls-settings/versions/1.0.0\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/security/controls/data-encryption/configurations/tls-settings/versions/1.0.0"));
+    }
+
+    /** POST /calm with a configuration $id adds a new version to an existing configuration. */
+    @Test
+    void return_201_when_post_to_calm_adds_version_to_existing_configuration() throws Exception {
+        ControlDetail control = new ControlDetail(10, "data-encryption", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 10))
+                .thenReturn(List.of(new ControlConfigDetail(5, "tls-settings")));
+
+        String body = "{ \"$id\": \"https://hub.example.com/calm/domains/security/controls/data-encryption/configurations/tls-settings/versions/2.0.0\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/security/controls/data-encryption/configurations/tls-settings/versions/2.0.0"));
     }
 }

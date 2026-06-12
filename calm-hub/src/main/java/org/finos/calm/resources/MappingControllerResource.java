@@ -1,12 +1,12 @@
 package org.finos.calm.resources;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -14,7 +14,12 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.controls.ControlConfigDetail;
+import org.finos.calm.domain.controls.ControlDetail;
+import org.finos.calm.domain.controls.CreateControlConfiguration;
+import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.*;
+import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
@@ -26,9 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
 
@@ -62,25 +65,6 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 public class MappingControllerResource {
 
     private final Logger logger = LoggerFactory.getLogger(MappingControllerResource.class);
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    /** Maps the plural URL path segment to the canonical {@link ResourceType}. */
-    private static final Map<String, ResourceType> TYPE_MAP = Map.of(
-            "patterns",      ResourceType.PATTERN,
-            "architectures", ResourceType.ARCHITECTURE,
-            "flows",         ResourceType.FLOW,
-            "standards",     ResourceType.STANDARD,
-            "interfaces",    ResourceType.INTERFACE
-    );
-
-    /** Maps {@link ResourceType} back to its plural URL segment. */
-    private static final Map<ResourceType, String> TYPE_PLURAL_MAP = Map.of(
-            ResourceType.PATTERN,      "patterns",
-            ResourceType.ARCHITECTURE, "architectures",
-            ResourceType.FLOW,         "flows",
-            ResourceType.STANDARD,     "standards",
-            ResourceType.INTERFACE,    "interfaces"
-    );
 
     private final ResourceMappingStore mappingStore;
     private final PatternStore patternStore;
@@ -88,9 +72,13 @@ public class MappingControllerResource {
     private final FlowStore flowStore;
     private final StandardStore standardStore;
     private final InterfaceStore interfaceStore;
+    private final DomainStore domainStore;
+    private final ControlStore controlStore;
+    private final CalmDocumentParser documentParser;
+    private final CalmHubPermissionChecker permissionChecker;
 
-    @ConfigProperty(name = "calm.hub.base-url", defaultValue = "http://localhost:8080")
-    String baseUrl;
+    @Inject
+    SecurityIdentity identity;
 
     @ConfigProperty(name = "allow.put.operations", defaultValue = "false")
     Boolean allowPutOperations;
@@ -101,13 +89,21 @@ public class MappingControllerResource {
                                    ArchitectureStore architectureStore,
                                    FlowStore flowStore,
                                    StandardStore standardStore,
-                                   InterfaceStore interfaceStore) {
+                                   InterfaceStore interfaceStore,
+                                   DomainStore domainStore,
+                                   ControlStore controlStore,
+                                   CalmDocumentParser documentParser,
+                                   CalmHubPermissionChecker permissionChecker) {
         this.mappingStore = mappingStore;
         this.patternStore = patternStore;
         this.architectureStore = architectureStore;
         this.flowStore = flowStore;
         this.standardStore = standardStore;
         this.interfaceStore = interfaceStore;
+        this.domainStore = domainStore;
+        this.controlStore = controlStore;
+        this.documentParser = documentParser;
+        this.permissionChecker = permissionChecker;
     }
 
     // =========================================================================
@@ -120,7 +116,9 @@ public class MappingControllerResource {
     @Operation(
             summary = "Create or add a version to a resource from document $id",
             description = "The request body must be the raw CALM document whose \"$id\" equals the versioned " +
-                    "canonical URL: {baseUrl}/calm/namespaces/{namespace}/{type}/{name}/versions/{version}. " +
+                    "canonical URL. For namespace resources: {baseUrl}/calm/namespaces/{namespace}/{type}/{name}/versions/{version}. " +
+                    "For control requirements: {baseUrl}/calm/domains/{domain}/controls/{controlName}/requirement/versions/{version}. " +
+                    "For configurations: {baseUrl}/calm/domains/{domain}/controls/{controlName}/configurations/{configName}/versions/{version}. " +
                     "A version is always required. For a brand-new resource the first version must be 1.0.0. " +
                     "For an existing resource the requested version is created (409 if it already exists)."
     )
@@ -129,17 +127,52 @@ public class MappingControllerResource {
         if (requestBody == null || requestBody.isBlank()) {
             return invalidJsonResponse("Request body is required");
         }
-        CanonicalId canonical;
+
+        // Dispatch based on $id prefix: /calm/domains/ = control/config; /calm/namespaces/ = namespace resource
+        String idValue = documentParser.extractIdFromJson(requestBody);
+        if (idValue != null && idValue.startsWith(documentParser.domainPrefix())) {
+            CalmDocumentParser.DomainControlId domainId;
+            try {
+                domainId = documentParser.parseDomainControlId(requestBody);
+            } catch (IllegalArgumentException e) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(STRICT_SANITIZATION_POLICY.sanitize(e.getMessage())).build();
+            } catch (JsonProcessingException e) {
+                return invalidJsonResponse("Cannot parse request body as JSON");
+            }
+            if (domainId instanceof CalmDocumentParser.ControlRequirementId r) {
+                if (!permissionChecker.canWriteByDomain(identity, r.domain())) {
+                    return Response.status(Response.Status.FORBIDDEN)
+                            .entity("Insufficient permissions to write to domain: "
+                                    + STRICT_SANITIZATION_POLICY.sanitize(r.domain())).build();
+                }
+                return handleControlRequirementPost(r.domain(), r.controlName(), r.version(), requestBody);
+            } else if (domainId instanceof CalmDocumentParser.ControlConfigId c) {
+                if (!permissionChecker.canWriteByDomain(identity, c.domain())) {
+                    return Response.status(Response.Status.FORBIDDEN)
+                            .entity("Insufficient permissions to write to domain: "
+                                    + STRICT_SANITIZATION_POLICY.sanitize(c.domain())).build();
+                }
+                return handleControlConfigurationPost(c.domain(), c.controlName(), c.configName(), c.version(), requestBody);
+            }
+        }
+
+        CalmDocumentParser.CanonicalId canonical;
         try {
-            canonical = parseCanonicalId(requestBody);
+            canonical = documentParser.parseCanonicalId(requestBody);
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(STRICT_SANITIZATION_POLICY.sanitize(e.getMessage())).build();
         } catch (JsonProcessingException e) {
             return invalidJsonResponse("Cannot parse request body as JSON");
         }
-        String storedBody = stripId(requestBody);
-        VersionSpec versionSpec = new VersionSpec(canonical.version(), true);
+        if (!permissionChecker.canWrite(identity, canonical.namespace())) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("Insufficient permissions to write to namespace: "
+                            + STRICT_SANITIZATION_POLICY.sanitize(canonical.namespace())).build();
+        }
+        String storedBody = documentParser.stripId(requestBody);
+        CalmDocumentParser.VersionSpec versionSpec = new CalmDocumentParser.VersionSpec(canonical.version(), true);
         try {
             ResourceMapping existing;
             try {
@@ -184,14 +217,19 @@ public class MappingControllerResource {
         if (requestBody == null || requestBody.isBlank()) {
             return invalidJsonResponse("Request body is required");
         }
-        CanonicalId canonical;
+        CalmDocumentParser.CanonicalId canonical;
         try {
-            canonical = parseCanonicalId(requestBody);
+            canonical = documentParser.parseCanonicalId(requestBody);
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(STRICT_SANITIZATION_POLICY.sanitize(e.getMessage())).build();
         } catch (JsonProcessingException e) {
             return invalidJsonResponse("Cannot parse request body as JSON");
+        }
+        if (!permissionChecker.canWrite(identity, canonical.namespace())) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("Insufficient permissions to write to namespace: "
+                            + STRICT_SANITIZATION_POLICY.sanitize(canonical.namespace())).build();
         }
         if (canonical.resourceType() == ResourceType.STANDARD
                 || canonical.resourceType() == ResourceType.INTERFACE) {
@@ -208,7 +246,7 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(canonical.namespace()), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(canonical.namespace());
         }
-        String storedBody = stripId(requestBody);
+        String storedBody = documentParser.stripId(requestBody);
         try {
             updateVersionedResourceInStore(canonical.resourceType(), canonical.namespace(),
                     existing.getNumericId(), canonical.version(), storedBody);
@@ -260,7 +298,7 @@ public class MappingControllerResource {
      */
     private Response handlePost(String namespace, String type, String name, String pathVersion, String requestBody)
             throws URISyntaxException {
-        ResourceType resourceType = parseTypePlural(type);
+        ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)
@@ -274,9 +312,9 @@ public class MappingControllerResource {
             return invalidJsonResponse("Request body is required");
         }
 
-        VersionSpec versionSpec;
+        CalmDocumentParser.VersionSpec versionSpec;
         try {
-            versionSpec = resolveAndVerify(requestBody, namespace, type, name, pathVersion);
+            versionSpec = documentParser.resolveAndVerify(requestBody, namespace, type, name, pathVersion);
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(STRICT_SANITIZATION_POLICY.sanitize(e.getMessage())).build();
@@ -286,7 +324,7 @@ public class MappingControllerResource {
 
         // The document's $id is verified above, but it must not be persisted: MongoDB rejects a
         // top-level "$id" field (a reserved DBRef key) and the canonical $id is re-applied on GET.
-        String storedBody = stripId(requestBody);
+        String storedBody = documentParser.stripId(requestBody);
 
         try {
             ResourceMapping existing;
@@ -325,7 +363,7 @@ public class MappingControllerResource {
             @PathParam("type") String type,
             @PathParam("name") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name
     ) {
-        ResourceType resourceType = parseTypePlural(type);
+        ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
@@ -339,9 +377,9 @@ public class MappingControllerResource {
             if (versions.isEmpty()) {
                 return mappingNotFoundResponse(name);
             }
-            String latestVersion = getLatestVersion(versions);
+            String latestVersion = documentParser.getLatestVersion(versions);
             String json = getResourceJsonForVersion(mapping, latestVersion);
-            String rewrittenJson = rewriteId(json, namespace, type, name, null);
+            String rewrittenJson = documentParser.rewriteId(json, namespace, type, name, null);
             return Response.ok(rewrittenJson).build();
         } catch (MappingNotFoundException e) {
             return mappingNotFoundResponse(name);
@@ -376,7 +414,7 @@ public class MappingControllerResource {
             @PathParam("type") String type,
             @PathParam("name") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name
     ) {
-        ResourceType resourceType = parseTypePlural(type);
+        ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
@@ -385,7 +423,7 @@ public class MappingControllerResource {
             ResourceMapping mapping = mappingStore.getMapping(namespace, name);
             List<String> versions = getVersionsForMapping(mapping);
             List<String> sortedVersions = versions.stream()
-                    .sorted(Comparator.comparing(Semver::tryParse))
+                    .sorted(java.util.Comparator.comparing(org.finos.calm.domain.Semver::tryParse))
                     .toList();
             return Response.ok(new ValueWrapper<>(sortedVersions)).build();
         } catch (MappingNotFoundException e) {
@@ -423,7 +461,7 @@ public class MappingControllerResource {
             @PathParam("name") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
             @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
     ) {
-        ResourceType resourceType = parseTypePlural(type);
+        ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
@@ -431,7 +469,7 @@ public class MappingControllerResource {
         try {
             ResourceMapping mapping = mappingStore.getMapping(namespace, name);
             String json = getResourceJsonForVersion(mapping, version);
-            String rewrittenJson = rewriteId(json, namespace, type, name, version);
+            String rewrittenJson = documentParser.rewriteId(json, namespace, type, name, version);
             return Response.ok(rewrittenJson).build();
         } catch (MappingNotFoundException e) {
             return mappingNotFoundResponse(name);
@@ -470,7 +508,7 @@ public class MappingControllerResource {
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type
     ) {
-        ResourceType resourceType = parseTypePlural(type);
+        ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
@@ -496,7 +534,7 @@ public class MappingControllerResource {
      * rejected with {@code 400 Bad Request}.</p>
      */
     private Response createNewResource(String namespace, ResourceType resourceType, String typePath,
-                                       String name, String json, VersionSpec versionSpec) throws URISyntaxException {
+                                       String name, String json, CalmDocumentParser.VersionSpec versionSpec) throws URISyntaxException {
         String finalVersion = versionSpec.version() != null ? versionSpec.version() : "1.0.0";
         if (!"1.0.0".equals(finalVersion)) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -542,7 +580,7 @@ public class MappingControllerResource {
      * returns {@code 409} if the version already exists.</p>
      */
     private Response addNewVersion(String namespace, String typePath, String name,
-                                   ResourceMapping mapping, String json, VersionSpec versionSpec) throws URISyntaxException {
+                                   ResourceMapping mapping, String json, CalmDocumentParser.VersionSpec versionSpec) throws URISyntaxException {
         try {
             List<String> versions = getVersionsForMapping(mapping);
             if (versions.isEmpty()) {
@@ -573,41 +611,9 @@ public class MappingControllerResource {
         }
     }
 
-    /**
-     * Verifies the document's {@code $id} against the canonical versioned URL for this resource.
-     *
-     * <ul>
-     *   <li>{@code $id} is mandatory; a missing or blank {@code $id} is rejected.</li>
-     *   <li>The {@code $id} must equal the canonical versioned URL for the exact version in the
-     *       path ({@code pathVersion} is always non-null for the versioned endpoint).</li>
-     * </ul>
-     *
-     * @throws IllegalArgumentException if the {@code $id} is missing or does not match.
-     * @throws JsonProcessingException  if the body cannot be parsed as JSON.
-     */
-    private VersionSpec resolveAndVerify(String json, String namespace, String typePath, String name,
-                                         String pathVersion) throws JsonProcessingException {
-        JsonNode tree = OBJECT_MAPPER.readTree(json);
-        String id = null;
-        if (tree.isObject()) {
-            JsonNode idNode = tree.get("$id");
-            if (idNode != null && !idNode.isNull()) {
-                id = idNode.asText();
-            }
-        }
-        if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("$id is required");
-        }
-        String normalizedBase = baseUrl.trim();
-        if (normalizedBase.endsWith("/")) {
-            normalizedBase = normalizedBase.substring(0, normalizedBase.length() - 1);
-        }
-        String expected = normalizedBase + "/calm/namespaces/" + namespace + "/" + typePath + "/" + name
-                + "/versions/" + pathVersion;
-        if (!id.equals(expected)) {
-            throw new IllegalArgumentException("$id does not match the expected URL. Expected: " + expected);
-        }
-        return new VersionSpec(pathVersion, true);
+    private Response mappingNotFoundResponse(String name) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
     }
 
     /**
@@ -760,76 +766,6 @@ public class MappingControllerResource {
         };
     }
 
-    /**
-     * Removes the top-level {@code $id} field from the document before persistence.
-     *
-     * <p>MongoDB rejects a top-level {@code $id} field (a reserved DBRef key), and the canonical
-     * {@code $id} is re-applied on every GET via {@link #rewriteId}, so the submitted value does
-     * not need to be stored.</p>
-     */
-    private String stripId(String json) {
-        try {
-            JsonNode tree = OBJECT_MAPPER.readTree(json);
-            if (tree.isObject()) {
-                ((ObjectNode) tree).remove("$id");
-                return OBJECT_MAPPER.writeValueAsString(tree);
-            }
-        } catch (JsonProcessingException e) {
-            logger.warn("Could not strip $id from JSON, using original", e);
-        }
-        return json;
-    }
-
-    /**
-     * Rewrites the {@code $id} field in the returned JSON to the canonical URL.
-     *
-     * @param version {@code null} for the versionless (latest) form;
-     *                a semver string for the versioned form.
-     */
-    private String rewriteId(String json, String namespace, String typePath, String name, String version) {
-        String configuredBaseUrl = baseUrl == null ? null : baseUrl.trim();
-        if (configuredBaseUrl == null || configuredBaseUrl.isEmpty()) {
-            return json;
-        }
-        try {
-            JsonNode tree = OBJECT_MAPPER.readTree(json);
-            if (tree.isObject()) {
-                String normalizedBase = configuredBaseUrl.endsWith("/")
-                        ? configuredBaseUrl.substring(0, configuredBaseUrl.length() - 1)
-                        : configuredBaseUrl;
-                String canonicalUrl = normalizedBase + "/calm/namespaces/" + namespace + "/" + typePath + "/" + name;
-                if (version != null) {
-                    canonicalUrl = canonicalUrl + "/versions/" + version;
-                }
-                ((ObjectNode) tree).put("$id", canonicalUrl);
-                return OBJECT_MAPPER.writeValueAsString(tree);
-            }
-        } catch (JsonProcessingException e) {
-            logger.warn("Could not rewrite $id in JSON, using original", e);
-        }
-        return json;
-    }
-
-    /** Selects the highest semver from a list of version strings. */
-    private String getLatestVersion(List<String> versions) {
-        return versions.stream()
-                .max(Comparator.comparing(Semver::tryParse))
-                .orElse("1.0.0");
-    }
-
-    /** Maps a plural URL path segment (e.g. {@code "patterns"}) to the corresponding {@link ResourceType}. */
-    private ResourceType parseTypePlural(String type) {
-        if (type == null || type.isBlank()) {
-            return null;
-        }
-        return TYPE_MAP.get(type.toLowerCase());
-    }
-
-    private Response mappingNotFoundResponse(String name) {
-        return Response.status(Response.Status.NOT_FOUND)
-                .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
-    }
-
     private Response invalidJsonResponse(String message) {
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity("Invalid JSON: " + message).build();
@@ -838,85 +774,6 @@ public class MappingControllerResource {
     private Response invalidVersionResponse(String version) {
         return Response.status(Response.Status.NOT_FOUND)
                 .entity("Invalid version provided: " + version).build();
-    }
-
-    /**
-     * Carries the version determined from the document's {@code $id} or path.
-     *
-     * @param version  the version string (always non-null; a version is always required).
-     * @param explicit always {@code true}; kept for compatibility with existing call-sites.
-     */
-    private record VersionSpec(String version, boolean explicit) {}
-
-    /**
-     * Parsed representation of a fully-qualified versioned canonical {@code $id}.
-     */
-    private record CanonicalId(String namespace, ResourceType resourceType, String type, String name, String version) {}
-
-    /**
-     * Parses and validates the document's {@code $id} field, extracting namespace, resource type,
-     * name, and version from the canonical URL.
-     *
-     * <p>The {@code $id} must match
-     * {@code {baseUrl}/calm/namespaces/{namespace}/{type}/{name}/versions/{version}}.
-     * A versionless or missing {@code $id} is rejected with {@link IllegalArgumentException}.</p>
-     *
-     * @throws IllegalArgumentException if the {@code $id} is missing, malformed, or versionless.
-     * @throws JsonProcessingException  if the body cannot be parsed as JSON.
-     */
-    private CanonicalId parseCanonicalId(String json) throws JsonProcessingException {
-        JsonNode tree = OBJECT_MAPPER.readTree(json);
-        String id = null;
-        if (tree.isObject()) {
-            JsonNode idNode = tree.get("$id");
-            if (idNode != null && !idNode.isNull()) {
-                id = idNode.asText();
-            }
-        }
-        if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("$id is required");
-        }
-        String normalizedBase = baseUrl == null ? "" : baseUrl.trim();
-        if (normalizedBase.endsWith("/")) {
-            normalizedBase = normalizedBase.substring(0, normalizedBase.length() - 1);
-        }
-        String expectedPrefix = normalizedBase + "/calm/namespaces/";
-        if (!id.startsWith(expectedPrefix)) {
-            throw new IllegalArgumentException(
-                    "$id must start with: " + expectedPrefix + "{namespace}/{type}/{name}/versions/{version}");
-        }
-        // remainder: {namespace}/{type}/{name}/versions/{version}
-        String remainder = id.substring(expectedPrefix.length());
-        String[] parts = remainder.split("/", -1);
-        // Minimum: namespace, type, name, "versions", version → 5 parts
-        if (parts.length < 5 || !"versions".equals(parts[3])) {
-            throw new IllegalArgumentException(
-                    "$id must include a version: " + expectedPrefix
-                            + "{namespace}/{type}/{name}/versions/{version}");
-        }
-        String namespace = parts[0];
-        String type = parts[1];
-        String name = parts[2];
-        String version = parts[4];
-        if (!namespace.matches(NAMESPACE_REGEX)) {
-            throw new IllegalArgumentException("Invalid namespace in $id: " + namespace);
-        }
-        if (!name.matches(CUSTOM_ID_REGEX)) {
-            throw new IllegalArgumentException("Invalid resource name in $id: " + name);
-        }
-        if ("versions".equals(name)) {
-            throw new IllegalArgumentException("'versions' is a reserved path segment and cannot be used as a resource name");
-        }
-        if (!version.matches(VERSION_REGEX)) {
-            throw new IllegalArgumentException("Invalid version in $id: " + version);
-        }
-        ResourceType resourceType = TYPE_MAP.get(type.toLowerCase());
-        if (resourceType == null) {
-            throw new IllegalArgumentException(
-                    "Unsupported resource type in $id: " + type
-                            + ". Supported: patterns, architectures, flows, standards, interfaces");
-        }
-        return new CanonicalId(namespace, resourceType, type, name, version);
     }
 
     /**
@@ -956,5 +813,483 @@ public class MappingControllerResource {
             }
             default -> throw new UnsupportedOperationException("Update not supported for resource type: " + type);
         }
+    }
+
+    // =========================================================================
+    // User Facing API — Domains (/calm/domains)
+    // =========================================================================
+
+    @GET
+    @Path("domains")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "List all domains",
+            description = "Returns all domains available in CALM Hub"
+    )
+    @Authenticated
+    public Response getDomains() {
+        return Response.ok(new ValueWrapper<>(domainStore.getDomains())).build();
+    }
+
+    @POST
+    @Path("domains")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Create a domain",
+            description = "Creates a new domain in CALM Hub"
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response createDomain(@Valid @NotNull(message = "Request must not be null") Domain domain) {
+        String domainName = domain.getName();
+
+        if (CalmHubPermissionChecker.GLOBAL_ACCESS.equalsIgnoreCase(domainName)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\":\"'GLOBAL' is a reserved domain name\"}")
+                    .build();
+        }
+
+        try {
+            domainStore.createDomain(domainName);
+        } catch (DomainAlreadyExistsException e) {
+            return Response.status(Response.Status.CONFLICT)
+                    .entity("{\"error\":\"Domain already exists\"}")
+                    .build();
+        }
+        return Response.created(URI.create("/calm/domains/" + domainName)).build();
+    }
+
+    // =========================================================================
+    // User Facing API — Controls (/calm/domains/{domain}/controls)
+    // =========================================================================
+
+    @POST
+    @Path("domains/{domain}/controls/{controlName}/requirement/versions/{version}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Create a control requirement version",
+            description = "Creates a new control (if it does not exist, version must be 1.0.0) or adds a new requirement " +
+                    "version to an existing control. The body must include a \"$id\" matching the canonical URL for this path."
+    )
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
+    public Response createRequirementVersion(
+            @PathParam("domain")
+            @jakarta.validation.constraints.Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String controlName,
+            @PathParam("version")
+            @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
+            String version,
+            String requestBody) throws URISyntaxException {
+        return handleControlRequirementPost(domain, controlName, version, requestBody);
+    }
+
+    @POST
+    @Path("domains/{domain}/controls/{controlName}/configurations/{configName}/versions/{version}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Create a control configuration version",
+            description = "Creates a new configuration (if it does not exist, version must be 1.0.0) or adds a new version " +
+                    "to an existing configuration. The body must include a \"$id\" matching the canonical URL for this path."
+    )
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
+    public Response createConfigurationVersion(
+            @PathParam("domain")
+            @jakarta.validation.constraints.Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String controlName,
+            @PathParam("configName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String configName,
+            @PathParam("version")
+            @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
+            String version,
+            String requestBody) throws URISyntaxException {
+        return handleControlConfigurationPost(domain, controlName, configName, version, requestBody);
+    }
+
+    @GET
+    @Path("domains/{domain}/controls")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "List controls for a domain",
+            description = "Returns all controls in the given domain"
+    )
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
+    public Response getControlsForDomain(
+            @PathParam("domain")
+            @jakarta.validation.constraints.Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain) {
+        try {
+            return Response.ok(new ValueWrapper<>(controlStore.getControlsForDomain(domain))).build();
+        } catch (DomainNotFoundException e) {
+            logger.error("Domain [{}] not found when listing controls", domain, e);
+            return CalmResourceErrorResponses.invalidDomainResponse(domain);
+        }
+    }
+
+    @GET
+    @Path("domains/{domain}/controls/{controlName}/requirement/versions")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "List requirement versions for a named control",
+            description = "Returns the list of requirement versions for the control with the given name"
+    )
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
+    public Response getRequirementVersionsByControlName(
+            @PathParam("domain")
+            @jakarta.validation.constraints.Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String controlName) {
+        try {
+            int controlId = resolveControlId(domain, controlName);
+            return Response.ok(new ValueWrapper<>(controlStore.getRequirementVersions(domain, controlId))).build();
+        } catch (DomainNotFoundException e) {
+            logger.error("Domain [{}] not found when retrieving requirement versions for control [{}]", domain, controlName, e);
+            return CalmResourceErrorResponses.invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}]", controlName, domain, e);
+            return controlNotFoundResponse(controlName);
+        }
+    }
+
+    @GET
+    @Path("domains/{domain}/controls/{controlName}/requirement/versions/{version}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Get requirement at a specific version by control name",
+            description = "Returns the requirement JSON for the named control at the specified version"
+    )
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
+    public Response getRequirementForVersionByControlName(
+            @PathParam("domain")
+            @jakarta.validation.constraints.Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String controlName,
+            @PathParam("version")
+            @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
+            String version) {
+        try {
+            int controlId = resolveControlId(domain, controlName);
+            return Response.ok(controlStore.getRequirementForVersion(domain, controlId, version)).build();
+        } catch (DomainNotFoundException e) {
+            logger.error("Domain [{}] not found when retrieving requirement for control [{}] version [{}]", domain, controlName, version, e);
+            return CalmResourceErrorResponses.invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}]", controlName, domain, e);
+            return controlNotFoundResponse(controlName);
+        } catch (ControlRequirementVersionNotFoundException e) {
+            logger.error("Requirement version [{}] not found for control [{}]", version, controlName, e);
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Requirement version not found: " + STRICT_SANITIZATION_POLICY.sanitize(version))
+                    .build();
+        }
+    }
+
+    @GET
+    @Path("domains/{domain}/controls/{controlName}/configurations")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "List configurations for a named control",
+            description = "Returns the list of configurations (id + name) for the control with the given name"
+    )
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
+    public Response getConfigurationsForControlByName(
+            @PathParam("domain")
+            @jakarta.validation.constraints.Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String controlName) {
+        try {
+            int controlId = resolveControlId(domain, controlName);
+            return Response.ok(new ValueWrapper<>(controlStore.getConfigurationDetailsForControl(domain, controlId))).build();
+        } catch (DomainNotFoundException e) {
+            logger.error("Domain [{}] not found when retrieving configurations for control [{}]", domain, controlName, e);
+            return CalmResourceErrorResponses.invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}]", controlName, domain, e);
+            return controlNotFoundResponse(controlName);
+        }
+    }
+
+    @GET
+    @Path("domains/{domain}/controls/{controlName}/configurations/{configName}/versions")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "List versions for a named control's configuration",
+            description = "Returns the list of versions for a specific configuration (identified by name) of the named control"
+    )
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
+    public Response getConfigurationVersionsByControlName(
+            @PathParam("domain")
+            @jakarta.validation.constraints.Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String controlName,
+            @PathParam("configName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String configName) {
+        try {
+            int controlId = resolveControlId(domain, controlName);
+            int configId = resolveConfigId(domain, controlId, configName);
+            return Response.ok(new ValueWrapper<>(controlStore.getConfigurationVersions(domain, controlId, configId))).build();
+        } catch (DomainNotFoundException e) {
+            logger.error("Domain [{}] not found when retrieving configuration versions for control [{}]", domain, controlName, e);
+            return CalmResourceErrorResponses.invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}]", controlName, domain, e);
+            return controlNotFoundResponse(controlName);
+        } catch (ControlConfigurationNotFoundException e) {
+            logger.error("Configuration [{}] not found for control [{}]", configName, controlName, e);
+            return configNotFoundResponse(configName);
+        }
+    }
+
+    @GET
+    @Path("domains/{domain}/controls/{controlName}/configurations/{configName}/versions/{version}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Get a specific configuration version by control name and config name",
+            description = "Returns the configuration JSON for the named control and named configuration at the specified version"
+    )
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
+    public Response getConfigurationForVersionByControlName(
+            @PathParam("domain")
+            @jakarta.validation.constraints.Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String controlName,
+            @PathParam("configName")
+            @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
+            String configName,
+            @PathParam("version")
+            @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
+            String version) {
+        try {
+            int controlId = resolveControlId(domain, controlName);
+            int configId = resolveConfigId(domain, controlId, configName);
+            return Response.ok(controlStore.getConfigurationForVersion(domain, controlId, configId, version)).build();
+        } catch (DomainNotFoundException e) {
+            logger.error("Domain [{}] not found when retrieving configuration version for control [{}]", domain, controlName, e);
+            return CalmResourceErrorResponses.invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}]", controlName, domain, e);
+            return controlNotFoundResponse(controlName);
+        } catch (ControlConfigurationNotFoundException e) {
+            logger.error("Configuration [{}] not found for control [{}]", configName, controlName, e);
+            return configNotFoundResponse(configName);
+        } catch (ControlConfigurationVersionNotFoundException e) {
+            logger.error("Configuration version [{}] not found for config [{}]", version, configName, e);
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Configuration version not found: " + STRICT_SANITIZATION_POLICY.sanitize(version))
+                    .build();
+        }
+    }
+
+    // =========================================================================
+    // Domain-control write helpers (shared by path-based POST and POST /calm)
+    // =========================================================================
+
+    /**
+     * Handles a versioned control requirement POST, validating the {@code $id}, creating a new
+     * control on first version (1.0.0) or adding a new requirement version to an existing one.
+     */
+    private Response handleControlRequirementPost(String domain, String controlName, String version,
+                                                   String requestBody) throws URISyntaxException {
+        if (requestBody == null || requestBody.isBlank()) {
+            return invalidJsonResponse("Request body is required");
+        }
+        // Validate $id against canonical path URL
+        String expectedId = documentParser.normalizeBase() + "/calm/domains/" + domain
+                + "/controls/" + controlName + "/requirement/versions/" + version;
+        String actualId;
+        try {
+            actualId = documentParser.extractIdFromJson(requestBody);
+        } catch (Exception e) {
+            return invalidJsonResponse("Cannot parse request body as JSON");
+        }
+        if (actualId == null || actualId.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("$id is required").build();
+        }
+        if (!expectedId.equals(actualId)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("$id does not match the expected URL. Expected: " + expectedId).build();
+        }
+
+        String storedBody = documentParser.stripId(requestBody);
+        // Extract description from body document (used when creating new control)
+        String description = documentParser.extractStringField(requestBody, "description");
+
+        try {
+            // Check if control already exists
+            int controlId;
+            try {
+                controlId = resolveControlId(domain, controlName);
+            } catch (ControlNotFoundException notFound) {
+                // New control: first version must be 1.0.0
+                if (!"1.0.0".equals(version)) {
+                    return Response.status(Response.Status.BAD_REQUEST)
+                            .entity("The first version of a resource must be 1.0.0").build();
+                }
+                CreateControlRequirement req = new CreateControlRequirement(controlName, description, storedBody);
+                controlStore.createControlRequirement(req, domain);
+                URI location = new URI("/calm/domains/" + domain + "/controls/" + controlName
+                        + "/requirement/versions/" + version);
+                return Response.created(location).build();
+            }
+            // Existing control: add new requirement version
+            CreateControlRequirement req = new CreateControlRequirement(controlName, description, storedBody);
+            try {
+                controlStore.createRequirementForVersion(domain, controlId, version, req);
+            } catch (org.finos.calm.domain.exception.ControlRequirementVersionExistsException e) {
+                return Response.status(Response.Status.CONFLICT)
+                        .entity("Version " + STRICT_SANITIZATION_POLICY.sanitize(version) + " already exists").build();
+            }
+            URI location = new URI("/calm/domains/" + domain + "/controls/" + controlName
+                    + "/requirement/versions/" + version);
+            return Response.created(location).build();
+
+        } catch (DomainNotFoundException e) {
+            logger.error("Domain [{}] not found when creating requirement for control [{}]", domain, controlName, e);
+            return CalmResourceErrorResponses.invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}] when adding requirement version", controlName, domain, e);
+            return controlNotFoundResponse(controlName);
+        }
+    }
+
+    /**
+     * Handles a versioned control configuration POST, validating the {@code $id}, creating a new
+     * configuration on first version (1.0.0) or adding a new version to an existing configuration.
+     */
+    private Response handleControlConfigurationPost(String domain, String controlName, String configName,
+                                                     String version, String requestBody) throws URISyntaxException {
+        if (requestBody == null || requestBody.isBlank()) {
+            return invalidJsonResponse("Request body is required");
+        }
+        // Validate $id against canonical path URL
+        String expectedId = documentParser.normalizeBase() + "/calm/domains/" + domain
+                + "/controls/" + controlName + "/configurations/" + configName + "/versions/" + version;
+        String actualId;
+        try {
+            actualId = documentParser.extractIdFromJson(requestBody);
+        } catch (Exception e) {
+            return invalidJsonResponse("Cannot parse request body as JSON");
+        }
+        if (actualId == null || actualId.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("$id is required").build();
+        }
+        if (!expectedId.equals(actualId)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("$id does not match the expected URL. Expected: " + expectedId).build();
+        }
+
+        String storedBody = documentParser.stripId(requestBody);
+
+        try {
+            int controlId = resolveControlId(domain, controlName);
+
+            // Check if configuration with this name already exists
+            int configId;
+            try {
+                configId = resolveConfigId(domain, controlId, configName);
+            } catch (ControlConfigurationNotFoundException notFound) {
+                // New configuration: first version must be 1.0.0
+                if (!"1.0.0".equals(version)) {
+                    return Response.status(Response.Status.BAD_REQUEST)
+                            .entity("The first version of a resource must be 1.0.0").build();
+                }
+                CreateControlConfiguration req = new CreateControlConfiguration(configName, storedBody);
+                controlStore.createControlConfiguration(req, domain, controlId);
+                URI location = new URI("/calm/domains/" + domain + "/controls/" + controlName
+                        + "/configurations/" + configName + "/versions/" + version);
+                return Response.created(location).build();
+            }
+            // Existing configuration: add new version
+            CreateControlConfiguration req = new CreateControlConfiguration(configName, storedBody);
+            try {
+                controlStore.createConfigurationForVersion(domain, controlId, configId, version, req);
+            } catch (org.finos.calm.domain.exception.ControlConfigurationVersionExistsException e) {
+                return Response.status(Response.Status.CONFLICT)
+                        .entity("Version " + STRICT_SANITIZATION_POLICY.sanitize(version) + " already exists").build();
+            } catch (ControlConfigurationNotFoundException e) {
+                return configNotFoundResponse(configName);
+            }
+            URI location = new URI("/calm/domains/" + domain + "/controls/" + controlName
+                    + "/configurations/" + configName + "/versions/" + version);
+            return Response.created(location).build();
+
+        } catch (DomainNotFoundException e) {
+            logger.error("Domain [{}] not found when creating configuration for control [{}]", domain, controlName, e);
+            return CalmResourceErrorResponses.invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}] when adding configuration", controlName, domain, e);
+            return controlNotFoundResponse(controlName);
+        }
+    }
+
+    /**
+     * Resolves a control name to its numeric ID within a domain.
+     * Uses case-insensitive name matching.
+     *
+     * @param domain      the domain name
+     * @param controlName the human-readable control name
+     * @return the numeric controlId
+     * @throws DomainNotFoundException   if the domain does not exist
+     * @throws ControlNotFoundException  if no control with the given name exists in the domain
+     */
+    private int resolveControlId(String domain, String controlName) throws DomainNotFoundException, ControlNotFoundException {
+        List<ControlDetail> controls = controlStore.getControlsForDomain(domain);
+        return controls.stream()
+                .filter(c -> controlName.equalsIgnoreCase(c.getName()))
+                .findFirst()
+                .map(ControlDetail::getId)
+                .orElseThrow(ControlNotFoundException::new);
+    }
+
+    /**
+     * Resolves a configuration name to its numeric ID within a control.
+     * Uses case-insensitive name matching.
+     *
+     * @param domain      the domain name
+     * @param controlId   the numeric control ID
+     * @param configName  the human-readable configuration name
+     * @return the numeric configurationId
+     * @throws DomainNotFoundException              if the domain does not exist
+     * @throws ControlConfigurationNotFoundException if no configuration with the given name exists
+     */
+    private int resolveConfigId(String domain, int controlId, String configName)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        List<ControlConfigDetail> configs = controlStore.getConfigurationDetailsForControl(domain, controlId);
+        return configs.stream()
+                .filter(c -> configName.equalsIgnoreCase(c.getName()))
+                .findFirst()
+                .map(ControlConfigDetail::getId)
+                .orElseThrow(ControlConfigurationNotFoundException::new);
+    }
+
+    private Response controlNotFoundResponse(String controlName) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Control not found: " + STRICT_SANITIZATION_POLICY.sanitize(controlName))
+                .build();
+    }
+
+    private Response configNotFoundResponse(String configName) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Configuration not found: " + STRICT_SANITIZATION_POLICY.sanitize(configName))
+                .build();
     }
 }

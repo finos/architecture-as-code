@@ -4,6 +4,10 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.controls.ControlConfigDetail;
+import org.finos.calm.domain.controls.ControlDetail;
+import org.finos.calm.domain.controls.CreateControlConfiguration;
+import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
@@ -14,6 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.finos.calm.security.CalmHubPermissionChecker;
+
+import java.util.Collections;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
@@ -38,6 +45,15 @@ public class TestMappingControllerResourceShould {
     @InjectMock FlowStore mockFlowStore;
     @InjectMock StandardStore mockStandardStore;
     @InjectMock InterfaceStore mockInterfaceStore;
+    @InjectMock DomainStore mockDomainStore;
+    @InjectMock ControlStore mockControlStore;
+    @InjectMock CalmHubPermissionChecker mockPermissionChecker;
+
+    @org.junit.jupiter.api.BeforeEach
+    void allowWritesByDefault() {
+        when(mockPermissionChecker.canWrite(any(), any())).thenReturn(true);
+        when(mockPermissionChecker.canWriteByDomain(any(), any())).thenReturn(true);
+    }
 
     /** Builds a document whose {@code $id} matches the versionless canonical URL for the resource. */
     private static String doc(String namespace, String type, String name) {
@@ -801,6 +817,278 @@ public class TestMappingControllerResourceShould {
                 .thenThrow(new NamespaceNotFoundException());
 
         given().when().get("/calm/namespaces/invalid/patterns")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // User Facing API — Domains
+    // =========================================================================
+
+    @Test
+    void return_200_with_empty_domain_list_when_no_domains_exist() {
+        when(mockDomainStore.getDomains()).thenReturn(List.of());
+
+        given().when().get("/calm/domains")
+                .then().statusCode(200).body("values", hasSize(0));
+
+        verify(mockDomainStore).getDomains();
+    }
+
+    @Test
+    void return_200_with_domain_list_when_domains_exist() {
+        when(mockDomainStore.getDomains()).thenReturn(List.of("security", "payments"));
+
+        given().when().get("/calm/domains")
+                .then().statusCode(200)
+                .body("values", hasSize(2))
+                .body("values[0]", equalTo("security"))
+                .body("values[1]", equalTo("payments"));
+
+        verify(mockDomainStore).getDomains();
+    }
+
+    @Test
+    void return_201_when_creating_a_new_domain() throws DomainAlreadyExistsException {
+        when(mockDomainStore.createDomain("risk")).thenReturn(new Domain("risk"));
+
+        given().header("Content-Type", "application/json")
+                .body("{\"name\":\"risk\"}")
+                .when().post("/calm/domains")
+                .then().statusCode(201)
+                .header("Location", containsString("/calm/domains/risk"));
+
+        verify(mockDomainStore).createDomain("risk");
+    }
+
+    @Test
+    void return_409_when_creating_a_domain_that_already_exists() throws DomainAlreadyExistsException {
+        when(mockDomainStore.createDomain("risk")).thenThrow(new DomainAlreadyExistsException("already exists"));
+
+        given().header("Content-Type", "application/json")
+                .body("{\"name\":\"risk\"}")
+                .when().post("/calm/domains")
+                .then().statusCode(409);
+    }
+
+    // =========================================================================
+    // User Facing API — Controls (name-based resolution)
+    // =========================================================================
+
+    @Test
+    void return_200_with_controls_for_valid_domain() throws DomainNotFoundException {
+        ControlDetail detail = new ControlDetail(1, "access-control", "Ensure access control");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+
+        given().when().get("/calm/domains/security/controls")
+                .then().statusCode(200)
+                .body("values", hasSize(1))
+                .body("values[0].name", equalTo("access-control"));
+
+        verify(mockControlStore).getControlsForDomain("security");
+    }
+
+    @Test
+    void return_404_when_listing_controls_for_unknown_domain() throws DomainNotFoundException {
+        when(mockControlStore.getControlsForDomain("unknown")).thenThrow(new DomainNotFoundException("unknown"));
+
+        given().when().get("/calm/domains/unknown/controls")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_201_when_creating_new_control_via_versioned_path_post() throws Exception {
+        ControlDetail created = new ControlDetail(42, "new-control", "A new control");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(Collections.emptyList());
+        when(mockControlStore.createControlRequirement(any(CreateControlRequirement.class), eq("security")))
+                .thenReturn(created);
+
+        // No base URL override — default is http://localhost:8080
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/new-control/requirement/versions/1.0.0\","
+                + "\"description\":\"A new control\"}";
+
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/new-control/requirement/versions/1.0.0")
+                .then().statusCode(201)
+                .header("Location", containsString("/calm/domains/security/controls/new-control/requirement/versions/1.0.0"));
+    }
+
+    @Test
+    void return_400_when_versioned_path_post_id_mismatches_path() throws Exception {
+        // $id references a different control name than the path
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/other-control/requirement/versions/1.0.0\"}";
+
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/new-control/requirement/versions/1.0.0")
+                .then().statusCode(400)
+                .body(containsString("does not match"));
+    }
+
+    @Test
+    void return_400_when_versioned_path_post_has_no_id() throws Exception {
+        given().header("Content-Type", "application/json")
+                .body("{\"description\":\"no id\"}")
+                .when().post("/calm/domains/security/controls/new-control/requirement/versions/1.0.0")
+                .then().statusCode(400)
+                .body(containsString("$id"));
+    }
+
+    @Test
+    void return_400_when_versioned_path_post_first_version_is_not_1_0_0() throws Exception {
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(Collections.emptyList());
+
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/new-control/requirement/versions/2.0.0\","
+                + "\"description\":\"A new control\"}";
+
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/new-control/requirement/versions/2.0.0")
+                .then().statusCode(400)
+                .body(containsString("first version"));
+    }
+
+    @Test
+    void return_201_when_adding_version_to_existing_control_via_versioned_path_post() throws Exception {
+        ControlDetail existing = new ControlDetail(5, "new-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(existing));
+
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/new-control/requirement/versions/2.0.0\","
+                + "\"description\":\"Updated\"}";
+
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/new-control/requirement/versions/2.0.0")
+                .then().statusCode(201)
+                .header("Location", containsString("/calm/domains/security/controls/new-control/requirement/versions/2.0.0"));
+    }
+
+    @Test
+    void return_201_when_creating_new_config_via_versioned_path_post() throws Exception {
+        ControlDetail control = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
+        // Empty list → resolveConfigId throws ControlConfigurationNotFoundException → new config path
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(Collections.emptyList());
+        when(mockControlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq("security"), eq(5)))
+                .thenReturn(99);
+
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/configurations/tls-config/versions/1.0.0\"}";
+
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/access-control/configurations/tls-config/versions/1.0.0")
+                .then().statusCode(201)
+                .header("Location", containsString("/calm/domains/security/controls/access-control/configurations/tls-config/versions/1.0.0"));
+    }
+
+    @Test
+    void return_201_when_adding_version_to_existing_config_via_versioned_path_post() throws Exception {
+        ControlDetail control = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(new ControlConfigDetail(99, "tls-config")));
+
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/configurations/tls-config/versions/2.0.0\"}";
+
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/access-control/configurations/tls-config/versions/2.0.0")
+                .then().statusCode(201)
+                .header("Location", containsString("/calm/domains/security/controls/access-control/configurations/tls-config/versions/2.0.0"));
+    }
+
+    @Test
+    void return_404_when_creating_control_for_unknown_domain() throws DomainNotFoundException {
+        when(mockControlStore.getControlsForDomain("unknown")).thenThrow(new DomainNotFoundException("unknown"));
+
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/unknown/controls/new-control/requirement/versions/1.0.0\","
+                + "\"description\":\"A new control\"}";
+
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/unknown/controls/new-control/requirement/versions/1.0.0")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_200_with_requirement_versions_resolved_by_control_name() throws Exception {
+        ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+        when(mockControlStore.getRequirementVersions("security", 5)).thenReturn(List.of("1.0.0", "2.0.0"));
+
+        given().when().get("/calm/domains/security/controls/access-control/requirement/versions")
+                .then().statusCode(200)
+                .body("values", hasSize(2));
+    }
+
+    @Test
+    void return_404_when_control_name_not_found_on_requirement_versions() throws Exception {
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of());
+
+        given().when().get("/calm/domains/security/controls/nonexistent/requirement/versions")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_200_with_requirement_at_version_resolved_by_control_name() throws Exception {
+        ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+        when(mockControlStore.getRequirementForVersion("security", 5, "1.0.0")).thenReturn("{\"type\":\"req\"}");
+
+        given().when().get("/calm/domains/security/controls/access-control/requirement/versions/1.0.0")
+                .then().statusCode(200)
+                .body("type", equalTo("req"));
+    }
+
+    @Test
+    void return_200_with_configurations_resolved_by_control_name() throws Exception {
+        ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(
+                        new ControlConfigDetail(10, "encryption-config"),
+                        new ControlConfigDetail(20, "tls-config")));
+
+        given().when().get("/calm/domains/security/controls/access-control/configurations")
+                .then().statusCode(200)
+                .body("values", hasSize(2));
+    }
+
+    @Test
+    void return_200_with_configuration_versions_resolved_by_config_name() throws Exception {
+        ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(new ControlConfigDetail(10, "encryption-config")));
+        when(mockControlStore.getConfigurationVersions("security", 5, 10)).thenReturn(List.of("1.0.0"));
+
+        given().when().get("/calm/domains/security/controls/access-control/configurations/encryption-config/versions")
+                .then().statusCode(200)
+                .body("values", hasSize(1));
+    }
+
+    @Test
+    void return_200_with_configuration_at_version_resolved_by_config_name() throws Exception {
+        ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(new ControlConfigDetail(10, "encryption-config")));
+        when(mockControlStore.getConfigurationForVersion("security", 5, 10, "1.0.0")).thenReturn("{\"key\":\"val\"}");
+
+        given().when().get("/calm/domains/security/controls/access-control/configurations/encryption-config/versions/1.0.0")
+                .then().statusCode(200)
+                .body("key", equalTo("val"));
+    }
+
+    @Test
+    void return_404_when_configuration_name_not_found() throws Exception {
+        ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(new ControlConfigDetail(10, "encryption-config")));
+
+        given().when().get("/calm/domains/security/controls/access-control/configurations/nonexistent/versions")
                 .then().statusCode(404);
     }
 }

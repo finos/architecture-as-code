@@ -5,6 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
+import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -798,5 +799,100 @@ public class TestNitriteControlStoreShould {
         assertThat(controlDoc.get("name", String.class), is("Old Name"));
         assertThat(controlDoc.get("description", String.class), is("Old Desc"));
         verify(mockCollection).update(any(Filter.class), any(Document.class));
+    }
+
+    // --- getConfigurationDetailsForControl ---
+
+    @Test
+    public void testGetConfigurationDetailsForControl_returnsIdAndName() throws Exception {
+        Document config1 = Document.createDocument()
+                .put("configurationId", 10)
+                .put("name", "encryption-config")
+                .put("versions", Document.createDocument().put("1-0-0", "{}"));
+        Document config2 = Document.createDocument()
+                .put("configurationId", 20)
+                .put("name", "tls-config")
+                .put("versions", Document.createDocument().put("1-0-0", "{}"));
+
+        Document controlDoc = Document.createDocument()
+                .put("controlId", 1)
+                .put("name", "Test Control")
+                .put("description", "Desc")
+                .put("requirement", Document.createDocument())
+                .put("configurations", Arrays.asList(config1, config2));
+        Document domainDoc = Document.createDocument()
+                .put("domain", TEST_DOMAIN)
+                .put("controls", Arrays.asList(controlDoc));
+
+        setupDomainDocReturn(domainDoc);
+
+        List<ControlConfigDetail> details = controlStore.getConfigurationDetailsForControl(TEST_DOMAIN, 1);
+
+        assertThat(details, hasSize(2));
+        assertThat(details.get(0).getId(), is(10));
+        assertThat(details.get(0).getName(), is("encryption-config"));
+        assertThat(details.get(1).getId(), is(20));
+        assertThat(details.get(1).getName(), is("tls-config"));
+    }
+
+    @Test
+    public void testGetConfigurationDetailsForControl_returnsNullNameWhenNotPresent() throws Exception {
+        Document config = Document.createDocument()
+                .put("configurationId", 10)
+                .put("versions", Document.createDocument().put("1-0-0", "{}"));
+
+        Document controlDoc = Document.createDocument()
+                .put("controlId", 1)
+                .put("name", "Test Control")
+                .put("description", "Desc")
+                .put("requirement", Document.createDocument())
+                .put("configurations", Arrays.asList(config));
+        Document domainDoc = Document.createDocument()
+                .put("domain", TEST_DOMAIN)
+                .put("controls", Arrays.asList(controlDoc));
+
+        setupDomainDocReturn(domainDoc);
+
+        List<ControlConfigDetail> details = controlStore.getConfigurationDetailsForControl(TEST_DOMAIN, 1);
+
+        assertThat(details, hasSize(1));
+        assertThat(details.get(0).getId(), is(10));
+        assertThat(details.get(0).getName(), is(nullValue()));
+    }
+
+    @Test
+    public void testGetConfigurationDetailsForControl_throwsDomainNotFoundException() {
+        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
+        assertThrows(DomainNotFoundException.class,
+                () -> controlStore.getConfigurationDetailsForControl(INVALID_DOMAIN, 1));
+    }
+
+    @Test
+    public void testCreateControlConfiguration_withName_storesNameInDocument() throws Exception {
+        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
+        when(mockCounterStore.getNextControlConfigurationSequenceValue()).thenReturn(77);
+
+        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
+
+        CreateControlConfiguration request = new CreateControlConfiguration("tls-config", "{\"cipher\":\"AES\"}");
+        int configId = controlStore.createControlConfiguration(request, TEST_DOMAIN, 1);
+
+        assertThat(configId, is(77));
+
+        // Verify the document updated in the collection has the named config persisted
+        verify(mockCollection).update(any(Filter.class), argThat((Document doc) -> {
+            @SuppressWarnings("unchecked")
+            List<Document> controls = (List<Document>) doc.get("controls");
+            if (controls == null) return false;
+            for (Document ctrl : controls) {
+                if (Integer.valueOf(1).equals(ctrl.get("controlId", Integer.class))) {
+                    @SuppressWarnings("unchecked")
+                    List<Document> configs = (List<Document>) ctrl.get("configurations");
+                    if (configs == null) return false;
+                    return configs.stream().anyMatch(c -> "tls-config".equals(c.get("name", String.class)));
+                }
+            }
+            return false;
+        }));
     }
 }

@@ -147,4 +147,55 @@ public class PermittedScopesIntegration {
                 .then()
                 .statusCode(401);
     }
+
+    @Test
+    @Order(6)
+    void read_only_user_cannot_post_to_calm_namespaces_resource() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        String token = tokenForTestUser(authServerUrl);
+
+        String payload = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/my-pattern/versions/1.0.0\"}";
+
+        given()
+                .auth().oauth2(token)
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @Order(7)
+    void read_only_user_cannot_put_to_calm_namespace_resource() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        String token = tokenForTestUser(authServerUrl);
+
+        String payload = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/my-pattern/versions/1.0.0\"}";
+
+        given()
+                .auth().oauth2(token)
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().put("/calm")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @Order(8)
+    void read_only_user_cannot_post_control_requirement_via_calm_endpoint() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        String token = tokenForTestUser(authServerUrl);
+
+        String payload = "{\"$id\":\"http://localhost:8080/calm/domains/finos/controls/my-control/requirement/versions/1.0.0\"}";
+
+        given()
+                .auth().oauth2(token)
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm")
+                .then()
+                .statusCode(403);
+    }
 }
