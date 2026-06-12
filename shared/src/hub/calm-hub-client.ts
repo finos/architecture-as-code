@@ -1,5 +1,6 @@
 import axios, { Axios } from 'axios';
 import { AuthPlugin } from '../auth/auth-plugin';
+import { initLogger, Logger } from '../logger';
 
 export interface CalmHubOptions {
     calmHubUrl?: string;
@@ -64,6 +65,10 @@ export interface HubControlRequirementSummary {
     description?: string;
     versions: string[];
 }
+    
+export type ResourceChangeType = 'MAJOR' | 'MINOR' | 'PATCH';
+
+export type ResourceType = 'PATTERN' | 'ARCHITECTURE' | 'STANDARD' | 'INTERFACE';
 
 export class HubClientError extends Error {
     /**
@@ -84,6 +89,7 @@ export class HubClientError extends Error {
 
 export class CalmHubClient {
     private readonly ax: Axios;
+    private readonly logger: Logger;
 
     /**
      * Creates a Hub client bound to a base URL and optional auth plugin.
@@ -114,6 +120,8 @@ export class CalmHubClient {
                 return config;
             });
         }
+
+        this.logger = initLogger(false, 'calm-hub-client');
     }
 
     // ── Namespaces ───────────────────────────────────────────────────────────
@@ -754,6 +762,115 @@ export class CalmHubClient {
             throw this.wrapError(err, endpoint);
         }
     }
+
+    async getNamespaceMappings(namespace: string, type?: ResourceType): Promise<string[]> {
+        this.logger.debug(`Getting mappings for namespace=${namespace} with type=${type ?? 'ANY'}`);
+        const endpoint = `GET /calm/namespaces/${namespace}/mappings`;
+        try {
+            // TODO does it ignore null properties
+            const response = await this.ax.get(`/calm/namespaces/${namespace}/mappings`, {
+                params: {
+                    type,
+                }
+            });
+            this.logger.debug(`Received mappings response: ${JSON.stringify(response.data)}`);
+            return (response.data?.values ?? []) as string[];
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async createNewMappedResource(
+            namespace: string, 
+            mappingId: string, 
+            resourceType: ResourceType, 
+            name: string, 
+            description: string, 
+            json: string): Promise<string> {
+
+        this.logger.debug(`Creating new mapped resource in namespace=${namespace} with mappingId=${mappingId}, resourceType=${resourceType}, name=${name}`);
+        const endpoint = `POST /calm/namespaces/${namespace}/mappings/${mappingId}`;
+        const body = {
+            type: resourceType,
+            name,
+            description,
+            json
+        }
+
+        this.logger.debug(`Request for create new mapped resource: ${JSON.stringify(body)}`);
+
+        try {
+            const response = await this.ax.post(`/calm/namespaces/${namespace}/mappings/${mappingId}`, body);
+            this.logger.debug(`Received create mapping response: ${JSON.stringify(response.data)}`);
+            return response.data?.location as string;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+
+    }
+
+    async updateMappedResource(
+            namespace: string, 
+            mappingId: string, 
+            changeType: ResourceChangeType, 
+            json: string): Promise<string> {
+        const endpoint = `POST /calm/namespaces/${namespace}/mappings/${mappingId}`;
+        const body = {
+            json,
+            changeType
+        }
+
+        this.logger.debug(`Updating mapped resource in namespace=${namespace} with mappingId=${mappingId}, changeType=${changeType}`);
+        this.logger.debug(`Request for update mapped resource: ${JSON.stringify(body)}`);
+
+        try {
+            const response = await this.ax.post(`/calm/namespaces/${namespace}/mappings/${mappingId}`, body);
+            this.logger.debug(`Received update mapping response: ${JSON.stringify(response.headers)}`);
+            return response.headers.location as string;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+    
+    async getMappedResourceVersions(namespace: string, mappingId: string): Promise<string[]> {
+        this.logger.debug(`Getting mapped resource versions for namespace=${namespace} and mappingId=${mappingId}`);
+        const endpoint = `GET /calm/namespaces/${namespace}/mappings/${mappingId}/versions`;
+        try {
+            const response = await this.ax.get(`/calm/namespaces/${namespace}/mappings/${mappingId}/versions`);
+            this.logger.debug(`Received mapped resource versions response: ${JSON.stringify(response.data)}`);
+            return (response.data?.values ?? []) as string[];
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async getMappedResourceLatestVersion(namespace: string, mappingId: string): Promise<string> {
+        this.logger.debug(`Getting latest version for namespace=${namespace} and mappingId=${mappingId}`);
+        const endpoint = `GET /calm/namespaces/${namespace}/mappings/${mappingId}`;
+        try {
+            const response = await this.ax.get(`/calm/namespaces/${namespace}/mappings/${mappingId}`);
+            this.logger.debug(`Received latest version response: ${JSON.stringify(response.data)}`);
+            return response.data as string;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    async getMappedResourceByVersion(namespace: string, mappingId: string, version: string): Promise<string> {
+        this.logger.debug(`Getting version ${version} for namespace=${namespace} and mappingId=${mappingId}`);
+        const endpoint = `GET /calm/namespaces/${namespace}/mappings/${mappingId}/versions/${version}`;
+        try {
+            const response = await this.ax.get(`/calm/namespaces/${namespace}/mappings/${mappingId}/versions/${version}`);
+            this.logger.debug(`Received version response: ${JSON.stringify(response.data)}`);
+            return response.data as string;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+    
+
+
+    
 
     // ── Private helpers ──────────────────────────────────────────────────────
 

@@ -949,6 +949,173 @@ describe('CalmHubClient', () => {
         });
     });
 
+    // ── getNamespaceMappings ──────────────────────────────────────────────────
+
+    describe('getNamespaceMappings', () => {
+        it('returns the array of mapping slugs', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings').reply(200, {
+                values: ['my-arch', 'my-pattern']
+            });
+
+            const result = await client.getNamespaceMappings('finos');
+            expect(result).toEqual(['my-arch', 'my-pattern']);
+        });
+
+        it('returns empty array when values is absent', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings').reply(200, {});
+            const result = await client.getNamespaceMappings('finos');
+            expect(result).toEqual([]);
+        });
+
+        it('forwards the resource type as a query parameter when provided', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings').reply(200, { values: [] });
+
+            await client.getNamespaceMappings('finos', 'PATTERN');
+            expect(mock.history.get[0].params).toEqual({ type: 'PATTERN' });
+        });
+
+        it('throws HubClientError on 500', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings').reply(500, 'System Malfunction');
+
+            await expect(client.getNamespaceMappings('finos')).rejects.toMatchObject({
+                status: 500,
+                request: 'GET /calm/namespaces/finos/mappings'
+            });
+        });
+    });
+
+    // ── createNewMappedResource ───────────────────────────────────────────────
+
+    describe('createNewMappedResource', () => {
+        const json = JSON.stringify({ nodes: [] });
+
+        it('posts the typed body and returns the location from the response body', async () => {
+            mock.onPost('/calm/namespaces/finos/mappings/my-arch').reply(201, {
+                location: 'http://hub/calm/namespaces/finos/mappings/my-arch/versions/1.0.0'
+            });
+
+            const result = await client.createNewMappedResource('finos', 'my-arch', 'ARCHITECTURE', 'my-arch', 'A desc', json);
+            expect(result).toBe('http://hub/calm/namespaces/finos/mappings/my-arch/versions/1.0.0');
+            expect(JSON.parse(mock.history.post[0].data)).toEqual({
+                type: 'ARCHITECTURE',
+                name: 'my-arch',
+                description: 'A desc',
+                json
+            });
+        });
+
+        it('throws HubClientError(409) when the mapping already exists', async () => {
+            mock.onPost('/calm/namespaces/finos/mappings/my-arch').reply(409, { error: 'Mapping already exists' });
+
+            await expect(client.createNewMappedResource('finos', 'my-arch', 'ARCHITECTURE', 'my-arch', 'A desc', json))
+                .rejects.toMatchObject({
+                    status: 409,
+                    error: 'Mapping already exists',
+                    request: 'POST /calm/namespaces/finos/mappings/my-arch'
+                });
+        });
+
+        it('throws HubClientError on network failure', async () => {
+            mock.onPost('/calm/namespaces/finos/mappings/my-arch').networkError();
+
+            await expect(client.createNewMappedResource('finos', 'my-arch', 'ARCHITECTURE', 'my-arch', 'A desc', json))
+                .rejects.toBeInstanceOf(HubClientError);
+        });
+    });
+
+    // ── updateMappedResource ──────────────────────────────────────────────────
+
+    describe('updateMappedResource', () => {
+        const json = JSON.stringify({ nodes: [] });
+
+        it('posts the change type and returns the location from the response header', async () => {
+            mock.onPost('/calm/namespaces/finos/mappings/my-arch').reply(201, null, {
+                location: 'http://hub/calm/namespaces/finos/mappings/my-arch/versions/2.0.0'
+            });
+
+            const result = await client.updateMappedResource('finos', 'my-arch', 'MINOR', json);
+            expect(result).toBe('http://hub/calm/namespaces/finos/mappings/my-arch/versions/2.0.0');
+            expect(JSON.parse(mock.history.post[0].data)).toEqual({ json, changeType: 'MINOR' });
+        });
+
+        it('throws HubClientError(404) when the mapping does not exist', async () => {
+            mock.onPost('/calm/namespaces/finos/mappings/missing').reply(404, 'Not found');
+
+            await expect(client.updateMappedResource('finos', 'missing', 'PATCH', json)).rejects.toMatchObject({
+                status: 404,
+                request: 'POST /calm/namespaces/finos/mappings/missing'
+            });
+        });
+    });
+
+    // ── getMappedResourceVersions ─────────────────────────────────────────────
+
+    describe('getMappedResourceVersions', () => {
+        it('returns the array of versions', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings/my-arch/versions').reply(200, {
+                values: ['1.0.0', '2.0.0']
+            });
+
+            const result = await client.getMappedResourceVersions('finos', 'my-arch');
+            expect(result).toEqual(['1.0.0', '2.0.0']);
+        });
+
+        it('returns empty array when the mapping has no versions yet', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings/my-arch/versions').reply(200, {});
+            const result = await client.getMappedResourceVersions('finos', 'my-arch');
+            expect(result).toEqual([]);
+        });
+
+        it('throws HubClientError on 500', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings/my-arch/versions').reply(500, 'System Malfunction');
+
+            await expect(client.getMappedResourceVersions('finos', 'my-arch')).rejects.toMatchObject({
+                status: 500,
+                request: 'GET /calm/namespaces/finos/mappings/my-arch/versions'
+            });
+        });
+    });
+
+    // ── getMappedResourceLatestVersion ────────────────────────────────────────
+
+    describe('getMappedResourceLatestVersion', () => {
+        it('returns the latest version document', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings/my-arch').reply(200, { nodes: [] });
+
+            const result = await client.getMappedResourceLatestVersion('finos', 'my-arch');
+            expect(result).toEqual({ nodes: [] });
+        });
+
+        it('throws HubClientError(404) when the mapping does not exist', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings/missing').reply(404, 'Not found');
+
+            await expect(client.getMappedResourceLatestVersion('finos', 'missing')).rejects.toMatchObject({
+                status: 404,
+                request: 'GET /calm/namespaces/finos/mappings/missing'
+            });
+        });
+    });
+
+    // ── getMappedResourceByVersion ────────────────────────────────────────────
+
+    describe('getMappedResourceByVersion', () => {
+        it('returns the document for the requested version', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings/my-arch/versions/1.0.0').reply(200, { nodes: [] });
+
+            const result = await client.getMappedResourceByVersion('finos', 'my-arch', '1.0.0');
+            expect(result).toEqual({ nodes: [] });
+        });
+
+        it('throws HubClientError(404) when the version does not exist', async () => {
+            mock.onGet('/calm/namespaces/finos/mappings/my-arch/versions/9.9.9').reply(404, 'Not found');
+
+            await expect(client.getMappedResourceByVersion('finos', 'my-arch', '9.9.9')).rejects.toMatchObject({
+                status: 404,
+                request: 'GET /calm/namespaces/finos/mappings/my-arch/versions/9.9.9'
+            });
+        });
+    });
+
     // ── auth plugin: domains/controls ─────────────────────────────────────────
 
     describe('auth plugin: domains/controls', () => {
