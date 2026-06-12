@@ -3,8 +3,8 @@ import * as fs from 'fs/promises';
 import * as cliConfig from '../cli-config';
 import * as hubOutput from './hub-output';
 import { runCreateNamespace, runListArchitectures, runListNamespaces, 
-    runPullArchitecture, runPushArchitecture,  printPushResult, pushVersioned, 
-    resolveCalmHubOptions, resolveVersionedMetadata,
+    runPullArchitecture, runPushArchitecture,  printPushResult, 
+    resolveCalmHubOptions,
     runCreateDomain, runListDomains, runCreateControlRequirement, runListControlRequirements,
     runPushControlRequirement, runPullControlRequirement, runPushControlConfiguration, runPullControlConfiguration,
     printIdCreateResult,
@@ -15,18 +15,16 @@ vi.mock('@finos/calm-shared', () => {
     const mockClient = {
         createNamespace: vi.fn(),
         listNamespaces: vi.fn(),
-        pushArchitecture: vi.fn(),
-        pushArchitectureVersion: vi.fn(),
         listArchitectures: vi.fn(),
         pullArchitecture: vi.fn(),
-        pushPattern: vi.fn(),
-        pushPatternVersion: vi.fn(),
         listPatterns: vi.fn(),
         pullPattern: vi.fn(),
-        pushStandard: vi.fn(),
-        pushStandardVersion: vi.fn(),
         listStandards: vi.fn(),
         pullStandard: vi.fn(),
+        // mapping-based push primitives used by orchestratePush
+        getMappedResourceVersions: vi.fn(),
+        createNewMappedResource: vi.fn(),
+        updateMappedResource: vi.fn(),
         createDomain: vi.fn(),
         listDomains: vi.fn(),
         createControl: vi.fn(),
@@ -63,10 +61,21 @@ async function getSharedMocks() {
     return { shared, mockClient };
 }
 
+/**
+ * Builds a minimal CALM document whose `$id` encodes the namespace and mapping.
+ * orchestratePush derives the namespace and mapping from this `$id`, not from the CLI options.
+ */
+function pushDoc(mapping: string, namespace = 'finos'): string {
+    return JSON.stringify({
+        $id: `http://hub/calm/namespaces/${namespace}/mappings/${mapping}`,
+        nodes: []
+    });
+}
+
 describe('hub-commands', () => {
     let exitSpy: ReturnType<typeof vi.spyOn>;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
         exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {
             throw new Error('process.exit');
@@ -74,14 +83,18 @@ describe('hub-commands', () => {
 
         // Default: hub URL always resolves from options
         vi.mocked(cliConfig.loadCliConfig).mockResolvedValue(null);
-        // Default: file read succeeds with valid JSON
-        vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ nodes: [] }) as unknown as Uint8Array);
+        // Default: file read succeeds with a valid CALM document carrying a parseable $id
+        vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-arch') as unknown as Uint8Array);
         vi.mocked(fs.writeFile).mockResolvedValue(undefined);
         // Silence output helpers
         vi.mocked(hubOutput.printJsonSuccess).mockImplementation(function () { return undefined; });
         vi.mocked(hubOutput.printTableSuccess).mockImplementation(function () { return undefined; });
         vi.mocked(hubOutput.printError).mockImplementation(function () { return undefined; });
         vi.mocked(hubOutput.parseOutputFormat).mockImplementation(function (v) { return v === 'pretty' ? 'pretty' : 'json'; });
+
+        // Default: mapping has no existing versions, so push creates a new mapped resource
+        const { mockClient } = await getSharedMocks();
+        vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue([]);
     });
 
     afterEach(() => {
@@ -127,137 +140,105 @@ describe('hub-commands', () => {
     // ── runPushArchitecture ────────────────────────────────────────────────
 
     describe('runPushArchitecture', () => {
-        it('calls pushArchitecture and prints JSON result', async () => {
+        it('creates a new mapped resource when the mapping has no versions yet', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pushArchitecture).mockResolvedValue({
-                id: 1, version: '1.0.0', location: '/calm/namespaces/finos/architectures/1/versions/1.0.0'
-            });
+            vi.mocked(mockClient.createNewMappedResource).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/mappings/my-arch/versions/1.0.0'
+            );
 
             await runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
                 file: 'arch.json'
             });
 
-            expect(mockClient.pushArchitecture).toHaveBeenCalledWith('finos', 'my-arch', 'desc', expect.any(String));
-            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ id: 1, version: '1.0.0' }));
-        });
-
-        it('calls pushArchitectureVersion when --id is provided', async () => {
-            const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pushArchitectureVersion).mockResolvedValue({
-                id: 42, version: '2.0.0', location: '/calm/namespaces/finos/architectures/42/versions/2.0.0'
-            });
-
-            await runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub',
-                },
-                namespace: 'finos',
-                name: 'my-arch',
-                description: 'desc',
-                file: 'arch.json',
-                id: '42',
-                version: '2.0.0'
-            });
-
-            expect(mockClient.pushArchitectureVersion).toHaveBeenCalledWith('finos', 42, '2.0.0', 'my-arch', 'desc', expect.any(String));
-        });
-
-        it('exits with error when --id is given but --version is missing', async () => {
-            await expect(runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
-                namespace: 'finos',
-                name: 'my-arch',
-                file: 'arch.json',
-                id: '42'
-            })).rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalled();
-        });
-
-        it('exits with error when --id is not a valid integer', async () => {
-            await expect(runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
-                namespace: 'finos',
-                name: 'my-arch',
-                description: 'desc',
-                file: 'arch.json',
-                id: 'abc',
-                version: '1.0.0'
-            })).rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(
-                0,
-                '--id must be a valid integer',
-                'push architecture',
-                expect.any(String)
+            expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-arch');
+            expect(mockClient.createNewMappedResource).toHaveBeenCalledWith(
+                'finos', 'my-arch', 'ARCHITECTURE', 'my-arch', 'desc', expect.any(String)
+            );
+            expect(mockClient.updateMappedResource).not.toHaveBeenCalled();
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'my-arch', namespace: 'finos', version: '1.0.0' })
             );
         });
 
-        it('exits with error when --name is missing and no --id is provided', async () => {
-            await expect(runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
+        it('updates the existing mapped resource when versions already exist', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+            vi.mocked(mockClient.updateMappedResource).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/mappings/my-arch/versions/2.0.0'
+            );
+
+            await runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 file: 'arch.json'
-            })).rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalled();
+            });
+
+            expect(mockClient.updateMappedResource).toHaveBeenCalledWith('finos', 'my-arch', 'MINOR', expect.any(String));
+            expect(mockClient.createNewMappedResource).not.toHaveBeenCalled();
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'my-arch', namespace: 'finos', version: '2.0.0' })
+            );
         });
 
-        it('exits with error when --description is missing and no --id is provided', async () => {
+        it('writes the updated document id back to disk after pushing', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.createNewMappedResource).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/mappings/my-arch/versions/1.0.0'
+            );
+
+            await runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                name: 'my-arch',
+                description: 'desc',
+                file: 'arch.json'
+            });
+
+            expect(fs.writeFile).toHaveBeenCalledWith(
+                'arch.json',
+                expect.stringContaining('/calm/namespaces/finos/mappings/my-arch/versions/1.0.0'),
+                'utf-8'
+            );
+        });
+
+        it('exits with error when --name is missing while creating a new mapping', async () => {
+            const { mockClient } = await getSharedMocks();
+
             await expect(runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                description: 'desc',
+                file: 'arch.json'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, '--name is required when creating a new architecture', 'push architecture', 'json'
+            );
+            expect(mockClient.createNewMappedResource).not.toHaveBeenCalled();
+        });
+
+        it('exits with error when --description is missing while creating a new mapping', async () => {
+            const { mockClient } = await getSharedMocks();
+
+            await expect(runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-arch',
                 file: 'arch.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
-                0,
-                '--description is required when creating a new architecture',
-                'push architecture',
-                expect.any(String)
+                0, '--description is required when creating a new architecture', 'push architecture', 'json'
             );
-        });
-
-        it('auto-fetches name and description from Hub when --id is provided and they are omitted', async () => {
-            const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.listArchitectures).mockResolvedValue([
-                { id: 42, name: 'my-arch', description: 'fetched desc', versions: ['1.0.0'] }
-            ]);
-            vi.mocked(mockClient.pushArchitectureVersion).mockResolvedValue({
-                id: 42, version: '2.0.0', location: '/calm/namespaces/finos/architectures/42/versions/2.0.0'
-            });
-
-            await runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
-                namespace: 'finos',
-                file: 'arch.json',
-                id: '42',
-                version: '2.0.0'
-            });
-
-            expect(mockClient.listArchitectures).toHaveBeenCalledWith('finos');
-            expect(mockClient.pushArchitectureVersion).toHaveBeenCalledWith('finos', 42, '2.0.0', 'my-arch', 'fetched desc', expect.any(String));
+            expect(mockClient.createNewMappedResource).not.toHaveBeenCalled();
         });
 
         it('exits when file cannot be read', async () => {
             vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
             await expect(runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -269,9 +250,7 @@ describe('hub-commands', () => {
         it('exits when file is not valid JSON', async () => {
             vi.mocked(fs.readFile).mockResolvedValue('not json' as unknown as Uint8Array);
             await expect(runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -280,16 +259,28 @@ describe('hub-commands', () => {
             expect(hubOutput.printError).toHaveBeenCalled();
         });
 
+        it('exits when the document has no parseable $id metadata', async () => {
+            vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ nodes: [] }) as unknown as Uint8Array);
+            await expect(runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                name: 'my-arch',
+                description: 'desc',
+                file: 'arch.json'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, expect.stringContaining('Failed to extract document metadata'), expect.any(String), 'json'
+            );
+        });
+
         it('prints table output when format is pretty', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pushArchitecture).mockResolvedValue({
-                id: 1, version: '1.0.0', location: '/calm/namespaces/finos/architectures/1/versions/1.0.0'
-            });
+            vi.mocked(mockClient.createNewMappedResource).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/mappings/my-arch/versions/1.0.0'
+            );
 
             await runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -301,16 +292,14 @@ describe('hub-commands', () => {
             expect(hubOutput.printJsonSuccess).not.toHaveBeenCalled();
         });
 
-        it('writes stderr error and exits on HubClientError', async () => {
+        it('writes error output and exits on HubClientError', async () => {
             const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.pushArchitecture).mockRejectedValue(
-                new shared.HubClientError(409, 'Version already exists', 'POST /calm/namespaces/finos/architectures')
+            vi.mocked(mockClient.createNewMappedResource).mockRejectedValue(
+                new shared.HubClientError(409, 'Version already exists', 'POST /calm/namespaces/finos/mappings/my-arch')
             );
 
             await expect(runPushArchitecture({
-                calmHubOptions: {
-                    calmHubUrl: 'http://hub'
-                },
+                calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-arch',
                 description: 'desc',
@@ -489,13 +478,16 @@ describe('hub-commands', () => {
 
     describe('printPushResult', () => {
         it('calls printTableSuccess with correct columns when format is pretty', async () => {
-            printPushResult({ id: 1, version: '1.0.0', location: '/calm/namespaces/finos/architectures/1/versions/1.0.0' }, 'pretty');
+            printPushResult(
+                { mapping: 'my-arch', version: '1.0.0', namespace: 'finos', location: 'http://hub' },
+                'pretty'
+            );
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
-                [{ STATUS: 'Created', ID: 1, VERSION: '1.0.0', LOCATION: '/calm/namespaces/finos/architectures/1/versions/1.0.0' }],
+                [{ STATUS: 'Created', MAPPING: 'my-arch', VERSION: '1.0.0', LOCATION: 'http://hub' }],
                 [
                     { key: 'STATUS', header: 'STATUS' },
-                    { key: 'ID', header: 'ID' },
+                    { key: 'MAPPING', header: 'MAPPING' },
                     { key: 'VERSION', header: 'VERSION' },
                     { key: 'LOCATION', header: 'LOCATION' }
                 ]
@@ -503,17 +495,8 @@ describe('hub-commands', () => {
             expect(hubOutput.printJsonSuccess).not.toHaveBeenCalled();
         });
 
-        it('defaults version to empty string when version is undefined', async () => {
-            printPushResult({ id: 2, location: '/calm/namespaces/finos/architectures/2' }, 'pretty');
-
-            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
-                [expect.objectContaining({ VERSION: '' })],
-                expect.any(Array)
-            );
-        });
-
         it('calls printJsonSuccess when format is json', async () => {
-            const result = { id: 1, version: '1.0.0', location: '/loc' };
+            const result = { mapping: 'my-arch', version: '1.0.0', namespace: 'finos', location: '/loc' };
             printPushResult(result, 'json');
 
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(result);
@@ -521,125 +504,15 @@ describe('hub-commands', () => {
         });
     });
 
-    // ── resolveVersionedMetadata ───────────────────────────────────────────
-
-    describe('resolveVersionedMetadata', () => {
-        it('returns provided name and description without fetching when both are supplied', async () => {
-            const { mockClient } = await getSharedMocks();
-            const result = await resolveVersionedMetadata(mockClient, 'finos', 1, 'my-arch', 'my-desc', 'json');
-
-            expect(result).toEqual({ name: 'my-arch', description: 'my-desc' });
-            expect(mockClient.listArchitectures).not.toHaveBeenCalled();
-        });
-
-        it('fetches from Hub when name is absent', async () => {
-            const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.listArchitectures).mockResolvedValue([
-                { id: 1, name: 'fetched-arch', description: 'fetched-desc', versions: ['1.0.0'] }
-            ]);
-            const result = await resolveVersionedMetadata(mockClient, 'finos', 1, undefined, 'my-desc', 'json');
-
-            expect(mockClient.listArchitectures).toHaveBeenCalledWith('finos');
-            expect(result).toEqual({ name: 'fetched-arch', description: 'my-desc' });
-        });
-
-        it('fetches from Hub when description is absent', async () => {
-            const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.listArchitectures).mockResolvedValue([
-                { id: 1, name: 'fetched-arch', description: 'fetched-desc', versions: ['1.0.0'] }
-            ]);
-            const result = await resolveVersionedMetadata(mockClient, 'finos', 1, 'my-arch', undefined, 'json');
-
-            expect(mockClient.listArchitectures).toHaveBeenCalledWith('finos');
-            expect(result).toEqual({ name: 'my-arch', description: 'fetched-desc' });
-        });
-
-        it('exits when architecture ID is not found in namespace', async () => {
-            const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.listArchitectures).mockResolvedValue([
-                { id: 99, name: 'other-arch', description: 'other', versions: ['1.0.0'] }
-            ]);
-            await expect(resolveVersionedMetadata(mockClient, 'finos', 1, undefined, undefined, 'json'))
-                .rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(
-                0,
-                'Architecture with id 1 not found in namespace finos',
-                'push architecture',
-                'json'
-            );
-        });
-
-        it('exits when listArchitectures throws a HubClientError', async () => {
-            const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.listArchitectures).mockRejectedValue(
-                new shared.HubClientError(500, 'Server error', 'GET /calm/namespaces/finos/architectures')
-            );
-
-            await expect(resolveVersionedMetadata(mockClient, 'finos', 1, undefined, undefined, 'json'))
-                .rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(500, 'Server error', expect.any(String), 'json');
-        });
-    });
-
-    // ── pushVersioned ──────────────────────────────────────────────────────
-
-    describe('pushVersioned', () => {
-        it('exits when --version is missing', async () => {
-            const { mockClient } = await getSharedMocks();
-
-            await expect(pushVersioned(
-                mockClient,
-                { calmHubOptions: {}, namespace: 'finos', file: 'arch.json', id: '1' },
-                '{}',
-                'json'
-            )).rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(
-                0, '--version is required when --id is provided', 'push architecture', 'json'
-            );
-        });
-
-        it('exits when --id is not a valid integer', async () => {
-            const { mockClient } = await getSharedMocks();
-
-            await expect(pushVersioned(
-                mockClient,
-                { calmHubOptions: {}, namespace: 'finos', file: 'arch.json', id: 'not-a-number', version: '1.0.0' },
-                '{}',
-                'json'
-            )).rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(
-                0, '--id must be a valid integer', 'push architecture', 'json'
-            );
-        });
-
-        it('calls pushArchitectureVersion with resolved metadata and returns result', async () => {
-            const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pushArchitectureVersion).mockResolvedValue({
-                id: 5, version: '2.0.0', location: '/calm/namespaces/finos/architectures/5/versions/2.0.0'
-            });
-
-            const result = await pushVersioned(
-                mockClient,
-                { calmHubOptions: {}, namespace: 'finos', file: 'arch.json', id: '5', version: '2.0.0', name: 'my-arch', description: 'desc' },
-                '{"nodes":[]}',
-                'json'
-            );
-
-            expect(mockClient.pushArchitectureVersion).toHaveBeenCalledWith(
-                'finos', 5, '2.0.0', 'my-arch', 'desc', '{"nodes":[]}'
-            );
-            expect(result).toEqual({ id: 5, version: '2.0.0', location: '/calm/namespaces/finos/architectures/5/versions/2.0.0' });
-        });
-    });
-
     // ── runPushPattern ─────────────────────────────────────────────────────
 
     describe('runPushPattern', () => {
-        it('calls pushPattern and prints JSON result', async () => {
+        it('creates a new mapped pattern when the mapping has no versions yet', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pushPattern).mockResolvedValue({
-                id: 10, version: '1.0.0', location: '/calm/namespaces/finos/patterns/10/versions/1.0.0'
-            });
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-pattern') as unknown as Uint8Array);
+            vi.mocked(mockClient.createNewMappedResource).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/mappings/my-pattern/versions/1.0.0'
+            );
 
             const { runPushPattern } = await import('./hub-commands');
             await runPushPattern({
@@ -650,53 +523,36 @@ describe('hub-commands', () => {
                 file: 'pattern.json'
             });
 
-            expect(mockClient.pushPattern).toHaveBeenCalledWith('finos', 'my-pattern', 'desc', expect.any(String));
-            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ id: 10, version: '1.0.0' }));
+            expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-pattern');
+            expect(mockClient.createNewMappedResource).toHaveBeenCalledWith(
+                'finos', 'my-pattern', 'PATTERN', 'my-pattern', 'desc', expect.any(String)
+            );
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'my-pattern', namespace: 'finos', version: '1.0.0' })
+            );
         });
 
-        it('calls pushPatternVersion when --id is provided', async () => {
+        it('updates the existing mapped pattern when versions already exist', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pushPatternVersion).mockResolvedValue({
-                id: 10, version: '2.0.0', location: '/calm/namespaces/finos/patterns/10/versions/2.0.0'
-            });
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-pattern') as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+            vi.mocked(mockClient.updateMappedResource).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/mappings/my-pattern/versions/2.0.0'
+            );
 
             const { runPushPattern } = await import('./hub-commands');
             await runPushPattern({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
-                name: 'my-pattern',
-                description: 'desc',
-                file: 'pattern.json',
-                id: '10',
-                version: '2.0.0'
+                file: 'pattern.json'
             });
 
-            expect(mockClient.pushPatternVersion).toHaveBeenCalledWith('finos', 10, '2.0.0', 'my-pattern', 'desc', expect.any(String));
+            expect(mockClient.updateMappedResource).toHaveBeenCalledWith('finos', 'my-pattern', 'MINOR', expect.any(String));
+            expect(mockClient.createNewMappedResource).not.toHaveBeenCalled();
         });
 
-        it('auto-fetches name and description from Hub when --id provided and they are omitted', async () => {
-            const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.listPatterns).mockResolvedValue([
-                { id: 10, name: 'fetched-pattern', description: 'fetched-desc', versions: ['1.0.0'] }
-            ]);
-            vi.mocked(mockClient.pushPatternVersion).mockResolvedValue({
-                id: 10, version: '2.0.0', location: '/calm/namespaces/finos/patterns/10/versions/2.0.0'
-            });
-
-            const { runPushPattern } = await import('./hub-commands');
-            await runPushPattern({
-                calmHubOptions: { calmHubUrl: 'http://hub' },
-                namespace: 'finos',
-                file: 'pattern.json',
-                id: '10',
-                version: '2.0.0'
-            });
-
-            expect(mockClient.listPatterns).toHaveBeenCalledWith('finos');
-            expect(mockClient.pushPatternVersion).toHaveBeenCalledWith('finos', 10, '2.0.0', 'fetched-pattern', 'fetched-desc', expect.any(String));
-        });
-
-        it('exits with error when --name is missing for new pattern', async () => {
+        it('exits with error when --name is missing for a new pattern mapping', async () => {
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-pattern') as unknown as Uint8Array);
             const { runPushPattern } = await import('./hub-commands');
             await expect(runPushPattern({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
@@ -708,7 +564,8 @@ describe('hub-commands', () => {
             );
         });
 
-        it('exits with error when --description is missing for new pattern', async () => {
+        it('exits with error when --description is missing for a new pattern mapping', async () => {
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-pattern') as unknown as Uint8Array);
             const { runPushPattern } = await import('./hub-commands');
             await expect(runPushPattern({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
@@ -718,21 +575,6 @@ describe('hub-commands', () => {
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0, '--description is required when creating a new pattern', 'push pattern', 'json'
-            );
-        });
-
-        it('exits with error when --ver is missing with --id', async () => {
-            const { runPushPattern } = await import('./hub-commands');
-            await expect(runPushPattern({
-                calmHubOptions: { calmHubUrl: 'http://hub' },
-                namespace: 'finos',
-                name: 'my-pattern',
-                description: 'desc',
-                file: 'pattern.json',
-                id: '10'
-            })).rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(
-                0, '--ver is required when --id is provided', 'push pattern', 'json'
             );
         });
 
@@ -764,8 +606,9 @@ describe('hub-commands', () => {
 
         it('exits on HubClientError', async () => {
             const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.pushPattern).mockRejectedValue(
-                new shared.HubClientError(409, 'Pattern already exists', 'POST /calm/namespaces/finos/patterns')
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-pattern') as unknown as Uint8Array);
+            vi.mocked(mockClient.createNewMappedResource).mockRejectedValue(
+                new shared.HubClientError(409, 'Pattern already exists', 'POST /calm/namespaces/finos/mappings/my-pattern')
             );
 
             const { runPushPattern } = await import('./hub-commands');
@@ -871,11 +714,12 @@ describe('hub-commands', () => {
     // ── runPushStandard ────────────────────────────────────────────────────
 
     describe('runPushStandard', () => {
-        it('calls pushStandard and prints JSON result', async () => {
+        it('creates a new mapped standard when the mapping has no versions yet', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pushStandard).mockResolvedValue({
-                id: 20, version: '1.0.0', location: '/calm/namespaces/finos/standards/20/versions/1.0.0'
-            });
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-standard') as unknown as Uint8Array);
+            vi.mocked(mockClient.createNewMappedResource).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/mappings/my-standard/versions/1.0.0'
+            );
 
             const { runPushStandard } = await import('./hub-commands');
             await runPushStandard({
@@ -883,11 +727,35 @@ describe('hub-commands', () => {
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
-                file: 'standard.txt'
+                file: 'standard.json'
             });
 
-            expect(mockClient.pushStandard).toHaveBeenCalledWith('finos', 'my-standard', 'desc', expect.any(String));
-            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ id: 20, version: '1.0.0' }));
+            expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-standard');
+            expect(mockClient.createNewMappedResource).toHaveBeenCalledWith(
+                'finos', 'my-standard', 'STANDARD', 'my-standard', 'desc', expect.any(String)
+            );
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'my-standard', namespace: 'finos', version: '1.0.0' })
+            );
+        });
+
+        it('updates the existing mapped standard when versions already exist', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-standard') as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+            vi.mocked(mockClient.updateMappedResource).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/mappings/my-standard/versions/2.0.0'
+            );
+
+            const { runPushStandard } = await import('./hub-commands');
+            await runPushStandard({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                file: 'standard.json'
+            });
+
+            expect(mockClient.updateMappedResource).toHaveBeenCalledWith('finos', 'my-standard', 'MINOR', expect.any(String));
+            expect(mockClient.createNewMappedResource).not.toHaveBeenCalled();
         });
 
         it('exits when the standard file is not valid JSON', async () => {
@@ -900,94 +768,39 @@ describe('hub-commands', () => {
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
-                file: 'standard.txt'
+                file: 'standard.json'
             })).rejects.toThrow('process.exit');
 
             expect(hubOutput.printError).toHaveBeenCalledWith(
-                0, 'File is not valid JSON: standard.txt', 'push standard standard.txt', 'json'
+                0, 'File is not valid JSON: standard.json', 'push standard standard.json', 'json'
             );
-            expect(mockClient.pushStandard).not.toHaveBeenCalled();
+            expect(mockClient.createNewMappedResource).not.toHaveBeenCalled();
         });
 
-        it('calls pushStandardVersion when --id is provided', async () => {
-            const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.pushStandardVersion).mockResolvedValue({
-                id: 20, version: '2.0.0', location: '/calm/namespaces/finos/standards/20/versions/2.0.0'
-            });
-
-            const { runPushStandard } = await import('./hub-commands');
-            await runPushStandard({
-                calmHubOptions: { calmHubUrl: 'http://hub' },
-                namespace: 'finos',
-                name: 'my-standard',
-                description: 'desc',
-                file: 'standard.txt',
-                id: '20',
-                version: '2.0.0'
-            });
-
-            expect(mockClient.pushStandardVersion).toHaveBeenCalledWith('finos', 20, '2.0.0', 'my-standard', 'desc', expect.any(String));
-        });
-
-        it('auto-fetches name and description from Hub when --id provided and they are omitted', async () => {
-            const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.listStandards).mockResolvedValue([
-                { id: 20, name: 'fetched-standard', description: 'fetched-desc', versions: ['1.0.0'] }
-            ]);
-            vi.mocked(mockClient.pushStandardVersion).mockResolvedValue({
-                id: 20, version: '2.0.0', location: '/calm/namespaces/finos/standards/20/versions/2.0.0'
-            });
-
-            const { runPushStandard } = await import('./hub-commands');
-            await runPushStandard({
-                calmHubOptions: { calmHubUrl: 'http://hub' },
-                namespace: 'finos',
-                file: 'standard.txt',
-                id: '20',
-                version: '2.0.0'
-            });
-
-            expect(mockClient.listStandards).toHaveBeenCalledWith('finos');
-            expect(mockClient.pushStandardVersion).toHaveBeenCalledWith('finos', 20, '2.0.0', 'fetched-standard', 'fetched-desc', expect.any(String));
-        });
-
-        it('exits with error when --name is missing for new standard', async () => {
+        it('exits with error when --name is missing for a new standard mapping', async () => {
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-standard') as unknown as Uint8Array);
             const { runPushStandard } = await import('./hub-commands');
             await expect(runPushStandard({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
-                file: 'standard.txt'
+                file: 'standard.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0, '--name is required when creating a new standard', 'push standard', 'json'
             );
         });
 
-        it('exits with error when --description is missing for new standard', async () => {
+        it('exits with error when --description is missing for a new standard mapping', async () => {
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-standard') as unknown as Uint8Array);
             const { runPushStandard } = await import('./hub-commands');
             await expect(runPushStandard({
                 calmHubOptions: { calmHubUrl: 'http://hub' },
                 namespace: 'finos',
                 name: 'my-standard',
-                file: 'standard.txt'
+                file: 'standard.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0, '--description is required when creating a new standard', 'push standard', 'json'
-            );
-        });
-
-        it('exits with error when --ver is missing with --id', async () => {
-            const { runPushStandard } = await import('./hub-commands');
-            await expect(runPushStandard({
-                calmHubOptions: { calmHubUrl: 'http://hub' },
-                namespace: 'finos',
-                name: 'my-standard',
-                description: 'desc',
-                file: 'standard.txt',
-                id: '20'
-            })).rejects.toThrow('process.exit');
-            expect(hubOutput.printError).toHaveBeenCalledWith(
-                0, '--ver is required when --id is provided', 'push standard', 'json'
             );
         });
 
@@ -999,15 +812,16 @@ describe('hub-commands', () => {
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
-                file: 'missing.txt'
+                file: 'missing.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
         });
 
         it('exits on HubClientError', async () => {
             const { mockClient, shared } = await getSharedMocks();
-            vi.mocked(mockClient.pushStandard).mockRejectedValue(
-                new shared.HubClientError(409, 'Standard already exists', 'POST /calm/namespaces/finos/standards')
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-standard') as unknown as Uint8Array);
+            vi.mocked(mockClient.createNewMappedResource).mockRejectedValue(
+                new shared.HubClientError(409, 'Standard already exists', 'POST /calm/namespaces/finos/mappings/my-standard')
             );
 
             const { runPushStandard } = await import('./hub-commands');
@@ -1016,7 +830,7 @@ describe('hub-commands', () => {
                 namespace: 'finos',
                 name: 'my-standard',
                 description: 'desc',
-                file: 'standard.txt'
+                file: 'standard.json'
             })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(409, 'Standard already exists', expect.any(String), 'json');
         });

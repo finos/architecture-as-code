@@ -2,6 +2,9 @@ import { readFile, writeFile } from 'fs/promises';
 import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary, HubDomainSummary, HubControlRequirementSummary, HubDomainCreateResult } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
+// TODO fix imports to not use dist
+import { ResourceChangeType, ResourceType } from '@finos/calm-shared/dist/hub/calm-hub-client';
+import { DocumentMetadata, extractDocumentMetadata, parseDocumentId, updateDocumentId } from './utils/document-id-utils';
 
 // ── Hub URL resolution ────────────────────────────────────────────────────────
 
@@ -50,20 +53,21 @@ export async function resolveCalmHubOptions(inputOptions: CalmHubOptions): Promi
 
 // ── push architecture ─────────────────────────────────────────────────────────
 
-export interface PushArchitectureOptions {
+export interface PushOptions {
     calmHubOptions: CalmHubOptions;
     namespace: string;
     name?: string;
     description?: string;
     file: string;
-    id?: string;
     version?: string;
     format?: string;
+    changeType?: ResourceChangeType;
 }
 
-export interface PushArchitectureResult {
-    id: number;
-    version?: string;
+export interface PushResult {
+    version: string;
+    mapping: string;
+    namespace: string;
     location: string;
 }
 
@@ -72,13 +76,13 @@ export interface PushArchitectureResult {
  * @param result Push result payload.
  * @param format Output format selector.
  */
-export function printPushResult(result: PushArchitectureResult, format: OutputFormat): void {
+export function printPushResult(result: PushResult, format: OutputFormat): void {
     if (format === 'pretty') {
         printTableSuccess(
-            [{ STATUS: 'Created', ID: result.id, VERSION: result.version ?? '', LOCATION: result.location }],
+            [{ STATUS: 'Created', MAPPING: result.mapping, VERSION: result.version, LOCATION: result.location }],
             [
                 { key: 'STATUS', header: 'STATUS' },
-                { key: 'ID', header: 'ID' },
+                { key: 'MAPPING', header: 'MAPPING' },
                 { key: 'VERSION', header: 'VERSION' },
                 { key: 'LOCATION', header: 'LOCATION' }
             ]
@@ -86,89 +90,6 @@ export function printPushResult(result: PushArchitectureResult, format: OutputFo
     } else {
         printJsonSuccess(result);
     }
-}
-
-/**
- * Resolves missing architecture name/description from an existing architecture id.
- * @param client CALM Hub API client.
- * @param namespace Target namespace.
- * @param parsedId Architecture id.
- * @param name Optional name supplied by the user.
- * @param description Optional description supplied by the user.
- * @param format Output format used for error handling.
- * @returns Resolved name and description.
- */
-export async function resolveVersionedMetadata(
-    client: CalmHubClient,
-    namespace: string,
-    parsedId: number,
-    name: string | undefined,
-    description: string | undefined,
-    format: OutputFormat
-): Promise<{ name: string; description: string }> {
-    if (name && description !== undefined) {
-        return { name, description };
-    }
-
-    let architectures: HubArchitectureSummary[] = [];
-    try {
-        architectures = await client.listArchitectures(namespace);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const existing = architectures.find(a => a.id === parsedId);
-    if (!existing) {
-        printError(0, `Architecture with id ${parsedId} not found in namespace ${namespace}`, 'push architecture', format);
-        process.exit(1);
-    }
-    return {
-        name: name ?? existing.name,
-        description: description ?? existing.description ?? ''
-    };
-}
-
-/**
- * Pushes a new architecture version for an existing architecture id.
- * @param client CALM Hub API client.
- * @param options Command options.
- * @param fileContent Architecture JSON payload.
- * @param format Output format used for error handling.
- * @returns Push result with id, version, and location.
- */
-export async function pushVersioned(
-    client: CalmHubClient,
-    options: PushArchitectureOptions,
-    fileContent: string,
-    format: OutputFormat
-): Promise<PushArchitectureResult> {
-    if (!options.version) {
-        printError(0, '--version is required when --id is provided', 'push architecture', format);
-        process.exit(1);
-    }
-
-    const parsedId = parseInt(options.id!, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'push architecture', format);
-        process.exit(1);
-    }
-
-    const { name, description } = await resolveVersionedMetadata(
-        client,
-        options.namespace,
-        parsedId,
-        options.name,
-        options.description,
-        format
-    );
-
-    return client.pushArchitectureVersion(
-        options.namespace,
-        parsedId,
-        options.version,
-        name,
-        description,
-        fileContent
-    );
 }
 
 /**
@@ -186,50 +107,177 @@ async function handleOptionsLoadError(opts: CalmHubOptions, format: OutputFormat
 }
 
 /**
- * Pushes a new architecture or a versioned update to CALM Hub.
- * @param options Command options.
+ * Handles errors from hub operations and exits with formatted error output.
+ * @param filePath The path to the file to load.
+ * @param requestedCommand The command that requested this operation, used for error context.
+ * @param format The format for the error message.
+ * @returns The raw file as a UTF-8 string.
  */
-export async function runPushArchitecture(options: PushArchitectureOptions): Promise<void> {
+export async function loadFileContent(filePath: string, requestedCommand: string, format: OutputFormat): Promise<string> {
+    try {
+        return await readFile(filePath, 'utf-8');
+    } catch {
+        printError(0, `Could not read file: ${filePath}`, requestedCommand, format);
+        process.exit(1);
+    }
+}
+
+/**
+ * Validates and minifies JSON content.
+ * @param fileContent The raw file content.
+ * @param filePath The path to the file.
+ * @param requestedCommand The command that requested this operation.
+ * @param format The output format.
+ * @returns The validated and minified JSON string.
+ */
+export function validateAndMinifyJSON(fileContent: any, filePath: string, requestedCommand: string, format: OutputFormat): string {
+    try {
+        const parsed = JSON.parse(fileContent);
+        fileContent = JSON.stringify(parsed); // re-stringify to ensure consistent formatting for storage and comparison, and to catch any JSON issues before sending to the hub.
+    } catch {
+        printError(0, `File is not valid JSON: ${filePath}`, requestedCommand, format);
+        process.exit(1);
+    }
+    return fileContent;
+}
+
+/**
+ * Extracts document metadata, and exits with formatted error output on failure.
+ * @param fileContent The raw file content.
+ * @param requestedCommand The command that requested this operation.
+ * @param format The output format.
+ * @returns The extracted document metadata.
+ */
+export function handleMetadataParsing(fileContent: string, requestedCommand: string, format: OutputFormat) {
+    let metadata: DocumentMetadata;
+    try {
+        metadata = extractDocumentMetadata(fileContent);
+    } catch (error) {
+        printError(0, `Failed to extract document metadata: ${error instanceof Error ? error.message : String(error)}`, requestedCommand, format);
+        process.exit(1);
+    }
+    return metadata;
+}
+
+/**
+ * Handles the actual push stage of the operation i.e. the integration with CalmHub.
+ * Checks whether it already exists to determine whether to create a new mapping or update an existing one.
+ * @param client The CalmHub client.
+ * @param namespace The namespace for the document.
+ * @param mapping The mapping for the document.
+ * @param metadata The metadata for the document.
+ * @param fileContent The content of the document.
+ * @param resourceType The type of the resource.
+ * @param changeType The type of change.
+ * @param options The push options.
+ * @param format The output format.
+ * @returns A promise resolving to the metadata of the pushed document.
+ */
+export async function pushDocument(
+        client: CalmHubClient, 
+        namespace: string, 
+        mapping: string, 
+        metadata: DocumentMetadata, 
+        fileContent: string, 
+        resourceType: ResourceType,
+        changeType: ResourceChangeType,
+        options: PushOptions, 
+        format: OutputFormat): Promise<DocumentMetadata> {
+    const resourceTypeString: string = resourceType.toLowerCase();
+    let newDocumentMetadata;
+    const mappingExists = await client.getMappedResourceVersions(namespace, mapping)
+        .then(versions => versions.length > 0);
+
+    if (mappingExists) {
+        const version = metadata.version;
+        // TODO calculate the new version after update and update in the document, before pushing
+        // CalmHub should do this for us eventually but right now it doesn't.
+        const newId = await client.updateMappedResource(namespace, mapping, changeType, fileContent);
+        newDocumentMetadata = parseDocumentId(newId);
+
+    } else {
+        // new mapping
+        if (!options.name) {
+            printError(0, `--name is required when creating a new ${resourceTypeString}`, `push ${resourceTypeString}`, format);
+            process.exit(1);
+        }
+
+        if (!options.description) {
+            printError(0, `--description is required when creating a new ${resourceTypeString}`, `push ${resourceTypeString}`, format);
+            process.exit(1);
+        }
+        const newId = await client.createNewMappedResource(
+            namespace,
+            mapping,
+            resourceType,
+            options.name,
+            // TODO update description in the document as well if it's a pattern
+            options.description,
+            fileContent);
+        newDocumentMetadata = parseDocumentId(newId);
+    }
+    return newDocumentMetadata;
+}
+
+/**
+ * Handle all the steps for pushing a document, which is the same for all document types:
+ * - Setup client
+ * - Load and validate the document
+ * - Extract all necessary information
+ * - Push to CalmHub
+ * - Update the document on-disk with the new version and ID returned from CalmHub
+ */
+export async function orchestratePush(options: PushOptions, resourceType: ResourceType): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
-
-    if (!options.id && !options.name) {
-        printError(0, '--name is required when creating a new architecture', 'push architecture', format);
-        process.exit(1);
-    }
-
-    if (!options.id && !options.description) {
-        printError(0, '--description is required when creating a new architecture', 'push architecture', format);
-        process.exit(1);
-    }
-
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);
 
-    let fileContent: string;
-    try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `push architecture ${options.file}`, format);
-        process.exit(1);
-    }
+    const requestedCommand = `push ${resourceType.toLowerCase()} ${options.file}`;
+    let fileContent = await loadFileContent(options.file, requestedCommand, format);
 
     // Validate the file is parseable JSON before sending
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `push architecture ${options.file}`, format);
+    fileContent = validateAndMinifyJSON(fileContent, options.file, requestedCommand, format);
+
+    let metadata: DocumentMetadata = handleMetadataParsing(fileContent, requestedCommand, format);
+
+    if (!metadata.namespace || !metadata.mapping) {
+        printError(0, `Document metadata must include namespace and mapping: ${options.file}`, requestedCommand, format);
         process.exit(1);
     }
+    const namespace = metadata.namespace;
+    const mapping = metadata.mapping;
 
+    // TODO parse change type
+    // TODO do change bump in CLI: in future calmhub *will no longer handle this.*
+    // to wait for Jim's version of CalmHub.
+    let documentMetadata: DocumentMetadata;
     try {
-        const result = options.id
-            ? await pushVersioned(client, options, fileContent, format)
-            : await client.pushArchitecture(options.namespace, options.name!, options.description!, fileContent);
+        documentMetadata = await pushDocument(client, namespace, mapping, metadata, fileContent, resourceType, 'MINOR', options, format);
+        // TODO logging
+        console.log("Document version is now ", documentMetadata.version);
+        const newDocument = updateDocumentId(fileContent, documentMetadata);
+        console.log("Updating document on file system with new version and id...");
+        await writeFile(options.file, newDocument, 'utf-8');
+        const result: PushResult = {
+            mapping,
+            version: documentMetadata.version!,
+            namespace,
+            location: documentMetadata.baseUrl
+        }
         printPushResult(result, format);
     } catch (err) {
         handleHubError(err, format);
     }
 }
+
+/**
+ * Pushes a new architecture or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
+export async function runPushArchitecture(options: PushOptions): Promise<void> {
+    return await orchestratePush(options, 'ARCHITECTURE');
+}
+
 
 // ── pull architecture ─────────────────────────────────────────────────────────
 
@@ -239,6 +287,7 @@ export interface PullArchitectureOptions {
     id: string;
     version: string;
     output?: string;
+    mapping?: string;
 }
 
 /**
@@ -384,143 +433,12 @@ export async function runListNamespaces(options: ListNamespacesOptions): Promise
 
 // ── push pattern ──────────────────────────────────────────────────────────────
 
-export interface PushPatternOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    name?: string;
-    description?: string;
-    file: string;
-    id?: string;
-    version?: string;
-    format?: string;
-}
-
-/**
- * Resolves missing pattern name/description from an existing pattern id.
- * @param client CALM Hub API client.
- * @param namespace Target namespace.
- * @param parsedId Pattern id.
- * @param name Optional name supplied by the user.
- * @param description Optional description supplied by the user.
- * @param format Output format used for error handling.
- * @returns Resolved name and description.
- */
-export async function resolvePatternMetadata(
-    client: CalmHubClient,
-    namespace: string,
-    parsedId: number,
-    name: string | undefined,
-    description: string | undefined,
-    format: OutputFormat
-): Promise<{ name: string; description: string }> {
-    if (name && description !== undefined) {
-        return { name, description };
-    }
-
-    let patterns: HubPatternSummary[] = [];
-    try {
-        patterns = await client.listPatterns(namespace);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const existing = patterns.find(p => p.id === parsedId);
-    if (!existing) {
-        printError(0, `Pattern with id ${parsedId} not found in namespace ${namespace}`, 'push pattern', format);
-        process.exit(1);
-    }
-    return {
-        name: name ?? existing.name,
-        description: description ?? existing.description ?? ''
-    };
-}
-
-/**
- * Pushes a new pattern version for an existing pattern id.
- * @param client CALM Hub API client.
- * @param options Command options.
- * @param fileContent Pattern JSON payload.
- * @param format Output format used for error handling.
- * @returns Push result with id, version, and location.
- */
-export async function pushPatternVersioned(
-    client: CalmHubClient,
-    options: PushPatternOptions,
-    fileContent: string,
-    format: OutputFormat
-): Promise<PushArchitectureResult> {
-    if (!options.version) {
-        printError(0, '--ver is required when --id is provided', 'push pattern', format);
-        process.exit(1);
-    }
-
-    const parsedId = parseInt(options.id!, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'push pattern', format);
-        process.exit(1);
-    }
-
-    const { name, description } = await resolvePatternMetadata(
-        client,
-        options.namespace,
-        parsedId,
-        options.name,
-        options.description,
-        format
-    );
-
-    return client.pushPatternVersion(
-        options.namespace,
-        parsedId,
-        options.version,
-        name,
-        description,
-        fileContent
-    );
-}
-
 /**
  * Pushes a new pattern or a versioned update to CALM Hub.
  * @param options Command options.
  */
-export async function runPushPattern(options: PushPatternOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-
-    if (!options.id && !options.name) {
-        printError(0, '--name is required when creating a new pattern', 'push pattern', format);
-        process.exit(1);
-    }
-
-    if (!options.id && !options.description) {
-        printError(0, '--description is required when creating a new pattern', 'push pattern', format);
-        process.exit(1);
-    }
-
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    let fileContent: string;
-    try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `push pattern ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `push pattern ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        const result = options.id
-            ? await pushPatternVersioned(client, options, fileContent, format)
-            : await client.pushPattern(options.namespace, options.name!, options.description!, fileContent);
-        printPushResult(result, format);
-    } catch (err) {
-        handleHubError(err, format);
-    }
+export async function runPushPattern(options: PushOptions): Promise<void> {
+    return orchestratePush(options, 'PATTERN');
 }
 
 // ── pull pattern ──────────────────────────────────────────────────────────────
@@ -531,6 +449,7 @@ export interface PullPatternOptions {
     id: string;
     version: string;
     output?: string;
+    mapping?: string;
 }
 
 /**
@@ -600,143 +519,12 @@ export async function runListPatterns(options: ListPatternsOptions): Promise<voi
 
 // ── push standard ─────────────────────────────────────────────────────────────
 
-export interface PushStandardOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    name?: string;
-    description?: string;
-    file: string;
-    id?: string;
-    version?: string;
-    format?: string;
-}
-
-/**
- * Resolves missing standard name/description from an existing standard id.
- * @param client CALM Hub API client.
- * @param namespace Target namespace.
- * @param parsedId Standard id.
- * @param name Optional name supplied by the user.
- * @param description Optional description supplied by the user.
- * @param format Output format used for error handling.
- * @returns Resolved name and description.
- */
-export async function resolveStandardMetadata(
-    client: CalmHubClient,
-    namespace: string,
-    parsedId: number,
-    name: string | undefined,
-    description: string | undefined,
-    format: OutputFormat
-): Promise<{ name: string; description: string }> {
-    if (name && description !== undefined) {
-        return { name, description };
-    }
-
-    let standards: HubStandardSummary[] = [];
-    try {
-        standards = await client.listStandards(namespace);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const existing = standards.find(s => s.id === parsedId);
-    if (!existing) {
-        printError(0, `Standard with id ${parsedId} not found in namespace ${namespace}`, 'push standard', format);
-        process.exit(1);
-    }
-    return {
-        name: name ?? existing.name,
-        description: description ?? existing.description ?? ''
-    };
-}
-
-/**
- * Pushes a new standard version for an existing standard id.
- * @param client CALM Hub API client.
- * @param options Command options.
- * @param fileContent Standard JSON payload.
- * @param format Output format used for error handling.
- * @returns Push result with id, version, and location.
- */
-export async function pushStandardVersioned(
-    client: CalmHubClient,
-    options: PushStandardOptions,
-    fileContent: string,
-    format: OutputFormat
-): Promise<PushArchitectureResult> {
-    if (!options.version) {
-        printError(0, '--ver is required when --id is provided', 'push standard', format);
-        process.exit(1);
-    }
-
-    const parsedId = parseInt(options.id!, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'push standard', format);
-        process.exit(1);
-    }
-
-    const { name, description } = await resolveStandardMetadata(
-        client,
-        options.namespace,
-        parsedId,
-        options.name,
-        options.description,
-        format
-    );
-
-    return client.pushStandardVersion(
-        options.namespace,
-        parsedId,
-        options.version,
-        name,
-        description,
-        fileContent
-    );
-}
-
 /**
  * Pushes a new standard or a versioned update to CALM Hub.
  * @param options Command options.
  */
-export async function runPushStandard(options: PushStandardOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-
-    if (!options.id && !options.name) {
-        printError(0, '--name is required when creating a new standard', 'push standard', format);
-        process.exit(1);
-    }
-
-    if (!options.id && !options.description) {
-        printError(0, '--description is required when creating a new standard', 'push standard', format);
-        process.exit(1);
-    }
-
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    let fileContent: string;
-    try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `push standard ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `push standard ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        const result = options.id
-            ? await pushStandardVersioned(client, options, fileContent, format)
-            : await client.pushStandard(options.namespace, options.name!, options.description!, fileContent);
-        printPushResult(result, format);
-    } catch (err) {
-        handleHubError(err, format);
-    }
+export async function runPushStandard(options: PushOptions): Promise<void> {
+    return orchestratePush(options, 'STANDARD');
 }
 
 // ── pull standard ─────────────────────────────────────────────────────────────
@@ -747,6 +535,7 @@ export interface PullStandardOptions {
     id: string;
     version: string;
     output?: string;
+    mapping?: string;
 }
 
 /**
