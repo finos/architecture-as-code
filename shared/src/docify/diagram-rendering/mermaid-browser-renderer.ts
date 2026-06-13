@@ -30,7 +30,7 @@ interface MermaidRenderWindow {
 }
 
 export interface MermaidBrowserRendererOptions {
-    /** Already-launched browser (from launchBrowser); caller owns its lifecycle. */
+    /** Already-launched browser (from launchBrowser). dispose() closes this browser, so don't reuse it afterwards. */
     browser: Browser;
     format: DiagramExportFormat;
     /** Per-diagram render timeout, in milliseconds. Defaults to 30000. */

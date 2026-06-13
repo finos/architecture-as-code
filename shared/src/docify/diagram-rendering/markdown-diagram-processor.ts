@@ -5,8 +5,10 @@ import type { Logger } from '../../logger.js';
 import type { DiagramExportFormat } from '../docifier.js';
 import type { MermaidBrowserRenderer } from './mermaid-browser-renderer.js';
 
-const MERMAID_BLOCK_REGEX = /```mermaid\n(.*?)\n```/gs;
-const MARKDOWN_FILE_REGEX = /\.(md|mdx)$/i;
+const MERMAID_BLOCK_REGEX = /```mermaid\r?\n(.*?)\r?\n```/gs;
+
+/** Matches .md/.mdx files, and is reused by Docifier to decide whether --output names a file vs a directory. */
+export const MARKDOWN_FILE_REGEX = /\.(md|mdx)$/i;
 
 export interface DiagramFailure {
     file: string;
@@ -67,7 +69,7 @@ async function processFile(
         try {
             const { data, extension } = await renderer.render(match[1]);
             const fileName = `${baseName}-${diagramIndex}.${extension}`;
-            mkdirp.sync(diagramsDir);
+            await mkdirp(diagramsDir);
             await writeFile(path.join(diagramsDir, fileName), data);
             result += `<p align="center">\n  <img src="_diagrams/${fileName}" alt="Diagram ${diagramIndex}" />\n</p>`;
             summary.diagramsRendered++;

@@ -77,6 +77,23 @@ describe('processDiagramsInDirectory', () => {
         });
     });
 
+    it('renders a mermaid diagram in a file with CRLF line endings', async () => {
+        const filePath = path.join(tempDir, 'diagram.md');
+        fs.writeFileSync(filePath, '# Title\r\n\r\n```mermaid\r\ngraph TD; A-->B\r\n```\r\n\r\nAfter.\r\n');
+
+        const renderer = createMockRenderer(vi.fn().mockResolvedValue({ data: '<svg>diagram</svg>', extension: 'svg' }));
+        const logger = createMockLogger();
+
+        const summary = await processDiagramsInDirectory(tempDir, renderer, logger);
+
+        const rewritten = fs.readFileSync(filePath, 'utf8');
+        expect(rewritten).toContain('<p align="center">\n  <img src="_diagrams/diagram-1.svg" alt="Diagram 1" />\n</p>');
+        expect(rewritten).not.toContain('```mermaid');
+        expect(renderer.render).toHaveBeenCalledWith('graph TD; A-->B');
+        expect(summary.diagramsFound).toBe(1);
+        expect(summary.diagramsRendered).toBe(1);
+    });
+
     it('writes PNG buffers as binary files', async () => {
         const filePath = path.join(tempDir, 'diagram.md');
         fs.writeFileSync(filePath, '```mermaid\ngraph TD; A-->B\n```\n');

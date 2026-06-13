@@ -1,11 +1,10 @@
-import * as path from 'path';
 import { TemplateProcessingMode, TemplateProcessor } from '../template/template-processor.js';
 import { readUrlMappingFile } from '../template/url-mapping.js';
 import { initLogger } from '../logger.js';
 import { launchBrowser, LaunchedBrowser } from './diagram-rendering/browser-launch.js';
 import { BrowserOverrideError } from './diagram-rendering/errors.js';
 import { MermaidBrowserRenderer } from './diagram-rendering/mermaid-browser-renderer.js';
-import { processDiagramsInDirectory, processDiagramsInFile, formatDiagramSummary } from './diagram-rendering/markdown-diagram-processor.js';
+import { processDiagramsInDirectory, processDiagramsInFile, formatDiagramSummary, MARKDOWN_FILE_REGEX } from './diagram-rendering/markdown-diagram-processor.js';
 
 export type DocifyMode = 'SAD' | 'WEBSITE' | 'USER_PROVIDED' | 'ANTS';
 
@@ -105,7 +104,7 @@ export class Docifier {
             await renderer.start();
             // --output may point at a single .md/.mdx file (e.g. --template/--output <file>.md)
             // rather than a directory - process just that file in that case.
-            const summary = path.extname(this.outputPath)
+            const summary = MARKDOWN_FILE_REGEX.test(this.outputPath)
                 ? await processDiagramsInFile(this.outputPath, renderer, logger)
                 : await processDiagramsInDirectory(this.outputPath, renderer, logger);
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);

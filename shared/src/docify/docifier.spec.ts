@@ -342,6 +342,32 @@ describe('Docifier', () => {
             expect(disposeMock).toHaveBeenCalled();
         });
 
+        it('processes a directory when --output has a dot in its name but is not a .md/.mdx file', async () => {
+            vi.mocked(browserLaunch.launchBrowser).mockResolvedValue({
+                browser: {} as unknown as Browser,
+                displayName: 'Google Chrome'
+            });
+
+            const startMock = vi.fn().mockResolvedValue(undefined);
+            const disposeMock = vi.fn().mockResolvedValue(undefined);
+            vi.mocked(MermaidBrowserRenderer).mockImplementation(function () { return {
+                start: startMock,
+                render: vi.fn(),
+                dispose: disposeMock,
+            } as unknown as MermaidBrowserRenderer; });
+
+            const summary = { filesScanned: 1, diagramsFound: 1, diagramsRendered: 1, diagramsFailed: 0, failures: [] };
+            vi.mocked(diagramProcessor.processDiagramsInDirectory).mockResolvedValue(summary);
+            vi.mocked(diagramProcessor.formatDiagramSummary).mockReturnValue('✅ Exported 1/1 diagrams to SVG via Google Chrome in 0.1s.');
+
+            const dirOutputPath = 'some/output/docs/v1.2';
+            const docifier = new Docifier('WEBSITE', inputPath, dirOutputPath, undefined, 'bundle', undefined, false, false, 'svg');
+            await docifier.docify();
+
+            expect(diagramProcessor.processDiagramsInDirectory).toHaveBeenCalledWith(dirOutputPath, expect.any(Object), mockLogger);
+            expect(diagramProcessor.processDiagramsInFile).not.toHaveBeenCalled();
+        });
+
         it('warns and disposes the renderer when the markdown processing pass throws', async () => {
             vi.mocked(browserLaunch.launchBrowser).mockResolvedValue({
                 browser: {} as unknown as Browser,
