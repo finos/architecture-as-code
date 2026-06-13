@@ -494,8 +494,8 @@ calm docify -a ./cli/test_fixtures/template/model/document-system.json -o ./outp
 
 By default, generated documentation contains Mermaid diagrams as ` ```mermaid ` code
 blocks. The `--export-diagrams <svg|png>` option renders these diagrams to image
-files using a local Chromium-based browser, replacing each code block with an image
-reference (e.g. `![Diagram 1](_diagrams/my-page-1.svg)`).
+files using a local Chromium-based browser, replacing each code block with a
+centered image reference (e.g. `<p align="center"><img src="_diagrams/my-page-1.svg" alt="Diagram 1" /></p>`).
 
 ```shell
 calm docify -a ./architecture.json -o ./output/documentation --export-diagrams svg

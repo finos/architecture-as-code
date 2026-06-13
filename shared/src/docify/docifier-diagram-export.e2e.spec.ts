@@ -49,7 +49,7 @@ maybeDescribe('Docifier E2E - --export-diagrams (local browser)', () => {
 
         const indexMd = readFileSync(join(OUTPUT_DIR, 'docs/index.md'), 'utf8');
         expect(indexMd).not.toContain('```mermaid');
-        expect(indexMd).toContain('![Diagram 1](_diagrams/index-1.svg)');
+        expect(indexMd).toContain('<p align="center">\n  <img src="_diagrams/index-1.svg" alt="Diagram 1" />\n</p>');
 
         const svg = readFileSync(join(OUTPUT_DIR, 'docs/_diagrams/index-1.svg'), 'utf8');
         expect(svg).toContain('<svg');
@@ -73,7 +73,7 @@ maybeDescribe('Docifier E2E - --export-diagrams (local browser)', () => {
 
         const indexMd = readFileSync(join(OUTPUT_DIR, 'docs/index.md'), 'utf8');
         expect(indexMd).not.toContain('```mermaid');
-        expect(indexMd).toContain('![Diagram 1](_diagrams/index-1.png)');
+        expect(indexMd).toContain('<p align="center">\n  <img src="_diagrams/index-1.png" alt="Diagram 1" />\n</p>');
 
         const png = readFileSync(join(OUTPUT_DIR, 'docs/_diagrams/index-1.png'));
         expect(png.subarray(0, PNG_MAGIC_BYTES.length)).toEqual(PNG_MAGIC_BYTES);

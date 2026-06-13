@@ -64,7 +64,7 @@ describe('processDiagramsInDirectory', () => {
         const summary = await processDiagramsInDirectory(tempDir, renderer, logger);
 
         const rewritten = fs.readFileSync(filePath, 'utf8');
-        expect(rewritten).toContain('![Diagram 1](_diagrams/diagram-1.svg)');
+        expect(rewritten).toContain('<p align="center">\n  <img src="_diagrams/diagram-1.svg" alt="Diagram 1" />\n</p>');
         expect(rewritten).not.toContain('```mermaid');
         expect(fs.readFileSync(path.join(tempDir, '_diagrams', 'diagram-1.svg'), 'utf8')).toBe('<svg>diagram</svg>');
         expect(renderer.render).toHaveBeenCalledWith('graph TD; A-->B');
@@ -88,7 +88,7 @@ describe('processDiagramsInDirectory', () => {
         await processDiagramsInDirectory(tempDir, renderer, logger);
 
         expect(fs.readFileSync(path.join(tempDir, '_diagrams', 'diagram-1.png'))).toEqual(pngBuffer);
-        expect(fs.readFileSync(filePath, 'utf8')).toContain('![Diagram 1](_diagrams/diagram-1.png)');
+        expect(fs.readFileSync(filePath, 'utf8')).toContain('<p align="center">\n  <img src="_diagrams/diagram-1.png" alt="Diagram 1" />\n</p>');
     });
 
     it('leaves a failed diagram as a mermaid code block, logs a warning, and continues with the rest', async () => {
@@ -107,7 +107,7 @@ describe('processDiagramsInDirectory', () => {
 
         const rewritten = fs.readFileSync(filePath, 'utf8');
         expect(rewritten).toContain('```mermaid\ngraph TD; A-->B\n```');
-        expect(rewritten).toContain('![Diagram 2](_diagrams/diagram-2.svg)');
+        expect(rewritten).toContain('<p align="center">\n  <img src="_diagrams/diagram-2.svg" alt="Diagram 2" />\n</p>');
         expect(logger.warn).toHaveBeenCalledWith(
             '⚠️ Failed to render mermaid diagram #1 in diagram.md: Parse error on line 1 — leaving as mermaid code block'
         );
@@ -132,7 +132,7 @@ describe('processDiagramsInDirectory', () => {
         const summary = await processDiagramsInDirectory(tempDir, renderer, logger);
 
         expect(fs.readFileSync(path.join(nestedDir, '_diagrams', 'page-1.svg'), 'utf8')).toBe('<svg>nested</svg>');
-        expect(fs.readFileSync(filePath, 'utf8')).toContain('![Diagram 1](_diagrams/page-1.svg)');
+        expect(fs.readFileSync(filePath, 'utf8')).toContain('<p align="center">\n  <img src="_diagrams/page-1.svg" alt="Diagram 1" />\n</p>');
         expect(summary.filesScanned).toBe(1);
     });
 
@@ -200,7 +200,7 @@ describe('processDiagramsInFile', () => {
         const summary = await processDiagramsInFile(filePath, renderer, logger);
 
         const rewritten = fs.readFileSync(filePath, 'utf8');
-        expect(rewritten).toContain('![Diagram 1](_diagrams/basic-structures_svg-1.svg)');
+        expect(rewritten).toContain('<p align="center">\n  <img src="_diagrams/basic-structures_svg-1.svg" alt="Diagram 1" />\n</p>');
         expect(fs.readFileSync(path.join(tempDir, '_diagrams', 'basic-structures_svg-1.svg'), 'utf8')).toBe('<svg>diagram</svg>');
         expect(fs.readFileSync(siblingPath, 'utf8')).toBe(siblingOriginal);
         expect(summary).toEqual({

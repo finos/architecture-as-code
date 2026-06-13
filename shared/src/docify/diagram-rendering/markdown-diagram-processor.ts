@@ -26,11 +26,12 @@ type FileDiagramSummary = Omit<DiagramProcessingSummary, 'filesScanned'>;
 
 /**
  * Renders every ```mermaid``` code block in a single markdown file via
- * renderer, and rewrites the file in place: rendered diagrams become
- * `![Diagram <n>](_diagrams/<basename>-<n>.<ext>)` references with the
- * image written to a sibling `_diagrams/` directory; failed diagrams are
- * left as mermaid code blocks. Files with no mermaid blocks are left
- * untouched. `fileLabel` is used in warnings/failure entries.
+ * renderer, and rewrites the file in place: rendered diagrams become a
+ * centered `<p align="center"><img src="_diagrams/<basename>-<n>.<ext>"
+ * alt="Diagram <n>" /></p>` reference, with the image written to a sibling
+ * `_diagrams/` directory; failed diagrams are left as mermaid code blocks.
+ * Files with no mermaid blocks are left untouched. `fileLabel` is used in
+ * warnings/failure entries.
  */
 async function processFile(
     mdFilePath: string,
@@ -68,7 +69,7 @@ async function processFile(
             const fileName = `${baseName}-${diagramIndex}.${extension}`;
             mkdirp.sync(diagramsDir);
             await writeFile(path.join(diagramsDir, fileName), data);
-            result += `![Diagram ${diagramIndex}](_diagrams/${fileName})`;
+            result += `<p align="center">\n  <img src="_diagrams/${fileName}" alt="Diagram ${diagramIndex}" />\n</p>`;
             summary.diagramsRendered++;
         } catch (err) {
             result += match[0];

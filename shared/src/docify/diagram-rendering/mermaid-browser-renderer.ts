@@ -44,7 +44,23 @@ export interface MermaidRenderResult {
     extension: 'svg' | 'png';
 }
 
-const BOOTSTRAP_HTML = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+// calm-widgets-generated diagrams set this exact font stack as their mermaid
+// themeVariables.fontFamily, to match the IDE's UI font - but mermaid's "base"
+// theme (with flowchart.htmlLabels: false) never actually applies
+// themeVariables.fontFamily to anything: it's recorded in a --mermaid-font-family
+// custom property scoped to a selector that can never match, so it's dead CSS.
+// Live in an IDE webview, text still ends up in this font because <text>/tspan
+// inherit font-family from the page body, which the IDE sets to the same stack.
+// Setting it on the page body here, before mermaid.render() runs, reproduces
+// that inheritance so mermaid measures/lays out node and label sizes using it;
+// applying the same value to the exported svg's own style keeps a
+// standalone-viewed export visually consistent with that layout - using a
+// different font post-hoc would shift text widths and clip labels.
+const DIAGRAM_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, \'Segoe WPC\', \'Segoe UI\', system-ui, \'Ubuntu\', sans-serif';
+
+const BOOTSTRAP_HTML = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>body{margin:0;font-family:${DIAGRAM_FONT_FAMILY};}</style>
+</head>
 <body>
 <div id="diagram-container"></div>
 <script type="module">
@@ -61,7 +77,46 @@ const BOOTSTRAP_HTML = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
     container.innerHTML = '';
     const { svg } = await mermaid.render('diagram-' + Math.random().toString(36).slice(2), code);
     container.innerHTML = svg;
-    return svg;
+
+    // 'click' directives wrap nodes in <a xlink:href="..." transform="..."> for
+    // in-page navigation when mermaid is rendered live - the transform that
+    // positions the node lives on this <a>, not on the inner <g class="node">.
+    // That link target is meaningless once the SVG is written to a standalone
+    // file, and mermaid's output doesn't declare the xlink namespace it uses -
+    // making the file invalid XML and unrenderable as an <img>. Replace each <a>
+    // with a <g> carrying over its non-link attributes (so positioning is kept),
+    // then re-serialize via XMLSerializer so the result is guaranteed well-formed
+    // XML regardless of what mermaid produced (e.g. unclosed <br> tags or HTML
+    // entities in multi-line labels).
+    const svgEl = container.querySelector('svg');
+    svgEl.querySelectorAll('a').forEach((a) => {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      for (const attr of Array.from(a.attributes)) {
+        if (attr.name === 'xlink:href' || attr.name === 'href' || attr.name === 'target') continue;
+        g.setAttribute(attr.name, attr.value);
+      }
+      while (a.firstChild) g.appendChild(a.firstChild);
+      a.replaceWith(g);
+    });
+    svgEl.removeAttribute('xmlns');
+
+    // Mermaid sizes its root <svg> with width="100%" and no height, relying on the
+    // page's layout to constrain it via the accompanying "max-width" style. As a
+    // standalone file referenced via <img>, that gives the SVG no definite
+    // intrinsic size, so it renders hugely oversized. Give it explicit width/height
+    // from its viewBox so it displays at its intended size when embedded.
+    const viewBox = svgEl.getAttribute('viewBox');
+    if (viewBox) {
+      const [, , width, height] = viewBox.split(/[\\s,]+/);
+      svgEl.setAttribute('width', width);
+      svgEl.setAttribute('height', height);
+    }
+
+    // Match the font used for layout (set on body, above) so a standalone
+    // export isn't measured in one font and displayed in another.
+    svgEl.style.fontFamily = ${JSON.stringify(DIAGRAM_FONT_FAMILY)};
+
+    return new XMLSerializer().serializeToString(svgEl);
   };
   window.__mermaidReady = true;
 </script>
