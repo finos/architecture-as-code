@@ -202,6 +202,7 @@
         "@finos/calm-models": "file:../../calm-models",
         "@finos/calm-shared": "file:../../shared",
         "@mermaid-js/layout-elk": "^0.2.0",
+        "@vscode-elements/elements": "^2.5.1",
         "elkjs": "^0.11.0",
         "html-to-image": "^1.11.13",
         "jsdom": "^26.1.0",

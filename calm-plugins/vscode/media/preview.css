@@ -327,6 +327,24 @@ body {
     cursor: not-allowed;
 }
 
+/* Visually separates the export control from the zoom/pan controls */
+.diagram-control-group-start {
+    margin-left: 4px;
+    padding-left: 10px;
+    border-left: 1px solid var(--vscode-editorWidget-border, #ddd);
+}
+
+/* Wraps the "Export" button and its SVG/PNG dropdown menu */
+.diagram-export-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.diagram-export-menu {
+    min-width: 160px;
+}
+
 /* Mermaid diagram container styling */
 .mermaid-diagram-container {
     position: relative;
