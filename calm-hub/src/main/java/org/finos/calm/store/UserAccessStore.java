@@ -31,6 +31,15 @@ public interface UserAccessStore {
     List<UserAccess> getUserAccessForUsername(String username) throws UserAccessNotFoundException;
 
     /**
+     * Retrieves all grants applicable to a user: their own grants plus any {@code *} (public) grants.
+     * Used by the permission checker so both are resolved in a single store round-trip.
+     *
+     * @param username the authenticated user's name.
+     * @return a list of UserAccess details (may be empty, never throws UserAccessNotFoundException).
+     */
+    List<UserAccess> getGrantsForUser(String username);
+
+    /**
      * Retrieves a list of all UserAccess details associated to a namespace.
      *
      * @param namespace the name of the namespace to fetch associated UserAccess records.

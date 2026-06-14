@@ -14,6 +14,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.bson.conversions.Bson;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
@@ -83,6 +84,42 @@ public class TestMongoUserAccessStoreShould {
         List<UserAccess> actual = mongoUserAccessStore.getUserAccessForUsername(username);
         assertThat(actual, hasSize(1));
         assertThat(actual.getFirst().getNamespace(), is(namespace));
+    }
+
+    @Test
+    void return_empty_list_from_get_grants_for_user_when_no_grants_exist() {
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(false);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(ArgumentMatchers.any(Bson.class))).thenReturn(findIterable);
+
+        List<UserAccess> result = mongoUserAccessStore.getGrantsForUser("alice");
+        assertThat(result, hasSize(0));
+    }
+
+    @Test
+    void return_user_and_wildcard_grants_from_get_grants_for_user() {
+        Document userDoc = new Document("username", "alice")
+                .append("namespace", "org")
+                .append("permission", Permission.write.name())
+                .append("userAccessId", 1);
+        Document wildcardDoc = new Document("username", "*")
+                .append("namespace", "org.ab")
+                .append("permission", Permission.read.name())
+                .append("userAccessId", 2);
+
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, true, false);
+        when(cursor.next()).thenReturn(userDoc, wildcardDoc);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(ArgumentMatchers.any(Bson.class))).thenReturn(findIterable);
+
+        List<UserAccess> result = mongoUserAccessStore.getGrantsForUser("alice");
+        assertThat(result, hasSize(2));
+        assertThat(result.get(0).getUsername(), is("alice"));
+        assertThat(result.get(1).getUsername(), is("*"));
     }
 
     @Test
