@@ -1,5 +1,6 @@
 package org.finos.calm.services;
 
+import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -40,6 +41,10 @@ public class NamespaceMigrationService {
     }
 
     void onStart(@Observes StartupEvent ev) {
+        if (LaunchMode.current() == LaunchMode.TEST) {
+            LOG.debug("Namespace migration skipped in test mode");
+            return;
+        }
         LOG.info("Running namespace migration: backfilling * read grants on existing namespaces");
         List<NamespaceInfo> namespaces = namespaceStore.getNamespaces();
         int backfilled = 0;
