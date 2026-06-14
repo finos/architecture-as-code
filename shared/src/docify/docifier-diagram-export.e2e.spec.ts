@@ -14,7 +14,8 @@ const OUTPUT_DIR = join(
     '../../test_fixtures/docify/diagram-export/actual-output'
 );
 
-const PNG_MAGIC_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+// The 8-byte signature every valid PNG file starts with.
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 let detectedBrowser: LaunchedBrowser | undefined;
 try {
@@ -76,6 +77,6 @@ maybeDescribe('Docifier E2E - --export-diagrams (local browser)', () => {
         expect(indexMd).toContain('<p align="center">\n  <img src="_diagrams/index-1.png" alt="Diagram 1" />\n</p>');
 
         const png = readFileSync(join(OUTPUT_DIR, 'docs/_diagrams/index-1.png'));
-        expect(png.subarray(0, PNG_MAGIC_BYTES.length)).toEqual(PNG_MAGIC_BYTES);
+        expect(png.subarray(0, PNG_SIGNATURE.length)).toEqual(PNG_SIGNATURE);
     }, 60_000);
 });

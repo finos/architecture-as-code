@@ -6,7 +6,7 @@ import * as diagramProcessor from './diagram-rendering/markdown-diagram-processo
 import { MermaidBrowserRenderer } from './diagram-rendering/mermaid-browser-renderer';
 import { BrowserLaunchError, BrowserOverrideError } from './diagram-rendering/errors';
 import type { Browser } from 'playwright-core';
-import type { Logger } from '../logger';
+import { createMockLogger } from '../test/test-utils';
 
 vi.mock('../template/template-processor');
 vi.mock('../template/url-mapping');
@@ -14,13 +14,7 @@ vi.mock('./diagram-rendering/browser-launch');
 vi.mock('./diagram-rendering/mermaid-browser-renderer');
 vi.mock('./diagram-rendering/markdown-diagram-processor');
 
-const mockLogger: Logger = {
-    log: vi.fn(),
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 vi.mock('../logger', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../logger')>();
