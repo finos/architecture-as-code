@@ -15,7 +15,7 @@ import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.store.NamespaceStore;
+import org.finos.calm.services.NamespaceService;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -23,11 +23,11 @@ import java.net.URISyntaxException;
 @Path("/calm/namespaces")
 public class NamespaceResource {
 
-    private final NamespaceStore namespaceStore;
+    private final NamespaceService namespaceService;
 
     @Inject
-    public NamespaceResource(NamespaceStore store) {
-        this.namespaceStore = store;
+    public NamespaceResource(NamespaceService namespaceService) {
+        this.namespaceService = namespaceService;
     }
 
     @GET
@@ -37,7 +37,7 @@ public class NamespaceResource {
     )
     @Authenticated
     public ValueWrapper<NamespaceInfo> namespaces() {
-        return new ValueWrapper<>(namespaceStore.getNamespaces());
+        return new ValueWrapper<>(namespaceService.getNamespaces());
     }
 
     @POST
@@ -60,7 +60,7 @@ public class NamespaceResource {
         }
 
         try {
-            namespaceStore.createNamespace(name, description);
+            namespaceService.createNamespace(name, description);
         } catch (NamespaceAlreadyExistsException e) {
             return Response.status(Response.Status.CONFLICT)
                     .entity("{\"error\":\"Namespace already exists\"}")
