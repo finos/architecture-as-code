@@ -12,6 +12,8 @@ import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 
 
@@ -114,8 +116,45 @@ public class CalmHubPermissionChecker {
     }
 
     private boolean hasNamespaceAccess(SecurityIdentity identity, String namespace, UserAction action) {
-        return hasAccess(identity, "namespace", namespace, action,
-                grant -> namespace != null && namespace.equals(grant.getNamespace()));
+        if (namespace == null) return false;
+        String username = identity.getPrincipal().getName();
+        logger.debug("Checking namespace access for user [{}] on namespace [{}] action=[{}]", username, namespace, action);
+
+        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+        List<String> ancestors = ancestorChain(namespace);
+
+        boolean result = action == UserAction.READ
+                ? allAncestorsHaveGrant(ancestors, grants, action)
+                : anyAncestorHasGrant(ancestors, grants, action);
+
+        if (result) {
+            logger.info("User [{}] AUTHORIZED for [{}] in namespace [{}]", username, action, namespace);
+        } else {
+            logger.warn("User [{}] DENIED for [{}] in namespace [{}]", username, action, namespace);
+        }
+        return result;
+    }
+
+    private boolean allAncestorsHaveGrant(List<String> ancestors, List<UserAccess> grants, UserAction action) {
+        return ancestors.stream().allMatch(level ->
+                grants.stream().anyMatch(g -> level.equals(g.getNamespace()) && permissionSufficient(g, action)));
+    }
+
+    private boolean anyAncestorHasGrant(List<String> ancestors, List<UserAccess> grants, UserAction action) {
+        return ancestors.stream().anyMatch(level ->
+                grants.stream().anyMatch(g -> level.equals(g.getNamespace()) && permissionSufficient(g, action)));
+    }
+
+    static List<String> ancestorChain(String namespace) {
+        String[] parts = namespace.split("\\.");
+        List<String> chain = new ArrayList<>(parts.length);
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (!sb.isEmpty()) sb.append('.');
+            sb.append(part);
+            chain.add(sb.toString());
+        }
+        return chain;
     }
 
     private boolean hasDomainAccess(SecurityIdentity identity, String domain, UserAction action) {
