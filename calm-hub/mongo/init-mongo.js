@@ -84,9 +84,9 @@ if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
 if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "userAccessStoreCounter",
-        sequence_value: 6
+        sequence_value: 11
     });
-    logSuccess("Initialized userAccessStoreCounter with sequence_value 6");
+    logSuccess("Initialized userAccessStoreCounter with sequence_value 11");
 } else {
     logSkip("userAccessStoreCounter already exists, no initialization needed");
 }
@@ -2532,9 +2532,33 @@ if (db.userAccess.countDocuments() === 0) {
             "username": "demo",
             "permission": "read",
             "namespace": "workshop"
+        },
+        {
+            "userAccessId": NumberInt(7),
+            "username": "*",
+            "permission": "read",
+            "namespace": "finos"
+        },
+        {
+            "userAccessId": NumberInt(8),
+            "username": "*",
+            "permission": "read",
+            "namespace": "workshop"
+        },
+        {
+            "userAccessId": NumberInt(9),
+            "username": "*",
+            "permission": "read",
+            "namespace": "traderx"
+        },
+        {
+            "userAccessId": NumberInt(10),
+            "username": "*",
+            "permission": "read",
+            "namespace": "ai-governance-v2"
         }
     ]);
-    logSuccess("Initialized user access for demo_admin and demo users");
+    logSuccess("Initialized user access for demo_admin, demo, and * (public read) users");
 } else {
     logSkip("User access already initialized, skipping...");
 }
