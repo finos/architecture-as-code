@@ -117,6 +117,45 @@ public class TestUserAccessResourceShould {
     }
 
     @Test
+    void return_400_when_double_wildcard_username() throws Exception {
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("finos");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setUsername("**");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(requestBody)
+                .when()
+                .post("/calm/namespaces/finos/user-access")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void return_201_when_wildcard_username_is_used() throws Exception {
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("finos");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setUsername("*");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
+
+        userAccess.setUserAccessId(102);
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
+                .thenReturn(userAccess);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(requestBody)
+                .when()
+                .post("/calm/namespaces/finos/user-access")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/user-access/102"));
+    }
+
+    @Test
     void return_400_when_creating_user_access_with_invalid_namespace() throws Exception {
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
                 .thenThrow(new NamespaceNotFoundException());
