@@ -1,7 +1,6 @@
 package org.finos.calm.security;
 
 import org.finos.calm.domain.UserAccess;
-import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -29,23 +29,135 @@ class TestUserAccessValidatorShould {
         validator = new UserAccessValidator(mockUserAccessStore);
     }
 
+    private UserAccess grant(String username, UserAccess.Permission permission, String namespace) {
+        return new UserAccess(username, permission, namespace);
+    }
+
+    // --- Empty / no-grant cases ---
+
     @Test
-    void return_namespaces_for_user_with_access_grants() throws UserAccessNotFoundException {
-        UserAccess ua1 = new UserAccess("alice", UserAccess.Permission.read, "finos");
-        UserAccess ua2 = new UserAccess("alice", UserAccess.Permission.write, "workshop");
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(ua1, ua2));
+    void return_empty_set_when_user_has_no_grants() {
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
 
-        Set<String> result = validator.getReadableNamespaces("alice");
+        assertTrue(validator.getReadableNamespaces("alice").isEmpty());
+    }
 
-        assertEquals(Set.of("finos", "workshop"), result);
+    // --- Flat single-level namespaces (backward-compatible) ---
+
+    @Test
+    void return_flat_namespace_when_user_has_direct_read_grant() {
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(
+                grant("alice", UserAccess.Permission.read, "finos")
+        ));
+
+        assertEquals(Set.of("finos"), validator.getReadableNamespaces("alice"));
     }
 
     @Test
-    void return_empty_set_when_user_has_no_access_grants() throws UserAccessNotFoundException {
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
+    void return_flat_namespace_when_user_has_write_grant() {
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(
+                grant("alice", UserAccess.Permission.write, "workshop")
+        ));
 
-        Set<String> result = validator.getReadableNamespaces("alice");
+        assertEquals(Set.of("workshop"), validator.getReadableNamespaces("alice"));
+    }
 
-        assertTrue(result.isEmpty());
+    @Test
+    void return_multiple_flat_namespaces() {
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(
+                grant("alice", UserAccess.Permission.read, "finos"),
+                grant("alice", UserAccess.Permission.write, "workshop")
+        ));
+
+        assertEquals(Set.of("finos", "workshop"), validator.getReadableNamespaces("alice"));
+    }
+
+    // --- Wildcard grants included ---
+
+    @Test
+    void return_namespace_covered_by_wildcard_grant() {
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(
+                grant("*", UserAccess.Permission.read, "org")
+        ));
+
+        assertEquals(Set.of("org"), validator.getReadableNamespaces("alice"));
+    }
+
+    // --- Hierarchical AND rule ---
+
+    @Test
+    void return_child_namespace_when_all_ancestor_levels_are_covered() {
+        when(mockUserAccessStore.getGrantsForUser("bob")).thenReturn(List.of(
+                grant("*", UserAccess.Permission.read, "org"),
+                grant("*", UserAccess.Permission.read, "org.ab"),
+                grant("bob", UserAccess.Permission.read, "org.ab.cd")
+        ));
+
+        assertEquals(Set.of("org", "org.ab", "org.ab.cd"),
+                validator.getReadableNamespaces("bob"));
+    }
+
+    @Test
+    void exclude_child_namespace_when_intermediate_level_has_no_grant() {
+        // org.ab has no grant — org.ab.cd cannot pass the AND check
+        when(mockUserAccessStore.getGrantsForUser("bob")).thenReturn(List.of(
+                grant("*", UserAccess.Permission.read, "org"),
+                grant("bob", UserAccess.Permission.read, "org.ab.cd")
+        ));
+
+        // Only "org" is fully readable; "org.ab.cd" fails AND at "org.ab"
+        assertEquals(Set.of("org"), validator.getReadableNamespaces("bob"));
+    }
+
+    @Test
+    void exclude_child_when_parent_grant_exists_but_not_intermediate() {
+        when(mockUserAccessStore.getGrantsForUser("carol")).thenReturn(List.of(
+                grant("*", UserAccess.Permission.read, "org"),
+                grant("carol", UserAccess.Permission.admin, "org.ab.cd")
+        ));
+
+        // "org.ab.cd" fails AND at "org.ab" (no grant there)
+        assertEquals(Set.of("org"), validator.getReadableNamespaces("carol"));
+    }
+
+    @Test
+    void exclude_domain_grants_from_namespace_results() {
+        UserAccess domainGrant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.read).setDomain("payments").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(
+                grant("alice", UserAccess.Permission.read, "org"),
+                domainGrant
+        ));
+
+        // Domain grant should not appear — it has a null namespace
+        assertEquals(Set.of("org"), validator.getReadableNamespaces("alice"));
+    }
+
+    // --- mark/carol/bob worked example ---
+
+    @Test
+    void design_example_returns_correct_readable_set_for_bob() {
+        // * read org, * read org.ab, bob read org.ab.cd
+        when(mockUserAccessStore.getGrantsForUser("bob")).thenReturn(List.of(
+                grant("*", UserAccess.Permission.read, "org"),
+                grant("*", UserAccess.Permission.read, "org.ab"),
+                grant("bob", UserAccess.Permission.read, "org.ab.cd")
+        ));
+
+        assertEquals(Set.of("org", "org.ab", "org.ab.cd"),
+                validator.getReadableNamespaces("bob"));
+    }
+
+    @Test
+    void design_example_mark_can_only_read_up_to_org_ab_not_org_ab_cd() {
+        // * read org, * read org.ab, mark write org.ab — no grant at org.ab.cd
+        when(mockUserAccessStore.getGrantsForUser("mark")).thenReturn(List.of(
+                grant("*", UserAccess.Permission.read, "org"),
+                grant("*", UserAccess.Permission.read, "org.ab"),
+                grant("mark", UserAccess.Permission.write, "org.ab")
+        ));
+
+        // org.ab.cd has no grant in the combined list → excluded
+        assertEquals(Set.of("org", "org.ab"), validator.getReadableNamespaces("mark"));
     }
 }
