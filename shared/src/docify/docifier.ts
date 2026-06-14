@@ -76,7 +76,7 @@ export class Docifier {
     }
 
     private async renderDiagrams(): Promise<void> {
-        const logger = initLogger(false, 'docify-diagram-export');
+        const logger = initLogger(process.env.DEBUG === 'true', 'docify-diagram-export');
         const format = this.exportDiagrams!;
         const startTime = Date.now();
 
