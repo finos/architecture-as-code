@@ -14,6 +14,8 @@ docker-compose up
 A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)  
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 
+> **Note:** The `deploy/docker-compose.yml` starts CalmHub with the `no-auth` profile for local convenience. The default profile is **secure** (see [Auth Profiles](#auth-profiles) below) and rejects all requests with 401 unless you explicitly select an auth profile.
+
 ## Working with the project
 
 There are three main locations for the Java code base:
@@ -133,12 +135,36 @@ public class AdrStoreProducer {
 From the `calm-hub` directory
 
 1. `../mvnw package`
-2. `../mvnw quarkus:dev`
+2. `../mvnw quarkus:dev -Dquarkus.profile=no-auth`
+
+> **Note:** The default profile is secure and rejects all requests with 401. Pass `-Dquarkus.profile=no-auth` for local development without an IdP, or `-Dquarkus.profile=secure` / `-Dquarkus.profile=proxy-auth` for authenticated modes.
 
 
-### Secure profile
+### Auth Profiles
 
-There are two secure profiles, `secure` and `proxy-auth`.
+The default profile is **secure by default**: no authentication mechanism is wired, so all requests are rejected with 401. You must explicitly activate one of the following profiles:
+
+| Profile | How to activate | When to use |
+|---|---|---|
+| `no-auth` | `-Dquarkus.profile=no-auth` | Local development and testing — **not for production** |
+| `secure` | `-Dquarkus.profile=secure` | Production with JWT/OIDC (Keycloak or another IdP) |
+| `proxy-auth` | `-Dquarkus.profile=proxy-auth` | Production behind an authenticating reverse proxy |
+
+#### no-auth profile
+
+For local development and testing where you do not want to configure an IdP:
+
+```bash
+# MongoDB backend
+../mvnw quarkus:dev -Dquarkus.profile=no-auth
+
+# Standalone (NitriteDB) backend — no-auth is implicit, just use -Pstandalone
+../mvnw quarkus:dev -Pstandalone
+```
+
+> **Warning:** The `no-auth` profile disables all authentication. Never use it in a production or shared environment.
+
+There are two authenticated profiles, `secure` and `proxy-auth`.
 Using either will enable entitlements driven by the database.
 
 The two modes are slightly different:

@@ -1,20 +1,20 @@
-package org.finos.calm.domain.frontcontroller;
+package org.finos.calm.domain.mapping;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class FrontControllerUpdateRequest {
+public class MappingUpdateRequest {
     @NotBlank(message = "JSON must not be blank")
     private String json;
     @NotNull(message = "Change type must not be null")
     private ChangeType changeType;
 
-    public FrontControllerUpdateRequest() {
+    public MappingUpdateRequest() {
         // Default constructor
     }
 
-    public FrontControllerUpdateRequest(String json, ChangeType changeType) {
+    public MappingUpdateRequest(String json, ChangeType changeType) {
         this.json = json;
         this.changeType = changeType;
     }
@@ -38,7 +38,7 @@ public class FrontControllerUpdateRequest {
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        FrontControllerUpdateRequest that = (FrontControllerUpdateRequest) o;
+        MappingUpdateRequest that = (MappingUpdateRequest) o;
         return Objects.equals(json, that.json) && changeType == that.changeType;
     }
 

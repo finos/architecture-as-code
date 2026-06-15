@@ -1,6 +1,10 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.PermissionsAllowed;
+import jakarta.annotation.Nonnull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -16,6 +20,9 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
+
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 
 @Path("/calm/namespaces")
 public class UserAccessResource {
@@ -36,8 +43,8 @@ public class UserAccessResource {
             description = "Creates a user-access for a given namespace on a particular resource type"
     )
     @PermissionsAllowed(CalmHubScopes.ADMIN)
-    public Response createUserAccessForNamespace(@PathParam("namespace") String namespace,
-                                                 UserAccess createUserAccessRequest) {
+    public Response createUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+                                                 @Valid @NotNull UserAccess createUserAccessRequest) {
 
         createUserAccessRequest.setCreationDateTime(LocalDateTime.now());
         createUserAccessRequest.setUpdateDateTime(LocalDateTime.now());
@@ -66,7 +73,7 @@ public class UserAccessResource {
             description = "Get user-access details for a given namespace"
     )
     @PermissionsAllowed(CalmHubScopes.ADMIN)
-    public Response getUserAccessForNamespace(@PathParam("namespace") String namespace) {
+    public Response getUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace) {
 
         try {
             return Response.ok(store.getUserAccessForNamespace(namespace))
@@ -90,8 +97,8 @@ public class UserAccessResource {
             description = "Get user-access details for a given namespace and Id"
     )
     @PermissionsAllowed(CalmHubScopes.ADMIN)
-    public Response getUserAccessForNamespaceAndId(@PathParam("namespace") String namespace,
-                                                   @PathParam("userAccessId") Integer userAccessId) {
+    public Response getUserAccessForNamespaceAndId(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+                                                   @PathParam("userAccessId") @NotNull Integer userAccessId) {
 
         try {
             return Response.ok(store.getUserAccessForNamespaceAndId(namespace, userAccessId))

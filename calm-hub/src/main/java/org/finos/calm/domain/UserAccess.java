@@ -4,9 +4,13 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import static org.finos.calm.resources.ResourceValidationConstants.*;
 
 /**
  * Represents a CalmHub user access grant, scoped to either a namespace or a domain.
@@ -19,10 +23,10 @@ public class UserAccess {
         admin
     }
 
-    private String username;
-    private Permission permission;
-    private String namespace;
-    private String domain;
+    private @Pattern(regexp = USERNAME_REGEX, message = USERNAME_MESSAGE) @NotNull String username;
+    private @NotNull Permission permission;
+    private @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace;
+    private @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain;
     private int userAccessId;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)

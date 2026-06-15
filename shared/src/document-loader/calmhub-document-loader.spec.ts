@@ -32,6 +32,11 @@ describe('calmhub-document-loader', () => {
         });
     });
     
+    it('fails to load a document with invalid url scheme', async () => {
+        const calmHubUrl = 'ftp://schemas/2025-03/meta/core.json';
+        await expect(async () => await calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
+    });
+    
     it('calls configured auth plugin if provided', async () => {
         const authPlugin: AuthPlugin = {
             getAuthHeaders: vi.fn().mockResolvedValue({ 'Authorization': 'Bearer test-token' })

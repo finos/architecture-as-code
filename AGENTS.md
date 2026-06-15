@@ -66,7 +66,7 @@ architecture-as-code/
 **Java/Maven** (Maven reactor build):
 - Root pom.xml defines multi-module reactor
 - Modules: calm-hub (Java/Quarkus), cli, calm, docs, shared (POM modules)
-- calm-hub backend (Quarkus 3.29+)
+- calm-hub backend (Quarkus 3.34+)
 - MongoDB/NitriteDB storage
 - TestContainers for integration tests
 - Maven reactor allows building all modules from root: `./mvnw clean install`
