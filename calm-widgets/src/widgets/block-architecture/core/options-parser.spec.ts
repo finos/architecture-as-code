@@ -87,6 +87,14 @@ describe('options-parser', () => {
         expect(out.edgeLabels).toBe('none');
     });
 
+    it('accepts edge-labels="unique-id"', () => {
+        const input: BlockArchOptions = {
+            'edge-labels': 'unique-id'
+        };
+        const out = parseOptions(input);
+        expect(out.edgeLabels).toBe('unique-id');
+    });
+
     it('sets collapse-relationships to true when flag is present', () => {
         const input: BlockArchOptions = {
             'collapse-relationships': true
