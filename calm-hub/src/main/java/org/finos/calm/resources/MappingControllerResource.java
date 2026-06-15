@@ -245,7 +245,7 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(canonical.namespace()), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(canonical.namespace());
         }
-        String storedBody = requestBody;
+        String storedBody = documentParser.stripId(requestBody);
         try {
             updateVersionedResourceInStore(canonical.resourceType(), canonical.namespace(),
                     existing.getNumericId(), canonical.version(), storedBody);
@@ -571,6 +571,9 @@ public class MappingControllerResource {
      */
     private int createResourceInStore(ResourceType type, String namespace, String json,
                                        String resourceName, String description) throws Exception {
+        // The $id was already verified against the canonical URL; strip it before storage as it is
+        // re-derived on read and MongoDB rejects a top-level $id field (write error code 55).
+        json = documentParser.stripId(json);
         return switch (type) {
             case PATTERN -> {
                 CreatePatternRequest req = new CreatePatternRequest(resourceName, description, json);
@@ -611,6 +614,8 @@ public class MappingControllerResource {
      */
     private void createVersionedResourceInStore(ResourceType type, String namespace, int numericId,
                                                  String version, String json) throws Exception {
+        // Strip the verified $id before storage (re-derived on read; Mongo rejects a top-level $id).
+        json = documentParser.stripId(json);
         switch (type) {
             case PATTERN -> {
                 Pattern pattern = new Pattern.PatternBuilder()
@@ -1078,7 +1083,7 @@ public class MappingControllerResource {
                     .entity("$id does not match the expected URL. Expected: " + expectedId).build();
         }
 
-        String storedBody = requestBody;
+        String storedBody = documentParser.stripId(requestBody);
         // Extract description from body document (used when creating new control)
         String description = documentParser.extractStringField(requestBody, "description");
 
@@ -1146,7 +1151,7 @@ public class MappingControllerResource {
                     .entity("$id does not match the expected URL. Expected: " + expectedId).build();
         }
 
-        String storedBody = requestBody;
+        String storedBody = documentParser.stripId(requestBody);
 
         try {
             int controlId = resolveControlId(domain, controlName);

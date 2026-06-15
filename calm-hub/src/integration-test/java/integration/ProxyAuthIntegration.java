@@ -288,7 +288,7 @@ public class ProxyAuthIntegration {
                 .header(PROXY_HEADER, USER_EVE)
                 .header("Content-Type", "application/json")
                 .body(CONTROL_JSON)
-                .when().post("/calm/domains/security/controls")
+                .when().post("/calm/domains/security/controls/access-control/requirement/versions/1.0.0")
                 .then()
                 .statusCode(403);
     }
