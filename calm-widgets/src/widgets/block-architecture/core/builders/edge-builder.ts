@@ -34,8 +34,8 @@ function mergeRelationshipLabels(relationships: CalmRelationshipCanonicalModel[]
     }
 
     const labels = relationships
-        .map(rel => rel.description)
-        .filter(desc => desc && desc.trim().length > 0);
+        .map(rel => (edgeLabelMode === 'unique-id' ? rel['unique-id'] : rel.description))
+        .filter(value => value && value.trim().length > 0);
 
     if (labels.length === 0) {
         return `${relationships.length} connections`;
