@@ -1,22 +1,32 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import jakarta.enterprise.inject.Instance;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
+import org.finos.calm.security.CalmHubPermissionChecker;
+import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.store.NamespaceStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @TestSecurity(authorizationEnabled = false)
@@ -26,6 +36,32 @@ public class TestNamespaceResourceShould {
 
     @InjectMock
     NamespaceStore namespaceStore;
+
+    // Plain Mockito mocks for direct-instantiation filtering tests
+    @Mock
+    private NamespaceStore mockNamespaceStore;
+    @Mock
+    private Instance<UserAccessValidator> mockValidatorInstance;
+    @Mock
+    private UserAccessValidator mockValidator;
+    @Mock
+    private SecurityIdentity mockIdentity;
+    @Mock
+    private Principal mockPrincipal;
+    @Mock
+    private CalmHubPermissionChecker mockPermissionChecker;
+
+    private static final List<NamespaceInfo> ALL_NAMESPACES = List.of(
+            new NamespaceInfo("finos", "FINOS namespace"),
+            new NamespaceInfo("custom", "custom namespace")
+    );
+
+    private NamespaceResource resourceWithAuth(boolean authEnabled) {
+        NamespaceResource resource = new NamespaceResource(mockNamespaceStore, mockValidatorInstance, mockPermissionChecker);
+        resource.identity = mockIdentity;
+        resource.authEnabled = authEnabled;
+        return resource;
+    }
 
     @Test
     void return_empty_wrapper_when_no_namespaces_in_store() {
@@ -225,5 +261,56 @@ public class TestNamespaceResourceShould {
                 .body(containsString("Request must not be null"));
 
         verify(namespaceStore, never()).createNamespace(any(), any());
+    }
+
+    @Test
+    void return_all_namespaces_when_auth_disabled() {
+        when(mockNamespaceStore.getNamespaces()).thenReturn(ALL_NAMESPACES);
+
+        assertEquals(ALL_NAMESPACES, resourceWithAuth(false).namespaces().getValues());
+    }
+
+    @Test
+    void return_all_namespaces_when_validator_not_resolvable() {
+        when(mockValidatorInstance.isResolvable()).thenReturn(false);
+        when(mockNamespaceStore.getNamespaces()).thenReturn(ALL_NAMESPACES);
+
+        assertEquals(ALL_NAMESPACES, resourceWithAuth(true).namespaces().getValues());
+    }
+
+    @Test
+    void return_all_namespaces_for_global_admin() {
+        when(mockValidatorInstance.isResolvable()).thenReturn(true);
+        when(mockPermissionChecker.hasGlobalAdmin(mockIdentity)).thenReturn(true);
+        when(mockNamespaceStore.getNamespaces()).thenReturn(ALL_NAMESPACES);
+
+        assertEquals(ALL_NAMESPACES, resourceWithAuth(true).namespaces().getValues());
+    }
+
+    @Test
+    void return_only_accessible_namespaces_for_authenticated_user() {
+        when(mockValidatorInstance.isResolvable()).thenReturn(true);
+        when(mockPermissionChecker.hasGlobalAdmin(mockIdentity)).thenReturn(false);
+        when(mockIdentity.getPrincipal()).thenReturn(mockPrincipal);
+        when(mockPrincipal.getName()).thenReturn("thomas");
+        when(mockValidatorInstance.get()).thenReturn(mockValidator);
+        when(mockValidator.getReadableNamespaces("thomas")).thenReturn(Set.of("finos"));
+        when(mockNamespaceStore.getNamespaces()).thenReturn(ALL_NAMESPACES);
+
+        assertEquals(List.of(new NamespaceInfo("finos", "FINOS namespace")),
+                resourceWithAuth(true).namespaces().getValues());
+    }
+
+    @Test
+    void return_empty_list_when_user_has_no_grants() {
+        when(mockValidatorInstance.isResolvable()).thenReturn(true);
+        when(mockPermissionChecker.hasGlobalAdmin(mockIdentity)).thenReturn(false);
+        when(mockIdentity.getPrincipal()).thenReturn(mockPrincipal);
+        when(mockPrincipal.getName()).thenReturn("thomas");
+        when(mockValidatorInstance.get()).thenReturn(mockValidator);
+        when(mockValidator.getReadableNamespaces("thomas")).thenReturn(Set.of());
+        when(mockNamespaceStore.getNamespaces()).thenReturn(ALL_NAMESPACES);
+
+        assertTrue(resourceWithAuth(true).namespaces().getValues().isEmpty());
     }
 }
