@@ -278,6 +278,10 @@ describe('diff', () => {
         });
 
         it('skips nodes missing unique-id but surfaces them via invalidItems', () => {
+            /*
+            Note: testArchitectures.invalidShapeArchitecture does not validly conform to the CALM schema i.e. its shape does not fit the CalmArchitectureSchema type.
+            To avoid compiler errors from not matching the input contract of diffArchitectures, we explicitly cast testArchitectures.invalidShapeArchitecture to CalmArchitectureSchema.
+            */
             const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.invalidShapeArchitecture as CalmArchitectureSchema);
             expect(
                 result.nodesAdded.length +

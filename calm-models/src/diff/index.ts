@@ -25,6 +25,7 @@ export type {
     AdrDiffResult,
     ArchitectureDiffResult,
     NodeChange,
+    NodesAndRelationshipsDiffResult,
     RelationshipChange,
     RenameMapping,
     RelationshipRenameMapping,
