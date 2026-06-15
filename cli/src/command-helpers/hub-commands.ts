@@ -36,7 +36,7 @@ export async function resolveCalmHubOptions(inputOptions: CalmHubOptions): Promi
         options.calmHubUrl = config.calmHubUrl;
     }
     if (config && config.authPluginPath && !options.authPlugin) {
-        options.authPlugin = await cliConfig.loadAuthPlugin(config.authPluginPath, false); // TODO logging
+        options.authPlugin = await cliConfig.loadAuthPlugin(config.authPluginPath, false);
     }
 
     if (!options.calmHubUrl) {
@@ -53,7 +53,6 @@ export async function resolveCalmHubOptions(inputOptions: CalmHubOptions): Promi
 
 export interface PushOptions {
     calmHubOptions: CalmHubOptions;
-    namespace: string;
     name?: string;
     description?: string;
     file: string;
@@ -180,7 +179,6 @@ export async function pushDocument(
         resourceType: ResourceType,
         changeType: ResourceChangeType,
         options: PushOptions): Promise<DocumentMetadata> {
-    // const existingDocumentMetadata = extractDocumentMetadata(fileContent);
 
     // allow changing of name/description if not already set.
     const name = options.name ?? metadata.name;
@@ -205,16 +203,6 @@ export async function pushDocument(
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     } else {
-        // new mapping
-        // if (!name) {
-        //     printError(0, `--name is required when creating a new ${resourceTypeString}`, `push ${resourceTypeString}`, format);
-        //     process.exit(1);
-        // }
-
-        // if (!description) {
-        //     printError(0, `--description is required when creating a new ${resourceTypeString}`, `push ${resourceTypeString}`, format);
-        //     process.exit(1);
-        // }
         newDocumentMetadata.version = "1.0.0";
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }
@@ -260,10 +248,7 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
             resourceType, 
             options.changeType ?? 'PATCH', 
             options);
-        // TODO logging
-        console.log("Document version is now ", documentMetadata.version);
         const newDocument = updateDocumentMetadata(fileContent, documentMetadata);
-        console.log("Updating document on file system with new version and id...");
         await writeFile(options.file, newDocument, 'utf-8');
         const result: PushResult = {
             mapping,

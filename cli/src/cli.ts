@@ -7,10 +7,7 @@ import path from 'path';
 import { select } from '@inquirer/prompts';
 import {
     CreateNamespaceOptions,
-    ListArchitecturesOptions,
     ListNamespacesOptions,
-    ListPatternsOptions,
-    ListStandardsOptions,
     PushOptions,
     PullOptions,
     runCreateNamespace,
@@ -80,14 +77,12 @@ const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
 const NAMESPACE_OPTION = '--namespace <namespace>';
 const NAME_OPTION = '--name <name>';
 const DESCRIPTION_OPTION = '--description <description>';
-const ID_OPTION = '--id <id>';
 const HUB_VERSION_OPTION = '--ver <version>'; // --version conflicts with Commander's built-in version flag
 const DOMAIN_OPTION = '--domain <domain>';
 const CONTROL_ID_OPTION = '--control-id <controlId>';
 const CONFIG_ID_OPTION = '--config-id <configId>';
-const MAPPING_OPTION = '--mapping <mappingName>';
+const MAPPING_OPTION = '-m, --mapping <mapping>';
 
-const MAPPING_OPTION_DESCRIPTION = 'CalmHub mapping slug to use. Will create this resource if it exists, or bump version. otherwise.';
 export function setupCLI(program: Command) {
     program
         .name('calm')
@@ -446,18 +441,15 @@ Example:
 
     hubPushCmd
         .command('architecture <architecture-file>')
-        .description('Push a CALM architecture file to CALM Hub. $id of document must contain a mapping slug.')
-        .option(NAME_OPTION, 'Name for the architecture in CALM Hub (required when creating a new architecture)')
-        .option(DESCRIPTION_OPTION, 'Description for the architecture')
-        .option(NAMESPACE_OPTION, 'Target namespace', 'default') // TODO can we just remove this, or leave as override?
+        .description('Push a CALM architecture file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
+        .option(NAME_OPTION, 'Name for the architecture in CALM Hub; overrides `title` field if set.')
+        .option(DESCRIPTION_OPTION, 'Description for the architecture; overrides `description` field if set.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option(MAPPING_OPTION, MAPPING_OPTION_DESCRIPTION)
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
         .action(async (architectureFile, options) => {
             const pushOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                namespace: options.namespace,
                 name: options.name,
                 description: options.description,
                 file: architectureFile,
@@ -469,19 +461,15 @@ Example:
 
     hubPushCmd
         .command('pattern <pattern-file>')
-        .description('Push a CALM pattern file to CALM Hub')
+        .description('Push a CALM pattern file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
         .option(NAME_OPTION, 'Name for the pattern in CALM Hub (required when creating a new pattern)')
         .option(DESCRIPTION_OPTION, 'Description for the pattern')
-        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option(ID_OPTION, 'Existing pattern ID (required when adding a new version)')
-        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)') // TODO update descriptions 
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
         .action(async (patternFile, options) => {
             const pushPatternOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                namespace: options.namespace,
                 name: options.name,
                 description: options.description,
                 file: patternFile,
@@ -493,18 +481,15 @@ Example:
 
     hubPushCmd
         .command('standard <standard-file>')
-        .description('Push a CALM standard file to CALM Hub')
-        .option(NAME_OPTION, 'Name for the standard in CALM Hub (required when creating a new standard)')
+        .description('Push a CALM standard file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
+        .option(NAME_OPTION, 'Name for the standard in CALM Hub')
         .option(DESCRIPTION_OPTION, 'Description for the standard')
-        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option(ID_OPTION, 'Existing standard ID (required when adding a new version)')
-        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
         .action(async (standardFile, options) => {
             const pushStandardOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                namespace: options.namespace,
                 name: options.name,
                 description: options.description,
                 file: standardFile,

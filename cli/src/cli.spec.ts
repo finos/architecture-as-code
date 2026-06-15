@@ -572,14 +572,13 @@ describe('CLI Commands', () => {
                 'node', 'cli.js', 'hub', 'push', 'architecture',
                 'arch.json',
                 '--name', 'my-arch',
-                '--namespace', 'finos',
                 '--calm-hub-url', 'http://hub',
             ]);
 
+            // namespace is derived from the document $id, not a CLI option, so it is not passed here
             expect(hubCommandsModule.runPushArchitecture).toHaveBeenCalledWith(expect.objectContaining({
                 file: 'arch.json',
                 name: 'my-arch',
-                namespace: 'finos',
                 calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
             }));
         });
@@ -589,7 +588,6 @@ describe('CLI Commands', () => {
                 'node', 'cli.js', 'hub', 'push', 'architecture',
                 'arch.json',
                 '--name', 'my-arch',
-                '--namespace', 'finos',
                 '--calm-hub-url', 'http://hub',
                 '--change-type', 'minor',
             ]);
@@ -604,7 +602,6 @@ describe('CLI Commands', () => {
                 'node', 'cli.js', 'hub', 'push', 'architecture',
                 'arch.json',
                 '--name', 'my-arch',
-                '--namespace', 'finos',
                 '--calm-hub-url', 'http://hub',
             ]);
 

@@ -148,246 +148,6 @@ export class CalmHubClient {
         }
     }
 
-    // ── Architectures ────────────────────────────────────────────────────────
-
-    /**
-     * Creates a new architecture.
-     * @param namespace Namespace name.
-     * @param name Architecture name.
-     * @param description Architecture description.
-     * @param architectureJson Architecture JSON payload.
-     * @returns Created resource metadata.
-     */
-    async pushArchitecture(
-        namespace: string,
-        name: string,
-        description: string,
-        architectureJson: string
-    ): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/namespaces/${namespace}/architectures`;
-        try {
-            const response = await this.ax.post(`/api/calm/namespaces/${namespace}/architectures`, {
-                name,
-                description,
-                architectureJson
-            });
-            const location = response.headers['location'] as string;
-            return this.parseVersionedLocation(location, endpoint);
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Creates a new version for an existing architecture.
-     * @param namespace Namespace name.
-     * @param id Architecture id.
-     * @param version Version label.
-     * @param name Architecture name.
-     * @param description Architecture description.
-     * @param architectureJson Architecture JSON payload.
-     * @returns Created resource metadata.
-     */
-    async pushArchitectureVersion(
-        namespace: string,
-        id: number,
-        version: string,
-        name: string,
-        description: string,
-        architectureJson: string
-    ): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`;
-        try {
-            const response = await this.ax.post(
-                `/api/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`,
-                { name, description, architectureJson }
-            );
-            const location = response.headers['location'] as string;
-            return this.parseVersionedLocation(location, endpoint);
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Pulls a specific architecture version.
-     * @param namespace Namespace name.
-     * @param id Architecture id.
-     * @param version Version label.
-     * @returns Architecture document.
-     */
-    async pullArchitecture(namespace: string, id: number, version: string): Promise<object> {
-        const endpoint = `GET /api/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`;
-        try {
-            const response = await this.ax.get(
-                `/api/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`
-            );
-            return response.data as object;
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    // ── Patterns ─────────────────────────────────────────────────────────────
-
-    /**
-     * Creates a new pattern.
-     * @param namespace Namespace name.
-     * @param name Pattern name.
-     * @param description Pattern description.
-     * @param patternJson Pattern JSON payload.
-     * @returns Created resource metadata.
-     */
-    async pushPattern(
-        namespace: string,
-        name: string,
-        description: string,
-        patternJson: string
-    ): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/namespaces/${namespace}/patterns`;
-        try {
-            const response = await this.ax.post(`/api/calm/namespaces/${namespace}/patterns`, {
-                name,
-                description,
-                patternJson
-            });
-            const location = response.headers['location'] as string;
-            return this.parseVersionedLocation(location, endpoint);
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Creates a new version for an existing pattern.
-     * @param namespace Namespace name.
-     * @param id Pattern id.
-     * @param version Version label.
-     * @param name Pattern name.
-     * @param description Pattern description.
-     * @param patternJson Pattern JSON payload.
-     * @returns Created resource metadata.
-     */
-    async pushPatternVersion(
-        namespace: string,
-        id: number,
-        version: string,
-        name: string,
-        description: string,
-        patternJson: string
-    ): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
-        try {
-            const response = await this.ax.post(
-                `/api/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`,
-                { name, description, patternJson }
-            );
-            const location = response.headers['location'] as string;
-            return this.parseVersionedLocation(location, endpoint);
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Pulls a specific pattern version.
-     * @param namespace Namespace name.
-     * @param id Pattern id.
-     * @param version Version label.
-     * @returns Pattern document.
-     */
-    async pullPattern(namespace: string, id: number, version: string): Promise<object> {
-        const endpoint = `GET /api/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
-        try {
-            const response = await this.ax.get(
-                `/api/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`
-            );
-            return response.data as object;
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    // ── Standards ─────────────────────────────────────────────────────────────
-
-    /**
-     * Creates a new standard.
-     * @param namespace Namespace name.
-     * @param name Standard name.
-     * @param description Standard description.
-     * @param standardJson Standard JSON payload.
-     * @returns Created resource metadata.
-     */
-    async pushStandard(
-        namespace: string,
-        name: string,
-        description: string,
-        standardJson: string
-    ): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/namespaces/${namespace}/standards`;
-        try {
-            const response = await this.ax.post(`/api/calm/namespaces/${namespace}/standards`, {
-                name,
-                description,
-                standardJson
-            });
-            const location = response.headers['location'] as string;
-            return this.parseVersionedLocation(location, endpoint);
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Creates a new version for an existing standard.
-     * @param namespace Namespace name.
-     * @param id Standard id.
-     * @param version Version label.
-     * @param name Standard name.
-     * @param description Standard description.
-     * @param standardJson Standard JSON payload.
-     * @returns Created resource metadata.
-     */
-    async pushStandardVersion(
-        namespace: string,
-        id: number,
-        version: string,
-        name: string,
-        description: string,
-        standardJson: string
-    ): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/namespaces/${namespace}/standards/${id}/versions/${version}`;
-        try {
-            const response = await this.ax.post(
-                `/api/calm/namespaces/${namespace}/standards/${id}/versions/${version}`,
-                { name, description, standardJson }
-            );
-            const location = response.headers['location'] as string;
-            return this.parseVersionedLocation(location, endpoint);
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Pulls a specific standard version.
-     * @param namespace Namespace name.
-     * @param id Standard id.
-     * @param version Version label.
-     * @returns Standard document.
-     */
-    async pullStandard(namespace: string, id: number, version: string): Promise<object> {
-        const endpoint = `GET /api/calm/namespaces/${namespace}/standards/${id}/versions/${version}`;
-        try {
-            const response = await this.ax.get(
-                `/api/calm/namespaces/${namespace}/standards/${id}/versions/${version}`
-            );
-            return response.data as object;
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
     // ── Domains/Controls ─────────────────────────────────────────────────────
 
     /**
@@ -396,12 +156,12 @@ export class CalmHubClient {
      * @returns Created domain metadata.
      */
     async createDomain(name: string): Promise<HubDomainCreateResult> {
-        const endpoint = 'POST /api/calm/domains';
+        const endpoint = '/calm/domains';
         try {
-            await this.ax.post('/api/calm/domains', { name });
-            return { name, location: `/api/calm/domains/${name}` };
+            await this.ax.post(endpoint, { name });
+            return { name, location: `${endpoint}/${name}` };
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            throw this.wrapError(err, `POST ${endpoint}`);
         }
     }
 
@@ -410,9 +170,9 @@ export class CalmHubClient {
      * @returns Domain summaries.
      */
     async listDomains(): Promise<HubDomainSummary[]> {
-        const endpoint = 'GET /api/calm/domains';
+        const endpoint = '/calm/domains';
         try {
-            const response = await this.ax.get('/api/calm/domains');
+            const response = await this.ax.get(endpoint);
             const values: HubDomainSummary[] = response.data?.values ?? [];
             return values;
         } catch (err) {
