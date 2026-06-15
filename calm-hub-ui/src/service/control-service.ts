@@ -1,6 +1,7 @@
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { ControlDetail } from '../model/control.js';
+import { apiClient } from './utils/api-client.js';
 
 export class ControlService {
     private readonly ax: AxiosInstance;
@@ -9,7 +10,7 @@ export class ControlService {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
-            this.ax = axios.create();
+            this.ax = apiClient;
         }
     }
 
