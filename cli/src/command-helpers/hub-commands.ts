@@ -179,8 +179,7 @@ export async function pushDocument(
         fileContent: string, 
         resourceType: ResourceType,
         changeType: ResourceChangeType,
-        options: PushOptions, 
-        format: OutputFormat): Promise<DocumentMetadata> {
+        options: PushOptions): Promise<DocumentMetadata> {
     // const existingDocumentMetadata = extractDocumentMetadata(fileContent);
 
     // allow changing of name/description if not already set.
@@ -202,6 +201,8 @@ export async function pushDocument(
         const sortedVersions = sortSemVer(mappedResourceVersions);
         const latestVersion = sortedVersions[sortedVersions.length - 1];
         const newVersion = computeSemVerBump(latestVersion, changeType);
+        newDocumentMetadata.version = newVersion;
+        fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(
             namespace, 
             mapping, 
@@ -210,7 +211,6 @@ export async function pushDocument(
             name, 
             description, 
             fileContent);
-        newDocumentMetadata.version = newVersion;
     } else {
         // new mapping
         // if (!name) {
@@ -273,8 +273,7 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
             fileContent, 
             resourceType, 
             options.changeType ?? 'PATCH', 
-            options, 
-            format);
+            options);
         // TODO logging
         console.log("Document version is now ", documentMetadata.version);
         const newDocument = updateDocumentMetadata(fileContent, documentMetadata);
