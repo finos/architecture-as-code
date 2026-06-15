@@ -5,7 +5,11 @@ import {
     extractDocumentMetadata,
     updateDocumentMetadata,
     validateDocumentId,
-    DocumentMetadataValidationError
+    DocumentMetadataValidationError,
+    ControlDocumentMetadata,
+    constructControlDocumentId,
+    extractControlMetadata,
+    updateControlDocumentMetadata
 } from './document-id-utils';
 
 const DOCUMENT_ID = 'https://example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0';
@@ -199,6 +203,119 @@ describe('Document ID Utils', () => {
                 // namespace precedes version in the metadata key order, so it is reported first
                 expect((err as DocumentMetadataValidationError).component).toBe('namespace');
             }
+        });
+    });
+
+    describe('control documents', () => {
+        const REQUIREMENT_ID = 'https://example.com/calm/domains/security/controls/access-control/requirement/versions/1.0.0';
+        const CONFIGURATION_ID = 'https://example.com/calm/domains/security/controls/access-control/configurations/prod/versions/1.0.0';
+
+        describe('extractControlMetadata', () => {
+            it('parses a requirement document $id', () => {
+                const document = JSON.stringify({ $id: REQUIREMENT_ID, nodes: [] });
+                expect(extractControlMetadata(document)).toEqual({
+                    rawDocumentId: REQUIREMENT_ID,
+                    baseUrl: 'https://example.com',
+                    domain: 'security',
+                    controlName: 'access-control',
+                    kind: 'requirement',
+                    version: '1.0.0'
+                });
+            });
+
+            it('parses a configuration document $id including the config name', () => {
+                const document = JSON.stringify({ $id: CONFIGURATION_ID, nodes: [] });
+                expect(extractControlMetadata(document)).toEqual({
+                    rawDocumentId: CONFIGURATION_ID,
+                    baseUrl: 'https://example.com',
+                    domain: 'security',
+                    controlName: 'access-control',
+                    configName: 'prod',
+                    kind: 'configuration',
+                    version: '1.0.0'
+                });
+            });
+
+            it('throws when the document has no $id', () => {
+                expect(() => extractControlMetadata(JSON.stringify({ nodes: [] }))).toThrow(/Document does not contain a valid '\$id' field/);
+            });
+
+            it('throws when the $id is not a control document ID', () => {
+                const document = JSON.stringify({ $id: 'https://example.com/calm/namespaces/finos/architectures/a/versions/1.0.0' });
+                expect(() => extractControlMetadata(document)).toThrow(/Invalid control document ID format/);
+            });
+
+            it('throws when the document is not valid JSON', () => {
+                expect(() => extractControlMetadata('not json')).toThrow(/Failed to parse control document metadata/);
+            });
+        });
+
+        describe('constructControlDocumentId', () => {
+            it('builds a requirement document ID', () => {
+                const metadata: ControlDocumentMetadata = {
+                    rawDocumentId: REQUIREMENT_ID,
+                    baseUrl: 'https://example.com',
+                    domain: 'security',
+                    controlName: 'access-control',
+                    kind: 'requirement',
+                    version: '2.0.0'
+                };
+                expect(constructControlDocumentId(metadata)).toBe('https://example.com/calm/domains/security/controls/access-control/requirement/versions/2.0.0');
+            });
+
+            it('builds a configuration document ID', () => {
+                const metadata: ControlDocumentMetadata = {
+                    rawDocumentId: CONFIGURATION_ID,
+                    baseUrl: 'https://example.com',
+                    domain: 'security',
+                    controlName: 'access-control',
+                    configName: 'prod',
+                    kind: 'configuration',
+                    version: '2.0.0'
+                };
+                expect(constructControlDocumentId(metadata)).toBe('https://example.com/calm/domains/security/controls/access-control/configurations/prod/versions/2.0.0');
+            });
+
+            it('throws when a configuration document has no config name', () => {
+                const metadata = {
+                    rawDocumentId: CONFIGURATION_ID,
+                    baseUrl: 'https://example.com',
+                    domain: 'security',
+                    controlName: 'access-control',
+                    kind: 'configuration',
+                    version: '2.0.0'
+                } as ControlDocumentMetadata;
+                expect(() => constructControlDocumentId(metadata)).toThrow(/require a configName/);
+            });
+        });
+
+        describe('updateControlDocumentMetadata', () => {
+            it('rewrites the $id with the new version while preserving other fields', () => {
+                const original = JSON.stringify({ $id: REQUIREMENT_ID, nodes: [{ 'unique-id': 'n' }] });
+                const updated = updateControlDocumentMetadata(original, {
+                    rawDocumentId: REQUIREMENT_ID,
+                    baseUrl: 'https://example.com',
+                    domain: 'security',
+                    controlName: 'access-control',
+                    kind: 'requirement',
+                    version: '2.0.0'
+                });
+                expect(JSON.parse(updated)).toEqual({
+                    $id: 'https://example.com/calm/domains/security/controls/access-control/requirement/versions/2.0.0',
+                    nodes: [{ 'unique-id': 'n' }]
+                });
+            });
+
+            it('throws when the document is not valid JSON', () => {
+                expect(() => updateControlDocumentMetadata('not json', {
+                    rawDocumentId: REQUIREMENT_ID,
+                    baseUrl: 'https://example.com',
+                    domain: 'security',
+                    controlName: 'access-control',
+                    kind: 'requirement',
+                    version: '2.0.0'
+                })).toThrow(/Failed to parse control document metadata/);
+            });
         });
     });
 });

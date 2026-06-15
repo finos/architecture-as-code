@@ -14,8 +14,6 @@ export interface HubNamespaceSummary {
 }
 
 export interface HubCreateResult {
-    id: number;
-    version?: string;
     location: string;
 }
 
@@ -34,18 +32,11 @@ export interface HubDomainSummary {
 }
 
 export interface HubControlSummary {
-    id: number;
+    id?: number;
     name: string;
     description?: string;
 }
 
-export interface HubControlRequirementSummary {
-    'control-id': number;
-    name: string;
-    description?: string;
-    versions: string[];
-}
-    
 export type ResourceChangeType = 'MAJOR' | 'MINOR' | 'PATCH';
 
 export type ResourceType = 'patterns' | 'architectures' | 'standards' | 'interfaces';
@@ -123,6 +114,7 @@ export class CalmHubClient {
      * @returns Created namespace result with location.
      */
     async createNamespace(name: string, description: string): Promise<HubNamespaceCreateResult> {
+        // TODO should this move to user facing API? there is not a /calm/namespaces currently
         const endpoint = 'POST /api/calm/namespaces';
         try {
             const response = await this.ax.post('/api/calm/namespaces', { name, description });
@@ -176,248 +168,147 @@ export class CalmHubClient {
             const values: HubDomainSummary[] = response.data?.values ?? [];
             return values;
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
 
-    /**
-     * Creates a control requirement.
-     * @param domain Domain name.
-     * @param name Control name.
-     * @param description Control description.
-     * @param requirementJson Requirement JSON payload.
-     * @returns Created resource metadata.
-     */
-    async createControl(domain: string, name: string, description: string, requirementJson: string): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/domains/${domain}/controls`;
-        try {
-            const response = await this.ax.post(`/api/calm/domains/${domain}/controls`, { name, description, requirementJson });
-            const location = (response.headers['location'] as string | undefined) ?? `/api/calm/domains/${domain}/controls`;
-            const id = this.parseIdFromLocation(location, endpoint);
-            return { id, location };
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
+    // ── Controls (User Facing API, domain-scoped, name-addressed) ─────────────
 
     /**
-     * Lists controls for a domain.
+     * Lists the controls in a domain. Each control carries its addressing name (slug) plus id/description.
      * @param domain Domain name.
-     * @returns Control summaries.
+     * @returns The control summaries, or an empty list if the domain has none.
      */
     async listControls(domain: string): Promise<HubControlSummary[]> {
-        const endpoint = `GET /api/calm/domains/${domain}/controls`;
+        const endpoint = `/calm/domains/${domain}/controls`;
         try {
-            const response = await this.ax.get(`/api/calm/domains/${domain}/controls`);
-            const values: HubControlSummary[] = response.data?.values ?? [];
-            return values;
+            const response = await this.ax.get(endpoint);
+            return (response.data?.values ?? []) as HubControlSummary[];
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
 
     /**
-     * Lists control requirements and their versions for a domain.
+     * Lists the configurations for a named control. Each configuration carries its addressing name (slug).
      * @param domain Domain name.
-     * @returns Control requirement summaries.
+     * @param controlName Control name (slug).
+     * @returns The configuration summaries, or an empty list if the control has none.
      */
-    async listControlRequirements(domain: string): Promise<HubControlRequirementSummary[]> {
-        const endpoint = `GET /api/calm/domains/${domain}/controls`;
+    async listControlConfigurations(domain: string, controlName: string): Promise<HubControlSummary[]> {
+        const endpoint = `/calm/domains/${domain}/controls/${controlName}/configurations`;
         try {
-            const controls = await this.listControls(domain);
-            const summaries = await Promise.all(
-                controls.map(async (control) => {
-                    const versionsEndpoint = `GET /api/calm/domains/${domain}/controls/${control.id}/requirement/versions`;
-                    try {
-                        const versions = await this.listControlRequirementVersions(domain, control.id);
-                        return {
-                            'control-id': control.id,
-                            name: control.name,
-                            description: control.description,
-                            versions
-                        };
-                    } catch (err) {
-                        throw this.wrapError(err, versionsEndpoint);
-                    }
-                })
-            );
-            return summaries;
+            const response = await this.ax.get(endpoint);
+            return (response.data?.values ?? []) as HubControlSummary[];
         } catch (err) {
-            if (err instanceof HubClientError) throw err;
-            throw this.wrapError(err, endpoint);
+            throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
 
     /**
-     * Pushes a versioned control requirement.
+     * Lists the requirement versions for a named control, or [] if the control/requirement does not exist yet.
      * @param domain Domain name.
-     * @param controlId Control id.
-     * @param version Version label.
-     * @param name Requirement wrapper name.
-     * @param description Requirement wrapper description.
-     * @param requirementJson Requirement JSON payload.
-     * @returns Created resource metadata.
+     * @param controlName Control name (slug).
      */
-    async pushControlRequirement(
-        domain: string,
-        controlId: number,
-        version: string,
-        name: string,
-        description: string,
-        requirementJson: string
-    ): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
-        // print debug all parameters except requirementJson which may be large
-        console.debug(`pushControlRequirement called with domain=${domain}, controlId=${controlId}, version=${version}, name=${name}, description=${description}`);
-        // print debug first 200 characters of requirementJson
-        console.debug(`requirementJson: ${requirementJson.substring(0, 200)}${requirementJson.length > 200 ? '... (truncated)' : ''}`);
+    async getControlRequirementVersions(domain: string, controlName: string): Promise<string[]> {
+        const endpoint = `/calm/domains/${domain}/controls/${controlName}/requirement/versions`;
         try {
-            const response = await this.ax.post(
-                `/api/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`,
-                { name, description, requirementJson },
-                { headers: { 'Content-Type': 'application/json' } }
-            );
-            const location = (response.headers['location'] as string | undefined)
-                ?? `/api/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
-            return { id: controlId, version, location };
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Pulls a versioned control requirement.
-     * @param domain Domain name.
-     * @param controlId Control id.
-     * @param version Version label.
-     * @returns Requirement document.
-     */
-    async pullControlRequirement(domain: string, controlId: number, version: string): Promise<object> {
-        const endpoint = `GET /api/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
-        try {
-            const response = await this.ax.get(
-                `/api/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`
-            );
-            return response.data as object;
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Pushes a versioned control configuration.
-     * @param domain Domain name.
-     * @param controlId Control id.
-     * @param configId Configuration id.
-     * @param version Version label.
-     * @param configJson Configuration JSON payload.
-     * @returns Created resource metadata.
-     */
-    async pushControlConfiguration(domain: string, controlId: number, configId: number, version: string, configJson: string): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
-        try {
-            const response = await this.ax.post(
-                `/api/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`,
-                { configurationJson: configJson },
-                { headers: { 'Content-Type': 'application/json' } }
-            );
-            const location = (response.headers['location'] as string | undefined)
-                ?? `/api/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
-            return { id: configId, version, location };
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Pulls a versioned control configuration.
-     * @param domain Domain name.
-     * @param controlId Control id.
-     * @param configId Configuration id.
-     * @param version Version label.
-     * @returns Configuration document.
-     */
-    async pullControlConfiguration(domain: string, controlId: number, configId: number, version: string): Promise<object> {
-        const endpoint = `GET /api/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`;
-        try {
-            const response = await this.ax.get(
-                `/api/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`
-            );
-            return response.data as object;
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Creates a control configuration.
-     * @param domain Domain name.
-     * @param controlId Control id.
-     * @param configurationJson Configuration JSON payload.
-     * @returns Created resource metadata.
-     */
-    async createControlConfiguration(domain: string, controlId: number, configurationJson: string): Promise<HubCreateResult> {
-        const endpoint = `POST /api/calm/domains/${domain}/controls/${controlId}/configurations`;
-        try {
-            const response = await this.ax.post(
-                `/api/calm/domains/${domain}/controls/${controlId}/configurations`,
-                { configurationJson }
-            );
-            const location = (response.headers['location'] as string | undefined)
-                ?? `/api/calm/domains/${domain}/controls/${controlId}/configurations`;
-            const id = this.parseIdFromLocation(location, endpoint);
-            return { id, location };
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Lists control configuration ids for a control.
-     * @param domain Domain name.
-     * @param controlId Control id.
-     * @returns Configuration ids.
-     */
-    async listControlConfigurations(domain: string, controlId: number): Promise<number[]> {
-        const endpoint = `GET /api/calm/domains/${domain}/controls/${controlId}/configurations`;
-        try {
-            const response = await this.ax.get(`/api/calm/domains/${domain}/controls/${controlId}/configurations`);
-            return (response.data?.values ?? []) as number[];
-        } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Lists control requirement versions.
-     * @param domain Domain name.
-     * @param controlId Control id.
-     * @returns Requirement versions.
-     */
-    async listControlRequirementVersions(domain: string, controlId: number): Promise<string[]> {
-        const endpoint = `GET /api/calm/domains/${domain}/controls/${controlId}/requirement/versions`;
-        try {
-            const response = await this.ax.get(`/api/calm/domains/${domain}/controls/${controlId}/requirement/versions`);
+            const response = await this.ax.get(endpoint);
             return (response.data?.values ?? []) as string[];
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            if (err instanceof AxiosError && err.status === 404) {
+                return [];
+            }
+            throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
 
     /**
-     * Lists control configuration versions.
+     * Gets a control requirement document at a specific version.
      * @param domain Domain name.
-     * @param controlId Control id.
-     * @param configId Configuration id.
-     * @returns Configuration versions.
+     * @param controlName Control name (slug).
+     * @param version Version label.
      */
-    async listControlConfigurationVersions(domain: string, controlId: number, configId: number): Promise<string[]> {
-        const endpoint = `GET /api/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`;
+    async getControlRequirementVersion(domain: string, controlName: string, version: string): Promise<object> {
+        const endpoint = `/calm/domains/${domain}/controls/${controlName}/requirement/versions/${version}`;
         try {
-            const response = await this.ax.get(`/api/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`);
+            const response = await this.ax.get(endpoint);
+            return response.data as object;
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /**
+     * Creates a control requirement version by POSTing the raw document to the versioned endpoint.
+     * @param domain Domain name.
+     * @param controlName Control name (slug).
+     * @param version Version label.
+     * @param json Raw requirement document.
+     * @returns The location of the created version.
+     */
+    async createControlRequirementVersion(domain: string, controlName: string, version: string, json: string): Promise<string> {
+        const endpoint = `/calm/domains/${domain}/controls/${controlName}/requirement/versions/${version}`;
+        try {
+            const response = await this.ax.post(endpoint, json);
+            return (response.headers.location as string | undefined) ?? endpoint;
+        } catch (err) {
+            throw this.wrapError(err, `POST ${endpoint}`);
+        }
+    }
+
+    /**
+     * Lists the versions of a named control's configuration, or [] if the configuration does not exist yet.
+     * @param domain Domain name.
+     * @param controlName Control name (slug).
+     * @param configName Configuration name (slug).
+     */
+    async getControlConfigurationVersions(domain: string, controlName: string, configName: string): Promise<string[]> {
+        const endpoint = `/calm/domains/${domain}/controls/${controlName}/configurations/${configName}/versions`;
+        try {
+            const response = await this.ax.get(endpoint);
             return (response.data?.values ?? []) as string[];
         } catch (err) {
-            throw this.wrapError(err, endpoint);
+            if (err instanceof AxiosError && err.status === 404) {
+                return [];
+            }
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /**
+     * Gets a control configuration document at a specific version.
+     * @param domain Domain name.
+     * @param controlName Control name (slug).
+     * @param configName Configuration name (slug).
+     * @param version Version label.
+     */
+    async getControlConfigurationVersion(domain: string, controlName: string, configName: string, version: string): Promise<object> {
+        const endpoint = `/calm/domains/${domain}/controls/${controlName}/configurations/${configName}/versions/${version}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return response.data as object;
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /**
+     * Creates a control configuration version by POSTing the raw document to the versioned endpoint.
+     * @param domain Domain name.
+     * @param controlName Control name (slug).
+     * @param configName Configuration name (slug).
+     * @param version Version label.
+     * @param json Raw configuration document.
+     * @returns The location of the created version.
+     */
+    async createControlConfigurationVersion(domain: string, controlName: string, configName: string, version: string, json: string): Promise<string> {
+        const endpoint = `/calm/domains/${domain}/controls/${controlName}/configurations/${configName}/versions/${version}`;
+        try {
+            const response = await this.ax.post(endpoint, json);
+            return (response.headers.location as string | undefined) ?? endpoint;
+        } catch (err) {
+            throw this.wrapError(err, `POST ${endpoint}`);
         }
     }
 
@@ -512,40 +403,6 @@ export class CalmHubClient {
         }
     }
     
-
-
-    
-
-    // ── Private helpers ──────────────────────────────────────────────────────
-
-    /**
-     * Parses id and version from a Location header of the form
-     * /api/calm/namespaces/{ns}/{resource-type}/{id}/versions/{version}
-     */
-    private parseVersionedLocation(location: string, endpoint: string): HubCreateResult {
-        const match = /\/(\d+)\/versions\/([^/]+)$/.exec(location);
-        if (!match) {
-            throw new HubClientError(0, `Could not parse location header: ${location}`, endpoint);
-        }
-        return {
-            id: parseInt(match[1], 10),
-            version: match[2],
-            location
-        };
-    }
-
-    /**
-     * Parses a resource id from a Location header of the form
-     * /api/calm/.../{id} or /api/calm/.../{id}/
-     */
-    private parseIdFromLocation(location: string, endpoint: string): number {
-        const match = /\/(\d+)\/?$/.exec(location);
-        if (!match) {
-            throw new HubClientError(0, `Could not parse location header: ${location}`, endpoint);
-        }
-        return parseInt(match[1], 10);
-    }
-
     /**
      * Converts unknown errors into HubClientError with endpoint context.
      * @param err Unknown thrown value.

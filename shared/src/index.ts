@@ -70,7 +70,6 @@ export {
     type HubDomainCreateResult,
     type HubDomainSummary,
     type HubControlSummary,
-    type HubControlRequirementSummary,
     type CalmHubOptions,
     type ResourceType,
     type ResourceChangeType,
@@ -80,7 +79,12 @@ export {
     constructDocumentId,
     extractDocumentMetadata,
     updateDocumentMetadata,
-    type DocumentMetadata
+    type DocumentMetadata,
+    constructControlDocumentId,
+    extractControlMetadata,
+    updateControlDocumentMetadata,
+    type ControlDocumentMetadata,
+    type ControlDocumentKind
 } from './hub/document-id-utils.js';
 export { computeSemVerBump, compareSemVer, sortSemVer } from './hub/semver.js';
 export {

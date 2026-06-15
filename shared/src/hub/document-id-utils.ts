@@ -79,6 +79,91 @@ export function updateDocumentMetadata(document: string, newDocumentMetadata: Do
     }
 }
 
+// ── Control documents (domain-scoped) ──────────────────────────────────────────
+//
+// Control requirement and configuration documents are addressed by domain + control
+// name (and config name for configurations) rather than namespace + mapping. Their
+// $id encodes the full versioned path served by the User Facing controls API:
+//   requirement:    $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/requirement/versions/$VERSION
+//   configuration:  $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/configurations/$CONFIG/versions/$VERSION
+
+export type ControlDocumentKind = 'requirement' | 'configuration';
+
+export interface ControlDocumentMetadata {
+    rawDocumentId: string;
+    baseUrl: string;
+    domain: string;
+    controlName: string;
+    configName?: string; // present only for configuration documents
+    kind: ControlDocumentKind;
+    version: string;
+}
+
+const CONTROL_REQUIREMENT_ID = /^(.*)\/calm\/domains\/([^/]+)\/controls\/([^/]+)\/requirement\/versions\/([^/]+)$/;
+const CONTROL_CONFIGURATION_ID = /^(.*)\/calm\/domains\/([^/]+)\/controls\/([^/]+)\/configurations\/([^/]+)\/versions\/([^/]+)$/;
+
+function parseControlDocumentId(documentId: string): ControlDocumentMetadata {
+    const configMatch = CONTROL_CONFIGURATION_ID.exec(documentId);
+    if (configMatch) {
+        return {
+            rawDocumentId: configMatch[0],
+            baseUrl: configMatch[1],
+            domain: configMatch[2],
+            controlName: configMatch[3],
+            configName: configMatch[4],
+            kind: 'configuration',
+            version: configMatch[5]
+        };
+    }
+    const requirementMatch = CONTROL_REQUIREMENT_ID.exec(documentId);
+    if (requirementMatch) {
+        return {
+            rawDocumentId: requirementMatch[0],
+            baseUrl: requirementMatch[1],
+            domain: requirementMatch[2],
+            controlName: requirementMatch[3],
+            kind: 'requirement',
+            version: requirementMatch[4]
+        };
+    }
+    throw new Error(`Invalid control document ID format: ${documentId}`);
+}
+
+export function constructControlDocumentId(metadata: ControlDocumentMetadata): string {
+    const base = `${metadata.baseUrl}/calm/domains/${metadata.domain}/controls/${metadata.controlName}`;
+    if (metadata.kind === 'configuration') {
+        if (!metadata.configName) {
+            throw new Error('Invalid control document $id format. Configuration documents require a configName.');
+        }
+        return `${base}/configurations/${metadata.configName}/versions/${metadata.version}`;
+    }
+    return `${base}/requirement/versions/${metadata.version}`;
+}
+
+export function extractControlMetadata(document: string): ControlDocumentMetadata {
+    try {
+        const json = JSON.parse(document);
+        const documentId = json['$id'];
+        if (typeof documentId !== 'string') {
+            throw new Error('Document does not contain a valid \'$id\' field');
+        }
+        return parseControlDocumentId(documentId);
+    } catch (error) {
+        throw new Error(`Failed to parse control document metadata: ${error instanceof Error ? error.message : String(error)}`);
+    }
+}
+
+export function updateControlDocumentMetadata(document: string, newMetadata: ControlDocumentMetadata): string {
+    try {
+        const newDocumentId = constructControlDocumentId(newMetadata);
+        const json = JSON.parse(document);
+        json['$id'] = newDocumentId;
+        return JSON.stringify(json, null, 2);
+    } catch (error) {
+        throw new Error(`Failed to parse control document metadata: ${error instanceof Error ? error.message : String(error)}`);
+    }
+}
+
 export class DocumentMetadataValidationError extends Error {
     constructor(
         public component: string,
