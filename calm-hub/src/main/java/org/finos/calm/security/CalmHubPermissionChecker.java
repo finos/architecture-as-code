@@ -104,9 +104,9 @@ public class CalmHubPermissionChecker {
                                     && permissionSufficient(grant, UserAction.ADMIN));
 
             if (granted) {
-                logger.info("User [{}] AUTHORIZED for GLOBAL admin privileges", username);
+                logger.debug("User [{}] AUTHORIZED for GLOBAL admin privileges", username);
             } else {
-                logger.warn("User [{}] DENIED for GLOBAL admin privileges", username);
+                logger.debug("User [{}] DENIED for GLOBAL admin privileges", username);
             }
             return granted;
         } catch (UserAccessNotFoundException e) {
@@ -128,9 +128,9 @@ public class CalmHubPermissionChecker {
                 : anyAncestorHasGrant(ancestors, grants, action);
 
         if (result) {
-            logger.info("User [{}] AUTHORIZED for [{}] in namespace [{}]", username, action, namespace);
+            logger.debug("User [{}] AUTHORIZED for [{}] in namespace [{}]", username, action, namespace);
         } else {
-            logger.warn("User [{}] DENIED for [{}] in namespace [{}]", username, action, namespace);
+            logger.debug("User [{}] DENIED for [{}] in namespace [{}]", username, action, namespace);
         }
         return result;
     }
@@ -171,9 +171,9 @@ public class CalmHubPermissionChecker {
             boolean result = userAccessStore.getUserAccessForUsername(username).stream()
                     .anyMatch(grant -> grantMatcher.test(grant) && permissionSufficient(grant, action));
             if (result) {
-                logger.info("User [{}] AUTHORIZED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
+                logger.debug("User [{}] AUTHORIZED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
             } else {
-                logger.warn("User [{}] DENIED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
+                logger.debug("User [{}] DENIED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
             }
             return result;
         } catch (UserAccessNotFoundException e) {

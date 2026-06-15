@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,19 +28,40 @@ class TestUserAccessValidatorShould {
     @BeforeEach
     void setUp() {
         validator = new UserAccessValidator(mockUserAccessStore);
+        validator.allowPublicRead = false;
     }
 
     private UserAccess grant(String username, UserAccess.Permission permission, String namespace) {
         return new UserAccess(username, permission, namespace);
     }
 
-    // --- Empty / no-grant cases ---
+    // --- Bypass cases: Optional.empty() means "all namespaces" ---
 
     @Test
-    void return_empty_set_when_user_has_no_grants() {
+    void return_empty_optional_when_allow_public_read_is_true() {
+        validator.allowPublicRead = true;
+
+        assertEquals(Optional.empty(), validator.getReadableNamespaces("alice"));
+    }
+
+    @Test
+    void return_empty_optional_for_global_admin_user() {
+        when(mockUserAccessStore.getGrantsForUser("admin")).thenReturn(List.of(
+                grant("admin", UserAccess.Permission.admin, CalmHubPermissionChecker.GLOBAL_ACCESS)
+        ));
+
+        assertEquals(Optional.empty(), validator.getReadableNamespaces("admin"));
+    }
+
+    // --- No grants: Optional.of(empty set) is distinct from the bypass Optional.empty() ---
+
+    @Test
+    void return_present_empty_set_when_user_has_no_grants() {
         when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
 
-        assertTrue(validator.getReadableNamespaces("alice").isEmpty());
+        Optional<Set<String>> result = validator.getReadableNamespaces("alice");
+        assertTrue(result.isPresent());
+        assertTrue(result.get().isEmpty());
     }
 
     // --- Flat single-level namespaces (backward-compatible) ---
@@ -50,7 +72,7 @@ class TestUserAccessValidatorShould {
                 grant("alice", UserAccess.Permission.read, "finos")
         ));
 
-        assertEquals(Set.of("finos"), validator.getReadableNamespaces("alice"));
+        assertEquals(Optional.of(Set.of("finos")), validator.getReadableNamespaces("alice"));
     }
 
     @Test
@@ -59,7 +81,7 @@ class TestUserAccessValidatorShould {
                 grant("alice", UserAccess.Permission.write, "workshop")
         ));
 
-        assertEquals(Set.of("workshop"), validator.getReadableNamespaces("alice"));
+        assertEquals(Optional.of(Set.of("workshop")), validator.getReadableNamespaces("alice"));
     }
 
     @Test
@@ -69,7 +91,7 @@ class TestUserAccessValidatorShould {
                 grant("alice", UserAccess.Permission.write, "workshop")
         ));
 
-        assertEquals(Set.of("finos", "workshop"), validator.getReadableNamespaces("alice"));
+        assertEquals(Optional.of(Set.of("finos", "workshop")), validator.getReadableNamespaces("alice"));
     }
 
     // --- Wildcard grants included ---
@@ -80,7 +102,7 @@ class TestUserAccessValidatorShould {
                 grant("*", UserAccess.Permission.read, "org")
         ));
 
-        assertEquals(Set.of("org"), validator.getReadableNamespaces("alice"));
+        assertEquals(Optional.of(Set.of("org")), validator.getReadableNamespaces("alice"));
     }
 
     // --- Hierarchical AND rule ---
@@ -93,7 +115,7 @@ class TestUserAccessValidatorShould {
                 grant("bob", UserAccess.Permission.read, "org.ab.cd")
         ));
 
-        assertEquals(Set.of("org", "org.ab", "org.ab.cd"),
+        assertEquals(Optional.of(Set.of("org", "org.ab", "org.ab.cd")),
                 validator.getReadableNamespaces("bob"));
     }
 
@@ -106,7 +128,7 @@ class TestUserAccessValidatorShould {
         ));
 
         // Only "org" is fully readable; "org.ab.cd" fails AND at "org.ab"
-        assertEquals(Set.of("org"), validator.getReadableNamespaces("bob"));
+        assertEquals(Optional.of(Set.of("org")), validator.getReadableNamespaces("bob"));
     }
 
     @Test
@@ -117,7 +139,7 @@ class TestUserAccessValidatorShould {
         ));
 
         // "org.ab.cd" fails AND at "org.ab" (no grant there)
-        assertEquals(Set.of("org"), validator.getReadableNamespaces("carol"));
+        assertEquals(Optional.of(Set.of("org")), validator.getReadableNamespaces("carol"));
     }
 
     @Test
@@ -130,7 +152,7 @@ class TestUserAccessValidatorShould {
         ));
 
         // Domain grant should not appear — it has a null namespace
-        assertEquals(Set.of("org"), validator.getReadableNamespaces("alice"));
+        assertEquals(Optional.of(Set.of("org")), validator.getReadableNamespaces("alice"));
     }
 
     // --- mark/carol/bob worked example ---
@@ -144,7 +166,7 @@ class TestUserAccessValidatorShould {
                 grant("bob", UserAccess.Permission.read, "org.ab.cd")
         ));
 
-        assertEquals(Set.of("org", "org.ab", "org.ab.cd"),
+        assertEquals(Optional.of(Set.of("org", "org.ab", "org.ab.cd")),
                 validator.getReadableNamespaces("bob"));
     }
 
@@ -158,6 +180,6 @@ class TestUserAccessValidatorShould {
         ));
 
         // org.ab.cd has no grant in the combined list → excluded
-        assertEquals(Set.of("org", "org.ab"), validator.getReadableNamespaces("mark"));
+        assertEquals(Optional.of(Set.of("org", "org.ab")), validator.getReadableNamespaces("mark"));
     }
 }

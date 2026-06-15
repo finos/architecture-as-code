@@ -17,12 +17,14 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * Backfills a {@code * read} grant on every namespace that has no wildcard grant,
+ * Backfills a {@code * read} grant on every namespace that has no grants at all,
  * ensuring existing namespaces remain publicly readable after the hierarchical
  * entitlement model is deployed.
  *
  * <p>Runs once at startup via {@link StartupEvent}. The operation is idempotent —
- * if a namespace already has any grant for username {@code *}, it is skipped.
+ * if a namespace already has <em>any</em> existing grant (wildcard or named-user),
+ * it is skipped on the assumption that an administrator has intentionally configured
+ * access for that namespace.
  * Uses the CDI-produced {@link NamespaceStore} and {@link UserAccessStore} interfaces
  * so it works for both MongoDB and Nitrite backends without duplication.
  */

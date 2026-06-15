@@ -21,6 +21,7 @@ import org.mockito.Mockito;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -118,8 +119,8 @@ public class TestMongoUserAccessStoreShould {
 
         List<UserAccess> result = mongoUserAccessStore.getGrantsForUser("alice");
         assertThat(result, hasSize(2));
-        assertThat(result.get(0).getUsername(), is("alice"));
-        assertThat(result.get(1).getUsername(), is("*"));
+        assertThat(result.stream().map(UserAccess::getUsername).toList(),
+                containsInAnyOrder("alice", "*"));
     }
 
     @Test

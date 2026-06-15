@@ -120,8 +120,8 @@ public class TestNitriteUserAccessStoreShould {
 
         List<UserAccess> result = userAccessStore.getGrantsForUser("alice");
         assertThat(result, hasSize(2));
-        assertThat(result.get(0).getUsername(), is("alice"));
-        assertThat(result.get(1).getUsername(), is("*"));
+        assertThat(result.stream().map(UserAccess::getUsername).toList(),
+                containsInAnyOrder("alice", "*"));
     }
 
     @Test
