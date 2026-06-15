@@ -306,6 +306,9 @@ public class MongoMappingControllerIntegration {
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("/calm/domains/security/controls/access-control/requirement/versions/1.0.0"));
+    }
+
+    @Test
     @Order(22)
     void user_facing_get_controls_returns_created_control() {
         given()
