@@ -1,6 +1,7 @@
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import { GroupedSearchResults } from '../model/search.js';
 import { getAuthHeaders } from '../authService.js';
+import { apiClient } from './utils/api-client.js';
 
 export class SearchService {
     private readonly ax: AxiosInstance;
@@ -9,7 +10,7 @@ export class SearchService {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
-            this.ax = axios.create();
+            this.ax = apiClient;
         }
     }
 
