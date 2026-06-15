@@ -48,6 +48,21 @@ describe('StandardVMEdgeFactory', () => {
         expect(edges[0].label).toBeUndefined();
     });
 
+    it('interacts edges use the relationship unique-id when edgeLabelMode="unique-id"', () => {
+        const f = new StandardVMEdgeFactory();
+
+        const rel: CalmRelationshipCanonicalModel = {
+            'unique-id': 'rel-int',
+            'relationship-type': { interacts: { actor: 'actorA', nodes: ['n1', 'n2'] } },
+            description: 'should be ignored'
+        };
+
+        const edges = f.createEdge(rel, makeConfig({ edgeLabelMode: 'unique-id' }));
+        expect(edges).toHaveLength(2);
+        expect(edges[0].label).toBe('rel-int');
+        expect(edges[1].label).toBe('rel-int');
+    });
+
     it('creates a single connects edge and prefers description when present', () => {
         const f = new StandardVMEdgeFactory();
 
@@ -62,6 +77,22 @@ describe('StandardVMEdgeFactory', () => {
         const edges = f.createEdge(rel, makeConfig());
         expect(edges).toHaveLength(1);
         expect(edges[0]).toMatchObject({ id: 'r2', source: 's1', target: 'd1', label: 'connects-desc' });
+    });
+
+    it('connects edge uses the relationship unique-id when edgeLabelMode="unique-id"', () => {
+        const f = new StandardVMEdgeFactory();
+
+        const rel: CalmRelationshipCanonicalModel = {
+            'unique-id': 'r2',
+            'relationship-type': {
+                connects: { source: { node: 's1' }, destination: { node: 'd1' } }
+            },
+            description: 'should be ignored'
+        };
+
+        const edges = f.createEdge(rel, makeConfig({ edgeLabelMode: 'unique-id' }));
+        expect(edges).toHaveLength(1);
+        expect(edges[0]).toMatchObject({ id: 'r2', source: 's1', target: 'd1', label: 'r2' });
     });
 
     it('connects edge label falls back to iface names when no description', () => {

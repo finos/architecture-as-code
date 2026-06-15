@@ -126,4 +126,31 @@ describe('edge-builder', () => {
         const normalOut = buildEdges(rels, false, 'description', false, ifaceNames, nodesById);
         expect(normalOut).toHaveLength(3); // All original edges
     });
+
+    it('merges collapsed edge labels from unique-ids when edgeLabelMode="unique-id"', () => {
+        const example = {
+            createEdge(rel: CalmRelationshipCanonicalModel): VMEdge[] {
+                if (rel['unique-id'] === 'r1') {
+                    return [{ id: 'r1', source: 'a', target: 'b' }];
+                } else if (rel['unique-id'] === 'r2') {
+                    return [{ id: 'r2', source: 'a', target: 'b' }];
+                }
+                return [];
+            }
+        };
+
+        VMFactoryProvider.setFactories(undefined, example as VMEdgeFactory);
+
+        const rels: CalmRelationshipCanonicalModel[] = [
+            { 'unique-id': 'r1', 'relationship-type': { interacts: { actor: 'u', nodes: [] } } },
+            { 'unique-id': 'r2', 'relationship-type': { interacts: { actor: 'u', nodes: [] } } }
+        ];
+
+        const collapsedOut = buildEdges(rels, false, 'unique-id', true, new Map(), new Map());
+
+        const collapsedEdge = collapsedOut.find(e => e.source === 'a' && e.target === 'b');
+        expect(collapsedEdge).toBeDefined();
+        expect(collapsedEdge!.id).toBe('r1|r2');
+        expect(collapsedEdge!.label).toBe('r1, r2');
+    });
 });
