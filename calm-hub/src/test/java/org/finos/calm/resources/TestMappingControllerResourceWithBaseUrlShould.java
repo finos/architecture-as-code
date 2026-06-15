@@ -25,6 +25,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -302,10 +303,11 @@ public class TestMappingControllerResourceWithBaseUrlShould {
     }
 
     /**
-     * POST to /calm persists the document including its $id field while preserving other content.
+     * POST to /calm strips the (already verified) $id before persisting, while preserving all other
+     * document content. The canonical $id is re-derived on read, so it must not be stored.
      */
     @Test
-    void post_preserves_id_and_document_content() throws Exception {
+    void post_strips_id_but_preserves_document_content() throws Exception {
         when(mockMappingStore.getMapping("finos", "api-gateway")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("api-gateway"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
@@ -328,8 +330,8 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 .statusCode(201);
 
         verify(mockPatternStore).createPatternForNamespace(any(), eq("finos"));
-        assertThat("store receives the $id field",
-                captor.getValue().getPatternJson(), containsString("$id"));
+        assertThat("store does not receive the $id field (stripped before persistence)",
+                captor.getValue().getPatternJson(), not(containsString("$id")));
         assertThat("store receives the full document content",
                 captor.getValue().getPatternJson(), containsString("my-pattern"));
     }

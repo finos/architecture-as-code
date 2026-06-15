@@ -68,7 +68,7 @@ public class MongoMappingControllerIntegration {
     @Test
     @Order(2)
     void get_specific_version_contains_id_field() {
-        // Verify the stored document retains its $id (no longer stripped on write)
+        // Verify the response carries a $id (stripped before storage, re-derived on read)
         given()
                 .when().get("/calm/namespaces/finos/patterns/test-pattern/versions/1.0.0")
                 .then()
@@ -183,7 +183,7 @@ public class MongoMappingControllerIntegration {
         given()
                 .body("{}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/bananas/test-resource")
+                .when().post("/calm/namespaces/finos/bananas/test-resource/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("Unsupported resource type"));
@@ -298,7 +298,7 @@ public class MongoMappingControllerIntegration {
     @Test
     @Order(21)
     void user_facing_create_control_returns_201_with_name_based_location() {
-        String payload = "{\"description\":\"Ensure proper access control\",\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/requirement/versions/1.0.0\"}";
+        String payload = "{\"type\":\"requirement\",\"description\":\"Ensure proper access control\",\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/requirement/versions/1.0.0\"}";
         given()
                 .header("Content-Type", "application/json")
                 .body(payload)

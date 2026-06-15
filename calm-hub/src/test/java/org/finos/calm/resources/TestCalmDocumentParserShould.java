@@ -221,6 +221,42 @@ class TestCalmDocumentParserShould {
     }
 
     // -------------------------------------------------------------------------
+    // stripId
+    // -------------------------------------------------------------------------
+
+    @Test
+    void strip_removes_top_level_id_and_keeps_other_fields() {
+        String original = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/x/versions/1.0.0\",\"name\":\"x\"}";
+        String stripped = parser.stripId(original);
+        assertFalse(stripped.contains("\"$id\""));
+        assertTrue(stripped.contains("\"name\":\"x\""));
+    }
+
+    @Test
+    void strip_returns_unchanged_when_no_id_present() {
+        String original = "{\"name\":\"x\"}";
+        assertEquals(original, parser.stripId(original));
+    }
+
+    @Test
+    void strip_returns_unchanged_when_blank() {
+        assertEquals("", parser.stripId(""));
+        assertNull(parser.stripId(null));
+    }
+
+    @Test
+    void strip_returns_unchanged_when_not_a_json_object() {
+        String array = "[1,2,3]";
+        assertEquals(array, parser.stripId(array));
+    }
+
+    @Test
+    void strip_returns_unchanged_when_not_valid_json() {
+        String invalid = "{not json";
+        assertEquals(invalid, parser.stripId(invalid));
+    }
+
+    // -------------------------------------------------------------------------
     // extractStringField (title / description)
     // -------------------------------------------------------------------------
 

@@ -308,6 +308,34 @@ public class CalmDocumentParser {
         return json;
     }
 
+    /**
+     * Returns the document with any top-level {@code $id} field removed.
+     *
+     * <p>The {@code $id} is verified against the canonical URL before persistence, but it must not
+     * be stored: MongoDB rejects documents carrying a top-level {@code $}-prefixed field (a bare
+     * {@code $id} is only valid inside a DBRef, raising write error code 55), and the canonical
+     * {@code $id} is re-derived on read via {@link #rewriteId}. Stripping keeps a single source of
+     * truth (the storage coordinates) and behaves identically across the Mongo and Nitrite stores.</p>
+     *
+     * <p>Returns the original JSON unchanged when it is blank, not a JSON object, or has no
+     * {@code $id} field.</p>
+     */
+    public String stripId(String json) {
+        if (json == null || json.isBlank()) {
+            return json;
+        }
+        try {
+            JsonNode tree = OBJECT_MAPPER.readTree(json);
+            if (tree.isObject() && tree.has("$id")) {
+                ((ObjectNode) tree).remove("$id");
+                return OBJECT_MAPPER.writeValueAsString(tree);
+            }
+        } catch (JsonProcessingException e) {
+            logger.warn("Could not strip $id from JSON, using original", e);
+        }
+        return json;
+    }
+
     // -------------------------------------------------------------------------
     // Type helpers
     // -------------------------------------------------------------------------
