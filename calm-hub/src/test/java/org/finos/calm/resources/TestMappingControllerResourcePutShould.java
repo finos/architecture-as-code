@@ -16,6 +16,8 @@ import org.finos.calm.security.CalmHubPermissionChecker;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -146,5 +148,58 @@ public class TestMappingControllerResourcePutShould {
                 .body(versionedDoc("invalid", "patterns", "api-gateway", "1.0.0")).when()
                 .put("/calm")
                 .then().statusCode(404);
+    }
+
+    @Test
+    void return_400_when_put_body_is_blank() {
+        given().header("Content-Type", "application/json")
+                .body("   ")
+                .when().put("/calm")
+                .then().statusCode(400).body(containsString("Invalid JSON"));
+    }
+
+    @Test
+    void return_400_when_put_body_is_invalid_json() {
+        given().header("Content-Type", "application/json")
+                .body("{invalid-json")
+                .when().put("/calm")
+                .then().statusCode(400);
+    }
+
+    @Test
+    void return_403_when_put_is_forbidden_for_namespace() {
+        when(mockPermissionChecker.canWrite(any(), eq("finos"))).thenReturn(false);
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0"))
+                .when().put("/calm")
+                .then().statusCode(403).body(containsString("finos"));
+    }
+
+    @Test
+    void return_404_when_namespace_not_found_during_update_store_call() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api-gateway")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(existing);
+        doThrow(new NamespaceNotFoundException()).when(mockPatternStore)
+                .updatePatternForVersion(any(Pattern.class));
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0"))
+                .when().put("/calm")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_500_when_unexpected_error_during_update() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api-gateway")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(existing);
+        doThrow(new RuntimeException("unexpected store failure")).when(mockPatternStore)
+                .updatePatternForVersion(any(Pattern.class));
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0"))
+                .when().put("/calm")
+                .then().statusCode(500);
     }
 }

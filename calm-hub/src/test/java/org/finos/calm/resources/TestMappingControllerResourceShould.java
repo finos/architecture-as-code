@@ -1011,4 +1011,392 @@ public class TestMappingControllerResourceShould {
         given().when().get("/calm/domains/security/controls/access-control/configurations/nonexistent/versions")
                 .then().statusCode(404);
     }
+
+    // =========================================================================
+    // POST /calm — null body, invalid JSON, and permission-denied branches
+    // =========================================================================
+
+    @Test
+    void return_400_when_post_calm_body_is_blank() {
+        given().header("Content-Type", "application/json")
+                .body("   ")
+                .when().post("/calm")
+                .then().statusCode(400).body(containsString("Invalid JSON"));
+    }
+
+    @Test
+    void return_400_when_post_calm_body_is_invalid_json() {
+        given().header("Content-Type", "application/json")
+                .body("{invalid-json")
+                .when().post("/calm")
+                .then().statusCode(400);
+    }
+
+    @Test
+    void return_400_when_post_calm_has_malformed_domain_control_id() {
+        // $id starts with domain prefix but the path structure is invalid
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/bad-format\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm")
+                .then().statusCode(400);
+    }
+
+    @Test
+    void return_403_when_writing_requirement_to_domain_without_permission() {
+        when(mockPermissionChecker.canWriteByDomain(any(), eq("security"))).thenReturn(false);
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/my-ctrl/requirement/versions/1.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm")
+                .then().statusCode(403).body(containsString("security"));
+    }
+
+    @Test
+    void return_403_when_writing_configuration_to_domain_without_permission() {
+        when(mockPermissionChecker.canWriteByDomain(any(), eq("security"))).thenReturn(false);
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/my-ctrl/configurations/my-cfg/versions/1.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm")
+                .then().statusCode(403).body(containsString("security"));
+    }
+
+    @Test
+    void return_403_when_writing_to_namespace_without_write_permission() {
+        when(mockPermissionChecker.canWrite(any(), eq("finos"))).thenReturn(false);
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "patterns", "my-pattern", "1.0.0"))
+                .when().post("/calm")
+                .then().statusCode(403).body(containsString("finos"));
+    }
+
+    // =========================================================================
+    // POST /calm/namespaces/{ns}/{type}/{name}/versions/{version} edge cases
+    // =========================================================================
+
+    @Test
+    void return_400_when_versioned_post_has_invalid_resource_type() {
+        given().header("Content-Type", "application/json")
+                .body("{}")
+                .when().post("/calm/namespaces/finos/bananas/my-res/versions/1.0.0")
+                .then().statusCode(400).body(containsString("Unsupported resource type"));
+    }
+
+    @Test
+    void return_400_when_versioned_post_body_is_blank() throws Exception {
+        when(mockMappingStore.getMapping("finos", "my-res")).thenThrow(new MappingNotFoundException());
+        given().header("Content-Type", "application/json")
+                .body("   ")
+                .when().post("/calm/namespaces/finos/patterns/my-res/versions/1.0.0")
+                .then().statusCode(400);
+    }
+
+    @Test
+    void return_404_when_namespace_not_found_on_versioned_post_via_namespace_exception() throws Exception {
+        when(mockMappingStore.getMapping("badns", "v-test")).thenThrow(new NamespaceNotFoundException());
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("badns", "patterns", "v-test", "1.0.0"))
+                .when().post("/calm/namespaces/badns/patterns/v-test/versions/1.0.0")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // GET list versions — additional error cases
+    // =========================================================================
+
+    @Test
+    void return_400_when_list_versions_has_invalid_resource_type() {
+        given().when().get("/calm/namespaces/finos/bananas/my-res/versions")
+                .then().statusCode(400).body(containsString("Unsupported resource type"));
+    }
+
+    @Test
+    void return_404_when_namespace_exception_on_list_versions() throws Exception {
+        when(mockMappingStore.getMapping("badns", "api-gateway")).thenThrow(new NamespaceNotFoundException());
+        given().when().get("/calm/namespaces/badns/patterns/api-gateway/versions")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // GET specific version — invalid resource type
+    // =========================================================================
+
+    @Test
+    void return_400_when_get_version_has_invalid_resource_type() {
+        given().when().get("/calm/namespaces/finos/bananas/my-res/versions/1.0.0")
+                .then().statusCode(400).body(containsString("Unsupported resource type"));
+    }
+
+    // =========================================================================
+    // createNewResource — NamespaceNotFoundException from createMapping
+    // =========================================================================
+
+    @Test
+    void return_404_when_namespace_not_found_in_mapping_store_on_create() throws Exception {
+        when(mockMappingStore.getMapping("badns", "new-res")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("badns"), eq("new-res"), eq(ResourceType.PATTERN), eq(0)))
+                .thenThrow(new NamespaceNotFoundException());
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("badns", "patterns", "new-res", "1.0.0"))
+                .when().post("/calm")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // createDomain — reserved domain name
+    // =========================================================================
+
+    @Test
+    void return_400_when_creating_domain_with_reserved_name_global() {
+        given().header("Content-Type", "application/json")
+                .body("{\"name\":\"GLOBAL\"}")
+                .when().post("/calm/domains")
+                .then().statusCode(400).body(containsString("reserved"));
+    }
+
+    // =========================================================================
+    // getRequirementVersionsByControlName — error cases
+    // =========================================================================
+
+    @Test
+    void return_404_when_domain_not_found_on_requirement_versions() throws Exception {
+        when(mockControlStore.getControlsForDomain("unknown")).thenThrow(new DomainNotFoundException("unknown"));
+        given().when().get("/calm/domains/unknown/controls/access-control/requirement/versions")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // getRequirementForVersionByControlName — error cases
+    // =========================================================================
+
+    @Test
+    void return_404_when_domain_not_found_on_requirement_at_version() throws Exception {
+        when(mockControlStore.getControlsForDomain("unknown")).thenThrow(new DomainNotFoundException("unknown"));
+        given().when().get("/calm/domains/unknown/controls/access-control/requirement/versions/1.0.0")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_404_when_control_not_found_on_requirement_at_version() throws Exception {
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(Collections.emptyList());
+        given().when().get("/calm/domains/security/controls/nonexistent/requirement/versions/1.0.0")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_404_when_requirement_version_not_found() throws Exception {
+        ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+        when(mockControlStore.getRequirementForVersion("security", 5, "9.9.9"))
+                .thenThrow(new ControlRequirementVersionNotFoundException());
+        given().when().get("/calm/domains/security/controls/access-control/requirement/versions/9.9.9")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // getConfigurationsForControlByName — error cases
+    // =========================================================================
+
+    @Test
+    void return_404_when_domain_not_found_on_get_configurations() throws Exception {
+        when(mockControlStore.getControlsForDomain("unknown")).thenThrow(new DomainNotFoundException("unknown"));
+        given().when().get("/calm/domains/unknown/controls/access-control/configurations")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_404_when_control_not_found_on_get_configurations() throws Exception {
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(Collections.emptyList());
+        given().when().get("/calm/domains/security/controls/nonexistent/configurations")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // getConfigurationVersionsByControlName — error cases
+    // =========================================================================
+
+    @Test
+    void return_404_when_domain_not_found_on_get_config_versions() throws Exception {
+        when(mockControlStore.getControlsForDomain("unknown")).thenThrow(new DomainNotFoundException("unknown"));
+        given().when().get("/calm/domains/unknown/controls/access-control/configurations/my-cfg/versions")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_404_when_control_not_found_on_get_config_versions() throws Exception {
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(Collections.emptyList());
+        given().when().get("/calm/domains/security/controls/nonexistent/configurations/my-cfg/versions")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // getConfigurationForVersionByControlName — error cases
+    // =========================================================================
+
+    @Test
+    void return_404_when_domain_not_found_on_get_config_at_version() throws Exception {
+        when(mockControlStore.getControlsForDomain("unknown")).thenThrow(new DomainNotFoundException("unknown"));
+        given().when().get("/calm/domains/unknown/controls/access-control/configurations/my-cfg/versions/1.0.0")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_404_when_control_not_found_on_get_config_at_version() throws Exception {
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(Collections.emptyList());
+        given().when().get("/calm/domains/security/controls/nonexistent/configurations/my-cfg/versions/1.0.0")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_404_when_config_not_found_on_get_config_at_version() throws Exception {
+        ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(Collections.emptyList());
+        given().when().get("/calm/domains/security/controls/access-control/configurations/nonexistent-cfg/versions/1.0.0")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_404_when_config_version_not_found() throws Exception {
+        ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(new ControlConfigDetail(10, "tls-config")));
+        when(mockControlStore.getConfigurationForVersion("security", 5, 10, "9.9.9"))
+                .thenThrow(new ControlConfigurationVersionNotFoundException());
+        given().when().get("/calm/domains/security/controls/access-control/configurations/tls-config/versions/9.9.9")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // handleControlRequirementPost — additional error cases (via path endpoint)
+    // =========================================================================
+
+    @Test
+    void return_400_when_requirement_path_post_body_is_blank() {
+        given().header("Content-Type", "application/json")
+                .body("   ")
+                .when().post("/calm/domains/security/controls/access-control/requirement/versions/1.0.0")
+                .then().statusCode(400);
+    }
+
+    @Test
+    void return_409_when_requirement_version_already_exists() throws Exception {
+        ControlDetail existing = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(existing));
+        doThrow(new ControlRequirementVersionExistsException()).when(mockControlStore)
+                .createRequirementForVersion(eq("security"), eq(5), eq("2.0.0"), any(CreateControlRequirement.class));
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/requirement/versions/2.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/access-control/requirement/versions/2.0.0")
+                .then().statusCode(409).body(containsString("already exists"));
+    }
+
+    @Test
+    void return_404_when_control_not_found_adding_requirement_version() throws Exception {
+        ControlDetail existing = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(existing));
+        doThrow(new ControlNotFoundException()).when(mockControlStore)
+                .createRequirementForVersion(eq("security"), eq(5), eq("2.0.0"), any(CreateControlRequirement.class));
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/requirement/versions/2.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/access-control/requirement/versions/2.0.0")
+                .then().statusCode(404);
+    }
+
+    // =========================================================================
+    // handleControlConfigurationPost — additional error cases (via path endpoint)
+    // =========================================================================
+
+    @Test
+    void return_400_when_config_path_post_body_is_blank() {
+        given().header("Content-Type", "application/json")
+                .body("   ")
+                .when().post("/calm/domains/security/controls/access-control/configurations/my-cfg/versions/1.0.0")
+                .then().statusCode(400);
+    }
+
+    @Test
+    void return_400_when_config_path_post_has_no_id() {
+        given().header("Content-Type", "application/json")
+                .body("{}")
+                .when().post("/calm/domains/security/controls/access-control/configurations/my-cfg/versions/1.0.0")
+                .then().statusCode(400).body(containsString("$id is required"));
+    }
+
+    @Test
+    void return_400_when_config_path_post_id_mismatches_path() {
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/other-ctrl/configurations/my-cfg/versions/1.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/access-control/configurations/my-cfg/versions/1.0.0")
+                .then().statusCode(400).body(containsString("does not match"));
+    }
+
+    @Test
+    void return_400_when_config_path_post_first_version_is_not_1_0_0_for_new_config() throws Exception {
+        ControlDetail control = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(Collections.emptyList());
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/configurations/new-cfg/versions/2.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/access-control/configurations/new-cfg/versions/2.0.0")
+                .then().statusCode(400).body(containsString("first version"));
+    }
+
+    @Test
+    void return_409_when_config_version_already_exists() throws Exception {
+        ControlDetail control = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(new ControlConfigDetail(10, "tls-config")));
+        doThrow(new ControlConfigurationVersionExistsException()).when(mockControlStore)
+                .createConfigurationForVersion(eq("security"), eq(5), eq(10), eq("2.0.0"), any(CreateControlConfiguration.class));
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/configurations/tls-config/versions/2.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/access-control/configurations/tls-config/versions/2.0.0")
+                .then().statusCode(409).body(containsString("already exists"));
+    }
+
+    @Test
+    void return_404_when_config_not_found_adding_config_version() throws Exception {
+        ControlDetail control = new ControlDetail(5, "access-control", "Desc");
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(new ControlConfigDetail(10, "tls-config")));
+        doThrow(new ControlConfigurationNotFoundException()).when(mockControlStore)
+                .createConfigurationForVersion(eq("security"), eq(5), eq(10), eq("2.0.0"), any(CreateControlConfiguration.class));
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/configurations/tls-config/versions/2.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/access-control/configurations/tls-config/versions/2.0.0")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_404_when_domain_not_found_on_config_path_post() throws Exception {
+        when(mockControlStore.getControlsForDomain("unknown")).thenThrow(new DomainNotFoundException("unknown"));
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/unknown/controls/access-control/configurations/my-cfg/versions/1.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/unknown/controls/access-control/configurations/my-cfg/versions/1.0.0")
+                .then().statusCode(404);
+    }
+
+    @Test
+    void return_404_when_control_not_found_on_config_path_post() throws Exception {
+        when(mockControlStore.getControlsForDomain("security")).thenReturn(Collections.emptyList());
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/unknown-ctrl/configurations/my-cfg/versions/1.0.0\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm/domains/security/controls/unknown-ctrl/configurations/my-cfg/versions/1.0.0")
+                .then().statusCode(404);
+    }
 }
