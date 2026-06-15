@@ -125,10 +125,10 @@ export class CalmHubClient {
      * @returns Created namespace result with location.
      */
     async createNamespace(name: string, description: string): Promise<HubNamespaceCreateResult> {
-        const endpoint = 'POST /calm/namespaces';
+        const endpoint = 'POST /api/calm/namespaces';
         try {
-            const response = await this.ax.post('/calm/namespaces', { name, description });
-            const location = (response.headers['location'] as string | undefined) ?? `/calm/namespaces/${name}`;
+            const response = await this.ax.post('/api/calm/namespaces', { name, description });
+            const location = (response.headers['location'] as string | undefined) ?? `/api/calm/namespaces/${name}`;
             return { name, location };
         } catch (err) {
             throw this.wrapError(err, endpoint);
@@ -140,9 +140,9 @@ export class CalmHubClient {
      * @returns Namespace summaries.
      */
     async listNamespaces(): Promise<HubNamespaceSummary[]> {
-        const endpoint = 'GET /calm/namespaces';
+        const endpoint = 'GET /api/calm/namespaces';
         try {
-            const response = await this.ax.get('/calm/namespaces');
+            const response = await this.ax.get('/api/calm/namespaces');
             const values: HubNamespaceSummary[] = response.data?.values ?? [];
             return values;
         } catch (err) {
@@ -166,9 +166,9 @@ export class CalmHubClient {
         description: string,
         architectureJson: string
     ): Promise<HubCreateResult> {
-        const endpoint = `POST /calm/namespaces/${namespace}/architectures`;
+        const endpoint = `POST /api/calm/namespaces/${namespace}/architectures`;
         try {
-            const response = await this.ax.post(`/calm/namespaces/${namespace}/architectures`, {
+            const response = await this.ax.post(`/api/calm/namespaces/${namespace}/architectures`, {
                 name,
                 description,
                 architectureJson
@@ -198,10 +198,10 @@ export class CalmHubClient {
         description: string,
         architectureJson: string
     ): Promise<HubCreateResult> {
-        const endpoint = `POST /calm/namespaces/${namespace}/architectures/${id}/versions/${version}`;
+        const endpoint = `POST /api/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`;
         try {
             const response = await this.ax.post(
-                `/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`,
+                `/api/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`,
                 { name, description, architectureJson }
             );
             const location = response.headers['location'] as string;
@@ -217,17 +217,17 @@ export class CalmHubClient {
      * @returns Architecture summaries.
      */
     async listArchitectures(namespace: string): Promise<HubArchitectureSummary[]> {
-        const endpoint = `GET /calm/namespaces/${namespace}/architectures`;
+        const endpoint = `GET /api/calm/namespaces/${namespace}/architectures`;
         try {
-            const response = await this.ax.get(`/calm/namespaces/${namespace}/architectures`);
+            const response = await this.ax.get(`/api/calm/namespaces/${namespace}/architectures`);
             const items: { id: number; name: string; description?: string }[] =
                 response.data?.values ?? [];
             const summaries = await Promise.all(
                 items.map(async (item) => {
-                    const versionsEndpoint = `GET /calm/namespaces/${namespace}/architectures/${item.id}/versions`;
+                    const versionsEndpoint = `GET /api/calm/namespaces/${namespace}/architectures/${item.id}/versions`;
                     try {
                         const vRes = await this.ax.get(
-                            `/calm/namespaces/${namespace}/architectures/${item.id}/versions`
+                            `/api/calm/namespaces/${namespace}/architectures/${item.id}/versions`
                         );
                         const versions: string[] = vRes.data?.values ?? [];
                         return { id: item.id, name: item.name, description: item.description, versions };
@@ -251,10 +251,10 @@ export class CalmHubClient {
      * @returns Architecture document.
      */
     async pullArchitecture(namespace: string, id: number, version: string): Promise<object> {
-        const endpoint = `GET /calm/namespaces/${namespace}/architectures/${id}/versions/${version}`;
+        const endpoint = `GET /api/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`;
         try {
             const response = await this.ax.get(
-                `/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`
+                `/api/calm/namespaces/${namespace}/architectures/${id}/versions/${version}`
             );
             return response.data as object;
         } catch (err) {
@@ -278,9 +278,9 @@ export class CalmHubClient {
         description: string,
         patternJson: string
     ): Promise<HubCreateResult> {
-        const endpoint = `POST /calm/namespaces/${namespace}/patterns`;
+        const endpoint = `POST /api/calm/namespaces/${namespace}/patterns`;
         try {
-            const response = await this.ax.post(`/calm/namespaces/${namespace}/patterns`, {
+            const response = await this.ax.post(`/api/calm/namespaces/${namespace}/patterns`, {
                 name,
                 description,
                 patternJson
@@ -310,10 +310,10 @@ export class CalmHubClient {
         description: string,
         patternJson: string
     ): Promise<HubCreateResult> {
-        const endpoint = `POST /calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
+        const endpoint = `POST /api/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
         try {
             const response = await this.ax.post(
-                `/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`,
+                `/api/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`,
                 { name, description, patternJson }
             );
             const location = response.headers['location'] as string;
@@ -329,17 +329,17 @@ export class CalmHubClient {
      * @returns Pattern summaries.
      */
     async listPatterns(namespace: string): Promise<HubPatternSummary[]> {
-        const endpoint = `GET /calm/namespaces/${namespace}/patterns`;
+        const endpoint = `GET /api/calm/namespaces/${namespace}/patterns`;
         try {
-            const response = await this.ax.get(`/calm/namespaces/${namespace}/patterns`);
+            const response = await this.ax.get(`/api/calm/namespaces/${namespace}/patterns`);
             const items: { id: number; name: string; description?: string }[] =
                 response.data?.values ?? [];
             const summaries = await Promise.all(
                 items.map(async (item) => {
-                    const versionsEndpoint = `GET /calm/namespaces/${namespace}/patterns/${item.id}/versions`;
+                    const versionsEndpoint = `GET /api/calm/namespaces/${namespace}/patterns/${item.id}/versions`;
                     try {
                         const vRes = await this.ax.get(
-                            `/calm/namespaces/${namespace}/patterns/${item.id}/versions`
+                            `/api/calm/namespaces/${namespace}/patterns/${item.id}/versions`
                         );
                         const versions: string[] = vRes.data?.values ?? [];
                         return { id: item.id, name: item.name, description: item.description, versions };
@@ -363,10 +363,10 @@ export class CalmHubClient {
      * @returns Pattern document.
      */
     async pullPattern(namespace: string, id: number, version: string): Promise<object> {
-        const endpoint = `GET /calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
+        const endpoint = `GET /api/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`;
         try {
             const response = await this.ax.get(
-                `/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`
+                `/api/calm/namespaces/${namespace}/patterns/${id}/versions/${version}`
             );
             return response.data as object;
         } catch (err) {
@@ -390,9 +390,9 @@ export class CalmHubClient {
         description: string,
         standardJson: string
     ): Promise<HubCreateResult> {
-        const endpoint = `POST /calm/namespaces/${namespace}/standards`;
+        const endpoint = `POST /api/calm/namespaces/${namespace}/standards`;
         try {
-            const response = await this.ax.post(`/calm/namespaces/${namespace}/standards`, {
+            const response = await this.ax.post(`/api/calm/namespaces/${namespace}/standards`, {
                 name,
                 description,
                 standardJson
@@ -422,10 +422,10 @@ export class CalmHubClient {
         description: string,
         standardJson: string
     ): Promise<HubCreateResult> {
-        const endpoint = `POST /calm/namespaces/${namespace}/standards/${id}/versions/${version}`;
+        const endpoint = `POST /api/calm/namespaces/${namespace}/standards/${id}/versions/${version}`;
         try {
             const response = await this.ax.post(
-                `/calm/namespaces/${namespace}/standards/${id}/versions/${version}`,
+                `/api/calm/namespaces/${namespace}/standards/${id}/versions/${version}`,
                 { name, description, standardJson }
             );
             const location = response.headers['location'] as string;
@@ -441,17 +441,17 @@ export class CalmHubClient {
      * @returns Standard summaries.
      */
     async listStandards(namespace: string): Promise<HubStandardSummary[]> {
-        const endpoint = `GET /calm/namespaces/${namespace}/standards`;
+        const endpoint = `GET /api/calm/namespaces/${namespace}/standards`;
         try {
-            const response = await this.ax.get(`/calm/namespaces/${namespace}/standards`);
+            const response = await this.ax.get(`/api/calm/namespaces/${namespace}/standards`);
             const items: { id: number; name: string; description?: string }[] =
                 response.data?.values ?? [];
             const summaries = await Promise.all(
                 items.map(async (item) => {
-                    const versionsEndpoint = `GET /calm/namespaces/${namespace}/standards/${item.id}/versions`;
+                    const versionsEndpoint = `GET /api/calm/namespaces/${namespace}/standards/${item.id}/versions`;
                     try {
                         const vRes = await this.ax.get(
-                            `/calm/namespaces/${namespace}/standards/${item.id}/versions`
+                            `/api/calm/namespaces/${namespace}/standards/${item.id}/versions`
                         );
                         const versions: string[] = vRes.data?.values ?? [];
                         return { id: item.id, name: item.name, description: item.description, versions };
@@ -475,10 +475,10 @@ export class CalmHubClient {
      * @returns Standard document.
      */
     async pullStandard(namespace: string, id: number, version: string): Promise<object> {
-        const endpoint = `GET /calm/namespaces/${namespace}/standards/${id}/versions/${version}`;
+        const endpoint = `GET /api/calm/namespaces/${namespace}/standards/${id}/versions/${version}`;
         try {
             const response = await this.ax.get(
-                `/calm/namespaces/${namespace}/standards/${id}/versions/${version}`
+                `/api/calm/namespaces/${namespace}/standards/${id}/versions/${version}`
             );
             return response.data as object;
         } catch (err) {
@@ -605,10 +605,6 @@ export class CalmHubClient {
         requirementJson: string
     ): Promise<HubCreateResult> {
         const endpoint = `POST /api/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`;
-        // print debug all parameters except requirementJson which may be large
-        console.debug(`pushControlRequirement called with domain=${domain}, controlId=${controlId}, version=${version}, name=${name}, description=${description}`);
-        // print debug first 200 characters of requirementJson
-        console.debug(`requirementJson: ${requirementJson.substring(0, 200)}${requirementJson.length > 200 ? '... (truncated)' : ''}`);
         try {
             const response = await this.ax.post(
                 `/api/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`,
@@ -763,7 +759,7 @@ export class CalmHubClient {
 
     /**
      * Parses id and version from a Location header of the form
-     * /calm/namespaces/{ns}/{resource-type}/{id}/versions/{version}
+     * /api/calm/namespaces/{ns}/{resource-type}/{id}/versions/{version}
      */
     private parseVersionedLocation(location: string, endpoint: string): HubCreateResult {
         const match = /\/(\d+)\/versions\/([^/]+)$/.exec(location);
