@@ -25,7 +25,6 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -69,25 +68,6 @@ public class TestMappingControllerResourceWithBaseUrlShould {
         when(mockPermissionChecker.canWriteByDomain(any(), any())).thenReturn(true);
     }
 
-    /** GET latest rewrites $id to the versionless canonical URL. */
-    @Test
-    void rewrite_id_with_versionless_url_on_get_latest() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("api-gateway").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class)))
-                .thenReturn("{ \"$id\": \"old-id\", \"name\": \"original\" }");
-
-        given()
-                .when()
-                .get("/calm/namespaces/finos/patterns/api-gateway")
-                .then()
-                .statusCode(200)
-                .body(containsString("https://hub.example.com/calm/namespaces/finos/patterns/api-gateway"))
-                .body(containsString("original"));
-    }
-
     /** GET specific version rewrites $id to the versioned canonical URL. */
     @Test
     void rewrite_id_with_versioned_url_on_get_version() throws Exception {
@@ -117,7 +97,8 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build();
         when(mockPatternStore.createPatternForNamespace(any(), eq("finos"))).thenReturn(pattern);
 
-        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\" }";
+        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\","
+                + " \"title\": \"API Gateway Pattern\" }";
 
         given()
                 .header("Content-Type", "application/json")
@@ -157,38 +138,6 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 .body(containsString("$id"));
     }
 
-    @Test
-    void leave_non_object_json_unchanged_when_base_url_configured() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("api-gateway").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("[1, 2, 3]");
-
-        given()
-                .when()
-                .get("/calm/namespaces/finos/patterns/api-gateway")
-                .then()
-                .statusCode(200)
-                .body(containsString("[1, 2, 3]"));
-    }
-
-    @Test
-    void leave_invalid_json_unchanged_when_base_url_configured() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("api-gateway").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("not-json");
-
-        given()
-                .when()
-                .get("/calm/namespaces/finos/patterns/api-gateway")
-                .then()
-                .statusCode(200)
-                .body(containsString("not-json"));
-    }
-
     /**
      * POST to /calm with a versioned $id of 2.0.0 on a brand-new resource is rejected with 400
      * because the first version must be 1.0.0.
@@ -223,7 +172,8 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build();
         when(mockPatternStore.createPatternForNamespace(any(), eq("finos"))).thenReturn(pattern);
 
-        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\" }";
+        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\","
+                + " \"title\": \"API Gateway Pattern\" }";
 
         given()
                 .header("Content-Type", "application/json")
@@ -249,7 +199,8 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build();
         when(mockPatternStore.createPatternForNamespace(any(), eq("finos"))).thenReturn(pattern);
 
-        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\" }";
+        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\","
+                + " \"title\": \"API Gateway Pattern\" }";
 
         given()
                 .header("Content-Type", "application/json")
@@ -351,10 +302,10 @@ public class TestMappingControllerResourceWithBaseUrlShould {
     }
 
     /**
-     * POST to /calm strips the top-level $id before persistence while preserving the rest of the document.
+     * POST to /calm persists the document including its $id field while preserving other content.
      */
     @Test
-    void post_strips_id_but_preserves_document_content() throws Exception {
+    void post_preserves_id_and_document_content() throws Exception {
         when(mockMappingStore.getMapping("finos", "api-gateway")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("api-gateway"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
@@ -365,7 +316,8 @@ public class TestMappingControllerResourceWithBaseUrlShould {
         ArgumentCaptor<CreatePatternRequest> captor = ArgumentCaptor.forClass(CreatePatternRequest.class);
         when(mockPatternStore.createPatternForNamespace(captor.capture(), eq("finos"))).thenReturn(pattern);
 
-        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\", \"name\": \"my-pattern\" }";
+        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\","
+                + " \"title\": \"API Gateway\", \"name\": \"my-pattern\" }";
 
         given()
                 .header("Content-Type", "application/json")
@@ -376,8 +328,8 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 .statusCode(201);
 
         verify(mockPatternStore).createPatternForNamespace(any(), eq("finos"));
-        assertThat("store does not receive the $id field",
-                captor.getValue().getPatternJson(), not(containsString("$id")));
+        assertThat("store receives the $id field",
+                captor.getValue().getPatternJson(), containsString("$id"));
         assertThat("store receives the full document content",
                 captor.getValue().getPatternJson(), containsString("my-pattern"));
     }

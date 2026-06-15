@@ -55,16 +55,11 @@ public class TestMappingControllerResourceShould {
         when(mockPermissionChecker.canWriteByDomain(any(), any())).thenReturn(true);
     }
 
-    /** Builds a document whose {@code $id} matches the versionless canonical URL for the resource. */
-    private static String doc(String namespace, String type, String name) {
-        return "{\"$id\":\"http://localhost:8080/calm/namespaces/"
-                + namespace + "/" + type + "/" + name + "\"}";
-    }
-
-    /** Builds a document whose {@code $id} matches the versioned canonical URL for the resource. */
+    /** Builds a document whose {@code $id} matches the versioned canonical URL for the resource, including a title. */
     private static String versionedDoc(String namespace, String type, String name, String version) {
         return "{\"$id\":\"http://localhost:8080/calm/namespaces/"
-                + namespace + "/" + type + "/" + name + "/versions/" + version + "\"}";
+                + namespace + "/" + type + "/" + name + "/versions/" + version + "\","
+                + "\"title\":\"Test Resource\"}";
     }
 
     // --- POST create new ---
@@ -492,92 +487,17 @@ public class TestMappingControllerResourceShould {
                 .then().statusCode(400).body(containsString("$id is required"));
     }
 
-    // --- GET latest ---
+    // --- GET latest (removed — only explicit versioned GET is supported) ---
 
     @Test
-    void return_200_with_latest_version_on_get() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("api-gateway")
-                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0", "1.1.0"));
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{\"test\": \"data\"}");
+    void return_400_when_title_is_missing_on_new_resource_create() throws Exception {
+        when(mockMappingStore.getMapping("finos", "no-title")).thenThrow(new MappingNotFoundException());
+        // Body has $id and version 1.0.0 but NO title field
+        String body = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/no-title/versions/1.0.0\"}";
 
-        given().when().get("/calm/namespaces/finos/patterns/api-gateway")
-                .then().statusCode(200).body(containsString("test"));
-    }
-
-    @Test
-    void return_404_when_mapping_not_found_on_get() throws Exception {
-        when(mockMappingStore.getMapping("finos", "nonexistent")).thenThrow(new MappingNotFoundException());
-
-        given().when().get("/calm/namespaces/finos/patterns/nonexistent")
-                .then().statusCode(404).body(containsString("nonexistent"));
-    }
-
-    @Test
-    void return_404_when_namespace_not_found_on_get() throws Exception {
-        when(mockMappingStore.getMapping("invalid", "test")).thenThrow(new NamespaceNotFoundException());
-
-        given().when().get("/calm/namespaces/invalid/patterns/test")
-                .then().statusCode(404);
-    }
-
-    @Test
-    void return_404_when_versions_list_is_empty_on_get_latest() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("empty-ver")
-                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "empty-ver")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of());
-
-        given().when().get("/calm/namespaces/finos/patterns/empty-ver")
-                .then().statusCode(404);
-    }
-
-    @Test
-    void return_404_when_pattern_not_found_on_get_latest() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("api-gateway")
-                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(new PatternNotFoundException());
-
-        given().when().get("/calm/namespaces/finos/patterns/api-gateway")
-                .then().statusCode(404);
-    }
-
-    @Test
-    void return_500_when_unexpected_exception_on_get_latest() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("err-resource")
-                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "err-resource")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(new RuntimeException("unexpected"));
-
-        given().when().get("/calm/namespaces/finos/patterns/err-resource")
-                .then().statusCode(500);
-    }
-
-    @Test
-    void return_400_when_get_type_is_invalid() {
-        given().when().get("/calm/namespaces/finos/bananas/api-gateway")
-                .then().statusCode(400).body(containsString("Unsupported resource type"));
-    }
-
-    @Test
-    void verify_store_called_on_get_latest() throws Exception {
-        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
-                .setNamespace("finos").setCustomId("api-gateway")
-                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{}");
-
-        given().when().get("/calm/namespaces/finos/patterns/api-gateway").then().statusCode(200);
-
-        verify(mockPatternStore).getPatternVersions(any(Pattern.class));
-        verify(mockPatternStore).getPatternForVersion(any(Pattern.class));
+        given().header("Content-Type", "application/json").body(body).when()
+                .post("/calm")
+                .then().statusCode(400).body(containsString("title"));
     }
 
     // --- GET list versions ---

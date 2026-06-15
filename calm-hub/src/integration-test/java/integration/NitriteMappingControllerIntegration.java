@@ -21,7 +21,7 @@ public class NitriteMappingControllerIntegration {
     @Test
     @Order(1)
     void create_pattern_via_name_based_api() {
-        String payload = "{\"name\": \"front-controller-test\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/1.0.0\"}";
+        String payload = "{\"title\": \"Front Controller Test\", \"name\": \"front-controller-test\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/1.0.0\"}";
 
         given()
                 .body(payload)
@@ -34,11 +34,13 @@ public class NitriteMappingControllerIntegration {
 
     @Test
     @Order(2)
-    void get_latest_version_by_name() {
+    void get_specific_version_contains_id_field() {
+        // Verify the stored document retains its $id (no longer stripped on write)
         given()
-                .when().get("/calm/namespaces/finos/patterns/test-pattern")
+                .when().get("/calm/namespaces/finos/patterns/test-pattern/versions/1.0.0")
                 .then()
                 .statusCode(200)
+                .body(containsString("$id"))
                 .body(containsString("front-controller-test"));
     }
 
@@ -66,7 +68,7 @@ public class NitriteMappingControllerIntegration {
     @Test
     @Order(5)
     void add_second_version_to_existing_resource() {
-        String payload = "{\"name\": \"front-controller-test-v2\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/1.1.0\"}";
+        String payload = "{\"title\": \"Front Controller Test v2\", \"name\": \"front-controller-test-v2\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/1.1.0\"}";
 
         given()
                 .body(payload)
@@ -79,9 +81,9 @@ public class NitriteMappingControllerIntegration {
 
     @Test
     @Order(6)
-    void get_latest_returns_newest_version() {
+    void get_version_1_1_0_returns_v2_content() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/test-pattern")
+                .when().get("/calm/namespaces/finos/patterns/test-pattern/versions/1.1.0")
                 .then()
                 .statusCode(200)
                 .body(containsString("front-controller-test-v2"));
@@ -121,9 +123,9 @@ public class NitriteMappingControllerIntegration {
 
     @Test
     @Order(10)
-    void return_404_for_nonexistent_name() {
+    void return_404_for_nonexistent_version() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/nonexistent-resource")
+                .when().get("/calm/namespaces/finos/patterns/test-pattern/versions/99.0.0")
                 .then()
                 .statusCode(404);
     }

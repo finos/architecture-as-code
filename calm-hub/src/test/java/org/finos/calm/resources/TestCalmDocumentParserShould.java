@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -191,23 +189,8 @@ class TestCalmDocumentParserShould {
     }
 
     // -------------------------------------------------------------------------
-    // stripId / rewriteId
+    // rewriteId
     // -------------------------------------------------------------------------
-
-    @Test
-    void strip_removes_id_field() {
-        String json = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/x/versions/1.0.0\",\"name\":\"x\"}";
-        String stripped = parser.stripId(json);
-        assertFalse(stripped.contains("$id"));
-        assertTrue(stripped.contains("\"name\""));
-    }
-
-    @Test
-    void strip_is_no_op_on_json_without_id() {
-        String stripped = parser.stripId("{\"name\":\"x\"}");
-        assertTrue(stripped.contains("\"name\""));
-        assertFalse(stripped.contains("$id"));
-    }
 
     @Test
     void rewrite_injects_versioned_id() {
@@ -224,9 +207,9 @@ class TestCalmDocumentParserShould {
     }
 
     @Test
-    void strip_then_rewrite_is_round_trip() {
+    void rewrite_preserves_existing_id_field_on_overwrite() {
         String original = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/x/versions/1.0.0\",\"name\":\"x\"}";
-        String rewritten = parser.rewriteId(parser.stripId(original), "finos", "patterns", "x", "1.0.0");
+        String rewritten = parser.rewriteId(original, "finos", "patterns", "x", "1.0.0");
         assertTrue(rewritten.contains("\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/x/versions/1.0.0\""));
     }
 
@@ -238,17 +221,22 @@ class TestCalmDocumentParserShould {
     }
 
     // -------------------------------------------------------------------------
-    // getLatestVersion
+    // extractStringField (title / description)
     // -------------------------------------------------------------------------
 
     @Test
-    void returns_highest_semver_version() {
-        assertEquals("2.0.0", parser.getLatestVersion(List.of("1.0.0", "2.0.0", "1.5.0")));
+    void extractStringField_returns_title_when_present() {
+        assertEquals("My Pattern", parser.extractStringField("{\"title\":\"My Pattern\",\"$id\":\"x\"}", "title"));
     }
 
     @Test
-    void returns_only_element_when_single_version() {
-        assertEquals("3.0.0", parser.getLatestVersion(List.of("3.0.0")));
+    void extractStringField_returns_empty_string_when_title_absent() {
+        assertEquals("", parser.extractStringField("{\"$id\":\"x\"}", "title"));
+    }
+
+    @Test
+    void extractStringField_returns_empty_string_when_title_blank() {
+        assertEquals("", parser.extractStringField("{\"title\":\"\"}", "title"));
     }
 
     // -------------------------------------------------------------------------

@@ -7,12 +7,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.ResourceType;
-import org.finos.calm.domain.Semver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
@@ -281,25 +278,6 @@ public class CalmDocumentParser {
     // -------------------------------------------------------------------------
 
     /**
-     * Removes the top-level {@code $id} field from the document before persistence.
-     *
-     * <p>MongoDB rejects a top-level {@code $id} field (a reserved DBRef key); the canonical
-     * {@code $id} is re-applied on every GET via {@link #rewriteId}.</p>
-     */
-    public String stripId(String json) {
-        try {
-            JsonNode tree = OBJECT_MAPPER.readTree(json);
-            if (tree.isObject()) {
-                ((ObjectNode) tree).remove("$id");
-                return OBJECT_MAPPER.writeValueAsString(tree);
-            }
-        } catch (JsonProcessingException e) {
-            logger.warn("Could not strip $id from JSON, using original", e);
-        }
-        return json;
-    }
-
-    /**
      * Rewrites the {@code $id} field in the returned JSON to the canonical URL.
      *
      * @param version {@code null} for the versionless (latest) form; a semver string for the
@@ -328,17 +306,6 @@ public class CalmDocumentParser {
             logger.warn("Could not rewrite $id in JSON, using original", e);
         }
         return json;
-    }
-
-    // -------------------------------------------------------------------------
-    // Version helpers
-    // -------------------------------------------------------------------------
-
-    /** Selects the highest semver from a non-empty list of version strings. */
-    public String getLatestVersion(List<String> versions) {
-        return versions.stream()
-                .max(Comparator.comparing(Semver::tryParse))
-                .orElse("1.0.0");
     }
 
     // -------------------------------------------------------------------------

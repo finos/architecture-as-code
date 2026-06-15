@@ -171,7 +171,6 @@ public class MappingControllerResource {
                     .entity("Insufficient permissions to write to namespace: "
                             + STRICT_SANITIZATION_POLICY.sanitize(canonical.namespace())).build();
         }
-        String storedBody = documentParser.stripId(requestBody);
         CalmDocumentParser.VersionSpec versionSpec = new CalmDocumentParser.VersionSpec(canonical.version(), true);
         try {
             ResourceMapping existing;
@@ -182,10 +181,10 @@ public class MappingControllerResource {
             }
             if (existing == null) {
                 return createNewResource(canonical.namespace(), canonical.resourceType(),
-                        canonical.type(), canonical.name(), storedBody, versionSpec);
+                        canonical.type(), canonical.name(), requestBody, versionSpec);
             } else {
                 return addNewVersion(canonical.namespace(), canonical.type(), canonical.name(),
-                        existing, storedBody, versionSpec);
+                        existing, requestBody, versionSpec);
             }
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating/updating resource from document",
@@ -246,7 +245,7 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(canonical.namespace()), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(canonical.namespace());
         }
-        String storedBody = documentParser.stripId(requestBody);
+        String storedBody = requestBody;
         try {
             updateVersionedResourceInStore(canonical.resourceType(), canonical.namespace(),
                     existing.getNumericId(), canonical.version(), storedBody);
@@ -322,10 +321,6 @@ public class MappingControllerResource {
             return invalidJsonResponse("Cannot parse request body as JSON");
         }
 
-        // The document's $id is verified above, but it must not be persisted: MongoDB rejects a
-        // top-level "$id" field (a reserved DBRef key) and the canonical $id is re-applied on GET.
-        String storedBody = documentParser.stripId(requestBody);
-
         try {
             ResourceMapping existing;
             try {
@@ -334,66 +329,14 @@ public class MappingControllerResource {
                 existing = null;
             }
             if (existing == null) {
-                return createNewResource(namespace, resourceType, type, name, storedBody, versionSpec);
+                return createNewResource(namespace, resourceType, type, name, requestBody, versionSpec);
             } else {
-                return addNewVersion(namespace, type, name, existing, storedBody, versionSpec);
+                return addNewVersion(namespace, type, name, existing, requestBody, versionSpec);
             }
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating/updating resource",
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
-        }
-    }
-
-    // =========================================================================
-    // GET – latest version
-    // =========================================================================
-
-    @GET
-    @Path("namespaces/{namespace}/{type}/{name}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Operation(
-            summary = "Get the latest version of a named resource",
-            description = "Resolves the name to its underlying resource and returns the latest version. " +
-                    "The \"$id\" in the returned document is rewritten to the versionless canonical URL."
-    )
-    @PermissionsAllowed(CalmHubScopes.READ)
-    public Response getLatestResource(
-            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("type") String type,
-            @PathParam("name") @jakarta.validation.constraints.Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name
-    ) {
-        ResourceType resourceType = documentParser.parseTypePlural(type);
-        if (resourceType == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
-        }
-        if ("versions".equals(name)) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        try {
-            ResourceMapping mapping = mappingStore.getMapping(namespace, name);
-            List<String> versions = getVersionsForMapping(mapping);
-            if (versions.isEmpty()) {
-                return mappingNotFoundResponse(name);
-            }
-            String latestVersion = documentParser.getLatestVersion(versions);
-            String json = getResourceJsonForVersion(mapping, latestVersion);
-            String rewrittenJson = documentParser.rewriteId(json, namespace, type, name, null);
-            return Response.ok(rewrittenJson).build();
-        } catch (MappingNotFoundException e) {
-            return mappingNotFoundResponse(name);
-        } catch (NamespaceNotFoundException e) {
-            logger.error("Invalid namespace [{}] when getting resource",
-                    STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
-            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
-        } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException
-                 | StandardNotFoundException | InterfaceNotFoundException e) {
-            return mappingNotFoundResponse(name);
-        } catch (Exception e) {
-            logger.error("Error retrieving resource [{}] in namespace [{}]",
-                    STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -541,10 +484,16 @@ public class MappingControllerResource {
                     .entity("The first version of a resource must be 1.0.0, but " + finalVersion + " was requested")
                     .build();
         }
+        String title = documentParser.extractStringField(json, "title");
+        if (title.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("'title' is required in the document body").build();
+        }
+        String description = documentParser.extractStringField(json, "description");
         try {
             mappingStore.createMapping(namespace, name, resourceType, 0);
             try {
-                int numericId = createResourceInStore(resourceType, namespace, json, "", "");
+                int numericId = createResourceInStore(resourceType, namespace, json, title, description);
                 mappingStore.updateMappingNumericId(namespace, name, numericId);
             } catch (Exception e) {
                 try {
@@ -1129,7 +1078,7 @@ public class MappingControllerResource {
                     .entity("$id does not match the expected URL. Expected: " + expectedId).build();
         }
 
-        String storedBody = documentParser.stripId(requestBody);
+        String storedBody = requestBody;
         // Extract description from body document (used when creating new control)
         String description = documentParser.extractStringField(requestBody, "description");
 
@@ -1197,7 +1146,7 @@ public class MappingControllerResource {
                     .entity("$id does not match the expected URL. Expected: " + expectedId).build();
         }
 
-        String storedBody = documentParser.stripId(requestBody);
+        String storedBody = requestBody;
 
         try {
             int controlId = resolveControlId(domain, controlName);
