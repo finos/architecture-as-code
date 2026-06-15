@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeSemVerBump } from './semver';
+import { computeSemVerBump, compareSemVer, sortSemVer } from './semver';
 
 describe('computeSemVerBump', () => {
     describe('MAJOR', () => {
@@ -68,5 +68,65 @@ describe('computeSemVerBump', () => {
         it('throws on an unknown change type', () => {
             expect(() => computeSemVerBump('1.2.3', 'SIDEWAYS' as never)).toThrow(/Unknown change type/);
         });
+    });
+});
+
+describe('compareSemVer', () => {
+    it('returns a negative number when the first version is lower', () => {
+        expect(compareSemVer('1.2.3', '1.2.4')).toBeLessThan(0);
+    });
+
+    it('returns a positive number when the first version is higher', () => {
+        expect(compareSemVer('2.0.0', '1.9.9')).toBeGreaterThan(0);
+    });
+
+    it('returns zero when the versions are equal', () => {
+        expect(compareSemVer('1.2.3', '1.2.3')).toBe(0);
+    });
+
+    it('orders by major before minor and patch', () => {
+        expect(compareSemVer('2.0.0', '1.99.99')).toBeGreaterThan(0);
+    });
+
+    it('orders by minor before patch', () => {
+        expect(compareSemVer('1.3.0', '1.2.99')).toBeGreaterThan(0);
+    });
+
+    it('compares segments numerically rather than lexicographically', () => {
+        expect(compareSemVer('1.10.0', '1.9.0')).toBeGreaterThan(0);
+    });
+
+    it('trims surrounding whitespace before comparing', () => {
+        expect(compareSemVer('  1.2.3 ', '1.2.3')).toBe(0);
+    });
+
+    it('throws on an invalid version', () => {
+        expect(() => compareSemVer('1.2', '1.2.3')).toThrow(/Invalid semantic version/);
+    });
+});
+
+describe('sortSemVer', () => {
+    it('sorts versions in ascending order', () => {
+        expect(sortSemVer(['1.2.0', '1.0.0', '1.10.0', '1.2.3'])).toEqual([
+            '1.0.0', '1.2.0', '1.2.3', '1.10.0'
+        ]);
+    });
+
+    it('does not mutate the input array', () => {
+        const input = ['2.0.0', '1.0.0'];
+        sortSemVer(input);
+        expect(input).toEqual(['2.0.0', '1.0.0']);
+    });
+
+    it('returns an empty array unchanged', () => {
+        expect(sortSemVer([])).toEqual([]);
+    });
+
+    it('handles a single-element array', () => {
+        expect(sortSemVer(['1.2.3'])).toEqual(['1.2.3']);
+    });
+
+    it('throws on an invalid version in the array', () => {
+        expect(() => sortSemVer(['1.0.0', 'nope'])).toThrow(/Invalid semantic version/);
     });
 });

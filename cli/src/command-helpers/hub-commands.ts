@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlRequirementSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, ResourceChangeType, ResourceType, updateDocumentMetadata } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlRequirementSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 import { version } from 'os';
@@ -198,8 +198,9 @@ export async function pushDocument(
         description
     };
     if (mappingExists) {
-        // TODO do these come back sorted? should we sort them just in case?
-        const latestVersion = mappedResourceVersions[mappedResourceVersions.length - 1];
+        // Sort defensively so the highest version is last, regardless of the order Hub returns them in.
+        const sortedVersions = sortSemVer(mappedResourceVersions);
+        const latestVersion = sortedVersions[sortedVersions.length - 1];
         const newVersion = computeSemVerBump(latestVersion, changeType);
         await client.createMappedResourceVersion(
             namespace, 

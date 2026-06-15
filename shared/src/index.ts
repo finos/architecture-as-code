@@ -85,7 +85,7 @@ export {
     updateDocumentMetadata,
     type DocumentMetadata
 } from './hub/document-id-utils.js';
-export { computeSemVerBump } from './hub/semver.js';
+export { computeSemVerBump, compareSemVer, sortSemVer } from './hub/semver.js';
 export {
     enrichWithDocumentPositions,
     parseDocumentWithPositions,
