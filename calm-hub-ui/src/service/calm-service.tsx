@@ -1,8 +1,9 @@
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import type { CalmTimelineSchema } from '@finos/calm-models/types';
 import { Data, ResourceSummary, ResourceMapping } from '../model/calm.js';
 import { getAuthHeaders } from '../authService.js';
 import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
+import { apiClient } from './utils/api-client.js';
 
 /**
  * Service for interacting with CALM API endpoints.
@@ -19,7 +20,7 @@ export class CalmService {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
-            this.ax = axios.create();
+            this.ax = apiClient;
         }
     }
 
