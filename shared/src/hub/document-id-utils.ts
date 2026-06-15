@@ -15,10 +15,9 @@ interface DocumentIdMetadata {
 }
 
 function parseDocumentId(documentId: string): DocumentIdMetadata {
-    // [BASE URL]/calm/namespaces/{namespace}/mappings/{mapping}  - with (/versions/{version}) for version
+    // $BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION
+
     const namespacePattern: RegExp = new RegExp('^(.*)/calm/namespaces/([^/]+)/([^/]+)/([^/]+)/versions/([^/]+)$');
-    // TODO
-    // const domainPattern: RegExp = new RegExp("^.*/calm/domains/([^/]+)/mappings/([^/]+)/?$");
 
     const matches = namespacePattern.exec(documentId);
     if (matches) {
@@ -34,14 +33,12 @@ function parseDocumentId(documentId: string): DocumentIdMetadata {
             version: matches[5]
         };
     }
-    // TODO typed error
     throw new Error(`Invalid document ID format: ${documentId}`);
 }
 
 export function constructDocumentId(metadata: DocumentMetadata): string {
     if (!metadata.namespace || !metadata.mapping) {
-        // TODO typed error
-        throw new Error('Cannot construct document ID: missing namespace or mapping in metadata');
+        throw new Error('Invalid document $id format. Document ID must be of the form $BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION');
     }
     return `${metadata.baseUrl}/calm/namespaces/${metadata.namespace}/${metadata.type}/${metadata.mapping}/versions/${metadata.version}`;
 }
@@ -65,7 +62,6 @@ export function extractDocumentMetadata(document: string): DocumentMetadata {
             description
         }
     } catch (error) {
-        // TODO typed error
         throw new Error(`Failed to parse document metadata: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
@@ -79,20 +75,34 @@ export function updateDocumentMetadata(document: string, newDocumentMetadata: Do
         json['description'] = newDocumentMetadata.description ?? '';
         return JSON.stringify(json, null, 2);
     } catch (error) {
-        // TODO typed error
         throw new Error(`Failed to parse document metadata: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
+export class DocumentMetadataValidationError extends Error {
+    constructor(
+        public component: string,
+        public expected?: any,
+        public actual?: any
+    ) {
+        super(`Document metadata does not match the specified ${component}. Expected ${expected}, got ${actual}`);
+        this.name = 'DocumentMetadataError';
+    }
+}
 
-// export function (document: string): void {
-//     try {
-//         const metadata = extractDocumentMetadata(document);
-//         if (!metadata.namespace || !metadata.mapping) {
-//             throw new Error('Document metadata is missing required namespace or mapping information');
-//         }
-//     } catch (error) {
-//         // TODO typed error
-//         throw new Error(`Document metadata validation failed: ${error instanceof Error ? error.message : String(error)}`);
-//     }
-// }
+/**
+ * Validate a document metadata against an expected form.
+ * @param expectedMetadata The metadata to check against.
+ * @param actualMetadata The metadata to validate.
+ */
+export function validateDocumentId(expectedMetadata: DocumentMetadata, actualMetadata: DocumentMetadata): void {
+    for (const key of Object.keys(expectedMetadata)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const expected = (expectedMetadata as any)[key];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const actual = (actualMetadata as any)[key];
+        if (expected !== actual) {
+            throw new DocumentMetadataValidationError(key, expected, actual);
+        }
+    }
+}

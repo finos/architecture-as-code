@@ -148,37 +148,6 @@ describe('CalmHubClient', () => {
         });
     });
 
-    // ── listArchitectures ────────────────────────────────────────────────────
-
-    describe('listArchitectures', () => {
-        it('fetches versions per architecture and returns summaries', async () => {
-            mock.onGet('/api/calm/namespaces/finos/architectures').reply(200, {
-                values: [
-                    { id: 1, name: 'arch-a', description: '' },
-                    { id: 2, name: 'arch-b', description: '' }
-                ]
-            });
-            mock.onGet('/api/calm/namespaces/finos/architectures/1/versions').reply(200, { values: ['1.0.0', '1.1.0'] });
-            mock.onGet('/api/calm/namespaces/finos/architectures/2/versions').reply(200, { values: ['1.0.0'] });
-
-            const result = await client.listArchitectures('finos');
-            expect(result).toHaveLength(2);
-            expect(result[0]).toEqual({ id: 1, name: 'arch-a', description: '', versions: ['1.0.0', '1.1.0'] });
-            expect(result[1]).toEqual({ id: 2, name: 'arch-b', description: '', versions: ['1.0.0'] });
-        });
-
-        it('returns empty array when no architectures exist', async () => {
-            mock.onGet('/api/calm/namespaces/finos/architectures').reply(200, { values: [] });
-            const result = await client.listArchitectures('finos');
-            expect(result).toEqual([]);
-        });
-
-        it('throws HubClientError(404) for unknown namespace', async () => {
-            mock.onGet('/api/calm/namespaces/unknown/architectures').reply(404, 'Namespace not found');
-            await expect(client.listArchitectures('unknown')).rejects.toMatchObject({ status: 404 });
-        });
-    });
-
     // ── pullArchitecture ─────────────────────────────────────────────────────
 
     describe('pullArchitecture', () => {
@@ -260,19 +229,6 @@ describe('CalmHubClient', () => {
 
             expect(getAuthHeaders).toHaveBeenCalledOnce();
             expect(authMock.history.post[0].headers?.Authorization).toBe('Bearer test-token');
-        });
-
-        it('injects auth headers on listArchitectures (including version sub-requests)', async () => {
-            authMock.onGet('/api/calm/namespaces/finos/architectures').reply(200, {
-                values: [{ id: 1, name: 'arch-a', description: '' }]
-            });
-            authMock.onGet('/api/calm/namespaces/finos/architectures/1/versions').reply(200, { values: ['1.0.0'] });
-
-            await authClient.listArchitectures('finos');
-
-            expect(getAuthHeaders).toHaveBeenCalledTimes(2);
-            expect(authMock.history.get[0].headers?.Authorization).toBe('Bearer test-token');
-            expect(authMock.history.get[1].headers?.Authorization).toBe('Bearer test-token');
         });
 
         it('injects auth headers on pullArchitecture', async () => {
@@ -383,37 +339,6 @@ describe('CalmHubClient', () => {
         });
     });
 
-    // ── listPatterns ─────────────────────────────────────────────────────────
-
-    describe('listPatterns', () => {
-        it('fetches versions per pattern and returns summaries', async () => {
-            mock.onGet('/api/calm/namespaces/finos/patterns').reply(200, {
-                values: [
-                    { id: 1, name: 'pattern-a', description: 'desc-a' },
-                    { id: 2, name: 'pattern-b', description: '' }
-                ]
-            });
-            mock.onGet('/api/calm/namespaces/finos/patterns/1/versions').reply(200, { values: ['1.0.0'] });
-            mock.onGet('/api/calm/namespaces/finos/patterns/2/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
-
-            const result = await client.listPatterns('finos');
-            expect(result).toHaveLength(2);
-            expect(result[0]).toEqual({ id: 1, name: 'pattern-a', description: 'desc-a', versions: ['1.0.0'] });
-            expect(result[1]).toEqual({ id: 2, name: 'pattern-b', description: '', versions: ['1.0.0', '2.0.0'] });
-        });
-
-        it('returns empty array when no patterns exist', async () => {
-            mock.onGet('/api/calm/namespaces/finos/patterns').reply(200, { values: [] });
-            const result = await client.listPatterns('finos');
-            expect(result).toEqual([]);
-        });
-
-        it('throws HubClientError(404) for unknown namespace', async () => {
-            mock.onGet('/api/calm/namespaces/unknown/patterns').reply(404, 'Namespace not found');
-            await expect(client.listPatterns('unknown')).rejects.toMatchObject({ status: 404 });
-        });
-    });
-
     // ── pullPattern ──────────────────────────────────────────────────────────
 
     describe('pullPattern', () => {
@@ -492,37 +417,6 @@ describe('CalmHubClient', () => {
         it('throws HubClientError(404) when standard id not found', async () => {
             mock.onPost('/api/calm/namespaces/finos/standards/99/versions/1.0.0').reply(404, 'Standard not found');
             await expect(client.pushStandardVersion('finos', 99, '1.0.0', 's', '', standardJson)).rejects.toMatchObject({ status: 404 });
-        });
-    });
-
-    // ── listStandards ────────────────────────────────────────────────────────
-
-    describe('listStandards', () => {
-        it('fetches versions per standard and returns summaries', async () => {
-            mock.onGet('/api/calm/namespaces/finos/standards').reply(200, {
-                values: [
-                    { id: 1, name: 'standard-a', description: 'desc-a' },
-                    { id: 2, name: 'standard-b', description: '' }
-                ]
-            });
-            mock.onGet('/api/calm/namespaces/finos/standards/1/versions').reply(200, { values: ['1.0.0'] });
-            mock.onGet('/api/calm/namespaces/finos/standards/2/versions').reply(200, { values: ['1.0.0', '2.0.0'] });
-
-            const result = await client.listStandards('finos');
-            expect(result).toHaveLength(2);
-            expect(result[0]).toEqual({ id: 1, name: 'standard-a', description: 'desc-a', versions: ['1.0.0'] });
-            expect(result[1]).toEqual({ id: 2, name: 'standard-b', description: '', versions: ['1.0.0', '2.0.0'] });
-        });
-
-        it('returns empty array when no standards exist', async () => {
-            mock.onGet('/api/calm/namespaces/finos/standards').reply(200, { values: [] });
-            const result = await client.listStandards('finos');
-            expect(result).toEqual([]);
-        });
-
-        it('throws HubClientError(404) for unknown namespace', async () => {
-            mock.onGet('/api/calm/namespaces/unknown/standards').reply(404, 'Namespace not found');
-            await expect(client.listStandards('unknown')).rejects.toMatchObject({ status: 404 });
         });
     });
 
@@ -952,34 +846,34 @@ describe('CalmHubClient', () => {
     // ── getNamespaceMappings ──────────────────────────────────────────────────
 
     describe('getNamespaceMappings', () => {
-        it('returns the array of mapping slugs', async () => {
-            mock.onGet('/calm/namespaces/finos/mappings').reply(200, {
-                values: ['my-arch', 'my-pattern']
+        it('returns the array of mapped resource ids for the given type', async () => {
+            mock.onGet('/calm/namespaces/finos/architectures').reply(200, {
+                values: ['my-arch', 'another-arch']
             });
 
-            const result = await client.getNamespaceMappings('finos');
-            expect(result).toEqual(['my-arch', 'my-pattern']);
+            const result = await client.getNamespaceMappings('finos', 'architectures');
+            expect(result).toEqual(['my-arch', 'another-arch']);
         });
 
         it('returns empty array when values is absent', async () => {
-            mock.onGet('/calm/namespaces/finos/mappings').reply(200, {});
-            const result = await client.getNamespaceMappings('finos');
+            mock.onGet('/calm/namespaces/finos/patterns').reply(200, {});
+            const result = await client.getNamespaceMappings('finos', 'patterns');
             expect(result).toEqual([]);
         });
 
-        it('forwards the resource type as a query parameter when provided', async () => {
-            mock.onGet('/calm/namespaces/finos/mappings').reply(200, { values: [] });
+        it('targets the type-scoped endpoint with the resource type in the path', async () => {
+            mock.onGet('/calm/namespaces/finos/standards').reply(200, { values: [] });
 
-            await client.getNamespaceMappings('finos', 'pattern');
-            expect(mock.history.get[0].params).toEqual({ type: 'pattern' });
+            await client.getNamespaceMappings('finos', 'standards');
+            expect(mock.history.get[0].url).toBe('/calm/namespaces/finos/standards');
         });
 
         it('throws HubClientError on 500', async () => {
-            mock.onGet('/calm/namespaces/finos/mappings').reply(500, 'System Malfunction');
+            mock.onGet('/calm/namespaces/finos/architectures').reply(500, 'System Malfunction');
 
-            await expect(client.getNamespaceMappings('finos')).rejects.toMatchObject({
+            await expect(client.getNamespaceMappings('finos', 'architectures')).rejects.toMatchObject({
                 status: 500,
-                request: 'GET /calm/namespaces/finos/mappings'
+                request: 'GET /calm/namespaces/finos/architectures'
             });
         });
     });

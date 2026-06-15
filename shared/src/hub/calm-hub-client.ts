@@ -1,7 +1,7 @@
 import axios, { Axios, AxiosError } from 'axios';
 import { AuthPlugin } from '../auth/auth-plugin';
 import { initLogger, Logger } from '../logger';
-import { extractDocumentMetadata } from './document-id-utils';
+import { DocumentMetadata, extractDocumentMetadata, validateDocumentId } from './document-id-utils';
 
 export interface CalmHubOptions {
     calmHubUrl?: string;
@@ -11,27 +11,6 @@ export interface CalmHubOptions {
 export interface HubNamespaceSummary {
     name: string;
     description?: string;
-}
-
-export interface HubArchitectureSummary {
-    id: number;
-    name: string;
-    description?: string;
-    versions: string[];
-}
-
-export interface HubPatternSummary {
-    id: number;
-    name: string;
-    description?: string;
-    versions: string[];
-}
-
-export interface HubStandardSummary {
-    id: number;
-    name: string;
-    description?: string;
-    versions: string[];
 }
 
 export interface HubCreateResult {
@@ -231,38 +210,6 @@ export class CalmHubClient {
     }
 
     /**
-     * Lists architectures and their versions in a namespace.
-     * @param namespace Namespace name.
-     * @returns Architecture summaries.
-     */
-    async listArchitectures(namespace: string): Promise<HubArchitectureSummary[]> {
-        const endpoint = `GET /api/calm/namespaces/${namespace}/architectures`;
-        try {
-            const response = await this.ax.get(`/api/calm/namespaces/${namespace}/architectures`);
-            const items: { id: number; name: string; description?: string }[] =
-                response.data?.values ?? [];
-            const summaries = await Promise.all(
-                items.map(async (item) => {
-                    const versionsEndpoint = `GET /api/calm/namespaces/${namespace}/architectures/${item.id}/versions`;
-                    try {
-                        const vRes = await this.ax.get(
-                            `/api/calm/namespaces/${namespace}/architectures/${item.id}/versions`
-                        );
-                        const versions: string[] = vRes.data?.values ?? [];
-                        return { id: item.id, name: item.name, description: item.description, versions };
-                    } catch (err) {
-                        throw this.wrapError(err, versionsEndpoint);
-                    }
-                })
-            );
-            return summaries;
-        } catch (err) {
-            if (err instanceof HubClientError) throw err;
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
      * Pulls a specific architecture version.
      * @param namespace Namespace name.
      * @param id Architecture id.
@@ -343,38 +290,6 @@ export class CalmHubClient {
     }
 
     /**
-     * Lists patterns and their versions in a namespace.
-     * @param namespace Namespace name.
-     * @returns Pattern summaries.
-     */
-    async listPatterns(namespace: string): Promise<HubPatternSummary[]> {
-        const endpoint = `GET /api/calm/namespaces/${namespace}/patterns`;
-        try {
-            const response = await this.ax.get(`/api/calm/namespaces/${namespace}/patterns`);
-            const items: { id: number; name: string; description?: string }[] =
-                response.data?.values ?? [];
-            const summaries = await Promise.all(
-                items.map(async (item) => {
-                    const versionsEndpoint = `GET /api/calm/namespaces/${namespace}/patterns/${item.id}/versions`;
-                    try {
-                        const vRes = await this.ax.get(
-                            `/api/calm/namespaces/${namespace}/patterns/${item.id}/versions`
-                        );
-                        const versions: string[] = vRes.data?.values ?? [];
-                        return { id: item.id, name: item.name, description: item.description, versions };
-                    } catch (err) {
-                        throw this.wrapError(err, versionsEndpoint);
-                    }
-                })
-            );
-            return summaries;
-        } catch (err) {
-            if (err instanceof HubClientError) throw err;
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
      * Pulls a specific pattern version.
      * @param namespace Namespace name.
      * @param id Pattern id.
@@ -450,38 +365,6 @@ export class CalmHubClient {
             const location = response.headers['location'] as string;
             return this.parseVersionedLocation(location, endpoint);
         } catch (err) {
-            throw this.wrapError(err, endpoint);
-        }
-    }
-
-    /**
-     * Lists standards and their versions in a namespace.
-     * @param namespace Namespace name.
-     * @returns Standard summaries.
-     */
-    async listStandards(namespace: string): Promise<HubStandardSummary[]> {
-        const endpoint = `GET /api/calm/namespaces/${namespace}/standards`;
-        try {
-            const response = await this.ax.get(`/api/calm/namespaces/${namespace}/standards`);
-            const items: { id: number; name: string; description?: string }[] =
-                response.data?.values ?? [];
-            const summaries = await Promise.all(
-                items.map(async (item) => {
-                    const versionsEndpoint = `GET /api/calm/namespaces/${namespace}/standards/${item.id}/versions`;
-                    try {
-                        const vRes = await this.ax.get(
-                            `/api/calm/namespaces/${namespace}/standards/${item.id}/versions`
-                        );
-                        const versions: string[] = vRes.data?.values ?? [];
-                        return { id: item.id, name: item.name, description: item.description, versions };
-                    } catch (err) {
-                        throw this.wrapError(err, versionsEndpoint);
-                    }
-                })
-            );
-            return summaries;
-        } catch (err) {
-            if (err instanceof HubClientError) throw err;
             throw this.wrapError(err, endpoint);
         }
     }
@@ -780,7 +663,7 @@ export class CalmHubClient {
 
     async getNamespaceMappings(namespace: string, type: ResourceType): Promise<string[]> {
         this.logger.debug(`Getting mappings for namespace=${namespace} with type=${type ?? 'ANY'}`);
-        const endpoint = `/api/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(type)}`;
+        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(type)}`;
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received mappings response: ${JSON.stringify(response.data)}`);
@@ -791,51 +674,26 @@ export class CalmHubClient {
     }
 
     async createMappedResourceVersion(
-            namespace: string, 
-            mappingId: string, 
-            resourceType: ResourceType,
-            version: string,
-            name: string,
-            description: string,
+            metadata: DocumentMetadata,
             json: string): Promise<string> {
-        // const endpoint = `/calm`;
-        console.log(json);
-        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(resourceType)}/${mappingId}/versions/${version}`;
+        const endpoint = `/calm/namespaces/${metadata.namespace}/${convertResourceTypeForCalmHubUrl(metadata.type)}/${metadata.mapping}/versions/${metadata.version}`;
 
-        this.logger.debug(`Updating mapped resource in namespace=${namespace} with mappingId=${mappingId}`);
-
-        // TODO handle name/description
-
-        const metadata = extractDocumentMetadata(json);
-        if (!metadata) {
+        const actualMetadata = extractDocumentMetadata(json);
+        if (!actualMetadata) {
             throw new HubClientError(0, 'Failed to extract document metadata for mapping update', endpoint);
         }
-
-        if (!metadata.version) {
-            metadata.version = '1.0.0';
+        if (!actualMetadata.version) {
+            actualMetadata.version = '1.0.0';
+        }
+        try {
+            validateDocumentId(metadata, actualMetadata)
+        } catch(error) {
+            throw this.wrapError(error, `POST ${endpoint}`);
         }
 
-        // TODO dedupe
-        if (metadata.namespace !== namespace) {
-            throw new HubClientError(0, 
-                `Document metadata does not match the specified namespace. Expected ${namespace}, got ${metadata.namespace}`, 
-                `POST ${endpoint}`);
-        }
-        if (metadata.mapping !== mappingId) {
-            throw new HubClientError(0, 
-                `Document metadata does not match the specified mapping. Expected ${mappingId}, got ${metadata.mapping}`, 
-                `POST ${endpoint}`);
-        }
-        if (metadata.version !== version) {
-            throw new HubClientError(0, 
-                `Document metadata does not match the specified version. Expected ${version}, got ${metadata.version}`, 
-                `POST ${endpoint}`);
-        }
-        if (metadata.type !== resourceType) {
-            throw new HubClientError(0, 
-                `Document metadata does not match the specified resource Type. Expected ${resourceType}, got ${metadata.type}`, 
-                `POST ${endpoint}`);
-        }
+        this.logger.debug(`Updating mapped resource in namespace=${metadata.namespace} with mappingId=${metadata.mapping}`);
+
+        // TODO handle name/description
 
         try {
             const response = await this.ax.post(endpoint, json);

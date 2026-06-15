@@ -44,6 +44,7 @@ import {
     ListControlConfigurationsOptions,
     runCreateControlConfiguration,
     runListControlConfigurations,
+    ListOptions,
 } from './command-helpers/hub-commands';
 import { ResourceChangeType } from '@finos/calm-shared/dist/hub/calm-hub-client';
 
@@ -669,7 +670,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const listOptions: ListArchitecturesOptions = {
+            const listOptions: ListOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
                 format: options.format
@@ -697,7 +698,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const listPatternsOptions: ListPatternsOptions = {
+            const listPatternsOptions: ListOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
                 format: options.format
@@ -712,7 +713,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const listStandardsOptions: ListStandardsOptions = {
+            const listStandardsOptions: ListOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
                 format: options.format

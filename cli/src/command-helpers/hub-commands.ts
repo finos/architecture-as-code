@@ -203,14 +203,7 @@ export async function pushDocument(
         const newVersion = computeSemVerBump(latestVersion, changeType);
         newDocumentMetadata.version = newVersion;
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
-        await client.createMappedResourceVersion(
-            namespace, 
-            mapping, 
-            resourceType, 
-            newVersion, 
-            name, 
-            description, 
-            fileContent);
+        await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     } else {
         // new mapping
         // if (!name) {
@@ -222,15 +215,8 @@ export async function pushDocument(
         //     printError(0, `--description is required when creating a new ${resourceTypeString}`, `push ${resourceTypeString}`, format);
         //     process.exit(1);
         // }
-        await client.createMappedResourceVersion(
-            namespace,
-            mapping,
-            resourceType,
-            '1.0.0',
-            name,
-            description,
-            fileContent);
         newDocumentMetadata.version = "1.0.0";
+        await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }
     return newDocumentMetadata;
 }
@@ -350,39 +336,47 @@ export async function runPullArchitecture(options: PullOptions): Promise<void> {
 
 // ── list architectures ────────────────────────────────────────────────────────
 
-export interface ListArchitecturesOptions {
+export interface ListOptions {
     calmHubOptions: CalmHubOptions;
     namespace: string;
     format?: string;
 }
 
 /**
- * Lists architectures in a namespace.
+ * Lists the custom IDs of mapped resources of a given type in a namespace.
+ * Backed by GET /calm/namespaces/{namespace}/{type}, which returns the list of mapped resource IDs.
  * @param options Command options.
+ * @param resourceType The resource type to list.
  */
-export async function runListArchitectures(options: ListArchitecturesOptions): Promise<void> {
+export async function runListMappedResources(options: ListOptions, resourceType: ResourceType): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);
 
     try {
-        const architectures = await client.listArchitectures(options.namespace);
+        const mappingIds = await client.getNamespaceMappings(options.namespace, resourceType);
 
         if (format === 'pretty') {
             printTableSuccess(
-                architectures.map(a => ({ ID: a.id, NAME: a.name, VERSIONS: a.versions.join(', ') })),
+                mappingIds.map(mappingId => ({ MAPPING: mappingId })),
                 [
-                    { key: 'ID', header: 'ID' },
-                    { key: 'NAME', header: 'NAME' },
-                    { key: 'VERSIONS', header: 'VERSIONS' }
+                    { key: 'MAPPING', header: 'MAPPING' }
                 ]
             );
         } else {
-            printJsonSuccess(architectures);
+            printJsonSuccess(mappingIds);
         }
     } catch (err) {
         handleHubError(err, format);
     }
+}
+
+/**
+ * Lists architectures in a namespace.
+ * @param options Command options.
+ */
+export async function runListArchitectures(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'architectures');
 }
 
 // ── create namespace ──────────────────────────────────────────────────────────
@@ -491,39 +485,12 @@ export async function runPullPattern(options: PullOptions): Promise<void> {
 
 // ── list patterns ─────────────────────────────────────────────────────────────
 
-export interface ListPatternsOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    format?: string;
-}
-
 /**
  * Lists patterns in a namespace.
  * @param options Command options.
  */
-export async function runListPatterns(options: ListPatternsOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    try {
-        const patterns = await client.listPatterns(options.namespace);
-
-        if (format === 'pretty') {
-            printTableSuccess(
-                patterns.map(p => ({ ID: p.id, NAME: p.name, VERSIONS: p.versions.join(', ') })),
-                [
-                    { key: 'ID', header: 'ID' },
-                    { key: 'NAME', header: 'NAME' },
-                    { key: 'VERSIONS', header: 'VERSIONS' }
-                ]
-            );
-        } else {
-            printJsonSuccess(patterns);
-        }
-    } catch (err) {
-        handleHubError(err, format);
-    }
+export async function runListPatterns(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'patterns');
 }
 
 // ── push standard ─────────────────────────────────────────────────────────────
@@ -548,40 +515,12 @@ export async function runPullStandard(options: PullOptions): Promise<void> {
 
 // ── list standards ────────────────────────────────────────────────────────────
 
-export interface ListStandardsOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    format?: string;
-}
-
 /**
  * Lists standards in a namespace.
  * @param options Command options.
  */
-export async function runListStandards(options: ListStandardsOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    try {
-        const standards = await client.listStandards(options.namespace);
-
-        if (format === 'pretty') {
-            printTableSuccess(
-                standards.map(s => ({ ID: s.id, NAME: s.name, DESCRIPTION: s.description ?? '', VERSIONS: s.versions.join(', ') })),
-                [
-                    { key: 'ID', header: 'ID' },
-                    { key: 'NAME', header: 'NAME' },
-                    { key: 'DESCRIPTION', header: 'DESCRIPTION' },
-                    { key: 'VERSIONS', header: 'VERSIONS' }
-                ]
-            );
-        } else {
-            printJsonSuccess(standards);
-        }
-    } catch (err) {
-        handleHubError(err, format);
-    }
+export async function runListStandards(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'standards');
 }
 
 // ── create domain ───────────────────────────────────────────────────────────
