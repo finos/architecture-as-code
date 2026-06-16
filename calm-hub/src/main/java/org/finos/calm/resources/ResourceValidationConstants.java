@@ -6,9 +6,9 @@ import org.owasp.html.PolicyFactory;
 public class ResourceValidationConstants {
     public static final String NAMESPACE_REGEX = "^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*$";
     public static final String NAMESPACE_MESSAGE = "namespace must match pattern '^[A-Za-z0-9-]+([.][A-Za-z0-9-]+)*$'";
-    // dashes, dots, usernames, upper/lowercase letters and numbers.
-    public static final String USERNAME_REGEX = "^[A-Za-z0-9._-]+$";
-    public static final String USERNAME_MESSAGE = "username must match pattern '^[A-Za-z0-9._-]+$'";
+    // dashes, dots, usernames, upper/lowercase letters, numbers, and * for the public-access wildcard.
+    public static final String USERNAME_REGEX = "^(\\*|[A-Za-z0-9._-]+)$";
+    public static final String USERNAME_MESSAGE = "username must match pattern '^(\\*|[A-Za-z0-9._-]+)$'";
     public static final String DOMAIN_REGEX = "^[A-Za-z0-9-]+$";
     public static final String DOMAIN_MESSAGE = "domain name must match pattern '^[A-Za-z0-9-]+$'";
     public static final String VERSION_REGEX = "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$";

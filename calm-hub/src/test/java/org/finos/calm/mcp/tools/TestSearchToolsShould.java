@@ -177,7 +177,7 @@ class TestSearchToolsShould {
         when(identity.getPrincipal()).thenReturn(mockPrincipal);
         when(mockPrincipal.getName()).thenReturn("alice");
         when(userAccessValidatorInstance.get()).thenReturn(mockValidator);
-        when(mockValidator.getReadableNamespaces("alice")).thenReturn(Set.of("finos"));
+        when(mockValidator.getReadableNamespaces("alice")).thenReturn(Optional.of(Set.of("finos")));
 
         GroupedSearchResults grouped = new GroupedSearchResults(EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
         when(searchStore.search(eq("trade"), any())).thenReturn(grouped);
