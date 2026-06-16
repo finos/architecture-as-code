@@ -19,7 +19,7 @@ This file lists the maintainers of this repository.
 | @grahampacker-ms | Graham Packer | *please add organization* | *please add email* |
 | @jimthompson5802 | Jim Thompson | Freddie Mac | jimthompson5802@gmail.com |
 | @jpgough-ms | *please add name* | *please add organization* | *please add email* |
-| @lbulanti-ms | Luigi Bulanti | *please add organization* | *please add email* |
+| @lbulanti-ms | Luigi Bulanti | Morgan Stanley | bulantiluigi@gmail.com |
 | @markscott-ms | Mark Scott | Morgan Stanley | markscot@morganstanley.com |
 | @opsflowanoop | *please add name* | *please add organization* | *please add email* |
 | @rocketstack-matt | Matthew Bain | Morgan Stanley | matt@rocketstack.co |
