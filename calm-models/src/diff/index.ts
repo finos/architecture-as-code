@@ -27,4 +27,5 @@ export type {
     RenameMapping,
     RelationshipRenameMapping,
     InvalidDiffItems,
+    UndiffableDiffItems,
 } from './diff-types.js';

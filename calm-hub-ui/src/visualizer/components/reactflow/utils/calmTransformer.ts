@@ -1,6 +1,11 @@
 import { Node, Edge } from 'reactflow';
 import { CalmArchitectureSchema, CalmNodeSchema } from '@finos/calm-models/types';
-import { getLayoutedElements, createTopLevelLayout } from './layoutUtils';
+import {
+    getLayoutedElements,
+    createTopLevelLayout,
+    calculateChildBounds,
+    sortContainersDeepestFirst,
+} from './layoutUtils';
 import { identifyContainerNodes, parseNodes } from './nodeParser';
 import { extractFlowTransitions, parseRelationships } from './relationshipParser';
 import { GRAPH_LAYOUT } from './constants';
@@ -98,7 +103,10 @@ function separateNodesByParent(
  * Layouts children within each system node and calculates system dimensions
  */
 function layoutChildrenWithinSystems(systemNodes: Node[], nodesWithParents: Node[], edges: Edge[]): void {
-    systemNodes.forEach((systemNode) => {
+    // Lay out the most deeply nested containers first so that an outer
+    // container is sized once its inner container children already know their
+    // own dimensions.
+    sortContainersDeepestFirst(systemNodes).forEach((systemNode) => {
         const childNodes = nodesWithParents.filter((n) => n.parentId === systemNode.id);
 
         if (childNodes.length > 0) {
@@ -142,28 +150,6 @@ function layoutSystemWithChildren(
             };
         }
     });
-}
-
-/**
- * Calculates the bounding box of child nodes
- */
-function calculateChildBounds(children: Node[]): { minX: number; minY: number; maxX: number; maxY: number } {
-    const nodeWidth = GRAPH_LAYOUT.NODE_WIDTH;
-    const nodeHeight = GRAPH_LAYOUT.NODE_HEIGHT;
-
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    children.forEach((child) => {
-        minX = Math.min(minX, child.position.x);
-        minY = Math.min(minY, child.position.y);
-        maxX = Math.max(maxX, child.position.x + nodeWidth);
-        maxY = Math.max(maxY, child.position.y + nodeHeight);
-    });
-
-    return { minX, minY, maxX, maxY };
 }
 
 /**

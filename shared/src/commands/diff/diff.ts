@@ -11,7 +11,7 @@ import {
     type MomentDiff,
     type TimelineInput,
 } from '@finos/calm-models/diff';
-import type { CalmArchitectureSchema } from '@finos/calm-models/types';
+import type { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import { initLogger } from '../../logger.js';
 
 export type DiffOutputFormat = 'json' | 'summary';
@@ -43,8 +43,27 @@ export function hasChanges(diff: DiffResult): boolean {
         diff.edgesModified.length > 0 ||
         diff.edgesRenamed.length > 0 ||
         (diff.invalidItems?.nodes.length ?? 0) > 0 ||
-        (diff.invalidItems?.relationships.length ?? 0) > 0
+        (diff.invalidItems?.relationships.length ?? 0) > 0 ||
+        (diff.undiffableItems?.nodes.length ?? 0) > 0 ||
+        (diff.undiffableItems?.relationships.length ?? 0) > 0
     );
+}
+
+/**
+ * Label for a node/relationship in the summary view. Falls back to a content
+ * hint for pattern items that have no pinned `unique-id`, so they don't render
+ * as `undefined`.
+ */
+function nodeLabel(node: CalmNodeSchema): string {
+    const item = node as Record<string, unknown>;
+    if (typeof item['unique-id'] === 'string') return item['unique-id'];
+    const detail = [item['node-type'], item['name']].filter((v) => typeof v === 'string').join(' ');
+    return detail ? `(unpinned ${detail})` : '(unpinned node)';
+}
+
+function edgeLabel(edge: CalmRelationshipSchema): string {
+    const item = edge as Record<string, unknown>;
+    return typeof item['unique-id'] === 'string' ? item['unique-id'] : '(unpinned relationship)';
 }
 
 export function formatDiff(
@@ -57,6 +76,8 @@ export function formatDiff(
     }
     const invalidNodes = diff.invalidItems?.nodes.length ?? 0;
     const invalidEdges = diff.invalidItems?.relationships.length ?? 0;
+    const undiffableNodes = diff.undiffableItems?.nodes.length ?? 0;
+    const undiffableEdges = diff.undiffableItems?.relationships.length ?? 0;
     const title = `CALM ${documentType} diff`;
     const lines = [
         title,
@@ -67,6 +88,9 @@ export function formatDiff(
     if (invalidNodes + invalidEdges > 0) {
         lines.push(`Invalid items: ${invalidNodes} node(s) + ${invalidEdges} relationship(s) skipped (missing unique-id)`);
     }
+    if (undiffableNodes + undiffableEdges > 0) {
+        lines.push(`Undiffable items: ${undiffableNodes} node(s) + ${undiffableEdges} relationship(s) (no constrained unique-id to diff by)`);
+    }
     lines.push('');
     const list = (label: string, ids: string[]) => {
         if (ids.length === 0) return;
@@ -74,13 +98,13 @@ export function formatDiff(
         for (const id of ids) lines.push(`  - ${id}`);
         lines.push('');
     };
-    list('Nodes added:', diff.nodesAdded.map((n) => n['unique-id'] as string));
-    list('Nodes removed:', diff.nodesRemoved.map((n) => n['unique-id'] as string));
-    list('Nodes modified:', diff.nodesModified.map((n) => n.original['unique-id'] as string));
+    list('Nodes added:', diff.nodesAdded.map(nodeLabel));
+    list('Nodes removed:', diff.nodesRemoved.map(nodeLabel));
+    list('Nodes modified:', diff.nodesModified.map((n) => nodeLabel(n.original)));
     list('Nodes renamed:', diff.nodesRenamed.map((r) => `${r.oldId} -> ${r.newId}`));
-    list('Relationships added:', diff.edgesAdded.map((e) => e['unique-id'] as string));
-    list('Relationships removed:', diff.edgesRemoved.map((e) => e['unique-id'] as string));
-    list('Relationships modified:', diff.edgesModified.map((e) => e.original['unique-id'] as string));
+    list('Relationships added:', diff.edgesAdded.map(edgeLabel));
+    list('Relationships removed:', diff.edgesRemoved.map(edgeLabel));
+    list('Relationships modified:', diff.edgesModified.map((e) => edgeLabel(e.original)));
     list('Relationships renamed:', diff.edgesRenamed.map((r) => `${r.oldId} -> ${r.newId}`));
     return lines.join('\n');
 }
@@ -189,6 +213,17 @@ export async function runDiff(
             `Skipped ${invalidNodeCount} node(s) and ${invalidEdgeCount} relationship(s) ` +
                 'because they were missing a unique-id. These items are reported under ' +
                 'invalidItems and contribute to hasChanges so --exit-code does not pass on them silently.',
+        );
+    }
+
+    const undiffableNodeCount = diff.undiffableItems?.nodes.length ?? 0;
+    const undiffableEdgeCount = diff.undiffableItems?.relationships.length ?? 0;
+    if (undiffableNodeCount + undiffableEdgeCount > 0) {
+        logger.warn(
+            `Could not diff ${undiffableNodeCount} node(s) and ${undiffableEdgeCount} relationship(s) ` +
+                'because they constrain no comparable content (e.g. an unconstrained unique-id). ' +
+                'These items are reported under undiffableItems and contribute to hasChanges so ' +
+                '--exit-code does not pass on them silently.',
         );
     }
 

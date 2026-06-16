@@ -10,6 +10,7 @@ import {
     TemplateBundleFileLoader
 } from './template-bundle-file-loader.js';
 import { initLogger, Logger } from '../logger.js';
+import { getErrorMessage } from '../error-utils.js';
 import { CompositeReferenceResolver, MappedReferenceResolver } from '../resolver/calm-reference-resolver.js';
 import { pathToFileURL } from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
@@ -128,8 +129,9 @@ export class TemplateProcessor {
                 logger.info('\n✅ Template Generation Completed!');
             }
         } catch (error) {
-            logger.error(`❌ Error generating template: ${error.message}`);
-            throw new Error(`❌ Error generating template: ${error.message}`);
+            const message = getErrorMessage(error);
+            logger.error(`❌ Error generating template: ${message}`);
+            throw new Error(`❌ Error generating template: ${message}`);
         }
     }
 
@@ -185,7 +187,7 @@ export class TemplateProcessor {
     }
 
 
-    private async loadTransformer(transformerName: string, bundlePath: string): Promise<CalmTemplateTransformer> {
+    private async loadTransformer(transformerName: string | undefined, bundlePath: string): Promise<CalmTemplateTransformer> {
         const logger = TemplateProcessor.logger;
 
         if (!transformerName) {
@@ -229,8 +231,9 @@ export class TemplateProcessor {
             }
             return new TransformerClass();
         } catch (error) {
-            logger.error(`❌ Error loading transformer: ${error.message}`);
-            throw new Error(`❌ Error loading transformer: ${error.message}`);
+            const message = getErrorMessage(error);
+            logger.error(`❌ Error loading transformer: ${message}`);
+            throw new Error(`❌ Error loading transformer: ${message}`);
         }
     }
 }

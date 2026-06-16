@@ -14,26 +14,51 @@
     <artifactId>calm-hub</artifactId>
     <version>0.7.6</version>
     <properties>
-        <compiler-plugin.version>3.15.0</compiler-plugin.version>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <surefire-plugin.version>3.5.5</surefire-plugin.version>
     </properties>
 
-    <!-- Override Netty components to a secure version (keep all modules aligned) -->
+    <!-- dependencyManagement overrides for native-image compatibility.
+         Quarkus 3.34.7 manages Netty at 4.1.132.Final which already patches
+         CVE-2025-58057 / CVE-2026-33870 / CVE-2026-33871 (affecting <=4.1.131.Final)
+         and is native-image compatible.  Do NOT override netty-bom here: Netty
+         4.1.133+ changed netty-codec native-image config to register BrotliDecoder
+         for link-at-build-time, which requires brotli4j on the classpath, a
+         dependency we do not include.  Let Quarkus manage Netty at 4.1.132.Final. -->
     <dependencyManagement>
         <dependencies>
+            <!-- Override MCP server to a version with native-image fixes.
+                 quarkus-mcp-server-bom:3.34.7 (from root pom) resolves all MCP
+                 artifacts to 1.10.5, which predates the native-image fixes added
+                 in 1.12.0 (quarkiverse/quarkus-mcp-server#684 / #685).  All five
+                 artifacts (runtime + deployment) must be aligned to the same version
+                 to avoid mixed-version augmentation failures. -->
             <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-bom</artifactId>
-                <!-- Force patched Netty 4.1 version to mitigate CVE-2025-58057 and
-                CVE-2026-33870/CVE-2026-33871 (affecting <=4.1.131.Final).
-                Must stay on 4.1.x — Quarkus 3.x applies a CleanerJava9 bytecode
-                transformation incompatible with Netty 4.2 (see quarkusio/quarkus#53309). -->
-                <version>4.1.132.Final</version>
-                <type>pom</type>
-                <scope>import</scope>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-http</artifactId>
+                <version>1.12.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-http-deployment</artifactId>
+                <version>1.12.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-core</artifactId>
+                <version>1.12.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-core-deployment</artifactId>
+                <version>1.12.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-sse-client</artifactId>
+                <version>1.12.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -89,7 +114,6 @@
         <dependency>
             <groupId>io.quarkiverse.mcp</groupId>
             <artifactId>quarkus-mcp-server-http</artifactId>
-            <version>1.12.0</version>
         </dependency>
 
         <!-- Testing -->
@@ -130,6 +154,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-test-security</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
             <scope>test</scope>
@@ -162,7 +191,6 @@
             <!-- Compiler Plugin -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${compiler-plugin.version}</version>
                 <configuration>
                     <compilerArgs>
                         <arg>-parameters</arg>

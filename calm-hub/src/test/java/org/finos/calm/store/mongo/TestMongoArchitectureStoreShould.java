@@ -274,6 +274,38 @@ public class TestMongoArchitectureStoreShould {
     }
 
     @Test
+    void throw_architecture_not_found_when_versions_document_is_missing_on_get_versions() {
+        Document architectureWithNoVersions = new Document("namespace", NAMESPACE)
+                .append("architectures", List.of(new Document("architectureId", 42)));
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(architectureCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(architectureWithNoVersions);
+
+        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE).setId(42).build();
+
+        assertThrows(ArchitectureNotFoundException.class,
+                () -> mongoArchitectureStore.getArchitectureVersions(architecture));
+    }
+
+    @Test
+    void throw_architecture_version_not_found_when_versions_document_is_missing_on_get_for_version() {
+        Document architectureWithNoVersions = new Document("namespace", NAMESPACE)
+                .append("architectures", List.of(new Document("architectureId", 42)));
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(architectureCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(architectureWithNoVersions);
+
+        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE).setId(42).setVersion("1.0.0").build();
+
+        assertThrows(ArchitectureVersionNotFoundException.class,
+                () -> mongoArchitectureStore.getArchitectureForVersion(architecture));
+    }
+
+    @Test
     void get_architecture_versions_for_valid_architecture_returns_list_of_versions() throws ArchitectureNotFoundException, NamespaceNotFoundException {
         mockSetupArchitectureDocumentWithVersions();
 

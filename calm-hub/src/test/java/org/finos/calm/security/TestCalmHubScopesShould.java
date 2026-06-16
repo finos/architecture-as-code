@@ -18,22 +18,22 @@ public class TestCalmHubScopesShould {
     }
 
     @Test
-    void match_architectures_read_constant() {
-        assertEquals("architectures:read", CalmHubScopes.ARCHITECTURES_READ);
+    void match_read_constant() {
+        assertEquals("read", CalmHubScopes.READ);
     }
 
     @Test
-    void match_architectures_all_constant() {
-        assertEquals("architectures:all", CalmHubScopes.ARCHITECTURES_ALL);
+    void match_write_constant() {
+        assertEquals("write", CalmHubScopes.WRITE);
     }
 
     @Test
-    void match_adrs_all_constant() {
-        assertEquals("adrs:all", CalmHubScopes.ADRS_ALL);
+    void match_admin_constant() {
+        assertEquals("admin", CalmHubScopes.ADMIN);
     }
 
     @Test
-    void match_adrs_read_constant() {
-        assertEquals("adrs:read", CalmHubScopes.ADRS_READ);
+    void match_global_admin_constant() {
+        assertEquals("global_admin", CalmHubScopes.GLOBAL_ADMIN);
     }
 }

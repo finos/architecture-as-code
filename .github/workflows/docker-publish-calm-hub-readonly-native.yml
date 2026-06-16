@@ -1,0 +1,97 @@
+name: Docker Publish Calm Hub (Read-Only Native)
+
+permissions:
+    contents: read
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - 'calm-hub/**'
+            - 'calm/**'
+            - '.github/workflows/docker-publish-calm-hub-readonly-native.yml'
+    # Manual trigger from GitHub UI (allows custom tag)
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: 'Image tag (default: latest-read-only-native)'
+                required: false
+                default: 'latest-read-only-native'
+
+concurrency:
+    group: docker-publish-calm-hub-readonly-native
+    cancel-in-progress: false
+
+jobs:
+    build-and-push:
+        name: Build and Push Read-Only Native Docker Image
+        runs-on: ubuntu-latest
+
+        steps:
+            # Step 1: Checkout the full repository (calm/ schemas are outside calm-hub/)
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            # Step 2: Set up JDK
+            - name: Set up JDK
+              uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+              with:
+                  distribution: 'temurin'
+                  java-version: '21'
+
+            # Step 3: Cache Maven Dependencies
+            - name: Cache Maven Dependencies
+              uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+              with:
+                  path: ~/.m2
+                  key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-m2-
+
+            # Step 4: Build the JVM fast-jar + native binary and stage seed content via
+            # the shared script.  The script produces BOTH target/quarkus-app/ (used by
+            # the JVM seed stage) and target/*-runner (the native runtime binary), then
+            # stages the calm/ schemas and controls for seeding.
+            # --no-docker: skip the local docker build; this workflow uses buildx below.
+            # The native compile runs inside the Mandrel builder container (Docker is
+            # available on ubuntu-latest) and targets linux/amd64.
+            - name: Build application and stage seed content
+              run: bash calm-hub/build-readonly-native-image.sh --no-docker
+
+            # Step 5: Set up Docker Buildx
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+            # Step 6: Login to Docker Hub
+            - name: Login to Docker Hub
+              uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+              with:
+                  username: ${{ secrets.DOCKER_USERNAME }}
+                  password: ${{ secrets.DOCKER_PASSWORD }}
+
+            # Step 7: Extract metadata for Docker
+            - name: Extract Docker metadata
+              id: meta
+              uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+              with:
+                  images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
+                  tags: |
+                      type=raw,value=${{ github.event.inputs.tag || 'latest-read-only-native' }}
+                      type=sha,format=short,suffix=-read-only-native
+                      type=ref,event=tag,suffix=-read-only-native
+
+            # Step 8: Build and push the read-only native image.
+            # linux/amd64 only: the native binary is architecture-specific and is
+            # compiled for amd64 on this runner, so the image cannot be multi-arch.
+            - name: Build and push
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: calm-hub
+                  file: calm-hub/src/main/docker/Dockerfile.readonly-native
+                  platforms: linux/amd64
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max

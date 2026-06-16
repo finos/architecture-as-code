@@ -1,5 +1,10 @@
 import { Node, Edge } from 'reactflow';
-import { getLayoutedElements, createTopLevelLayout } from './layoutUtils';
+import {
+    getLayoutedElements,
+    createTopLevelLayout,
+    calculateChildBounds,
+    sortContainersDeepestFirst,
+} from './layoutUtils';
 import { createEdge } from './edgeFactory';
 import { GRAPH_LAYOUT } from './constants';
 import { THEME } from '../theme';
@@ -427,7 +432,7 @@ function createReactFlowNodes(
                 position: { x: 0, y: 0 },
                 style: { zIndex: -1 },
                 data: buildNodeData(node),
-                ...(existingParentId && { parentId: existingParentId, expandParent: true }),
+                ...(existingParentId && { parentId: existingParentId }),
             });
         }
     });
@@ -444,7 +449,7 @@ function createReactFlowNodes(
             type: 'custom',
             position: { x: 0, y: 0 },
             data: buildNodeData(node),
-            ...(parentId && { parentId, expandParent: true }),
+            ...(parentId && { parentId }),
         });
     });
 
@@ -539,8 +544,10 @@ function applyPatternLayout(regularNodes: Node[], groupNodes: Node[], edges: Edg
         }
     });
 
-    // Layout children within each group node
-    groupNodes.forEach((groupNode) => {
+    // Layout children within each group node, deepest-nested containers first
+    // so that an outer container is sized once its inner container children
+    // already know their own dimensions.
+    sortContainersDeepestFirst(groupNodes).forEach((groupNode) => {
         const childNodes = nodesWithParents.filter((n) => n.parentId === groupNode.id);
         if (childNodes.length > 0) {
             const groupEdges = edges.filter(
@@ -600,25 +607,6 @@ function applyPatternLayout(regularNodes: Node[], groupNodes: Node[], edges: Edg
     ];
 
     return { nodes: allNodes, edges };
-}
-
-function calculateChildBounds(children: Node[]): { minX: number; minY: number; maxX: number; maxY: number } {
-    const nodeWidth = GRAPH_LAYOUT.NODE_WIDTH;
-    const nodeHeight = GRAPH_LAYOUT.NODE_HEIGHT;
-
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    children.forEach((child) => {
-        minX = Math.min(minX, child.position.x);
-        minY = Math.min(minY, child.position.y);
-        maxX = Math.max(maxX, child.position.x + nodeWidth);
-        maxY = Math.max(maxY, child.position.y + nodeHeight);
-    });
-
-    return { minX, minY, maxX, maxY };
 }
 
 // ---- Public API ----

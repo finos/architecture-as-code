@@ -69,6 +69,7 @@
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsCalmscript, exportAsScalerToml } from '$lib/io/export';
 	import type { CalmArchitecture, CalmRelationship } from '@calmstudio/calm-core';
+	import { getReferencedNodeIds } from '@calmstudio/calm-core';
 	import { detectPacksFromArch } from '$lib/io/sidecar';
 	import {
 		getIssues,
@@ -288,8 +289,8 @@
 		const model = getModel();
 		const subArch: CalmArchitecture = {
 			nodes: model.nodes.filter((n) => visibleIds.has(n['unique-id'])),
-			relationships: model.relationships.filter(
-				(r) => visibleIds.has(r.source) && visibleIds.has(r.destination)
+			relationships: model.relationships.filter((r) =>
+				getReferencedNodeIds(r).every((id) => visibleIds.has(id))
 			),
 		};
 
@@ -551,13 +552,27 @@
 			modelRelMap.set(r['unique-id'], r);
 		}
 		edges = edges.map((e) => {
-			const rel = modelRelMap.get(e.id);
+			// In CALM 1.2 nested form, an edge id may be a derived suffix
+			// (`<base>#<i>`) when a single CalmRelationship expanded to N edges.
+			// Look up via the original calmRelId stamped during projection,
+			// falling back to the literal edge id for backward compatibility.
+			const calmId = (e.data as { calmRelId?: string })?.calmRelId ?? e.id;
+			const rel = modelRelMap.get(calmId);
 			if (rel) {
+				const rt = rel['relationship-type'];
+				const variant =
+					'connects' in rt ? 'connects'
+					: 'composed-of' in rt ? 'composed-of'
+					: 'interacts' in rt ? 'interacts'
+					: 'deployed-in' in rt ? 'deployed-in'
+					: 'options';
 				return {
 					...e,
-					type: rel['relationship-type'],
+					type: variant,
 					data: {
 						...e.data,
+						calmRelId: calmId,
+						calmVariant: variant,
 						protocol: rel.protocol ?? '',
 						description: rel.description ?? '',
 					},

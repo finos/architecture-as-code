@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
@@ -14,10 +15,11 @@ import java.util.Arrays;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 public class TestNamespaceResourceShould {
@@ -163,6 +165,34 @@ public class TestNamespaceResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
+
+        verify(namespaceStore, never()).createNamespace(any(), any());
+    }
+
+    @Test
+    void return_400_when_namespace_is_the_reserved_GLOBAL_name() throws NamespaceAlreadyExistsException {
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"GLOBAL\",\"description\":\"desc\"}")
+                .when()
+                .post("/calm/namespaces")
+                .then()
+                .statusCode(400)
+                .body(containsString("reserved"));
+
+        verify(namespaceStore, never()).createNamespace(any(), any());
+    }
+
+    @Test
+    void return_400_when_namespace_is_reserved_GLOBAL_name_case_insensitive() throws NamespaceAlreadyExistsException {
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"global\",\"description\":\"desc\"}")
+                .when()
+                .post("/calm/namespaces")
+                .then()
+                .statusCode(400)
+                .body(containsString("reserved"));
 
         verify(namespaceStore, never()).createNamespace(any(), any());
     }

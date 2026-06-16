@@ -4,7 +4,14 @@
     "name": "FluxNova: KYC Onboarding",
     "description": "Pre-trade KYC onboarding architecture with identity verification, sanctions screening, risk scoring, and compliance review built on FluxNova BPM platform",
     "category": "fluxnova",
-    "tags": ["fluxnova", "kyc", "pre-trade", "financial-services", "compliance", "aml"],
+    "tags": [
+      "fluxnova",
+      "kyc",
+      "pre-trade",
+      "financial-services",
+      "compliance",
+      "aml"
+    ],
     "version": "1.0.0",
     "author": "CalmStudio Contributors",
     "sourceRef": "finos/fluxnova-examples/process-examples/financial-services/pre-trade/KYC"
@@ -26,7 +33,8 @@
           "description": "All process execution events, variable changes, task assignments, and decision outcomes are recorded in an immutable audit log for regulatory compliance",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -139,7 +147,8 @@
           "description": "Processes personally identifiable information including identity documents, biometric data, and government IDs — classified as PII",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/data-classification"
+              "requirement-url": "https://calm.finos.org/core-concepts/data-classification",
+              "config-url": "https://calm.finos.org/core-concepts/data-classification/config.json"
             }
           ]
         },
@@ -147,7 +156,8 @@
           "description": "All verification requests, results, and third-party API calls are logged for regulatory audit trail",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -170,7 +180,8 @@
           "description": "All sanctions and PEP screening queries, match results, and investigation outcomes are logged for regulatory compliance",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -193,7 +204,8 @@
           "description": "All risk scoring inputs, decision table evaluations, and output categories are logged with full decision rationale",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -217,7 +229,8 @@
           "description": "Stores and manages personally identifiable documents including passports, driving licenses, and proof of address — classified as PII",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/data-classification"
+              "requirement-url": "https://calm.finos.org/core-concepts/data-classification",
+              "config-url": "https://calm.finos.org/core-concepts/data-classification/config.json"
             }
           ]
         },
@@ -225,7 +238,8 @@
           "description": "All stored documents are encrypted at rest using AES-256 to protect PII",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -275,7 +289,8 @@
           "description": "Contains personally identifiable information including customer identity data, verification results, and compliance decisions — classified as PII",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/data-classification"
+              "requirement-url": "https://calm.finos.org/core-concepts/data-classification",
+              "config-url": "https://calm.finos.org/core-concepts/data-classification/config.json"
             }
           ]
         },
@@ -283,7 +298,8 @@
           "description": "All PII data is encrypted at rest using AES-256 with key management via HSM",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         },
@@ -291,7 +307,8 @@
           "description": "Database access restricted to authorized KYC services only via role-based access control and network segmentation",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -313,9 +330,16 @@
   "relationships": [
     {
       "unique-id": "engine-to-process-db",
-      "relationship-type": "connects",
-      "source": "fluxnova-engine",
-      "destination": "fluxnova-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-engine"
+          },
+          "destination": {
+            "node": "fluxnova-process-db"
+          }
+        }
+      },
       "protocol": "JDBC",
       "description": "Engine persists KYC process state, history, decision audit data, and escalation records",
       "controls": {
@@ -323,7 +347,8 @@
           "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption/config.json"
             }
           ]
         }
@@ -331,69 +356,124 @@
     },
     {
       "unique-id": "rest-api-to-engine",
-      "relationship-type": "connects",
-      "source": "fluxnova-rest-api",
-      "destination": "fluxnova-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "fluxnova-engine"
+          }
+        }
+      },
       "protocol": "HTTP",
       "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
     },
     {
       "unique-id": "cockpit-to-rest-api",
-      "relationship-type": "connects",
-      "source": "fluxnova-cockpit",
-      "destination": "fluxnova-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "fluxnova-rest-api"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Cockpit queries KYC process instances, SLA breach incidents, and escalation status"
     },
     {
       "unique-id": "admin-to-rest-api",
-      "relationship-type": "connects",
-      "source": "fluxnova-admin",
-      "destination": "fluxnova-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-admin"
+          },
+          "destination": {
+            "node": "fluxnova-rest-api"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Admin manages KYC user roles, compliance group assignments, and authorization policies"
     },
     {
       "unique-id": "tasklist-to-rest-api",
-      "relationship-type": "connects",
-      "source": "fluxnova-tasklist",
-      "destination": "fluxnova-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "fluxnova-rest-api"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Tasklist enables compliance officers and ops staff to claim and complete KYC review tasks"
     },
     {
       "unique-id": "customer-to-tasklist",
-      "relationship-type": "interacts",
-      "source": "customer",
-      "destination": "fluxnova-tasklist",
+      "relationship-type": {
+        "interacts": {
+          "actor": "customer",
+          "nodes": [
+            "fluxnova-tasklist"
+          ]
+        }
+      },
       "description": "Customer submits onboarding application and uploads identity documents via the client portal"
     },
     {
       "unique-id": "compliance-officer-to-tasklist",
-      "relationship-type": "interacts",
-      "source": "compliance-officer",
-      "destination": "fluxnova-tasklist",
+      "relationship-type": {
+        "interacts": {
+          "actor": "compliance-officer",
+          "nodes": [
+            "fluxnova-tasklist"
+          ]
+        }
+      },
       "description": "Compliance officer claims and completes medium-risk review tasks, sanctions investigation tasks, and approval decisions"
     },
     {
       "unique-id": "senior-compliance-to-tasklist",
-      "relationship-type": "interacts",
-      "source": "senior-compliance",
-      "destination": "fluxnova-tasklist",
+      "relationship-type": {
+        "interacts": {
+          "actor": "senior-compliance",
+          "nodes": [
+            "fluxnova-tasklist"
+          ]
+        }
+      },
       "description": "Senior compliance officer conducts enhanced due diligence tasks for high-risk applications"
     },
     {
       "unique-id": "ops-manager-to-cockpit",
-      "relationship-type": "interacts",
-      "source": "ops-manager",
-      "destination": "fluxnova-cockpit",
+      "relationship-type": {
+        "interacts": {
+          "actor": "ops-manager",
+          "nodes": [
+            "fluxnova-cockpit"
+          ]
+        }
+      },
       "description": "Operations manager monitors SLA compliance and receives escalation alerts for document verification delays"
     },
     {
       "unique-id": "engine-to-idv-svc",
-      "relationship-type": "connects",
-      "source": "fluxnova-engine",
-      "destination": "identity-verification-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-engine"
+          },
+          "destination": {
+            "node": "identity-verification-svc"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Engine dispatches document verification external tasks (ServiceTask_VerifyDocuments) with 48-hour SLA boundary timer",
       "controls": {
@@ -401,7 +481,8 @@
           "description": "All verification task dispatches, completions, and SLA breach escalations are audit-logged",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -409,9 +490,16 @@
     },
     {
       "unique-id": "engine-to-sanctions-svc",
-      "relationship-type": "connects",
-      "source": "fluxnova-engine",
-      "destination": "sanctions-screening-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-engine"
+          },
+          "destination": {
+            "node": "sanctions-screening-svc"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Engine dispatches sanctions and PEP screening external tasks (ServiceTask_SanctionsPEP) after document verification passes",
       "controls": {
@@ -419,7 +507,8 @@
           "description": "All screening task dispatches, match results, and routing decisions are audit-logged",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -427,9 +516,16 @@
     },
     {
       "unique-id": "engine-to-risk-scoring",
-      "relationship-type": "connects",
-      "source": "fluxnova-engine",
-      "destination": "risk-scoring-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-engine"
+          },
+          "destination": {
+            "node": "risk-scoring-svc"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Engine invokes DMN risk assessment (BusinessRule_RiskAssessment) with 24-hour SLA boundary timer, producing Low/Medium/High risk category",
       "controls": {
@@ -437,7 +533,8 @@
           "description": "All risk scoring inputs, DMN decision table evaluations, and category outputs are audit-logged with full rationale",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -445,9 +542,16 @@
     },
     {
       "unique-id": "engine-to-doc-mgmt",
-      "relationship-type": "connects",
-      "source": "fluxnova-engine",
-      "destination": "document-mgmt-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-engine"
+          },
+          "destination": {
+            "node": "document-mgmt-svc"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Engine dispatches document storage tasks (ServiceTask_StoreDocuments) for uploaded identity documents and corporate documentation",
       "controls": {
@@ -455,7 +559,8 @@
           "description": "PII document transfers use TLS 1.3 encryption in transit",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -463,17 +568,31 @@
     },
     {
       "unique-id": "engine-to-notification",
-      "relationship-type": "connects",
-      "source": "fluxnova-engine",
-      "destination": "notification-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-engine"
+          },
+          "destination": {
+            "node": "notification-svc"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Engine dispatches notification tasks (ServiceTask_NotifySalesClient) for onboarding status updates and approval/rejection notices"
     },
     {
       "unique-id": "engine-to-crm-sync",
-      "relationship-type": "connects",
-      "source": "fluxnova-engine",
-      "destination": "crm-sync-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-engine"
+          },
+          "destination": {
+            "node": "crm-sync-svc"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Engine dispatches CRM sync tasks (ServiceTask_PersistClientData) and account provisioning tasks (ServiceTask_AccountOpening) for approved clients",
       "controls": {
@@ -481,7 +600,8 @@
           "description": "All client data persistence and account provisioning events are audit-logged",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -489,9 +609,16 @@
     },
     {
       "unique-id": "idv-svc-to-kyc-db",
-      "relationship-type": "connects",
-      "source": "identity-verification-svc",
-      "destination": "kyc-database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "identity-verification-svc"
+          },
+          "destination": {
+            "node": "kyc-database"
+          }
+        }
+      },
       "protocol": "JDBC",
       "description": "Persists identity verification results, document metadata, and biometric match scores",
       "controls": {
@@ -499,7 +626,8 @@
           "description": "PII data transfers to database use TLS-encrypted JDBC",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -507,9 +635,16 @@
     },
     {
       "unique-id": "sanctions-svc-to-kyc-db",
-      "relationship-type": "connects",
-      "source": "sanctions-screening-svc",
-      "destination": "kyc-database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "sanctions-screening-svc"
+          },
+          "destination": {
+            "node": "kyc-database"
+          }
+        }
+      },
       "protocol": "JDBC",
       "description": "Persists sanctions screening results, PEP match data, and investigation outcomes",
       "controls": {
@@ -517,7 +652,8 @@
           "description": "Screening result transfers to database use TLS-encrypted JDBC",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -525,17 +661,31 @@
     },
     {
       "unique-id": "risk-scoring-to-kyc-db",
-      "relationship-type": "connects",
-      "source": "risk-scoring-svc",
-      "destination": "kyc-database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "risk-scoring-svc"
+          },
+          "destination": {
+            "node": "kyc-database"
+          }
+        }
+      },
       "protocol": "JDBC",
       "description": "Persists risk assessment inputs, DMN decision outputs, and risk category assignments"
     },
     {
       "unique-id": "doc-mgmt-to-kyc-db",
-      "relationship-type": "connects",
-      "source": "document-mgmt-svc",
-      "destination": "kyc-database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "document-mgmt-svc"
+          },
+          "destination": {
+            "node": "kyc-database"
+          }
+        }
+      },
       "protocol": "JDBC",
       "description": "Persists document metadata, storage references, and verification linkages",
       "controls": {
@@ -543,7 +693,8 @@
           "description": "PII document metadata transfers to database use TLS-encrypted JDBC",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         }
@@ -551,17 +702,31 @@
     },
     {
       "unique-id": "crm-sync-to-kyc-db",
-      "relationship-type": "connects",
-      "source": "crm-sync-svc",
-      "destination": "kyc-database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "crm-sync-svc"
+          },
+          "destination": {
+            "node": "kyc-database"
+          }
+        }
+      },
       "protocol": "JDBC",
       "description": "Reads approved client data for CRM synchronization and account provisioning"
     },
     {
       "unique-id": "idv-svc-to-idv-provider",
-      "relationship-type": "connects",
-      "source": "identity-verification-svc",
-      "destination": "idv-provider",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "identity-verification-svc"
+          },
+          "destination": {
+            "node": "idv-provider"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Calls external IDV provider API for OCR, biometric matching, and document authenticity verification",
       "controls": {
@@ -569,7 +734,8 @@
           "description": "External API calls carrying PII use mTLS for mutual authentication and encryption",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         },
@@ -577,7 +743,8 @@
           "description": "All external IDV API calls and responses are logged for compliance audit trail",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -585,9 +752,16 @@
     },
     {
       "unique-id": "sanctions-svc-to-watchlist",
-      "relationship-type": "connects",
-      "source": "sanctions-screening-svc",
-      "destination": "watchlist-provider",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "sanctions-screening-svc"
+          },
+          "destination": {
+            "node": "watchlist-provider"
+          }
+        }
+      },
       "protocol": "HTTPS",
       "description": "Queries OFAC, UN, EU sanctions lists and PEP databases for compliance screening",
       "controls": {
@@ -595,7 +769,8 @@
           "description": "External watchlist API calls use TLS 1.3 encryption for data protection",
           "requirements": [
             {
-              "requirement-url": "https://calm.finos.org/core-concepts/controls"
+              "requirement-url": "https://calm.finos.org/core-concepts/controls",
+              "config-url": "https://calm.finos.org/core-concepts/controls/config.json"
             }
           ]
         },
@@ -603,7 +778,8 @@
           "description": "All sanctions screening queries and results are logged for regulatory compliance",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
+              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
             }
           ]
         }
@@ -611,44 +787,74 @@
     },
     {
       "unique-id": "platform-has-engine",
-      "relationship-type": "composed-of",
-      "source": "fluxnova-platform",
-      "destination": "fluxnova-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-engine"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the BPM engine"
     },
     {
       "unique-id": "platform-has-rest-api",
-      "relationship-type": "composed-of",
-      "source": "fluxnova-platform",
-      "destination": "fluxnova-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-rest-api"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the REST API"
     },
     {
       "unique-id": "platform-has-cockpit",
-      "relationship-type": "composed-of",
-      "source": "fluxnova-platform",
-      "destination": "fluxnova-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-cockpit"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the Cockpit monitoring app"
     },
     {
       "unique-id": "platform-has-admin",
-      "relationship-type": "composed-of",
-      "source": "fluxnova-platform",
-      "destination": "fluxnova-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-admin"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the Admin management app"
     },
     {
       "unique-id": "platform-has-tasklist",
-      "relationship-type": "composed-of",
-      "source": "fluxnova-platform",
-      "destination": "fluxnova-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-tasklist"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the Tasklist app"
     },
     {
       "unique-id": "platform-has-process-db",
-      "relationship-type": "composed-of",
-      "source": "fluxnova-platform",
-      "destination": "fluxnova-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-process-db"
+          ]
+        }
+      },
       "description": "FluxNova platform contains the process database"
     }
   ]

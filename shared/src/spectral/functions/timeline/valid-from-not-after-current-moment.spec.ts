@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { validFromNotAfterCurrentMoment } from './valid-from-not-after-current-moment';
 
 describe('validFromNotAfterCurrentMoment', () => {
@@ -9,7 +10,7 @@ describe('validFromNotAfterCurrentMoment', () => {
             }
         };
 
-        const result = validFromNotAfterCurrentMoment(input, null, context);
+        const result = validFromNotAfterCurrentMoment(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -23,7 +24,7 @@ describe('validFromNotAfterCurrentMoment', () => {
             }
         };
 
-        const result = validFromNotAfterCurrentMoment(input, null, context);
+        const result = validFromNotAfterCurrentMoment(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -40,7 +41,7 @@ describe('validFromNotAfterCurrentMoment', () => {
             }
         };
 
-        const result = validFromNotAfterCurrentMoment(input, null, context);
+        const result = validFromNotAfterCurrentMoment(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -58,7 +59,7 @@ describe('validFromNotAfterCurrentMoment', () => {
             }
         };
 
-        const result = validFromNotAfterCurrentMoment(input, null, context);
+        const result = validFromNotAfterCurrentMoment(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -76,7 +77,7 @@ describe('validFromNotAfterCurrentMoment', () => {
             }
         };
 
-        const result = validFromNotAfterCurrentMoment(input, null, context);
+        const result = validFromNotAfterCurrentMoment(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -94,7 +95,7 @@ describe('validFromNotAfterCurrentMoment', () => {
             }
         };
 
-        const result = validFromNotAfterCurrentMoment(input, null, context);
+        const result = validFromNotAfterCurrentMoment(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -112,7 +113,7 @@ describe('validFromNotAfterCurrentMoment', () => {
             }
         };
 
-        const result = validFromNotAfterCurrentMoment(input, null, context);
+        const result = validFromNotAfterCurrentMoment(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe('Moment with unique-id "moment3" is after current-moment "moment2" but has a valid-from.');
     });

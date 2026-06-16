@@ -4,10 +4,13 @@ Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, npm wo
 
 ## Structure
 - `packages/calm-core/` — CALM types, validation
-- `packages/extensions/` — Node type packs (core, fluxnova, ai, aws, gcp, azure, k8s)
+- `packages/extensions/` — Node type packs (core, fluxnova, ai, aws, gcp, azure, k8s, messaging, identity, opengris)
 - `packages/calmscript/` — DSL compiler
-- `packages/mcp-server/` — MCP server (21 tools)
-- `apps/studio/src/lib/` — canvas, editor, io, layout, palette, properties, stores, validation, governance, templates
+- `packages/mcp-server/` — MCP server (20 tools)
+- `packages/github-action/` — GitHub Action build target
+- `packages/vscode-extension/` — VSCode extension build target
+- `packages/web-component/` — embeddable web component build target
+- `apps/studio/src/lib/` — canvas, editor, io, layout, palette, properties, stores, validation, governance, templates (also c4, desktop, search, toolbar; list illustrative)
 
 ## Commands
 `npm run dev --workspace=@calmstudio/studio` | `npm run build --workspace=@calmstudio/studio` | `npm run test --workspace=@calmstudio/studio` | `npm run typecheck --workspace=@calmstudio/studio` (from repo root)
@@ -26,7 +29,17 @@ All output must conform to CALM 1.2. These are non-negotiable:
 
 **Node types:** `actor`, `ecosystem`, `system`, `service`, `database`, `network`, `ldap`, `webclient`, `data-asset`. Extensions: `fluxnova:engine`, `ai:llm`, etc.
 
-**Relationships:** `connects`, `interacts`, `deployed-in`, `composed-of`, `options`
+**Relationships** — nested form per CALM 1.2 meta-schema. `relationship-type` is an **object** keyed by variant. Exactly one variant key is present:
+
+```json
+{ "unique-id": "...", "relationship-type": { "connects": { "source": { "node": "..." }, "destination": { "node": "..." } } } }
+{ "unique-id": "...", "relationship-type": { "composed-of": { "container": "...", "nodes": ["..."] } } }
+{ "unique-id": "...", "relationship-type": { "interacts": { "actor": "...", "nodes": ["..."] } } }
+{ "unique-id": "...", "relationship-type": { "deployed-in": { "container": "...", "nodes": ["..."] } } }
+{ "unique-id": "...", "relationship-type": { "options": [ ... ] } }
+```
+
+The flat shape (`'relationship-type': 'connects'` + sibling `source`/`destination` strings) was a **local CalmStudio divergence** — it has **never** been valid in any published CALM release. The nested `relationship-type` object above is canonical across CALM 1.0/1.1/1.2 (identical in `calm/release/1.1/meta/core.json` and `calm/release/1.2/meta/core.json`); CalmStudio was brought onto it in #2550/#2553. Use the variant accessors `getRelationshipVariant`, `getConnectsEndpoints`, `getContainerAndNodes`, `getActorAndNodes`, `getReferencedNodeIds` from `@calmstudio/calm-core` to traverse relationships generically.
 
 **Protocols:** `HTTP`, `HTTPS`, `FTP`, `SFTP`, `JDBC`, `WebSocket`, `SocketIO`, `LDAP`, `AMQP`, `TLS`, `mTLS`, `TCP`
 

@@ -19,13 +19,13 @@ calm-server/
 ├── src/
 │   ├── index.ts                    # Entry point, CLI argument parsing
 │   ├── server/
-│   │   ├── cli-server.ts           # Express server startup
+│   │   ├── server.ts               # Express server startup
 │   │   └── routes/
 │   │       ├── routes.ts           # Router setup
 │   │       ├── health-route.ts     # Health check endpoint
 │   │       └── validation-route.ts # Architecture validation endpoints (/calm/validate, /calm/validate/with-pattern)
 │   └── *.spec.ts                   # Unit tests
-├── dist/
+├── dist/                           # (generated) build output
 │   ├── index.js                    # Compiled executable
 │   └── calm/                       # Bundled CALM schemas
 │       ├── release/                # Released schema versions
@@ -45,7 +45,7 @@ calm-server/
 npm run build:calm-server
 ```
 
-This builds the TypeScript code and copies all CALM schemas from `calm/release` and `calm/draft` into `dist/calm/`.
+This builds the TypeScript code and copies the CALM meta schemas (the `**/meta/*` files) from `calm/release` and `calm/draft` into `dist/calm/`.
 
 ### Run the server locally
 ```bash
@@ -150,7 +150,7 @@ curl -X POST http://localhost:3000/calm/validate/with-pattern \
 
 The calm-server implementation mirrors the server functionality from the CLI package (`cli/src/server/`):
 
-- `src/server/cli-server.ts` - Express server setup
+- `src/server/server.ts` - Express server setup
 - `src/server/routes/routes.ts` - Route configuration
 - `src/server/routes/health-route.ts` - Health check
 - `src/server/routes/validation-route.ts` - Architecture validation

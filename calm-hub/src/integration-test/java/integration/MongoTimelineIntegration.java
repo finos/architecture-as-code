@@ -137,4 +137,32 @@ public class MongoTimelineIntegration {
                 .statusCode(200)
                 .body(equalTo(TIMELINE_V2));
     }
+
+    @Test
+    @Order(6)
+    void end_to_end_reject_malformed_json_on_versioned_post() {
+        String envelope = "{\"name\": \"n\", \"description\": \"d\", \"timelineJson\": \"{ not json\"}";
+
+        given()
+                .body(envelope)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/9.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("could not be parsed"));
+    }
+
+    @Test
+    @Order(7)
+    void end_to_end_reject_malformed_json_on_versioned_put() {
+        String envelope = "{\"name\": \"n\", \"description\": \"d\", \"timelineJson\": \"{ not json\"}";
+
+        given()
+                .body(envelope)
+                .header("Content-Type", "application/json")
+                .when().put("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("could not be parsed"));
+    }
 }

@@ -48,7 +48,11 @@
       "name": "Storefront SPA",
       "description": "React-based single page application",
       "interfaces": [
-        { "unique-id": "storefront-url", "type": "url", "value": "https://shop.example.com" }
+        {
+          "unique-id": "storefront-url",
+          "type": "url",
+          "value": "https://shop.example.com"
+        }
       ]
     },
     {
@@ -57,7 +61,11 @@
       "name": "API Gateway",
       "description": "Central API gateway routing requests to backend services",
       "interfaces": [
-        { "unique-id": "api-url", "type": "url", "value": "https://api.example.com" }
+        {
+          "unique-id": "api-url",
+          "type": "url",
+          "value": "https://api.example.com"
+        }
       ]
     },
     {
@@ -66,7 +74,11 @@
       "name": "Order Service",
       "description": "Processes orders, manages cart and checkout flow",
       "interfaces": [
-        { "unique-id": "order-api", "type": "url", "value": "https://api.example.com/v1/orders" }
+        {
+          "unique-id": "order-api",
+          "type": "url",
+          "value": "https://api.example.com/v1/orders"
+        }
       ]
     },
     {
@@ -75,7 +87,11 @@
       "name": "Product Catalog Service",
       "description": "Product search, listings, and inventory management",
       "interfaces": [
-        { "unique-id": "catalog-api", "type": "url", "value": "https://api.example.com/v1/products" }
+        {
+          "unique-id": "catalog-api",
+          "type": "url",
+          "value": "https://api.example.com/v1/products"
+        }
       ]
     },
     {
@@ -84,7 +100,11 @@
       "name": "Notification Service",
       "description": "Sends emails, SMS, and push notifications",
       "interfaces": [
-        { "unique-id": "notify-api", "type": "url", "value": "https://api.example.com/v1/notifications" }
+        {
+          "unique-id": "notify-api",
+          "type": "url",
+          "value": "https://api.example.com/v1/notifications"
+        }
       ]
     },
     {
@@ -93,7 +113,11 @@
       "name": "Auth Service",
       "description": "Handles login, token issuance, and session management",
       "interfaces": [
-        { "unique-id": "auth-api", "type": "url", "value": "https://api.example.com/v1/auth" }
+        {
+          "unique-id": "auth-api",
+          "type": "url",
+          "value": "https://api.example.com/v1/auth"
+        }
       ]
     },
     {
@@ -156,7 +180,11 @@
       "name": "Order Database",
       "description": "PostgreSQL RDS for order data",
       "interfaces": [
-        { "unique-id": "order-db-port", "type": "host-port", "value": "order-db.rds.amazonaws.com:5432" }
+        {
+          "unique-id": "order-db-port",
+          "type": "host-port",
+          "value": "order-db.rds.amazonaws.com:5432"
+        }
       ]
     },
     {
@@ -165,7 +193,11 @@
       "name": "Catalog Database",
       "description": "Aurora PostgreSQL for product catalog",
       "interfaces": [
-        { "unique-id": "catalog-db-port", "type": "host-port", "value": "catalog-db.rds.amazonaws.com:5432" }
+        {
+          "unique-id": "catalog-db-port",
+          "type": "host-port",
+          "value": "catalog-db.rds.amazonaws.com:5432"
+        }
       ]
     },
     {
@@ -174,7 +206,11 @@
       "name": "Session Cache",
       "description": "Redis ElastiCache for session tokens and auth cache",
       "interfaces": [
-        { "unique-id": "cache-port", "type": "host-port", "value": "session-cache.redis.amazonaws.com:6379" }
+        {
+          "unique-id": "cache-port",
+          "type": "host-port",
+          "value": "session-cache.redis.amazonaws.com:6379"
+        }
       ]
     },
     {
@@ -193,240 +229,424 @@
   "relationships": [
     {
       "unique-id": "user-to-frontend",
-      "relationship-type": "interacts",
-      "source": "end-user",
-      "destination": "web-frontend",
       "protocol": "HTTPS",
-      "description": "User browses the storefront"
+      "description": "User browses the storefront",
+      "relationship-type": {
+        "interacts": {
+          "actor": "end-user",
+          "nodes": [
+            "web-frontend"
+          ]
+        }
+      }
     },
     {
       "unique-id": "admin-to-identity",
-      "relationship-type": "interacts",
-      "source": "admin",
-      "destination": "identity-system",
-      "description": "Admin manages users and permissions"
+      "description": "Admin manages users and permissions",
+      "relationship-type": {
+        "interacts": {
+          "actor": "admin",
+          "nodes": [
+            "identity-system"
+          ]
+        }
+      }
     },
     {
       "unique-id": "frontend-to-gateway",
-      "relationship-type": "connects",
-      "source": "web-frontend",
-      "destination": "api-gateway",
       "protocol": "HTTPS",
-      "description": "SPA calls backend APIs"
+      "description": "SPA calls backend APIs",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-frontend"
+          },
+          "destination": {
+            "node": "api-gateway"
+          }
+        }
+      }
     },
     {
       "unique-id": "gateway-to-order",
-      "relationship-type": "connects",
-      "source": "api-gateway",
-      "destination": "order-service",
       "protocol": "HTTPS",
-      "description": "Routes order requests"
+      "description": "Routes order requests",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "order-service"
+          }
+        }
+      }
     },
     {
       "unique-id": "gateway-to-catalog",
-      "relationship-type": "connects",
-      "source": "api-gateway",
-      "destination": "catalog-service",
       "protocol": "HTTPS",
-      "description": "Routes product queries"
+      "description": "Routes product queries",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "catalog-service"
+          }
+        }
+      }
     },
     {
       "unique-id": "gateway-to-auth",
-      "relationship-type": "connects",
-      "source": "api-gateway",
-      "destination": "auth-service",
       "protocol": "HTTPS",
-      "description": "Routes auth requests"
+      "description": "Routes auth requests",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "auth-service"
+          }
+        }
+      }
     },
     {
       "unique-id": "order-to-notification",
-      "relationship-type": "connects",
-      "source": "order-service",
-      "destination": "notification-service",
       "protocol": "HTTPS",
-      "description": "Triggers order confirmation emails"
+      "description": "Triggers order confirmation emails",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service"
+          },
+          "destination": {
+            "node": "notification-service"
+          }
+        }
+      }
     },
     {
       "unique-id": "order-to-payment",
-      "relationship-type": "connects",
-      "source": "order-service",
-      "destination": "payment-gateway",
       "protocol": "HTTPS",
-      "description": "Processes payments via Stripe"
+      "description": "Processes payments via Stripe",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service"
+          },
+          "destination": {
+            "node": "payment-gateway"
+          }
+        }
+      }
     },
     {
       "unique-id": "order-to-db",
-      "relationship-type": "connects",
-      "source": "order-service",
-      "destination": "order-db",
       "protocol": "TCP",
-      "description": "Reads/writes order data"
+      "description": "Reads/writes order data",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service"
+          },
+          "destination": {
+            "node": "order-db"
+          }
+        }
+      }
     },
     {
       "unique-id": "catalog-to-db",
-      "relationship-type": "connects",
-      "source": "catalog-service",
-      "destination": "catalog-db",
       "protocol": "TCP",
-      "description": "Reads/writes product catalog"
+      "description": "Reads/writes product catalog",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "catalog-service"
+          },
+          "destination": {
+            "node": "catalog-db"
+          }
+        }
+      }
     },
     {
       "unique-id": "auth-to-cache",
-      "relationship-type": "connects",
-      "source": "auth-service",
-      "destination": "session-cache",
       "protocol": "TCP",
-      "description": "Reads/writes session tokens"
+      "description": "Reads/writes session tokens",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "auth-service"
+          },
+          "destination": {
+            "node": "session-cache"
+          }
+        }
+      }
     },
     {
       "unique-id": "auth-to-cognito",
-      "relationship-type": "connects",
-      "source": "auth-service",
-      "destination": "cognito",
       "protocol": "HTTPS",
-      "description": "Validates identity via Cognito"
+      "description": "Validates identity via Cognito",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "auth-service"
+          },
+          "destination": {
+            "node": "cognito"
+          }
+        }
+      }
     },
     {
       "unique-id": "services-to-secrets",
-      "relationship-type": "connects",
-      "source": "order-service",
-      "destination": "secrets",
       "protocol": "HTTPS",
-      "description": "Fetches DB credentials"
+      "description": "Fetches DB credentials",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service"
+          },
+          "destination": {
+            "node": "secrets"
+          }
+        }
+      }
     },
     {
       "unique-id": "services-to-monitoring",
-      "relationship-type": "connects",
-      "source": "order-service",
-      "destination": "monitoring",
       "protocol": "HTTPS",
-      "description": "Sends metrics and traces"
+      "description": "Sends metrics and traces",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service"
+          },
+          "destination": {
+            "node": "monitoring"
+          }
+        }
+      }
     },
     {
       "unique-id": "order-system-has-order-svc",
-      "relationship-type": "composed-of",
-      "source": "order-system",
-      "destination": "order-service",
-      "description": "Order system contains the order service"
+      "description": "Order system contains the order service",
+      "relationship-type": {
+        "composed-of": {
+          "container": "order-system",
+          "nodes": [
+            "order-service"
+          ]
+        }
+      }
     },
     {
       "unique-id": "order-system-has-catalog-svc",
-      "relationship-type": "composed-of",
-      "source": "order-system",
-      "destination": "catalog-service",
-      "description": "Order system contains the catalog service"
+      "description": "Order system contains the catalog service",
+      "relationship-type": {
+        "composed-of": {
+          "container": "order-system",
+          "nodes": [
+            "catalog-service"
+          ]
+        }
+      }
     },
     {
       "unique-id": "order-system-has-notification-svc",
-      "relationship-type": "composed-of",
-      "source": "order-system",
-      "destination": "notification-service",
-      "description": "Order system contains the notification service"
+      "description": "Order system contains the notification service",
+      "relationship-type": {
+        "composed-of": {
+          "container": "order-system",
+          "nodes": [
+            "notification-service"
+          ]
+        }
+      }
     },
     {
       "unique-id": "identity-system-has-auth-svc",
-      "relationship-type": "composed-of",
-      "source": "identity-system",
-      "destination": "auth-service",
-      "description": "Identity system contains the auth service"
+      "description": "Identity system contains the auth service",
+      "relationship-type": {
+        "composed-of": {
+          "container": "identity-system",
+          "nodes": [
+            "auth-service"
+          ]
+        }
+      }
     },
     {
       "unique-id": "vpc-has-public-subnet",
-      "relationship-type": "composed-of",
-      "source": "production-vpc",
-      "destination": "public-subnet",
-      "description": "VPC contains public subnet"
+      "description": "VPC contains public subnet",
+      "relationship-type": {
+        "composed-of": {
+          "container": "production-vpc",
+          "nodes": [
+            "public-subnet"
+          ]
+        }
+      }
     },
     {
       "unique-id": "vpc-has-app-subnet",
-      "relationship-type": "composed-of",
-      "source": "production-vpc",
-      "destination": "app-subnet",
-      "description": "VPC contains application subnet"
+      "description": "VPC contains application subnet",
+      "relationship-type": {
+        "composed-of": {
+          "container": "production-vpc",
+          "nodes": [
+            "app-subnet"
+          ]
+        }
+      }
     },
     {
       "unique-id": "vpc-has-data-subnet",
-      "relationship-type": "composed-of",
-      "source": "production-vpc",
-      "destination": "data-subnet",
-      "description": "VPC contains data subnet"
+      "description": "VPC contains data subnet",
+      "relationship-type": {
+        "composed-of": {
+          "container": "production-vpc",
+          "nodes": [
+            "data-subnet"
+          ]
+        }
+      }
     },
     {
       "unique-id": "alb-in-public",
-      "relationship-type": "deployed-in",
-      "source": "alb",
-      "destination": "public-subnet",
-      "description": "ALB deployed in public subnet"
+      "description": "ALB deployed in public subnet",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "public-subnet",
+          "nodes": [
+            "alb"
+          ]
+        }
+      }
     },
     {
       "unique-id": "order-ec2-in-app",
-      "relationship-type": "deployed-in",
-      "source": "order-ec2",
-      "destination": "app-subnet",
-      "description": "Order service instance in app subnet"
+      "description": "Order service instance in app subnet",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "app-subnet",
+          "nodes": [
+            "order-ec2"
+          ]
+        }
+      }
     },
     {
       "unique-id": "catalog-ec2-in-app",
-      "relationship-type": "deployed-in",
-      "source": "catalog-ec2",
-      "destination": "app-subnet",
-      "description": "Catalog service instance in app subnet"
+      "description": "Catalog service instance in app subnet",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "app-subnet",
+          "nodes": [
+            "catalog-ec2"
+          ]
+        }
+      }
     },
     {
       "unique-id": "auth-ec2-in-app",
-      "relationship-type": "deployed-in",
-      "source": "auth-ec2",
-      "destination": "app-subnet",
-      "description": "Auth service instance in app subnet"
+      "description": "Auth service instance in app subnet",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "app-subnet",
+          "nodes": [
+            "auth-ec2"
+          ]
+        }
+      }
     },
     {
       "unique-id": "notification-lambda-in-app",
-      "relationship-type": "deployed-in",
-      "source": "notification-lambda",
-      "destination": "app-subnet",
-      "description": "Notification lambda in app subnet"
+      "description": "Notification lambda in app subnet",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "app-subnet",
+          "nodes": [
+            "notification-lambda"
+          ]
+        }
+      }
     },
     {
       "unique-id": "order-db-in-data",
-      "relationship-type": "deployed-in",
-      "source": "order-db",
-      "destination": "data-subnet",
-      "description": "Order DB in data subnet"
+      "description": "Order DB in data subnet",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "data-subnet",
+          "nodes": [
+            "order-db"
+          ]
+        }
+      }
     },
     {
       "unique-id": "catalog-db-in-data",
-      "relationship-type": "deployed-in",
-      "source": "catalog-db",
-      "destination": "data-subnet",
-      "description": "Catalog DB in data subnet"
+      "description": "Catalog DB in data subnet",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "data-subnet",
+          "nodes": [
+            "catalog-db"
+          ]
+        }
+      }
     },
     {
       "unique-id": "session-cache-in-data",
-      "relationship-type": "deployed-in",
-      "source": "session-cache",
-      "destination": "data-subnet",
-      "description": "Session cache in data subnet"
+      "description": "Session cache in data subnet",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "data-subnet",
+          "nodes": [
+            "session-cache"
+          ]
+        }
+      }
     },
     {
       "unique-id": "gateway-in-vpc",
-      "relationship-type": "deployed-in",
-      "source": "api-gateway",
-      "destination": "production-vpc",
-      "description": "API Gateway associated with VPC"
+      "description": "API Gateway associated with VPC",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "production-vpc",
+          "nodes": [
+            "api-gateway"
+          ]
+        }
+      }
     },
     {
       "unique-id": "cognito-in-vpc",
-      "relationship-type": "deployed-in",
-      "source": "cognito",
-      "destination": "production-vpc",
-      "description": "Cognito user pool in VPC"
+      "description": "Cognito user pool in VPC",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "production-vpc",
+          "nodes": [
+            "cognito"
+          ]
+        }
+      }
     },
     {
       "unique-id": "secrets-in-vpc",
-      "relationship-type": "deployed-in",
-      "source": "secrets",
-      "destination": "production-vpc",
-      "description": "Secrets Manager endpoint in VPC"
+      "description": "Secrets Manager endpoint in VPC",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "production-vpc",
+          "nodes": [
+            "secrets"
+          ]
+        }
+      }
     }
   ]
 }

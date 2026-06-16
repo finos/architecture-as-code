@@ -1,7 +1,10 @@
+import { IFunctionResult } from '@stoplight/spectral-core';
+import { TimelineInput } from './timeline-types';
+
 /**
  * Checks that a current-moment is defined when the moments array is non-empty.
  */
-export function currentMomentRequiredWhenMomentsNonEmpty(input, _, _context) {
+export function currentMomentRequiredWhenMomentsNonEmpty(input: TimelineInput | null | undefined, _?: unknown, _context?: unknown): IFunctionResult[] {
     if (!input) {
         return [];
     }

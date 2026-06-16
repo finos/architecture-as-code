@@ -43,7 +43,7 @@ function buildPatternChoice({description, nodes, relationships}: CalmChoice) {
 }
 
 function buildPatternOption(optionType: 'oneOf' | 'anyOf', ...choices: object[]) {
-    const option = {};
+    const option: Record<string, object[]> = {};
     option[optionType] = choices;
     return option;
 }

@@ -1,12 +1,11 @@
 import { Docifier } from './docifier';
 import { TemplateProcessor } from '../template/template-processor';
-import { Mock } from 'vitest';
 import * as urlMapping from '../template/url-mapping';
 
 vi.mock('../template/template-processor');
 vi.mock('../template/url-mapping');
 
-const MockedTemplateProcessor: Mock = vi.mocked(TemplateProcessor);
+const MockedTemplateProcessor = vi.mocked(TemplateProcessor);
 
 describe('Docifier', () => {
     const inputPath = 'some/input/path';

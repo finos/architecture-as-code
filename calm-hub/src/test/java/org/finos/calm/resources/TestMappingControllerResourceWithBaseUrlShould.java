@@ -3,14 +3,11 @@ package org.finos.calm.resources;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
-import org.finos.calm.store.ArchitectureStore;
-import org.finos.calm.store.InterfaceStore;
-import org.finos.calm.store.PatternStore;
-import org.finos.calm.store.ResourceMappingStore;
-import org.finos.calm.store.StandardStore;
+import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,9 +17,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @TestProfile(BaseUrlConfiguredProfile.class)
-public class TestFrontControllerResourceWithBaseUrlShould {
+public class TestMappingControllerResourceWithBaseUrlShould {
 
     @InjectMock
     ResourceMappingStore mockMappingStore;
@@ -50,10 +48,10 @@ public class TestFrontControllerResourceWithBaseUrlShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway")
+                .get("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(200)
-                .body(containsString("https://hub.example.com/calm/namespaces/finos/api-gateway/versions/1.0.0"))
+                .body(containsString("https://hub.example.com/calm/namespaces/finos/mappings/api-gateway/versions/1.0.0"))
                 .body(containsString("original"));
     }
 
@@ -67,7 +65,7 @@ public class TestFrontControllerResourceWithBaseUrlShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway")
+                .get("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(200)
                 .body(containsString("[1, 2, 3]"));
@@ -83,7 +81,7 @@ public class TestFrontControllerResourceWithBaseUrlShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/api-gateway")
+                .get("/calm/namespaces/finos/mappings/api-gateway")
                 .then()
                 .statusCode(200)
                 .body(containsString("not-json"));

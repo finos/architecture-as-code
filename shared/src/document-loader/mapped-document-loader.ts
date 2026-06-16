@@ -53,7 +53,7 @@ export class MappedDocumentLoader implements DocumentLoader {
                 this.logger.debug(`Pre-loaded: ${url} -> ${absolutePath}`);
                 
                 // Also store by $id if present and different from URL
-                const docId = document['$id'] as string | undefined;
+                const docId = (document as Record<string, unknown>)['$id'] as string | undefined;
                 if (docId && docId !== url) {
                     schemaDirectory.storeDocument(docId, 'schema', document);
                     this.logger.debug(`Also stored by $id: ${docId}`);
@@ -75,10 +75,10 @@ export class MappedDocumentLoader implements DocumentLoader {
         this.logger.debug(`Attempting to load: ${documentId}`);
 
         // 1. Check URL mapping
-        if (this.urlToLocalMap.has(documentId)) {
-            const localPath = this.urlToLocalMap.get(documentId);
-            const absolutePath = this.resolveLocalPath(localPath);
-            
+        const mappedPath = this.urlToLocalMap.get(documentId);
+        if (mappedPath !== undefined) {
+            const absolutePath = this.resolveLocalPath(mappedPath);
+
             this.logger.debug(`Resolved via URL mapping: ${documentId} -> ${absolutePath}`);
             return this.loadDocumentFromPath(absolutePath);
         }
@@ -124,7 +124,7 @@ export class MappedDocumentLoader implements DocumentLoader {
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
                 message: `Failed to load/parse ${filePath}: ${err instanceof Error ? err.message : String(err)}`,
-                cause: err,
+                cause: err instanceof Error ? err : undefined,
                 recoverable: false
             });
         }
@@ -135,9 +135,9 @@ export class MappedDocumentLoader implements DocumentLoader {
      */
     resolvePath(reference: string): string | undefined {
         // 1. Check URL mapping
-        if (this.urlToLocalMap.has(reference)) {
-            const localPath = this.urlToLocalMap.get(reference);
-            return this.resolveLocalPath(localPath);
+        const mappedPath = this.urlToLocalMap.get(reference);
+        if (mappedPath !== undefined) {
+            return this.resolveLocalPath(mappedPath);
         }
 
         // Relative path resolution has been moved to FileSystemDocumentLoader
