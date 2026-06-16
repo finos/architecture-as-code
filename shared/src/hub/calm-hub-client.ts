@@ -46,11 +46,6 @@ export function isValidResourceType(input: string): input is ResourceType {
     return RESOURCE_TYPES.includes(input);
 }
 
-export function convertResourceTypeForCalmHubUrl(rt: ResourceType): string {
-    // return (rt as string) + 's';
-    return rt as string;
-}
-
 export class HubClientError extends Error {
     /**
      * Creates a normalized Hub client error.
@@ -314,7 +309,7 @@ export class CalmHubClient {
 
     async getNamespaceMappings(namespace: string, type: ResourceType): Promise<string[]> {
         this.logger.debug(`Getting mappings for namespace=${namespace} with type=${type ?? 'ANY'}`);
-        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(type)}`;
+        const endpoint = `/calm/namespaces/${namespace}/${type}`;
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received mappings response: ${JSON.stringify(response.data)}`);
@@ -327,7 +322,7 @@ export class CalmHubClient {
     async createMappedResourceVersion(
         metadata: DocumentMetadata,
         json: string): Promise<string> {
-        const endpoint = `/calm/namespaces/${metadata.namespace}/${convertResourceTypeForCalmHubUrl(metadata.type)}/${metadata.mapping}/versions/${metadata.version}`;
+        const endpoint = `/calm/namespaces/${metadata.namespace}/${metadata.type}/${metadata.mapping}/versions/${metadata.version}`;
 
         const actualMetadata = extractDocumentMetadata(json);
         if (!actualMetadata) {
@@ -343,8 +338,6 @@ export class CalmHubClient {
         }
 
         this.logger.debug(`Updating mapped resource in namespace=${metadata.namespace} with mappingId=${metadata.mapping}`);
-
-        // TODO handle name/description
 
         try {
             const response = await this.ax.post(endpoint, json);
@@ -364,7 +357,7 @@ export class CalmHubClient {
      */
     async getMappedResourceVersions(namespace: string, mappingId: string, resourceType: ResourceType): Promise<string[]> {
         this.logger.debug(`Getting mapped resource versions for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
-        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(resourceType)}/${mappingId}/versions`;
+        const endpoint = `/calm/namespaces/${namespace}/${resourceType}/${mappingId}/versions`;
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received mapped resource versions response: ${JSON.stringify(response.data)}`);
@@ -381,7 +374,7 @@ export class CalmHubClient {
 
     async getMappedResourceLatestVersion(namespace: string, mappingId: string, resourceType: ResourceType): Promise<string> {
         this.logger.debug(`Getting latest version for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
-        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(resourceType)}/${mappingId}`;
+        const endpoint = `/calm/namespaces/${namespace}/${resourceType}/${mappingId}`;
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received latest version response: ${JSON.stringify(response.data)}`);
@@ -393,7 +386,7 @@ export class CalmHubClient {
 
     async getMappedResourceByVersion(namespace: string, mappingId: string, version: string, resourceType: ResourceType): Promise<string> {
         this.logger.debug(`Getting version ${version} for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
-        const endpoint = `/calm/namespaces/${namespace}/${convertResourceTypeForCalmHubUrl(resourceType)}/${mappingId}/versions/${version}`;
+        const endpoint = `/calm/namespaces/${namespace}/${resourceType}/${mappingId}/versions/${version}`;
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received version response: ${JSON.stringify(response.data)}`);

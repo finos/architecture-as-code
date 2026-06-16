@@ -188,6 +188,7 @@ export class DocumentMetadataValidationError extends Error {
  */
 export function validateDocumentId(expectedMetadata: DocumentMetadata, actualMetadata: DocumentMetadata): void {
     for (const key of Object.keys(expectedMetadata)) {
+        if (key === 'baseUrl') continue;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const expected = (expectedMetadata as any)[key];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
