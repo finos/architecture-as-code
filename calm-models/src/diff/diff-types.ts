@@ -80,6 +80,6 @@ export interface AdrDiffResult {
 }
 
 /**
- * Represents the result of diffing two CAM architecture instances: includes nodes, relationships and ADRs. TODO: incorporate controls, flows and metadata.
+ * Represents the result of diffing two CALM architecture instances: includes nodes, relationships and ADRs. TODO: incorporate controls, flows and metadata.
  */
 export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult;

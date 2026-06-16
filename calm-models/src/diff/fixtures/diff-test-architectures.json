@@ -64,7 +64,8 @@
       }
     ],
     "adrs": [
-      "https://example.com/adr/001-use-api-gateway"
+      "https://example.com/adr/001-use-api-gateway",
+      "https://example.com/adr/002-use-load-balancer"
     ]
   },
   "additionArchitecture": {
@@ -774,7 +775,8 @@
     "relationships": [],
     "adrs": [
       "https://example.com/adr/001-use-api-gateway",
-      "https://example.com/adr/002-choose-database"
+      "https://example.com/adr/002-use-load-balancer",
+      "https://example.com/adr/003-choose-database"
     ]
   },
   "adrRemovalArchitecture": {
@@ -785,18 +787,34 @@
     },
     "nodes": [],
     "relationships": [],
-    "adrs": []
+    "adrs": [
+      "https://example.com/adr/002-use-load-balancer"
+    ]
   },
   "adrModificationArchitecture": {
     "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "metadata": {
       "test-purpose": "Tests ADR array modification",
-      "description": "Mofifies an ADR in the base architecture to test ADR diffing"
+      "description": "Modifies an ADR in the base architecture to test ADR diffing"
     },
     "nodes": [],
     "relationships": [],
     "adrs": [
-      "https://example.com/adr/001-use-api-gateway-per-app"
+      "https://example.com/adr/001-use-api-gateway-per-app",
+      "https://example.com/adr/002-use-load-balancer"
+    ]
+  },
+  "adrReorderArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests ADR array reordering",
+      "description": "Reorders the ADR array with respect to the base architecture to test ADR diffing"
+    },
+    "nodes": [],
+    "relationships": [],
+    "adrs": [
+      "https://example.com/adr/002-use-load-balancer",
+      "https://example.com/adr/001-use-api-gateway"
     ]
   }
 }

@@ -311,7 +311,7 @@ describe('diff', () => {
     });
 
     describe('diffArchitectures - ADR changes', () => {
-        it('records the unchanged and added ADR when an ADR is added', () => {
+        it('records unchanged and added ADRs when an ADR is added', () => {
             const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrAdditionArchitecture);
             expect(result.adrDiffItems).toEqual([
                 {
@@ -319,23 +319,31 @@ describe('diff', () => {
                     changeType: 'unchanged'
                 },
                 {
-                    content: testArchitectures.adrAdditionArchitecture.adrs[1],
+                    content: testArchitectures.baseArchitecture.adrs[1],
+                    changeType: 'unchanged'
+                },
+                {
+                    content: testArchitectures.adrAdditionArchitecture.adrs[2],
                     changeType: 'added'
                 }
             ]);
         });
 
-        it('records the removed ADR when an ADR is removed', () => {
+        it('records unchanged and removed ADRs when an ADR is removed', () => {
             const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrRemovalArchitecture);
             expect(result.adrDiffItems).toEqual([
                 {
                     content: testArchitectures.baseArchitecture.adrs[0],
                     changeType: 'removed'
+                },
+                {
+                    content: testArchitectures.baseArchitecture.adrs[1],
+                    changeType: 'unchanged'
                 }
             ]);
         });
 
-        it('records the removed then added ADR when an ADR is modified', () => {
+        it('records the removed, added and unchanged ADRs when an ADR is modified', () => {
             const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrModificationArchitecture);
             expect(result.adrDiffItems).toEqual([
                 {
@@ -345,6 +353,28 @@ describe('diff', () => {
                 {
                     content: testArchitectures.adrModificationArchitecture.adrs[0],
                     changeType: 'added'
+                },
+                {
+                    content: testArchitectures.baseArchitecture.adrs[1],
+                    changeType: 'unchanged'
+                }
+            ]);
+        });
+
+        it('records the removed, added and unchanged ADRs when the ADR array is reordered', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrReorderArchitecture);
+            expect(result.adrDiffItems).toEqual([
+                {
+                    content: testArchitectures.baseArchitecture.adrs[0],
+                    changeType: 'removed'
+                },
+                {
+                    content: testArchitectures.baseArchitecture.adrs[1],
+                    changeType: 'unchanged'
+                },
+                {
+                    content: testArchitectures.adrReorderArchitecture.adrs[1],
+                    changeType: 'added'
                 }
             ]);
         });
@@ -352,10 +382,9 @@ describe('diff', () => {
 
     describe('diffArchitectures - comprehensive scenarios', () => {
         const empty = (): CalmArchitectureSchema => ({
-            $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
             nodes: [],
             relationships: [],
-        } as CalmArchitectureSchema);
+        });
 
         it('handles empty architectures', () => {
             const result = diffArchitectures(empty(), empty());
