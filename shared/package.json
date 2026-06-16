@@ -42,7 +42,7 @@
         "axios": "^1.15.2",
         "copyfiles": "^2.4.1",
         "handlebars": "^4.7.9",
-        "js-yaml": "^4.1.0",
+        "js-yaml": "^4.2.0",
         "json-pointer": "^0.6.2",
         "jsonpath-plus": "^10.3.0",
         "junit-report-builder": "^5.1.1",
