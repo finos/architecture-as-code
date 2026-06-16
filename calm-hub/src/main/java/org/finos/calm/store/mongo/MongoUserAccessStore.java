@@ -101,6 +101,15 @@ public class MongoUserAccessStore implements UserAccessStore {
     }
 
     @Override
+    public List<UserAccess> getGrantsForUser(String username) {
+        List<UserAccess> grants = new ArrayList<>();
+        for (Document doc : userAccessCollection.find(Filters.in("username", username, "*"))) {
+            grants.add(buildFromDocument(doc));
+        }
+        return grants;
+    }
+
+    @Override
     public List<UserAccess> getUserAccessForNamespace(String namespace)
             throws NamespaceNotFoundException, UserAccessNotFoundException {
 

@@ -102,7 +102,7 @@ public class SearchTools {
         if (!authEnabled || !userAccessValidatorInstance.isResolvable()) {
             return Optional.empty();
         }
-        return Optional.of(userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName()));
+        return userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName());
     }
 
     private static Map<String, List<SearchResult>> toGroupMap(GroupedSearchResults results) {
