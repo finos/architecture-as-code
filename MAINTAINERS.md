@@ -22,7 +22,7 @@ This file lists the maintainers of this repository.
 | @lbulanti-ms | Luigi Bulanti | *please add organization* | *please add email* |
 | @markscott-ms | Mark Scott | Morgan Stanley | markscot@morganstanley.com |
 | @opsflowanoop | *please add name* | *please add organization* | *please add email* |
-| @rocketstack-matt | Matthew Bain | *please add organization* | *please add email* |
+| @rocketstack-matt | Matthew Bain | Morgan Stanley | matt@rocketstack.co |
 | @willosborne | Will Osborne | Morgan Stanley | willfosborne@gmail.com |
 | @yt-ms | Yan | Morgan Stanley | *please add email* |
 
