@@ -246,4 +246,15 @@ describe('runTimelineDiffCommand', () => {
 
         expect(mocks.processExit).toHaveBeenCalledWith(1);
     });
+
+    it('does not append a trailing newline when summary output already ends with one', async () => {
+        (runTimelineDiff as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+            diffs: [{ from: 'm1', to: 'm2', diff: emptyDiff }],
+        });
+
+        await runTimelineDiffCommand({ ...timelineBaseOptions, outputFormat: 'summary' as const });
+
+        // formatDiff in 'summary' mode ends with '\n', so the extra write should NOT occur
+        expect(mocks.stdoutWrite).toHaveBeenCalledTimes(1);
+    });
 });

@@ -13,7 +13,7 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces,
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
 // real (pure) document-id-utils helpers that orchestratePush relies on.
 vi.mock('@finos/calm-shared', async () => {
-    const documentIdUtils = await vi.importActual('@finos/calm-shared/dist/hub/document-id-utils');
+    const documentIdUtils = await vi.importActual<Record<string, unknown>>('@finos/calm-shared/dist/hub/document-id-utils');
     // Real (pure) semver helpers used by pushDocument's version-bump path.
     const semver = await vi.importActual('@finos/calm-shared/dist/hub/semver');
     const mockClient = {
@@ -39,6 +39,7 @@ vi.mock('@finos/calm-shared', async () => {
     };
     return {
         ...documentIdUtils,
+        extractDocumentMetadata: vi.fn(documentIdUtils['extractDocumentMetadata'] as (...args: unknown[]) => unknown),
         ...semver,
         CalmHubClient: vi.fn(function () { return mockClient; }),
         HubClientError: class HubClientError extends Error {
@@ -289,6 +290,27 @@ describe('hub-commands', () => {
 
             expect(hubOutput.printError).toHaveBeenCalledWith(409, 'Version already exists', expect.any(String), 'json');
         });
+
+        it('exits when parsed metadata has no namespace', async () => {
+            const { shared } = await getSharedMocks();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (vi.mocked(shared.extractDocumentMetadata) as any).mockReturnValueOnce({
+                rawDocumentId: 'test', baseUrl: 'http://hub',
+                namespace: undefined, mapping: 'my-arch',
+                type: 'architectures', version: '1.0.0', name: 'my-arch'
+            });
+
+            await expect(runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                name: 'my-arch',
+                description: 'desc',
+                file: 'arch.json'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, expect.stringContaining('namespace and mapping'), expect.any(String), 'json'
+            );
+        });
     });
 
     // ── runPullArchitecture ────────────────────────────────────────────────
@@ -373,6 +395,17 @@ describe('hub-commands', () => {
                 [{ key: 'MAPPING', header: 'MAPPING' }]
             );
         });
+
+        it('exits on HubClientError from getNamespaceMappings', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.getNamespaceMappings).mockRejectedValue(
+                new shared.HubClientError(503, 'Service unavailable', 'GET /calm/namespaces/finos/architectures')
+            );
+
+            await expect(runListArchitectures({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(503, 'Service unavailable', expect.any(String), 'json');
+        });
     });
 
     // ── runCreateNamespace ─────────────────────────────────────────────────
@@ -420,6 +453,18 @@ describe('hub-commands', () => {
                 'json'
             );
         });
+
+        it('renders table when format is pretty', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.createNamespace).mockResolvedValue({ name: 'my-org', location: '/calm/namespaces/my-org' });
+
+            await runCreateNamespace({ calmHubOptions: { calmHubUrl: 'http://hub' }, name: 'my-org', description: 'My org', format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ STATUS: 'Created', ID: 'my-org', LOCATION: '/calm/namespaces/my-org' }],
+                expect.arrayContaining([expect.objectContaining({ key: 'STATUS' })])
+            );
+        });
     });
 
     // ── runListNamespaces ──────────────────────────────────────────────────
@@ -453,6 +498,17 @@ describe('hub-commands', () => {
             await runListNamespaces({ calmHubOptions: { calmHubUrl: 'http://hub' }, format: 'pretty' });
 
             expect(hubOutput.printTableSuccess).toHaveBeenCalled();
+        });
+
+        it('exits on HubClientError from listNamespaces', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.listNamespaces).mockRejectedValue(
+                new shared.HubClientError(503, 'Service unavailable', 'GET /api/calm/namespaces')
+            );
+
+            await expect(runListNamespaces({ calmHubOptions: { calmHubUrl: 'http://hub' } }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(503, 'Service unavailable', expect.any(String), 'json');
         });
     });
 
@@ -951,6 +1007,17 @@ describe('hub-commands', () => {
             await expect(runListDomains({ calmHubOptions: {} })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
         });
+
+        it('exits on HubClientError from listDomains', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.listDomains).mockRejectedValue(
+                new shared.HubClientError(503, 'Service unavailable', 'GET /calm/domains')
+            );
+
+            await expect(runListDomains({ calmHubOptions: { calmHubUrl: 'http://hub' } }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(503, 'Service unavailable', expect.any(String), 'json');
+        });
     });
 
     // ── control document fixtures ──────────────────────────────────────────────
@@ -988,6 +1055,20 @@ describe('hub-commands', () => {
             await runPushControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', changeType: 'MAJOR' });
 
             expect(mockClient.createControlRequirementVersion).toHaveBeenCalledWith('security', 'access-control', '2.0.0', expect.any(String));
+        });
+
+        it('prints table when format is pretty', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getControlRequirementVersions).mockResolvedValue([]);
+            vi.mocked(mockClient.createControlRequirementVersion).mockResolvedValue(reqId('1.0.0'));
+
+            await runPushControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                expect.arrayContaining([expect.objectContaining({ STATUS: 'Created', DOMAIN: 'security', CONTROL: 'access-control', VERSION: '1.0.0' })]),
+                expect.arrayContaining([expect.objectContaining({ key: 'DOMAIN' })])
+            );
         });
 
         it('exits when the document $id describes a configuration, not a requirement', async () => {
@@ -1051,6 +1132,20 @@ describe('hub-commands', () => {
             await runPushControlConfiguration({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'config.json', changeType: 'MAJOR' });
 
             expect(mockClient.createControlConfigurationVersion).toHaveBeenCalledWith('security', 'access-control', 'prod', '2.0.0', expect.any(String));
+        });
+
+        it('prints table with CONFIG column when format is pretty', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlConfigDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getControlConfigurationVersions).mockResolvedValue([]);
+            vi.mocked(mockClient.createControlConfigurationVersion).mockResolvedValue(cfgId('1.0.0'));
+
+            await runPushControlConfiguration({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'config.json', format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                expect.arrayContaining([expect.objectContaining({ STATUS: 'Created', DOMAIN: 'security', CONTROL: 'access-control', CONFIG: 'prod', VERSION: '1.0.0' })]),
+                expect.arrayContaining([expect.objectContaining({ key: 'CONFIG' })])
+            );
         });
 
         it('exits when the document $id describes a requirement, not a configuration', async () => {
@@ -1189,6 +1284,17 @@ describe('hub-commands', () => {
             await expect(runListControls({ calmHubOptions: {}, domain: 'security' })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
         });
+
+        it('exits on HubClientError', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.listControls).mockRejectedValue(
+                new shared.HubClientError(500, 'Internal server error', 'GET /calm/domains/security/controls')
+            );
+
+            await expect(runListControls({ calmHubOptions: { calmHubUrl: 'http://hub' }, domain: 'security' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(500, 'Internal server error', expect.any(String), 'json');
+        });
     });
 
     // ── runListControlConfigurations ───────────────────────────────────────────
@@ -1219,6 +1325,17 @@ describe('hub-commands', () => {
                     { key: 'DESCRIPTION', header: 'DESCRIPTION' }
                 ]
             );
+        });
+
+        it('exits on HubClientError', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.listControlConfigurations).mockRejectedValue(
+                new shared.HubClientError(500, 'Internal server error', 'GET /calm/domains/security/controls/access-control/configurations')
+            );
+
+            await expect(runListControlConfigurations({ calmHubOptions: { calmHubUrl: 'http://hub' }, domain: 'security', controlName: 'access-control' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(500, 'Internal server error', expect.any(String), 'json');
         });
     });
 
