@@ -6,7 +6,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { Data } from '../../../model/calm.js';
 
 const calmServiceMock = {
-    fetchDecoratorValues: vi.fn().mockResolvedValue([]),
+    fetchDeploymentDecoratorsForArchitecture: vi.fn().mockResolvedValue([]),
     fetchVersionsByCustomId: vi.fn().mockResolvedValue(['1.0.0', '2.0.0']),
     fetchArchitectureTimeline: vi.fn().mockRejectedValue(new Error('no timeline')),
     fetchArchitectureSummaries: vi
@@ -62,7 +62,7 @@ vi.mock('./timeline/TimelineBar.js', () => ({
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(function () { return {
-        fetchDecoratorValues: calmServiceMock.fetchDecoratorValues,
+        fetchDeploymentDecoratorsForArchitecture: calmServiceMock.fetchDeploymentDecoratorsForArchitecture,
         fetchVersionsByCustomId: calmServiceMock.fetchVersionsByCustomId,
         fetchArchitectureTimeline: calmServiceMock.fetchArchitectureTimeline,
         fetchArchitectureSummaries: calmServiceMock.fetchArchitectureSummaries,
@@ -89,7 +89,7 @@ const patternData: Data & { calmType: 'Patterns' } = {
 describe('DiagramSection', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        calmServiceMock.fetchDecoratorValues.mockResolvedValue([]);
+        calmServiceMock.fetchDeploymentDecoratorsForArchitecture.mockResolvedValue([]);
         calmServiceMock.fetchVersionsByCustomId.mockResolvedValue(['1.0.0', '2.0.0']);
         calmServiceMock.fetchArchitectureTimeline.mockRejectedValue(new Error('no timeline'));
     });
@@ -122,7 +122,7 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('drawer')).toHaveTextContent('Drawer for test-arch');
         });
 
-        it('uses selected architecture id in deployment decorator target', async () => {
+        it('fetches deployment decorators via the shared service method with namespace, id and version', async () => {
             render(
                 <MemoryRouter>
                     <DiagramSection data={architectureData} />
@@ -131,10 +131,10 @@ describe('DiagramSection', () => {
 
             await screen.findByTestId('drawer');
 
-            expect(calmServiceMock.fetchDecoratorValues).toHaveBeenCalledWith(
+            expect(calmServiceMock.fetchDeploymentDecoratorsForArchitecture).toHaveBeenCalledWith(
                 'arch-namespace',
-                '/calm/namespaces/arch-namespace/architectures/test-arch/versions/1-0-0',
-                'deployment'
+                'test-arch',
+                '1.0.0'
             );
         });
 
