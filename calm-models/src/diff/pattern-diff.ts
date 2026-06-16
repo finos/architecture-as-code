@@ -1,5 +1,5 @@
 import type { CalmNodeSchema, CalmRelationshipSchema } from '../types/index.js';
-import type { DiffResult } from './diff-types.js';
+import type { NodesAndRelationshipsDiffResult } from './diff-types.js';
 import { canonicalKey, diffNodesAndRelationships } from './diff.js';
 
 type SchemaObject = Record<string, unknown>;
@@ -221,10 +221,10 @@ export function normalisePatternToInstance(pattern: unknown): {
  * that still constrain content are diffed by content as an order-insensitive
  * multiset (add/remove/same — never modified). Items that pin nothing comparable
  * are reported under `undiffableItems` and contribute to `hasChanges` so
- * `--exit-code` doesn't pass on them silently. Returns the same `DiffResult`
- * shape as {@link diffArchitectures}.
+ * `--exit-code` doesn't pass on them silently. Returns the same `NodesAndRelationshipsDiffResult`
+ * shape as {@link diffNodesAndRelationships}.
  */
-export function diffPatterns(patternA: unknown, patternB: unknown): DiffResult {
+export function diffPatterns(patternA: unknown, patternB: unknown): NodesAndRelationshipsDiffResult {
     const a = partitionPattern(patternA);
     const b = partitionPattern(patternB);
 
