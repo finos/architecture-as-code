@@ -2,7 +2,6 @@ import { readFile, writeFile } from 'fs/promises';
 import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
-import { version } from 'os';
 
 // ── Hub URL resolution ────────────────────────────────────────────────────────
 
@@ -127,7 +126,7 @@ export async function loadFileContent(filePath: string, requestedCommand: string
  * @param format The output format.
  * @returns The validated and minified JSON string.
  */
-export function validateAndMinifyJSON(fileContent: any, filePath: string, requestedCommand: string, format: OutputFormat): string {
+export function validateAndMinifyJSON(fileContent: string, filePath: string, requestedCommand: string, format: OutputFormat): string {
     try {
         const parsed = JSON.parse(fileContent);
         fileContent = JSON.stringify(parsed); // re-stringify to ensure consistent formatting for storage and comparison, and to catch any JSON issues before sending to the hub.
@@ -171,14 +170,14 @@ export function handleMetadataParsing(fileContent: string, requestedCommand: str
  * @returns A promise resolving to the metadata of the pushed document.
  */
 export async function pushDocument(
-        client: CalmHubClient, 
-        namespace: string, 
-        mapping: string, 
-        metadata: DocumentMetadata, 
-        fileContent: string, 
-        resourceType: ResourceType,
-        changeType: ResourceChangeType,
-        options: PushOptions): Promise<DocumentMetadata> {
+    client: CalmHubClient, 
+    namespace: string, 
+    mapping: string, 
+    metadata: DocumentMetadata, 
+    fileContent: string, 
+    resourceType: ResourceType,
+    changeType: ResourceChangeType,
+    options: PushOptions): Promise<DocumentMetadata> {
 
     // allow changing of name/description if not already set.
     const name = options.name ?? metadata.name;
@@ -189,7 +188,7 @@ export async function pushDocument(
     const mappingExists = mappedResourceVersions.length > 0;
 
     // override name/description if set
-    let newDocumentMetadata = {
+    const newDocumentMetadata = {
         ...metadata,
         name,
         description
@@ -203,7 +202,7 @@ export async function pushDocument(
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     } else {
-        newDocumentMetadata.version = "1.0.0";
+        newDocumentMetadata.version = '1.0.0';
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }
     return newDocumentMetadata;
@@ -228,7 +227,7 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
     // Validate the file is parseable JSON before sending
     fileContent = validateAndMinifyJSON(fileContent, options.file, requestedCommand, format);
 
-    let metadata: DocumentMetadata = handleMetadataParsing(fileContent, requestedCommand, format);
+    const metadata: DocumentMetadata = handleMetadataParsing(fileContent, requestedCommand, format);
 
     if (!metadata.namespace || !metadata.mapping) {
         printError(0, `Document metadata must include namespace and mapping: ${options.file}`, requestedCommand, format);
@@ -255,7 +254,7 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
             version: documentMetadata.version!,
             namespace,
             location: documentMetadata.baseUrl
-        }
+        };
         printPushResult(result, format);
     } catch (err) {
         handleHubError(err, format);

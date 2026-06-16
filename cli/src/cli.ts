@@ -424,7 +424,7 @@ Example:
 
     const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'pretty']).default('json');
 
-    const hubVersionBumpOption = new Option("-t, --change-type <type>", "Type of change for version bump when pushing a new version of an existing resource. Defaults to 'patch'")
+    const hubVersionBumpOption = new Option('-t, --change-type <type>', 'Type of change for version bump when pushing a new version of an existing resource. Defaults to \'patch\'')
         .choices(['patch', 'minor', 'major'])
         .default('patch');
 

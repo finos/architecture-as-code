@@ -325,8 +325,8 @@ export class CalmHubClient {
     }
 
     async createMappedResourceVersion(
-            metadata: DocumentMetadata,
-            json: string): Promise<string> {
+        metadata: DocumentMetadata,
+        json: string): Promise<string> {
         const endpoint = `/calm/namespaces/${metadata.namespace}/${convertResourceTypeForCalmHubUrl(metadata.type)}/${metadata.mapping}/versions/${metadata.version}`;
 
         const actualMetadata = extractDocumentMetadata(json);
@@ -337,7 +337,7 @@ export class CalmHubClient {
             actualMetadata.version = '1.0.0';
         }
         try {
-            validateDocumentId(metadata, actualMetadata)
+            validateDocumentId(metadata, actualMetadata);
         } catch(error) {
             throw this.wrapError(error, `POST ${endpoint}`);
         }

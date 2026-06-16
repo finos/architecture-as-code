@@ -1,4 +1,4 @@
-import { isValidResourceType, ResourceType } from "./calm-hub-client";
+import { isValidResourceType, ResourceType } from './calm-hub-client';
 
 export interface DocumentMetadata extends DocumentIdMetadata {
     name: string; // pulled from 'title'. Required.
@@ -22,7 +22,7 @@ function parseDocumentId(documentId: string): DocumentIdMetadata {
     const matches = namespacePattern.exec(documentId);
     if (matches) {
         if (!isValidResourceType(matches[3])) {
-            throw new Error("Invalid resource type: " + matches[3]);
+            throw new Error('Invalid resource type: ' + matches[3]);
         }
         return {
             rawDocumentId: matches[0],
@@ -60,7 +60,7 @@ export function extractDocumentMetadata(document: string): DocumentMetadata {
             ...idMetadata,
             name,
             description
-        }
+        };
     } catch (error) {
         throw new Error(`Failed to parse document metadata: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -167,7 +167,9 @@ export function updateControlDocumentMetadata(document: string, newMetadata: Con
 export class DocumentMetadataValidationError extends Error {
     constructor(
         public component: string,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         public expected?: any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         public actual?: any
     ) {
         super(`Document metadata does not match the specified ${component}. Expected ${expected}, got ${actual}`);
