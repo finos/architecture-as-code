@@ -1349,4 +1349,26 @@ describe('parseDocumentLoaderConfig', () => {
         });
         expect(options.debug).toBeFalsy();
     });
+
+    it('loads auth plugin from config file when authPluginPath is set', async () => {
+        cliConfigModule = await import('./cli-config');
+        const fakePlugin = { getAuthHeader: vi.fn() };
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ authPluginPath: '/fake/plugin.js' });
+        vi.spyOn(cliConfigModule, 'loadAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({});
+
+        expect(cliConfigModule.loadAuthPlugin).toHaveBeenCalledWith('/fake/plugin.js', false);
+        expect(options.authPlugin).toBe(fakePlugin);
+    });
+
+    it('logs an error and continues when auth plugin loading throws', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ authPluginPath: '/bad/plugin.js' });
+        vi.spyOn(cliConfigModule, 'loadAuthPlugin').mockRejectedValue(new Error('module not found'));
+
+        const options = await parseDocLoaderConfigForTest({});
+
+        expect(options.authPlugin).toBeUndefined();
+    });
 });
