@@ -38,6 +38,7 @@ public class TestArchitectureResourcePutEnabledShould {
     private static final String ARCHITECTURE_DESCRIPTION = "architecture description";
     private static final String ARCHITECTURE_JSON = "{ \"test\": \"json\" }";
     private final ObjectMapper objectMapper = new ObjectMapper();
+
     @InjectMock
     ArchitectureStore mockArchitectureStore;
 
