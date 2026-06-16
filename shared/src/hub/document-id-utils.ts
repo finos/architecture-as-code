@@ -1,5 +1,13 @@
 import { isValidResourceType, ResourceType } from './calm-hub-client';
 
+// Namespace documents: namespace-scoped
+//
+// This is essentially all resources except control requirements/configurations.
+// Addressed by their namespace, type and mapping slug/id.
+// $id encodes the full versioned path served by the User Facing controls API:
+//   $BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION
+
+const NAMESPACE_RESOURCE_ID_PATTERN = /^(.*)\/calm\/namespaces\/([^/]+)\/([^/]+)\/([^/]+)\/versions\/([^/]+)$/;
 export interface DocumentMetadata extends DocumentIdMetadata {
     name: string; // pulled from 'title'. Required.
     description?: string; // pulled from 'description' if present. When writing back description is set to '' if absent.
@@ -14,12 +22,29 @@ interface DocumentIdMetadata {
     version: string; 
 }
 
+// Control documents (domain-scoped)
+//
+// Control requirement and configuration documents are addressed by domain + control
+// name (and config name for configurations) rather than namespace + mapping. Their
+// $id encodes the full versioned path served by the User Facing controls API:
+//   requirement:    $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/requirement/versions/$VERSION
+//   configuration:  $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/configurations/$CONFIG/versions/$VERSION
+export type ControlDocumentKind = 'requirement' | 'configuration';
+
+const CONTROL_REQUIREMENT_ID        = /^(.*)\/calm\/domains\/([^/]+)\/controls\/([^/]+)\/requirement\/versions\/([^/]+)$/;
+const CONTROL_CONFIGURATION_ID      = /^(.*)\/calm\/domains\/([^/]+)\/controls\/([^/]+)\/configurations\/([^/]+)\/versions\/([^/]+)$/;
+
+export interface ControlDocumentMetadata {
+    rawDocumentId: string;
+    baseUrl: string;
+    domain: string;
+    controlName: string;
+    configName?: string; // present only for configuration documents
+    kind: ControlDocumentKind;
+    version: string;
+}
 function parseDocumentId(documentId: string): DocumentIdMetadata {
-    // $BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION
-
-    const namespacePattern: RegExp = new RegExp('^(.*)/calm/namespaces/([^/]+)/([^/]+)/([^/]+)/versions/([^/]+)$');
-
-    const matches = namespacePattern.exec(documentId);
+    const matches = NAMESPACE_RESOURCE_ID_PATTERN.exec(documentId);
     if (matches) {
         if (!isValidResourceType(matches[3])) {
             throw new Error('Invalid resource type: ' + matches[3]);
@@ -79,28 +104,7 @@ export function updateDocumentMetadata(document: string, newDocumentMetadata: Do
     }
 }
 
-// ── Control documents (domain-scoped) ──────────────────────────────────────────
-//
-// Control requirement and configuration documents are addressed by domain + control
-// name (and config name for configurations) rather than namespace + mapping. Their
-// $id encodes the full versioned path served by the User Facing controls API:
-//   requirement:    $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/requirement/versions/$VERSION
-//   configuration:  $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/configurations/$CONFIG/versions/$VERSION
 
-export type ControlDocumentKind = 'requirement' | 'configuration';
-
-export interface ControlDocumentMetadata {
-    rawDocumentId: string;
-    baseUrl: string;
-    domain: string;
-    controlName: string;
-    configName?: string; // present only for configuration documents
-    kind: ControlDocumentKind;
-    version: string;
-}
-
-const CONTROL_REQUIREMENT_ID = /^(.*)\/calm\/domains\/([^/]+)\/controls\/([^/]+)\/requirement\/versions\/([^/]+)$/;
-const CONTROL_CONFIGURATION_ID = /^(.*)\/calm\/domains\/([^/]+)\/controls\/([^/]+)\/configurations\/([^/]+)\/versions\/([^/]+)$/;
 
 function parseControlDocumentId(documentId: string): ControlDocumentMetadata {
     const configMatch = CONTROL_CONFIGURATION_ID.exec(documentId);
