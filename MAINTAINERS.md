@@ -20,7 +20,7 @@ This file lists the maintainers of this repository.
 | @jimthompson5802 | Jim Thompson | *please add organization* | jimthompson5802@gmail.com |
 | @jpgough-ms | *please add name* | *please add organization* | *please add email* |
 | @lbulanti-ms | Luigi Bulanti | *please add organization* | *please add email* |
-| @markscott-ms | Mark Scott | *please add organization* | *please add email* |
+| @markscott-ms | Mark Scott | Morgan Stanley | markscot@morganstanley.com |
 | @opsflowanoop | *please add name* | *please add organization* | *please add email* |
 | @rocketstack-matt | Matthew Bain | *please add organization* | *please add email* |
 | @willosborne | Will Osborne | Morgan Stanley | willfosborne@gmail.com |
