@@ -62,6 +62,10 @@
           }
         }
       }
+    ],
+    "adrs": [
+      "https://example.com/adr/001-use-api-gateway",
+      "https://example.com/adr/002-use-load-balancer"
     ]
   },
   "additionArchitecture": {
@@ -759,6 +763,58 @@
           }
         }
       }
+    ]
+  },
+  "adrAdditionArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests ADR addition",
+      "description": "Adds a new ADR to the base architecture to test ADR diffing"
+    },
+    "nodes": [],
+    "relationships": [],
+    "adrs": [
+      "https://example.com/adr/001-use-api-gateway",
+      "https://example.com/adr/002-use-load-balancer",
+      "https://example.com/adr/003-choose-database"
+    ]
+  },
+  "adrRemovalArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests ADR removal",
+      "description": "Removes an ADR from the base architecture to test ADR diffing"
+    },
+    "nodes": [],
+    "relationships": [],
+    "adrs": [
+      "https://example.com/adr/002-use-load-balancer"
+    ]
+  },
+  "adrModificationArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests ADR array modification",
+      "description": "Modifies an ADR in the base architecture to test ADR diffing"
+    },
+    "nodes": [],
+    "relationships": [],
+    "adrs": [
+      "https://example.com/adr/001-use-api-gateway-per-app",
+      "https://example.com/adr/002-use-load-balancer"
+    ]
+  },
+  "adrReorderArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests ADR array reordering",
+      "description": "Reorders the ADR array with respect to the base architecture to test ADR diffing"
+    },
+    "nodes": [],
+    "relationships": [],
+    "adrs": [
+      "https://example.com/adr/002-use-load-balancer",
+      "https://example.com/adr/001-use-api-gateway"
     ]
   }
 }

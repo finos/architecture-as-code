@@ -1,7 +1,7 @@
 import type { CalmTimelineSchema, CalmMomentSchema } from '../types/index.js';
 import { CalmTimeline } from '../model/timeline.js';
 import { diffArchitectures } from './diff.js';
-import type { DiffResult } from './diff-types.js';
+import type { ArchitectureDiffResult } from './diff-types.js';
 import {
     resolveMomentArchitecture,
     type ArchitectureResolver,
@@ -14,7 +14,7 @@ import {
 export interface MomentDiff {
     from: string;
     to: string;
-    diff: DiffResult;
+    diff: ArchitectureDiffResult;
 }
 
 /** Either a parsed {@link CalmTimeline} or the raw timeline schema/JSON. */
