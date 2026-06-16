@@ -164,14 +164,15 @@ describe('CalmHubClient', () => {
     // ── listDomains ──────────────────────────────────────────────────────────
 
     describe('listDomains', () => {
-        it('returns array of domain summaries', async () => {
+        it('returns array of domain summaries built from the plain-string API response', async () => {
             mock.onGet('/calm/domains').reply(200, {
-                values: [{ name: 'risk' }, { name: 'compliance' }]
+                values: ['risk', 'compliance']
             });
 
             const result = await client.listDomains();
             expect(result).toHaveLength(2);
             expect(result[0].name).toBe('risk');
+            expect(result[1].name).toBe('compliance');
         });
 
         it('returns empty array when values is absent', async () => {
@@ -362,9 +363,12 @@ describe('CalmHubClient', () => {
     // ── getNamespaceMappings ──────────────────────────────────────────────────
 
     describe('getNamespaceMappings', () => {
-        it('returns the array of mapped resource ids for the given type', async () => {
+        it('returns the customId strings extracted from ResourceMapping objects', async () => {
             mock.onGet('/calm/namespaces/finos/architectures').reply(200, {
-                values: ['my-arch', 'another-arch']
+                values: [
+                    { customId: 'my-arch', namespace: 'finos', numericId: 1, resourceType: 'ARCHITECTURE' },
+                    { customId: 'another-arch', namespace: 'finos', numericId: 2, resourceType: 'ARCHITECTURE' },
+                ]
             });
 
             const result = await client.getNamespaceMappings('finos', 'architectures');

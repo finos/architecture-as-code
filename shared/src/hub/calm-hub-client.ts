@@ -160,8 +160,8 @@ export class CalmHubClient {
         const endpoint = '/calm/domains';
         try {
             const response = await this.ax.get(endpoint);
-            const values: HubDomainSummary[] = response.data?.values ?? [];
-            return values;
+            const names: string[] = response.data?.values ?? [];
+            return names.map(name => ({ name }));
         } catch (err) {
             throw this.wrapError(err, `GET ${endpoint}`);
         }
@@ -313,7 +313,7 @@ export class CalmHubClient {
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received mappings response: ${JSON.stringify(response.data)}`);
-            return (response.data?.values ?? []) as string[];
+            return (response.data?.values ?? []).map((item: { customId: string }) => item.customId);
         } catch (err) {
             throw this.wrapError(err, `GET ${endpoint}`);
         }
