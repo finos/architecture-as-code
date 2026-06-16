@@ -203,6 +203,7 @@ export async function pushDocument(
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     } else {
         newDocumentMetadata.version = '1.0.0';
+        fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }
     return newDocumentMetadata;
