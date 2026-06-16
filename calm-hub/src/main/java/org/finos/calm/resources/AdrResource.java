@@ -7,6 +7,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
@@ -34,7 +35,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 /**
  * Resource for managing ADRs in a given namespace
  */
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class AdrResource {
 
     private final AdrStore store;
@@ -290,7 +292,7 @@ public class AdrResource {
     }
 
     private Response adrWithLocationResponse(AdrMeta adrMeta) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + adrMeta.getNamespace() + "/adrs/" + adrMeta.getId() + "/revisions/" + adrMeta.getRevision())).build();
+        return Response.created(new URI("/api/calm/namespaces/" + adrMeta.getNamespace() + "/adrs/" + adrMeta.getId() + "/revisions/" + adrMeta.getRevision())).build();
     }
 
     private Response handleException(Exception e, String namespace) {

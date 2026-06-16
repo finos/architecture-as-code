@@ -26,6 +26,7 @@ export default defineConfig({
     },
     server: {
         proxy: {
+            '/api/calm': 'http://localhost:8080',
             '/calm': 'http://localhost:8080',
         },
     },

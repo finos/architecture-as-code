@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class TestDomainResourceShould {
 
-    public static final String CALM_DOMAINS = "calm/domains";
+    public static final String CALM_DOMAINS = "api/calm/domains";
     private static final String TEST_DOMAIN = "test-domain";
 
     @InjectMock
@@ -67,7 +67,7 @@ public class TestDomainResourceShould {
             .when().post(CALM_DOMAINS)
             .then()
             .statusCode(201)
-            .header("Location", "http://localhost:8081/calm/domains/" + expectedDomain.getName());
+            .header("Location", "http://localhost:8081/api/calm/domains/" + expectedDomain.getName());
 
         verify(mockControlStore).createDomain("test-domain");
     }

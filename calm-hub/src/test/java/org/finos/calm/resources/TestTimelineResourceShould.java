@@ -43,7 +43,7 @@ public class TestTimelineResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/timelines")
+                .get("/api/calm/namespaces/invalid/timelines")
                 .then()
                 .statusCode(404);
 
@@ -54,7 +54,7 @@ public class TestTimelineResourceShould {
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_timelines() {
         given()
                 .when()
-                .get("/calm/namespaces/fin_os/timelines")
+                .get("/api/calm/namespaces/fin_os/timelines")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -70,7 +70,7 @@ public class TestTimelineResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/valid/timelines")
+                .get("/api/calm/namespaces/valid/timelines")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("Timeline One"))
@@ -94,7 +94,7 @@ public class TestTimelineResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/timelines")
+                .post("/api/calm/namespaces/invalid/timelines")
                 .then()
                 .statusCode(404);
 
@@ -112,7 +112,7 @@ public class TestTimelineResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/timelines")
+                .post("/api/calm/namespaces/invalid/timelines")
                 .then()
                 .statusCode(400);
 
@@ -139,10 +139,10 @@ public class TestTimelineResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/valid/timelines")
+                .post("/api/calm/namespaces/valid/timelines")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/valid/timelines/12/versions/1.0.0"));
+                .header("Location", containsString("/api/calm/namespaces/valid/timelines/12/versions/1.0.0"));
 
         verify(mockTimelineStore, times(1)).createTimelineForNamespace(any(CreateTimelineRequest.class), eq(namespace));
     }
@@ -169,14 +169,14 @@ public class TestTimelineResourceShould {
             String expectedBody = "{\"values\":[\"1.0.0\",\"1.0.1\"]}";
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/timelines/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/timelines/12/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/timelines/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/timelines/12/versions")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -193,7 +193,7 @@ public class TestTimelineResourceShould {
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_timeline_versions() {
         given()
                 .when()
-                .get("/calm/namespaces/fin_os/timelines/12/versions")
+                .get("/api/calm/namespaces/fin_os/timelines/12/versions")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -203,7 +203,7 @@ public class TestTimelineResourceShould {
     void return_400_error_when_version_is_not_valid_when_getting_timeline_version() {
         given()
                 .when()
-                .get("/calm/namespaces/finos/timelines/12/versions/1.0.invalid0")
+                .get("/api/calm/namespaces/finos/timelines/12/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -231,14 +231,14 @@ public class TestTimelineResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/timelines/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/timelines/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo("{ \"moments\": [] }"));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/timelines/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/timelines/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -260,7 +260,7 @@ public class TestTimelineResourceShould {
                 .header("Content-Type", "application/json")
                 .body(envelopeBody)
                 .when()
-                .post("/calm/namespaces/test/timelines/20/versions/1.0.invalid0")
+                .post("/api/calm/namespaces/test/timelines/20/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -299,16 +299,16 @@ public class TestTimelineResourceShould {
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/timelines/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/timelines/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/namespaces/test/timelines/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/timelines/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/timelines/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/timelines/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -322,7 +322,7 @@ public class TestTimelineResourceShould {
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"timelineJson\":\"{ \\\"moments\\\": [] }\"}")
                 .when()
-                .put("/calm/namespaces/test/timelines/20/versions/1.0.1")
+                .put("/api/calm/namespaces/test/timelines/20/versions/1.0.1")
                 .then()
                 .statusCode(403);
     }

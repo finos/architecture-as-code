@@ -32,7 +32,7 @@ public class NitriteControlIntegration {
     @Order(1)
     void end_to_end_get_controls_returns_empty_for_valid_domain() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -42,7 +42,7 @@ public class NitriteControlIntegration {
     @Order(2)
     void end_to_end_get_controls_returns_404_for_invalid_domain() {
         given()
-                .when().get("/calm/domains/" + INVALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + INVALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(404);
     }
@@ -56,10 +56,10 @@ public class NitriteControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/"))
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/"))
                 .body("name", equalTo("Access Control"))
                 .body("description", equalTo("Ensure proper access control mechanisms"));
     }
@@ -68,7 +68,7 @@ public class NitriteControlIntegration {
     @Order(4)
     void end_to_end_get_controls_returns_created_control() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -85,7 +85,7 @@ public class NitriteControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls")
+                .when().post("/api/calm/domains/" + INVALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(404);
     }
@@ -99,7 +99,7 @@ public class NitriteControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(201)
                 .body("name", equalTo("Encryption"))
@@ -110,7 +110,7 @@ public class NitriteControlIntegration {
     @Order(7)
     void end_to_end_get_controls_returns_both_controls() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2));
@@ -122,7 +122,7 @@ public class NitriteControlIntegration {
     @Order(8)
     void end_to_end_get_requirement_versions_for_created_control() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -133,7 +133,7 @@ public class NitriteControlIntegration {
     @Order(9)
     void end_to_end_get_requirement_at_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("requirement"));
@@ -143,7 +143,7 @@ public class NitriteControlIntegration {
     @Order(10)
     void end_to_end_get_requirement_versions_returns_404_for_invalid_control() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions")
                 .then()
                 .statusCode(404);
     }
@@ -152,7 +152,7 @@ public class NitriteControlIntegration {
     @Order(11)
     void end_to_end_get_requirement_version_returns_404_for_invalid_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/9.9.9")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/9.9.9")
                 .then()
                 .statusCode(404);
     }
@@ -161,7 +161,7 @@ public class NitriteControlIntegration {
     @Order(12)
     void end_to_end_get_requirement_versions_returns_404_for_invalid_domain() {
         given()
-                .when().get("/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions")
+                .when().get("/api/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions")
                 .then()
                 .statusCode(404);
     }
@@ -172,7 +172,7 @@ public class NitriteControlIntegration {
     @Order(13)
     void end_to_end_get_configurations_returns_empty_for_control_with_no_configurations() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -182,7 +182,7 @@ public class NitriteControlIntegration {
     @Order(14)
     void end_to_end_get_configurations_returns_404_for_invalid_control() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
                 .then()
                 .statusCode(404);
     }
@@ -191,7 +191,7 @@ public class NitriteControlIntegration {
     @Order(15)
     void end_to_end_get_configuration_returns_404_for_nonexistent_config() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999")
                 .then()
                 .statusCode(404);
     }
@@ -200,7 +200,7 @@ public class NitriteControlIntegration {
     @Order(16)
     void end_to_end_get_configuration_versions_returns_404_for_nonexistent_config() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions")
                 .then()
                 .statusCode(404);
     }
@@ -209,7 +209,7 @@ public class NitriteControlIntegration {
     @Order(17)
     void end_to_end_get_configuration_version_returns_404_for_nonexistent_config() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/1.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/1.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -224,17 +224,17 @@ public class NitriteControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/"));
     }
 
     @Test
     @Order(19)
     void end_to_end_get_configurations_returns_created_configuration() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1));
@@ -244,7 +244,7 @@ public class NitriteControlIntegration {
     @Order(20)
     void end_to_end_get_configuration_versions() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -255,7 +255,7 @@ public class NitriteControlIntegration {
     @Order(21)
     void end_to_end_get_configuration_at_specific_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/1.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body("setting", equalTo("enabled"));
@@ -265,7 +265,7 @@ public class NitriteControlIntegration {
     @Order(22)
     void end_to_end_get_configuration_at_invalid_version_returns_404() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/9.9.9")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/9.9.9")
                 .then()
                 .statusCode(404);
     }
@@ -278,17 +278,17 @@ public class NitriteControlIntegration {
         given()
                 .body("{\"name\":\"Access Control\",\"description\":\"Ensure proper access control mechanisms\",\"requirementJson\":\"{\\\"type\\\": \\\"requirement-v2\\\"}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0"));
     }
 
     @Test
     @Order(24)
     void end_to_end_get_requirement_versions_returns_both_versions() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2))
@@ -299,7 +299,7 @@ public class NitriteControlIntegration {
     @Order(25)
     void end_to_end_get_requirement_at_new_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("requirement-v2"));
@@ -311,7 +311,7 @@ public class NitriteControlIntegration {
         given()
                 .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{\\\"type\\\": \\\"duplicate\\\"}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
                 .then()
                 .statusCode(409);
     }
@@ -322,7 +322,7 @@ public class NitriteControlIntegration {
         given()
                 .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .when().post("/api/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -333,7 +333,7 @@ public class NitriteControlIntegration {
         given()
                 .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions/2.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions/2.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -348,17 +348,17 @@ public class NitriteControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/"));
     }
 
     @Test
     @Order(30)
     void end_to_end_get_configurations_returns_both() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2));
@@ -372,7 +372,7 @@ public class NitriteControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/configurations")
+                .when().post("/api/calm/domains/" + INVALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(404);
     }
@@ -385,7 +385,7 @@ public class NitriteControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
                 .then()
                 .statusCode(404);
     }
@@ -398,17 +398,17 @@ public class NitriteControlIntegration {
         given()
                 .body("{\"configurationJson\":\"{\\\"setting\\\": \\\"enabled-v2\\\"}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/2.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/2.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/2.0.0"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/2.0.0"));
     }
 
     @Test
     @Order(34)
     void end_to_end_get_configuration_versions_returns_both() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2))
@@ -419,7 +419,7 @@ public class NitriteControlIntegration {
     @Order(35)
     void end_to_end_get_configuration_at_new_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/2.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body("setting", equalTo("enabled-v2"));
@@ -431,7 +431,7 @@ public class NitriteControlIntegration {
         given()
                 .body("{\"configurationJson\":\"{\\\"setting\\\": \\\"dup\\\"}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/1.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/1/versions/1.0.0")
                 .then()
                 .statusCode(409);
     }
@@ -442,7 +442,7 @@ public class NitriteControlIntegration {
         given()
                 .body("{\"configurationJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/2.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/2.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -453,7 +453,7 @@ public class NitriteControlIntegration {
     @Order(40)
     void end_to_end_list_controls_returns_wrapper_name_and_description_from_create() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values[0].id", equalTo(1))
@@ -469,17 +469,17 @@ public class NitriteControlIntegration {
         given()
                 .body(versionBody)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0"));
     }
 
     @Test
     @Order(42)
     void end_to_end_list_controls_reflects_updated_name_and_description_after_new_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values.find { it.id == 1 }.name", equalTo("Updated Access Control"))
@@ -495,20 +495,20 @@ public class NitriteControlIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
                 .then()
                 .statusCode(201);
 
         // Stored content must be the inner requirementJson verbatim, not the envelope
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("requirement-v4"));
 
         // Wrapper reflects the latest envelope name/description
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values.find { it.id == 1 }.name", equalTo("Final Access Control"))

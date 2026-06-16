@@ -27,7 +27,7 @@ public class NitriteDomainIntegration {
     @Order(1)
     void end_to_end_get_on_existing_domain() {
         given()
-                .when().get("/calm/domains")
+                .when().get("/api/calm/domains")
                 .then()
                 .statusCode(200)
                 .body("values", hasItem("security"));
@@ -41,7 +41,7 @@ public class NitriteDomainIntegration {
         given()
                 .body(objectMapper.writeValueAsString(domain))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains")
+                .when().post("/api/calm/domains")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/domains/finos"));
@@ -55,7 +55,7 @@ public class NitriteDomainIntegration {
         given()
                 .body(objectMapper.writeValueAsString(domain))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains")
+                .when().post("/api/calm/domains")
                 .then()
                 .statusCode(409);
     }

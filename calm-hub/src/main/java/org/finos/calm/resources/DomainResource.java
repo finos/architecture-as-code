@@ -9,6 +9,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Domain;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
@@ -21,7 +22,8 @@ import java.net.URI;
 /**
  * REST resource for managing domains.
  */
-@Path("/calm/domains")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/domains")
 public class DomainResource {
 
     private final DomainStore store;
@@ -79,7 +81,7 @@ public class DomainResource {
         } catch (DomainAlreadyExistsException e) {
             return Response.status(Response.Status.CONFLICT).entity("{\"error\":\"Domain already exists\"}").build();
         }
-        return Response.created(URI.create("/calm/domains/" + domainName)).build();
+        return Response.created(URI.create("/api/calm/domains/" + domainName)).build();
     }
 
 }

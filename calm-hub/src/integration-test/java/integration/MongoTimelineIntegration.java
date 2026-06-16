@@ -63,7 +63,7 @@ public class MongoTimelineIntegration {
     @Order(1)
     void end_to_end_get_with_no_timeline() {
         given()
-                .when().get("/calm/namespaces/finos/timelines")
+                .when().get("/api/calm/namespaces/finos/timelines")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -83,7 +83,7 @@ public class MongoTimelineIntegration {
         String location = given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/timelines")
+                .when().post("/api/calm/namespaces/finos/timelines")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/timelines/"))
@@ -101,7 +101,7 @@ public class MongoTimelineIntegration {
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions")
+                .when().get("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -112,7 +112,7 @@ public class MongoTimelineIntegration {
     @Order(4)
     void end_to_end_verify_timeline() {
         given()
-                .when().get("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(TIMELINE));
@@ -126,13 +126,13 @@ public class MongoTimelineIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
+                .when().post("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0"));
 
         given()
-                .when().get("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
+                .when().get("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(TIMELINE_V2));
@@ -146,7 +146,7 @@ public class MongoTimelineIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/9.0.0")
+                .when().post("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/9.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));
@@ -160,7 +160,7 @@ public class MongoTimelineIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().put("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
+                .when().put("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));

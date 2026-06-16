@@ -33,13 +33,13 @@ describe('CalmService', () => {
                     "description": "namespace 3"
                 }
             ];
-            mock.onGet('/calm/namespaces').reply(200, { values: expectedNamespaces });
+            mock.onGet('/api/calm/namespaces').reply(200, { values: expectedNamespaces });
             const actual = await calmService.fetchNamespaces();
             expect(actual).toEqual(expectedNamespaces.map(ns => ns.name));
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet('/calm/namespaces').reply(500, { message: 'Error' });
+            mock.onGet('/api/calm/namespaces').reply(500, { message: 'Error' });
             await expect(calmService.fetchNamespaces()).rejects.toThrowError();
         });
     });
@@ -50,7 +50,7 @@ describe('CalmService', () => {
                 { id: 1, name: 'Pattern One', description: 'First' },
                 { id: 2, name: 'Pattern Two', description: 'Second' },
             ];
-            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(200, {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(200, {
                 values: expectedSummaries,
             });
             const actual = await calmService.fetchPatternSummaries(namespace);
@@ -58,7 +58,7 @@ describe('CalmService', () => {
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(500, {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(500, {
                 message: 'Error',
             });
             await expect(calmService.fetchPatternSummaries(namespace)).rejects.toThrowError();
@@ -71,7 +71,7 @@ describe('CalmService', () => {
                 { id: 10, name: 'Flow One', description: 'First' },
                 { id: 20, name: 'Flow Two', description: 'Second' },
             ];
-            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`).reply(200, {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/flows`).reply(200, {
                 values: expectedSummaries,
             });
             const actual = await calmService.fetchFlowSummaries(namespace);
@@ -79,7 +79,7 @@ describe('CalmService', () => {
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`).reply(500, {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/flows`).reply(500, {
                 message: 'Error',
             });
             await expect(calmService.fetchFlowSummaries(namespace)).rejects.toThrowError();
@@ -92,7 +92,7 @@ describe('CalmService', () => {
                 { id: 5, name: 'Arch One', description: 'First' },
                 { id: 6, name: 'Arch Two', description: 'Second' },
             ];
-            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, {
+            mock.onGet(`/api/calm/namespaces/${namespace}/architectures`).reply(200, {
                 values: expectedSummaries,
             });
             const actual = await calmService.fetchArchitectureSummaries(namespace);
@@ -100,7 +100,7 @@ describe('CalmService', () => {
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(500, {
+            mock.onGet(`/api/calm/namespaces/${namespace}/architectures`).reply(500, {
                 message: 'Error',
             });
             await expect(
@@ -112,7 +112,7 @@ describe('CalmService', () => {
     describe('fetchPatternVersions', () => {
         it('should retrieve versions for a pattern', async () => {
             const expectedVersions = ['1.0.0', '2.0.0'];
-            mock.onGet(`/calm/namespaces/${namespace}/patterns/${resourceId}/versions`).reply(200, {
+            mock.onGet(`/api/calm/namespaces/${namespace}/patterns/${resourceId}/versions`).reply(200, {
                 values: expectedVersions,
             });
             const actual = await calmService.fetchPatternVersions(namespace, resourceId);
@@ -121,7 +121,7 @@ describe('CalmService', () => {
 
         it('should throw an error when backend returns error status', async () => {
             mock.onGet(
-                `/calm/namespaces/${namespace}/patterns/${resourceId}/versions`
+                `/api/calm/namespaces/${namespace}/patterns/${resourceId}/versions`
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchPatternVersions(namespace, resourceId)
@@ -132,7 +132,7 @@ describe('CalmService', () => {
     describe('fetchFlowVersions', () => {
         it('should retrieve versions for a flow', async () => {
             const expectedVersions = ['1.0.0', '2.0.0'];
-            mock.onGet(`/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(200, {
+            mock.onGet(`/api/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(200, {
                 values: expectedVersions,
             });
             const actual = await calmService.fetchFlowVersions(namespace, resourceId);
@@ -140,7 +140,7 @@ describe('CalmService', () => {
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(
+            mock.onGet(`/api/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(
                 500,
                 { message: 'Error' }
             );
@@ -154,7 +154,7 @@ describe('CalmService', () => {
         it('should retrieve versions for an architecture', async () => {
             const expectedVersions = ['1.0.0', '2.0.0'];
             mock.onGet(
-                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions`
+                `/api/calm/namespaces/${namespace}/architectures/${resourceId}/versions`
             ).reply(200, { values: expectedVersions });
             const actual = await calmService.fetchArchitectureVersions(namespace, resourceId);
             expect(actual).toEqual(expectedVersions);
@@ -162,7 +162,7 @@ describe('CalmService', () => {
 
         it('should throw an error when backend returns error status', async () => {
             mock.onGet(
-                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions`
+                `/api/calm/namespaces/${namespace}/architectures/${resourceId}/versions`
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchArchitectureVersions(namespace, resourceId)
@@ -174,7 +174,7 @@ describe('CalmService', () => {
         it('should retrieve a specific pattern', async () => {
             const responseData = { nodes: [], relationships: [] };
             mock.onGet(
-                `/calm/namespaces/${namespace}/patterns/${resourceId}/versions/${version}`
+                `/api/calm/namespaces/${namespace}/patterns/${resourceId}/versions/${version}`
             ).reply(200, responseData);
             const actual = await calmService.fetchPattern(namespace, resourceId, version);
             expect(actual).toEqual({
@@ -188,7 +188,7 @@ describe('CalmService', () => {
 
         it('should throw an error when backend returns error status', async () => {
             mock.onGet(
-                `/calm/namespaces/${namespace}/patterns/${resourceId}/versions/${version}`
+                `/api/calm/namespaces/${namespace}/patterns/${resourceId}/versions/${version}`
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchPattern(namespace, resourceId, version)
@@ -200,7 +200,7 @@ describe('CalmService', () => {
         it('should retrieve a specific flow', async () => {
             const responseData = { nodes: [], relationships: [] };
             mock.onGet(
-                `/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
+                `/api/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
             ).reply(200, responseData);
             const actual = await calmService.fetchFlow(namespace, resourceId, version);
             expect(actual).toEqual({
@@ -214,7 +214,7 @@ describe('CalmService', () => {
 
         it('should throw an error when backend returns error status', async () => {
             mock.onGet(
-                `/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
+                `/api/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchFlow(namespace, resourceId, version)
@@ -226,7 +226,7 @@ describe('CalmService', () => {
         it('should retrieve a specific architecture', async () => {
             const responseData = { nodes: [], relationships: [] };
             mock.onGet(
-                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions/${version}`
+                `/api/calm/namespaces/${namespace}/architectures/${resourceId}/versions/${version}`
             ).reply(200, responseData);
             const actual = await calmService.fetchArchitecture(namespace, resourceId, version);
             expect(actual).toEqual({
@@ -240,7 +240,7 @@ describe('CalmService', () => {
 
         it('should throw an error when backend returns error status', async () => {
             mock.onGet(
-                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions/${version}`
+                `/api/calm/namespaces/${namespace}/architectures/${resourceId}/versions/${version}`
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchArchitecture(namespace, resourceId, version)
@@ -254,7 +254,7 @@ describe('CalmService', () => {
                 { id: 10, name: 'Standard One', description: 'First' },
                 { id: 20, name: 'Standard Two', description: 'Second' },
             ];
-            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/standards`).reply(200, {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/standards`).reply(200, {
                 values: expectedSummaries,
             });
             const actual = await calmService.fetchStandardSummaries(namespace);
@@ -262,7 +262,7 @@ describe('CalmService', () => {
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/standards`).reply(500, {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/standards`).reply(500, {
                 message: 'Error',
             });
             await expect(calmService.fetchStandardSummaries(namespace)).rejects.toThrowError();
@@ -272,7 +272,7 @@ describe('CalmService', () => {
     describe('fetchStandardVersions', () => {
         it('should retrieve versions for a standard', async () => {
             const expectedVersions = ['1.0.0', '2.0.0'];
-            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions`).reply(200, {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions`).reply(200, {
                 values: expectedVersions,
             });
             const actual = await calmService.fetchStandardVersions(namespace, resourceId);
@@ -281,7 +281,7 @@ describe('CalmService', () => {
 
         it('should throw an error when backend returns error status', async () => {
             mock.onGet(
-                `/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions`
+                `/api/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions`
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchStandardVersions(namespace, resourceId)
@@ -293,7 +293,7 @@ describe('CalmService', () => {
         it('should retrieve a specific standard', async () => {
             const responseData = { nodes: [], relationships: [] };
             mock.onGet(
-                `/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions/${version}`
+                `/api/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions/${version}`
             ).reply(200, responseData);
             const actual = await calmService.fetchStandard(namespace, resourceId, version);
             expect(actual).toEqual({
@@ -307,7 +307,7 @@ describe('CalmService', () => {
 
         it('should throw an error when backend returns error status', async () => {
             mock.onGet(
-                `/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions/${version}`
+                `/api/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions/${version}`
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchStandard(namespace, resourceId, version)
@@ -325,7 +325,7 @@ describe('CalmService', () => {
 
         it('should retrieve the implied timeline for an architecture', async () => {
             mock.onGet(
-                `/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(resourceId)}/timeline`
+                `/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(resourceId)}/timeline`
             ).reply(200, timelineDoc);
             const actual = await calmService.fetchArchitectureTimeline(namespace, resourceId);
             expect(actual).toEqual(timelineDoc);
@@ -333,7 +333,7 @@ describe('CalmService', () => {
 
         it('should throw an error when backend returns error status', async () => {
             mock.onGet(
-                `/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(resourceId)}/timeline`
+                `/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(resourceId)}/timeline`
             ).reply(500, { message: 'Error' });
             await expect(
                 calmService.fetchArchitectureTimeline(namespace, resourceId)
@@ -348,7 +348,7 @@ describe('CalmService', () => {
                     schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
                     uniqueId: 'dec-1',
                     type: 'deployment',
-                    target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+                    target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
                     appliesTo: ['node-a'],
                     data: {
                         status: 'completed',
@@ -360,7 +360,7 @@ describe('CalmService', () => {
                     schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
                     uniqueId: 'dec-2',
                     type: 'deployment',
-                    target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+                    target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
                     appliesTo: ['node-b'],
                     data: {
                         status: 'failed',
@@ -369,7 +369,7 @@ describe('CalmService', () => {
                     },
                 },
             ];
-            mock.onGet(`/calm/namespaces/${namespace}/decorators/values`).reply(200, {
+            mock.onGet(`/api/calm/namespaces/${namespace}/decorators/values`).reply(200, {
                 values: decorators,
             });
             const actual = await calmService.fetchDecoratorValues(namespace);
@@ -381,7 +381,7 @@ describe('CalmService', () => {
                 schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
                 uniqueId: 'dec-1',
                 type: 'deployment',
-                target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+                target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
                 appliesTo: ['node-a'],
                 data: {
                     status: 'completed',
@@ -389,7 +389,7 @@ describe('CalmService', () => {
                     'end-time': '2024-01-01T10:05:00Z',
                 },
             }];
-            mock.onGet(`/calm/namespaces/${namespace}/decorators/values?target=node-a&type=deployment`).reply(200, {
+            mock.onGet(`/api/calm/namespaces/${namespace}/decorators/values?target=node-a&type=deployment`).reply(200, {
                 values: decorators,
             });
             const actual = await calmService.fetchDecoratorValues(namespace, 'node-a', 'deployment');
@@ -397,7 +397,7 @@ describe('CalmService', () => {
         });
 
         it('should return an empty array when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${namespace}/decorators/values`).reply(500, {
+            mock.onGet(`/api/calm/namespaces/${namespace}/decorators/values`).reply(500, {
                 message: 'Error',
             });
             const actual = await calmService.fetchDecoratorValues(namespace);
@@ -406,28 +406,24 @@ describe('CalmService', () => {
     });
 
     describe('fetchMappings', () => {
-        it('should retrieve all mappings for a namespace', async () => {
+        it('should retrieve all named resources for a type in a namespace', async () => {
             const mappings = [
                 { namespace: 'test-namespace', customId: 'api-gateway', resourceType: 'PATTERN', numericId: 1 },
-                { namespace: 'test-namespace', customId: 'main-flow', resourceType: 'FLOW', numericId: 2 },
+                { namespace: 'test-namespace', customId: 'other-pattern', resourceType: 'PATTERN', numericId: 2 },
             ];
-            mock.onGet('/calm/namespaces/test-namespace/mappings').reply(200, { values: mappings });
-            const actual = await calmService.fetchMappings(namespace);
-            expect(actual).toEqual(mappings);
-        });
-
-        it('should pass type filter query param', async () => {
-            const mappings = [
-                { namespace: 'test-namespace', customId: 'api-gateway', resourceType: 'PATTERN', numericId: 1 },
-            ];
-            mock.onGet('/calm/namespaces/test-namespace/mappings?type=PATTERN').reply(200, { values: mappings });
+            mock.onGet('/calm/namespaces/test-namespace/patterns').reply(200, { values: mappings });
             const actual = await calmService.fetchMappings(namespace, 'PATTERN');
             expect(actual).toEqual(mappings);
         });
 
-        it('should return empty array on error', async () => {
-            mock.onGet('/calm/namespaces/test-namespace/mappings').reply(500, { message: 'Error' });
+        it('should return empty array when no type provided', async () => {
             const actual = await calmService.fetchMappings(namespace);
+            expect(actual).toEqual([]);
+        });
+
+        it('should return empty array on error', async () => {
+            mock.onGet('/calm/namespaces/test-namespace/patterns').reply(500, { message: 'Error' });
+            const actual = await calmService.fetchMappings(namespace, 'PATTERN');
             expect(actual).toEqual([]);
         });
     });
@@ -435,21 +431,21 @@ describe('CalmService', () => {
     describe('fetchVersionsByCustomId', () => {
         it('should retrieve versions for a custom ID', async () => {
             const versions = ['1.0.0', '1.1.0'];
-            mock.onGet('/calm/namespaces/test-namespace/api-gateway/versions').reply(200, { values: versions });
-            const actual = await calmService.fetchVersionsByCustomId(namespace, 'api-gateway');
+            mock.onGet('/calm/namespaces/test-namespace/patterns/api-gateway/versions').reply(200, { values: versions });
+            const actual = await calmService.fetchVersionsByCustomId(namespace, 'api-gateway', 'Patterns');
             expect(actual).toEqual(versions);
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet('/calm/namespaces/test-namespace/api-gateway/versions').reply(404, { message: 'Not found' });
-            await expect(calmService.fetchVersionsByCustomId(namespace, 'api-gateway')).rejects.toThrowError();
+            mock.onGet('/calm/namespaces/test-namespace/patterns/api-gateway/versions').reply(404, { message: 'Not found' });
+            await expect(calmService.fetchVersionsByCustomId(namespace, 'api-gateway', 'Patterns')).rejects.toThrowError();
         });
     });
 
     describe('fetchResourceByCustomId', () => {
         it('should retrieve a resource by custom ID and version', async () => {
             const resourceData = { name: 'API Gateway Pattern' };
-            mock.onGet('/calm/namespaces/test-namespace/api-gateway/versions/1.0.0').reply(200, resourceData);
+            mock.onGet('/calm/namespaces/test-namespace/patterns/api-gateway/versions/1.0.0').reply(200, resourceData);
             const actual = await calmService.fetchResourceByCustomId(namespace, 'api-gateway', '1.0.0', 'Patterns');
             expect(actual).toEqual({
                 id: 'api-gateway',
@@ -461,7 +457,7 @@ describe('CalmService', () => {
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet('/calm/namespaces/test-namespace/api-gateway/versions/1.0.0').reply(404, { message: 'Not found' });
+            mock.onGet('/calm/namespaces/test-namespace/patterns/api-gateway/versions/1.0.0').reply(404, { message: 'Not found' });
             await expect(calmService.fetchResourceByCustomId(namespace, 'api-gateway', '1.0.0', 'Patterns')).rejects.toThrowError();
         });
     });

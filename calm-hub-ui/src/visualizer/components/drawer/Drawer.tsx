@@ -66,11 +66,27 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
             setDecoratorsState([]);
             return;
         }
+        let cancelled = false;
         const versionPath = data.version.replace(/\./g, '-');
-        const target = isSlug(data.id)
-            ? `/calm/namespaces/${data.name}/${data.id}/versions/${versionPath}`
-            : `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
-        calmService.fetchDecoratorValues(data.name, target, 'deployment').then(setDecoratorsState);
+        const namespace = data.name;
+        const rawId = data.id;
+
+        async function fetchDecorators() {
+            let numericId: string = rawId;
+            if (isSlug(rawId)) {
+                const mappings = await calmService.fetchMappings(namespace, 'Architectures');
+                const match = mappings.find((m) => m.customId === rawId);
+                if (!match) return; // cannot resolve slug — skip decorator fetch
+                numericId = String(match.numericId);
+            }
+            if (cancelled) return;
+            const target = `/api/calm/namespaces/${namespace}/architectures/${numericId}/versions/${versionPath}`;
+            const values = await calmService.fetchDecoratorValues(namespace, target, 'deployment');
+            if (!cancelled) setDecoratorsState(values);
+        }
+
+        fetchDecorators().catch(() => { if (!cancelled) setDecoratorsState([]); });
+        return () => { cancelled = true; };
     }, [data, fileInstance, decoratorsProp, calmService]);
 
     const decorators = decoratorsProp ?? decoratorsState;
