@@ -128,7 +128,7 @@ public class TestUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/finos/user-access")
+                .post("/api/calm/namespaces/finos/user-access")
                 .then()
                 .statusCode(400);
     }
@@ -149,10 +149,10 @@ public class TestUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/finos/user-access")
+                .post("/api/calm/namespaces/finos/user-access")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/user-access/102"));
+                .header("Location", containsString("/api/calm/namespaces/finos/user-access/102"));
     }
 
     @Test
