@@ -226,7 +226,7 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 | `edges`               | `'connected' \| 'seeded' \| 'all' \| 'none'` | `'connected'` | For non-flow views, expand visible set with directly connected neighbors. When flows are focused, only flow edges are shown. |
 | `node-types`          | string (CSV) | — | Only include nodes whose `node-type` is in this list. |
 | `direction`           | `'both' \| 'in' \| 'out'` | `'both'` | Reserved (currently not used by the renderer). |
-| `edge-labels`         | `'description' \| 'none'` | `'description'` | Use the relationship `description` for edge labels; or hide labels entirely. |
+| `edge-labels`         | `'description' \| 'unique-id' \| 'none'` | `'description'` | Edge label source: the relationship `description`, its `unique-id`, or no label. |
 | `collapse-relationships` | boolean                                      |         `false` | If `true`, multiple relationships between same source and destination are collapsed into single edge with combined labels.                                                           |
 | `link-prefix`         | string | — | Prefix for clickable `click` links in Mermaid (e.g., `/docs/` makes `/docs/<node-id>`). |
 | `link-map`            | stringified JSON map | — | Explicit per-id links, e.g. `{"trade-svc": "/svc/trade"}`. Map entries override `link-prefix`. |

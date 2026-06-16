@@ -40,6 +40,8 @@ export class StandardVMEdgeFactory implements VMEdgeFactory {
         let label: string | undefined;
         if (config.edgeLabelMode === 'description') {
             label = this.generateEdgeLabel(rel, srcNode, dstNode, srcIface, dstIface, config);
+        } else if (config.edgeLabelMode === 'unique-id') {
+            label = rel['unique-id'];
         }
 
         return { id: rel['unique-id'], source, target, label };
@@ -55,6 +57,8 @@ export class StandardVMEdgeFactory implements VMEdgeFactory {
             let label: string | undefined;
             if (config.edgeLabelMode === 'description') {
                 label = rel.description || 'interacts';
+            } else if (config.edgeLabelMode === 'unique-id') {
+                label = rel['unique-id'];
             }
             edges.push({
                 id: `${rel['unique-id']}::${n}`,
