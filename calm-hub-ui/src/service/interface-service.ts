@@ -17,7 +17,7 @@ export class InterfaceService {
     public async fetchInterfacesForNamespace(namespace: string): Promise<InterfaceDetail[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/interfaces`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/interfaces`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -31,7 +31,7 @@ export class InterfaceService {
     public async fetchInterfaceVersions(namespace: string, interfaceId: number): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/interfaces/${interfaceId}/versions`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/interfaces/${interfaceId}/versions`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -45,7 +45,7 @@ export class InterfaceService {
     public async fetchInterfaceForVersion(namespace: string, interfaceId: number, version: string): Promise<unknown> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/interfaces/${interfaceId}/versions/${encodeURIComponent(version)}`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/interfaces/${interfaceId}/versions/${encodeURIComponent(version)}`, { headers })
             .then((res) => res.data)
             .catch((error) => {
                 const errorMessage = `Error fetching interface ${interfaceId} version ${version}:`;

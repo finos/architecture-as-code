@@ -24,7 +24,7 @@ describe('fetchVersionList', () => {
     it('uses the custom-id endpoint for slug identifiers', async () => {
         const svc = makeService();
         await fetchVersionList(svc, 'ns', 'Architectures', 'my-arch');
-        expect(svc.fetchVersionsByCustomId).toHaveBeenCalledWith('ns', 'my-arch');
+        expect(svc.fetchVersionsByCustomId).toHaveBeenCalledWith('ns', 'my-arch', 'Architectures');
         expect(svc.fetchArchitectureVersions).not.toHaveBeenCalled();
     });
 

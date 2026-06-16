@@ -14,7 +14,7 @@ export async function fetchVersionList(
     id: string,
 ): Promise<string[]> {
     if (isSlug(id)) {
-        return calmService.fetchVersionsByCustomId(namespace, id);
+        return calmService.fetchVersionsByCustomId(namespace, id, calmType);
     }
     return calmType === 'Architectures'
         ? calmService.fetchArchitectureVersions(namespace, id)

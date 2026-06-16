@@ -406,7 +406,7 @@ async function fetchVersionsForResource(
     adrService: AdrService,
 ): Promise<string[]> {
     if (isSlug(resourceID) && type !== 'ADRs') {
-        return calmService.fetchVersionsByCustomId(namespace, resourceID);
+        return calmService.fetchVersionsByCustomId(namespace, resourceID, type);
     }
     switch (type) {
         case 'Architectures':

@@ -23,7 +23,7 @@ describe('Adr Service ', () => {
 
     it('should retrieve all the ADR summaries for a given namespace', async () => {
         const expectedAdrSummaries = [{ id: 1, title: 'Use CALM', status: 'accepted' }, { id: 2, title: 'Use React', status: 'proposed' }];
-        mock.onGet(`/calm/namespaces/${namespace}/adrs`).reply(200, {
+        mock.onGet(`/api/calm/namespaces/${namespace}/adrs`).reply(200, {
             values: expectedAdrSummaries,
         });
         const actualAdrSummaries = await adrService.fetchAdrSummaries(namespace);
@@ -37,14 +37,14 @@ describe('Adr Service ', () => {
         {
             "message": "An Error Occurred",
         }`;
-            mock.onGet(`/calm/namespaces/${namespace}/adrs`).reply(errorStatusCode, errorMessage);
+            mock.onGet(`/api/calm/namespaces/${namespace}/adrs`).reply(errorStatusCode, errorMessage);
             expect(async () => await adrService.fetchAdrSummaries(namespace)).rejects.toThrowError();
         }
     );
 
     it('should retrieve all the revisions for an ADR in a given namespace', async () => {
         const expectedRevisions = [1, 2];
-        mock.onGet(`/calm/namespaces/${namespace}/adrs/${adrId}/revisions`).reply(200, {
+        mock.onGet(`/api/calm/namespaces/${namespace}/adrs/${adrId}/revisions`).reply(200, {
             values: expectedRevisions,
         });
         const actualRevisions = await adrService.fetchAdrRevisions(namespace, adrId);
@@ -58,7 +58,7 @@ describe('Adr Service ', () => {
         {
             "message": "An Error Occurred",
         }`;
-            mock.onGet(`/calm/namespaces/${namespace}/adrs`).reply(errorStatusCode, errorMessage);
+            mock.onGet(`/api/calm/namespaces/${namespace}/adrs`).reply(errorStatusCode, errorMessage);
             expect(
                 async () => await adrService.fetchAdrRevisions(namespace, adrId)
             ).rejects.toThrowError();
@@ -66,7 +66,7 @@ describe('Adr Service ', () => {
     );
 
     it('should retrieve an adr revision', async () => {
-        mock.onGet(`/calm/namespaces/${namespace}/adrs/${adrId}/revisions/${revision}`).reply(
+        mock.onGet(`/api/calm/namespaces/${namespace}/adrs/${adrId}/revisions/${revision}`).reply(
             200,
             expectedAdr
         );
@@ -81,7 +81,7 @@ describe('Adr Service ', () => {
         {
             "message": "An Error Occurred",
         }`;
-            mock.onGet(`/calm/namespaces/${namespace}/adrs/${adrId}/revisions/${revision}`).reply(
+            mock.onGet(`/api/calm/namespaces/${namespace}/adrs/${adrId}/revisions/${revision}`).reply(
                 errorStatusCode,
                 errorMessage
             );

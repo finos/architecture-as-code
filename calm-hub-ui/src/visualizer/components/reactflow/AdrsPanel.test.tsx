@@ -29,7 +29,7 @@ describe('AdrsPanel', () => {
     });
 
     it('renders calm-hub internal ADR links as in-app navigation', () => {
-        const adrs = ['/calm/namespaces/workshop/adrs/1'];
+        const adrs = ['/api/calm/namespaces/workshop/adrs/1'];
         render(<AdrsPanel adrs={adrs} />);
 
         const link = screen.getByRole('link', { name: /ADR 1 \(workshop\)/ });
@@ -40,7 +40,7 @@ describe('AdrsPanel', () => {
     it('renders a mix of external and internal links', () => {
         const adrs = [
             'https://github.com/org/project/docs/adr/0001-use-oauth2.md',
-            '/calm/namespaces/finos/adrs/42',
+            '/api/calm/namespaces/finos/adrs/42',
         ];
         render(<AdrsPanel adrs={adrs} />);
 
@@ -53,8 +53,8 @@ describe('AdrsPanel', () => {
         const adrs = [
             'https://github.com/org/project/docs/adr/0001-use-oauth2.md',
             'https://github.com/org/project/docs/adr/0002-rate-limiting.md',
-            '/calm/namespaces/workshop/adrs/1',
-            '/calm/namespaces/finos/adrs/42',
+            '/api/calm/namespaces/workshop/adrs/1',
+            '/api/calm/namespaces/finos/adrs/42',
         ];
         render(<AdrsPanel adrs={adrs} />);
 
@@ -74,7 +74,7 @@ describe('getAdrDisplayName', () => {
     });
 
     it('formats calm-hub internal link', () => {
-        expect(getAdrDisplayName('/calm/namespaces/workshop/adrs/1')).toBe('ADR 1 (workshop)');
+        expect(getAdrDisplayName('/api/calm/namespaces/workshop/adrs/1')).toBe('ADR 1 (workshop)');
     });
 
     it('handles plain path segments', () => {
@@ -88,8 +88,8 @@ describe('getAdrDisplayName', () => {
 
 describe('isCalmHubAdr', () => {
     it('returns true for calm-hub ADR paths', () => {
-        expect(isCalmHubAdr('/calm/namespaces/workshop/adrs/1')).toBe(true);
-        expect(isCalmHubAdr('/calm/namespaces/finos/adrs/42')).toBe(true);
+        expect(isCalmHubAdr('/api/calm/namespaces/workshop/adrs/1')).toBe(true);
+        expect(isCalmHubAdr('/api/calm/namespaces/finos/adrs/42')).toBe(true);
     });
 
     it('returns false for external URLs', () => {
@@ -103,11 +103,11 @@ describe('isCalmHubAdr', () => {
 
 describe('toAdrAppRoute', () => {
     it('converts calm-hub path to app hash route', () => {
-        expect(toAdrAppRoute('/calm/namespaces/workshop/adrs/1')).toBe('/workshop/adrs/1/1');
+        expect(toAdrAppRoute('/api/calm/namespaces/workshop/adrs/1')).toBe('/workshop/adrs/1/1');
     });
 
     it('converts with different namespace', () => {
-        expect(toAdrAppRoute('/calm/namespaces/finos/adrs/42')).toBe('/finos/adrs/42/1');
+        expect(toAdrAppRoute('/api/calm/namespaces/finos/adrs/42')).toBe('/finos/adrs/42/1');
     });
 
     it('returns original URL for non-matching paths', () => {

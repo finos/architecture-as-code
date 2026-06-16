@@ -32,7 +32,7 @@ public class TestDomainUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body("{}")
                 .when()
-                .post("/calm/domains/invalid_domain/user-access")
+                .post("/api/calm/domains/invalid_domain/user-access")
                 .then()
                 .statusCode(400)
                 .body(containsString(DOMAIN_MESSAGE));
@@ -42,7 +42,7 @@ public class TestDomainUserAccessResourceShould {
     void return_400_when_invalid_domain_format_provided_on_get_user_access() {
         given()
                 .when()
-                .get("/calm/domains/invalid_domain/user-access")
+                .get("/api/calm/domains/invalid_domain/user-access")
                 .then()
                 .statusCode(400)
                 .body(containsString(DOMAIN_MESSAGE));
@@ -52,7 +52,7 @@ public class TestDomainUserAccessResourceShould {
     void return_400_when_invalid_domain_format_provided_on_get_user_access_by_id() {
         given()
                 .when()
-                .get("/calm/domains/invalid_domain/user-access/1")
+                .get("/api/calm/domains/invalid_domain/user-access/1")
                 .then()
                 .statusCode(400)
                 .body(containsString(DOMAIN_MESSAGE));
@@ -77,10 +77,10 @@ public class TestDomainUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/domains/payments/user-access")
+                .post("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/payments/user-access/201"));
+                .header("Location", containsString("/api/calm/domains/payments/user-access/201"));
 
         verify(mockUserAccessStore, times(1)).createUserAccessForDomain(any(UserAccess.class));
     }
@@ -97,7 +97,7 @@ public class TestDomainUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/domains/payments/user-access")
+                .post("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(400)
                 .body(containsString("Bad Request"));
@@ -121,7 +121,7 @@ public class TestDomainUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(OBJECT_MAPPER.writeValueAsString(userAccess))
                 .when()
-                .post("/calm/domains/payments/user-access")
+                .post("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(500)
                 .body(containsString("System Malfunction"));
@@ -144,7 +144,7 @@ public class TestDomainUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/domains/payments/user-access")
+                .post("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(500);
 
@@ -167,7 +167,7 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access")
+                .get("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(200)
                 .body(containsString("test_user1"))
@@ -183,7 +183,7 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access")
+                .get("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(404)
                 .body(containsString("No access permissions found"));
@@ -198,7 +198,7 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access")
+                .get("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(500);
 
@@ -215,7 +215,7 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access/201")
+                .get("/api/calm/domains/payments/user-access/201")
                 .then()
                 .statusCode(200)
                 .body(containsString("test_user"));
@@ -230,7 +230,7 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access/999")
+                .get("/api/calm/domains/payments/user-access/999")
                 .then()
                 .statusCode(404)
                 .body(containsString("No access permissions found"));

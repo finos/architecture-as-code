@@ -92,7 +92,7 @@ public class PermittedScopesIntegration {
 
         given()
                 .auth().oauth2(token)
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -108,7 +108,7 @@ public class PermittedScopesIntegration {
                 .auth().oauth2(token)
                 .body(PATTERN)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(403);
     }
@@ -119,7 +119,7 @@ public class PermittedScopesIntegration {
         given()
                 .body(PATTERN)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(401);
     }
@@ -132,7 +132,7 @@ public class PermittedScopesIntegration {
 
         given()
                 .auth().oauth2(token)
-                .when().get("/calm/namespaces")
+                .when().get("/api/calm/namespaces")
                 .then()
                 .statusCode(200)
                 .body("values.name", hasItem("finos"))
@@ -143,8 +143,59 @@ public class PermittedScopesIntegration {
     @Order(5)
     void unauthenticated_request_for_namespaces_is_rejected() {
         given()
-                .when().get("/calm/namespaces")
+                .when().get("/api/calm/namespaces")
                 .then()
                 .statusCode(401);
+    }
+
+    @Test
+    @Order(6)
+    void read_only_user_cannot_post_to_calm_namespaces_resource() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        String token = tokenForTestUser(authServerUrl);
+
+        String payload = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/my-pattern/versions/1.0.0\"}";
+
+        given()
+                .auth().oauth2(token)
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @Order(7)
+    void read_only_user_cannot_put_to_calm_namespace_resource() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        String token = tokenForTestUser(authServerUrl);
+
+        String payload = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/my-pattern/versions/1.0.0\"}";
+
+        given()
+                .auth().oauth2(token)
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().put("/calm")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @Order(8)
+    void read_only_user_cannot_post_control_requirement_via_calm_endpoint() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        String token = tokenForTestUser(authServerUrl);
+
+        String payload = "{\"$id\":\"http://localhost:8080/calm/domains/finos/controls/my-control/requirement/versions/1.0.0\"}";
+
+        given()
+                .auth().oauth2(token)
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm")
+                .then()
+                .statusCode(403);
     }
 }
