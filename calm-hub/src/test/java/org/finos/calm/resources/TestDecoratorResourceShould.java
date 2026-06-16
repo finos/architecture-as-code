@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Decorator;
@@ -18,16 +19,11 @@ import java.util.Optional;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 public class TestDecoratorResourceShould {
@@ -42,7 +38,7 @@ public class TestDecoratorResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{\"values\":[1,2,3]}"));
@@ -52,14 +48,14 @@ public class TestDecoratorResourceShould {
 
     @Test
     void return_decorator_ids_filtered_by_target() throws NamespaceNotFoundException {
-        String target = "/calm/namespaces/finos/architectures/1/versions/1-0-0";
+        String target = "/api/calm/namespaces/finos/architectures/1/versions/1-0-0";
         when(decoratorStore.getDecoratorsForNamespace("finos", target, null))
                 .thenReturn(List.of(1, 2));
 
         given()
                 .queryParam("target", target)
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{\"values\":[1,2]}"));
@@ -75,7 +71,7 @@ public class TestDecoratorResourceShould {
         given()
                 .queryParam("type", "deployment")
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{\"values\":[1,2,3]}"));
@@ -85,7 +81,7 @@ public class TestDecoratorResourceShould {
 
     @Test
     void return_decorator_ids_filtered_by_target_and_type() throws NamespaceNotFoundException {
-        String target = "/calm/namespaces/finos/architectures/1/versions/1-0-0";
+        String target = "/api/calm/namespaces/finos/architectures/1/versions/1-0-0";
         when(decoratorStore.getDecoratorsForNamespace("finos", target, "deployment"))
                 .thenReturn(List.of(1, 2));
 
@@ -93,7 +89,7 @@ public class TestDecoratorResourceShould {
                 .queryParam("target", target)
                 .queryParam("type", "deployment")
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{\"values\":[1,2]}"));
@@ -103,7 +99,7 @@ public class TestDecoratorResourceShould {
 
     @Test
     void accept_query_params_with_valid_characters() throws NamespaceNotFoundException {
-        String target = "/calm/namespaces/finos-org/architectures/arch_1/versions/1-0-0";
+        String target = "/api/calm/namespaces/finos-org/architectures/arch_1/versions/1-0-0";
         String type = "deployment_prod";
         when(decoratorStore.getDecoratorsForNamespace("finos", target, type))
                 .thenReturn(List.of(1));
@@ -112,7 +108,7 @@ public class TestDecoratorResourceShould {
                 .queryParam("target", target)
                 .queryParam("type", type)
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{\"values\":[1]}"));
@@ -127,7 +123,7 @@ public class TestDecoratorResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/empty-namespace/decorators")
+                .get("/api/calm/namespaces/empty-namespace/decorators")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{\"values\":[]}"));
@@ -142,7 +138,7 @@ public class TestDecoratorResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid-namespace/decorators")
+                .get("/api/calm/namespaces/invalid-namespace/decorators")
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace provided: invalid-namespace"));
@@ -154,7 +150,7 @@ public class TestDecoratorResourceShould {
     void return_400_when_namespace_has_invalid_characters() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/invalid@namespace/decorators")
+                .get("/api/calm/namespaces/invalid@namespace/decorators")
                 .then()
                 .statusCode(400)
                 .body(containsString("namespace must match pattern"));
@@ -168,7 +164,7 @@ public class TestDecoratorResourceShould {
                 .queryParam("target", "")
                 .queryParam("type", "")
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(400);
 
@@ -181,7 +177,7 @@ public class TestDecoratorResourceShould {
                 .queryParam("target", "   ")
                 .queryParam("type", "  ")
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(400);
 
@@ -191,10 +187,10 @@ public class TestDecoratorResourceShould {
     @Test
     void return_400_when_query_params_have_whitespace() throws NamespaceNotFoundException {
         given()
-                .queryParam("target", "  /calm/namespaces/finos/architectures/1  ")
+                .queryParam("target", "  /api/calm/namespaces/finos/architectures/1  ")
                 .queryParam("type", "  deployment  ")
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(400);
 
@@ -204,16 +200,16 @@ public class TestDecoratorResourceShould {
     @Test
     void return_400_when_query_params_contain_invalid_characters() throws NamespaceNotFoundException {
         given()
-                .queryParam("target", "/calm/namespaces/finos@invalid")
+                .queryParam("target", "/api/calm/namespaces/finos@invalid")
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(400);
 
         given()
                 .queryParam("type", "deploy ment")
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(400);
 
@@ -227,7 +223,7 @@ public class TestDecoratorResourceShould {
         given()
                 .queryParam("target", longTarget)
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(400);
 
@@ -241,7 +237,7 @@ public class TestDecoratorResourceShould {
         given()
                 .queryParam("type", longType)
                 .when()
-                .get("/calm/namespaces/finos/decorators")
+                .get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(400);
 
@@ -260,7 +256,7 @@ public class TestDecoratorResourceShould {
         when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenReturn(Optional.of(decorator));
 
         given()
-                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
+                .when().get("/api/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
                 .then()
                 .statusCode(200)
                 .body("target[0]", equalTo("test-target"))
@@ -275,7 +271,7 @@ public class TestDecoratorResourceShould {
         when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenReturn(Optional.empty());
 
         given()
-                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
+                .when().get("/api/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
                 .then()
                 .statusCode(404)
                 .body(containsString("Decorator with ID 999 does not exist in namespace: test-namespace"));
@@ -289,7 +285,7 @@ public class TestDecoratorResourceShould {
         when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenThrow(new NamespaceNotFoundException());
 
         given()
-                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
+                .when().get("/api/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace provided: non-existent-namespace"));
@@ -303,7 +299,7 @@ public class TestDecoratorResourceShould {
         when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenReturn(Optional.empty());
 
         given()
-                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
+                .when().get("/api/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
                 .then()
                 .statusCode(404)
                 .body(containsString("Decorator with ID 123 does not exist in namespace: test-namespace"));
@@ -315,7 +311,7 @@ public class TestDecoratorResourceShould {
         int decoratorId = 123;
 
         given()
-                .when().get("/calm/namespaces/{namespace}/decorators/{id}", invalidNamespace, decoratorId)
+                .when().get("/api/calm/namespaces/{namespace}/decorators/{id}", invalidNamespace, decoratorId)
                 .then()
                 .statusCode(400)
                 .body(containsString("namespace must match pattern"));
@@ -327,7 +323,7 @@ public class TestDecoratorResourceShould {
         String invalidId = "invalid-id";
 
         given()
-                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, invalidId)
+                .when().get("/api/calm/namespaces/{namespace}/decorators/{id}", namespace, invalidId)
                 .then()
                 .statusCode(404);
     }
@@ -335,7 +331,7 @@ public class TestDecoratorResourceShould {
     @Test
     void return_400_when_id_is_zero() {
         given()
-                .when().get("/calm/namespaces/test-namespace/decorators/0")
+                .when().get("/api/calm/namespaces/test-namespace/decorators/0")
                 .then()
                 .statusCode(400)
                 .body(containsString("ID must be a positive integer"));
@@ -344,7 +340,7 @@ public class TestDecoratorResourceShould {
     @Test
     void return_400_when_id_is_negative() {
         given()
-                .when().get("/calm/namespaces/test-namespace/decorators/-1")
+                .when().get("/api/calm/namespaces/test-namespace/decorators/-1")
                 .then()
                 .statusCode(400)
                 .body(containsString("ID must be a positive integer"));
@@ -356,7 +352,7 @@ public class TestDecoratorResourceShould {
         when(decoratorStore.getDecoratorById("test-namespace", maxId)).thenReturn(Optional.empty());
 
         given()
-                .when().get("/calm/namespaces/test-namespace/decorators/2147483647")
+                .when().get("/api/calm/namespaces/test-namespace/decorators/2147483647")
                 .then()
                 .statusCode(404)
                 .body(containsString("Decorator with ID 2147483647 does not exist in namespace: test-namespace"));
@@ -367,7 +363,7 @@ public class TestDecoratorResourceShould {
         when(decoratorStore.getDecoratorById("test-namespace", 1)).thenReturn(Optional.empty());
 
         given()
-                .when().get("/calm/namespaces/test-namespace/decorators/1")
+                .when().get("/api/calm/namespaces/test-namespace/decorators/1")
                 .then()
                 .statusCode(404)
                 .body(containsString("Decorator with ID 1 does not exist in namespace: test-namespace"));
@@ -376,7 +372,7 @@ public class TestDecoratorResourceShould {
     @Test
     void return_decorator_values_when_namespace_exists() throws NamespaceNotFoundException {
         Decorator decorator = new Decorator.DecoratorBuilder()
-                .setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .setTarget(List.of("/api/calm/namespaces/finos/architectures/1/versions/1-0-0"))
                 .setType("deployment")
                 .build();
         when(decoratorStore.getDecoratorValuesForNamespace("finos", null, null))
@@ -384,11 +380,11 @@ public class TestDecoratorResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/decorators/values")
+                .get("/api/calm/namespaces/finos/decorators/values")
                 .then()
                 .statusCode(200)
                 .body("values[0].type", equalTo("deployment"))
-                .body("values[0].target[0]", equalTo("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
+                .body("values[0].target[0]", equalTo("/api/calm/namespaces/finos/architectures/1/versions/1-0-0"));
 
         verify(decoratorStore, times(1)).getDecoratorValuesForNamespace("finos", null, null);
     }
@@ -400,7 +396,7 @@ public class TestDecoratorResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/empty-namespace/decorators/values")
+                .get("/api/calm/namespaces/empty-namespace/decorators/values")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{\"values\":[]}"));
@@ -410,7 +406,7 @@ public class TestDecoratorResourceShould {
 
     @Test
     void return_decorator_values_filtered_by_target() throws NamespaceNotFoundException {
-        String target = "/calm/namespaces/finos/architectures/1/versions/1-0-0";
+        String target = "/api/calm/namespaces/finos/architectures/1/versions/1-0-0";
         Decorator decorator = new Decorator.DecoratorBuilder()
                 .setTarget(List.of(target))
                 .setType("deployment")
@@ -421,7 +417,7 @@ public class TestDecoratorResourceShould {
         given()
                 .queryParam("target", target)
                 .when()
-                .get("/calm/namespaces/finos/decorators/values")
+                .get("/api/calm/namespaces/finos/decorators/values")
                 .then()
                 .statusCode(200)
                 .body("values[0].type", equalTo("deployment"));
@@ -440,7 +436,7 @@ public class TestDecoratorResourceShould {
         given()
                 .queryParam("type", "deployment")
                 .when()
-                .get("/calm/namespaces/finos/decorators/values")
+                .get("/api/calm/namespaces/finos/decorators/values")
                 .then()
                 .statusCode(200)
                 .body("values[0].type", equalTo("deployment"));
@@ -450,7 +446,7 @@ public class TestDecoratorResourceShould {
 
     @Test
     void return_decorator_values_filtered_by_target_and_type() throws NamespaceNotFoundException {
-        String target = "/calm/namespaces/finos/architectures/1/versions/1-0-0";
+        String target = "/api/calm/namespaces/finos/architectures/1/versions/1-0-0";
         Decorator decorator = new Decorator.DecoratorBuilder()
                 .setTarget(List.of(target))
                 .setType("deployment")
@@ -462,7 +458,7 @@ public class TestDecoratorResourceShould {
                 .queryParam("target", target)
                 .queryParam("type", "deployment")
                 .when()
-                .get("/calm/namespaces/finos/decorators/values")
+                .get("/api/calm/namespaces/finos/decorators/values")
                 .then()
                 .statusCode(200)
                 .body("values[0].type", equalTo("deployment"));
@@ -477,7 +473,7 @@ public class TestDecoratorResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid-namespace/decorators/values")
+                .get("/api/calm/namespaces/invalid-namespace/decorators/values")
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace provided: invalid-namespace"));
@@ -489,7 +485,7 @@ public class TestDecoratorResourceShould {
     void return_400_when_namespace_has_invalid_characters_for_decorator_values() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/invalid@namespace/decorators/values")
+                .get("/api/calm/namespaces/invalid@namespace/decorators/values")
                 .then()
                 .statusCode(400)
                 .body(containsString("namespace must match pattern"));
@@ -504,21 +500,21 @@ public class TestDecoratorResourceShould {
         given()
                 .queryParam("target", longTarget)
                 .when()
-                .get("/calm/namespaces/finos/decorators/values")
+                .get("/api/calm/namespaces/finos/decorators/values")
                 .then()
                 .statusCode(400);
 
         verify(decoratorStore, never()).getDecoratorValuesForNamespace(any(), any(), any());
     }
 
-    // ---- POST /calm/namespaces/{namespace}/decorators ----
+    // ---- POST /api/calm/namespaces/{namespace}/decorators ----
 
     private static final String VALID_DECORATOR_JSON = """
             {
                 "$schema": "https://calm.finos.org/draft/2026-03/meta/decorators.json",
                 "unique-id": "test-decorator-1",
                 "type": "deployment",
-                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
                 "applies-to": ["web-service"],
                 "data": {"key": "value"}
             }
@@ -532,10 +528,10 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR_JSON)
                 .when()
-                .post("/calm/namespaces/finos/decorators")
+                .post("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/decorators/1"))
+                .header("Location", containsString("/api/calm/namespaces/finos/decorators/1"))
                 .body("id", equalTo(1));
     }
 
@@ -548,7 +544,7 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body("not-valid-json")
                 .when()
-                .post("/calm/namespaces/finos/decorators")
+                .post("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(400)
                 .body(containsString("Invalid decorator JSON"));
@@ -563,7 +559,7 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR_JSON)
                 .when()
-                .post("/calm/namespaces/invalid-namespace/decorators")
+                .post("/api/calm/namespaces/invalid-namespace/decorators")
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace provided: invalid-namespace"));
@@ -575,13 +571,13 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR_JSON)
                 .when()
-                .post("/calm/namespaces/invalid@namespace/decorators")
+                .post("/api/calm/namespaces/invalid@namespace/decorators")
                 .then()
                 .statusCode(400)
                 .body(containsString("namespace must match pattern"));
     }
 
-    // ---- PUT /calm/namespaces/{namespace}/decorators/{id} ----
+    // ---- PUT /api/calm/namespaces/{namespace}/decorators/{id} ----
 
     @Test
     void return_200_when_decorator_updated_successfully() throws Exception {
@@ -589,7 +585,7 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR_JSON)
                 .when()
-                .put("/calm/namespaces/finos/decorators/1")
+                .put("/api/calm/namespaces/finos/decorators/1")
                 .then()
                 .statusCode(200);
 
@@ -609,7 +605,7 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR_JSON)
                 .when()
-                .put("/calm/namespaces/finos/decorators/999")
+                .put("/api/calm/namespaces/finos/decorators/999")
                 .then()
                 .statusCode(404)
                 .body(containsString("Decorator with ID 999 does not exist in namespace: finos"));
@@ -624,7 +620,7 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR_JSON)
                 .when()
-                .put("/calm/namespaces/invalid-namespace/decorators/1")
+                .put("/api/calm/namespaces/invalid-namespace/decorators/1")
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace provided: invalid-namespace"));
@@ -639,7 +635,7 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body("not-valid-json")
                 .when()
-                .put("/calm/namespaces/finos/decorators/1")
+                .put("/api/calm/namespaces/finos/decorators/1")
                 .then()
                 .statusCode(400)
                 .body(containsString("Invalid decorator JSON"));
@@ -651,7 +647,7 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR_JSON)
                 .when()
-                .put("/calm/namespaces/invalid@namespace/decorators/1")
+                .put("/api/calm/namespaces/invalid@namespace/decorators/1")
                 .then()
                 .statusCode(400)
                 .body(containsString("namespace must match pattern"));
@@ -663,7 +659,7 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR_JSON)
                 .when()
-                .put("/calm/namespaces/test-namespace/decorators/0")
+                .put("/api/calm/namespaces/test-namespace/decorators/0")
                 .then()
                 .statusCode(400)
                 .body(containsString("ID must be a positive integer"));
@@ -675,7 +671,7 @@ public class TestDecoratorResourceShould {
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR_JSON)
                 .when()
-                .put("/calm/namespaces/test-namespace/decorators/-1")
+                .put("/api/calm/namespaces/test-namespace/decorators/-1")
                 .then()
                 .statusCode(400)
                 .body(containsString("ID must be a positive integer"));

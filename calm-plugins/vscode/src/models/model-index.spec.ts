@@ -22,7 +22,7 @@ describe('ModelIndex', () => {
     beforeEach(() => {
         mockDoc = {
             getText: vi.fn().mockReturnValue('{}'),
-            positionAt: vi.fn((offset: number) => offset)
+            positionAt: vi.fn(function (offset: number) { return offset; })
         }
     })
 

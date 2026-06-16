@@ -3,18 +3,21 @@ package org.finos.calm.resources;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.Test;
+
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 public class TestUserAccessResourceShould {
 
@@ -29,7 +32,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("finos");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.patterns);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -41,10 +43,10 @@ public class TestUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/finos/user-access")
+                .post("/api/calm/namespaces/finos/user-access")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/user-access/101"));
+                .header("Location", containsString("/api/calm/namespaces/finos/user-access/101"));
 
         verify(mockUserAccessStore, times(1))
                 .createUserAccessForNamespace(any(UserAccess.class));
@@ -58,7 +60,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("invalid");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.all);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -66,13 +67,53 @@ public class TestUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/user-access")
+                .post("/api/calm/namespaces/invalid/user-access")
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace"));
 
         verify(mockUserAccessStore, times(1))
                 .createUserAccessForNamespace(any(UserAccess.class));
+    }
+
+    @Test
+    void return_400_when_invalid_namespace_format() throws Exception {
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
+                .thenThrow(new NamespaceNotFoundException());
+
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("invalid &%*$% NAMESPACE");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setUsername("test_user");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(requestBody)
+                .when()
+                .post("/api/calm/namespaces/invalid/user-access")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void return_400_when_invalid_username_format() throws Exception {
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
+                .thenThrow(new NamespaceNotFoundException());
+
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("invalid");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setUsername("INVALID USER!");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(requestBody)
+                .when()
+                .post("/api/calm/namespaces/invalid/user-access")
+                .then()
+                .statusCode(400);
     }
 
     @Test
@@ -83,7 +124,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("invalid");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.all);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -91,7 +131,7 @@ public class TestUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/test/user-access")
+                .post("/api/calm/namespaces/test/user-access")
                 .then()
                 .statusCode(400)
                 .body(containsString("Bad Request"));
@@ -108,7 +148,6 @@ public class TestUserAccessResourceShould {
         UserAccess userAccess = new UserAccess();
         userAccess.setNamespace("finos");
         userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setResourceType(UserAccess.ResourceType.all);
         userAccess.setUsername("test_user");
         String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
@@ -116,7 +155,7 @@ public class TestUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/finos/user-access")
+                .post("/api/calm/namespaces/finos/user-access")
                 .then()
                 .statusCode(500);
 
@@ -141,7 +180,7 @@ public class TestUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/test/user-access")
+                .get("/api/calm/namespaces/test/user-access")
                 .then()
                 .statusCode(200)
                 .body(containsString("test_user1"))
@@ -158,7 +197,7 @@ public class TestUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/user-access")
+                .get("/api/calm/namespaces/invalid/user-access")
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace"));
@@ -173,7 +212,7 @@ public class TestUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/test/user-access")
+                .get("/api/calm/namespaces/test/user-access")
                 .then()
                 .statusCode(404)
                 .body(containsString("No access permissions found"));
@@ -188,7 +227,7 @@ public class TestUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/test/user-access")
+                .get("/api/calm/namespaces/test/user-access")
                 .then()
                 .statusCode(500);
 
@@ -207,7 +246,7 @@ public class TestUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/test/user-access/101")
+                .get("/api/calm/namespaces/test/user-access/101")
                 .then()
                 .statusCode(200)
                 .body(containsString("test_user1"));
@@ -223,7 +262,7 @@ public class TestUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/user-access/0")
+                .get("/api/calm/namespaces/invalid/user-access/0")
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace"));
@@ -239,7 +278,7 @@ public class TestUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/test/user-access/1")
+                .get("/api/calm/namespaces/test/user-access/1")
                 .then()
                 .statusCode(404)
                 .body(containsString("No access permissions found"));

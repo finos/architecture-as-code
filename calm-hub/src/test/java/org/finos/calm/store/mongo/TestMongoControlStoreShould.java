@@ -9,6 +9,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -758,5 +759,113 @@ public class TestMongoControlStoreShould {
         assertThat(set, not(hasKey("controls.$.name")));
         assertThat(set, not(hasKey("controls.$.description")));
         assertThat(set, hasKey("controls.$.requirement.2-0-0"));
+    }
+
+    // --- getConfigurationDetailsForControl ---
+
+    @Test
+    void get_configuration_details_returns_id_and_name_for_each_config() throws Exception {
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+
+        Document config1 = new Document("configurationId", 10)
+                .append("name", "encryption-config")
+                .append("versions", new Document("1-0-0", new Document()));
+        Document config2 = new Document("configurationId", 20)
+                .append("name", "tls-config")
+                .append("versions", new Document("1-0-0", new Document()));
+
+        Document controlDoc = new Document("controlId", 1)
+                .append("name", "Test")
+                .append("description", "Desc")
+                .append("requirement", new Document("1-0-0", new Document()))
+                .append("configurations", List.of(config1, config2));
+        Document domainDoc = new Document("domain", "security")
+                .append("controls", List.of(controlDoc));
+
+        FindIterable<Document> findIterable = mockFindIterable();
+        when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(domainDoc);
+
+        List<ControlConfigDetail> details = mongoControlStore.getConfigurationDetailsForControl("security", 1);
+
+        assertThat(details, hasSize(2));
+        assertThat(details.get(0).getId(), is(10));
+        assertThat(details.get(0).getName(), is("encryption-config"));
+        assertThat(details.get(1).getId(), is(20));
+        assertThat(details.get(1).getName(), is("tls-config"));
+    }
+
+    @Test
+    void get_configuration_details_returns_null_name_for_configs_without_name() throws Exception {
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+
+        Document config = new Document("configurationId", 10)
+                .append("versions", new Document("1-0-0", new Document()));
+
+        Document controlDoc = new Document("controlId", 1)
+                .append("name", "Test")
+                .append("description", "Desc")
+                .append("requirement", new Document("1-0-0", new Document()))
+                .append("configurations", List.of(config));
+        Document domainDoc = new Document("domain", "security")
+                .append("controls", List.of(controlDoc));
+
+        FindIterable<Document> findIterable = mockFindIterable();
+        when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(domainDoc);
+
+        List<ControlConfigDetail> details = mongoControlStore.getConfigurationDetailsForControl("security", 1);
+
+        assertThat(details, hasSize(1));
+        assertThat(details.get(0).getId(), is(10));
+        assertThat(details.get(0).getName(), is(nullValue()));
+    }
+
+    @Test
+    void get_configuration_details_returns_empty_when_no_configurations() throws Exception {
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+
+        Document controlDoc = new Document("controlId", 1)
+                .append("name", "Test")
+                .append("description", "Desc")
+                .append("requirement", new Document("1-0-0", new Document()))
+                .append("configurations", new ArrayList<>());
+        Document domainDoc = new Document("domain", "security")
+                .append("controls", List.of(controlDoc));
+
+        FindIterable<Document> findIterable = mockFindIterable();
+        when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(domainDoc);
+
+        List<ControlConfigDetail> details = mongoControlStore.getConfigurationDetailsForControl("security", 1);
+
+        assertThat(details, is(empty()));
+    }
+
+    @Test
+    void create_control_configuration_with_name_stores_name_in_document() throws Exception {
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+        when(counterStore.getNextControlConfigurationSequenceValue()).thenReturn(55);
+
+        Document controlDoc = new Document("controlId", 1)
+                .append("name", "Test")
+                .append("description", "Desc")
+                .append("requirement", new Document("1-0-0", new Document()))
+                .append("configurations", new ArrayList<>());
+        Document domainDoc = new Document("domain", "security")
+                .append("controls", List.of(controlDoc));
+
+        FindIterable<Document> findIterable = mockFindIterable();
+        when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(domainDoc);
+
+        CreateControlConfiguration request = new CreateControlConfiguration("tls-config", "{\"cipher\":\"AES\"}");
+        int configId = mongoControlStore.createControlConfiguration(request, "security", 1);
+
+        assertThat(configId, is(55));
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(controlCollection).updateOne(any(Document.class), updateCaptor.capture());
+        assertThat(updateCaptor.getValue().toString(), containsString("tls-config"));
     }
 }

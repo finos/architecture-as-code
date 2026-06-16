@@ -307,6 +307,149 @@
       }
     ]
   },
+  "contentBasePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Content Base Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "type": "string" },
+              "name": { "const": "Worker" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ]
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "contentReorderedPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Content Reordered Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "type": "string" },
+              "name": { "const": "Worker" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ]
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "contentModifiedPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Content Modified Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "type": "string" },
+              "name": { "const": "Worker v2" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ]
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "contentDuplicatePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Content Duplicate Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "type": "string" },
+              "name": { "const": "Worker" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "type": "string" },
+              "name": { "const": "Worker" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ]
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "undiffablePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Undiffable Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          },
+          {
+            "properties": {
+              "unique-id": { "type": "string" }
+            }
+          },
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node"
+          }
+        ]
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
   "decisionPattern": {
     "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
     "type": "object",

@@ -1,4 +1,5 @@
 import { runGenerate } from './generate';
+import { SchemaDirectory } from '../../schema-directory';
 import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
@@ -18,29 +19,29 @@ vi.mock('../../logger', () => {
 });
 
 vi.mock('./components/instantiate', () => ({
-    instantiate: vi.fn(() => Promise.resolve({
+    instantiate: vi.fn(function () { return Promise.resolve({
         nodes: [{ 'unique-id': 'mock-node' }],
         relationships: [{ 'unique-id': 'mock-rel' }],
         $schema: 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway'
-    }))
+    }); })
 }));
 
 vi.mock('./components/flatten-allof', () => ({
-    flattenAllOf: vi.fn((schema) => Promise.resolve(schema))
+    flattenAllOf: vi.fn(function (schema) { return Promise.resolve(schema); })
 }));
 
 
 describe('runGenerate', () => {
-    let tempDirectoryPath;
+    let tempDirectoryPath: string;
     const testPath: string = 'test_fixtures/api-gateway.json';
     const testPattern: object = JSON.parse(readFileSync(testPath, { encoding: 'utf8' }));
-    let schemaDirectory;
+    let schemaDirectory: SchemaDirectory;
 
     beforeEach(() => {
         tempDirectoryPath = mkdtempSync(path.join(tmpdir(), 'calm-test-'));
         schemaDirectory = {
             loadSchemas: vi.fn().mockResolvedValue(undefined)
-        };
+        } as unknown as SchemaDirectory;
     });
 
     afterEach(() => {

@@ -35,14 +35,14 @@ public class NitritePatternIntegration {
         var response = given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/patterns/"))
                 .extract();
 
         String location = response.header("Location");
-        // Extract pattern ID from Location header (e.g. /calm/namespaces/finos/patterns/2/versions/1-0-0)
+        // Extract pattern ID from Location header (e.g. /api/calm/namespaces/finos/patterns/2/versions/1-0-0)
         String[] parts = location.split("/");
         for (int i = 0; i < parts.length; i++) {
             if ("patterns".equals(parts[i]) && i + 1 < parts.length) {
@@ -56,7 +56,7 @@ public class NitritePatternIntegration {
     @Order(2)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions")
+                .when().get("/api/calm/namespaces/finos/patterns/" + createdPatternId + "/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -67,7 +67,7 @@ public class NitritePatternIntegration {
     @Order(3)
     void end_to_end_verify_pattern() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(PATTERN));
@@ -80,7 +80,7 @@ public class NitritePatternIntegration {
     void end_to_end_list_patterns_returns_wrapper_name_and_description_from_create() {
         int id = Integer.parseInt(createdPatternId);
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values.find { it.id == " + id + " }.name", equalTo("name"))
@@ -95,10 +95,10 @@ public class NitritePatternIntegration {
         given()
                 .body(versionBody)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/2.0.0")
+                .when().post("/api/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/2.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/2.0.0"));
+                .header("Location", containsString("/api/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/2.0.0"));
     }
 
     @Test
@@ -106,7 +106,7 @@ public class NitritePatternIntegration {
     void end_to_end_list_patterns_reflects_updated_name_and_description_after_new_version() {
         int id = Integer.parseInt(createdPatternId);
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values.find { it.id == " + id + " }.name", equalTo("updated-pattern"))
@@ -123,23 +123,51 @@ public class NitritePatternIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/3.0.0")
+                .when().post("/api/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/3.0.0")
                 .then()
                 .statusCode(201);
 
         // Stored content must be the inner patternJson verbatim, not the envelope
         given()
-                .when().get("/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/3.0.0")
+                .when().get("/api/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/3.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(inner));
 
         // Wrapper reflects the latest envelope name/description
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values.find { it.id == " + id + " }.name", equalTo("third-name"))
                 .body("values.find { it.id == " + id + " }.description", equalTo("third description"));
+    }
+
+    @Test
+    @Order(8)
+    void end_to_end_reject_malformed_json_on_versioned_post() {
+        String envelope = "{\"name\": \"n\", \"description\": \"d\", \"patternJson\": \"{ not json\"}";
+
+        given()
+                .body(envelope)
+                .header("Content-Type", "application/json")
+                .when().post("/api/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/9.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("could not be parsed"));
+    }
+
+    @Test
+    @Order(9)
+    void end_to_end_reject_malformed_json_on_versioned_put() {
+        String envelope = "{\"name\": \"n\", \"description\": \"d\", \"patternJson\": \"{ not json\"}";
+
+        given()
+                .body(envelope)
+                .header("Content-Type", "application/json")
+                .when().put("/api/calm/namespaces/finos/patterns/" + createdPatternId + "/versions/1.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString("could not be parsed"));
     }
 }

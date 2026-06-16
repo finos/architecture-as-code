@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.mongo.MongoFlowStore;
 import org.finos.calm.store.nitrite.NitriteFlowStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for FlowStore implementations.
@@ -20,10 +21,10 @@ public class FlowStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoFlowStore mongoFlowStore;
+    Instance<MongoFlowStore> mongoFlowStore;
 
     @Inject
-    NitriteFlowStore standaloneFlowStore;
+    Instance<NitriteFlowStore> standaloneFlowStore;
 
     /**
      * Produces the appropriate FlowStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class FlowStoreProducer {
     @ApplicationScoped
     public FlowStore produceFlowStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneFlowStore;
+            return standaloneFlowStore.get();
         } else {
-            return mongoFlowStore;
+            return mongoFlowStore.get();
         }
     }
 }

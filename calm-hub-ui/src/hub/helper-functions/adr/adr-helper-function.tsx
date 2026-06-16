@@ -94,19 +94,24 @@ export function DisplayConsideredOptions(props: { consideredOptions: Option[] })
 }
 
 export function DisplayChosenOption(props: { decisionOutcome: Decision }) {
+    const chosenOption = props.decisionOutcome?.chosenOption;
+    if (!chosenOption) {
+        return null;
+    }
+
     return (
         <div className="pt-2">
-            <p className="font-bold pb-1">{props.decisionOutcome.chosenOption.name}</p>
+            <p className="font-bold pb-1">{chosenOption.name}</p>
 
             <div className=" pt-1 pb-1 pe-2 markdownParagraphSpacing">
-                <Markdown>{props.decisionOutcome.chosenOption.description}</Markdown>
+                <Markdown>{chosenOption.description}</Markdown>
             </div>
 
             <p className="font-bold"> Positive Consequences:</p>
-            {getListOfConsequences(props.decisionOutcome.chosenOption.positiveConsequences, true)}
+            {getListOfConsequences(chosenOption.positiveConsequences, true)}
 
             <p className="font-bold mt-4"> Negative Consequences:</p>
-            {getListOfConsequences(props.decisionOutcome.chosenOption.negativeConsequences, false)}
+            {getListOfConsequences(chosenOption.negativeConsequences, false)}
 
             <p className="font-bold mt-4"> Decision Rational:</p>
             <div className="pe-1">

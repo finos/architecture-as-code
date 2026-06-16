@@ -5,7 +5,7 @@ import type { NavigationService } from '../core/services/navigation-service'
 // Mock vscode
 vi.mock('vscode', () => ({
     commands: {
-        registerCommand: vi.fn((name, callback) => ({ dispose: vi.fn(), callback }))
+        registerCommand: vi.fn(function (name, callback) { return { dispose: vi.fn(), callback }; })
     },
     window: {
         showWarningMessage: vi.fn()

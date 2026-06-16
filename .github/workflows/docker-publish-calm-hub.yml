@@ -4,13 +4,24 @@ permissions:
     contents: read
 
 on:
-    # Only manual trigger from GitHub UI
+    push:
+        branches:
+            - main
+        paths:
+            - 'calm-hub/**'
+            - 'calm-hub-ui/**'
+            - '.github/workflows/docker-publish-calm-hub.yml'
+    # Manual trigger from GitHub UI (allows custom tag)
     workflow_dispatch:
         inputs:
             tag:
                 description: 'Image tag (default: latest)'
                 required: false
                 default: 'latest'
+
+concurrency:
+    group: docker-publish-calm-hub
+    cancel-in-progress: false
 
 jobs:
     build-and-push:
@@ -20,7 +31,7 @@ jobs:
         steps:
             # Step 1: Checkout the repository
             - name: Checkout
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
             # Step 2: Set up JDK
             - name: Set up JDK

@@ -27,6 +27,11 @@ const schemaDir_10 = path.join(__dirname, '../../../../calm/release/1.0/meta/');
 const schemaDir_11 = path.join(__dirname, '../../../../calm/release/1.1/meta/');
 const schemaDir_12 = path.join(__dirname, '../../../../calm/release/1.2/meta/');
 
+const invalidArchMissingRelationshipTypePath = path.join(
+    __dirname,
+    '../../../test_fixtures/command/validate/invalid-architecture-missing-relationship-type.json'
+);
+
 describe('validate E2E', () => {
     let documentLoader: FileSystemDocumentLoader;
     let schemaDirectory: SchemaDirectory;
@@ -39,8 +44,9 @@ describe('validate E2E', () => {
 
     it('rejects pattern with invalid JSON Schema', async () => {
         // AJV2020 ignores references to the JSON 2020-12 draft, but will
-        // attempt to load any other JSON schema draft but not register it,
-        // leading to an infinite loop.
+        // attempt to load any other JSON schema draft. The schema directory
+        // refuses to load standard JSON Schema drafts, and that failure is
+        // now surfaced directly rather than swallowed into a later null deref.
         const badPattern = { '$schema': 'https://json-schema.org/draft/2019-09/schema' };
         const response = await validate(undefined, badPattern, undefined, schemaDirectory, false);
 
@@ -48,7 +54,7 @@ describe('validate E2E', () => {
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
         expect(response.jsonSchemaValidationOutputs).toHaveLength(1);
-        expect(response.jsonSchemaValidationOutputs[0].message).toContain('reading \'$schema\'');
+        expect(response.jsonSchemaValidationOutputs[0].message).toContain('is not supported');
     });
 
     it('accepts pattern with valid JSON Schema', async () => {
@@ -210,6 +216,50 @@ describe('validate E2E', () => {
             expect(response.spectralSchemaValidationOutputs).toHaveLength(1);
             expect(response.spectralSchemaValidationOutputs[0].message).toContain('does not refer to the unique-id');
             expect(response.spectralSchemaValidationOutputs[0].path).toBe('/flows/0/transitions/0/relationship-unique-id');
+        });
+    });
+
+    describe('architecture-only validation (no pattern flag)', () => {
+        it('reports a schema error when relationship-type is missing from a relationship', async () => {
+            const invalidArch = JSON.parse(readFileSync(invalidArchMissingRelationshipTypePath, 'utf-8'));
+
+            const response = await validate(invalidArch, undefined, undefined, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeTruthy();
+            expect(response.jsonSchemaValidationOutputs.length).toBeGreaterThan(0);
+            const relationshipError = response.jsonSchemaValidationOutputs.find(
+                o => o.message.includes('relationship-type')
+            );
+            expect(relationshipError).toBeDefined();
+        });
+
+        it('accepts a valid architecture with no $schema when all required fields are present', async () => {
+            const validArch = {
+                nodes: [
+                    {
+                        'unique-id': 'svc.payment-service',
+                        'node-type': 'service',
+                        name: 'Payment Service',
+                        description: 'Handles payment processing'
+                    }
+                ],
+                relationships: [
+                    {
+                        'unique-id': 'rel.1',
+                        'relationship-type': {
+                            interacts: {
+                                actor: 'svc.payment-service',
+                                nodes: ['svc.payment-service']
+                            }
+                        }
+                    }
+                ]
+            };
+
+            const response = await validate(validArch, undefined, undefined, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeFalsy();
+            expect(response.jsonSchemaValidationOutputs.length).toBe(0);
         });
     });
 });

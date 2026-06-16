@@ -1,0 +1,57 @@
+name: Build VS Code Screenshots Tool
+
+permissions:
+    contents: read
+
+# Typecheck and lint the documentation-screenshot generator. The tool itself
+# is not run in CI — see issue #2529 "Testing & Continuous Integration" for
+# the rationale (renderer non-determinism across OSes; PNGs are committed
+# artefacts gated by human PR review).
+on:
+    pull_request:
+        branches:
+            - 'main'
+            - 'release*'
+        paths:
+            - 'calm-plugins/vscode/screenshots/**'
+            - 'docs/static/img/vscode/**'
+            - '.github/workflows/build-vscode-screenshots.yml'
+    push:
+        branches:
+            - 'main'
+            - 'release*'
+        paths:
+            - 'calm-plugins/vscode/screenshots/**'
+            - 'docs/static/img/vscode/**'
+            - '.github/workflows/build-vscode-screenshots.yml'
+    workflow_dispatch:
+
+jobs:
+    typecheck-and-lint:
+        name: Typecheck and Lint
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              with:
+                  node-version: 24
+
+            - name: Install dependencies
+              run: npm ci
+              working-directory: calm-plugins/vscode/screenshots
+
+            - name: Typecheck
+              run: npm run typecheck
+              working-directory: calm-plugins/vscode/screenshots
+
+            - name: Lint
+              run: npm run lint
+              working-directory: calm-plugins/vscode/screenshots
+
+            - name: Smoke test (verifies committed PNGs match manifest)
+              run: npm run test
+              working-directory: calm-plugins/vscode/screenshots

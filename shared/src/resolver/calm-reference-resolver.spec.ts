@@ -258,7 +258,7 @@ describe('CompositeReferenceResolver', () => {
     it('logs debug on file fallback', async () => {
         // Simulate file exists but fails to read
         existsSyncSpy.mockReturnValue(true);
-        readFileSyncSpy.mockImplementation(() => {
+        readFileSyncSpy.mockImplementation(function () {
             throw new Error('bad file');
         });
 
@@ -277,15 +277,15 @@ describe('CompositeReferenceResolver', () => {
 
     it('logs info on HTTP fallback', async () => {
         existsSyncSpy.mockReturnValue(false);
-        axiosGetSpy.mockImplementation(() => { throw new Error('bad http'); });
+        axiosGetSpy.mockImplementation(function () { throw new Error('bad http'); });
         await expect(resolver.resolve('http://bad.com')).rejects.toThrow();
         expect(loggerInfoSpy).toHaveBeenCalled();
     });
 
     it('handles both resolvers failing with different error types', async () => {
         existsSyncSpy.mockReturnValue(true);
-        readFileSyncSpy.mockImplementation(() => { throw new Error('bad file'); });
-        axiosGetSpy.mockImplementation(() => { throw new Error('bad http'); });
+        readFileSyncSpy.mockImplementation(function () { throw new Error('bad file'); });
+        axiosGetSpy.mockImplementation(function () { throw new Error('bad http'); });
         await expect(resolver.resolve('file.json')).rejects.toThrow('Composite resolver: Unable to resolve reference file.json');
     });
 });

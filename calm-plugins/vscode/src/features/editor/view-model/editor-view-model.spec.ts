@@ -30,10 +30,10 @@ describe('EditorViewModel', () => {
 
         // Mock store API
         mockStore = {
-            getState: vi.fn(() => mockState),
+            getState: vi.fn(function () { return mockState; }),
             setState: vi.fn(),
-            subscribe: vi.fn(() => vi.fn()), // Return unsubscribe function
-            getInitialState: vi.fn(() => mockState)
+            subscribe: vi.fn(function () { return vi.fn(); }), // Return unsubscribe function
+            getInitialState: vi.fn(function () { return mockState; })
         }
     })
 
@@ -49,8 +49,8 @@ describe('EditorViewModel', () => {
     describe('model index operations', () => {
         beforeEach(() => {
             const mockModelIndex = {
-                rangeOf: vi.fn((_id: string) => ({ line: 1, character: 0 })),
-                idAt: vi.fn((_doc: any, _position: any) => 'test-id'),
+                rangeOf: vi.fn(function (_id: string) { return { line: 1, character: 0 }; }),
+                idAt: vi.fn(function (_doc: any, _position: any) { return 'test-id'; }),
                 idToRange: new Map(),
                 doc: { getText: () => '' },
                 model: { nodes: [], relationships: [], flows: [] },
@@ -163,7 +163,7 @@ describe('EditorViewModel', () => {
 
         it('should call unsubscribe functions on disposal', () => {
             const mockUnsubscribe = vi.fn()
-            mockStore.subscribe = vi.fn(() => mockUnsubscribe)
+            mockStore.subscribe = vi.fn(function () { return mockUnsubscribe; })
 
             editorViewModel = new EditorViewModel(mockStore)
             editorViewModel.dispose()

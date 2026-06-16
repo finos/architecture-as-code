@@ -1,7 +1,5 @@
 package org.finos.calm.store.producer;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.store.CoreSchemaStore;
 import org.finos.calm.store.mongo.MongoCoreSchemaStore;
 import org.finos.calm.store.nitrite.NitriteCoreSchemaStore;
@@ -11,23 +9,39 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import jakarta.enterprise.inject.Instance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
-@QuarkusTest
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestCoreSchemaStoreProducerShould {
 
-    @InjectMock
+    @Mock
     MongoCoreSchemaStore mongoCoreSchemaStore;
 
-    @InjectMock
+    @Mock
+    Instance<MongoCoreSchemaStore> mongoCoreSchemaStoreInstance;
+
+    @Mock
     NitriteCoreSchemaStore nitriteCoreSchemaStore;
+
+    @Mock
+    Instance<NitriteCoreSchemaStore> nitriteCoreSchemaStoreInstance;
 
     private CoreSchemaStoreProducer coreSchemaStoreProducer;
 
     @BeforeEach
     void setup() {
         coreSchemaStoreProducer = new CoreSchemaStoreProducer();
-        coreSchemaStoreProducer.mongoCoreSchemaStore = mongoCoreSchemaStore;
-        coreSchemaStoreProducer.standaloneCoreSchemaStore = nitriteCoreSchemaStore;
+        when(mongoCoreSchemaStoreInstance.get()).thenReturn(mongoCoreSchemaStore);
+        coreSchemaStoreProducer.mongoCoreSchemaStore = mongoCoreSchemaStoreInstance;
+        when(nitriteCoreSchemaStoreInstance.get()).thenReturn(nitriteCoreSchemaStore);
+        coreSchemaStoreProducer.standaloneCoreSchemaStore = nitriteCoreSchemaStoreInstance;
     }
 
     @Test

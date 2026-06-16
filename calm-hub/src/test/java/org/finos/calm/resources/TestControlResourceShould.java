@@ -2,17 +2,12 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
-import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
-import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
-import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
-import org.finos.calm.domain.exception.ControlNotFoundException;
-import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
-import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
-import org.finos.calm.domain.exception.DomainNotFoundException;
+import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.ControlStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,18 +20,14 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 public class TestControlResourceShould {
@@ -53,7 +44,7 @@ public class TestControlResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/" + INVALID_DOMAIN + "/controls")
+                .get("/api/calm/domains/" + INVALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(404);
 
@@ -63,10 +54,10 @@ public class TestControlResourceShould {
     @Test    void return_a_400_when_an_invalid_format_of_domain_is_provided_on_get_controls() {
         given()
                 .when()
-                .get("/calm/domains/invalid_domain/controls")
+                .get("/api/calm/domains/invalid_domain/controls")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test    void return_a_list_of_control_details_for_a_domain() {
@@ -75,7 +66,7 @@ public class TestControlResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values[0].id", equalTo(controlDetail.getId()))
@@ -91,7 +82,7 @@ public class TestControlResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values", is(empty()));
@@ -108,10 +99,10 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlRequirement("New Control", "New Description", "{\"type\": \"control\"}"))
                 .when()
-                .post("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .post("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/5"))
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/5"))
                 .body("id", equalTo(5))
                 .body("name", equalTo("New Control"))
                 .body("description", equalTo("New Description"));
@@ -128,7 +119,7 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlRequirement("Test", "Test Desc", "{}"))
                 .when()
-                .post("/calm/domains/" + INVALID_DOMAIN + "/controls")
+                .post("/api/calm/domains/" + INVALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(404);
 
@@ -140,10 +131,10 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlRequirement("Test", "Test Desc", "{}"))
                 .when()
-                .post("/calm/domains/invalid_domain/controls")
+                .post("/api/calm/domains/invalid_domain/controls")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
     // --- Requirement Version Endpoints ---
 
@@ -151,10 +142,10 @@ public class TestControlResourceShould {
     void return_a_400_when_an_invalid_format_of_domain_is_provided_on_get_requirement_versions() {
         given()
                 .when()
-                .get("/calm/domains/invalid_domain/controls/1/requirement/versions")
+                .get("/api/calm/domains/invalid_domain/controls/1/requirement/versions")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForRequirementVersionTests() {
@@ -177,7 +168,7 @@ public class TestControlResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/requirement/versions")
+                    .get("/api/calm/domains/" + domain + "/controls/1/requirement/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body("values", hasSize(1))
@@ -185,7 +176,7 @@ public class TestControlResourceShould {
         } else {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/requirement/versions")
+                    .get("/api/calm/domains/" + domain + "/controls/1/requirement/versions")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -199,17 +190,17 @@ public class TestControlResourceShould {
     void return_a_400_when_an_invalid_format_of_domain_is_provided_on_get_requirement_for_version() {
         given()
                 .when()
-                .get("/calm/domains/invalid_domain/controls/1/requirement/versions/1.0.0")
+                .get("/api/calm/domains/invalid_domain/controls/1/requirement/versions/1.0.0")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test
     void return_a_400_when_an_invalid_format_of_version_is_provided_on_get_requirement_for_version() {
         given()
                 .when()
-                .get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.invalid0")
+                .get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -236,14 +227,14 @@ public class TestControlResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/requirement/versions/1.0.0")
+                    .get("/api/calm/domains/" + domain + "/controls/1/requirement/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body("type", equalTo("requirement"));
         } else {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/requirement/versions/1.0.0")
+                    .get("/api/calm/domains/" + domain + "/controls/1/requirement/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -257,10 +248,10 @@ public class TestControlResourceShould {
     void return_a_400_when_an_invalid_format_of_domain_is_provided_on_get_configurations() {
         given()
                 .when()
-                .get("/calm/domains/invalid_domain/controls/1/configurations")
+                .get("/api/calm/domains/invalid_domain/controls/1/configurations")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetConfigurationsTests() {
@@ -283,7 +274,7 @@ public class TestControlResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/configurations")
+                    .get("/api/calm/domains/" + domain + "/controls/1/configurations")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body("values", hasSize(2))
@@ -292,7 +283,7 @@ public class TestControlResourceShould {
         } else {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/configurations")
+                    .get("/api/calm/domains/" + domain + "/controls/1/configurations")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -306,7 +297,7 @@ public class TestControlResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(200)
                 .body("values", is(empty()));
@@ -320,10 +311,10 @@ public class TestControlResourceShould {
     void return_a_400_when_an_invalid_format_of_domain_is_provided_on_get_configuration_versions() {
         given()
                 .when()
-                .get("/calm/domains/invalid_domain/controls/1/configurations/10/versions")
+                .get("/api/calm/domains/invalid_domain/controls/1/configurations/10/versions")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetConfigurationVersionsTests() {
@@ -347,7 +338,7 @@ public class TestControlResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/configurations/10/versions")
+                    .get("/api/calm/domains/" + domain + "/controls/1/configurations/10/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body("values", hasSize(2))
@@ -356,7 +347,7 @@ public class TestControlResourceShould {
         } else {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/configurations/10/versions")
+                    .get("/api/calm/domains/" + domain + "/controls/1/configurations/10/versions")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -370,17 +361,17 @@ public class TestControlResourceShould {
     void return_a_400_when_an_invalid_format_of_domain_is_provided_on_get_configuration_for_version() {
         given()
                 .when()
-                .get("/calm/domains/invalid_domain/controls/1/configurations/10/versions/1.0.0")
+                .get("/api/calm/domains/invalid_domain/controls/1/configurations/10/versions/1.0.0")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test
     void return_a_400_when_an_invalid_format_of_version_is_provided_on_get_configuration_for_version() {
         given()
                 .when()
-                .get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/1.0.invalid0")
+                .get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -408,14 +399,14 @@ public class TestControlResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/configurations/10/versions/1.0.0")
+                    .get("/api/calm/domains/" + domain + "/controls/1/configurations/10/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body("version", equalTo("specific"));
         } else {
             given()
                     .when()
-                    .get("/calm/domains/" + domain + "/controls/1/configurations/10/versions/1.0.0")
+                    .get("/api/calm/domains/" + domain + "/controls/1/configurations/10/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -431,10 +422,10 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlRequirement("n", "d", "{}"))
                 .when()
-                .post("/calm/domains/invalid_domain/controls/1/requirement/versions/2.0.0")
+                .post("/api/calm/domains/invalid_domain/controls/1/requirement/versions/2.0.0")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test
@@ -443,7 +434,7 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlRequirement("n", "d", "{}"))
                 .when()
-                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0invalid.1")
+                .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -477,16 +468,16 @@ public class TestControlResourceShould {
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                    .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0"));
+                    .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                    .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -503,10 +494,10 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlConfiguration("{\"setting\": \"enabled\"}"))
                 .when()
-                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/42"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/42"));
     }
 
     @Test
@@ -518,7 +509,7 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlConfiguration("{}"))
                 .when()
-                .post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/configurations")
+                .post("/api/calm/domains/" + INVALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(404);
     }
@@ -532,7 +523,7 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlConfiguration("{}"))
                 .when()
-                .post("/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
+                .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
                 .then()
                 .statusCode(404);
     }
@@ -543,10 +534,10 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlConfiguration("{}"))
                 .when()
-                .post("/calm/domains/invalid_domain/controls/1/configurations")
+                .post("/api/calm/domains/invalid_domain/controls/1/configurations")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     // --- createConfigurationForVersion ---
@@ -557,10 +548,10 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlConfiguration("{}"))
                 .when()
-                .post("/calm/domains/invalid_domain/controls/1/configurations/10/versions/2.0.0")
+                .post("/api/calm/domains/invalid_domain/controls/1/configurations/10/versions/2.0.0")
                 .then()
                 .statusCode(400)
-                .body(containsString(DOMAIN_NAME_MESSAGE));
+                .body(containsString(DOMAIN_MESSAGE));
     }
 
     @Test
@@ -569,7 +560,7 @@ public class TestControlResourceShould {
                 .header("Content-Type", "application/json")
                 .body(new CreateControlConfiguration("{}"))
                 .when()
-                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/1.0invalid.1")
+                .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -604,16 +595,16 @@ public class TestControlResourceShould {
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0")
+                    .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0"));
+                    .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0")
+                    .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }

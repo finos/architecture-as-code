@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -13,6 +14,7 @@ import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
+import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.InterfaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,13 +33,14 @@ public class InterfaceTools {
     private static final Logger logger = LoggerFactory.getLogger(InterfaceTools.class);
 
     @Inject
-    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
+    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "false")
     boolean mcpEnabled;
 
     @Inject
     InterfaceStore interfaceStore;
 
     @Tool(description = "List all interfaces in a CalmHub namespace. Returns interface IDs, names, and descriptions.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listInterfaces(
             @ToolArg(description = "The namespace to list interfaces from (e.g. 'workshop', 'finos')") String namespace) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
@@ -58,6 +61,7 @@ public class InterfaceTools {
     }
 
     @Tool(description = "List available versions of an interface in a CalmHub namespace.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listInterfaceVersions(
             @ToolArg(description = "The namespace containing the interface") String namespace,
             @ToolArg(description = "The interface ID (positive integer)") int interfaceId) {
@@ -80,6 +84,7 @@ public class InterfaceTools {
     }
 
     @Tool(description = "Get the full JSON content of a specific interface version.")
+    @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getInterface(
             @ToolArg(description = "The namespace containing the interface") String namespace,
             @ToolArg(description = "The interface ID (positive integer)") int interfaceId,
@@ -106,6 +111,7 @@ public class InterfaceTools {
     }
 
     @Tool(description = "Create a new interface in a namespace. Returns the allocated interface ID and version.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createInterface(
             @ToolArg(description = "The namespace to create the interface in") String namespace,
             @ToolArg(description = "The name of the interface") String name,
@@ -134,6 +140,7 @@ public class InterfaceTools {
     }
 
     @Tool(description = "Publish a new version of an existing interface. Use this to add a new semantic version (e.g. '1.1.0') without allocating a new identity.")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createInterfaceVersion(
             @ToolArg(description = "The namespace containing the interface") String namespace,
             @ToolArg(description = "The interface ID (positive integer)") int interfaceId,

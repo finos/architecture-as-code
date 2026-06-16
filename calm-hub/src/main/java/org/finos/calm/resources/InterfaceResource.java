@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -7,6 +8,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.CalmInterface;
 import org.finos.calm.domain.ValueWrapper;
@@ -16,7 +18,6 @@ import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.InterfaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +25,10 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
-import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.*;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class InterfaceResource {
 
     private final InterfaceStore interfaceStore;
@@ -45,7 +43,7 @@ public class InterfaceResource {
     @GET
     @Path("{namespace}/interfaces")
     @Produces(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getInterfacesForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
@@ -61,14 +59,14 @@ public class InterfaceResource {
     @Path("{namespace}/interfaces")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createInterfaceForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @Valid @NotNull(message = "Request must not be null") CreateInterfaceRequest interfaceRequest
     ) throws URISyntaxException {
         try {
             CalmInterface createdInterface = interfaceStore.createInterfaceForNamespace(interfaceRequest, namespace);
-            return Response.created(new URI("/calm/namespaces/" + namespace + "/interfaces/" + createdInterface.getId() + "/versions/1.0.0")).build();
+            return Response.created(new URI("/api/calm/namespaces/" + namespace + "/interfaces/" + createdInterface.getId() + "/versions/1.0.0")).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating interface", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -81,7 +79,7 @@ public class InterfaceResource {
     @GET
     @Path("{namespace}/interfaces/{interfaceId}/versions")
     @Produces(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getInterfaceVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId
@@ -100,7 +98,7 @@ public class InterfaceResource {
     @GET
     @Path("{namespace}/interfaces/{interfaceId}/versions/{version}")
     @Produces(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @PermissionsAllowed(CalmHubScopes.READ)
     public Response getInterfaceForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId,
@@ -124,7 +122,7 @@ public class InterfaceResource {
     @Path("{namespace}/interfaces/{interfaceId}/versions/{version}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createInterfaceForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId,
@@ -133,7 +131,7 @@ public class InterfaceResource {
     ) throws URISyntaxException {
         try {
             interfaceStore.createInterfaceForVersion(createInterfaceRequest, namespace, interfaceId, version);
-            return Response.created(new URI("/calm/namespaces/" + namespace + "/interfaces/" + interfaceId + "/versions/" + version)).build();
+            return Response.created(new URI("/api/calm/namespaces/" + namespace + "/interfaces/" + interfaceId + "/versions/" + version)).build();
         } catch (InterfaceVersionExistsException e) {
             logger.error("Interface Version [{}] already exists", version, e);
             return Response.status(Response.Status.CONFLICT).entity("Interface version already exists: " + STRICT_SANITIZATION_POLICY.sanitize(version)).build();

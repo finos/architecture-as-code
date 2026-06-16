@@ -8,12 +8,11 @@ import { Logger } from '../../logger';
 
 vi.mock('fs');
 vi.mock('../front-matter', () => ({
-    injectFrontMatter: vi.fn((content, _path, params) =>
-        `---\ninjected: true\nitemId: ${params.itemId || 'none'}\n---\n${content}`)
+    injectFrontMatter: vi.fn(function (content, _path, params) { return `---\ninjected: true\nitemId: ${params.itemId || 'none'}\n---\n${content}`; })
 }));
 vi.mock('../template-preprocessor', () => ({
     TemplatePreprocessor: {
-        preprocessTemplate: vi.fn((input) => input)
+        preprocessTemplate: vi.fn(function (input) { return input; })
     }
 }));
 
@@ -38,8 +37,8 @@ describe('RepeatedStrategy', () => {
 
         strategy = new RepeatedStrategy(mockEngine);
 
-        vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
-        vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
+        vi.mocked(fs.mkdirSync).mockImplementation(function () { return undefined; });
+        vi.mocked(fs.writeFileSync).mockImplementation(function () { return undefined; });
     });
 
     afterEach(() => {
@@ -184,7 +183,7 @@ describe('RepeatedStrategy', () => {
             expect(mockCompiledTemplate).toHaveBeenCalledWith(
                 expect.objectContaining({
                     _root: context.data,
-                    _architecture: context.data.document,
+                    _architecture: (context.data as Record<string, unknown>).document,
                     'node-id': 'node-1'
                 })
             );

@@ -2,8 +2,9 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
-import org.finos.calm.domain.*;
+import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
@@ -28,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 public class TestFlowResourceShould {
 
@@ -40,7 +42,7 @@ public class TestFlowResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/flows")
+                .get("/api/calm/namespaces/invalid/flows")
                 .then()
                 .statusCode(404);
 
@@ -57,7 +59,7 @@ public class TestFlowResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/valid/flows")
+                .get("/api/calm/namespaces/valid/flows")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("Flow One"))
@@ -81,7 +83,7 @@ public class TestFlowResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/validNamespace/flows/1")
+                .get("/api/calm/namespaces/validNamespace/flows/1")
                 .then()
                 .statusCode(200);
 
@@ -102,7 +104,7 @@ public class TestFlowResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/" + invalidNamespace + "/flows/" + validFlowId)
+                .get("/api/calm/namespaces/" + invalidNamespace + "/flows/" + validFlowId)
                 .then()
                 .statusCode(404);
 
@@ -123,7 +125,7 @@ public class TestFlowResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/" + validNamespace + "/flows/" + invalidFlowId)
+                .get("/api/calm/namespaces/" + validNamespace + "/flows/" + invalidFlowId)
                 .then()
                 .statusCode(404);
 
@@ -142,7 +144,7 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/flows")
+                .post("/api/calm/namespaces/invalid/flows")
                 .then()
                 .statusCode(404);
 
@@ -160,7 +162,7 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/flows")
+                .post("/api/calm/namespaces/invalid/flows")
                 .then()
                 .statusCode(400);
 
@@ -187,10 +189,10 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/valid/flows")
+                .post("/api/calm/namespaces/valid/flows")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/valid/flows/12/versions/1.0.0"));
+                .header("Location", containsString("/api/calm/namespaces/valid/flows/12/versions/1.0.0"));
 
         verify(mockFlowStore, times(1)).createFlowForNamespace(any(CreateFlowRequest.class), eq(namespace));
     }
@@ -217,14 +219,14 @@ public class TestFlowResourceShould {
             String expectedBody = "{\"values\":[\"1.0.0\",\"1.0.1\"]}";
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/flows/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/flows/12/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/flows/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/flows/12/versions")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -241,7 +243,7 @@ public class TestFlowResourceShould {
     void return_400_error_when_version_is_not_valid_when_getting_flow_version() {
         given()
                 .when()
-                .get("/calm/namespaces/finos/flows/12/versions/invalid-version")
+                .get("/api/calm/namespaces/finos/flows/12/versions/invalid-version")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -269,14 +271,14 @@ public class TestFlowResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/flows/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/flows/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo("{ \"test\": \"json\" }"));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/flows/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/flows/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -298,7 +300,7 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body(envelopeBody)
                 .when()
-                .post("/calm/namespaces/test/flows/20/versions/invalid-version")
+                .post("/api/calm/namespaces/test/flows/20/versions/invalid-version")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -336,16 +338,16 @@ public class TestFlowResourceShould {
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/flows/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/namespaces/test/flows/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/flows/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/flows/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -359,7 +361,7 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                 .when()
-                .put("/calm/namespaces/test/flows/20/versions/1.0.1")
+                .put("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                 .then()
                 .statusCode(403);
     }

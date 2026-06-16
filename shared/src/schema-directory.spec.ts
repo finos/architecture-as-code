@@ -1,5 +1,4 @@
 import { SchemaDirectory } from '.';
-import { DocumentLoader } from './document-loader/document-loader';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { TEST_ALL_SCHEMA } from './test/test-utils';
@@ -17,15 +16,16 @@ vi.mock('./logger', () => {
     };
 });
 
-function getMockDocumentLoader(): DocumentLoader {
+function getMockDocumentLoader() {
     return {
         initialise: vi.fn(),
-        loadMissingDocument: vi.fn()
+        loadMissingDocument: vi.fn(),
+        resolvePath: vi.fn()
     };
 }
 
 describe('SchemaDirectory', () => {
-    let mockDocLoader;
+    let mockDocLoader: ReturnType<typeof getMockDocumentLoader>;
 
     beforeEach(() => {
         mockDocLoader = getMockDocumentLoader();
@@ -60,7 +60,7 @@ describe('SchemaDirectory', () => {
 
         mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(nodeJson)));
 
-        const nodeDef = await schemaDir.getDefinition(nodeRef);
+        const nodeDef = await schemaDir.getDefinition(nodeRef) as Record<string, unknown>;
 
         // node should have a required property of node-type
         expect(nodeDef['required']).toContain('node-type');
@@ -74,7 +74,7 @@ describe('SchemaDirectory', () => {
         );
 
         const ref = 'https://calm.com/references.json#/defs/top-level';
-        const definition = await schemaDir.getDefinition(ref);
+        const definition = await schemaDir.getDefinition(ref) as Record<string, unknown>;
 
         // this should include top-level, but also recursively pull in inner-prop
         expect(definition['properties']).toHaveProperty('top-level');
@@ -87,7 +87,7 @@ describe('SchemaDirectory', () => {
         mockDocLoader.loadMissingDocument.mockResolvedValueOnce(loadSchema('test_fixtures/schema-directory/relative-ref.json'));
 
         const ref = 'https://calm.com/relative.json#/defs/top-level';
-        const definition = await schemaDir.getDefinition(ref);
+        const definition = await schemaDir.getDefinition(ref) as Record<string, unknown>;
 
         expect(definition['$ref']).toEqual('https://calm.com/relative.json#/defs/inner');
     });
@@ -111,10 +111,10 @@ describe('SchemaDirectory', () => {
 
         const ref = 'https://calm.com/missing-inner-ref.json#/defs/top-level';
         const missingRef = '/defs/not-found'; // see missing-inner-ref.json
-        const definition = await schemaDir.getDefinition(ref);
+        const definition = await schemaDir.getDefinition(ref) as Record<string, unknown>;
 
         expect(definition['properties']).toHaveProperty('missing-value');
-        expect(definition['properties']['missing-value']).toEqual('MISSING OBJECT, ref: ' + missingRef + ' could not be resolved');
+        expect((definition['properties'] as Record<string, unknown>)['missing-value']).toEqual('MISSING OBJECT, ref: ' + missingRef + ' could not be resolved');
     });
 
     it('terminate early in the case of a circular reference', async () => {
@@ -125,7 +125,7 @@ describe('SchemaDirectory', () => {
         );
 
         const ref = 'https://calm.com/recursive.json#/defs/top-level';
-        const definition = await schemaDir.getDefinition(ref);
+        const definition = await schemaDir.getDefinition(ref) as Record<string, unknown>;
 
         // this should include top-level and port. If circular refs are not handled properly this will crash the whole test by stack overflow
         expect(definition['properties']).toHaveProperty('top-level');
@@ -140,7 +140,7 @@ describe('SchemaDirectory', () => {
         );
 
         const ref = 'https://calm.com/relative.json#/defs/top-level';
-        const definition = await schemaDir.getDefinition(ref);
+        const definition = await schemaDir.getDefinition(ref) as Record<string, unknown>;
 
         // this should include top-level, but also recursively pull in inner-prop
         expect(definition['properties']).toHaveProperty('top-level');

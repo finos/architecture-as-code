@@ -10,7 +10,7 @@ public class NitriteSetup {
         given()
                 .body("{\"name\": \"finos\", \"description\": \"FINOS namespace\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces")
+                .when().post("/api/calm/namespaces")
                 .then()
                 .statusCode(anyOf(is(201), is(409)));
     }

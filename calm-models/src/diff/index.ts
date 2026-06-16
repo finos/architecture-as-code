@@ -1,4 +1,5 @@
 export {
+    diffAdrs,
     diffArchitectures,
     diffNodesAndRelationships,
     nodeStructureMatches,
@@ -21,10 +22,13 @@ export {
     type MomentDetailsLike,
 } from './architecture-resolver.js';
 export type {
-    DiffResult,
+    AdrDiffResult,
+    ArchitectureDiffResult,
     NodeChange,
+    NodesAndRelationshipsDiffResult,
     RelationshipChange,
     RenameMapping,
     RelationshipRenameMapping,
     InvalidDiffItems,
+    UndiffableDiffItems,
 } from './diff-types.js';

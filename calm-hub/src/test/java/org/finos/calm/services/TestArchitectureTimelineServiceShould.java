@@ -85,7 +85,7 @@ public class TestArchitectureTimelineServiceShould {
         assertThat(moment.get("name").asText(), is("1.0.0"));
         assertThat(moment.get("description").asText(), containsString("1.0.0"));
         assertThat(moment.get("details").get("detailed-architecture").asText(),
-                is("/calm/namespaces/finos/architectures/42/versions/1.0.0"));
+                is("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
     }
 
     @Test
@@ -178,7 +178,7 @@ public class TestArchitectureTimelineServiceShould {
                 .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
         when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0"));
         when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
-                .thenReturn(explicitTimelineReferencing("/calm/namespaces/finos/architectures/42/versions/1.0.0"));
+                .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
@@ -193,7 +193,7 @@ public class TestArchitectureTimelineServiceShould {
                 .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
         when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0", "2.0.0", "1.1.0"));
         when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
-                .thenReturn(explicitTimelineReferencing("/calm/namespaces/finos/architectures/42/versions/1.0.0"));
+                .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 

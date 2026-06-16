@@ -19,7 +19,7 @@ vi.mock('vscode', () => ({
         showErrorMessage: vi.fn(),
     },
     Uri: {
-        file: vi.fn((f) => ({ fsPath: f })),
+        file: vi.fn(function (f) { return { fsPath: f }; }),
     },
     ViewColumn: {
         One: 1,

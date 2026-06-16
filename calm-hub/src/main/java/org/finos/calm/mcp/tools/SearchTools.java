@@ -3,11 +3,15 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import io.quarkiverse.mcp.server.ToolResponse;
+import io.quarkus.security.Authenticated;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
+import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.store.SearchStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * MCP tool provider for global search across CalmHub. Searches all resource
@@ -30,12 +35,23 @@ public class SearchTools {
     private static final int MAX_RESULTS_PER_GROUP = 25;
 
     @Inject
-    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "true")
+    @ConfigProperty(name = "calm.mcp.enabled", defaultValue = "false")
     boolean mcpEnabled;
+
+    @Inject
+    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
 
     @Inject
     SearchStore searchStore;
 
+    @Inject
+    Instance<UserAccessValidator> userAccessValidatorInstance;
+
+    @Inject
+    SecurityIdentity identity;
+
+    @Authenticated
     @Tool(description = "Search across all resource types in CalmHub. Performs a global search across architectures, patterns, flows, standards, interfaces, controls, and ADRs. Results are grouped by type.")
     public ToolResponse searchHub(
             @ToolArg(description = "The search query string (1-200 characters)") String query) {
@@ -45,7 +61,7 @@ public class SearchTools {
                 () -> McpValidationHelper.validateMaxLength(query, MAX_QUERY_LENGTH, "Search query"));
         if (err.isPresent()) return err.get();
 
-        GroupedSearchResults groupedResults = searchStore.search(query);
+        GroupedSearchResults groupedResults = searchStore.search(query, resolveReadableNamespaces());
         Map<String, List<SearchResult>> groups = toGroupMap(groupedResults);
 
         if (groups.values().stream().allMatch(List::isEmpty)) {
@@ -80,6 +96,13 @@ public class SearchTools {
             }
         }
         return ToolResponse.success(sb.toString());
+    }
+
+    private Optional<Set<String>> resolveReadableNamespaces() {
+        if (!authEnabled || !userAccessValidatorInstance.isResolvable()) {
+            return Optional.empty();
+        }
+        return Optional.of(userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName()));
     }
 
     private static Map<String, List<SearchResult>> toGroupMap(GroupedSearchResults results) {

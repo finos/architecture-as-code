@@ -1,7 +1,7 @@
 import {
     diffArchitectures,
     diffPatterns,
-    type DiffResult,
+    type NodesAndRelationshipsDiffResult,
 } from '@finos/calm-models/diff';
 import type { CalmArchitectureSchema } from '@finos/calm-models/types';
 
@@ -17,10 +17,10 @@ function nodeLabel(node: { name?: string; 'unique-id'?: string }): string {
 }
 
 /**
- * Flattens a DiffResult into a list of human-readable change rows for the
+ * Flattens a NodesAndRelationshipsDiffResult into a list of human-readable change rows for the
  * WHAT CHANGED section of the timeline's version detail panel.
  */
-function diffResultToChanges(diff: DiffResult): VersionChange[] {
+function diffResultToChanges(diff: NodesAndRelationshipsDiffResult): VersionChange[] {
     const changes: VersionChange[] = [];
     for (const n of diff.nodesAdded) {
         changes.push({ kind: 'add', text: `Added node ${nodeLabel(n)}` });

@@ -6,8 +6,11 @@ import org.owasp.html.PolicyFactory;
 public class ResourceValidationConstants {
     public static final String NAMESPACE_REGEX = "^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*$";
     public static final String NAMESPACE_MESSAGE = "namespace must match pattern '^[A-Za-z0-9-]+([.][A-Za-z0-9-]+)*$'";
-    public static final String DOMAIN_NAME_REGEX = "^[A-Za-z0-9-]+$";
-    public static final String DOMAIN_NAME_MESSAGE = "domain name must match pattern '^[A-Za-z0-9-]+$'";
+    // dashes, dots, usernames, upper/lowercase letters and numbers.
+    public static final String USERNAME_REGEX = "^[A-Za-z0-9._-]+$";
+    public static final String USERNAME_MESSAGE = "username must match pattern '^[A-Za-z0-9._-]+$'";
+    public static final String DOMAIN_REGEX = "^[A-Za-z0-9-]+$";
+    public static final String DOMAIN_MESSAGE = "domain name must match pattern '^[A-Za-z0-9-]+$'";
     public static final String VERSION_REGEX = "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$";
     public static final String VERSION_MESSAGE = "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$'";
     // First character must be a letter so slugs are never purely numeric (avoids clash with legacy numeric IDs).

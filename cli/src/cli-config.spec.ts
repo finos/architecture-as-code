@@ -15,7 +15,7 @@ vi.mock('fs', async () => {
 });
 
 vi.mock('os', () => ({
-    homedir: vi.fn(() => '/home/user'),
+    homedir: vi.fn(function () { return '/home/user'; }),
     
 }));
 
@@ -131,6 +131,25 @@ describe('cli-config', () => {
             allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
             authPluginPath: './env-auth-plugin.js'
         });
+    });
+
+    it('rejects an auth plugin path that does not end in .js', async () => {
+        const nonJsPath = resolve(FIXTURES_DIR, 'something.txt');
+        vol.fromJSON({ [nonJsPath]: '' });
+
+        await expect(loadAuthPlugin(nonJsPath, false)).rejects.toThrow(/must have a .js extension/i);
+    });
+
+    it('rejects when the auth plugin file does not exist', async () => {
+        await expect(loadAuthPlugin('/does-not-exist.js', false)).rejects.toThrow(/Auth plugin file not found/i);
+    });
+
+    it('wraps any error from the dynamic import in a friendly message', async () => {
+        // empty .js file → import() returns no default export, triggering the "must export default class" branch
+        const emptyJs = resolve(FIXTURES_DIR, 'empty-plugin.js');
+        vol.fromJSON({ [emptyJs]: '' });
+
+        await expect(loadAuthPlugin(emptyJs, false)).rejects.toThrow(/Error loading auth plugin/i);
     });
 
     it('overrides config file with config props from environment variables', async () => {

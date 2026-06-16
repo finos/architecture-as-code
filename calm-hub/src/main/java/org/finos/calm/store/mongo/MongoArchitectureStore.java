@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link ArchitectureStore}.
@@ -52,6 +53,7 @@ import java.util.Set;
  * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoArchitectureStore.class)
 public class MongoArchitectureStore implements ArchitectureStore {
@@ -134,6 +136,9 @@ public class MongoArchitectureStore implements ArchitectureStore {
             if (architecture.getId() == architectureDoc.getInteger("architectureId")) {
                 // Extract the versions map from the matching pattern
                 Document versions = (Document) architectureDoc.get("versions");
+                if (versions == null) {
+                    throw new ArchitectureNotFoundException();
+                }
                 Set<String> versionKeys = versions.keySet();
 
                 //Convert from Mongo representation
@@ -174,6 +179,9 @@ public class MongoArchitectureStore implements ArchitectureStore {
             if (architecture.getId() == architectureDoc.getInteger("architectureId")) {
                 // Retrieve the versions map from the matching pattern
                 Document versions = (Document) architectureDoc.get("versions");
+                if (versions == null) {
+                    throw new ArchitectureVersionNotFoundException();
+                }
 
                 // Return the pattern JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(architecture.getMongoVersion());

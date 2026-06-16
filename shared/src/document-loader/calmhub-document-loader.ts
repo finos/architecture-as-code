@@ -1,6 +1,6 @@
 import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO, assertJsonObject, DocumentLoadError } from './document-loader';
+import { CalmDocumentType, DocumentLoader, assertJsonObject, DocumentLoadError, CALM_HUB_PROTOS } from './document-loader';
 import { initLogger, Logger } from '../logger';
 import { AuthPlugin } from '../auth/auth-plugin';
 
@@ -61,9 +61,9 @@ export class CalmHubDocumentLoader implements DocumentLoader {
     async loadMissingDocument(documentId: string, _: CalmDocumentType): Promise<object> {
         const url = new URL(documentId);
         const protocol = url.protocol;
-        if (protocol !== CALM_HUB_PROTO) {
+        if (!CALM_HUB_PROTOS.some(p => p === protocol)) {
             // Not a calm: reference — recoverable, let other loaders try.
-            throw new Error(`CalmHubDocumentLoader only loads documents with protocol '${CALM_HUB_PROTO}'. (Requested: ${protocol})`);
+            throw new Error(`CalmHubDocumentLoader can only load documents with protocol '${CALM_HUB_PROTOS.join(', ')}'. (Requested: ${protocol})`);
         }
 
         // From here the reference is ours: any failure is fatal and must not fall through to

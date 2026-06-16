@@ -51,70 +51,123 @@
   "relationships": [
     {
       "unique-id": "demo-og-rel-scheduler-worker1",
-      "relationship-type": "connects",
-      "source": "demo-og-scheduler",
-      "destination": "demo-og-worker-1",
       "protocol": "TCP",
-      "description": "Scheduler dispatches tasks to Worker 1 over ZeroMQ TCP."
+      "description": "Scheduler dispatches tasks to Worker 1 over ZeroMQ TCP.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "demo-og-scheduler"
+          },
+          "destination": {
+            "node": "demo-og-worker-1"
+          }
+        }
+      }
     },
     {
       "unique-id": "demo-og-rel-scheduler-worker2",
-      "relationship-type": "connects",
-      "source": "demo-og-scheduler",
-      "destination": "demo-og-worker-2",
       "protocol": "TCP",
-      "description": "Scheduler dispatches tasks to Worker 2 over ZeroMQ TCP."
+      "description": "Scheduler dispatches tasks to Worker 2 over ZeroMQ TCP.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "demo-og-scheduler"
+          },
+          "destination": {
+            "node": "demo-og-worker-2"
+          }
+        }
+      }
     },
     {
       "unique-id": "demo-og-rel-scheduler-storage",
-      "relationship-type": "connects",
-      "source": "demo-og-scheduler",
-      "destination": "demo-og-object-storage",
       "protocol": "TCP",
-      "description": "Scheduler reads and writes task data via object storage."
+      "description": "Scheduler reads and writes task data via object storage.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "demo-og-scheduler"
+          },
+          "destination": {
+            "node": "demo-og-object-storage"
+          }
+        }
+      }
     },
     {
       "unique-id": "demo-og-rel-manager-scheduler",
-      "relationship-type": "connects",
-      "source": "demo-og-worker-manager",
-      "destination": "demo-og-scheduler",
       "protocol": "TCP",
-      "description": "Worker Manager registers worker capacity with the scheduler."
+      "description": "Worker Manager registers worker capacity with the scheduler.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "demo-og-worker-manager"
+          },
+          "destination": {
+            "node": "demo-og-scheduler"
+          }
+        }
+      }
     },
     {
       "unique-id": "demo-og-rel-cluster-scheduler",
-      "relationship-type": "composed-of",
-      "source": "demo-og-cluster",
-      "destination": "demo-og-scheduler",
-      "description": "Cluster contains the scheduler component."
+      "description": "Cluster contains the scheduler component.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "demo-og-cluster",
+          "nodes": [
+            "demo-og-scheduler"
+          ]
+        }
+      }
     },
     {
       "unique-id": "demo-og-rel-cluster-worker1",
-      "relationship-type": "composed-of",
-      "source": "demo-og-cluster",
-      "destination": "demo-og-worker-1",
-      "description": "Cluster contains Worker 1."
+      "description": "Cluster contains Worker 1.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "demo-og-cluster",
+          "nodes": [
+            "demo-og-worker-1"
+          ]
+        }
+      }
     },
     {
       "unique-id": "demo-og-rel-cluster-worker2",
-      "relationship-type": "composed-of",
-      "source": "demo-og-cluster",
-      "destination": "demo-og-worker-2",
-      "description": "Cluster contains Worker 2."
+      "description": "Cluster contains Worker 2.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "demo-og-cluster",
+          "nodes": [
+            "demo-og-worker-2"
+          ]
+        }
+      }
     },
     {
       "unique-id": "demo-og-rel-cluster-storage",
-      "relationship-type": "composed-of",
-      "source": "demo-og-cluster",
-      "destination": "demo-og-object-storage",
-      "description": "Cluster contains the object storage component."
+      "description": "Cluster contains the object storage component.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "demo-og-cluster",
+          "nodes": [
+            "demo-og-object-storage"
+          ]
+        }
+      }
     },
     {
       "unique-id": "demo-og-rel-cluster-manager",
-      "relationship-type": "composed-of",
-      "source": "demo-og-cluster",
-      "destination": "demo-og-worker-manager",
-      "description": "Cluster contains the worker manager."
+      "description": "Cluster contains the worker manager.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "demo-og-cluster",
+          "nodes": [
+            "demo-og-worker-manager"
+          ]
+        }
+      }
     }
   ]
 }

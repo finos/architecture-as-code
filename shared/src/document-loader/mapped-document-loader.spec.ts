@@ -1,3 +1,4 @@
+import { SchemaDirectory } from '../schema-directory';
 import { fs, vol } from 'memfs';
 import { MappedDocumentLoader } from './mapped-document-loader';
 import { DocumentLoadError } from './document-loader';
@@ -54,7 +55,7 @@ describe('MappedDocumentLoader', () => {
             ]);
 
             const loader = new MappedDocumentLoader(urlMap, '/project', false);
-            await loader.initialise(mocks.schemaDirectory);
+            await loader.initialise(mocks.schemaDirectory as unknown as SchemaDirectory);
 
             // Should store by mapped URL
             expect(mocks.schemaDirectory.storeDocument).toHaveBeenCalledWith(
@@ -91,7 +92,7 @@ describe('MappedDocumentLoader', () => {
             const loader = new MappedDocumentLoader(urlMap, '/project', false);
             
             // Should not throw
-            await expect(loader.initialise(mocks.schemaDirectory)).resolves.not.toThrow();
+            await expect(loader.initialise(mocks.schemaDirectory as unknown as SchemaDirectory)).resolves.not.toThrow();
             
             // Should not store anything
             expect(mocks.schemaDirectory.storeDocument).not.toHaveBeenCalled();
@@ -107,7 +108,7 @@ describe('MappedDocumentLoader', () => {
             ]);
 
             const loader = new MappedDocumentLoader(urlMap, '/other/path', false);
-            await loader.initialise(mocks.schemaDirectory);
+            await loader.initialise(mocks.schemaDirectory as unknown as SchemaDirectory);
 
             expect(mocks.schemaDirectory.storeDocument).toHaveBeenCalledWith(
                 'https://mapped.example.com/abs.json',

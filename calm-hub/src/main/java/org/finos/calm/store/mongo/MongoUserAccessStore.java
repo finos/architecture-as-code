@@ -15,7 +15,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoUserAccessStore.class)
 public class MongoUserAccessStore implements UserAccessStore {
@@ -44,23 +46,43 @@ public class MongoUserAccessStore implements UserAccessStore {
         Document userAccessDoc = new Document("username", userAccess.getUsername())
                 .append("permission", userAccess.getPermission().name())
                 .append("namespace", userAccess.getNamespace())
-                .append("resourceType", userAccess.getResourceType().name())
                 .append("createdAt", userAccess.getCreationDateTime())
                 .append("lastUpdated", userAccess.getUpdateDateTime())
                 .append("userAccessId", userAccessId);
 
         userAccessCollection.insertOne(userAccessDoc);
-        log.info("UserAccess has been created for namespace: {}, resource: {}, permission: {}, username: {}",
-                userAccess.getNamespace(), userAccess.getResourceType(), userAccess.getPermission(), userAccess.getUsername());
+        log.info("UserAccess has been created for namespace: {}, permission: {}, username: {}",
+                userAccess.getNamespace(), userAccess.getPermission(), userAccess.getUsername());
 
-        UserAccess persistedUserAccess = new UserAccess.UserAccessBuilder()
+        return new UserAccess.UserAccessBuilder()
                 .setUserAccessId(userAccessId)
-                .setResourceType(userAccess.getResourceType())
                 .setNamespace(userAccess.getNamespace())
                 .setPermission(userAccess.getPermission())
                 .setUsername(userAccess.getUsername())
                 .build();
-        return persistedUserAccess;
+    }
+
+    @Override
+    public UserAccess createUserAccessForDomain(UserAccess userAccess) {
+        log.info("User-access details: {}", userAccess);
+        int userAccessId = counterStore.getNextUserAccessSequenceValue();
+        Document userAccessDoc = new Document("username", userAccess.getUsername())
+                .append("permission", userAccess.getPermission().name())
+                .append("domain", userAccess.getDomain())
+                .append("createdAt", userAccess.getCreationDateTime())
+                .append("lastUpdated", userAccess.getUpdateDateTime())
+                .append("userAccessId", userAccessId);
+
+        userAccessCollection.insertOne(userAccessDoc);
+        log.info("UserAccess has been created for domain: {}, permission: {}, username: {}",
+                userAccess.getDomain(), userAccess.getPermission(), userAccess.getUsername());
+
+        return new UserAccess.UserAccessBuilder()
+                .setUserAccessId(userAccessId)
+                .setDomain(userAccess.getDomain())
+                .setPermission(userAccess.getPermission())
+                .setUsername(userAccess.getUsername())
+                .build();
     }
 
     @Override
@@ -69,16 +91,7 @@ public class MongoUserAccessStore implements UserAccessStore {
 
         List<UserAccess> userAccessList = new ArrayList<>();
         for (Document doc : userAccessCollection.find(Filters.eq("username", username))) {
-            String namespace = doc.getString("namespace");
-
-            UserAccess userAccess = new UserAccess.UserAccessBuilder()
-                    .setUsername(doc.getString("username"))
-                    .setPermission(UserAccess.Permission.valueOf(doc.getString("permission")))
-                    .setNamespace(namespace)
-                    .setResourceType(UserAccess.ResourceType.valueOf(doc.getString("resourceType")))
-                    .setUserAccessId(doc.getInteger("userAccessId"))
-                    .build();
-            userAccessList.add(userAccess);
+            userAccessList.add(buildFromDocument(doc));
         }
 
         if (userAccessList.isEmpty()) {
@@ -96,14 +109,7 @@ public class MongoUserAccessStore implements UserAccessStore {
         }
         List<UserAccess> userAccessList = new ArrayList<>();
         for (Document doc : userAccessCollection.find(Filters.eq("namespace", namespace))) {
-            UserAccess userAccess = new UserAccess.UserAccessBuilder()
-                    .setUsername(doc.getString("username"))
-                    .setPermission(UserAccess.Permission.valueOf(doc.getString("permission")))
-                    .setNamespace(namespace)
-                    .setResourceType(UserAccess.ResourceType.valueOf(doc.getString("resourceType")))
-                    .setUserAccessId(doc.getInteger("userAccessId"))
-                    .build();
-            userAccessList.add(userAccess);
+            userAccessList.add(buildFromDocument(doc));
         }
 
         if (userAccessList.isEmpty()) {
@@ -120,20 +126,54 @@ public class MongoUserAccessStore implements UserAccessStore {
             throw new NamespaceNotFoundException();
         }
 
-        Document document = userAccessCollection.find(Filters.and(Filters.eq("namespace", namespace),
+        Document document = userAccessCollection.find(Filters.and(
+                        Filters.eq("namespace", namespace),
                         Filters.eq("userAccessId", userAccessId)))
                 .first();
 
-        if (null == document) {
+        if (document == null) {
             throw new UserAccessNotFoundException();
-        } else {
-            return new UserAccess.UserAccessBuilder()
-                    .setUsername(document.getString("username"))
-                    .setPermission(UserAccess.Permission.valueOf(document.getString("permission")))
-                    .setNamespace(namespace)
-                    .setResourceType(UserAccess.ResourceType.valueOf(document.getString("resourceType")))
-                    .setUserAccessId(document.getInteger("userAccessId"))
-                    .build();
         }
+        return buildFromDocument(document);
+    }
+
+    @Override
+    public List<UserAccess> getUserAccessForDomain(String domain)
+            throws UserAccessNotFoundException {
+
+        List<UserAccess> userAccessList = new ArrayList<>();
+        for (Document doc : userAccessCollection.find(Filters.eq("domain", domain))) {
+            userAccessList.add(buildFromDocument(doc));
+        }
+
+        if (userAccessList.isEmpty()) {
+            throw new UserAccessNotFoundException();
+        }
+        return userAccessList;
+    }
+
+    @Override
+    public UserAccess getUserAccessForDomainAndId(String domain, Integer userAccessId)
+            throws UserAccessNotFoundException {
+
+        Document document = userAccessCollection.find(Filters.and(
+                        Filters.eq("domain", domain),
+                        Filters.eq("userAccessId", userAccessId)))
+                .first();
+
+        if (document == null) {
+            throw new UserAccessNotFoundException();
+        }
+        return buildFromDocument(document);
+    }
+
+    private UserAccess buildFromDocument(Document doc) {
+        return new UserAccess.UserAccessBuilder()
+                .setUsername(doc.getString("username"))
+                .setPermission(UserAccess.Permission.valueOf(doc.getString("permission")))
+                .setNamespace(doc.getString("namespace"))
+                .setDomain(doc.getString("domain"))
+                .setUserAccessId(doc.getInteger("userAccessId"))
+                .build();
     }
 }

@@ -14,9 +14,9 @@
     "@calmstudio/mcp": "file:../mcp-server"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.38.0",
     "@types/node": "^22.0.0",
+    "@vercel/ncc": "^0.38.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.8"
+    "vitest": "^4.1.0"
   }
 }

@@ -1,14 +1,17 @@
+import { ChangeObject, diffArrays } from 'diff';
 import type {
     CalmArchitectureSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '../types/index.js';
 import type {
-    DiffResult,
     NodeChange,
     RelationshipChange,
     RenameMapping,
     RelationshipRenameMapping,
+    NodesAndRelationshipsDiffResult,
+    AdrDiffResult,
+    ArchitectureDiffResult,
 } from './diff-types.js';
 
 function normalizeValue(value: unknown): unknown {
@@ -27,6 +30,17 @@ function normalizeValue(value: unknown): unknown {
 
 function valuesEqual(a: unknown, b: unknown): boolean {
     return JSON.stringify(normalizeValue(a)) === JSON.stringify(normalizeValue(b));
+}
+
+/**
+ * A stable content key for a value: object keys are sorted recursively before
+ * serialising, so two values differing only in object-key order produce the
+ * same key. Array element order is preserved (and therefore significant),
+ * matching {@link valuesEqual}. Used by the pattern diff to match id-less items
+ * by content.
+ */
+export function canonicalKey(value: unknown): string {
+    return JSON.stringify(normalizeValue(value));
 }
 
 function omitUniqueId(item: Record<string, unknown>): Record<string, unknown> {
@@ -52,16 +66,29 @@ export function relationshipStructureMatches(
     );
 }
 
+/**
+ * Generates the diff between two CALM architecture instances.
+ * @param archA Architecture "before", on which changes are to be made 
+ * @param archB Arhcitecture "after" which is changed with respect to architecture A
+ * @returns Object representing diffs across different properties of the CALM schema.
+ */
 export function diffArchitectures(
     archA: CalmArchitectureSchema,
     archB: CalmArchitectureSchema,
-): DiffResult {
-    return diffNodesAndRelationships(
+): ArchitectureDiffResult {
+    const nodesAndRelationshipsDiff = diffNodesAndRelationships(
         archA.nodes ?? [],
         archB.nodes ?? [],
         archA.relationships ?? [],
         archB.relationships ?? [],
     );
+
+    const adrDiff = diffAdrs(archA.adrs ?? [], archB.adrs ?? []);
+
+    return {
+        ...nodesAndRelationshipsDiff,
+        ...adrDiff
+    };
 }
 
 /**
@@ -74,7 +101,7 @@ export function diffNodesAndRelationships(
     allNodesB: CalmNodeSchema[],
     allEdgesA: CalmRelationshipSchema[],
     allEdgesB: CalmRelationshipSchema[],
-): DiffResult {
+): NodesAndRelationshipsDiffResult {
     const validNodesA = allNodesA.filter((n) => n['unique-id']);
     const validNodesB = allNodesB.filter((n) => n['unique-id']);
     const validEdgesA = allEdgesA.filter((r) => r['unique-id']);
@@ -181,5 +208,20 @@ export function diffNodesAndRelationships(
             nodes: invalidNodes,
             relationships: invalidEdges,
         },
+    };
+}
+
+/**
+ * Core diff function for ADR arrays (each ADR is a string, typically a URL). Identifies which ADRs were added, removed or unchanged between two arrays.
+ */
+export function diffAdrs(
+    adrsA: string[] = [],
+    adrsB: string[] = [],
+): AdrDiffResult {
+    return {
+        adrDiffItems: diffArrays(adrsA, adrsB).flatMap((diff: ChangeObject<string[]>) => diff.value.map((val: string) => ({
+            content: val,
+            changeType: diff.added ? 'added' : diff.removed ? 'removed' : 'unchanged',
+        })))
     };
 }

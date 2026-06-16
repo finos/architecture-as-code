@@ -3,65 +3,149 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * projection.ts — Pure bidirectional projection functions between CalmArchitecture and Svelte Flow.
+ * projection.ts — Pure bidirectional projection functions between
+ * CalmArchitecture (CALM 1.2 nested form) and Svelte Flow.
  *
  * calmToFlow: converts a CalmArchitecture into Svelte Flow nodes[] and edges[].
- * flowToCalm: converts Svelte Flow nodes[] and edges[] back to CalmArchitecture.
+ *   - `connects` variant → 1 edge (source.node → destination.node)
+ *   - `composed-of`/`deployed-in` variant → N edges (container → each child)
+ *   - `interacts` variant → N edges (actor → each interacted node)
+ *   - `options` variant → 0 edges (no graph topology in spec)
+ *   When a multi-child variant has N>1, each derived edge gets a suffixed
+ *   unique-id (`<base>#<i>`) so Svelte Flow stays 1-edge-per-row.
  *
- * IMPORTANT: This file must NOT import from .svelte.ts files (not testable in vitest without
- * additional Svelte transform setup). Only imports types from @xyflow/svelte and @calmstudio/calm-core,
- * and the pure resolveNodeType function.
+ * flowToCalm: converts Svelte Flow nodes[] and edges[] back to
+ * CalmArchitecture. Each Svelte Flow edge becomes exactly one
+ * CalmRelationship; multi-child round-trips therefore split into
+ * separate single-child rels (a documented, lossy-but-correct trade-off).
+ *
+ * IMPORTANT: This file must NOT import from .svelte.ts files (not testable
+ * in vitest without additional Svelte transform setup).
  */
 
 import type { Node, Edge } from '@xyflow/svelte';
-import type { CalmArchitecture, CalmControls, CalmInterface, CalmNode, CalmRelationship } from '@calmstudio/calm-core';
+import type {
+	CalmArchitecture,
+	CalmControls,
+	CalmInterface,
+	CalmNode,
+	CalmRelationship,
+	CalmRelationshipType,
+	CalmRelationshipVariant
+} from '@calmstudio/calm-core';
 import { resolveNodeType } from '$lib/canvas/nodeTypes';
 
-/** The set of CALM edge types that imply containment. */
-const CONTAINMENT_EDGE_TYPES = new Set(['deployed-in', 'composed-of']);
+/** The set of CALM variant keys that imply containment. */
+const CONTAINMENT_VARIANTS: ReadonlySet<CalmRelationshipVariant> = new Set([
+	'deployed-in',
+	'composed-of'
+]);
+
+/**
+ * Discover the variant key actually present on a relationship-type object.
+ * Returns null when the variant is malformed (no recognised key).
+ */
+function variantOf(rt: CalmRelationshipType): CalmRelationshipVariant | null {
+	if ('connects' in rt) return 'connects';
+	if ('composed-of' in rt) return 'composed-of';
+	if ('interacts' in rt) return 'interacts';
+	if ('deployed-in' in rt) return 'deployed-in';
+	if ('options' in rt) return 'options';
+	return null;
+}
+
+/**
+ * Returns one or more (source, target) pairs derived from a single CALM
+ * relationship. For composed-of/deployed-in/interacts, expands to N pairs
+ * — one per child/peer node.
+ */
+function expandEdgePairs(
+	rel: CalmRelationship,
+): Array<{ source: string; target: string; variant: CalmRelationshipVariant }> {
+	const rt = rel['relationship-type'];
+	if ('connects' in rt) {
+		return [
+			{
+				source: rt.connects.source.node,
+				target: rt.connects.destination.node,
+				variant: 'connects'
+			}
+		];
+	}
+	if ('composed-of' in rt) {
+		return rt['composed-of'].nodes.map((child) => ({
+			source: rt['composed-of'].container,
+			target: child,
+			variant: 'composed-of' as const
+		}));
+	}
+	if ('deployed-in' in rt) {
+		return rt['deployed-in'].nodes.map((child) => ({
+			source: rt['deployed-in'].container,
+			target: child,
+			variant: 'deployed-in' as const
+		}));
+	}
+	if ('interacts' in rt) {
+		return rt.interacts.nodes.map((peer) => ({
+			source: rt.interacts.actor,
+			target: peer,
+			variant: 'interacts' as const
+		}));
+	}
+	// `options` has no graph topology; skip.
+	return [];
+}
+
+/**
+ * Build a CALM 1.2 nested `relationship-type` from a flat (source, target,
+ * variant) triple. Used when projecting Svelte Flow edges back to CALM.
+ */
+function buildRelationshipType(
+	variant: CalmRelationshipVariant,
+	source: string,
+	target: string
+): CalmRelationshipType {
+	switch (variant) {
+		case 'connects':
+			return { connects: { source: { node: source }, destination: { node: target } } };
+		case 'composed-of':
+			return { 'composed-of': { container: source, nodes: [target] } };
+		case 'deployed-in':
+			return { 'deployed-in': { container: source, nodes: [target] } };
+		case 'interacts':
+			return { interacts: { actor: source, nodes: [target] } };
+		case 'options':
+			return { options: [] };
+	}
+}
 
 /**
  * Converts a CalmArchitecture into Svelte Flow nodes and edges.
- *
- * @param arch - The CALM architecture to project.
- * @param positionMap - Optional map of node unique-id to {x, y} position.
- *   Known nodes use their stored position; unknown nodes get staggered defaults.
- * @returns { nodes, edges } ready for use with SvelteFlow.
  */
 export function calmToFlow(
 	arch: CalmArchitecture,
 	positionMap?: Map<string, { x: number; y: number; width?: number; height?: number }>
 ): { nodes: Node[]; edges: Edge[] } {
-	// Build containment map from relationships:
-	// For deployed-in: source is deployed IN destination → destination is parent
-	// For composed-of: source is composed OF destination → source is parent
+	// Build containment map from CALM relationships.
+	//   composed-of: container is parent of each child
+	//   deployed-in: container is parent of each child
 	const childToParent = new Map<string, string>();
 	const parentChildren = new Map<string, Set<string>>();
 
 	for (const rel of arch.relationships) {
-		if (!CONTAINMENT_EDGE_TYPES.has(rel['relationship-type'])) continue;
+		const v = variantOf(rel['relationship-type']);
+		if (!v || !CONTAINMENT_VARIANTS.has(v)) continue;
 
-		let parentId: string;
-		let childId: string;
-
-		if (rel['relationship-type'] === 'deployed-in') {
-			// source is deployed inside destination
-			parentId = rel.destination;
-			childId = rel.source;
-		} else {
-			// composed-of: source contains destination
-			parentId = rel.source;
-			childId = rel.destination;
+		for (const pair of expandEdgePairs(rel)) {
+			const parentId = pair.source; // container
+			const childId = pair.target;  // each child
+			childToParent.set(childId, parentId);
+			if (!parentChildren.has(parentId)) parentChildren.set(parentId, new Set());
+			parentChildren.get(parentId)!.add(childId);
 		}
-
-		childToParent.set(childId, parentId);
-		if (!parentChildren.has(parentId)) {
-			parentChildren.set(parentId, new Set());
-		}
-		parentChildren.get(parentId)!.add(childId);
 	}
 
-	// Compute nesting depth for each node (for zIndex)
 	function getDepth(nodeId: string): number {
 		let depth = 0;
 		let current = nodeId;
@@ -72,7 +156,6 @@ export function calmToFlow(
 		return depth;
 	}
 
-	// All nodes that are parents
 	const parentIds = new Set(parentChildren.keys());
 
 	const nodes: Node[] = arch.nodes.map((cn: CalmNode, idx: number) => {
@@ -97,18 +180,16 @@ export function calmToFlow(
 				customMetadata: cn.customMetadata ?? {},
 				controls: cn.controls,
 				'data-classification': cn['data-classification'],
-				metadata: cn.metadata,
-			},
+				metadata: cn.metadata
+			}
 		};
 
-		// Apply containment: set parentId and extent for child nodes
 		if (parentId) {
 			node.parentId = parentId;
 			node.extent = 'parent';
 			node.zIndex = depth;
 		}
 
-		// Container nodes: use ELK-computed dimensions or defaults
 		if (type === 'container') {
 			node.width = posEntry?.width ?? 300;
 			node.height = posEntry?.height ?? 200;
@@ -116,45 +197,48 @@ export function calmToFlow(
 		return node;
 	});
 
-	// Svelte Flow requires parent nodes to appear before their children in the array.
-	// Sort by depth so top-level nodes come first.
+	// Svelte Flow requires parents before children.
 	nodes.sort((a, b) => getDepth(a.id) - getDepth(b.id));
 
-	const edges: Edge[] = arch.relationships.map((cr: CalmRelationship) => ({
-		id: cr['unique-id'],
-		source: cr.source,
-		target: cr.destination,
-		type: cr['relationship-type'],
-		data: {
-			protocol: cr.protocol,
-			description: cr.description,
-			controls: cr.controls,
-			metadata: cr.metadata,
-		},
-	}));
+	// Expand each CALM relationship into one or more Svelte Flow edges.
+	// We tag each edge with its source CalmRelationship's unique-id and variant
+	// in `data.calm` so flowToCalm can reconstruct the nested form losslessly
+	// for the common 1:1 case and as separate single-child rels for the
+	// multi-child case (documented trade-off).
+	const edges: Edge[] = [];
+	for (const cr of arch.relationships) {
+		const pairs = expandEdgePairs(cr);
+		const multi = pairs.length > 1;
+		pairs.forEach((pair, i) => {
+			edges.push({
+				id: multi ? `${cr['unique-id']}#${i}` : cr['unique-id'],
+				source: pair.source,
+				target: pair.target,
+				type: pair.variant,
+				data: {
+					calmRelId: cr['unique-id'],
+					calmVariant: pair.variant,
+					protocol: cr.protocol,
+					description: cr.description,
+					controls: cr.controls,
+					metadata: cr.metadata
+				}
+			});
+		});
+	}
 
 	return { nodes, edges };
 }
 
 /**
  * Converts Svelte Flow nodes and edges back to a CalmArchitecture.
- *
- * Reads all CALM fields from node.data and edge.data/type.
- * Preserves customMetadata from node.data.customMetadata.
- *
- * @param nodes - Svelte Flow nodes (must have data.calmId, data.calmType, data.label)
- * @param edges - Svelte Flow edges (must have id, source, target, type)
- * @returns A CalmArchitecture with nodes and relationships reconstructed.
  */
 export function flowToCalm(nodes: Node[], edges: Edge[]): CalmArchitecture {
 	// Build a lookup from Svelte Flow node ID to CALM unique-id (calmId).
-	// These differ when nodes are created in the editor (separate nanoids).
 	const flowIdToCalmId = new Map<string, string>();
 	for (const n of nodes) {
 		const calmId = (n.data as { calmId?: string })?.calmId;
-		if (calmId) {
-			flowIdToCalmId.set(n.id, calmId);
-		}
+		if (calmId) flowIdToCalmId.set(n.id, calmId);
 	}
 
 	const calmNodes: CalmNode[] = nodes.map((n: Node) => {
@@ -173,63 +257,47 @@ export function flowToCalm(nodes: Node[], edges: Edge[]): CalmArchitecture {
 		const node: CalmNode = {
 			'unique-id': d.calmId,
 			'node-type': d.calmType,
-			name: d.label,
+			name: d.label
 		};
 
-		if (d.description) {
-			node.description = d.description;
-		}
-
-		if (d.interfaces && d.interfaces.length > 0) {
-			node.interfaces = d.interfaces;
-		}
-
+		if (d.description) node.description = d.description;
+		if (d.interfaces && d.interfaces.length > 0) node.interfaces = d.interfaces;
 		if (d.customMetadata && Object.keys(d.customMetadata).length > 0) {
 			node.customMetadata = d.customMetadata;
 		}
-
-		if (d.controls && Object.keys(d.controls).length > 0) {
-			node.controls = d.controls;
-		}
-
-		if (d['data-classification']) {
-			node['data-classification'] = d['data-classification'];
-		}
-
-		if (d.metadata && Object.keys(d.metadata).length > 0) {
-			node.metadata = d.metadata;
-		}
+		if (d.controls && Object.keys(d.controls).length > 0) node.controls = d.controls;
+		if (d['data-classification']) node['data-classification'] = d['data-classification'];
+		if (d.metadata && Object.keys(d.metadata).length > 0) node.metadata = d.metadata;
 
 		return node;
 	});
 
 	const calmRelationships: CalmRelationship[] = edges.map((e: Edge) => {
 		const edgeData = (e.data ?? {}) as {
+			calmRelId?: string;
+			calmVariant?: CalmRelationshipVariant;
 			protocol?: string;
 			description?: string;
 			controls?: CalmControls;
 			metadata?: Record<string, unknown>;
 		};
 
+		const variant =
+			edgeData.calmVariant ??
+			((e.type as CalmRelationshipVariant | undefined) ?? 'connects');
+		const sourceId = flowIdToCalmId.get(e.source) ?? e.source;
+		const targetId = flowIdToCalmId.get(e.target) ?? e.target;
+
 		const rel: CalmRelationship = {
 			'unique-id': e.id,
-			'relationship-type': (e.type ?? 'connects') as CalmRelationship['relationship-type'],
-			source: flowIdToCalmId.get(e.source) ?? e.source,
-			destination: flowIdToCalmId.get(e.target) ?? e.target,
+			'relationship-type': buildRelationshipType(variant, sourceId, targetId)
 		};
 
-		if (edgeData.protocol) {
-			rel.protocol = edgeData.protocol;
-		}
-
-		if (edgeData.description) {
-			rel.description = edgeData.description;
-		}
-
+		if (edgeData.protocol) rel.protocol = edgeData.protocol;
+		if (edgeData.description) rel.description = edgeData.description;
 		if (edgeData.controls && Object.keys(edgeData.controls).length > 0) {
 			rel.controls = edgeData.controls;
 		}
-
 		if (edgeData.metadata && Object.keys(edgeData.metadata).length > 0) {
 			rel.metadata = edgeData.metadata;
 		}

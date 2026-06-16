@@ -1,0 +1,26 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: calm_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ../../calm:/calm:ro
+    environment:
+      - CALM_SCHEMA_BASE_PATH=/calm
+    networks:
+      - calm-net
+  calmhub:
+    image: finos/calm-hub:latest-native
+    container_name: calm-hub
+    ports:
+      - "8080:8080"
+    # Native binaries do NOT read JAVA_OPTS; configure via Quarkus env vars.
+    environment:
+      - QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongodb:27017
+    networks:
+      - calm-net
+networks:
+  calm-net:
+    driver: bridge

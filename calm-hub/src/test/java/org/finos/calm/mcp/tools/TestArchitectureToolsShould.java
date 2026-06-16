@@ -5,6 +5,7 @@ import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
@@ -309,7 +310,106 @@ class TestArchitectureToolsShould {
         verifyNoInteractions(architectureStore);
     }
 
-    // --- updateArchitecture ---
+    // --- createArchitectureVersion ---
+
+    @Test
+    void create_architecture_version_successfully() throws Exception {
+        architectureTools.allowPutOperations = false;
+        when(architectureStore.getArchitecturesForNamespace("workshop"))
+                .thenReturn(List.of(new NamespaceArchitectureSummary("Existing Name", "Existing description", 1)));
+
+        ToolResponse result = architectureTools.createArchitectureVersion("workshop", 1, "1.1.0", "{\"nodes\":[]}");
+
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("1"));
+        assertThat(text(result), containsString("1.1.0"));
+        assertThat(text(result), containsString("workshop"));
+    }
+
+    @Test
+    void create_architecture_version_preserves_existing_name_and_description() throws Exception {
+        when(architectureStore.getArchitecturesForNamespace("workshop"))
+                .thenReturn(List.of(new NamespaceArchitectureSummary("Conference Signup", "A signup flow", 1)));
+        ArgumentCaptor<Architecture> captor = ArgumentCaptor.forClass(Architecture.class);
+
+        architectureTools.createArchitectureVersion("workshop", 1, "2.0.0", "{\"nodes\":[]}");
+
+        verify(architectureStore).createArchitectureForVersion(captor.capture());
+        assertThat(captor.getValue().getName(), is("Conference Signup"));
+        assertThat(captor.getValue().getDescription(), is("A signup flow"));
+    }
+
+    @Test
+    void create_architecture_version_succeeds_when_put_operations_disabled() throws Exception {
+        // Regression guard: creating a new version is a POST and must work without allowPutOperations
+        architectureTools.allowPutOperations = false;
+
+        ToolResponse result = architectureTools.createArchitectureVersion("workshop", 1, "1.1.0", "{\"nodes\":[]}");
+
+        assertThat(result.isError(), is(false));
+    }
+
+    @Test
+    void create_architecture_version_returns_error_for_duplicate_version() throws Exception {
+        org.mockito.Mockito.doThrow(new ArchitectureVersionExistsException())
+                .when(architectureStore).createArchitectureForVersion(any());
+
+        ToolResponse result = architectureTools.createArchitectureVersion("workshop", 1, "1.1.0", "{\"nodes\":[]}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("already exists"));
+    }
+
+    @Test
+    void create_architecture_version_returns_error_for_missing_namespace() throws Exception {
+        org.mockito.Mockito.doThrow(new NamespaceNotFoundException())
+                .when(architectureStore).createArchitectureForVersion(any());
+
+        ToolResponse result = architectureTools.createArchitectureVersion("missing", 1, "1.1.0", "{\"nodes\":[]}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Namespace"));
+    }
+
+    @Test
+    void create_architecture_version_returns_error_for_missing_architecture() throws Exception {
+        org.mockito.Mockito.doThrow(new ArchitectureNotFoundException())
+                .when(architectureStore).createArchitectureForVersion(any());
+
+        ToolResponse result = architectureTools.createArchitectureVersion("workshop", 99, "1.1.0", "{\"nodes\":[]}");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    void create_architecture_version_rejects_invalid_version_string() {
+        ToolResponse result = architectureTools.createArchitectureVersion("workshop", 1, "not-a-version", "{\"nodes\":[]}");
+
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void create_architecture_version_rejects_invalid_json() {
+        ToolResponse result = architectureTools.createArchitectureVersion("workshop", 1, "1.1.0", "not-json");
+
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void create_architecture_version_rejects_json_exceeding_max_payload() {
+        String huge = "{\"x\":\"" + "a".repeat(100_001) + "\"}";
+
+        ToolResponse result = architectureTools.createArchitectureVersion("workshop", 1, "1.1.0", huge);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Architecture JSON"));
+        verifyNoInteractions(architectureStore);
+    }
+
+    // --- updateArchitecture (PUT — requires allowPutOperations) ---
 
     @Test
     void update_architecture_version_successfully() throws Exception {

@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { interfaceIdExistsOnNode } from './interface-id-exists-on-node';
 
 describe('interfaceIdExistsOnNode', () => {
@@ -9,7 +10,7 @@ describe('interfaceIdExistsOnNode', () => {
             }
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -21,7 +22,7 @@ describe('interfaceIdExistsOnNode', () => {
             }
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -34,7 +35,7 @@ describe('interfaceIdExistsOnNode', () => {
             path: ['/relationships/0/connects/destination']
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe('Invalid connects relationship - no node defined.');
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);
@@ -57,7 +58,7 @@ describe('interfaceIdExistsOnNode', () => {
             }
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -72,7 +73,7 @@ describe('interfaceIdExistsOnNode', () => {
             path: ['/relationships/0/connects/destination']
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`Node with unique-id ${input.node} has no interfaces defined, expected interfaces [${input.interfaces}].`);
     });
@@ -95,7 +96,7 @@ describe('interfaceIdExistsOnNode', () => {
             path: ['/relationships/0/connects/destination']
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`Referenced interface with ID '${input.interfaces[0]}' was not defined on the node with ID '${input.node}'.`);
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);
@@ -119,7 +120,7 @@ describe('interfaceIdExistsOnNode', () => {
             path: ['/relationships/0/connects/destination']
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`Referenced interface with ID '${input.interfaces[1]}' was not defined on the node with ID '${input.node}'.`);
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);

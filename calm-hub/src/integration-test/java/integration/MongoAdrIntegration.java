@@ -93,7 +93,7 @@ public class MongoAdrIntegration {
     @Order(1)
     void end_to_end_verify_get_with_no_architecture() {
         given()
-                .when().get("/calm/namespaces/finos/adrs")
+                .when().get("/api/calm/namespaces/finos/adrs")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -105,7 +105,7 @@ public class MongoAdrIntegration {
         given()
                 .body(objectMapper.writeValueAsString(newAdr))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/adrs")
+                .when().post("/api/calm/namespaces/finos/adrs")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/adrs/1"));
@@ -122,7 +122,7 @@ public class MongoAdrIntegration {
                 .build();
 
         AdrMeta actualAdrMeta = given()
-                .when().get("/calm/namespaces/finos/adrs/1/revisions/1")
+                .when().get("/api/calm/namespaces/finos/adrs/1/revisions/1")
                 .then()
                 .statusCode(200)
                 .extract()
@@ -135,7 +135,7 @@ public class MongoAdrIntegration {
     @Order(4)
     void end_to_end_verify_get_adr() {
         AdrMeta actualAdrMeta = given()
-                .when().get("/calm/namespaces/finos/adrs/1")
+                .when().get("/api/calm/namespaces/finos/adrs/1")
                 .then()
                 .statusCode(200)
                 .extract()
@@ -157,7 +157,7 @@ public class MongoAdrIntegration {
         given()
                 .body(objectMapper.writeValueAsString(newAdr))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/adrs/1")
+                .when().post("/api/calm/namespaces/finos/adrs/1")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/adrs/1"));
@@ -167,7 +167,7 @@ public class MongoAdrIntegration {
     @Order(6)
     void end_to_end_verify_get_revisions() {
         given()
-                .when().get("/calm/namespaces/finos/adrs/1/revisions")
+                .when().get("/api/calm/namespaces/finos/adrs/1/revisions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2))
@@ -180,7 +180,7 @@ public class MongoAdrIntegration {
     @Order(7)
     void end_to_end_verify_update_an_adr_status() throws JsonProcessingException {
         given()
-                .when().post("/calm/namespaces/finos/adrs/1/status/proposed")
+                .when().post("/api/calm/namespaces/finos/adrs/1/status/proposed")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/adrs/1"));
@@ -191,7 +191,7 @@ public class MongoAdrIntegration {
     void end_to_end_verify_status_changed() throws JsonProcessingException {
 
         given()
-                .when().get("/calm/namespaces/finos/adrs/1/revisions/3")
+                .when().get("/api/calm/namespaces/finos/adrs/1/revisions/3")
                 .then()
                 .statusCode(200)
                 .body("adr.status", equalTo("proposed"));

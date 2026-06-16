@@ -35,7 +35,7 @@ describe('TemplateEngine', () => {
         loggerWarnSpy = vi.spyOn(TemplateEngine['logger'], 'warn').mockImplementation(vi.fn());
 
         // Mock TemplatePreprocessor to return the input unchanged by default
-        vi.mocked(TemplatePreprocessor.preprocessTemplate).mockImplementation((input: string) => input);
+        vi.mocked(TemplatePreprocessor.preprocessTemplate).mockImplementation(function (input: string) { return input; });
 
         // Mock TemplatePathExtractor
         vi.mocked(TemplatePathExtractor.convertFromDotNotation).mockReturnValue([]);
@@ -131,8 +131,8 @@ describe('TemplateEngine', () => {
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
         vi.spyOn(fs, 'existsSync').mockReturnValue(false);
-        const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => { });
+        const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(function () { return undefined; });
+        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(function () { });
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
 
@@ -170,8 +170,8 @@ describe('TemplateEngine', () => {
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
         vi.spyOn(fs, 'existsSync').mockReturnValue(false);
-        const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => { });
+        const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(function () { return undefined; });
+        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(function () { });
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
 
@@ -226,11 +226,12 @@ describe('TemplateEngine', () => {
     });
 
     it('should log a warning for an unknown output type', () => {
-        const templateConfig: IndexFile = {
+        // Deliberately invalid output-type to exercise the unknown-type warning path.
+        const templateConfig = {
             name: 'Test Template',
             transformer: 'mock-transformer',
             templates: [{ template: 'main.hbs', from: 'data', output: 'output.txt', 'output-type': 'invalid-type' }],
-        };
+        } as unknown as IndexFile;
 
         const templateFiles = {
             'main.hbs': 'User: {{name}}',
@@ -342,7 +343,7 @@ describe('TemplateEngine', () => {
             mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
             vi.mocked(TemplatePreprocessor.preprocessTemplate).mockReturnValue(templateFiles['main.hbs']);
-            vi.mocked(TemplatePathExtractor.convertFromDotNotation).mockImplementation(() => {
+            vi.mocked(TemplatePathExtractor.convertFromDotNotation).mockImplementation(function () {
                 throw new Error('Invalid path');
             });
 

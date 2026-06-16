@@ -7,7 +7,7 @@ import type { ApplicationStoreApi, ApplicationStore } from '../application-store
 // Mock vscode module
 vi.mock('vscode', () => ({
     commands: {
-        registerCommand: vi.fn((command: string, callback: Function) => {
+        registerCommand: vi.fn(function (command: string, callback: Function) {
             return { command, callback }
         })
     },
@@ -62,10 +62,10 @@ describe('createOpenPreviewCommand', () => {
         }
 
         mockStore = {
-            getState: vi.fn(() => mockState),
+            getState: vi.fn(function () { return mockState; }),
             setState: vi.fn(),
-            subscribe: vi.fn(() => vi.fn()),
-            getInitialState: vi.fn(() => mockState)
+            subscribe: vi.fn(function () { return vi.fn(); }),
+            getInitialState: vi.fn(function () { return mockState; })
         }
 
         const result = createOpenPreviewCommand(mockStore)

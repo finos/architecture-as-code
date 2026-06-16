@@ -1,20 +1,10 @@
 package org.finos.calm.resources;
 
-import static io.restassured.RestAssured.given;
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.stream.Stream;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
@@ -31,12 +21,18 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.stream.Stream;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
+import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 public class TestStandardResourceShould {
@@ -61,7 +57,7 @@ public class TestStandardResourceShould {
 
         given()
             .when()
-            .get("/calm/namespaces/invalid/standards")
+            .get("/api/calm/namespaces/invalid/standards")
             .then()
             .statusCode(404);
 
@@ -72,7 +68,7 @@ public class TestStandardResourceShould {
     void return_a_400_when_an_invalid_namespace_is_provided_on_get_standards() {
         given()
                 .when()
-                .get("/calm/namespaces/$$$$$/standards")
+                .get("/api/calm/namespaces/$$$$$/standards")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -86,7 +82,7 @@ public class TestStandardResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/valid/standards")
+                .get("/api/calm/namespaces/valid/standards")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("nist"))
@@ -109,7 +105,7 @@ public class TestStandardResourceShould {
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createStandardRequest))
                 .when()
-                .post("/calm/namespaces/invalid/standards")
+                .post("/api/calm/namespaces/invalid/standards")
                 .then()
                 .statusCode(404);
 
@@ -127,7 +123,7 @@ public class TestStandardResourceShould {
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createStandardRequest))
                 .when()
-                .post("/calm/namespaces/$$$$$/standards")
+                .post("/api/calm/namespaces/$$$$$/standards")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -146,10 +142,10 @@ public class TestStandardResourceShould {
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createStandardRequest))
                 .when()
-                .post("/calm/namespaces/valid/standards")
+                .post("/api/calm/namespaces/valid/standards")
                 .then()
                 .statusCode(201)
-                .header("Location",  containsString(("/calm/namespaces/valid/standards/5/versions/1.0.0")));
+                .header("Location",  containsString(("/api/calm/namespaces/valid/standards/5/versions/1.0.0")));
 
         verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "valid");
     }
@@ -158,7 +154,7 @@ public class TestStandardResourceShould {
     void return_400_when_invalid_namespace_provided_when_getting_versions_of_standard() {
         given()
                 .when()
-                .get("/calm/namespaces/$$$$$/standards/5/versions")
+                .get("/api/calm/namespaces/$$$$$/standards/5/versions")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -185,14 +181,14 @@ public class TestStandardResourceShould {
         if(expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/standards/5/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/standards/5/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                 .when()
-                .get("/calm/namespaces/" + namespace + "/standards/5/versions")
+                .get("/api/calm/namespaces/" + namespace + "/standards/5/versions")
                 .then()
                 .statusCode(expectedStatusCode)
                 .body(containsString(expectedBody));
@@ -205,7 +201,7 @@ public class TestStandardResourceShould {
     void return_400_when_invalid_namespace_provided_when_getting_version_of_standard() {
         given()
                 .when()
-                .get("/calm/namespaces/$$$$/standards/5/versions/1.0.0")
+                .get("/api/calm/namespaces/$$$$/standards/5/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -215,7 +211,7 @@ public class TestStandardResourceShould {
     void return_400_when_invalid_version_provided_when_getting_version_of_standard() {
         given()
                 .when()
-                .get("/calm/namespaces/finos/standards/5/versions/invalid_version")
+                .get("/api/calm/namespaces/finos/standards/5/versions/invalid_version")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -248,14 +244,14 @@ public class TestStandardResourceShould {
         if(expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo("{}"));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -272,7 +268,7 @@ public class TestStandardResourceShould {
                 .header("Content-Type", "application/json")
                 .body(createStandardRequest)
                 .when()
-                .post("/calm/namespaces/$$$$/standards/5/versions/1.0.1")
+                .post("/api/calm/namespaces/$$$$/standards/5/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -289,7 +285,7 @@ public class TestStandardResourceShould {
                 .header("Content-Type", "application/json")
                 .body(createStandardRequest)
                 .when()
-                .post("/calm/namespaces/finos/standards/5/versions/invalid-version")
+                .post("/api/calm/namespaces/finos/standards/5/versions/invalid-version")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -327,17 +323,17 @@ public class TestStandardResourceShould {
                     .header("Content-Type", "application/json")
                     .body(createStandardRequest)
                     .when()
-                    .post("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
+                    .post("/api/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
                     //Derived from stubbed standard in resource
-                    .header("Location", containsString("/calm/namespaces/valid/standards/5/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/valid/standards/5/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(createStandardRequest)
                     .when()
-                    .post("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
+                    .post("/api/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }

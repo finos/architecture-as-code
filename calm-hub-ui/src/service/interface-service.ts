@@ -1,6 +1,7 @@
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { InterfaceDetail } from '../model/interface.js';
+import { apiClient } from './utils/api-client.js';
 
 export class InterfaceService {
     private readonly ax: AxiosInstance;
@@ -9,14 +10,14 @@ export class InterfaceService {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
-            this.ax = axios.create();
+            this.ax = apiClient;
         }
     }
 
     public async fetchInterfacesForNamespace(namespace: string): Promise<InterfaceDetail[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/interfaces`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/interfaces`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -30,7 +31,7 @@ export class InterfaceService {
     public async fetchInterfaceVersions(namespace: string, interfaceId: number): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/interfaces/${interfaceId}/versions`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/interfaces/${interfaceId}/versions`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -44,7 +45,7 @@ export class InterfaceService {
     public async fetchInterfaceForVersion(namespace: string, interfaceId: number, version: string): Promise<unknown> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/interfaces/${interfaceId}/versions/${encodeURIComponent(version)}`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/interfaces/${interfaceId}/versions/${encodeURIComponent(version)}`, { headers })
             .then((res) => res.data)
             .catch((error) => {
                 const errorMessage = `Error fetching interface ${interfaceId} version ${version}:`;

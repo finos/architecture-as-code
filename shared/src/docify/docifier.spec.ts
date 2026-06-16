@@ -1,12 +1,11 @@
 import { Docifier } from './docifier';
 import { TemplateProcessor } from '../template/template-processor';
-import { Mock } from 'vitest';
 import * as urlMapping from '../template/url-mapping';
 
 vi.mock('../template/template-processor');
 vi.mock('../template/url-mapping');
 
-const MockedTemplateProcessor: Mock = vi.mocked(TemplateProcessor);
+const MockedTemplateProcessor = vi.mocked(TemplateProcessor);
 
 describe('Docifier', () => {
     const inputPath = 'some/input/path';
@@ -27,9 +26,9 @@ describe('Docifier', () => {
 
     it('should instantiate TemplateProcessor for mode "WEBSITE" and call processTemplate', async () => {
         const processTemplateMock = vi.fn().mockResolvedValue(undefined);
-        MockedTemplateProcessor.mockImplementationOnce(() => ({
+        MockedTemplateProcessor.mockImplementationOnce(function () { return {
             processTemplate: processTemplateMock,
-        }));
+        }; });
 
         const docifier = new Docifier('WEBSITE', inputPath, outputPath);
         await docifier.docify();
@@ -50,9 +49,9 @@ describe('Docifier', () => {
 
     it('should pass clear-output-directory through to template processor', async () => {
         const processTemplateMock = vi.fn().mockResolvedValue(undefined);
-        MockedTemplateProcessor.mockImplementationOnce(() => ({
+        MockedTemplateProcessor.mockImplementationOnce(function () { return {
             processTemplate: processTemplateMock,
-        }));
+        }; });
 
         const docifier = new Docifier('WEBSITE', inputPath, outputPath, urlMappingPath, 'bundle', undefined, true);
         await docifier.docify();
@@ -79,9 +78,9 @@ describe('Docifier', () => {
 
     it('should use provided templatePath in USER_PROVIDED mode', async () => {
         const processTemplateMock = vi.fn().mockResolvedValue(undefined);
-        MockedTemplateProcessor.mockImplementationOnce(() => ({
+        MockedTemplateProcessor.mockImplementationOnce(function () { return {
             processTemplate: processTemplateMock,
-        }));
+        }; });
 
         const customTemplatePath = '/custom/templates/';
         const docifier = new Docifier(
@@ -112,9 +111,9 @@ describe('Docifier', () => {
 
     it('should use fallback path from TEMPLATE_BUNDLE_PATHS if templatePath not provided', async () => {
         const processTemplateMock = vi.fn().mockResolvedValue(undefined);
-        MockedTemplateProcessor.mockImplementationOnce(() => ({
+        MockedTemplateProcessor.mockImplementationOnce(function () { return {
             processTemplate: processTemplateMock,
-        }));
+        }; });
 
         const docifier = new Docifier('WEBSITE', inputPath, outputPath);
         await docifier.docify();
@@ -128,9 +127,9 @@ describe('Docifier', () => {
     describe('widget engine support', () => {
         it('should enable widget engine for WEBSITE mode', async () => {
             const processTemplateMock = vi.fn().mockResolvedValue(undefined);
-            MockedTemplateProcessor.mockImplementation(() => ({
+            MockedTemplateProcessor.mockImplementation(function () { return {
                 processTemplate: processTemplateMock,
-            }));
+            }; });
 
             const docifierWebsite = new Docifier('WEBSITE', inputPath, outputPath);
             await docifierWebsite.docify();
@@ -150,9 +149,9 @@ describe('Docifier', () => {
 
         it('should enable widget engine for USER_PROVIDED mode', async () => {
             const processTemplateMock = vi.fn().mockResolvedValue(undefined);
-            MockedTemplateProcessor.mockImplementation(() => ({
+            MockedTemplateProcessor.mockImplementation(function () { return {
                 processTemplate: processTemplateMock,
-            }));
+            }; });
 
             const customTemplatePath = '/custom/template/path';
             const docifierUserProvided = new Docifier('USER_PROVIDED', inputPath, outputPath, undefined, 'bundle', customTemplatePath);
@@ -175,9 +174,9 @@ describe('Docifier', () => {
     describe('WEBSITE mode', () => {
         it('should use docusaurus bundle path', async () => {
             const processTemplateMock = vi.fn().mockResolvedValue(undefined);
-            MockedTemplateProcessor.mockImplementationOnce(() => ({
+            MockedTemplateProcessor.mockImplementationOnce(function () { return {
                 processTemplate: processTemplateMock,
-            }));
+            }; });
 
             const docifier = new Docifier('WEBSITE', inputPath, outputPath);
             await docifier.docify();
@@ -188,9 +187,9 @@ describe('Docifier', () => {
 
         it('should pass through all parameters correctly', async () => {
             const processTemplateMock = vi.fn().mockResolvedValue(undefined);
-            MockedTemplateProcessor.mockImplementationOnce(() => ({
+            MockedTemplateProcessor.mockImplementationOnce(function () { return {
                 processTemplate: processTemplateMock,
-            }));
+            }; });
 
             const docifier = new Docifier('WEBSITE', inputPath, outputPath, urlMappingPath, 'bundle', undefined, true);
             await docifier.docify();

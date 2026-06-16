@@ -27,11 +27,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * Implementation of the ArchitectureStore interface using NitriteDB.
  * This implementation is used when the application is running in standalone mode.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 @Typed(NitriteArchitectureStore.class)
 public class NitriteArchitectureStore implements ArchitectureStore {
@@ -95,14 +97,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
-        // Validate JSON
-        try {
-            // Use org.bson.Document to validate JSON
-            org.bson.Document.parse(architecture.getArchitectureJson());
-        } catch (Exception e) {
-            LOG.error("Invalid JSON format for architecture: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
-        }
+        validateArchitectureJson(architecture.getArchitectureJson());
 
         lock.lock();
         try {
@@ -160,6 +155,9 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             if (architecture.getId() == architectureDoc.get(ARCHITECTURE_ID_FIELD, Integer.class)) {
                 // Extract the versions map from the matching architecture
                 Document versions = architectureDoc.get(VERSIONS_FIELD, Document.class);
+                if (versions == null) {
+                    throw new ArchitectureNotFoundException();
+                }
                 Set<String> versionKeys = versions.getFields();
 
                 // Convert from Nitrite representation
@@ -203,20 +201,21 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             if (architecture.getId() == architectureDoc.get(ARCHITECTURE_ID_FIELD, Integer.class)) {
                 // Retrieve the versions map from the matching architecture
                 Document versions = architectureDoc.get(VERSIONS_FIELD, Document.class);
+                if (versions == null) {
+                    throw new ArchitectureVersionNotFoundException();
+                }
 
                 // Return the architecture JSON blob for the specified version
                 String mongoVersion = architecture.getMongoVersion();
                 Object versionObj = versions.get(mongoVersion);
                 LOG.info("VersionDoc: [{}], Mongo Version: [{}]", versions, mongoVersion);
 
-                if (versionObj == null) {
+                if (!(versionObj instanceof String)) {
                     LOG.warn("Version '{}' not found for architecture {} in namespace '{}'",
                             architecture.getDotVersion(), architecture.getId(), architecture.getNamespace());
                     throw new ArchitectureVersionNotFoundException();
                 }
 
-                // In NitriteDB, we're storing the JSON as a string directly
-                // No need to convert to JSON string
                 return (String) versionObj;
             }
         }
@@ -232,6 +231,8 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             LOG.warn("Namespace '{}' not found when creating architecture version", architecture.getNamespace());
             throw new NamespaceNotFoundException();
         }
+
+        validateArchitectureJson(architecture.getArchitectureJson());
 
         lock.lock();
         try {
@@ -255,8 +256,32 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
+        validateArchitectureJson(architecture.getArchitectureJson());
+
         writeArchitectureToNitrite(architecture);
         return architecture;
+    }
+
+    /**
+     * Validates that the supplied architecture JSON is parseable, throwing {@link JsonParseException} if not so the
+     * REST layer can surface a 400. Validation runs immediately after the namespace check, before any existence or
+     * version checks, so a malformed payload is rejected consistently regardless of the operation.
+     *
+     * @param architectureJson the raw architecture JSON to validate
+     */
+    private void validateArchitectureJson(String architectureJson) {
+        if (architectureJson == null) {
+            LOG.error("Architecture JSON must not be null");
+            throw new JsonParseException("Architecture JSON must not be null");
+        }
+        try {
+            // Use org.bson.Document to validate JSON
+            org.bson.Document.parse(architectureJson);
+        } catch (JsonParseException e) {
+            // Rethrow the original so the parse failure's stack trace is preserved for observability
+            LOG.error("Invalid JSON format for architecture: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private void writeArchitectureToNitrite(Architecture architecture) throws ArchitectureNotFoundException {
@@ -283,6 +308,9 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                         if (architectureDoc.get(ARCHITECTURE_ID_FIELD, Integer.class) == architecture.getId()) {
                             // Found the architecture, update its version
                             Document versions = architectureDoc.get(VERSIONS_FIELD, Document.class);
+                            if (versions == null) {
+                                throw new ArchitectureNotFoundException();
+                            }
                             versions.put(architecture.getMongoVersion(), architecture.getArchitectureJson());
                             architectureDoc.put(NAME_FIELD, architecture.getName());
                             architectureDoc.put(DESCRIPTION_FIELD, architecture.getDescription());

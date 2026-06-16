@@ -7,6 +7,7 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -28,11 +29,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * Implementation of the ControlStore interface using NitriteDB.
  * This implementation is used when the application is running in standalone mode.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
 @Typed(NitriteControlStore.class)
 public class NitriteControlStore implements ControlStore {
@@ -182,6 +185,25 @@ public class NitriteControlStore implements ControlStore {
     }
 
     @Override
+    public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
+        Document controlDoc = findControl(domain, controlId);
+
+        @SuppressWarnings("unchecked")
+        List<Document> configurations = (List<Document>) controlDoc.get(CONFIGURATIONS_FIELD);
+        if (configurations == null) {
+            return List.of();
+        }
+
+        List<ControlConfigDetail> details = new ArrayList<>();
+        for (Document config : configurations) {
+            details.add(new ControlConfigDetail(
+                    config.get(CONFIGURATION_ID_FIELD, Integer.class),
+                    config.get("name", String.class)));
+        }
+        return details;
+    }
+
+    @Override
     public List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
         Document configDoc = findConfiguration(domain, controlId, configurationId);
         Document versions = configDoc.get(VERSIONS_FIELD, Document.class);
@@ -264,6 +286,9 @@ public class NitriteControlStore implements ControlStore {
                     .put(CONFIGURATION_ID_FIELD, configurationId)
                     .put(VERSIONS_FIELD, Document.createDocument()
                             .put("1-0-0", request.getConfigurationJson()));
+            if (request.getName() != null) {
+                configDoc.put("name", request.getName());
+            }
 
             @SuppressWarnings("unchecked")
             List<Document> configurations = (List<Document>) controlDoc.get(CONFIGURATIONS_FIELD);

@@ -10,6 +10,7 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -25,6 +26,7 @@ import org.finos.calm.store.ControlStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link ControlStore}.
@@ -56,6 +58,7 @@ import java.util.Set;
  * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoControlStore.class)
 public class MongoControlStore implements ControlStore {
@@ -173,6 +176,23 @@ public class MongoControlStore implements ControlStore {
     }
 
     @Override
+    public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
+        Document controlDoc = findControl(domain, controlId);
+        List<Document> configurations = controlDoc.getList("configurations", Document.class);
+        if (configurations == null) {
+            return List.of();
+        }
+
+        List<ControlConfigDetail> details = new ArrayList<>();
+        for (Document config : configurations) {
+            details.add(new ControlConfigDetail(
+                    config.getInteger("configurationId"),
+                    config.getString("name")));
+        }
+        return details;
+    }
+
+    @Override
     public List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
         Document configDoc = findConfiguration(domain, controlId, configurationId);
         Document versions = (Document) configDoc.get("versions");
@@ -244,6 +264,9 @@ public class MongoControlStore implements ControlStore {
 
         Document configDoc = new Document("configurationId", configurationId)
                 .append("versions", new Document("1-0-0", Document.parse(request.getConfigurationJson())));
+        if (request.getName() != null) {
+            configDoc.append("name", request.getName());
+        }
 
         Document filter = new Document("domain", domain)
                 .append("controls.controlId", controlId);

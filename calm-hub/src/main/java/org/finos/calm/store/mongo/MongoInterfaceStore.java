@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link InterfaceStore}.
@@ -37,6 +38,7 @@ import java.util.Set;
  * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoInterfaceStore.class)
 public class MongoInterfaceStore implements InterfaceStore {
@@ -113,6 +115,9 @@ public class MongoInterfaceStore implements InterfaceStore {
         for (Document interfaceDoc : interfaces) {
             if (interfaceId.equals(interfaceDoc.getInteger("interfaceId"))) {
                 Document versions = (Document) interfaceDoc.get("versions");
+                if (versions == null) {
+                    throw new InterfaceNotFoundException();
+                }
                 Set<String> versionKeys = versions.keySet();
 
                 List<String> resourceVersions = new ArrayList<>();
@@ -150,6 +155,9 @@ public class MongoInterfaceStore implements InterfaceStore {
         for (Document interfaceDoc : interfaces) {
             if (interfaceId.equals(interfaceDoc.getInteger("interfaceId"))) {
                 Document versions = (Document) interfaceDoc.get("versions");
+                if (versions == null) {
+                    throw new InterfaceVersionNotFoundException();
+                }
                 Document versionDoc = (Document) versions.get(version.replace('.', '-'));
                 if (versionDoc == null) {
                     throw new InterfaceVersionNotFoundException();

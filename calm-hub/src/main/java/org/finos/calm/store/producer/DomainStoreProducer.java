@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.DomainStore;
 import org.finos.calm.store.mongo.MongoDomainStore;
 import org.finos.calm.store.nitrite.NitriteDomainStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for DomainStore implementations.
@@ -20,10 +21,10 @@ public class DomainStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoDomainStore mongoDomainStore;
+    Instance<MongoDomainStore> mongoDomainStore;
 
     @Inject
-    NitriteDomainStore standaloneDomainStore;
+    Instance<NitriteDomainStore> standaloneDomainStore;
 
     /**
      * Produces the appropriate DomainStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class DomainStoreProducer {
     @ApplicationScoped
     public DomainStore produceDomainStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneDomainStore;
+            return standaloneDomainStore.get();
         } else {
-            return mongoDomainStore;
+            return mongoDomainStore.get();
         }
     }
 }

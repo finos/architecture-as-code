@@ -3,10 +3,12 @@ package org.finos.calm.resources;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.TimelineStore;
+import org.bson.json.JsonParseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,6 +26,7 @@ import static org.mockito.Mockito.when;
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 @TestProfile(AllowPutProfile.class)
+@TestSecurity(authorizationEnabled = false)
 public class TestTimelineResourcePutEnabledShould {
 
     @InjectMock
@@ -37,7 +40,7 @@ public class TestTimelineResourcePutEnabledShould {
                 .header("Content-Type", "application/json")
                 .body(envelopeBody)
                 .when()
-                .put("/calm/namespaces/test/timelines/20/versions/1.0.invalid0")
+                .put("/api/calm/namespaces/test/timelines/20/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -47,6 +50,7 @@ public class TestTimelineResourcePutEnabledShould {
         return Stream.of(
                 Arguments.of(new NamespaceNotFoundException(), 404),
                 Arguments.of(new TimelineNotFoundException(), 404),
+                Arguments.of(new JsonParseException(), 400),
                 Arguments.of(null, 201)
         );
     }
@@ -73,16 +77,16 @@ public class TestTimelineResourcePutEnabledShould {
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"timelineJson\":\"{ \\\"moments\\\": [] }\"}")
                     .when()
-                    .put("/calm/namespaces/test/timelines/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/timelines/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/namespaces/test/timelines/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/timelines/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"timelineJson\":\"{ \\\"moments\\\": [] }\"}")
                     .when()
-                    .put("/calm/namespaces/test/timelines/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/timelines/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }

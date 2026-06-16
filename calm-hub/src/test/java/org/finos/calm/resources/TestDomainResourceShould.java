@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Domain;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
 import org.finos.calm.store.DomainStore;
@@ -13,16 +14,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 public class TestDomainResourceShould {
 
-    public static final String CALM_DOMAINS = "calm/domains";
+    public static final String CALM_DOMAINS = "api/calm/domains";
     private static final String TEST_DOMAIN = "test-domain";
 
     @InjectMock
@@ -65,7 +67,7 @@ public class TestDomainResourceShould {
             .when().post(CALM_DOMAINS)
             .then()
             .statusCode(201)
-            .header("Location", "http://localhost:8081/calm/domains/" + expectedDomain.getName());
+            .header("Location", "http://localhost:8081/api/calm/domains/" + expectedDomain.getName());
 
         verify(mockControlStore).createDomain("test-domain");
     }
@@ -80,9 +82,35 @@ public class TestDomainResourceShould {
             .when().post(CALM_DOMAINS)
             .then()
             .statusCode(400)
-            .body(containsString(DOMAIN_NAME_MESSAGE));
+            .body(containsString(DOMAIN_MESSAGE));
 
         verify(mockControlStore, never()).createDomain("invalid-domain");
+    }
+
+    @Test
+    void return_400_when_domain_name_is_the_reserved_GLOBAL_name() throws DomainAlreadyExistsException {
+        given()
+                .header("Content-Type", "application/json")
+                .body(new Domain("GLOBAL"))
+                .when().post(CALM_DOMAINS)
+                .then()
+                .statusCode(400)
+                .body(containsString("reserved"));
+
+        verify(mockControlStore, never()).createDomain(any());
+    }
+
+    @Test
+    void return_400_when_domain_name_is_reserved_GLOBAL_case_insensitive() throws DomainAlreadyExistsException {
+        given()
+                .header("Content-Type", "application/json")
+                .body(new Domain("global"))
+                .when().post(CALM_DOMAINS)
+                .then()
+                .statusCode(400)
+                .body(containsString("reserved"));
+
+        verify(mockControlStore, never()).createDomain(any());
     }
 
     @Test

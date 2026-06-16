@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
@@ -108,7 +108,7 @@ final class McpValidationHelper {
         if (domain == null || domain.isBlank()) {
             return "Error: Domain must not be blank.";
         }
-        if (!domain.matches(DOMAIN_NAME_REGEX)) {
+        if (!domain.matches(DOMAIN_REGEX)) {
             return "Error: Invalid domain format '" + domain + "'. Must be alphanumeric with optional hyphens.";
         }
         return null;

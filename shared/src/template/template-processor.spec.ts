@@ -27,9 +27,9 @@ const mockTemplateLoader = {
 };
 
 vi.mock('./template-bundle-file-loader', () => ({
-    TemplateBundleFileLoader: vi.fn().mockImplementation(() => mockTemplateLoader),
-    SelfProvidedTemplateLoader: vi.fn().mockImplementation(() => mockTemplateLoader),
-    SelfProvidedDirectoryTemplateLoader: vi.fn().mockImplementation(() => mockTemplateLoader)
+    TemplateBundleFileLoader: vi.fn().mockImplementation(function () { return mockTemplateLoader; }),
+    SelfProvidedTemplateLoader: vi.fn().mockImplementation(function () { return mockTemplateLoader; }),
+    SelfProvidedDirectoryTemplateLoader: vi.fn().mockImplementation(function () { return mockTemplateLoader; })
 }));
 
 const mockTemplateEngine = {
@@ -37,7 +37,7 @@ const mockTemplateEngine = {
 };
 
 vi.mock('./template-engine', () => ({
-    TemplateEngine: vi.fn().mockImplementation(() => mockTemplateEngine)
+    TemplateEngine: vi.fn().mockImplementation(function () { return mockTemplateEngine; })
 }));
 
 const mockDereferencer = {
@@ -45,14 +45,14 @@ const mockDereferencer = {
 };
 
 vi.mock('./template-calm-file-dereferencer', () => ({
-    TemplateCalmFileDereferencer: vi.fn().mockImplementation(() => mockDereferencer),
+    TemplateCalmFileDereferencer: vi.fn().mockImplementation(function () { return mockDereferencer; }),
     FileReferenceResolver: vi.fn()
 }));
 
 const mappedResolverSpy = vi.fn();
 vi.mock('../resolver/calm-reference-resolver', async () => {
     return {
-        MappedReferenceResolver: vi.fn().mockImplementation((map, _resolver) => {
+        MappedReferenceResolver: vi.fn().mockImplementation(function (map, _resolver) {
             mappedResolverSpy(map);
             return {}; // stub implementation
         }),
@@ -63,9 +63,9 @@ vi.mock('../resolver/calm-reference-resolver', async () => {
 const dereferenceVisitMock = vi.fn();
 vi.mock('../model-visitor/dereference-visitor', async () => {
     return {
-        DereferencingVisitor: vi.fn().mockImplementation(() => ({
+        DereferencingVisitor: vi.fn().mockImplementation(function () { return {
             visit: dereferenceVisitMock
-        }))
+        }; })
     };
 });
 
@@ -91,18 +91,18 @@ describe('TemplateProcessor', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockReturnValue(mockTransformer);
 
-        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+        (fs.existsSync as Mock).mockImplementation(function (filePath: string) {
             return !filePath.includes('missing');
         });
         (fs.readdirSync as Mock).mockReturnValue([]);
-        (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
+        (fs.readFileSync as Mock).mockImplementation(function (filePath: string) {
             if (filePath.includes('simple-nodes.json')) return '{"some": "data"}';
             if (filePath.includes('./input')) return '{"test": "data"}';
             // Return valid JSON for any other file reads
             return '{"mock": "data"}';
         });
-        (fs.rmSync as Mock).mockImplementation(() => { });
-        (fs.mkdirSync as Mock).mockImplementation(() => { });
+        (fs.rmSync as Mock).mockImplementation(function () { });
+        (fs.mkdirSync as Mock).mockImplementation(function () { });
         mockDereferencer.dereferenceCalmDoc.mockReset().mockResolvedValue('{"some": "dereferencedData"}');
         dereferenceVisitMock.mockReset().mockResolvedValue(undefined);
     });
@@ -124,7 +124,7 @@ describe('TemplateProcessor', () => {
     });
 
     it('should throw an error if the input file is missing', async () => {
-        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+        (fs.existsSync as Mock).mockImplementation(function (filePath: string) {
             return !filePath.includes('simple-nodes.json');
         });
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
@@ -140,7 +140,7 @@ describe('TemplateProcessor', () => {
         };
         mockTemplateLoader.getConfig.mockReturnValue(configWithBadTransformer);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        vi.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockImplementation(() => {
+        vi.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockImplementation(function () {
             throw new Error('TransformerClass is undefined.');
         });
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
@@ -186,7 +186,7 @@ describe('TemplateProcessor', () => {
     });
 
     it('should create output directory if it does not exist', async () => {
-        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+        (fs.existsSync as Mock).mockImplementation(function (filePath: string) {
             return !filePath.includes('output');
         });
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map());
@@ -196,7 +196,7 @@ describe('TemplateProcessor', () => {
     });
 
     it('should not create output directory if it exists', async () => {
-        (fs.existsSync as Mock).mockImplementation((_: string) => {
+        (fs.existsSync as Mock).mockImplementation(function (_: string) {
             return true;
         });
         (fs.readdirSync as Mock).mockReturnValue([]);
@@ -208,7 +208,7 @@ describe('TemplateProcessor', () => {
     });
 
     it('should have warned about non-empty output directory if it exists and is non-empty', async () => {
-        (fs.existsSync as Mock).mockImplementation((_: string) => {
+        (fs.existsSync as Mock).mockImplementation(function (_: string) {
             return true;
         });
         (fs.readdirSync as Mock).mockReturnValue(['existing-file.txt']);
@@ -221,7 +221,7 @@ describe('TemplateProcessor', () => {
     });
 
     it('should have cleared output directory if told to', async () => {
-        (fs.existsSync as Mock).mockImplementation((_: string) => {
+        (fs.existsSync as Mock).mockImplementation(function (_: string) {
             return true;
         });
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map(), 'bundle', false, true);
@@ -244,8 +244,8 @@ describe('TemplateProcessor', () => {
             } as unknown as WidgetRegistry;
 
             const { WidgetEngine, WidgetRegistry } = await import('@finos/calm-widgets');
-            vi.mocked(WidgetEngine).mockImplementation(() => mockWidgetEngine);
-            vi.mocked(WidgetRegistry).mockImplementation(() => mockWidgetRegistry);
+            vi.mocked(WidgetEngine).mockImplementation(function () { return mockWidgetEngine; });
+            vi.mocked(WidgetRegistry).mockImplementation(function () { return mockWidgetRegistry; });
 
             const processor = new TemplateProcessor(
                 './input',

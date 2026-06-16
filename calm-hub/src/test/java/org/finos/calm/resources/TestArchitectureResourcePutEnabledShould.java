@@ -1,17 +1,18 @@
 package org.finos.calm.resources;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
+import org.bson.json.JsonParseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -22,12 +23,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
+@TestSecurity(authorizationEnabled = false)
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 @TestProfile(AllowPutProfile.class)
@@ -46,7 +47,7 @@ public class TestArchitectureResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body(ARCHITECTURE_JSON)
-                .put("/calm/namespaces/fin_os/architectures/20/versions/1.0.1")
+                .put("/api/calm/namespaces/fin_os/architectures/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -58,7 +59,7 @@ public class TestArchitectureResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body(ARCHITECTURE_JSON)
-                .put("/calm/namespaces/finos/architectures/20/versions/1.0invalid.1")
+                .put("/api/calm/namespaces/finos/architectures/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
                 .body(containsString("version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$"));
@@ -69,6 +70,7 @@ public class TestArchitectureResourcePutEnabledShould {
         return Stream.of(
                 Arguments.of(new NamespaceNotFoundException(), 404),
                 Arguments.of(new ArchitectureNotFoundException(), 404),
+                Arguments.of(new JsonParseException(), 400),
                 Arguments.of(null, 201)
         );
     }
@@ -101,17 +103,17 @@ public class TestArchitectureResourcePutEnabledShould {
                     .header("Content-Type", "application/json")
                     .body(objectMapper.writeValueAsString(architectureRequest))
                     .when()
-                    .put("/calm/namespaces/test/architectures/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
                     //Derived from stubbed architecture in resource
-                    .header("Location", containsString("/calm/namespaces/test/architectures/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/architectures/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(objectMapper.writeValueAsString(architectureRequest))
                     .when()
-                    .put("/calm/namespaces/test/architectures/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }

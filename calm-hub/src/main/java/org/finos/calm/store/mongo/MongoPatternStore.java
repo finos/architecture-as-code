@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB-backed implementation of {@link PatternStore}.
@@ -40,6 +41,7 @@ import java.util.Set;
  * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoPatternStore.class)
 public class MongoPatternStore implements PatternStore {
@@ -123,6 +125,9 @@ public class MongoPatternStore implements PatternStore {
             if (pattern.getId() == patternDoc.getInteger("patternId")) {
                 // Extract the versions map from the matching pattern
                 Document versions = (Document) patternDoc.get("versions");
+                if (versions == null) {
+                    throw new PatternNotFoundException();
+                }
                 Set<String> versionKeys = versions.keySet();
 
                 //Convert from Mongo representation
@@ -163,6 +168,9 @@ public class MongoPatternStore implements PatternStore {
             if (pattern.getId() == patternDoc.getInteger("patternId")) {
                 // Retrieve the versions map from the matching pattern
                 Document versions = (Document) patternDoc.get("versions");
+                if (versions == null) {
+                    throw new PatternVersionNotFoundException();
+                }
 
                 // Return the pattern JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(pattern.getMongoVersion());

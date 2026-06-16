@@ -1,0 +1,27 @@
+{
+    "name": "calm-vscode-screenshots",
+    "private": true,
+    "version": "0.0.0",
+    "description": "Documentation screenshot generator for the CALM VSCode extension. Dev-only — not published.",
+    "type": "module",
+    "scripts": {
+        "shoot": "tsx src/index.ts",
+        "test": "vitest run",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint src test",
+        "lint-fix": "eslint src test --fix"
+    },
+    "devDependencies": {
+        "@types/node": "^22.0.0",
+        "@typescript-eslint/eslint-plugin": "^8.0.0",
+        "@typescript-eslint/parser": "^8.0.0",
+        "@vscode/test-electron": "^2.4.1",
+        "eslint": "^9.0.0",
+        "eslint-plugin-import": "^2.32.0",
+        "globals": "^15.0.0",
+        "playwright": "^1.50.0",
+        "tsx": "^4.19.0",
+        "typescript": "^5.5.0",
+        "vitest": "^4.0.0"
+    }
+}

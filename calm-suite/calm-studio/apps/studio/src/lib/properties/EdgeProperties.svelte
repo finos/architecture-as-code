@@ -8,9 +8,33 @@
 -->
 <script lang="ts">
 	import type { Edge } from '@xyflow/svelte';
-	import type { CalmRelationshipType } from '@calmstudio/calm-core';
+	import type {
+		CalmRelationshipType,
+		CalmRelationshipVariant
+	} from '@calmstudio/calm-core';
 	import { updateEdgeProperty } from '$lib/stores/calmModel.svelte';
 	import ControlsList from './ControlsList.svelte';
+
+	function buildRelationshipType(
+		variant: CalmRelationshipVariant,
+		source: string,
+		target: string,
+	): CalmRelationshipType {
+		switch (variant) {
+			case 'connects':
+				return {
+					connects: { source: { node: source }, destination: { node: target } },
+				};
+			case 'composed-of':
+				return { 'composed-of': { container: source, nodes: [target] } };
+			case 'deployed-in':
+				return { 'deployed-in': { container: source, nodes: [target] } };
+			case 'interacts':
+				return { interacts: { actor: source, nodes: [target] } };
+			case 'options':
+				return { options: [] };
+		}
+	}
 
 	let {
 		edge,
@@ -24,7 +48,7 @@
 		onmutate?: () => void;
 	} = $props();
 
-	const RELATIONSHIP_TYPES: CalmRelationshipType[] = [
+	const RELATIONSHIP_TYPES: CalmRelationshipVariant[] = [
 		'connects',
 		'interacts',
 		'deployed-in',
@@ -72,8 +96,8 @@
 		localProtocol = String(edge.data?.protocol ?? '');
 	});
 
-	const relType: CalmRelationshipType = $derived(
-		(edge.data?.calmRelType ?? edge.type ?? 'connects') as CalmRelationshipType
+	const relType: CalmRelationshipVariant = $derived(
+		(edge.data?.calmVariant ?? edge.type ?? 'connects') as CalmRelationshipVariant
 	);
 	const showProtocol: boolean = $derived(PROTOCOL_TYPES.includes(relType));
 
@@ -88,9 +112,14 @@
 	}
 
 	function handleRelTypeChange(e: Event) {
-		const value = (e.target as HTMLSelectElement).value;
+		const value = (e.target as HTMLSelectElement).value as CalmRelationshipVariant;
 		signalFirstEdit();
-		updateEdgeProperty(edge.id, 'relationship-type', value);
+		// CALM 1.2 nested form: build a fresh relationship-type object using the
+		// edge's current source/target endpoints. Switching variant preserves
+		// connectivity but reshapes the payload (e.g. connects.source.node →
+		// composed-of.container).
+		const nested = buildRelationshipType(value, edge.source, edge.target);
+		updateEdgeProperty(edge.id, 'relationship-type', nested);
 		onmutate?.();
 	}
 

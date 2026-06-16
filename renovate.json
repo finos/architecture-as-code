@@ -54,6 +54,12 @@
             ],
             "groupName": "quarkus+jacoco"
         },
+        {
+            "description": "Pin Netty to 4.1.x until Quarkus 4.x lands; Quarkus 3.x is incompatible with Netty 4.2 on Java 21",
+            "matchManagers": ["maven"],
+            "matchPackageNames": ["io.netty:netty-bom"],
+            "allowedVersions": "<4.2.0"
+        },
     {
       "description": "Group JavaScript/TypeScript dependencies by ecosystem",
       "matchManagers": ["npm"],
