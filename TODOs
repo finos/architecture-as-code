@@ -1,6 +1,0 @@
-- allow bumps. by setting --bump on the push commands it should 
-    - update the file
-    - push updated file with the new version
-- fix the many todos in code
-- properly validate the input IDs and explain what it should look like
-- consider global refactor name > title as name is misleading (needs agreement)
