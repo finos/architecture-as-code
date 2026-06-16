@@ -144,19 +144,19 @@ describe('CalmHubClient', () => {
 
     describe('createDomain', () => {
         it('returns name and location on 201', async () => {
-            mock.onPost('/api/calm/domains').reply(201, null, {});
+            mock.onPost('/calm/domains').reply(201, null, {});
 
             const result = await client.createDomain('risk');
-            expect(result).toEqual({ name: 'risk', location: '/api/calm/domains/risk' });
+            expect(result).toEqual({ name: 'risk', location: '/calm/domains/risk' });
         });
 
         it('throws HubClientError(409) on conflict', async () => {
-            mock.onPost('/api/calm/domains').reply(409, { error: 'Domain already exists' });
+            mock.onPost('/calm/domains').reply(409, { error: 'Domain already exists' });
 
             await expect(client.createDomain('risk')).rejects.toMatchObject({
                 status: 409,
                 error: 'Domain already exists',
-                request: 'POST /api/calm/domains'
+                request: 'POST /calm/domains'
             });
         });
     });
@@ -165,7 +165,7 @@ describe('CalmHubClient', () => {
 
     describe('listDomains', () => {
         it('returns array of domain summaries', async () => {
-            mock.onGet('/api/calm/domains').reply(200, {
+            mock.onGet('/calm/domains').reply(200, {
                 values: [{ name: 'risk' }, { name: 'compliance' }]
             });
 
@@ -175,7 +175,7 @@ describe('CalmHubClient', () => {
         });
 
         it('returns empty array when values is absent', async () => {
-            mock.onGet('/api/calm/domains').reply(200, {});
+            mock.onGet('/calm/domains').reply(200, {});
             const result = await client.listDomains();
             expect(result).toEqual([]);
         });
@@ -527,14 +527,14 @@ describe('CalmHubClient', () => {
         });
 
         it('injects auth headers on createDomain', async () => {
-            authMock.onPost('/api/calm/domains').reply(201, null, {});
+            authMock.onPost('/calm/domains').reply(201, null, {});
 
             await authClient.createDomain('risk');
             expect(getAuthHeaders).toHaveBeenCalled();
         });
 
         it('injects auth headers on listDomains', async () => {
-            authMock.onGet('/api/calm/domains').reply(200, { values: [] });
+            authMock.onGet('/calm/domains').reply(200, { values: [] });
 
             await authClient.listDomains();
             expect(getAuthHeaders).toHaveBeenCalled();
