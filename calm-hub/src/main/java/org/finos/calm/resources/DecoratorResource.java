@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -27,7 +28,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * Resource for managing decorators in a given namespace
  */
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class DecoratorResource {
 
     private final DecoratorStore decoratorStore;
@@ -147,7 +149,7 @@ public class DecoratorResource {
     ) throws URISyntaxException {
         try {
             int id = decoratorStore.createDecorator(namespace, decoratorJson);
-            URI location = new URI("/calm/namespaces/" + namespace + "/decorators/" + id);
+            URI location = new URI("/api/calm/namespaces/" + namespace + "/decorators/" + id);
             return Response.created(location).entity(Map.of("id", id)).build();
         } catch (JsonParseException e) {
             logger.error("Invalid JSON when creating decorator in namespace [{}]", namespace, e);

@@ -66,7 +66,7 @@ public class MongoInterfaceIntegration {
     @Order(1)
     void end_to_end_get_with_no_interfaces() {
         given()
-                .when().get("/calm/namespaces/finos/interfaces")
+                .when().get("/api/calm/namespaces/finos/interfaces")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -78,7 +78,7 @@ public class MongoInterfaceIntegration {
         given()
                 .body(createInterfaceRequest)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/interfaces")
+                .when().post("/api/calm/namespaces/finos/interfaces")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/interfaces/1/versions/1.0.0"));
@@ -93,7 +93,7 @@ public class MongoInterfaceIntegration {
         expected.put("description", DESCRIPTION);
 
         given()
-                .when().get("/calm/namespaces/finos/interfaces")
+                .when().get("/api/calm/namespaces/finos/interfaces")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -104,7 +104,7 @@ public class MongoInterfaceIntegration {
     @Order(4)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/interfaces/1/versions")
+                .when().get("/api/calm/namespaces/finos/interfaces/1/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -115,7 +115,7 @@ public class MongoInterfaceIntegration {
     @Order(5)
     void end_to_end_verify_interface_for_version() {
         given()
-                .when().get("/calm/namespaces/finos/interfaces/1/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/interfaces/1/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(INTERFACE_JSON));
@@ -129,7 +129,7 @@ public class MongoInterfaceIntegration {
         given()
                 .body(updatedRequest)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/interfaces/1/versions/2.0.0")
+                .when().post("/api/calm/namespaces/finos/interfaces/1/versions/2.0.0")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/interfaces/1/versions/2.0.0"));
@@ -139,7 +139,7 @@ public class MongoInterfaceIntegration {
     @Order(7)
     void end_to_end_verify_new_version_retrieval() {
         given()
-                .when().get("/calm/namespaces/finos/interfaces/1/versions/2.0.0")
+                .when().get("/api/calm/namespaces/finos/interfaces/1/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(INTERFACE_JSON));
@@ -149,7 +149,7 @@ public class MongoInterfaceIntegration {
     @Order(8)
     void end_to_end_verify_two_versions_exist() {
         given()
-                .when().get("/calm/namespaces/finos/interfaces/1/versions")
+                .when().get("/api/calm/namespaces/finos/interfaces/1/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2))
@@ -166,7 +166,7 @@ public class MongoInterfaceIntegration {
         expected.put("description", "Updated Description");
 
         given()
-                .when().get("/calm/namespaces/finos/interfaces")
+                .when().get("/api/calm/namespaces/finos/interfaces")
                 .then()
                 .statusCode(200)
                 .body("values", hasItem(equalTo(expected)));
@@ -178,7 +178,7 @@ public class MongoInterfaceIntegration {
         given()
                 .body(createInterfaceRequest)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/interfaces/1/versions/1.0.0")
+                .when().post("/api/calm/namespaces/finos/interfaces/1/versions/1.0.0")
                 .then()
                 .statusCode(409);
     }
@@ -187,7 +187,7 @@ public class MongoInterfaceIntegration {
     @Order(11)
     void end_to_end_get_interface_for_invalid_namespace() {
         given()
-                .when().get("/calm/namespaces/nonexistent/interfaces")
+                .when().get("/api/calm/namespaces/nonexistent/interfaces")
                 .then()
                 .statusCode(404);
     }
@@ -196,7 +196,7 @@ public class MongoInterfaceIntegration {
     @Order(12)
     void end_to_end_get_versions_for_nonexistent_interface() {
         given()
-                .when().get("/calm/namespaces/finos/interfaces/999/versions")
+                .when().get("/api/calm/namespaces/finos/interfaces/999/versions")
                 .then()
                 .statusCode(404);
     }
@@ -205,7 +205,7 @@ public class MongoInterfaceIntegration {
     @Order(13)
     void end_to_end_get_nonexistent_version() {
         given()
-                .when().get("/calm/namespaces/finos/interfaces/1/versions/9.9.9")
+                .when().get("/api/calm/namespaces/finos/interfaces/1/versions/9.9.9")
                 .then()
                 .statusCode(404);
     }

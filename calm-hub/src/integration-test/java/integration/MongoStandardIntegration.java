@@ -72,7 +72,7 @@ public class MongoStandardIntegration {
     @Order(1)
     void end_to_end_get_with_no_standards() {
         given()
-                .when().get("/calm/namespaces/finos/standards")
+                .when().get("/api/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -84,7 +84,7 @@ public class MongoStandardIntegration {
         var response = given()
                 .body(createStandardRequest)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/standards")
+                .when().post("/api/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/standards/"))
@@ -104,7 +104,7 @@ public class MongoStandardIntegration {
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/standards/" + createdStandardId + "/versions")
+                .when().get("/api/calm/namespaces/finos/standards/" + createdStandardId + "/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -115,7 +115,7 @@ public class MongoStandardIntegration {
     @Order(4)
     void end_to_end_verify_standard() {
         given()
-                .when().get("/calm/namespaces/finos/standards/" + createdStandardId + "/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/standards/" + createdStandardId + "/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{}"));
@@ -129,7 +129,7 @@ public class MongoStandardIntegration {
         given()
                 .body(createStandardRequest)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
+                .when().post("/api/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0"));
@@ -141,7 +141,7 @@ public class MongoStandardIntegration {
         setupTestStandardForPersistenceRetrieval();
 
         given()
-                .when().get("/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
+                .when().get("/api/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{}"));
@@ -158,7 +158,7 @@ public class MongoStandardIntegration {
         expected.put("description", "New Description");
 
         given()
-                .when().get("/calm/namespaces/finos/standards")
+                .when().get("/api/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(200)
                 .body("values", hasItem(equalTo(expected)));

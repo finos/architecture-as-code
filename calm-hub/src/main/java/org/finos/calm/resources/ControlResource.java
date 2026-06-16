@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -27,7 +28,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * REST resource for managing controls within domains.
  */
-@Path("/calm/domains")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/domains")
 public class ControlResource {
 
     private final ControlStore store;
@@ -75,7 +77,7 @@ public class ControlResource {
             @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
         try {
             ControlDetail controlDetail = store.createControlRequirement(createControlRequirement, domain);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlDetail.getId())).entity(controlDetail).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlDetail.getId())).entity(controlDetail).build();
         } catch (DomainNotFoundException domainNotFoundException) {
             logger.error("Invalid domain [{}] when creating control", domain, domainNotFoundException);
             return invalidDomainResponse(domain);
@@ -156,7 +158,7 @@ public class ControlResource {
             @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
         try {
             store.createRequirementForVersion(domain, controlId, version, createControlRequirement);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/requirement/versions/" + version)).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/requirement/versions/" + version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating requirement version", domain, e);
             return invalidDomainResponse(domain);
@@ -213,7 +215,7 @@ public class ControlResource {
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
         try {
             int configurationId = store.createControlConfiguration(createControlConfiguration, domain, controlId);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configurationId)).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configurationId)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating configuration", domain, e);
             return invalidDomainResponse(domain);
@@ -306,7 +308,7 @@ public class ControlResource {
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
         try {
             store.createConfigurationForVersion(domain, controlId, configId, version, createControlConfiguration);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configId + "/versions/" + version)).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configId + "/versions/" + version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating configuration version", domain, e);
             return invalidDomainResponse(domain);

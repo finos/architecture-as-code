@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.FlowNotFoundException;
@@ -33,7 +34,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITI
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class FlowResource {
 
     private final FlowStore store;
@@ -268,7 +270,7 @@ public class FlowResource {
     }
 
     private Response flowWithLocationResponse(Flow flow) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + flow.getNamespace() + "/flows/" + flow.getId() + "/versions/" + flow.getDotVersion())).build();
+        return Response.created(new URI("/api/calm/namespaces/" + flow.getNamespace() + "/flows/" + flow.getId() + "/versions/" + flow.getDotVersion())).build();
     }
 
     private Response invalidFlowJsonResponse(String flowJson) {

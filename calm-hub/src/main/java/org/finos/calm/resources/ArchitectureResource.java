@@ -17,6 +17,7 @@ import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.architecture.ArchitectureRequest;
@@ -43,7 +44,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX
 /**
  * Resource for managing architectures in a given namespace
  */
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 @Authenticated
 public class ArchitectureResource {
 
@@ -289,7 +291,7 @@ public class ArchitectureResource {
     }
 
     private Response architectureWithLocationResponse(Architecture architecture) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + architecture.getNamespace() + "/architectures/" + architecture.getId() + "/versions/" + architecture.getDotVersion())).build();
+        return Response.created(new URI("/api/calm/namespaces/" + architecture.getNamespace() + "/architectures/" + architecture.getId() + "/versions/" + architecture.getDotVersion())).build();
     }
 
     private Response invalidArchitectureResponse(int architectureId) {

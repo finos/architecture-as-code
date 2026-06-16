@@ -28,7 +28,7 @@ public class TestSecurityResponseHeadersShould {
 
         given()
                 .when()
-                .get("/calm/namespaces")
+                .get("/api/calm/namespaces")
                 .then()
                 .statusCode(200)
                 .header("X-Frame-Options", equalTo("DENY"));
@@ -40,7 +40,7 @@ public class TestSecurityResponseHeadersShould {
                 .contentType("application/json")
                 .body("{\"name\":\"test\",\"description\":\"test\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .header("X-Frame-Options", equalTo("DENY"));
     }

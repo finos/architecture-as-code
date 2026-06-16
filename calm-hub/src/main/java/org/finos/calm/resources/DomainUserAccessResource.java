@@ -8,6 +8,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
@@ -22,7 +23,8 @@ import java.time.LocalDateTime;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
 
-@Path("/calm/domains")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/domains")
 public class DomainUserAccessResource {
 
     private final UserAccessStore store;
@@ -101,7 +103,7 @@ public class DomainUserAccessResource {
 
     private Response locationResponse(UserAccess userAccess) throws URISyntaxException {
         return Response.created(new URI(
-                        String.format("/calm/domains/%s/user-access/%s", userAccess.getDomain(), userAccess.getUserAccessId())))
+                        String.format("/api/calm/domains/%s/user-access/%s", userAccess.getDomain(), userAccess.getUserAccessId())))
                 .build();
     }
 }

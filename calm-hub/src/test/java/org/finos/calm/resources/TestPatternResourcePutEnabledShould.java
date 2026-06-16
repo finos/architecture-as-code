@@ -38,7 +38,7 @@ public class TestPatternResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
-                .put("/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
+                .put("/api/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -50,7 +50,7 @@ public class TestPatternResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
-                .put("/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
+                .put("/api/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
                 .body(containsString("version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$"));
@@ -89,16 +89,16 @@ public class TestPatternResourcePutEnabledShould {
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
-                    .put("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/namespaces/test/patterns/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/patterns/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
-                    .put("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }

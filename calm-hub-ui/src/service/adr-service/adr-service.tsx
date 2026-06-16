@@ -19,7 +19,7 @@ export class AdrService {
     async fetchAdrSummaries(namespace: string): Promise<AdrSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/adrs`, {
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs`, {
                 headers,
             })
             .then((res) => {
@@ -38,7 +38,7 @@ export class AdrService {
     async fetchAdrRevisions(namespace: string, adrID: string): Promise<number[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions`, {
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions`, {
                 headers,
             })
             .then((res) => (Array.isArray(res.data?.values) ? res.data.values : []))
@@ -55,7 +55,7 @@ export class AdrService {
     async fetchAdr(namespace: string, adrID: string, revision: string): Promise<CalmAdrMeta> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions/${encodeURIComponent(revision)}`, {
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions/${encodeURIComponent(revision)}`, {
                 headers,
             })
             .then((res) => res.data)
