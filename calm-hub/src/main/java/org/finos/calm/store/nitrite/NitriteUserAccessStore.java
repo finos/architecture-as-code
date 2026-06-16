@@ -110,7 +110,17 @@ public class NitriteUserAccessStore implements UserAccessStore {
     }
 
     @Override
-    public List<UserAccess> getUserAccessForNamespace(String namespace) 
+    public List<UserAccess> getGrantsForUser(String username) {
+        Filter filter = where(USERNAME_FIELD).in(username, "*");
+        List<UserAccess> grants = new ArrayList<>();
+        for (Document doc : userAccessCollection.find(filter)) {
+            grants.add(buildUserAccessFromDocument(doc));
+        }
+        return grants;
+    }
+
+    @Override
+    public List<UserAccess> getUserAccessForNamespace(String namespace)
             throws NamespaceNotFoundException, UserAccessNotFoundException {
         
         if (!namespaceStore.namespaceExists(namespace)) {
