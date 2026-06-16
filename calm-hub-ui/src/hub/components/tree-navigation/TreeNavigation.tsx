@@ -6,6 +6,7 @@ import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr, ResourceSummary, AdrSummary, ResourceMapping, isSlug } from '../../../model/calm.js';
 import { pickLatestVersion } from '../../../model/version.js';
+import { authStore } from '../../../service/utils/auth-store.js';
 import {
     type TypeInUrl,
     type TypeInUI,
@@ -378,6 +379,23 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const interfaceService = useMemo(() => new InterfaceService(), []);
     const adrService = useMemo(() => new AdrService(), []);
 
+    useEffect(() => {
+        return authStore.subscribe((status) => {
+            if (status === 401 || status === 403) {
+                setSelectedType(EMPTY_STR_VALUE);
+                setSelectedResourceID(EMPTY_STR_VALUE);
+                setArchitectureSummaries([]);
+                setPatternSummaries([]);
+                setFlowSummaries([]);
+                setStandardSummaries([]);
+                setAdrSummaries([]);
+                setNamespaceInterfaces([]);
+                setSelectedInterfaceId(null);
+                setSelectedControlId(null);
+            }
+        });
+    }, []);
+
     // Resource mappings: merge customId into summaries after fetching
     const mergeMappings = useCallback((summaries: ResourceSummary[], mappings: ResourceMapping[]): ResourceSummary[] => {
         const byNumericId = new Map(mappings.map(m => [m.numericId, m.customId]));
@@ -545,17 +563,20 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
         } else {
             setSelectedType(type);
             if (type === 'Interfaces') {
+                setNamespaceInterfaces([]);
                 interfaceService.fetchInterfacesForNamespace(selectedNamespace).then(setNamespaceInterfaces).catch((error) => {
                     console.error('Failed to fetch interfaces', error);
                     setNamespaceInterfaces([]);
                 });
             } else if (type === 'ADRs') {
+                setAdrSummaries([]);
                 adrService.fetchAdrSummaries(selectedNamespace).then(setAdrSummaries);
             } else {
                 const setter = type === 'Architectures' ? setArchitectureSummaries
                     : type === 'Patterns' ? setPatternSummaries
                     : type === 'Flows' ? setFlowSummaries
                     : setStandardSummaries;
+                setter([]);
                 const fetcher = type === 'Architectures' ? calmService.fetchArchitectureSummaries.bind(calmService)
                     : type === 'Patterns' ? calmService.fetchPatternSummaries.bind(calmService)
                     : type === 'Flows' ? calmService.fetchFlowSummaries.bind(calmService)

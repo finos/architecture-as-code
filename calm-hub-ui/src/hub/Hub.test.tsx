@@ -1,8 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Hub from './Hub.js';
 import { vi, describe, it, expect, afterEach } from 'vitest';
+import { authStore } from '../service/utils/auth-store.js';
 
 /**
  * Force `useIsMobile()` (which reads window.matchMedia) to report a mobile
@@ -372,6 +373,36 @@ describe('Hub', () => {
             expect(screen.getByRole('dialog')).toBeInTheDocument();
 
             restore();
+        });
+    });
+
+    describe('auth error clears content', () => {
+        afterEach(() => {
+            authStore.setAuthError(null);
+        });
+
+        it('clears displayed diagram content when a 403 is emitted', () => {
+            renderWithRouter(<Hub />);
+            fireEvent.click(screen.getByText('Load Test Data'));
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+            act(() => {
+                authStore.setAuthError(403);
+            });
+
+            expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+        });
+
+        it('clears displayed ADR content when a 401 is emitted', () => {
+            renderWithRouter(<Hub />);
+            fireEvent.click(screen.getByText('Load Test ADR'));
+            expect(screen.getByTestId('adr-renderer')).toBeInTheDocument();
+
+            act(() => {
+                authStore.setAuthError(401);
+            });
+
+            expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
         });
     });
 });

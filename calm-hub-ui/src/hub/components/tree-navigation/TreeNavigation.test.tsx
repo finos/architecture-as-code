@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TreeNavigation, buildNamespaceTree } from './TreeNavigation.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
 import { InterfaceService } from '../../../service/interface-service.js';
 import { MemoryRouter, useParams, useNavigate } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { authStore } from '../../../service/utils/auth-store.js';
 
 // Mock react-router-dom
 vi.mock('react-router-dom', async () => {
@@ -113,6 +114,10 @@ const mockProps = {
 describe('TreeNavigation', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        authStore.setAuthError(null);
     });
 
     it('renders the tree navigation component', async () => {
@@ -328,6 +333,54 @@ describe('TreeNavigation', () => {
         await waitFor(() => {
             expect(navigate).toHaveBeenCalledWith('/test-namespace/architectures/201/2.0.0');
         });
+    });
+
+    it('clears the selected type and resource list when authStore emits a 403', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        // Override to return a known architecture so we can assert its removal
+        await screen.findByText('test-namespace');
+        calmServiceInstance!.fetchArchitectureSummaries.mockResolvedValue([{ id: 1, name: 'arch-a', description: '' }]);
+
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+        await screen.findByText('arch-a');
+
+        act(() => {
+            authStore.setAuthError(403);
+        });
+
+        expect(screen.queryByText('arch-a')).not.toBeInTheDocument();
+    });
+
+    it('does not show stale summaries from the previous namespace while the new fetch is pending', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+        // First call (test-namespace) resolves; second call (another-namespace) never resolves
+        calmServiceInstance!.fetchArchitectureSummaries
+            .mockResolvedValueOnce([{ id: 1, name: 'arch-a', description: '' }])
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        // Load arch-a under test-namespace
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+        await screen.findByText('arch-a');
+
+        // Switch to another-namespace and open Architectures (fetch never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+
+        // arch-a must be gone immediately — not shown while the new fetch is pending
+        expect(screen.queryByText('arch-a')).not.toBeInTheDocument();
     });
 });
 
