@@ -10,7 +10,7 @@ This file lists the maintainers of this repository.
 | @Budlee | *please add name* | *please add organization* | *please add email* |
 | @LeighFinegold | LeighF | *please add organization* | *please add email* |
 | @Thels | *please add name* | *please add organization* | *please add email* |
-| @YoofiTT96 | *please add name* | *please add organization* | *please add email* |
+| @YoofiTT96 | Joseph Yoofi Brown-Pobee | turntabl | yoofi.brownpobee@outlook.com |
 | @aamanrebello | *please add name* | *please add organization* | *please add email* |
 | @aidanm3341 | Aidan McPhelim | Morgan Stanley | *please add email* |
 | @dc-ms | *please add name* | *please add organization* | *please add email* |
