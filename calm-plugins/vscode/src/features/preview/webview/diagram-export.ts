@@ -15,83 +15,55 @@ export function serializeSvgElement(svg: SVGSVGElement): string {
 }
 
 /**
- * Produces a detached clone of `svg` with the same fixes applied to both the SVG and
- * PNG export paths: an inlined font-family, Mermaid's original viewBox restored, and
- * foreignObjects that won't clip their labels.
+ * Produces a detached clone of `svg` ready for export, with three fixes applied:
+ *
+ * Font: some text (e.g. edge labels) inherits the webview body font rather than getting
+ * an explicit font-family from Mermaid's styles. That inheritance breaks in a standalone
+ * file, so the live resolved font-family is inlined as a presentation attribute (lowest
+ * CSS specificity, so it doesn't override Mermaid's own per-element font rules).
+ *
+ * ViewBox: svg-pan-zoom strips the viewBox and wraps content in a pan/zoom transform.
+ * `initializePanZoom` stashes Mermaid's original layout viewBox as `data-original-viewbox`
+ * before svg-pan-zoom removes it; restore that here along with explicit width/height so
+ * the file has correct intrinsic dimensions and shows the whole diagram.
+ *
+ * Clipping: the inlined font may render glyphs wider than the font Mermaid used when
+ * measuring foreignObject sizes, causing labels to overflow. foreignObjects clip by
+ * default; set overflow:visible so any overflow spills out rather than being cut off.
  */
 function buildExportClone(svg: SVGSVGElement): SVGSVGElement {
     const clone = svg.cloneNode(true) as SVGSVGElement
-    // Remove any explicit xmlns attribute - the serializer adds its own namespace
-    // declaration based on namespaceURI, and keeping both produces invalid XML
-    // with a duplicated xmlns attribute.
+    // Remove any explicit xmlns - the serializer adds its own, and keeping both
+    // produces a duplicated attribute, making the output invalid XML.
     clone.removeAttribute('xmlns')
 
-    inlineResolvedFont(svg, clone)
-    restoreDiagramViewBox(clone)
-    preventForeignObjectClipping(clone)
-
-    return clone
-}
-
-/**
- * Some text (e.g. edge labels) doesn't get a font-family from Mermaid's embedded styles
- * and instead relies on inheriting the page's body font (e.g. VS Code's webview font).
- * That ancestor CSS isn't available to a standalone SVG file, so this text falls back to
- * the renderer's default font (often serif). Set the live, fully-resolved font-family as
- * a presentation attribute on the root element - this has the lowest CSS specificity, so
- * it provides a fallback for unstyled text without overriding Mermaid's own font-family
- * rules for node/edge labels (which Mermaid used when sizing their foreignObjects -
- * overriding them would change text metrics and cause labels to be clipped).
- */
-function inlineResolvedFont(source: SVGSVGElement, clone: SVGSVGElement): void {
-    const fontFamily = getComputedStyle(source).fontFamily
+    // Font
+    const fontFamily = getComputedStyle(svg).fontFamily
     if (fontFamily) {
         clone.setAttribute('font-family', fontFamily)
     }
-}
 
-/**
- * svg-pan-zoom strips the SVG's viewBox, sizes it to 100% of its container, and wraps
- * the diagram in a `.svg-pan-zoom_viewport` group carrying the live pan/zoom transform.
- * Serialized as-is, the result has no intrinsic size and shows whatever portion of the
- * diagram the user last panned/zoomed to. `initializePanZoom` stashes Mermaid's own
- * layout-computed viewBox - which already accounts for every label, edge label and
- * subgraph - as `data-original-viewbox` before svg-pan-zoom strips it. Restore that
- * viewBox and drop the pan/zoom transform so the exported file renders the whole
- * diagram exactly as Mermaid laid it out.
- */
-function restoreDiagramViewBox(clone: SVGSVGElement): void {
+    // ViewBox
     const originalViewBox = clone.getAttribute('data-original-viewbox')
     const viewport = clone.querySelector('.svg-pan-zoom_viewport') as SVGElement | null
-    if (!originalViewBox || !viewport) {
-        return
+    if (originalViewBox && viewport) {
+        const [, , width, height] = originalViewBox.split(/\s+/)
+        clone.setAttribute('viewBox', originalViewBox)
+        clone.setAttribute('width', width)
+        clone.setAttribute('height', height)
+        clone.removeAttribute('data-original-viewbox')
+        clone.style.removeProperty('width')
+        clone.style.removeProperty('height')
+        viewport.removeAttribute('transform')
+        viewport.style.removeProperty('transform')
     }
 
-    const [, , width, height] = originalViewBox.split(/\s+/)
-
-    clone.setAttribute('viewBox', originalViewBox)
-    clone.setAttribute('width', width)
-    clone.setAttribute('height', height)
-    clone.removeAttribute('data-original-viewbox')
-    clone.style.removeProperty('width')
-    clone.style.removeProperty('height')
-
-    viewport.removeAttribute('transform')
-    viewport.style.removeProperty('transform')
-}
-
-/**
- * `inlineResolvedFont`'s font-family can render glyphs (e.g. emoji) at a different
- * width in whatever renderer later opens the exported file than in the font Mermaid
- * used when it measured each label's `<foreignObject>` here in the webview - so a
- * label that fits here can still overflow its foreignObject elsewhere. A foreignObject
- * clips overflowing content by default; set `overflow: visible` so any such overflow
- * spills visibly instead of being cut off, regardless of which renderer opens the file.
- */
-function preventForeignObjectClipping(clone: SVGSVGElement): void {
-    clone.querySelectorAll('foreignObject').forEach((foreignObject) => {
-        foreignObject.style.overflow = 'visible'
+    // Clipping
+    clone.querySelectorAll('foreignObject').forEach((fo) => {
+        fo.style.overflow = 'visible'
     })
+
+    return clone
 }
 
 /**
