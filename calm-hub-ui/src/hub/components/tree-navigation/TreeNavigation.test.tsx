@@ -382,6 +382,78 @@ describe('TreeNavigation', () => {
         // arch-a must be gone immediately — not shown while the new fetch is pending
         expect(screen.queryByText('arch-a')).not.toBeInTheDocument();
     });
+
+    it('clears selected domain and controls when authStore emits a 403', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-domain');
+        controlServiceInstance!.fetchControlsForDomain.mockResolvedValue([{ id: 1, name: 'Alpha Control', description: '' }]);
+
+        fireEvent.click(screen.getByText('test-domain'));
+        await screen.findByText('Alpha Control');
+
+        act(() => {
+            authStore.setAuthError(403);
+        });
+
+        expect(screen.queryByText('Alpha Control')).not.toBeInTheDocument();
+    });
+
+    it('does not show stale controls from the previous domain while the new fetch is pending', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+        vi.mocked(ControlService).mockImplementationOnce(function () {
+            controlServiceInstance = {
+                fetchDomains: vi.fn().mockResolvedValue(['domain-a', 'domain-b']),
+                fetchControlsForDomain: vi.fn()
+                    .mockResolvedValueOnce([{ id: 1, name: 'Alpha Control', description: '' }])
+                    .mockReturnValueOnce(new Promise(() => {})),
+            };
+            return controlServiceInstance as unknown as InstanceType<typeof ControlService>;
+        });
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        // Load Alpha Control under domain-a
+        fireEvent.click(await screen.findByText('domain-a'));
+        await screen.findByText('Alpha Control');
+
+        // Switch to domain-b (fetch never resolves)
+        fireEvent.click(screen.getByText('domain-b'));
+
+        // Alpha Control must be gone immediately — not shown while the new fetch is pending
+        expect(screen.queryByText('Alpha Control')).not.toBeInTheDocument();
+    });
+
+    it('does not show stale ADR summaries from the previous namespace while the new fetch is pending', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+        adrServiceInstance!.fetchAdrSummaries
+            .mockResolvedValueOnce([{ id: 201, title: 'Use CALM', status: 'accepted' }])
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        // Load ADR summaries under test-namespace
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('ADRs'));
+        await screen.findByText('Use CALM (accepted)');
+
+        // Switch to another-namespace and open ADRs (fetch never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('ADRs'));
+
+        // Use CALM (accepted) must be gone immediately — not shown while the new fetch is pending
+        expect(screen.queryByText('Use CALM (accepted)')).not.toBeInTheDocument();
+    });
 });
 
 describe('buildNamespaceTree', () => {

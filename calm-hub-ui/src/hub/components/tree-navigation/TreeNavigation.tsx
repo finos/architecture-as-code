@@ -391,6 +391,8 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 setAdrSummaries([]);
                 setNamespaceInterfaces([]);
                 setSelectedInterfaceId(null);
+                setSelectedDomain('');
+                setDomainControls([]);
                 setSelectedControlId(null);
             }
         });
@@ -525,6 +527,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             setSelectedDomain('');
         } else {
             setSelectedDomain(domain);
+            setDomainControls([]);
             controlService.fetchControlsForDomain(domain).then(setDomainControls);
         }
         setSelectedControlId(null);
