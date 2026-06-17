@@ -10,8 +10,10 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.UserAccess;
+import org.finos.calm.domain.UserAccessRequest;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.store.DomainStore;
 import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +30,12 @@ import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
 public class DomainUserAccessResource {
 
     private final UserAccessStore store;
+    private final DomainStore domainStore;
     private final Logger logger = LoggerFactory.getLogger(DomainUserAccessResource.class);
 
-    public DomainUserAccessResource(UserAccessStore userAccessStore) {
+    public DomainUserAccessResource(UserAccessStore userAccessStore, DomainStore domainStore) {
         this.store = userAccessStore;
+        this.domainStore = domainStore;
     }
 
     @POST
@@ -44,18 +48,20 @@ public class DomainUserAccessResource {
     )
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response createUserAccessForDomain(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain,
-                                              @Valid @NotNull UserAccess createUserAccessRequest) {
+                                              @Valid @NotNull UserAccessRequest request) {
 
-        createUserAccessRequest.setCreationDateTime(LocalDateTime.now());
-        createUserAccessRequest.setUpdateDateTime(LocalDateTime.now());
-
-        if (!domain.equals(createUserAccessRequest.getDomain())) {
-            logger.error("Request contains an invalid domain [{}]", createUserAccessRequest.getDomain());
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Bad Request").build();
+        if (!domainStore.domainExists(domain)) {
+            return invalidDomainResponse(domain);
         }
+        UserAccess userAccess = new UserAccess.UserAccessBuilder()
+                .setDomain(domain)
+                .setUsername(request.getUsername())
+                .setPermission(request.getPermission())
+                .build();
+        userAccess.setCreationDateTime(LocalDateTime.now());
+        userAccess.setUpdateDateTime(LocalDateTime.now());
         try {
-            return locationResponse(store.createUserAccessForDomain(createUserAccessRequest));
+            return locationResponse(store.createUserAccessForDomain(userAccess));
         } catch (URISyntaxException ex) {
             logger.error("Failed to create user-access for domain: [{}]", domain, ex);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -72,14 +78,10 @@ public class DomainUserAccessResource {
     )
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response getUserAccessForDomain(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain) {
-        try {
-            return Response.ok(store.getUserAccessForDomain(domain)).build();
-        } catch (UserAccessNotFoundException ex) {
-            logger.error("User-access details not found for domain [{}]", domain, ex);
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("No access permissions found")
-                    .build();
+        if (!domainStore.domainExists(domain)) {
+            return invalidDomainResponse(domain);
         }
+        return Response.ok(store.getUserAccessForDomain(domain)).build();
     }
 
     @GET
@@ -92,6 +94,9 @@ public class DomainUserAccessResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response getUserAccessForDomainAndId(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain,
                                                 @PathParam("userAccessId") @NotNull Integer userAccessId) {
+        if (!domainStore.domainExists(domain)) {
+            return invalidDomainResponse(domain);
+        }
         try {
             return Response.ok(store.getUserAccessForDomainAndId(domain, userAccessId)).build();
         } catch (UserAccessNotFoundException ex) {
@@ -99,6 +104,34 @@ public class DomainUserAccessResource {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("No access permissions found").build();
         }
+    }
+
+    @DELETE
+    @Path("{domain}/user-access/{userAccessId}")
+    @Operation(
+            summary = "Revoke a domain user-access grant",
+            description = "Deletes the user-access record for the given domain and id"
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteUserAccessForDomain(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain,
+                                              @PathParam("userAccessId") @NotNull Integer userAccessId) {
+        if (!domainStore.domainExists(domain)) {
+            return invalidDomainResponse(domain);
+        }
+        try {
+            store.deleteUserAccessForDomain(domain, userAccessId);
+            return Response.noContent().build();
+        } catch (UserAccessNotFoundException ex) {
+            logger.error("User-access record [{}] not found in domain [{}]", userAccessId, domain, ex);
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("No access permissions found").build();
+        }
+    }
+
+    private Response invalidDomainResponse(String domain) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Invalid domain provided: " + domain)
+                .build();
     }
 
     private Response locationResponse(UserAccess userAccess) throws URISyntaxException {

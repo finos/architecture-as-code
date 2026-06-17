@@ -3,6 +3,7 @@ package org.finos.calm.store.mongo;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.result.DeleteResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
@@ -110,19 +111,13 @@ public class MongoUserAccessStore implements UserAccessStore {
     }
 
     @Override
-    public List<UserAccess> getUserAccessForNamespace(String namespace)
-            throws NamespaceNotFoundException, UserAccessNotFoundException {
-
+    public List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
         List<UserAccess> userAccessList = new ArrayList<>();
         for (Document doc : userAccessCollection.find(Filters.eq("namespace", namespace))) {
             userAccessList.add(buildFromDocument(doc));
-        }
-
-        if (userAccessList.isEmpty()) {
-            throw new UserAccessNotFoundException();
         }
         return userAccessList;
     }
@@ -147,16 +142,10 @@ public class MongoUserAccessStore implements UserAccessStore {
     }
 
     @Override
-    public List<UserAccess> getUserAccessForDomain(String domain)
-            throws UserAccessNotFoundException {
-
+    public List<UserAccess> getUserAccessForDomain(String domain) {
         List<UserAccess> userAccessList = new ArrayList<>();
         for (Document doc : userAccessCollection.find(Filters.eq("domain", domain))) {
             userAccessList.add(buildFromDocument(doc));
-        }
-
-        if (userAccessList.isEmpty()) {
-            throw new UserAccessNotFoundException();
         }
         return userAccessList;
     }
@@ -174,6 +163,33 @@ public class MongoUserAccessStore implements UserAccessStore {
             throw new UserAccessNotFoundException();
         }
         return buildFromDocument(document);
+    }
+
+    @Override
+    public void deleteUserAccessForDomain(String domain, Integer userAccessId) throws UserAccessNotFoundException {
+        DeleteResult result = userAccessCollection.deleteOne(Filters.and(
+                Filters.eq("domain", domain),
+                Filters.eq("userAccessId", userAccessId)));
+        if (result.getDeletedCount() == 0) {
+            throw new UserAccessNotFoundException();
+        }
+    }
+
+    @Override
+    public void deleteUserAccessForNamespace(String namespace, Integer userAccessId)
+            throws NamespaceNotFoundException, UserAccessNotFoundException {
+
+        if (!namespaceStore.namespaceExists(namespace)) {
+            throw new NamespaceNotFoundException();
+        }
+
+        DeleteResult result = userAccessCollection.deleteOne(Filters.and(
+                Filters.eq("namespace", namespace),
+                Filters.eq("userAccessId", userAccessId)));
+
+        if (result.getDeletedCount() == 0) {
+            throw new UserAccessNotFoundException();
+        }
     }
 
     private UserAccess buildFromDocument(Document doc) {

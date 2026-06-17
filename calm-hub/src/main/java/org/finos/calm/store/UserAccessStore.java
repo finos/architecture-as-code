@@ -43,9 +43,9 @@ public interface UserAccessStore {
      * Retrieves a list of all UserAccess details associated to a namespace.
      *
      * @param namespace the name of the namespace to fetch associated UserAccess records.
-     * @return a list of UserAccess details
+     * @return a list of UserAccess details (empty if none exist)
      */
-    List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException, UserAccessNotFoundException;
+    List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException;
 
     /**
      * Retrieve a UserAccess object that is mapped to a namespace and userAccessId.
@@ -68,9 +68,9 @@ public interface UserAccessStore {
      * Retrieves all UserAccess grants for a given domain.
      *
      * @param domain the domain name to fetch associated UserAccess records.
-     * @return a list of UserAccess details
+     * @return a list of UserAccess details (empty if none exist)
      */
-    List<UserAccess> getUserAccessForDomain(String domain) throws UserAccessNotFoundException;
+    List<UserAccess> getUserAccessForDomain(String domain);
 
     /**
      * Retrieve a specific domain-scoped UserAccess record by domain and id.
@@ -80,4 +80,23 @@ public interface UserAccessStore {
      * @return the UserAccess record
      */
     UserAccess getUserAccessForDomainAndId(String domain, Integer userAccessId) throws UserAccessNotFoundException;
+
+    /**
+     * Delete a namespace-scoped UserAccess grant by namespace and id.
+     *
+     * @param namespace    the namespace the grant belongs to.
+     * @param userAccessId the sequence number of the UserAccess record to delete.
+     * @throws NamespaceNotFoundException  if the namespace does not exist.
+     * @throws UserAccessNotFoundException if no grant exists for that id in the namespace.
+     */
+    void deleteUserAccessForNamespace(String namespace, Integer userAccessId) throws NamespaceNotFoundException, UserAccessNotFoundException;
+
+    /**
+     * Delete a domain-scoped UserAccess grant by domain and id.
+     *
+     * @param domain       the domain the grant belongs to.
+     * @param userAccessId the sequence number of the UserAccess record to delete.
+     * @throws UserAccessNotFoundException if no grant exists for that id in the domain.
+     */
+    void deleteUserAccessForDomain(String domain, Integer userAccessId) throws UserAccessNotFoundException;
 }

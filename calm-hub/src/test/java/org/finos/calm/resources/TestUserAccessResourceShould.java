@@ -1,6 +1,5 @@
 package org.finos.calm.resources;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -24,20 +23,17 @@ public class TestUserAccessResourceShould {
     @InjectMock
     UserAccessStore mockUserAccessStore;
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
     @Test
     void return_201_created_with_location_header_when_user_access_is_created() throws Exception {
-
-        UserAccess userAccess = new UserAccess();
-        userAccess.setNamespace("finos");
-        userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setUsername("test_user");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
-        userAccess.setUserAccessId(101);
+        UserAccess created = new UserAccess();
+        created.setNamespace("finos");
+        created.setPermission(UserAccess.Permission.read);
+        created.setUsername("test_user");
+        created.setUserAccessId(101);
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
-                .thenReturn(userAccess);
+                .thenReturn(created);
+
+        String requestBody = "{\"username\":\"test_user\",\"permission\":\"read\"}";
 
         given()
                 .header("Content-Type", "application/json")
@@ -57,15 +53,9 @@ public class TestUserAccessResourceShould {
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
                 .thenThrow(new NamespaceNotFoundException());
 
-        UserAccess userAccess = new UserAccess();
-        userAccess.setNamespace("invalid");
-        userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setUsername("test_user");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
         given()
                 .header("Content-Type", "application/json")
-                .body(requestBody)
+                .body("{\"username\":\"test_user\",\"permission\":\"read\"}")
                 .when()
                 .post("/api/calm/namespaces/invalid/user-access")
                 .then()
@@ -78,55 +68,31 @@ public class TestUserAccessResourceShould {
 
     @Test
     void return_400_when_invalid_namespace_format() throws Exception {
-        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
-                .thenThrow(new NamespaceNotFoundException());
-
-        UserAccess userAccess = new UserAccess();
-        userAccess.setNamespace("invalid &%*$% NAMESPACE");
-        userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setUsername("test_user");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
         given()
                 .header("Content-Type", "application/json")
-                .body(requestBody)
+                .body("{\"username\":\"test_user\",\"permission\":\"read\"}")
                 .when()
-                .post("/api/calm/namespaces/invalid/user-access")
+                .post("/api/calm/namespaces/invalid &%*$% NAMESPACE/user-access")
                 .then()
                 .statusCode(400);
     }
 
     @Test
     void return_400_when_invalid_username_format() throws Exception {
-        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
-                .thenThrow(new NamespaceNotFoundException());
-
-        UserAccess userAccess = new UserAccess();
-        userAccess.setNamespace("invalid");
-        userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setUsername("INVALID USER!");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
         given()
                 .header("Content-Type", "application/json")
-                .body(requestBody)
+                .body("{\"username\":\"INVALID USER!\",\"permission\":\"read\"}")
                 .when()
-                .post("/api/calm/namespaces/invalid/user-access")
+                .post("/api/calm/namespaces/finos/user-access")
                 .then()
                 .statusCode(400);
     }
 
     @Test
     void return_400_when_double_wildcard_username() throws Exception {
-        UserAccess userAccess = new UserAccess();
-        userAccess.setNamespace("finos");
-        userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setUsername("**");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
         given()
                 .header("Content-Type", "application/json")
-                .body(requestBody)
+                .body("{\"username\":\"**\",\"permission\":\"read\"}")
                 .when()
                 .post("/api/calm/namespaces/finos/user-access")
                 .then()
@@ -135,19 +101,17 @@ public class TestUserAccessResourceShould {
 
     @Test
     void return_201_when_wildcard_username_is_used() throws Exception {
-        UserAccess userAccess = new UserAccess();
-        userAccess.setNamespace("finos");
-        userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setUsername("*");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
-        userAccess.setUserAccessId(102);
+        UserAccess created = new UserAccess();
+        created.setNamespace("finos");
+        created.setPermission(UserAccess.Permission.read);
+        created.setUsername("*");
+        created.setUserAccessId(102);
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
-                .thenReturn(userAccess);
+                .thenReturn(created);
 
         given()
                 .header("Content-Type", "application/json")
-                .body(requestBody)
+                .body("{\"username\":\"*\",\"permission\":\"read\"}")
                 .when()
                 .post("/api/calm/namespaces/finos/user-access")
                 .then()
@@ -156,43 +120,13 @@ public class TestUserAccessResourceShould {
     }
 
     @Test
-    void return_400_when_creating_user_access_with_invalid_namespace() throws Exception {
-        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
-                .thenThrow(new NamespaceNotFoundException());
-
-        UserAccess userAccess = new UserAccess();
-        userAccess.setNamespace("invalid");
-        userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setUsername("test_user");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
-        given()
-                .header("Content-Type", "application/json")
-                .body(requestBody)
-                .when()
-                .post("/api/calm/namespaces/test/user-access")
-                .then()
-                .statusCode(400)
-                .body(containsString("Bad Request"));
-
-        verify(mockUserAccessStore, times(0))
-                .createUserAccessForNamespace(any(UserAccess.class));
-    }
-
-    @Test
     void return_500_when_internal_error_occurs_during_user_access_creation() throws Exception {
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
                 .thenThrow(new RuntimeException("Unexpected error"));
 
-        UserAccess userAccess = new UserAccess();
-        userAccess.setNamespace("finos");
-        userAccess.setPermission(UserAccess.Permission.read);
-        userAccess.setUsername("test_user");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
         given()
                 .header("Content-Type", "application/json")
-                .body(requestBody)
+                .body("{\"username\":\"test_user\",\"permission\":\"read\"}")
                 .when()
                 .post("/api/calm/namespaces/finos/user-access")
                 .then()
@@ -245,16 +179,16 @@ public class TestUserAccessResourceShould {
     }
 
     @Test
-    void return_404_when_no_user_access_associated_to_provided_namespace() throws Exception {
+    void return_200_with_empty_list_when_namespace_has_no_grants() throws Exception {
         when(mockUserAccessStore.getUserAccessForNamespace("test"))
-                .thenThrow(new UserAccessNotFoundException());
+                .thenReturn(java.util.Collections.emptyList());
 
         given()
                 .when()
                 .get("/api/calm/namespaces/test/user-access")
                 .then()
-                .statusCode(404)
-                .body(containsString("No access permissions found"));
+                .statusCode(200)
+                .body(containsString("[]"));
 
         verify(mockUserAccessStore, times(1)).getUserAccessForNamespace("test");
     }
@@ -324,5 +258,48 @@ public class TestUserAccessResourceShould {
 
         verify(mockUserAccessStore, times(1))
                 .getUserAccessForNamespaceAndId("test", 1);
+    }
+
+    @Test
+    void return_204_when_user_access_is_deleted() throws Exception {
+        doNothing().when(mockUserAccessStore).deleteUserAccessForNamespace("finos", 101);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/finos/user-access/101")
+                .then()
+                .statusCode(204);
+
+        verify(mockUserAccessStore, times(1)).deleteUserAccessForNamespace("finos", 101);
+    }
+
+    @Test
+    void return_404_when_deleting_user_access_with_invalid_namespace() throws Exception {
+        doThrow(new NamespaceNotFoundException())
+                .when(mockUserAccessStore).deleteUserAccessForNamespace("invalid", 1);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/invalid/user-access/1")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid namespace"));
+
+        verify(mockUserAccessStore, times(1)).deleteUserAccessForNamespace("invalid", 1);
+    }
+
+    @Test
+    void return_404_when_deleting_user_access_that_does_not_exist() throws Exception {
+        doThrow(new UserAccessNotFoundException())
+                .when(mockUserAccessStore).deleteUserAccessForNamespace("finos", 999);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/finos/user-access/999")
+                .then()
+                .statusCode(404)
+                .body(containsString("No access permissions found"));
+
+        verify(mockUserAccessStore, times(1)).deleteUserAccessForNamespace("finos", 999);
     }
 }
