@@ -12,7 +12,7 @@ This file lists the maintainers of this repository.
 | @Thels | *please add name* | *please add organization* | *please add email* |
 | @YoofiTT96 | Joseph Yoofi Brown-Pobee | turntabl | yoofi.brownpobee@outlook.com |
 | @aamanrebello | *please add name* | *please add organization* | *please add email* |
-| @aidanm3341 | Aidan McPhelim | Morgan Stanley | *please add email* |
+| @aidanm3341 | Aidan McPhelim | Morgan Stanley | aidan.mcphelim@morganstanley.com |
 | @dc-ms | *please add name* | *please add organization* | *please add email* |
 | @eddie-knight | Eddie Knight | *please add organization* | *please add email* |
 | @gjs-opsflo | Gourav J. Shah | OpsFlow.Sh | gjs@opsflow.sh |
