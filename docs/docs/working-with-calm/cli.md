@@ -380,6 +380,18 @@ If `-c` is omitted, the CLI will look for a `calmHubUrl` property in `~/.calm.js
 }
 ```
 
+### Document Identity and Versioning
+
+CALM Hub uses the `$id` field inside each document to determine its addressing: the namespace, resource type, mapping slug, and version are all parsed from `$id`. When you push a document, the CLI reads the current `$id`, computes the next semver version automatically, rewrites `$id` in the local file with the new version, then uploads it. You never need to pass a namespace, ID, or version on the command line for push operations.
+
+The `-t, --change-type` option controls which semver component is incremented on each push (default: `patch`):
+
+| Value | Example jump |
+|---|---|
+| `patch` _(default)_ | 1.0.0 → 1.0.1 |
+| `minor` | 1.0.0 → 1.1.0 |
+| `major` | 1.0.0 → 2.0.0 |
+
 ### Managing Namespaces
 
 Namespaces are used to organise architectures within CALM Hub.
@@ -416,7 +428,7 @@ calm hub create namespace --name my-namespace --description "Architectures for t
 
 #### List architectures
 
-To list all architectures stored in a namespace:
+To list all architecture mapping slugs stored in a namespace:
 
 ```shell
 calm hub list architectures --namespace my-namespace -c http://localhost:8080
@@ -426,61 +438,32 @@ calm hub list architectures --namespace my-namespace -c http://localhost:8080
 
 - **`--namespace <namespace>`**: The namespace to list architectures from (default: `default`).
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **ID**, **NAME**, and **VERSIONS**.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with column **MAPPING**.
 
 #### Push an architecture
 
-To publish a new architecture document to CALM Hub, provide the architecture file together with a name and description:
+The document's `$id` field determines the target namespace, resource type, and mapping slug. The CLI computes the next version, rewrites `$id` in the local file, and uploads the document.
 
 ```shell
-calm hub push architecture my-architecture.json \
-  --name "Payments Service" \
-  --description "Architecture for the payments service" \
-  --namespace my-namespace \
-  -c http://localhost:8080
+calm hub push architecture my-architecture.json -c http://localhost:8080
 ```
-
-On success the command outputs the newly created architecture record, including the assigned ID.
 
 **Options:**
 
-- **`--name <name>`**: _(required when creating a new architecture)_ Display name for the architecture.
-- **`--description <description>`**: _(required when creating a new architecture)_ Short description of the architecture.
-- **`--namespace <namespace>`**: Target namespace (default: `default`).
-- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
-
-#### Push a new version of an existing architecture
-
-To add a new version to an architecture that already exists in CALM Hub, use `--id` to identify the existing record and `--ver` to specify the semver version string:
-
-```shell
-calm hub push architecture my-architecture.json \
-  --id <architecture-id> \
-  --ver 1.1.0 \
-  --namespace my-namespace \
-  -c http://localhost:8080
-```
-
-When `--id` is provided, `--name` and `--description` are not required — they are already associated with the existing architecture record.
-
-**Options:**
-
-- **`--id <id>`**: The ID of the existing architecture to add a version to.
-- **`--ver <version>`**: _(required when `--id` is provided)_ The semver version string for the new version (e.g. `1.1.0`).
-- **`--namespace <namespace>`**: Target namespace (default: `default`).
+- **`--name <name>`**: Optional display name override (falls back to the document's `title` field).
+- **`--description <description>`**: Optional description override (falls back to the document's `description` field).
+- **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
 
 #### Pull an architecture
 
-To download a specific version of an architecture from CALM Hub, provide the namespace, architecture ID, and version:
+To download an architecture from CALM Hub, provide the namespace and mapping slug. Omit `--ver` to pull the latest version:
 
 ```shell
 calm hub pull architecture \
   --namespace my-namespace \
-  --id <architecture-id> \
-  --ver 1.0.0 \
+  --mapping my-architecture \
   -c http://localhost:8080
 ```
 
@@ -489,7 +472,7 @@ By default the architecture JSON is written to stdout. Use `-o` to write it to a
 ```shell
 calm hub pull architecture \
   --namespace my-namespace \
-  --id <architecture-id> \
+  --mapping my-architecture \
   --ver 1.0.0 \
   -o pulled-architecture.json \
   -c http://localhost:8080
@@ -498,8 +481,8 @@ calm hub pull architecture \
 **Options:**
 
 - **`--namespace <namespace>`**: _(required)_ The namespace the architecture belongs to.
-- **`--id <id>`**: _(required)_ The ID of the architecture to pull.
-- **`--ver <version>`**: _(required)_ The version to retrieve (e.g. `1.0.0`).
+- **`-m, --mapping <mapping>`**: _(required)_ The mapping slug of the architecture.
+- **`--ver <version>`**: Version to retrieve (defaults to latest).
 - **`-o, --output <file>`**: Write the architecture JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
@@ -507,7 +490,7 @@ calm hub pull architecture \
 
 #### List patterns
 
-To list all patterns stored in a namespace:
+To list all pattern mapping slugs stored in a namespace:
 
 ```shell
 calm hub list patterns --namespace my-namespace -c http://localhost:8080
@@ -517,61 +500,32 @@ calm hub list patterns --namespace my-namespace -c http://localhost:8080
 
 - **`--namespace <namespace>`**: The namespace to list patterns from (default: `default`).
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **ID**, **NAME**, and **VERSIONS**.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with column **MAPPING**.
 
 #### Push a pattern
 
-To publish a new pattern document to CALM Hub, provide the pattern file together with a name and description:
+The document's `$id` field determines the target namespace, resource type, and mapping slug. The CLI computes the next version, rewrites `$id` in the local file, and uploads the document.
 
 ```shell
-calm hub push pattern my-pattern.json \
-  --name "Payments Integration Pattern" \
-  --description "Reusable integration pattern for payments services" \
-  --namespace my-namespace \
-  -c http://localhost:8080
+calm hub push pattern my-pattern.json -c http://localhost:8080
 ```
-
-On success the command outputs the newly created pattern record, including the assigned ID.
 
 **Options:**
 
-- **`--name <name>`**: _(required when creating a new pattern)_ Display name for the pattern.
-- **`--description <description>`**: _(required when creating a new pattern)_ Short description of the pattern.
-- **`--namespace <namespace>`**: Target namespace (default: `default`).
-- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
-
-#### Push a new version of an existing pattern
-
-To add a new version to a pattern that already exists in CALM Hub, use `--id` to identify the existing record and `--ver` to specify the semver version string:
-
-```shell
-calm hub push pattern my-pattern.json \
-  --id <pattern-id> \
-  --ver 1.1.0 \
-  --namespace my-namespace \
-  -c http://localhost:8080
-```
-
-When `--id` is provided, `--name` and `--description` are not required — they are already associated with the existing pattern record.
-
-**Options:**
-
-- **`--id <id>`**: The ID of the existing pattern to add a version to.
-- **`--ver <version>`**: _(required when `--id` is provided)_ The semver version string for the new version (e.g. `1.1.0`).
-- **`--namespace <namespace>`**: Target namespace (default: `default`).
+- **`--name <name>`**: Optional display name override (falls back to the document's `title` field).
+- **`--description <description>`**: Optional description override.
+- **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
 
 #### Pull a pattern
 
-To download a specific version of a pattern from CALM Hub, provide the namespace, pattern ID, and version:
+To download a pattern from CALM Hub, provide the namespace and mapping slug. Omit `--ver` to pull the latest version:
 
 ```shell
 calm hub pull pattern \
   --namespace my-namespace \
-  --id <pattern-id> \
-  --ver 1.0.0 \
+  --mapping my-pattern \
   -c http://localhost:8080
 ```
 
@@ -580,7 +534,7 @@ By default the pattern JSON is written to stdout. Use `-o` to write it to a file
 ```shell
 calm hub pull pattern \
   --namespace my-namespace \
-  --id <pattern-id> \
+  --mapping my-pattern \
   --ver 1.0.0 \
   -o pulled-pattern.json \
   -c http://localhost:8080
@@ -589,8 +543,8 @@ calm hub pull pattern \
 **Options:**
 
 - **`--namespace <namespace>`**: _(required)_ The namespace the pattern belongs to.
-- **`--id <id>`**: _(required)_ The ID of the pattern to pull.
-- **`--ver <version>`**: _(required)_ The version to retrieve (e.g. `1.0.0`).
+- **`-m, --mapping <mapping>`**: _(required)_ The mapping slug of the pattern.
+- **`--ver <version>`**: Version to retrieve (defaults to latest).
 - **`-o, --output <file>`**: Write the pattern JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
@@ -598,7 +552,7 @@ calm hub pull pattern \
 
 #### List standards
 
-To list all standards stored in a namespace:
+To list all standard mapping slugs stored in a namespace:
 
 ```shell
 calm hub list standards --namespace my-namespace -c http://localhost:8080
@@ -608,63 +562,32 @@ calm hub list standards --namespace my-namespace -c http://localhost:8080
 
 - **`--namespace <namespace>`**: The namespace to list standards from (default: `default`).
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **ID**, **NAME**, **DESCRIPTION**, and **VERSIONS**.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with column **MAPPING**.
 
 #### Push a standard
 
-To publish a new standard document to CALM Hub, provide the standard file together with a name and description:
+The document's `$id` field determines the target namespace, resource type, and mapping slug. The CLI computes the next version, rewrites `$id` in the local file, and uploads the document.
 
 ```shell
-calm hub push standard my-standard.json \
-  --name "Payments Service Standard" \
-  --description "Standard schema extensions for payments services" \
-  --namespace my-namespace \
-  -c http://localhost:8080
+calm hub push standard my-standard.json -c http://localhost:8080
 ```
-
-On success the command outputs the newly created standard record, including the assigned ID.
 
 **Options:**
 
-- **`--name <name>`**: _(required when creating a new standard)_ Display name for the standard.
-- **`--description <description>`**: _(required when creating a new standard)_ Short description of the standard.
-- **`--namespace <namespace>`**: Target namespace (default: `default`).
-- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
-
-#### Push a new version of an existing standard
-
-To add a new version to a standard that already exists in CALM Hub, use `--id` to identify the existing record and `--ver` to specify the semver version string:
-
-```shell
-calm hub push standard my-standard.json \
-  --id <standard-id> \
-  --ver 1.1.0 \
-  --namespace my-namespace \
-  -c http://localhost:8080
-```
-
-When `--id` is provided, `--name` and `--description` are not required — they are already associated with the existing standard record.
-
-If you provide `--name` and/or `--description` together with `--id`, CALM Hub updates the standard's stored metadata to those values when creating the new version. This means the standard's top-level name/description shown by `list standards` will reflect the latest values you pushed.
-
-**Options:**
-
-- **`--id <id>`**: The ID of the existing standard to add a version to.
-- **`--ver <version>`**: _(required when `--id` is provided)_ The semver version string for the new version (e.g. `1.1.0`).
-- **`--namespace <namespace>`**: Target namespace (default: `default`).
+- **`--name <name>`**: Optional display name override (falls back to the document's `title` field).
+- **`--description <description>`**: Optional description override.
+- **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
 
 #### Pull a standard
 
-To download a specific version of a standard from CALM Hub, provide the namespace, standard ID, and version:
+To download a standard from CALM Hub, provide the namespace and mapping slug. Omit `--ver` to pull the latest version:
 
 ```shell
 calm hub pull standard \
   --namespace my-namespace \
-  --id <standard-id> \
-  --ver 1.0.0 \
+  --mapping my-standard \
   -c http://localhost:8080
 ```
 
@@ -673,7 +596,7 @@ By default the standard JSON is written to stdout. Use `-o` to write it to a fil
 ```shell
 calm hub pull standard \
   --namespace my-namespace \
-  --id <standard-id> \
+  --mapping my-standard \
   --ver 1.0.0 \
   -o pulled-standard.json \
   -c http://localhost:8080
@@ -682,8 +605,8 @@ calm hub pull standard \
 **Options:**
 
 - **`--namespace <namespace>`**: _(required)_ The namespace the standard belongs to.
-- **`--id <id>`**: _(required)_ The ID of the standard to pull.
-- **`--ver <version>`**: _(required)_ The version to retrieve (e.g. `1.0.0`).
+- **`-m, --mapping <mapping>`**: _(required)_ The mapping slug of the standard.
+- **`--ver <version>`**: Version to retrieve (defaults to latest).
 - **`-o, --output <file>`**: Write the standard JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
@@ -718,77 +641,46 @@ calm hub create domain --name risk -c http://localhost:8080
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
 
-### Managing Control Requirements
+### Managing Controls
 
-Control requirements are managed within a domain and identified by a numeric control ID.
+Controls are organised within domains and addressed by name.
 
-#### List control requirements
+#### List controls
 
-To list all control requirements in a domain:
+To list all controls in a domain:
 
 ```shell
-calm hub list control-requirements --domain risk -c http://localhost:8080
+calm hub list controls --domain risk -c http://localhost:8080
 ```
 
 **Options:**
 
-- **`--domain <domain>`**: _(required)_ The domain to list control requirements from.
+- **`--domain <domain>`**: _(required)_ The domain to list controls from.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **ID**, **NAME**, **DESCRIPTION**, and **VERSIONS**.
-
-#### Create a control requirement
-
-To create a new control requirement, provide the requirement JSON file together with domain, name, and description:
-
-```shell
-calm hub create control-requirement my-control-requirement.json \
-  --domain risk \
-  --name "MFA Required for Privileged Access" \
-  --description "Administrative access must use multi-factor authentication" \
-  -c http://localhost:8080
-```
-
-**Options:**
-
-- **`--domain <domain>`**: _(required)_ The target domain.
-- **`--name <name>`**: _(required)_ Control name.
-- **`--description <description>`**: _(required)_ Control description.
-- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **NAME**, **ID**, and **DESCRIPTION**.
 
 #### Push a control requirement version
 
-To add a new version to an existing control requirement, provide the requirement file with domain, control ID, and version:
+The document's `$id` determines the domain, control name, and version. The CLI computes the next semver version automatically, rewrites `$id` in the local file, and uploads the document.
 
 ```shell
-calm hub push control-requirement my-control-requirement.json \
-  --domain risk \
-  --control-id 42 \
-  --ver 1.1.0 \
-  -c http://localhost:8080
+calm hub push control-requirement my-control-requirement.json -c http://localhost:8080
 ```
-
-You can optionally provide `--name` and `--description` for the version wrapper. If omitted, the CLI resolves them from the existing control metadata.
 
 **Options:**
 
-- **`--domain <domain>`**: _(required)_ The target domain.
-- **`--control-id <id>`**: _(required)_ The numeric control ID.
-- **`--ver <version>`**: _(required)_ The semver version string for the new requirement version.
-- **`--name <name>`**: Optional name for the requirement version wrapper.
-- **`--description <description>`**: Optional description for the requirement version wrapper.
+- **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
 
 #### Pull a control requirement version
 
-To download a specific version of a control requirement:
+To download a control requirement from CALM Hub, provide the domain and control name. Omit `--ver` to pull the latest version:
 
 ```shell
 calm hub pull control-requirement \
   --domain risk \
-  --control-id 42 \
-  --ver 1.0.0 \
+  --control-name access-control \
   -c http://localhost:8080
 ```
 
@@ -797,7 +689,7 @@ By default the requirement JSON is written to stdout. Use `-o` to write it to a 
 ```shell
 calm hub pull control-requirement \
   --domain risk \
-  --control-id 42 \
+  --control-name access-control \
   --ver 1.0.0 \
   -o pulled-control-requirement.json \
   -c http://localhost:8080
@@ -806,80 +698,54 @@ calm hub pull control-requirement \
 **Options:**
 
 - **`--domain <domain>`**: _(required)_ The source domain.
-- **`--control-id <id>`**: _(required)_ The numeric control ID.
-- **`--ver <version>`**: _(required)_ The requirement version to retrieve.
+- **`--control-name <controlName>`**: _(required)_ The control name.
+- **`--ver <version>`**: Version to retrieve (defaults to latest).
 - **`-o, --output <file>`**: Write the requirement JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
 ### Managing Control Configurations
 
-Control configurations are managed per control requirement and identified by a numeric configuration ID.
-
 #### List control configurations
 
-To list all control configurations and their versions for a control requirement:
+To list all configurations for a control:
 
 ```shell
-calm hub list control-configurations --domain risk --control-id 42 -c http://localhost:8080
-```
-
-**Options:**
-
-- **`--domain <domain>`**: _(required)_ The target domain.
-- **`--control-id <id>`**: _(required)_ The numeric control ID.
-- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **CONFIG-ID** and **VERSIONS**.
-
-#### Create a control configuration
-
-To create a new control configuration for a control requirement:
-
-```shell
-calm hub create control-configuration my-control-configuration.json \
+calm hub list control-configurations \
   --domain risk \
-  --control-id 42 \
+  --control-name access-control \
   -c http://localhost:8080
 ```
 
 **Options:**
 
 - **`--domain <domain>`**: _(required)_ The target domain.
-- **`--control-id <id>`**: _(required)_ The numeric control ID.
+- **`--control-name <controlName>`**: _(required)_ The control name.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
-- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with columns **NAME**, **ID**, and **DESCRIPTION**.
 
-####Push a control configuration version
+#### Push a control configuration version
 
-To add a new version to an existing control configuration:
+The document's `$id` determines the domain, control name, configuration name, and version. The CLI computes the next semver version automatically, rewrites `$id` in the local file, and uploads the document.
 
 ```shell
-calm hub push control-configuration my-control-configuration.json \
-  --domain risk \
-  --control-id 42 \
-  --config-id 7 \
-  --ver 1.1.0 \
-  -c http://localhost:8080
+calm hub push control-configuration my-control-configuration.json -c http://localhost:8080
 ```
 
 **Options:**
 
-- **`--domain <domain>`**: _(required)_ The target domain.
-- **`--control-id <id>`**: _(required)_ The numeric control ID.
-- **`--config-id <id>`**: _(required)_ The numeric configuration ID.
-- **`--ver <version>`**: _(required)_ The semver version string for the new configuration version.
+- **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
 
 #### Pull a control configuration version
 
-To download a specific version of a control configuration:
+To download a control configuration from CALM Hub, provide the domain, control name, and configuration name. Omit `--ver` to pull the latest version:
 
 ```shell
 calm hub pull control-configuration \
   --domain risk \
-  --control-id 42 \
-  --config-id 7 \
-  --ver 1.0.0 \
+  --control-name access-control \
+  --config-name prod \
   -c http://localhost:8080
 ```
 
@@ -888,8 +754,8 @@ By default the configuration JSON is written to stdout. Use `-o` to write it to 
 ```shell
 calm hub pull control-configuration \
   --domain risk \
-  --control-id 42 \
-  --config-id 7 \
+  --control-name access-control \
+  --config-name prod \
   --ver 1.0.0 \
   -o pulled-control-configuration.json \
   -c http://localhost:8080
@@ -898,9 +764,9 @@ calm hub pull control-configuration \
 **Options:**
 
 - **`--domain <domain>`**: _(required)_ The source domain.
-- **`--control-id <id>`**: _(required)_ The numeric control ID.
-- **`--config-id <id>`**: _(required)_ The numeric configuration ID.
-- **`--ver <version>`**: _(required)_ The configuration version to retrieve.
+- **`--control-name <controlName>`**: _(required)_ The control name.
+- **`--config-name <configName>`**: _(required)_ The configuration name.
+- **`--ver <version>`**: Version to retrieve (defaults to latest).
 - **`-o, --output <file>`**: Write the configuration JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
@@ -909,4 +775,4 @@ calm hub pull control-configuration \
 All `hub` subcommands support a `-f, --format <format>` option with two choices:
 
 - **`json`** _(default)_ — outputs the raw JSON response from CALM Hub. Suitable for piping into other tools or scripts.
-- **`pretty`** — renders the output as a human-readable ASCII table. Available for `list` commands; for `push`, `pull`, and `create` commands it formats the response in a more readable way.
+- **`pretty`** — renders the output as a human-readable ASCII table. Available for `list` commands; for `push` and `pull` commands it formats the response in a more readable way.

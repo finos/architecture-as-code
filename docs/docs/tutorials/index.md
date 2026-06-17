@@ -141,22 +141,6 @@ By completing all intermediate tutorials, you'll be able to:
 
 ---
 
-## Start Here: Advanced
-
-### 🟠 Advanced Tutorials
-
-**Advanced CALM knowledge recommended**
-
-Explore deeper CALM workflows and AI-assisted architecture practices.
-
-### Getting Started
-
-1. **[Start with Architecture Discovery Skill](./advanced/architecture-discovery-skill-tutorial)** — Use CALM AI Assistant with an agent skill to create a CALM architecture from source code.
-
-[Start Advanced Tutorials →](./advanced/)
-
----
-
 ## Start Here: Practitioner
 
 ### 🛠️ Practitioner Tutorial
@@ -186,7 +170,8 @@ Before you begin, make sure you have:
 
 1. **[Start with Tool Setup](./build-a-calm-architecture/tool-setup)** — Configure your practitioner environment
 2. **Work through each section** — They build a complete architecture from start to finish
-3. **Ask questions** — Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
+3. **Try the [Architecture Discovery Skill](./build-a-calm-architecture/architecture-discovery-skill-tutorial)** — Use the CALM AI Assistant with an agent skill to create a CALM architecture from source code
+4. **Ask questions** — Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
 
 ### Skills You'll Acquire
 
