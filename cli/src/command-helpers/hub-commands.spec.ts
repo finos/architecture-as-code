@@ -8,7 +8,8 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces,
     runCreateDomain, runListDomains, runListControls,
     runPushControlRequirement, runPullControlRequirement, runPushControlConfiguration, runPullControlConfiguration,
     printIdCreateResult,
-    runListControlConfigurations } from './hub-commands';
+    runListControlConfigurations,
+    runBumpArchitecture, runBumpPattern, runBumpStandard, runBumpControlRequirement, runBumpControlConfiguration } from './hub-commands';
 
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
 // real (pure) document-id-utils helpers that orchestratePush relies on.
@@ -1416,5 +1417,218 @@ describe('hub-commands', () => {
         });
     });
 
+    // ── runBumpArchitecture ────────────────────────────────────────────────────
+
+    describe('runBumpArchitecture', () => {
+        it('bumps the version on disk when the current version already exists on the hub', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json', changeType: 'PATCH' });
+
+            expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-arch', 'architectures');
+            expect(fs.writeFile).toHaveBeenCalledWith('arch.json', expect.stringContaining('/versions/1.0.1'), 'utf-8');
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ file: 'arch.json', previousVersion: '1.0.0', newVersion: '1.0.1' })
+            );
+        });
+
+        it('bumps by minor when changeType is MINOR', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json', changeType: 'MINOR' });
+
+            expect(fs.writeFile).toHaveBeenCalledWith('arch.json', expect.stringContaining('/versions/1.1.0'), 'utf-8');
+        });
+
+        it('bumps by major when changeType is MAJOR', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json', changeType: 'MAJOR' });
+
+            expect(fs.writeFile).toHaveBeenCalledWith('arch.json', expect.stringContaining('/versions/2.0.0'), 'utf-8');
+        });
+
+        it('does not write the file and prints a no-op message when the version is not yet published', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue([]);
+
+            await runBumpArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json', changeType: 'PATCH' });
+
+            expect(fs.writeFile).not.toHaveBeenCalled();
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ bumped: false })
+            );
+        });
+
+        it('does not write the file when the exact on-disk version is not in the hub versions list', async () => {
+            const { mockClient } = await getSharedMocks();
+            // Hub has 2.0.0 but file has 1.0.0 — version mismatch, no bump
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['2.0.0']);
+
+            await runBumpArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json', changeType: 'PATCH' });
+
+            expect(fs.writeFile).not.toHaveBeenCalled();
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ bumped: false }));
+        });
+
+        it('does not push to the hub', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json', changeType: 'PATCH' });
+
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+        });
+
+        it('renders a pretty table when format is pretty', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json', changeType: 'PATCH', format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ FILE: 'arch.json', FROM: '1.0.0', TO: '1.0.1' }],
+                expect.arrayContaining([expect.objectContaining({ key: 'FROM' }), expect.objectContaining({ key: 'TO' })])
+            );
+        });
+
+        it('exits on HubClientError', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockRejectedValue(
+                new shared.HubClientError(503, 'Service unavailable', 'GET /calm/namespaces/finos/architectures/my-arch/versions')
+            );
+
+            await expect(runBumpArchitecture({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json', changeType: 'PATCH' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(503, 'Service unavailable', expect.any(String), 'json');
+        });
+    });
+
+    describe('runBumpPattern', () => {
+        it('bumps the version on disk when the current version already exists on the hub', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-pattern', 'patterns') as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpPattern({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'pattern.json', changeType: 'PATCH' });
+
+            expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-pattern', 'patterns');
+            expect(fs.writeFile).toHaveBeenCalledWith('pattern.json', expect.stringContaining('/versions/1.0.1'), 'utf-8');
+        });
+    });
+
+    describe('runBumpStandard', () => {
+        it('bumps the version on disk when the current version already exists on the hub', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-standard', 'standards') as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpStandard({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'standard.json', changeType: 'PATCH' });
+
+            expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-standard', 'standards');
+            expect(fs.writeFile).toHaveBeenCalledWith('standard.json', expect.stringContaining('/versions/1.0.1'), 'utf-8');
+        });
+    });
+
+    // ── runBumpControlRequirement ──────────────────────────────────────────────
+
+    describe('runBumpControlRequirement', () => {
+        it('bumps the version on disk when the current version already exists on the hub', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getControlRequirementVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', changeType: 'PATCH' });
+
+            expect(mockClient.getControlRequirementVersions).toHaveBeenCalledWith('security', 'access-control');
+            expect(fs.writeFile).toHaveBeenCalledWith('req.json', expect.stringContaining('/requirement/versions/1.0.1'), 'utf-8');
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ file: 'req.json', previousVersion: '1.0.0', newVersion: '1.0.1' })
+            );
+        });
+
+        it('does not write the file when the current version is not yet published', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getControlRequirementVersions).mockResolvedValue([]);
+
+            await runBumpControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', changeType: 'PATCH' });
+
+            expect(fs.writeFile).not.toHaveBeenCalled();
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ bumped: false }));
+        });
+
+        it('does not push to the hub', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getControlRequirementVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', changeType: 'PATCH' });
+
+            expect(mockClient.createControlRequirementVersion).not.toHaveBeenCalled();
+        });
+
+        it('exits when the document $id describes a configuration, not a requirement', async () => {
+            vi.mocked(fs.readFile).mockResolvedValue(controlConfigDoc() as unknown as Uint8Array);
+
+            await expect(runBumpControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', changeType: 'PATCH' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, expect.stringContaining('describes a control configuration, but a control requirement was expected'), expect.any(String), 'json'
+            );
+        });
+    });
+
+    // ── runBumpControlConfiguration ────────────────────────────────────────────
+
+    describe('runBumpControlConfiguration', () => {
+        it('bumps the version on disk when the current version already exists on the hub', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlConfigDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getControlConfigurationVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpControlConfiguration({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'config.json', changeType: 'PATCH' });
+
+            expect(mockClient.getControlConfigurationVersions).toHaveBeenCalledWith('security', 'access-control', 'prod');
+            expect(fs.writeFile).toHaveBeenCalledWith('config.json', expect.stringContaining('/configurations/prod/versions/1.0.1'), 'utf-8');
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ file: 'config.json', previousVersion: '1.0.0', newVersion: '1.0.1' })
+            );
+        });
+
+        it('does not write the file when the current version is not yet published', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlConfigDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getControlConfigurationVersions).mockResolvedValue([]);
+
+            await runBumpControlConfiguration({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'config.json', changeType: 'PATCH' });
+
+            expect(fs.writeFile).not.toHaveBeenCalled();
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ bumped: false }));
+        });
+
+        it('does not push to the hub', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlConfigDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getControlConfigurationVersions).mockResolvedValue(['1.0.0']);
+
+            await runBumpControlConfiguration({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'config.json', changeType: 'PATCH' });
+
+            expect(mockClient.createControlConfigurationVersion).not.toHaveBeenCalled();
+        });
+
+        it('exits when the document $id describes a requirement, not a configuration', async () => {
+            vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+
+            await expect(runBumpControlConfiguration({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'config.json', changeType: 'PATCH' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, expect.stringContaining('describes a control requirement, but a control configuration was expected'), expect.any(String), 'json'
+            );
+        });
+    });
 
 });
