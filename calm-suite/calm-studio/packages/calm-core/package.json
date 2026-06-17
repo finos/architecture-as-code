@@ -41,7 +41,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@finos/calm-models": "file:../../../../calm-models",
+    "@finos/calm-models": "*",
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1"
   }

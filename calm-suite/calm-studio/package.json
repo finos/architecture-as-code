@@ -10,7 +10,6 @@
     "apps/studio",
     "packages/calm-core",
     "packages/extensions",
-    "packages/calmscript",
     "packages/mcp-server",
     "packages/github-action",
     "packages/vscode-extension",
