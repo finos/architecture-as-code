@@ -353,6 +353,8 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const onControlLoadRef = useRef(onControlLoad);
     onControlLoadRef.current = onControlLoad;
 
+    const reqSeq = useRef(0);
+
     const [namespaces, setNamespaces] = useState<string[]>([]);
     const [selectedNamespace, setSelectedNamespace] = useState<string>(EMPTY_STR_VALUE);
     const [selectedType, setSelectedType] = useState<string>(EMPTY_STR_VALUE);
@@ -421,8 +423,8 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     }, [namespaces, viewMode]);
 
     useEffect(() => {
-        calmService.fetchNamespaces().then(setNamespaces);
-        controlService.fetchDomains().then(setDomains);
+        calmService.fetchNamespaces().then(setNamespaces).catch(() => setNamespaces([]));
+        controlService.fetchDomains().then(setDomains).catch(() => setDomains([]));
     }, [calmService, controlService]);
 
     useEffect(() => {
@@ -565,15 +567,22 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             setSelectedType(EMPTY_STR_VALUE);
         } else {
             setSelectedType(type);
+            const seq = ++reqSeq.current;
             if (type === 'Interfaces') {
                 setNamespaceInterfaces([]);
-                interfaceService.fetchInterfacesForNamespace(selectedNamespace).then(setNamespaceInterfaces).catch((error) => {
+                interfaceService.fetchInterfacesForNamespace(selectedNamespace).then((interfaces) => {
+                    if (seq !== reqSeq.current) return;
+                    setNamespaceInterfaces(interfaces);
+                }).catch((error) => {
                     console.error('Failed to fetch interfaces', error);
                     setNamespaceInterfaces([]);
                 });
             } else if (type === 'ADRs') {
                 setAdrSummaries([]);
-                adrService.fetchAdrSummaries(selectedNamespace).then(setAdrSummaries);
+                adrService.fetchAdrSummaries(selectedNamespace).then((summaries) => {
+                    if (seq !== reqSeq.current) return;
+                    setAdrSummaries(summaries);
+                }).catch(() => setAdrSummaries([]));
             } else {
                 const setter = type === 'Architectures' ? setArchitectureSummaries
                     : type === 'Patterns' ? setPatternSummaries
@@ -585,7 +594,10 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                     : type === 'Flows' ? calmService.fetchFlowSummaries.bind(calmService)
                     : calmService.fetchStandardSummaries.bind(calmService);
                 fetcher(selectedNamespace).then((summaries: ResourceSummary[]) => {
-                    enrichWithMappings(type, summaries, setter);
+                    if (seq !== reqSeq.current) return;
+                    enrichWithMappings(type, summaries, (result) => {
+                        if (seq === reqSeq.current) setter(result);
+                    });
                 }).catch(() => setter([]));
             }
         }

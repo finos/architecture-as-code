@@ -455,6 +455,99 @@ describe('TreeNavigation', () => {
         expect(screen.queryByText('Use CALM (accepted)')).not.toBeInTheDocument();
     });
 
+    it('discards a stale architecture response that resolves after a newer request has started', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        let resolveStale!: (value: unknown[]) => void;
+        const stalePromise = new Promise<unknown[]>((resolve) => { resolveStale = resolve; });
+
+        calmServiceInstance!.fetchArchitectureSummaries
+            .mockReturnValueOnce(stalePromise)
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+
+        // Start first request (stale, deferred)
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+
+        // Start second request (in-flight, never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+
+        // Stale first request resolves late with data
+        act(() => { resolveStale([{ id: 1, name: 'stale-arch', description: '' }]); });
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('stale-arch')).not.toBeInTheDocument();
+    });
+
+    it('discards a stale ADR response that resolves after a newer request has started', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        let resolveStale!: (value: unknown[]) => void;
+        const stalePromise = new Promise<unknown[]>((resolve) => { resolveStale = resolve; });
+
+        adrServiceInstance!.fetchAdrSummaries
+            .mockReturnValueOnce(stalePromise)
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+
+        // Start first request (stale, deferred)
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('ADRs'));
+
+        // Start second request (in-flight, never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('ADRs'));
+
+        // Stale first request resolves late with data
+        act(() => { resolveStale([{ id: 201, title: 'Stale ADR', status: 'accepted' }]); });
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('Stale ADR (accepted)')).not.toBeInTheDocument();
+    });
+
+    it('discards a stale interfaces response that resolves after a newer request has started', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        let resolveStale!: (value: unknown[]) => void;
+        const stalePromise = new Promise<unknown[]>((resolve) => { resolveStale = resolve; });
+
+        interfaceServiceInstance!.fetchInterfacesForNamespace
+            .mockReturnValueOnce(stalePromise)
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+
+        // Start first request (stale, deferred)
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Interfaces'));
+
+        // Start second request (in-flight, never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('Interfaces'));
+
+        // Stale first request resolves late with data
+        act(() => { resolveStale([{ id: 1, name: 'Stale Interface', description: '' }]); });
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('Stale Interface')).not.toBeInTheDocument();
+    });
+
     it('shows an empty list and does not throw when fetchArchitectureSummaries rejects', async () => {
         vi.mocked(useParams).mockReturnValue({});
         calmServiceInstance!.fetchArchitectureSummaries.mockRejectedValueOnce(new Error('403'));
