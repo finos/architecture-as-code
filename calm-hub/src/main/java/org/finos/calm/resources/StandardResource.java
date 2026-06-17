@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -22,7 +23,8 @@ import java.net.URISyntaxException;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class StandardResource {
 
     private final StandardStore standardStore;
@@ -59,7 +61,7 @@ public class StandardResource {
     ) throws URISyntaxException {
         try {
             Standard createdStandard = standardStore.createStandardForNamespace(standard, namespace);
-            return Response.created(new URI("/calm/namespaces/" + namespace + "/standards/" + createdStandard.getId() + "/versions/1.0.0")).build();
+            return Response.created(new URI("/api/calm/namespaces/" + namespace + "/standards/" + createdStandard.getId() + "/versions/1.0.0")).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating standard", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -122,7 +124,7 @@ public class StandardResource {
 
         try {
             standardStore.createStandardForVersion(createStandardRequest, namespace, standardId, version);
-            return Response.created(new URI("/calm/namespaces/" + namespace + "/standards/" + standardId + "/versions/" + version)).build();
+            return Response.created(new URI("/api/calm/namespaces/" + namespace + "/standards/" + standardId + "/versions/" + version)).build();
         } catch (StandardVersionExistsException e) {
             logger.error("Standard Version [{}] already exists", version, e);
             return Response.status(Response.Status.CONFLICT).entity("Standard version already exists: " + version).build();

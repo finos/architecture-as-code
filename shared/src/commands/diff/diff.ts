@@ -7,8 +7,8 @@ import {
     diffTimelineAdjacent,
     diffTimelineMoments,
     type ArchitectureResolver,
-    type DiffResult,
     type MomentDiff,
+    type NodesAndRelationshipsDiffResult,
     type TimelineInput,
 } from '@finos/calm-models/diff';
 import type { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
@@ -27,12 +27,12 @@ export interface DiffRunOptions {
 }
 
 export interface DiffRunResult {
-    diff: DiffResult;
+    diff: NodesAndRelationshipsDiffResult;
     formatted: string;
     hasChanges: boolean;
 }
 
-export function hasChanges(diff: DiffResult): boolean {
+export function hasChanges(diff: NodesAndRelationshipsDiffResult): boolean {
     return (
         diff.nodesAdded.length > 0 ||
         diff.nodesRemoved.length > 0 ||
@@ -67,7 +67,7 @@ function edgeLabel(edge: CalmRelationshipSchema): string {
 }
 
 export function formatDiff(
-    diff: DiffResult,
+    diff: NodesAndRelationshipsDiffResult,
     format: DiffOutputFormat,
     documentType: DiffDocumentType = 'architecture',
 ): string {

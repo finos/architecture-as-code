@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { runDiff, formatDiff, hasChanges, detectDocumentType } from './diff.js';
-import type { DiffResult } from '@finos/calm-models/diff';
+import type { NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
 
 const loggerMock = {
     info: vi.fn(),
@@ -66,7 +66,7 @@ const makePattern = (nodeName: string) => ({
     },
 });
 
-const emptyResult: DiffResult = {
+const emptyResult: NodesAndRelationshipsDiffResult = {
     nodesAdded: [],
     nodesRemoved: [],
     nodesModified: [],
@@ -97,7 +97,7 @@ describe('runDiff', () => {
         return p;
     };
 
-    it('reads two architecture files and returns a structured DiffResult', async () => {
+    it('reads two architecture files and returns a structured NodesAndRelationshipsDiffResult', async () => {
         const a = writeArch('a.json', archA);
         const b = writeArch('b.json', archB);
 
@@ -244,12 +244,12 @@ describe('hasChanges', () => {
         ['edgesModified'],
         ['edgesRenamed'],
     ] as const)('returns true when %s has entries', (key) => {
-        const r: DiffResult = { ...emptyResult, [key]: [{ placeholder: true }] as never };
+        const r: NodesAndRelationshipsDiffResult = { ...emptyResult, [key]: [{ placeholder: true }] as never };
         expect(hasChanges(r)).toBe(true);
     });
 
     it('returns true when only invalid nodes are present', () => {
-        const r: DiffResult = {
+        const r: NodesAndRelationshipsDiffResult = {
             ...emptyResult,
             invalidItems: { nodes: [{ name: 'no id' }], relationships: [] },
         };
@@ -257,7 +257,7 @@ describe('hasChanges', () => {
     });
 
     it('returns true when only invalid relationships are present', () => {
-        const r: DiffResult = {
+        const r: NodesAndRelationshipsDiffResult = {
             ...emptyResult,
             invalidItems: { nodes: [], relationships: [{ description: 'no id' }] },
         };
@@ -265,7 +265,7 @@ describe('hasChanges', () => {
     });
 
     it('returns true when only undiffable items are present', () => {
-        const r: DiffResult = {
+        const r: NodesAndRelationshipsDiffResult = {
             ...emptyResult,
             undiffableItems: { nodes: [{ name: 'unpinned' }], relationships: [] },
         };
@@ -286,7 +286,7 @@ describe('formatDiff', () => {
     });
 
     it('surfaces invalid item counts in the summary view', () => {
-        const r: DiffResult = {
+        const r: NodesAndRelationshipsDiffResult = {
             ...emptyResult,
             invalidItems: { nodes: [{ a: 1 }], relationships: [{ b: 2 }, { c: 3 }] },
         };
@@ -295,7 +295,7 @@ describe('formatDiff', () => {
     });
 
     it('surfaces undiffable item counts in the summary view', () => {
-        const r: DiffResult = {
+        const r: NodesAndRelationshipsDiffResult = {
             ...emptyResult,
             undiffableItems: { nodes: [{ a: 1 }], relationships: [{ b: 2 }] },
         };
@@ -304,7 +304,7 @@ describe('formatDiff', () => {
     });
 
     it('labels id-less pattern nodes by content instead of undefined', () => {
-        const r: DiffResult = {
+        const r: NodesAndRelationshipsDiffResult = {
             ...emptyResult,
             nodesAdded: [{ name: 'Worker', 'node-type': 'service' } as never],
         };

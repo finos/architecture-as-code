@@ -9,25 +9,27 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.NamespaceRequest;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.store.NamespaceStore;
+import org.finos.calm.services.NamespaceService;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class NamespaceResource {
 
-    private final NamespaceStore namespaceStore;
+    private final NamespaceService namespaceService;
 
     @Inject
-    public NamespaceResource(NamespaceStore store) {
-        this.namespaceStore = store;
+    public NamespaceResource(NamespaceService namespaceService) {
+        this.namespaceService = namespaceService;
     }
 
     @GET
@@ -37,7 +39,7 @@ public class NamespaceResource {
     )
     @Authenticated
     public ValueWrapper<NamespaceInfo> namespaces() {
-        return new ValueWrapper<>(namespaceStore.getNamespaces());
+        return new ValueWrapper<>(namespaceService.getNamespaces());
     }
 
     @POST
@@ -60,14 +62,14 @@ public class NamespaceResource {
         }
 
         try {
-            namespaceStore.createNamespace(name, description);
+            namespaceService.createNamespace(name, description);
         } catch (NamespaceAlreadyExistsException e) {
             return Response.status(Response.Status.CONFLICT)
                     .entity("{\"error\":\"Namespace already exists\"}")
                     .build();
         }
 
-        return Response.created(new URI("/calm/namespaces/" + name)).build();
+        return Response.created(new URI("/api/calm/namespaces/" + name)).build();
     }
 
 }

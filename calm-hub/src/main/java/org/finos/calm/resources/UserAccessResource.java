@@ -9,6 +9,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
@@ -24,7 +25,8 @@ import java.time.LocalDateTime;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class UserAccessResource {
 
     private final UserAccessStore store;
@@ -115,7 +117,7 @@ public class UserAccessResource {
 
     private Response locationResponse(UserAccess userAccess) throws URISyntaxException {
         return Response.created(new URI(
-                        String.format("/calm/namespaces/%s/user-access/%s", userAccess.getNamespace(), userAccess.getUserAccessId())))
+                        String.format("/api/calm/namespaces/%s/user-access/%s", userAccess.getNamespace(), userAccess.getUserAccessId())))
                 .build();
     }
 

@@ -38,6 +38,7 @@ public class TestArchitectureResourcePutEnabledShould {
     private static final String ARCHITECTURE_DESCRIPTION = "architecture description";
     private static final String ARCHITECTURE_JSON = "{ \"test\": \"json\" }";
     private final ObjectMapper objectMapper = new ObjectMapper();
+
     @InjectMock
     ArchitectureStore mockArchitectureStore;
 
@@ -47,7 +48,7 @@ public class TestArchitectureResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body(ARCHITECTURE_JSON)
-                .put("/calm/namespaces/fin_os/architectures/20/versions/1.0.1")
+                .put("/api/calm/namespaces/fin_os/architectures/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -59,7 +60,7 @@ public class TestArchitectureResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body(ARCHITECTURE_JSON)
-                .put("/calm/namespaces/finos/architectures/20/versions/1.0invalid.1")
+                .put("/api/calm/namespaces/finos/architectures/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
                 .body(containsString("version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$"));
@@ -103,17 +104,17 @@ public class TestArchitectureResourcePutEnabledShould {
                     .header("Content-Type", "application/json")
                     .body(objectMapper.writeValueAsString(architectureRequest))
                     .when()
-                    .put("/calm/namespaces/test/architectures/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
                     //Derived from stubbed architecture in resource
-                    .header("Location", containsString("/calm/namespaces/test/architectures/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/architectures/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(objectMapper.writeValueAsString(architectureRequest))
                     .when()
-                    .put("/calm/namespaces/test/architectures/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }

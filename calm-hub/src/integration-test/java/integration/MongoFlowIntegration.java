@@ -57,7 +57,7 @@ public class MongoFlowIntegration {
     @Order(1)
     void end_to_end_get_with_no_flow() {
         given()
-                .when().get("/calm/namespaces/finos/flows")
+                .when().get("/api/calm/namespaces/finos/flows")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -77,7 +77,7 @@ public class MongoFlowIntegration {
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/flows")
+                .when().post("/api/calm/namespaces/finos/flows")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/flows/1"));
@@ -87,7 +87,7 @@ public class MongoFlowIntegration {
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/flows/1/versions")
+                .when().get("/api/calm/namespaces/finos/flows/1/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -98,7 +98,7 @@ public class MongoFlowIntegration {
     @Order(4)
     void end_to_end_verify_flow() {
         given()
-                .when().get("/calm/namespaces/finos/flows/1/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/flows/1/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(FLOW));
@@ -112,20 +112,20 @@ public class MongoFlowIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/flows/1/versions/2.0.0")
+                .when().post("/api/calm/namespaces/finos/flows/1/versions/2.0.0")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/flows/1/versions/2.0.0"));
 
         given()
-                .when().get("/calm/namespaces/finos/flows/1")
+                .when().get("/api/calm/namespaces/finos/flows/1")
                 .then()
                 .statusCode(200)
                 .body(equalTo(FLOW_V2));
 
         // Wrapper name/description must reflect the most recent envelope
         given()
-                .when().get("/calm/namespaces/finos/flows")
+                .when().get("/api/calm/namespaces/finos/flows")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("name-v2"))

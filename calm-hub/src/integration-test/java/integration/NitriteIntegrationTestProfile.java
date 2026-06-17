@@ -28,7 +28,8 @@ public class NitriteIntegrationTestProfile implements QuarkusTestProfile {
         return Map.of(
                 "allow.put.operations", "true",
                 "calm.mcp.enabled", "true",
-                "calm.auth.enabled", "false"
+                "calm.auth.enabled", "false",
+                "calm.hub.base-url", "http://localhost:8080"
         );
     }
 }

@@ -91,6 +91,40 @@ public class TestNitriteUserAccessStoreShould {
     }
 
     @Test
+    public void getGrantsForUser_returns_empty_list_when_no_grants_exist() {
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.iterator()).thenReturn(Collections.emptyIterator());
+
+        List<UserAccess> result = userAccessStore.getGrantsForUser("alice");
+        assertThat(result, hasSize(0));
+    }
+
+    @Test
+    public void getGrantsForUser_returns_user_and_wildcard_grants() {
+        Document userDoc = mock(Document.class);
+        when(userDoc.get("username", String.class)).thenReturn("alice");
+        when(userDoc.get("namespace", String.class)).thenReturn("org");
+        when(userDoc.get("domain", String.class)).thenReturn(null);
+        when(userDoc.get("permission", String.class)).thenReturn("write");
+        when(userDoc.get("userAccessId", Integer.class)).thenReturn(1);
+
+        Document wildcardDoc = mock(Document.class);
+        when(wildcardDoc.get("username", String.class)).thenReturn("*");
+        when(wildcardDoc.get("namespace", String.class)).thenReturn("org.ab");
+        when(wildcardDoc.get("domain", String.class)).thenReturn(null);
+        when(wildcardDoc.get("permission", String.class)).thenReturn("read");
+        when(wildcardDoc.get("userAccessId", Integer.class)).thenReturn(2);
+
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.iterator()).thenReturn(List.of(userDoc, wildcardDoc).iterator());
+
+        List<UserAccess> result = userAccessStore.getGrantsForUser("alice");
+        assertThat(result, hasSize(2));
+        assertThat(result.stream().map(UserAccess::getUsername).toList(),
+                containsInAnyOrder("alice", "*"));
+    }
+
+    @Test
     public void testGetUserAccessForUsername() throws UserAccessNotFoundException {
         // Arrange
         Document mockDoc = mock(Document.class);

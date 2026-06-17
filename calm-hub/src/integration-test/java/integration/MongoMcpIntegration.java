@@ -54,7 +54,7 @@ public class MongoMcpIntegration {
             {
                 "unique-id": "mcp-test-decorator",
                 "type": "deployment",
-                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
                 "target-type": ["architecture"],
                 "applies-to": ["mcp-test-node"],
                 "data": {"status": "deployed", "environment": "integration-test"}
@@ -65,7 +65,7 @@ public class MongoMcpIntegration {
             {
                 "unique-id": "mcp-test-decorator",
                 "type": "deployment",
-                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
                 "target-type": ["architecture"],
                 "applies-to": ["mcp-test-node"],
                 "data": {"status": "completed", "environment": "integration-test"}
@@ -403,7 +403,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(24)
     void mcp_validation_rejects_decorator_target_filter_with_spaces() {
-        ToolResponse result = decoratorTools.listDecorators("finos", "/calm/namespaces/finos architectures/1", null);
+        ToolResponse result = decoratorTools.listDecorators("finos", "/api/calm/namespaces/finos architectures/1", null);
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("Target filter"));
     }

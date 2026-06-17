@@ -5,7 +5,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
-import org.finos.calm.store.NamespaceStore;
+import org.finos.calm.services.NamespaceService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,37 +25,37 @@ import static org.mockito.Mockito.*;
 public class TestNamespaceResourceShould {
 
     @InjectMock
-    NamespaceStore namespaceStore;
+    NamespaceService namespaceService;
 
     @Test
     void return_empty_wrapper_when_no_namespaces_in_store() {
-        when(namespaceStore.getNamespaces()).thenReturn(new ArrayList<>());
+        when(namespaceService.getNamespaces()).thenReturn(new ArrayList<>());
 
         given()
                 .when()
-                .get("/calm/namespaces")
+                .get("/api/calm/namespaces")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{\"values\":[]}"));
 
-        verify(namespaceStore, times(1)).getNamespaces();
+        verify(namespaceService, times(1)).getNamespaces();
     }
 
     @Test
     void return_namespaces_when_namespaces_in_store() {
-        when(namespaceStore.getNamespaces()).thenReturn(Arrays.asList(
+        when(namespaceService.getNamespaces()).thenReturn(Arrays.asList(
                 new NamespaceInfo("finos","FINOS namespace"),
                 new NamespaceInfo("custom","custom ns")
         ));
 
         given()
                 .when()
-                .get("/calm/namespaces")
+                .get("/api/calm/namespaces")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{\"values\":[{\"name\":\"finos\",\"description\":\"FINOS namespace\"},{\"name\":\"custom\",\"description\":\"custom ns\"}]}"));
 
-        verify(namespaceStore, times(1)).getNamespaces();
+        verify(namespaceService, times(1)).getNamespaces();
     }
 
     @Test
@@ -64,12 +64,12 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{\"name\":\"test-namespace\",\"description\":\"desc\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/test-namespace"));
+                .header("Location", containsString("/api/calm/namespaces/test-namespace"));
 
-        verify(namespaceStore).createNamespace("test-namespace","desc");
+        verify(namespaceService).createNamespace("test-namespace", "desc");
     }
 
     @Test
@@ -78,7 +78,7 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{}") 
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString("Name must not be null"));
@@ -91,12 +91,12 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{\"name\":\"\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString("Name must not be blank"));
 
-        verify(namespaceStore, never()).createNamespace(any(), any());
+        verify(namespaceService, never()).createNamespace(any(), any());
     }
 
     @Test
@@ -105,12 +105,12 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{\"name\":\"test@namespace\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
 
-        verify(namespaceStore, never()).createNamespace(any(), any());
+        verify(namespaceService, never()).createNamespace(any(), any());
     }
 
     @Test
@@ -119,12 +119,12 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{\"name\":\"org.finos\",\"description\":\"FINOS org namespace\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/org.finos"));
+                .header("Location", containsString("/api/calm/namespaces/org.finos"));
 
-        verify(namespaceStore).createNamespace("org.finos", "FINOS org namespace");
+        verify(namespaceService).createNamespace("org.finos", "FINOS org namespace");
     }
 
     @Test
@@ -133,12 +133,12 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{\"name\":\"org.finos.\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
 
-        verify(namespaceStore, never()).createNamespace(any(), any());
+        verify(namespaceService, never()).createNamespace(any(), any());
     }
 
     @Test
@@ -147,12 +147,12 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{\"name\":\".org.finos\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
 
-        verify(namespaceStore, never()).createNamespace(any(), any());
+        verify(namespaceService, never()).createNamespace(any(), any());
     }
 
     @Test
@@ -161,12 +161,12 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{\"name\":\"org..finos\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
 
-        verify(namespaceStore, never()).createNamespace(any(), any());
+        verify(namespaceService, never()).createNamespace(any(), any());
     }
 
     @Test
@@ -175,12 +175,12 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{\"name\":\"GLOBAL\",\"description\":\"desc\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString("reserved"));
 
-        verify(namespaceStore, never()).createNamespace(any(), any());
+        verify(namespaceService, never()).createNamespace(any(), any());
     }
 
     @Test
@@ -189,29 +189,29 @@ public class TestNamespaceResourceShould {
                 .contentType("application/json")
                 .body("{\"name\":\"global\",\"description\":\"desc\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString("reserved"));
 
-        verify(namespaceStore, never()).createNamespace(any(), any());
+        verify(namespaceService, never()).createNamespace(any(), any());
     }
 
     @Test
     void return_409_when_namespace_already_exists() throws NamespaceAlreadyExistsException {
         doThrow(new NamespaceAlreadyExistsException("Namespace already exists: existing-namespace"))
-                .when(namespaceStore).createNamespace("existing-namespace", "desc");
+                .when(namespaceService).createNamespace("existing-namespace", "desc");
 
         given()
                 .contentType("application/json")
                 .body("{\"name\":\"existing-namespace\",\"description\":\"desc\"}")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(409)
                 .body(containsString("Namespace already exists"));
 
-        verify(namespaceStore).createNamespace("existing-namespace", "desc");
+        verify(namespaceService).createNamespace("existing-namespace", "desc");
     }
 
     @Test
@@ -219,11 +219,11 @@ public class TestNamespaceResourceShould {
         given()
                 .contentType("application/json")
                 .when()
-                .post("/calm/namespaces")
+                .post("/api/calm/namespaces")
                 .then()
                 .statusCode(400)
                 .body(containsString("Request must not be null"));
 
-        verify(namespaceStore, never()).createNamespace(any(), any());
+        verify(namespaceService, never()).createNamespace(any(), any());
     }
 }

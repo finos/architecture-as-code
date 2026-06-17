@@ -8,7 +8,7 @@ import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
 import { CompareView } from './compare/CompareView.js';
-import { diffArchitectures, diffPatterns, type DiffResult } from '@finos/calm-models/diff';
+import { diffArchitectures, diffPatterns, type NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
 import type { CalmArchitectureSchema } from '@finos/calm-models/types';
 import type { DiffSource } from '../../../diff/model/diff-ui-types.js';
 import { TimelineBar, type TimelineMoment } from './timeline/TimelineBar.js';
@@ -59,7 +59,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     /** Compare-mode data shared by CompareView (graphs) and TimelineBar (summary). */
     const [compareSourceA, setCompareSourceA] = useState<DiffSource | null>(null);
     const [compareSourceB, setCompareSourceB] = useState<DiffSource | null>(null);
-    const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
+    const [diffResult, setDiffResult] = useState<NodesAndRelationshipsDiffResult | null>(null);
     const [compareError, setCompareError] = useState<string | null>(null);
 
     const setActiveTab = (tab: DiagramTabType) => {

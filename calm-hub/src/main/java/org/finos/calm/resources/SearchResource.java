@@ -81,7 +81,7 @@ public class SearchResource {
         if (!authEnabled || !userAccessValidatorInstance.isResolvable()) {
             return Optional.empty();
         }
-        return Optional.of(userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName()));
+        return userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName());
     }
 
     /**
