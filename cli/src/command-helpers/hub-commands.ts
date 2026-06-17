@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -254,7 +254,7 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
             mapping,
             version: documentMetadata.version!,
             namespace,
-            location: documentMetadata.baseUrl
+            location: constructDocumentId(documentMetadata)
         };
         printPushResult(result, format);
     } catch (err) {
@@ -290,7 +290,7 @@ export async function pullDocument(options: PullOptions, resourceType: ResourceT
     const version = options.version;
     const pullLatest = !version;
 
-    console.log(`Pulling ${resourceType} from CALM Hub with namespace=${namespace}, mapping=${mapping}, version=${version ?? 'latest'}`);
+    console.error(`Pulling ${resourceType} from CALM Hub with namespace=${namespace}, mapping=${mapping}, version=${version ?? 'latest'}`);
 
     try {
         let result;

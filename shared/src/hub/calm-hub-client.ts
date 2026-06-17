@@ -342,7 +342,7 @@ export class CalmHubClient {
         try {
             const response = await this.ax.post(endpoint, json);
             this.logger.debug(`Received update mapping response: ${JSON.stringify(response.headers)}`);
-            return response.headers.location as string;
+            return (response.headers.location as string | undefined) ?? endpoint;
         } catch (err) {
             throw this.wrapError(err, `POST ${endpoint}`);
         }
@@ -372,25 +372,25 @@ export class CalmHubClient {
         }
     }
 
-    async getMappedResourceLatestVersion(namespace: string, mappingId: string, resourceType: ResourceType): Promise<string> {
+    async getMappedResourceLatestVersion(namespace: string, mappingId: string, resourceType: ResourceType): Promise<object> {
         this.logger.debug(`Getting latest version for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
         const endpoint = `/calm/namespaces/${namespace}/${resourceType}/${mappingId}`;
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received latest version response: ${JSON.stringify(response.data)}`);
-            return response.data as string;
+            return response.data as object;
         } catch (err) {
             throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
 
-    async getMappedResourceByVersion(namespace: string, mappingId: string, version: string, resourceType: ResourceType): Promise<string> {
+    async getMappedResourceByVersion(namespace: string, mappingId: string, version: string, resourceType: ResourceType): Promise<object> {
         this.logger.debug(`Getting version ${version} for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
         const endpoint = `/calm/namespaces/${namespace}/${resourceType}/${mappingId}/versions/${version}`;
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received version response: ${JSON.stringify(response.data)}`);
-            return response.data as string;
+            return response.data as object;
         } catch (err) {
             throw this.wrapError(err, `GET ${endpoint}`);
         }

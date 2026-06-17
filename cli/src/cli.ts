@@ -37,7 +37,7 @@ import {
     runListControlConfigurations,
     ListOptions,
 } from './command-helpers/hub-commands';
-import { ResourceChangeType } from '@finos/calm-shared/dist/hub/calm-hub-client';
+import type { ResourceChangeType } from '@finos/calm-shared';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -456,7 +456,7 @@ Example:
     hubPushCmd
         .command('pattern <pattern-file>')
         .description('Push a CALM pattern file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
-        .option(NAME_OPTION, 'Name for the pattern in CALM Hub (required when creating a new pattern)')
+        .option(NAME_OPTION, 'Name for the pattern in CALM Hub; overrides `title` field if set.')
         .option(DESCRIPTION_OPTION, 'Description for the pattern')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
