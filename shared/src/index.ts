@@ -65,17 +65,28 @@ export {
     CalmHubClient,
     HubClientError,
     type HubNamespaceSummary,
-    type HubArchitectureSummary,
-    type HubPatternSummary,
-    type HubStandardSummary,
     type HubCreateResult,
     type HubNamespaceCreateResult,
     type HubDomainCreateResult,
     type HubDomainSummary,
     type HubControlSummary,
-    type HubControlRequirementSummary,
-    type CalmHubOptions
+    type CalmHubOptions,
+    type ResourceType,
+    type ResourceChangeType,
+    isValidResourceType
 } from './hub/calm-hub-client.js';
+export {
+    constructDocumentId,
+    extractDocumentMetadata,
+    updateDocumentMetadata,
+    type DocumentMetadata,
+    constructControlDocumentId,
+    extractControlMetadata,
+    updateControlDocumentMetadata,
+    type ControlDocumentMetadata,
+    type ControlDocumentKind
+} from './hub/document-id-utils.js';
+export { computeSemVerBump, compareSemVer, sortSemVer } from './hub/semver.js';
 export {
     enrichWithDocumentPositions,
     parseDocumentWithPositions,
