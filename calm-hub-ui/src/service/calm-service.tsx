@@ -1,6 +1,6 @@
 import { AxiosInstance } from 'axios';
 import type { CalmTimelineSchema } from '@finos/calm-models/types';
-import { Data, ResourceSummary, ResourceMapping } from '../model/calm.js';
+import { Data, ResourceSummary, ResourceMapping, isSlug } from '../model/calm.js';
 import { getAuthHeaders } from '../authService.js';
 import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
 import { apiClient } from './utils/api-client.js';
@@ -295,6 +295,30 @@ export class CalmService {
                 console.error('%s', errorMessage, error);
                 return [];
             });
+    }
+
+    /**
+     * Fetches deployment decorators for a given architecture version.
+     *
+     * Resolves slug identifiers to their numeric ID via the mapping API before
+     * building the exact-match target string used for decorator filtering.
+     * Returns an empty array when the slug cannot be resolved or the fetch fails.
+     */
+    public async fetchDeploymentDecoratorsForArchitecture(
+        namespace: string,
+        id: string,
+        version: string
+    ): Promise<Decorator[]> {
+        const versionPath = version.replace(/\./g, '-');
+        let numericId = id;
+        if (isSlug(id)) {
+            const mappings = await this.fetchMappings(namespace, 'Architectures');
+            const match = mappings.find((m) => m.customId === id);
+            if (!match) return []; // cannot resolve slug — skip decorator fetch
+            numericId = String(match.numericId);
+        }
+        const target = `/api/calm/namespaces/${namespace}/architectures/${numericId}/versions/${versionPath}`;
+        return this.fetchDecoratorValues(namespace, target, 'deployment');
     }
 
     // --- Front Controller API (name-based / slug-based access) ---

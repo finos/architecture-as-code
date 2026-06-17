@@ -461,4 +461,64 @@ describe('CalmService', () => {
             await expect(calmService.fetchResourceByCustomId(namespace, 'api-gateway', '1.0.0', 'Patterns')).rejects.toThrowError();
         });
     });
+
+    describe('fetchDeploymentDecoratorsForArchitecture', () => {
+        const decorators = [
+            {
+                uniqueId: 'dec-1',
+                type: 'deployment',
+                target: ['/api/calm/namespaces/test-namespace/architectures/1/versions/1-0-0'],
+                appliesTo: ['node-a'],
+                data: { status: 'completed' },
+            },
+        ];
+
+        it('should fetch decorators using the numeric id directly without calling mappings', async () => {
+            const target = `/api/calm/namespaces/${namespace}/architectures/1/versions/1-0-0`;
+            mock.onGet(
+                `/api/calm/namespaces/${namespace}/decorators/values?target=${encodeURIComponent(target)}&type=deployment`
+            ).reply(200, { values: decorators });
+
+            const actual = await calmService.fetchDeploymentDecoratorsForArchitecture(namespace, '1', '1.0.0');
+
+            expect(actual).toEqual(decorators);
+            // Verify no mapping call was made (numeric id needs no resolution)
+            expect(mock.history.get.filter((r) => r.url?.includes('/calm/namespaces/') && r.url?.includes('/architectures') && !r.url?.includes('/decorators'))).toHaveLength(0);
+        });
+
+        it('should resolve a slug id to its numeric id via mappings before fetching decorators', async () => {
+            const mappings = [
+                { namespace, customId: 'my-arch', resourceType: 'ARCHITECTURE', numericId: 42 },
+            ];
+            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, { values: mappings });
+
+            const target = `/api/calm/namespaces/${namespace}/architectures/42/versions/1-0-0`;
+            mock.onGet(
+                `/api/calm/namespaces/${namespace}/decorators/values?target=${encodeURIComponent(target)}&type=deployment`
+            ).reply(200, { values: decorators });
+
+            const actual = await calmService.fetchDeploymentDecoratorsForArchitecture(namespace, 'my-arch', '1.0.0');
+
+            expect(actual).toEqual(decorators);
+        });
+
+        it('should return empty array when the slug cannot be resolved in the mappings', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, { values: [] });
+
+            const actual = await calmService.fetchDeploymentDecoratorsForArchitecture(namespace, 'unknown-slug', '1.0.0');
+
+            expect(actual).toEqual([]);
+        });
+
+        it('should replace dots in the version with hyphens in the target path', async () => {
+            const target = `/api/calm/namespaces/${namespace}/architectures/5/versions/2-3-1`;
+            mock.onGet(
+                `/api/calm/namespaces/${namespace}/decorators/values?target=${encodeURIComponent(target)}&type=deployment`
+            ).reply(200, { values: [] });
+
+            const actual = await calmService.fetchDeploymentDecoratorsForArchitecture(namespace, '5', '2.3.1');
+
+            expect(actual).toEqual([]);
+        });
+    });
 });

@@ -222,8 +222,8 @@ public class MappingControllerService {
                 + "/controls/" + controlName + "/requirement/versions/" + version;
         String actualId;
         try {
-            actualId = documentParser.extractIdFromJson(requestBody);
-        } catch (Exception e) {
+            actualId = documentParser.extractIdFromJsonStrict(requestBody);
+        } catch (JsonProcessingException e) {
             return invalidJsonResponse("Cannot parse request body as JSON");
         }
         if (actualId == null || actualId.isBlank()) {
@@ -288,8 +288,8 @@ public class MappingControllerService {
                 + "/controls/" + controlName + "/configurations/" + configName + "/versions/" + version;
         String actualId;
         try {
-            actualId = documentParser.extractIdFromJson(requestBody);
-        } catch (Exception e) {
+            actualId = documentParser.extractIdFromJsonStrict(requestBody);
+        } catch (JsonProcessingException e) {
             return invalidJsonResponse("Cannot parse request body as JSON");
         }
         if (actualId == null || actualId.isBlank()) {

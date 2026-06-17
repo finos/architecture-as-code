@@ -220,9 +220,14 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             setDecorators([]);
             return;
         }
-        const versionPath = data.version.replace(/\./g, '-');
-        const target = `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
-        calmService.fetchDecoratorValues(data.name, target, 'deployment').then((values) => setDecorators(values as DeploymentDecorator[]));
+        let cancelled = false;
+
+        calmService
+            .fetchDeploymentDecoratorsForArchitecture(data.name, data.id, data.version)
+            .then((values) => { if (!cancelled) setDecorators(values as DeploymentDecorator[]); })
+            .catch(() => { if (!cancelled) setDecorators([]); });
+
+        return () => { cancelled = true; };
     }, [data, isArchitecture, calmService]);
 
     // When an architecture has an explicit timeline, landing on the latest
