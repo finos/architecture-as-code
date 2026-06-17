@@ -87,12 +87,6 @@ const config = {
                         position: 'left',
                     },
                     {
-                        type: 'docSidebar',
-                        sidebarId: 'calmStudioSidebar',
-                        label: 'CALM Studio',
-                        position: 'left',
-                    },
-                    {
                         to: '/talks/',
                         label: '🎤 Talks',
                         position: 'left',
