@@ -36,6 +36,12 @@ import {
     runListControls,
     runListControlConfigurations,
     ListOptions,
+    BumpOptions,
+    runBumpArchitecture,
+    runBumpPattern,
+    runBumpStandard,
+    runBumpControlRequirement,
+    runBumpControlConfiguration,
 } from './command-helpers/hub-commands';
 import type { ResourceChangeType } from '@finos/calm-shared';
 
@@ -533,6 +539,89 @@ Example:
                 failIfExists: options.failIfExists ?? false,
             };
             await runPushControlConfiguration(pushOptions);
+        });
+
+    // hub bump
+    const hubBumpCmd = hubCmd.command('bump').description('Bump the version of a CALM document on disk if the current version already exists on the hub. Intended for dev-time use before committing, so CI can push with --fail-if-exists.');
+
+    hubBumpCmd
+        .command('architecture <architecture-file>')
+        .description('Bump the version of a CALM architecture on disk if that version already exists on the hub.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .action(async (architectureFile, options) => {
+            const bumpOptions: BumpOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                file: architectureFile,
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+            };
+            await runBumpArchitecture(bumpOptions);
+        });
+
+    hubBumpCmd
+        .command('pattern <pattern-file>')
+        .description('Bump the version of a CALM pattern on disk if that version already exists on the hub.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .action(async (patternFile, options) => {
+            const bumpOptions: BumpOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                file: patternFile,
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+            };
+            await runBumpPattern(bumpOptions);
+        });
+
+    hubBumpCmd
+        .command('standard <standard-file>')
+        .description('Bump the version of a CALM standard on disk if that version already exists on the hub.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .action(async (standardFile, options) => {
+            const bumpOptions: BumpOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                file: standardFile,
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+            };
+            await runBumpStandard(bumpOptions);
+        });
+
+    hubBumpCmd
+        .command('control-requirement <requirement-file>')
+        .description('Bump the version of a control requirement on disk if that version already exists on the hub.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .action(async (requirementFile, options) => {
+            const bumpOptions: BumpOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                file: requirementFile,
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+            };
+            await runBumpControlRequirement(bumpOptions);
+        });
+
+    hubBumpCmd
+        .command('control-configuration <config-file>')
+        .description('Bump the version of a control configuration on disk if that version already exists on the hub.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .action(async (configFile, options) => {
+            const bumpOptions: BumpOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                file: configFile,
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+            };
+            await runBumpControlConfiguration(bumpOptions);
         });
 
     // hub pull

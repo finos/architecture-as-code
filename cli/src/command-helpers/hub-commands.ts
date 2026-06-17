@@ -733,6 +733,143 @@ export async function runPushControlConfiguration(options: PushControlOptions): 
     return orchestrateControlPush(options, 'configuration');
 }
 
+// ── bump documents ─────────────────────────────────────────────────────────────
+
+export interface BumpOptions {
+    calmHubOptions: CalmHubOptions;
+    file: string;
+    changeType: ResourceChangeType;
+    format?: string;
+}
+
+export interface BumpResult {
+    file: string;
+    previousVersion: string;
+    newVersion: string;
+}
+
+function printBumpResult(result: BumpResult, format: OutputFormat): void {
+    if (format === 'pretty') {
+        printTableSuccess(
+            [{ FILE: result.file, FROM: result.previousVersion, TO: result.newVersion }],
+            [
+                { key: 'FILE', header: 'FILE' },
+                { key: 'FROM', header: 'FROM' },
+                { key: 'TO', header: 'TO' }
+            ]
+        );
+    } else {
+        printJsonSuccess(result);
+    }
+}
+
+/**
+ * Checks whether the version in the document's $id already exists on the hub.
+ * If it does, bumps the version in the $id on disk without pushing.
+ * Intended for dev-time use before committing, so CI can push with --fail-if-exists.
+ */
+export async function orchestrateBump(options: BumpOptions, resourceType: ResourceType): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    const requestedCommand = `bump ${resourceType} ${options.file}`;
+    let fileContent = await loadFileContent(options.file, requestedCommand, format);
+    fileContent = validateAndMinifyJSON(fileContent, options.file, requestedCommand, format);
+
+    const metadata: DocumentMetadata = handleMetadataParsing(fileContent, requestedCommand, format);
+
+    if (!metadata.namespace || !metadata.mapping) {
+        printError(0, `Document metadata must include namespace and mapping: ${options.file}`, requestedCommand, format);
+        process.exit(1);
+    }
+
+    try {
+        const existingVersions = await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, resourceType);
+
+        if (!existingVersions.includes(metadata.version)) {
+            printJsonSuccess({ file: options.file, currentVersion: metadata.version, bumped: false, message: 'Version not yet published to hub; no bump needed.' });
+            return;
+        }
+
+        const newVersion = computeSemVerBump(metadata.version, options.changeType);
+        const newMetadata = { ...metadata, version: newVersion };
+        const newContent = updateDocumentMetadata(fileContent, newMetadata);
+        await writeFile(options.file, newContent, 'utf-8');
+
+        printBumpResult({ file: options.file, previousVersion: metadata.version, newVersion }, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+export async function runBumpArchitecture(options: BumpOptions): Promise<void> {
+    return orchestrateBump(options, 'architectures');
+}
+
+export async function runBumpPattern(options: BumpOptions): Promise<void> {
+    return orchestrateBump(options, 'patterns');
+}
+
+export async function runBumpStandard(options: BumpOptions): Promise<void> {
+    return orchestrateBump(options, 'standards');
+}
+
+/**
+ * Checks whether the control document version in $id already exists on the hub.
+ * If it does, bumps the version in the $id on disk without pushing.
+ */
+async function orchestrateControlBump(options: BumpOptions, kind: ControlDocumentKind): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    const requestedCommand = `bump control-${kind} ${options.file}`;
+    let fileContent = await loadFileContent(options.file, requestedCommand, format);
+    fileContent = validateAndMinifyJSON(fileContent, options.file, requestedCommand, format);
+
+    let metadata: ControlDocumentMetadata;
+    try {
+        metadata = extractControlMetadata(fileContent);
+    } catch (error) {
+        printError(0, `Failed to extract control document metadata: ${error instanceof Error ? error.message : String(error)}`, requestedCommand, format);
+        process.exit(1);
+    }
+
+    if (metadata.kind !== kind) {
+        printError(0, `Document $id describes a control ${metadata.kind}, but a control ${kind} was expected: ${options.file}`, requestedCommand, format);
+        process.exit(1);
+    }
+
+    try {
+        const existingVersions = kind === 'configuration'
+            ? await client.getControlConfigurationVersions(metadata.domain, metadata.controlName, metadata.configName!)
+            : await client.getControlRequirementVersions(metadata.domain, metadata.controlName);
+
+        if (!existingVersions.includes(metadata.version)) {
+            printJsonSuccess({ file: options.file, currentVersion: metadata.version, bumped: false, message: 'Version not yet published to hub; no bump needed.' });
+            return;
+        }
+
+        const newVersion = computeSemVerBump(metadata.version, options.changeType);
+        const newMetadata: ControlDocumentMetadata = { ...metadata, version: newVersion };
+        const newContent = updateControlDocumentMetadata(fileContent, newMetadata);
+        await writeFile(options.file, newContent, 'utf-8');
+
+        printBumpResult({ file: options.file, previousVersion: metadata.version, newVersion }, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+export async function runBumpControlRequirement(options: BumpOptions): Promise<void> {
+    return orchestrateControlBump(options, 'requirement');
+}
+
+export async function runBumpControlConfiguration(options: BumpOptions): Promise<void> {
+    return orchestrateControlBump(options, 'configuration');
+}
+
 // ── pull control documents ──────────────────────────────────────────────────────
 
 export interface PullControlOptions {
