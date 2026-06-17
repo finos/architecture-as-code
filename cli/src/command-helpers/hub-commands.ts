@@ -58,6 +58,7 @@ export interface PushOptions {
     version?: string;
     format?: string;
     changeType?: ResourceChangeType;
+    failIfExists?: boolean;
 }
 
 export interface PushResult {
@@ -183,16 +184,22 @@ export async function pushDocument(
     const name = options.name ?? metadata.name;
     const description = options.description ?? metadata.description ?? '';
 
-    // const resourceTypeString: string = resourceType;
-    const mappedResourceVersions = await client.getMappedResourceVersions(namespace, mapping, resourceType);
-    const mappingExists = mappedResourceVersions.length > 0;
-
     // override name/description if set
     const newDocumentMetadata = {
         ...metadata,
         name,
         description
     };
+
+    if (options.failIfExists) {
+        fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
+        await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
+        return newDocumentMetadata;
+    }
+
+    const mappedResourceVersions = await client.getMappedResourceVersions(namespace, mapping, resourceType);
+    const mappingExists = mappedResourceVersions.length > 0;
+
     if (mappingExists) {
         // Sort defensively so the highest version is last, regardless of the order Hub returns them in.
         const sortedVersions = sortSemVer(mappedResourceVersions);
@@ -603,6 +610,7 @@ export interface PushControlOptions {
     file: string;
     format?: string;
     changeType?: ResourceChangeType;
+    failIfExists?: boolean;
 }
 
 export interface ControlPushResult {
@@ -673,14 +681,19 @@ async function orchestrateControlPush(options: PushControlOptions, kind: Control
 
     const changeType = options.changeType ?? 'PATCH';
     try {
-        const existingVersions = kind === 'configuration'
-            ? await client.getControlConfigurationVersions(metadata.domain, metadata.controlName, metadata.configName!)
-            : await client.getControlRequirementVersions(metadata.domain, metadata.controlName);
+        let newVersion: string;
+        if (options.failIfExists) {
+            newVersion = metadata.version;
+        } else {
+            const existingVersions = kind === 'configuration'
+                ? await client.getControlConfigurationVersions(metadata.domain, metadata.controlName, metadata.configName!)
+                : await client.getControlRequirementVersions(metadata.domain, metadata.controlName);
 
-        let newVersion = '1.0.0';
-        if (existingVersions.length > 0) {
-            const sorted = sortSemVer(existingVersions);
-            newVersion = computeSemVerBump(sorted[sorted.length - 1], changeType);
+            newVersion = '1.0.0';
+            if (existingVersions.length > 0) {
+                const sorted = sortSemVer(existingVersions);
+                newVersion = computeSemVerBump(sorted[sorted.length - 1], changeType);
+            }
         }
 
         const newMetadata: ControlDocumentMetadata = { ...metadata, version: newVersion };

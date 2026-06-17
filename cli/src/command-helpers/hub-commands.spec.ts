@@ -1339,4 +1339,82 @@ describe('hub-commands', () => {
         });
     });
 
+    // ── --fail-if-exists on push commands ──────────────────────────────────────
+
+    describe('runPushArchitecture with failIfExists', () => {
+        it('skips getMappedResourceVersions and pushes the exact version from $id', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.0.0'
+            );
+
+            await runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                file: 'arch.json',
+                failIfExists: true,
+            });
+
+            expect(mockClient.getMappedResourceVersions).not.toHaveBeenCalled();
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ version: '1.0.0' }),
+                expect.any(String)
+            );
+        });
+
+        it('fails with 409 when the version already exists on the hub', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.createMappedResourceVersion).mockRejectedValue(
+                new shared.HubClientError(409, 'Version already exists', 'POST /calm/namespaces/finos/architectures/my-arch/versions/1.0.0')
+            );
+
+            await expect(runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                file: 'arch.json',
+                failIfExists: true,
+            })).rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(409, 'Version already exists', expect.any(String), 'json');
+        });
+    });
+
+    describe('runPushControlRequirement with failIfExists', () => {
+        it('skips getControlRequirementVersions and pushes the exact version from $id', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.createControlRequirementVersion).mockResolvedValue(reqId('1.0.0'));
+
+            await runPushControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', failIfExists: true });
+
+            expect(mockClient.getControlRequirementVersions).not.toHaveBeenCalled();
+            expect(mockClient.createControlRequirementVersion).toHaveBeenCalledWith('security', 'access-control', '1.0.0', expect.any(String));
+        });
+
+        it('fails with 409 when the version already exists on the hub', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.createControlRequirementVersion).mockRejectedValue(
+                new shared.HubClientError(409, 'Version already exists', 'POST /calm/domains/security/controls/access-control/requirement/versions/1.0.0')
+            );
+
+            await expect(runPushControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', failIfExists: true }))
+                .rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(409, 'Version already exists', expect.any(String), 'json');
+        });
+    });
+
+    describe('runPushControlConfiguration with failIfExists', () => {
+        it('skips getControlConfigurationVersions and pushes the exact version from $id', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(controlConfigDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.createControlConfigurationVersion).mockResolvedValue(cfgId('1.0.0'));
+
+            await runPushControlConfiguration({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'config.json', failIfExists: true });
+
+            expect(mockClient.getControlConfigurationVersions).not.toHaveBeenCalled();
+            expect(mockClient.createControlConfigurationVersion).toHaveBeenCalledWith('security', 'access-control', 'prod', '1.0.0', expect.any(String));
+        });
+    });
+
+
 });

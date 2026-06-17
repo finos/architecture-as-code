@@ -439,6 +439,7 @@ Example:
         .option(NAME_OPTION, 'Name for the architecture in CALM Hub; overrides `title` field if set.')
         .option(DESCRIPTION_OPTION, 'Description for the architecture; overrides `description` field if set.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option('--fail-if-exists', 'Push the exact version from $id without auto-bumping; fail if that version already exists on the hub.')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
         .action(async (architectureFile, options) => {
@@ -448,7 +449,8 @@ Example:
                 description: options.description,
                 file: architectureFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfExists: options.failIfExists ?? false,
             };
             await runPushArchitecture(pushOptions);
         });
@@ -459,6 +461,7 @@ Example:
         .option(NAME_OPTION, 'Name for the pattern in CALM Hub; overrides `title` field if set.')
         .option(DESCRIPTION_OPTION, 'Description for the pattern')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option('--fail-if-exists', 'Push the exact version from $id without auto-bumping; fail if that version already exists on the hub.')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
         .action(async (patternFile, options) => {
@@ -469,6 +472,7 @@ Example:
                 file: patternFile,
                 format: options.format,
                 changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfExists: options.failIfExists ?? false,
             };
             await runPushPattern(pushPatternOptions);
         });
@@ -479,6 +483,7 @@ Example:
         .option(NAME_OPTION, 'Name for the standard in CALM Hub')
         .option(DESCRIPTION_OPTION, 'Description for the standard')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option('--fail-if-exists', 'Push the exact version from $id without auto-bumping; fail if that version already exists on the hub.')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
         .action(async (standardFile, options) => {
@@ -489,6 +494,7 @@ Example:
                 file: standardFile,
                 format: options.format,
                 changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfExists: options.failIfExists ?? false,
             };
             await runPushStandard(pushStandardOptions);
         });
@@ -497,6 +503,7 @@ Example:
         .command('control-requirement <requirement-file>')
         .description('Push a control requirement version to CALM Hub. $id of document must contain a full control requirement document ID including domain, control name and version.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option('--fail-if-exists', 'Push the exact version from $id without auto-bumping; fail if that version already exists on the hub.')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
         .action(async (requirementFile, options) => {
@@ -504,7 +511,8 @@ Example:
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 file: requirementFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfExists: options.failIfExists ?? false,
             };
             await runPushControlRequirement(pushOptions);
         });
@@ -513,6 +521,7 @@ Example:
         .command('control-configuration <config-file>')
         .description('Push a control configuration version to CALM Hub. $id of document must contain a full control configuration document ID including domain, control name, configuration name and version.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option('--fail-if-exists', 'Push the exact version from $id without auto-bumping; fail if that version already exists on the hub.')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
         .action(async (configFile, options) => {
@@ -520,7 +529,8 @@ Example:
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 file: configFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfExists: options.failIfExists ?? false,
             };
             await runPushControlConfiguration(pushOptions);
         });
