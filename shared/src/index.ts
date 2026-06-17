@@ -47,7 +47,7 @@ export {
     type ParsedFrontMatter,
     type FrontMatterInjectionParams
 } from './template/front-matter.js';
-export { Docifier, DocifyMode } from './docify/docifier.js';
+export { Docifier, DocifyMode, DiagramExportFormat } from './docify/docifier.js';
 export { C4Model } from './docify/graphing/c4.js';
 export { CalmRelationshipGraph } from './docify/graphing/relationship-graph.js';
 export { ValidationOutcome } from './commands/validate/validation.output';

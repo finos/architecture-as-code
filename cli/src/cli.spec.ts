@@ -368,7 +368,10 @@ describe('CLI Commands', () => {
                 'bundle',
                 undefined,
                 false,
-                false
+                false,
+                undefined,
+                undefined,
+                undefined
             );
         });
 
@@ -388,7 +391,10 @@ describe('CLI Commands', () => {
                 'bundle',
                 undefined,
                 true,
-                false
+                false,
+                undefined,
+                undefined,
+                undefined
             );
         });
 
@@ -408,7 +414,10 @@ describe('CLI Commands', () => {
                 'template',
                 'template.hbs',
                 false,
-                false
+                false,
+                undefined,
+                undefined,
+                undefined
             );
         });
 
@@ -428,7 +437,10 @@ describe('CLI Commands', () => {
                 'template-directory',
                 'templateDir',
                 false,
-                false
+                false,
+                undefined,
+                undefined,
+                undefined
             );
         });
 
@@ -468,7 +480,10 @@ describe('CLI Commands', () => {
                 'bundle',
                 undefined,
                 false,
-                false
+                false,
+                undefined,
+                undefined,
+                undefined
             );
         });
 
@@ -488,7 +503,10 @@ describe('CLI Commands', () => {
                 'template',
                 'template.hbs',
                 false,
-                false
+                false,
+                undefined,
+                undefined,
+                undefined
             );
         });
 
@@ -514,7 +532,10 @@ describe('CLI Commands', () => {
                 'bundle',
                 undefined,
                 false,
-                false
+                false,
+                undefined,
+                undefined,
+                undefined
             );
         });
 
@@ -554,6 +575,159 @@ describe('CLI Commands', () => {
             ])).rejects.toThrow('process.exit called');
 
             expect(errorSpy).toHaveBeenCalledWith('❌ --ants cannot be combined with --template or --template-dir');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
+        });
+
+        it('should exit if --export-diagrams is combined with --scaffold', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
+                throw new Error('process.exit called');
+            });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--scaffold',
+                '--export-diagrams', 'svg',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ --export-diagrams cannot be combined with --scaffold (scaffold output is unrendered)');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
+        });
+
+        it('should pass --export-diagrams through to the Docifier', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--export-diagrams', 'svg',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'WEBSITE',
+                'model.json',
+                'outDir',
+                undefined,
+                'bundle',
+                undefined,
+                false,
+                false,
+                'svg',
+                undefined,
+                undefined
+            );
+        });
+
+        it('should pass --export-diagrams and --browser-path through to the Docifier', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--export-diagrams', 'png',
+                '--browser-path', '/path/to/chrome',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'WEBSITE',
+                'model.json',
+                'outDir',
+                undefined,
+                'bundle',
+                undefined,
+                false,
+                false,
+                'png',
+                '/path/to/chrome',
+                undefined
+            );
+        });
+
+        it('should pass --diagram-render-timeout through to the Docifier', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--export-diagrams', 'svg',
+                '--diagram-render-timeout', '30000',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'WEBSITE',
+                'model.json',
+                'outDir',
+                undefined,
+                'bundle',
+                undefined,
+                false,
+                false,
+                'svg',
+                undefined,
+                30000
+            );
+        });
+
+        it('should exit if --diagram-render-timeout is specified without --export-diagrams', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
+                throw new Error('process.exit called');
+            });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--diagram-render-timeout', '30000',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ --diagram-render-timeout requires --export-diagrams <svg|png>');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
+        });
+
+        it('should exit if --diagram-render-timeout is not a positive number', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
+                throw new Error('process.exit called');
+            });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--export-diagrams', 'svg',
+                '--diagram-render-timeout', '0',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ --diagram-render-timeout must be a positive number of milliseconds');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
+        });
+
+        it('should exit if --browser-path is specified without --export-diagrams', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
+                throw new Error('process.exit called');
+            });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--browser-path', '/path/to/chrome',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ --browser-path requires --export-diagrams <svg|png>');
             expect(exitSpy).toHaveBeenCalledWith(1);
 
             exitSpy.mockRestore();

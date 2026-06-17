@@ -312,6 +312,9 @@ calm docify -a architecture.json -o reports/ -d my-templates/
 - **`-d, --template-dir <path>`**: Path to a directory of `.hbs`/`.md` templates to use instead of the built-in bundle.
 - **`-u, --url-to-local-file-mapping <path>`**: Path to a JSON file that maps URLs to local file paths.
 - **`--scaffold`**: Copy the built-in template files into the output directory without processing them. Use this to obtain a starting point for customisation or for live-reload workflows.
+- **`--export-diagrams <svg|png>`**: Render Mermaid diagrams in the generated documentation to image files using a local Chromium-based browser, replacing each diagram's code block with an image reference. Adds roughly 10-40 seconds depending on the number of diagrams.
+- **`--browser-path <path>`**: Path to a Chromium-based browser executable. Only needed if automatic detection (Chrome, then Edge) fails when using `--export-diagrams`.
+- **`--diagram-render-timeout <ms>`**: Per-diagram render timeout in milliseconds, only used with `--export-diagrams` (default: `30000`).
 - **`-v, --verbose`**: Enable verbose logging.
 
 ### Examples
@@ -339,6 +342,17 @@ calm docify -a my-architecture.json -o reports/ -d my-templates/
 ```shell
 calm docify -a my-architecture.json -o docs/output --scaffold
 ```
+
+#### Export Mermaid diagrams as images
+
+```shell
+calm docify -a my-architecture.json -o docs/output --export-diagrams svg
+```
+
+This requires Google Chrome or Microsoft Edge to be installed locally (detected
+automatically), or a Chromium-based browser path supplied via `--browser-path`. If
+no browser is found, documentation is still generated with diagrams left as
+Mermaid code blocks.
 
 ---
 
