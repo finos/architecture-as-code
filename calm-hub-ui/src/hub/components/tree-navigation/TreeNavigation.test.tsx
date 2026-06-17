@@ -454,6 +454,41 @@ describe('TreeNavigation', () => {
         // Use CALM (accepted) must be gone immediately — not shown while the new fetch is pending
         expect(screen.queryByText('Use CALM (accepted)')).not.toBeInTheDocument();
     });
+
+    it('shows an empty list and does not throw when fetchArchitectureSummaries rejects', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+        calmServiceInstance!.fetchArchitectureSummaries.mockRejectedValueOnce(new Error('403'));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+
+        // Wait for the rejected promise to settle
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('arch-a')).not.toBeInTheDocument();
+    });
+
+    it('shows an empty list and does not throw when fetchControlsForDomain rejects', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+        controlServiceInstance!.fetchControlsForDomain.mockRejectedValueOnce(new Error('403'));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-domain');
+        fireEvent.click(screen.getByText('test-domain'));
+
+        // Wait for the rejected promise to settle
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('Alpha Control')).not.toBeInTheDocument();
+    });
 });
 
 describe('buildNamespaceTree', () => {

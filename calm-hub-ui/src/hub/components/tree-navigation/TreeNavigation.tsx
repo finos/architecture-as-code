@@ -328,15 +328,15 @@ function loadResourceIds({
     setAdrSummaries
 }: LoadResourceIdsOptions) {
     if (type === 'Architectures') {
-        calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries);
+        calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries).catch(() => setArchitectureSummaries([]));
     } else if (type === 'Patterns') {
-        calmService.fetchPatternSummaries(namespace).then(setPatternSummaries);
+        calmService.fetchPatternSummaries(namespace).then(setPatternSummaries).catch(() => setPatternSummaries([]));
     } else if (type === 'Flows') {
-        calmService.fetchFlowSummaries(namespace).then(setFlowSummaries);
+        calmService.fetchFlowSummaries(namespace).then(setFlowSummaries).catch(() => setFlowSummaries([]));
     } else if (type === 'Standards') {
-        calmService.fetchStandardSummaries(namespace).then(setStandardSummaries);
+        calmService.fetchStandardSummaries(namespace).then(setStandardSummaries).catch(() => setStandardSummaries([]));
     } else if (type === 'ADRs') {
-        adrService.fetchAdrSummaries(namespace).then(setAdrSummaries);
+        adrService.fetchAdrSummaries(namespace).then(setAdrSummaries).catch(() => setAdrSummaries([]));
     }
 }
 
@@ -528,7 +528,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
         } else {
             setSelectedDomain(domain);
             setDomainControls([]);
-            controlService.fetchControlsForDomain(domain).then(setDomainControls);
+            controlService.fetchControlsForDomain(domain).then(setDomainControls).catch(() => setDomainControls([]));
         }
         setSelectedControlId(null);
         // Clear namespace selection when navigating domains
@@ -586,7 +586,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                     : calmService.fetchStandardSummaries.bind(calmService);
                 fetcher(selectedNamespace).then((summaries: ResourceSummary[]) => {
                     enrichWithMappings(type, summaries, setter);
-                });
+                }).catch(() => setter([]));
             }
         }
         setSelectedResourceID(EMPTY_STR_VALUE);
