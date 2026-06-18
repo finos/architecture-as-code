@@ -74,6 +74,18 @@ public class TestMongoDomainStoreShould {
     }
 
     @Test
+    void domain_exists_returns_true_when_domain_is_present() {
+        when(domainsCollection.countDocuments(any(Bson.class))).thenReturn(1L);
+        assertThat(mongoDomainStore.domainExists("security"), is(true));
+    }
+
+    @Test
+    void domain_exists_returns_false_when_domain_is_absent() {
+        when(domainsCollection.countDocuments(any(Bson.class))).thenReturn(0L);
+        assertThat(mongoDomainStore.domainExists("unknown"), is(false));
+    }
+
+    @Test
     void get_domains_returns_an_empty_array_when_collection_is_empty() {
         //TODO Refactor across these iterables once other PRs in mongo work are in
         FindIterable<Document> findIterable = emptyFindIterableSetup();
