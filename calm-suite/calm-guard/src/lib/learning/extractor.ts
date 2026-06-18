@@ -2,6 +2,7 @@ import type { ComplianceMapping } from '@/lib/agents/compliance-mapper';
 import type { RiskAssessment } from '@/lib/agents/risk-scorer';
 import type { AnalysisInput } from '@/lib/calm/extractor';
 import type { CalmRelationship } from '@/lib/calm/types';
+import { getRelationshipVariant } from '@/lib/calm/types';
 import { generateFingerprint } from './fingerprint';
 import type { CompliancePattern } from './types';
 
@@ -11,33 +12,38 @@ import type { CompliancePattern } from './types';
 function getRelationshipTriggers(rel: CalmRelationship, nodes: AnalysisInput['nodes']) {
   const protocols: string[] = [];
   const nodeTypes: string[] = [];
-  const relationshipTypes: string[] = [rel['relationship-type']];
+  const relationshipTypes: string[] = [getRelationshipVariant(rel)];
 
   if (rel.protocol) {
     protocols.push(rel.protocol);
   }
 
-  if (rel['relationship-type'] === 'connects') {
-    const sourceNode = nodes.find(n => n['unique-id'] === rel.connects.source.node);
-    const destNode = nodes.find(n => n['unique-id'] === rel.connects.destination.node);
+  const rt = rel['relationship-type'];
+  if (rt.connects) {
+    const connects = rt.connects;
+    const sourceNode = nodes.find(n => n['unique-id'] === connects.source.node);
+    const destNode = nodes.find(n => n['unique-id'] === connects.destination.node);
     if (sourceNode) nodeTypes.push(sourceNode['node-type']);
     if (destNode) nodeTypes.push(destNode['node-type']);
-  } else if (rel['relationship-type'] === 'interacts') {
-    const actorNode = nodes.find(n => n['unique-id'] === rel.interacts.actor);
+  } else if (rt.interacts) {
+    const interacts = rt.interacts;
+    const actorNode = nodes.find(n => n['unique-id'] === interacts.actor);
     if (actorNode) nodeTypes.push(actorNode['node-type']);
-    for (const nid of rel.interacts.nodes) {
+    for (const nid of interacts.nodes) {
       const node = nodes.find(n => n['unique-id'] === nid);
       if (node) nodeTypes.push(node['node-type']);
     }
-  } else if (rel['relationship-type'] === 'deployed-in') {
-    const container = nodes.find(n => n['unique-id'] === rel['deployed-in'].container);
+  } else if (rt['deployed-in']) {
+    const deployedIn = rt['deployed-in'];
+    const container = nodes.find(n => n['unique-id'] === deployedIn.container);
     if (container) nodeTypes.push(container['node-type']);
-    for (const nid of rel['deployed-in'].nodes) {
+    for (const nid of deployedIn.nodes) {
       const node = nodes.find(n => n['unique-id'] === nid);
       if (node) nodeTypes.push(node['node-type']);
     }
-  } else if (rel['relationship-type'] === 'composed-of') {
-    const container = nodes.find(n => n['unique-id'] === rel['composed-of'].container);
+  } else if (rt['composed-of']) {
+    const composedOf = rt['composed-of'];
+    const container = nodes.find(n => n['unique-id'] === composedOf.container);
     if (container) nodeTypes.push(container['node-type']);
   }
 

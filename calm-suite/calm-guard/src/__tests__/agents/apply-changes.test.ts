@@ -46,23 +46,25 @@ const originalDoc: CalmDocument = {
   relationships: [
     {
       'unique-id': 'checkout-to-api',
-      'relationship-type': 'connects' as const,
+      'relationship-type': {
+        connects: {
+          source: { node: 'checkout-page' },
+          destination: { node: 'payment-api' },
+        },
+      },
       description: 'Checkout submits payment data',
       protocol: 'HTTPS' as const,
-      connects: {
-        source: { node: 'checkout-page' },
-        destination: { node: 'payment-api' },
-      },
     },
     {
       'unique-id': 'api-to-db',
-      'relationship-type': 'connects' as const,
+      'relationship-type': {
+        connects: {
+          source: { node: 'payment-api' },
+          destination: { node: 'transaction-database' },
+        },
+      },
       description: 'API persists transaction records',
       protocol: 'JDBC' as const,
-      connects: {
-        source: { node: 'payment-api' },
-        destination: { node: 'transaction-database' },
-      },
     },
   ],
   controls: {},

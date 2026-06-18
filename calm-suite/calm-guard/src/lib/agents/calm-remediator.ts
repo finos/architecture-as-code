@@ -157,7 +157,7 @@ CRITICAL RULES:
           prompt:
             attempt === 0
               ? prompt
-              : `${prompt}\n\nPREVIOUS ERROR: ${lastError?.message}\n\nPlease try again with valid output. Remember: protocol values MUST be exactly one of: HTTP, HTTPS, FTP, SFTP, JDBC, WebSocket, SocketIO, LDAP, AMQP, TLS, mTLS, TCP. Node-type values MUST be exactly one of: actor, ecosystem, system, service, database, network, ldap, webclient, data-asset.`,
+              : `${prompt}\n\nPREVIOUS ERROR: ${lastError?.message}\n\nPlease try again with valid output. Remember: protocol values MUST be exactly one of: HTTP, HTTPS, FTP, SFTP, JDBC, WebSocket, SocketIO, LDAP, AMQP, TLS, mTLS, TCP. Prefer the well-known node-type values (actor, ecosystem, system, service, database, network, ldap, webclient, data-asset); other string node-types are permitted by CALM.`,
         });
 
         result = response.object;

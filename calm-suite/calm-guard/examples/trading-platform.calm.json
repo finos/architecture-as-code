@@ -154,124 +154,133 @@
   "relationships": [
     {
       "unique-id": "trader-to-dashboard",
-      "relationship-type": "interacts",
-      "description": "Trader accesses trading dashboard via web browser",
-      "interacts": {
-        "actor": "trader",
-        "nodes": ["trading-dashboard"]
-      }
+      "relationship-type": {
+        "interacts": {
+          "actor": "trader",
+          "nodes": ["trading-dashboard"]
+        }
+      },
+      "description": "Trader accesses trading dashboard via web browser"
     },
     {
       "unique-id": "dashboard-to-order-mgmt",
-      "relationship-type": "connects",
-      "description": "Trading dashboard submits orders to order management service",
-      "protocol": "HTTPS",
-      "connects": {
-        "source": {
-          "node": "trading-dashboard"
-        },
-        "destination": {
-          "node": "order-mgmt-service"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "trading-dashboard"
+          },
+          "destination": {
+            "node": "order-mgmt-service"
+          }
         }
-      }
+      },
+      "description": "Trading dashboard submits orders to order management service",
+      "protocol": "HTTPS"
     },
     {
       "unique-id": "order-mgmt-to-risk",
-      "relationship-type": "connects",
-      "description": "Order management service validates orders with risk engine",
-      "protocol": "HTTPS",
-      "connects": {
-        "source": {
-          "node": "order-mgmt-service"
-        },
-        "destination": {
-          "node": "risk-engine"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-mgmt-service"
+          },
+          "destination": {
+            "node": "risk-engine"
+          }
         }
-      }
+      },
+      "description": "Order management service validates orders with risk engine",
+      "protocol": "HTTPS"
     },
     {
       "unique-id": "order-mgmt-to-fix",
-      "relationship-type": "connects",
-      "description": "Order management service routes validated orders to FIX gateway",
-      "protocol": "TCP",
-      "connects": {
-        "source": {
-          "node": "order-mgmt-service"
-        },
-        "destination": {
-          "node": "fix-gateway"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-mgmt-service"
+          },
+          "destination": {
+            "node": "fix-gateway"
+          }
         }
-      }
+      },
+      "description": "Order management service routes validated orders to FIX gateway",
+      "protocol": "TCP"
     },
     {
       "unique-id": "order-mgmt-to-db",
-      "relationship-type": "connects",
-      "description": "Order management service persists orders to database",
-      "protocol": "JDBC",
-      "connects": {
-        "source": {
-          "node": "order-mgmt-service"
-        },
-        "destination": {
-          "node": "order-database"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-mgmt-service"
+          },
+          "destination": {
+            "node": "order-database"
+          }
         }
-      }
+      },
+      "description": "Order management service persists orders to database",
+      "protocol": "JDBC"
     },
     {
       "unique-id": "market-data-to-cache",
-      "relationship-type": "connects",
-      "description": "Market data service updates real-time price cache",
-      "protocol": "TCP",
-      "connects": {
-        "source": {
-          "node": "market-data-service"
-        },
-        "destination": {
-          "node": "market-data-cache"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "market-data-service"
+          },
+          "destination": {
+            "node": "market-data-cache"
+          }
         }
-      }
+      },
+      "description": "Market data service updates real-time price cache",
+      "protocol": "TCP"
     },
     {
       "unique-id": "fix-to-exchange",
-      "relationship-type": "connects",
-      "description": "FIX gateway connects to exchange for order execution",
-      "protocol": "mTLS",
-      "connects": {
-        "source": {
-          "node": "fix-gateway"
-        },
-        "destination": {
-          "node": "exchange-gateway"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fix-gateway"
+          },
+          "destination": {
+            "node": "exchange-gateway"
+          }
         }
-      }
+      },
+      "description": "FIX gateway connects to exchange for order execution",
+      "protocol": "mTLS"
     },
     {
       "unique-id": "dashboard-to-market-data",
-      "relationship-type": "connects",
-      "description": "Trading dashboard subscribes to real-time market data",
-      "protocol": "WebSocket",
-      "connects": {
-        "source": {
-          "node": "trading-dashboard"
-        },
-        "destination": {
-          "node": "market-data-service"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "trading-dashboard"
+          },
+          "destination": {
+            "node": "market-data-service"
+          }
         }
-      }
+      },
+      "description": "Trading dashboard subscribes to real-time market data",
+      "protocol": "WebSocket"
     },
     {
       "unique-id": "trading-services-network",
-      "relationship-type": "deployed-in",
-      "description": "Core trading services deployed in low-latency network",
-      "deployed-in": {
-        "container": "trading-network",
-        "nodes": [
-          "order-mgmt-service",
-          "fix-gateway",
-          "risk-engine",
-          "market-data-service"
-        ]
-      }
+      "relationship-type": {
+        "deployed-in": {
+          "container": "trading-network",
+          "nodes": [
+            "order-mgmt-service",
+            "fix-gateway",
+            "risk-engine",
+            "market-data-service"
+          ]
+        }
+      },
+      "description": "Core trading services deployed in low-latency network"
     }
   ],
   "flows": [

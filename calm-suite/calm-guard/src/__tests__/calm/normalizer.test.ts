@@ -154,8 +154,8 @@ describe('normalizeCalmDocument', () => {
       relationships: Array<Record<string, unknown>>;
     };
     const rel = result.relationships[0] as Record<string, unknown>;
-    expect(rel['relationship-type']).toBe('connects');
-    const connects = rel['connects'] as Record<string, unknown>;
+    const relType = rel['relationship-type'] as Record<string, unknown>;
+    const connects = relType['connects'] as Record<string, unknown>;
     expect((connects['source'] as Record<string, unknown>)['node']).toBe('Client');
     expect((connects['destination'] as Record<string, unknown>)['node']).toBe('API');
   });
@@ -210,7 +210,7 @@ describe('normalizeCalmDocument', () => {
     // First normalization (happens in fetch-calm route)
     const firstPass = normalizeCalmDocument(v10Doc, '1.0') as Record<string, unknown>;
     const firstRels = (firstPass['relationships'] as Array<Record<string, unknown>>);
-    const firstConnects = firstRels[0]['connects'] as Record<string, unknown>;
+    const firstConnects = (firstRels[0]['relationship-type'] as Record<string, unknown>)['connects'] as Record<string, unknown>;
     expect((firstConnects['source'] as Record<string, unknown>)['node']).toBe('API Gateway');
     expect((firstConnects['destination'] as Record<string, unknown>)['node']).toBe('Customer Service');
 
@@ -220,7 +220,7 @@ describe('normalizeCalmDocument', () => {
 
     const secondPass = normalizeCalmDocument(firstPass, secondVersion) as Record<string, unknown>;
     const secondRels = (secondPass['relationships'] as Array<Record<string, unknown>>);
-    const secondConnects = secondRels[0]['connects'] as Record<string, unknown>;
+    const secondConnects = (secondRels[0]['relationship-type'] as Record<string, unknown>)['connects'] as Record<string, unknown>;
 
     // These MUST still be valid after double-normalization
     expect((secondConnects['source'] as Record<string, unknown>)['node']).toBe('API Gateway');

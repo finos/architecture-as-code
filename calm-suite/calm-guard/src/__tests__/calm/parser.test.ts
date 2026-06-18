@@ -44,15 +44,18 @@ describe('parseCalm', () => {
     expect(result.error.issues.length).toBeGreaterThan(0);
   });
 
-  it('rejects a document with an invalid node-type', () => {
+  it('accepts a custom (extension) node-type string — canonical CALM allows any node-type', () => {
+    // Canonical CALM core defines node-type as an open string (anyOf:[enum,{type:string}]).
+    // Accepting extension node-types (e.g. `aws:lambda` from CALM Studio) is required
+    // for cross-tool interoperability.
     const result = parseCalm({
-      nodes: [makeNode('n1', 'invalid-type')],
+      nodes: [makeNode('n1', 'aws:lambda')],
       relationships: [],
     });
 
-    expect(result.success).toBe(false);
-    if (result.success) throw new Error('Expected failure');
-    expect(result.error.issues.length).toBeGreaterThan(0);
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+    expect(result.data.nodes[0]['node-type']).toBe('aws:lambda');
   });
 
   it('accepts all 9 valid CALM node types', () => {
@@ -157,7 +160,7 @@ describe('parseCalm — version field (multi-version support)', () => {
     expect(result.success).toBe(true);
     if (!result.success) throw new Error('Expected success');
     const rel = result.data.relationships[0];
-    expect(rel['relationship-type']).toBe('connects');
+    expect(rel['relationship-type']).toHaveProperty('connects');
   });
 
   it('successfully parses a v1.2 document with adrs, decorators, timelines and returns version "1.2"', () => {

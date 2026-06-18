@@ -107,21 +107,23 @@ export function calmToFlow(
   const flowEdges: Edge[] = [];
 
   analysisInput.relationships.forEach((rel) => {
-    if (rel['relationship-type'] === 'connects') {
+    const rt = rel['relationship-type'];
+    if (rt.connects) {
       flowEdges.push({
         id: rel['unique-id'],
-        source: rel.connects.source.node,
-        target: rel.connects.destination.node,
+        source: rt.connects.source.node,
+        target: rt.connects.destination.node,
         type: 'protocol',
         data: { protocol: rel.protocol ?? '' },
         markerEnd: { type: 'arrowclosed' as const, color: '#475569' },
       });
-    } else if (rel['relationship-type'] === 'interacts') {
+    } else if (rt.interacts) {
       // One edge from actor to each target node
-      rel.interacts.nodes.forEach((targetNodeId, index) => {
+      const interacts = rt.interacts;
+      interacts.nodes.forEach((targetNodeId, index) => {
         flowEdges.push({
           id: `${rel['unique-id']}-${index}`,
-          source: rel.interacts.actor,
+          source: interacts.actor,
           target: targetNodeId,
           type: 'protocol',
           data: { protocol: rel.protocol ?? '' },

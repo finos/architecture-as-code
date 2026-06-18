@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 /**
  * CALM Schema Version
- * Reference: FINOS CALM v1.1
+ * Reference: FINOS CALM v1.2 (canonical nested `relationship-type` form)
  */
-export const CALM_SCHEMA_VERSION = '1.1';
+export const CALM_SCHEMA_VERSION = '1.2';
 
 /**
  * CALM Version type — supported schema versions
@@ -13,10 +13,10 @@ export const CALM_SCHEMA_VERSION = '1.1';
 export type { CalmVersion } from './normalizer';
 
 /**
- * Node Types
- * All 9 node types supported in CALM v1.1
+ * Canonical CALM node-type enum — the 9 well-known types.
+ * Kept as UI hints (labels/icons/colors), NOT as a closed validation set.
  */
-export const nodeTypeSchema = z.enum([
+export const nodeTypeEnum = z.enum([
   'actor',       // People, systems, or roles that interact with the system
   'ecosystem',   // High-level grouping of systems
   'system',      // Software systems
@@ -28,6 +28,15 @@ export const nodeTypeSchema = z.enum([
   'data-asset',  // Data entities or datasets
 ]);
 
+/**
+ * Node Types — canonical CALM allows ANY string node-type (core defines
+ * `node-type` as `anyOf:[enum, {type:string}]`). We accept any string so that
+ * extension node-types from other CALM tools (e.g. `aws:lambda`) interoperate;
+ * `nodeTypeEnum` remains the set we render first-class UI for.
+ */
+export const nodeTypeSchema = z.union([nodeTypeEnum, z.string()]);
+
+export type NodeTypeEnum = z.infer<typeof nodeTypeEnum>;
 export type NodeType = z.infer<typeof nodeTypeSchema>;
 
 /**
@@ -120,8 +129,79 @@ export const nodeInterfaceSchema = z.object({
 export type NodeInterface = z.infer<typeof nodeInterfaceSchema>;
 
 /**
+ * Relationship variant payloads (canonical CALM 1.2).
+ * In the canonical form these live INSIDE the `relationship-type` object,
+ * keyed by variant name — not as siblings of a string discriminant.
+ */
+const interactsVariantSchema = z.object({
+  actor: z.string().min(1, 'Actor is required for interacts relationship'),
+  nodes: z.array(z.string().min(1)).min(1, 'At least one node is required for interacts relationship'),
+});
+
+const connectsVariantSchema = z.object({
+  source: nodeInterfaceSchema,
+  destination: nodeInterfaceSchema,
+});
+
+const deployedInVariantSchema = z.object({
+  container: z.string().min(1, 'Container is required for deployed-in relationship'),
+  nodes: z.array(z.string().min(1)).min(1, 'At least one node is required for deployed-in relationship'),
+});
+
+const composedOfVariantSchema = z.object({
+  container: z.string().min(1, 'Container is required for composed-of relationship'),
+  nodes: z.array(z.string().min(1)).min(1, 'At least one node is required for composed-of relationship'),
+});
+
+/** The variant keys of a `relationship-type` object, in canonical order. */
+export const RELATIONSHIP_VARIANT_KEYS = [
+  'connects',
+  'interacts',
+  'deployed-in',
+  'composed-of',
+  'options',
+] as const;
+
+export type RelationshipVariant = (typeof RELATIONSHIP_VARIANT_KEYS)[number];
+
+/**
+ * Relationship Type (canonical NESTED form)
+ * `relationship-type` is an object keyed by variant. CALM's spec uses `oneOf`,
+ * so exactly one variant key must be present — enforced here via superRefine.
+ * NOTE: this is intentionally stricter than the raw `oneOf` (it also rejects a
+ * second, unknown variant key), which is the behaviour we want for authored docs.
+ * `options` is kept loosely typed (`z.unknown()`) — a documented gap vs the
+ * canonical `CalmDecisionSchema[]`; it is not exercised by CALMGuard.
+ */
+export const relationshipTypeSchema = z
+  .object({
+    connects: connectsVariantSchema.optional(),
+    interacts: interactsVariantSchema.optional(),
+    'deployed-in': deployedInVariantSchema.optional(),
+    'composed-of': composedOfVariantSchema.optional(),
+    options: z.unknown().optional(),
+  })
+  .superRefine((rt, ctx) => {
+    const present = RELATIONSHIP_VARIANT_KEYS.filter(
+      (k) => (rt as Record<string, unknown>)[k] !== undefined
+    );
+    if (present.length !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          present.length === 0
+            ? 'relationship-type must contain exactly one variant (connects, interacts, deployed-in, composed-of, or options)'
+            : `relationship-type must contain exactly one variant, but found ${present.length}: ${present.join(', ')}`,
+      });
+    }
+  });
+
+export type RelationshipType = z.infer<typeof relationshipTypeSchema>;
+
+/**
  * Base Relationship Schema
- * Common properties for all relationship types
+ * Common properties carried at the relationship level — siblings of
+ * `relationship-type`, never folded into the variant payload.
  */
 const baseRelationshipSchema = z.object({
   'unique-id': z.string().min(1, 'Relationship unique-id is required'),
@@ -132,75 +212,27 @@ const baseRelationshipSchema = z.object({
 });
 
 /**
- * Interacts Relationship
- * Represents an actor interacting with one or more nodes
+ * CALM Relationship (canonical nested form)
  */
-const interactsSchema = baseRelationshipSchema.extend({
-  'relationship-type': z.literal('interacts'),
-  interacts: z.object({
-    actor: z.string().min(1, 'Actor is required for interacts relationship'),
-    nodes: z.array(z.string().min(1)).min(1, 'At least one node is required for interacts relationship'),
-  }),
+export const calmRelationshipSchema = baseRelationshipSchema.extend({
+  'relationship-type': relationshipTypeSchema,
 });
-
-/**
- * Connects Relationship
- * Represents a connection between two nodes
- */
-const connectsSchema = baseRelationshipSchema.extend({
-  'relationship-type': z.literal('connects'),
-  connects: z.object({
-    source: nodeInterfaceSchema,
-    destination: nodeInterfaceSchema,
-  }),
-});
-
-/**
- * Deployed-In Relationship
- * Represents nodes deployed within a container node
- */
-const deployedInSchema = baseRelationshipSchema.extend({
-  'relationship-type': z.literal('deployed-in'),
-  'deployed-in': z.object({
-    container: z.string().min(1, 'Container is required for deployed-in relationship'),
-    nodes: z.array(z.string().min(1)).min(1, 'At least one node is required for deployed-in relationship'),
-  }),
-});
-
-/**
- * Composed-Of Relationship
- * Represents a container node composed of other nodes
- */
-const composedOfSchema = baseRelationshipSchema.extend({
-  'relationship-type': z.literal('composed-of'),
-  'composed-of': z.object({
-    container: z.string().min(1, 'Container is required for composed-of relationship'),
-    nodes: z.array(z.string().min(1)).min(1, 'At least one node is required for composed-of relationship'),
-  }),
-});
-
-/**
- * Options Relationship
- * Structure TBD per CALM specification - using unknown for flexibility
- */
-const optionsSchema = baseRelationshipSchema.extend({
-  'relationship-type': z.literal('options'),
-  options: z.unknown(),
-});
-
-/**
- * CALM Relationship
- * Discriminated union of all relationship types
- */
-export const calmRelationshipSchema = z.discriminatedUnion('relationship-type', [
-  interactsSchema,
-  connectsSchema,
-  deployedInSchema,
-  composedOfSchema,
-  optionsSchema,
-]);
 
 export type CalmRelationship = z.infer<typeof calmRelationshipSchema>;
+
+/**
+ * Returns the single variant present on a relationship's `relationship-type`.
+ * Restores a switchable discriminant after moving from the flat discriminated
+ * union to the nested object form. Mirrors `@calmstudio/calm-core` semantics.
+ */
+export function getRelationshipVariant(rel: CalmRelationship): RelationshipVariant {
+  const rt = rel['relationship-type'];
+  if (rt.connects !== undefined) return 'connects';
+  if (rt.interacts !== undefined) return 'interacts';
+  if (rt['deployed-in'] !== undefined) return 'deployed-in';
+  if (rt['composed-of'] !== undefined) return 'composed-of';
+  return 'options';
+}
 
 /**
  * Flow Transition

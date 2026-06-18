@@ -24,12 +24,13 @@ const mockInput: AnalysisInput = {
   relationships: [
     {
       'unique-id': 'conn-svc-db',
-      'relationship-type': 'connects' as const,
-      protocol: 'HTTP' as const,
-      connects: {
-        source: { node: 'payment-service' },
-        destination: { node: 'payment-db' },
+      'relationship-type': {
+        connects: {
+          source: { node: 'payment-service' },
+          destination: { node: 'payment-db' },
+        },
       },
+      protocol: 'HTTP' as const,
     },
   ],
   controls: {},

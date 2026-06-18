@@ -21,12 +21,13 @@ const mockInput: AnalysisInput = {
   relationships: [
     {
       'unique-id': 'conn-1',
-      'relationship-type': 'connects' as const,
-      protocol: 'HTTP' as const,
-      connects: {
-        source: { node: 'svc-1' },
-        destination: { node: 'db-1' },
+      'relationship-type': {
+        connects: {
+          source: { node: 'svc-1' },
+          destination: { node: 'db-1' },
+        },
       },
+      protocol: 'HTTP' as const,
     },
   ],
   controls: {},

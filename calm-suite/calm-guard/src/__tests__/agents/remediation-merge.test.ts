@@ -57,23 +57,25 @@ const originalDoc: CalmDocument = {
   relationships: [
     {
       'unique-id': 'checkout-to-api',
-      'relationship-type': 'connects' as const,
+      'relationship-type': {
+        connects: {
+          source: { node: 'checkout-page' },
+          destination: { node: 'payment-api' },
+        },
+      },
       description: 'Checkout submits payment data',
       protocol: 'HTTPS' as const,
-      connects: {
-        source: { node: 'checkout-page' },
-        destination: { node: 'payment-api' },
-      },
     },
     {
       'unique-id': 'api-to-network',
-      'relationship-type': 'connects' as const,
+      'relationship-type': {
+        connects: {
+          source: { node: 'payment-api' },
+          destination: { node: 'card-network' },
+        },
+      },
       description: 'API forwards to card network',
       protocol: 'HTTP' as const,
-      connects: {
-        source: { node: 'payment-api' },
-        destination: { node: 'card-network' },
-      },
     },
   ],
   controls: {},
@@ -116,23 +118,25 @@ const llmRemediatedDoc: CalmDocument = {
   relationships: [
     {
       'unique-id': 'checkout-to-api',
-      'relationship-type': 'connects' as const,
+      'relationship-type': {
+        connects: {
+          source: { node: 'checkout-page' },
+          destination: { node: 'payment-api' },
+        },
+      },
       description: 'Checkout submits payment data',
       protocol: 'HTTPS' as const,
-      connects: {
-        source: { node: 'checkout-page' },
-        destination: { node: 'payment-api' },
-      },
     },
     {
       'unique-id': 'api-to-network',
-      'relationship-type': 'connects' as const,
+      'relationship-type': {
+        connects: {
+          source: { node: 'payment-api' },
+          destination: { node: 'card-network' },
+        },
+      },
       description: 'API forwards to card network',
       protocol: 'HTTPS' as const,  // LLM upgraded HTTP → HTTPS (good!)
-      connects: {
-        source: { node: 'payment-api' },
-        destination: { node: 'card-network' },
-      },
     },
   ],
   controls: {},
@@ -194,12 +198,13 @@ describe('mergeRemediatedCalm', () => {
       relationships: [
         {
           'unique-id': 'checkout-to-api',
-          'relationship-type': 'connects' as const,
-          protocol: 'HTTPS' as const,
-          connects: {
-            source: { node: 'checkout-page' },
-            destination: { node: 'payment-api' },
+          'relationship-type': {
+            connects: {
+              source: { node: 'checkout-page' },
+              destination: { node: 'payment-api' },
+            },
           },
+          protocol: 'HTTPS' as const,
           controls: {
             'tls-enforcement': {
               description: 'TLS 1.2+ enforced on all connections',
@@ -214,12 +219,13 @@ describe('mergeRemediatedCalm', () => {
       relationships: [
         {
           'unique-id': 'checkout-to-api',
-          'relationship-type': 'connects' as const,
-          protocol: 'HTTPS' as const,
-          connects: {
-            source: { node: 'checkout-page' },
-            destination: { node: 'payment-api' },
+          'relationship-type': {
+            connects: {
+              source: { node: 'checkout-page' },
+              destination: { node: 'payment-api' },
+            },
           },
+          protocol: 'HTTPS' as const,
           controls: {}, // LLM stripped relationship controls too
         },
       ],
