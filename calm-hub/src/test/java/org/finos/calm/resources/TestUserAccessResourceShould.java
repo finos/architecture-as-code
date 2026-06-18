@@ -72,7 +72,7 @@ public class TestUserAccessResourceShould {
                 .header("Content-Type", "application/json")
                 .body("{\"username\":\"test_user\",\"permission\":\"read\"}")
                 .when()
-                .post("/api/calm/namespaces/invalid &%*$% NAMESPACE/user-access")
+                .post("/api/calm/namespaces/invalid_namespace/user-access")
                 .then()
                 .statusCode(400);
     }
