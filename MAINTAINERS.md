@@ -18,7 +18,7 @@ This file lists the maintainers of this repository.
 | @gjs-opsflo | Gourav J. Shah | OpsFlow.Sh | gjs@opsflow.sh |
 | @grahampacker-ms | Graham Packer | *please add organization* | *please add email* |
 | @jimthompson5802 | Jim Thompson | Freddie Mac | jimthompson5802@gmail.com |
-| @jpgough-ms | *please add name* | *please add organization* | *please add email* |
+| @jpgough-ms | James Gough | Morgan Stanley | james.gough@morganstanley.com |
 | @lbulanti-ms | Luigi Bulanti | Morgan Stanley | bulantiluigi@gmail.com |
 | @markscott-ms | Mark Scott | Morgan Stanley | markscot@morganstanley.com |
 | @opsflowanoop | *please add name* | *please add organization* | *please add email* |
