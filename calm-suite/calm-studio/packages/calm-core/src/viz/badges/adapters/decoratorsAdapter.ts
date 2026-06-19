@@ -39,8 +39,14 @@ function emit(
   return out;
 }
 
+function extractDecorators(host: unknown): CalmDecorator[] | undefined {
+  if (!host || typeof host !== 'object') return undefined;
+  const d = (host as { decorators?: unknown }).decorators;
+  return Array.isArray(d) ? (d as CalmDecorator[]) : undefined;
+}
+
 export const decoratorsAdapter: BadgeAdapter = {
   name: 'decorators',
-  forNode: (node: CalmNode) => emit(node.decorators, 'node'),
-  forEdge: (edge: CalmRelationship) => emit(edge.decorators, 'edge'),
+  forNode: (node: CalmNode) => emit(extractDecorators(node), 'node'),
+  forEdge: (edge: CalmRelationship) => emit(extractDecorators(edge), 'edge'),
 };

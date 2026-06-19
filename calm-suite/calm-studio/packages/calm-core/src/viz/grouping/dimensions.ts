@@ -42,16 +42,19 @@ export const dimensions = {
   nodeType: {
     key: 'nodeType',
     label: 'Node type',
-    extract: (node) => node['node-type'] ?? null,
+    extract: (node) => {
+      const t = node['node-type'];
+      return typeof t === 'string' && t.length > 0 ? t : null;
+    },
   },
   aiDomain: {
     key: 'aiDomain',
     label: 'AI domain',
     extract: (node) => {
       const t = node['node-type'];
-      if (!t) return null;
+      if (typeof t !== 'string') return null;
       const m = t.match(/^ai:([\w-]+)/);
-      return m ? m[1] : null;
+      return m && typeof m[1] === 'string' ? m[1] : null;
     },
   },
   owner: {
