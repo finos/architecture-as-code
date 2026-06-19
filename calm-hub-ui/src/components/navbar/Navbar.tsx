@@ -47,6 +47,9 @@ export function Navbar({ onExploreClick }: NavbarProps) {
                     <NavLink className="btn btn-ghost text-primary" to="/visualizer">
                         Visualizer
                     </NavLink>
+                    <NavLink className="btn btn-ghost text-primary" to="/admin">
+                        Admin
+                    </NavLink>
                     <GlobalSearchBar />
                 </div>
             </div>

@@ -1,6 +1,7 @@
 import { HashRouter as Router, Route, Routes } from 'react-router-dom';
 import Hub from './hub/Hub.js';
 import Visualizer from './visualizer/Visualizer.js';
+import { AdminPage } from './admin/AdminPage.js';
 
 function App() {
     //TODO: The artifacts route will eventually need to be changed/replaced once we create a unique identifier for resources that can be used across CalmHubs.
@@ -12,6 +13,7 @@ function App() {
                 <Route path="/" element={<Hub />} />
                 <Route path="/:namespace/:type/:id/:version" element={<Hub />} />
                 <Route path="/visualizer" element={<Visualizer />} />
+                <Route path="/admin" element={<AdminPage />} />
             </Routes>
         </Router>
     );
