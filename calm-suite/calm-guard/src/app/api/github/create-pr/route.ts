@@ -6,9 +6,14 @@ import type { PipelineConfig } from '@/lib/agents/pipeline-generator';
 import type { CloudInfraConfig } from '@/lib/agents/cloud-infra-generator';
 import { remediateCalm } from '@/lib/agents/calm-remediator';
 import { applyChangesToCalm } from '@/lib/agents/remediation-merge';
+import { validateWithCalmCli, type CalmValidationResult } from '@/lib/calm/cli-validator';
 
 // Prevent Next.js from caching this route
 export const dynamic = 'force-dynamic';
+
+// validateWithCalmCli shells out to @finos/calm-cli via child_process, which is
+// unavailable in the Edge runtime — pin to Node (matches /api/calm/validate).
+export const runtime = 'nodejs';
 
 // Enable Vercel Fluid Compute 300-second timeout for long-running agent calls
 export const maxDuration = 300;
@@ -345,6 +350,27 @@ export async function POST(req: Request): Promise<Response> {
           // the changes[] array but fail to embed 30+ controls into the JSON document.
           // We use the structured changes as deterministic patch instructions.
           const remediatedCalm = applyChangesToCalm(calmDocument, changes);
+
+          // Gate: never commit/PR a CALM document that fails schema validation.
+          // Validates the OUTPUT via the canonical CALM CLI (the input was
+          // Zod-checked at ingest, not CLI-checked). Runs BEFORE any GitHub
+          // mutation below, so an abort leaves no branch/commit/PR behind.
+          emit({ type: 'step', step: 'Validating remediated CALM...' });
+          let validation: CalmValidationResult;
+          try {
+            validation = await validateWithCalmCli(remediatedCalm);
+          } catch (err) {
+            throw new Error(
+              'Could not validate remediated CALM (validator failed to run); aborting PR. ' +
+                (err instanceof Error ? err.message : String(err)),
+            );
+          }
+          if (!validation.valid) {
+            throw new Error(
+              'Remediated CALM failed validation; aborting PR. ' +
+                validation.errors.slice(0, 5).map((e) => e.message).join('; '),
+            );
+          }
 
           // Step 2: Get HEAD SHA
           emit({ type: 'step', step: 'Getting HEAD SHA...' });
