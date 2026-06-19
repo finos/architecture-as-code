@@ -8,3 +8,4 @@ export * from './validation.js';
 export * from './aigf/types.js';
 export * from './aigf/catalogue.js';
 export * from './aigf/mappings.js';
+export * from './viz/index.js';
