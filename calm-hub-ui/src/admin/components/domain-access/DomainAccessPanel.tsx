@@ -21,7 +21,7 @@ export function DomainAccessPanel({ domain, service }: DomainAccessPanelProps) {
         setLoading(true);
         setFetchError(null);
         svc.getDomainUserAccess(domain)
-            .then(setGrants)
+            .then((g) => setGrants([...g].sort((a, b) => a.username.localeCompare(b.username))))
             .catch(() => setFetchError('Failed to load access grants.'))
             .finally(() => setLoading(false));
     }, [svc, domain]);

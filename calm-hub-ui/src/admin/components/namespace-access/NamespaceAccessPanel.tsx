@@ -21,7 +21,7 @@ export function NamespaceAccessPanel({ namespace, service }: NamespaceAccessPane
         setLoading(true);
         setFetchError(null);
         svc.getNamespaceUserAccess(namespace)
-            .then(setGrants)
+            .then((g) => setGrants([...g].sort((a, b) => a.username.localeCompare(b.username))))
             .catch(() => setFetchError('Failed to load access grants.'))
             .finally(() => setLoading(false));
     }, [svc, namespace]);

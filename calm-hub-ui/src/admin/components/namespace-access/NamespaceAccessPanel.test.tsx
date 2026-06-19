@@ -60,6 +60,20 @@ describe('NamespaceAccessPanel', () => {
         });
     });
 
+    describe('sorting', () => {
+        it('renders grants sorted alphabetically by username', async () => {
+            const svc = mockSvc({
+                getNamespaceUserAccess: () => Promise.resolve([adminGrant, readGrant]), // bob, alice
+            });
+            render(<NamespaceAccessPanel namespace="finos" service={svc} />);
+            await waitFor(() => screen.getByText('alice'));
+
+            const rows = screen.getAllByRole('row').slice(1); // skip header
+            expect(within(rows[0]).getByText('alice')).toBeInTheDocument();
+            expect(within(rows[1]).getByText('bob')).toBeInTheDocument();
+        });
+    });
+
     describe('wildcard grants', () => {
         it('renders wildcard username as "* (everyone)"', async () => {
             const svc = mockSvc({ getNamespaceUserAccess: () => Promise.resolve([wildcardGrant]) });

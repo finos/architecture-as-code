@@ -55,7 +55,7 @@ export function DomainsPanel({ calmService }: DomainsPanelProps) {
                     <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-sm">
                         <input
                             className="input input-bordered input-sm"
-                            placeholder="Name (e.g. payments)"
+                            placeholder="Name (e.g. security)"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
