@@ -28,6 +28,42 @@ import { buildScalerToml } from '$lib/io/scalerToml';
 const IMAGE_WIDTH = 1920;
 const IMAGE_HEIGHT = 1080;
 
+/** Canonical CALM 1.2 meta-schema URL written into exported documents. */
+export const CALM_SCHEMA_URL = 'https://calm.finos.org/release/1.2/meta/calm.json';
+
+// ─── Write finalization (shared by Save / Save As / Export) ───────────────────
+
+/**
+ * Finalize a CALM JSON string for writing to disk — applied by every CALM-JSON
+ * writer (Save, Save As, Export) so the file is canonical regardless of which
+ * action produced it.
+ *
+ * - Strips Studio-internal `_template` scratch metadata (must never persist).
+ * - Injects the canonical CALM 1.2 `$schema` when absent, so written files are
+ *   self-describing and version-pinned; an existing `$schema` is left untouched.
+ *
+ * AIGF governance-decorator generation is intentionally NOT done here — it is
+ * Export-only (see `exportAsCalm`) so that a plain Save does not re-stamp a
+ * governance assessment date on every save.
+ *
+ * Pure string→string; returns the input unchanged if the JSON is malformed.
+ */
+export function finalizeCalmForWrite(json: string): string {
+	try {
+		const parsed = JSON.parse(json) as CalmArchitecture & { _template?: unknown; $schema?: string };
+		if ('_template' in parsed) {
+			delete parsed._template;
+		}
+		if (!parsed['$schema']) {
+			parsed['$schema'] = CALM_SCHEMA_URL;
+		}
+		return JSON.stringify(parsed, null, 2);
+	} catch {
+		// Malformed JSON — return original; the caller's write still proceeds.
+		return json;
+	}
+}
+
 // ─── AIGF decorator generation ────────────────────────────────────────────────
 
 /**
@@ -89,22 +125,23 @@ function generateAIGFDecorator(arch: CalmArchitecture, filename: string): CalmDe
  * @param filename  Output filename (default: architecture.calm.json)
  */
 export function exportAsCalm(json: string, filename = 'architecture.calm.json'): void {
-	// Strip _template metadata and inject AIGF decorator if AI nodes present.
-	let cleanJson = json;
+	// Apply the shared finalize pass (strip _template, inject $schema), then add
+	// the Export-only AIGF governance decorator if AI nodes are present.
+	let cleanJson = finalizeCalmForWrite(json);
 	try {
-		const parsed = JSON.parse(json) as CalmArchitecture & { _template?: unknown };
-		// Strip template metadata
-		if ('_template' in parsed) {
-			delete parsed._template;
-		}
-		// Inject AIGF governance decorator if AI nodes exist
+		const parsed = JSON.parse(cleanJson) as CalmArchitecture;
 		const decorator = generateAIGFDecorator(parsed, filename);
 		if (decorator !== null) {
-			parsed.decorators = [decorator];
+			// Merge, don't overwrite: keep any existing decorators, replacing only
+			// the managed AIGF overlay (idempotent across repeated exports).
+			const others = (parsed.decorators ?? []).filter(
+				(d) => d['unique-id'] !== 'aigf-governance-overlay'
+			);
+			parsed.decorators = [...others, decorator];
+			cleanJson = JSON.stringify(parsed, null, 2);
 		}
-		cleanJson = JSON.stringify(parsed, null, 2);
 	} catch {
-		// Malformed JSON — fall through with original content; export will still work
+		// Malformed JSON — fall through with finalized content; export will still work
 	}
 
 	const blob = new Blob([cleanJson], { type: 'application/json' });

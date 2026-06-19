@@ -67,7 +67,7 @@
 	import { checkForUpdates } from '$lib/desktop/updater';
 	import { registerFileOpenHandler } from '$lib/desktop/fileOpen';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
-	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsCalmscript, exportAsScalerToml } from '$lib/io/export';
+	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsCalmscript, exportAsScalerToml, finalizeCalmForWrite } from '$lib/io/export';
 	import type { CalmArchitecture, CalmRelationship } from '@calmstudio/calm-core';
 	import { getReferencedNodeIds } from '@calmstudio/calm-core';
 	import { detectPacksFromArch } from '$lib/io/sidecar';
@@ -690,7 +690,7 @@
 
 	async function handleSave() {
 		try {
-			const json = getModelJson();
+			const json = finalizeCalmForWrite(getModelJson());
 			const handle = await saveFile(json, getFileHandle(), getFileName() ?? 'architecture.calm.json');
 			markClean(undefined, handle);
 		} catch (e) {
@@ -700,7 +700,7 @@
 
 	async function handleSaveAs() {
 		try {
-			const json = getModelJson();
+			const json = finalizeCalmForWrite(getModelJson());
 			const handle = await saveFileAs(json, getFileName() ?? 'architecture.calm.json');
 			// saveFileAs returns:
 			// - string path (Tauri desktop)

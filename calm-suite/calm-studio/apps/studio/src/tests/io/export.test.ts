@@ -33,7 +33,7 @@ vi.mock('$lib/io/scalerToml', () => ({
 }));
 
 // Import export functions AFTER mocking their dependency
-import { exportAsCalm, exportAsScalerToml } from '$lib/io/export';
+import { exportAsCalm, exportAsScalerToml, finalizeCalmForWrite } from '$lib/io/export';
 import { downloadDataUrl } from '$lib/io/fileSystem';
 import { buildScalerToml } from '$lib/io/scalerToml';
 
@@ -90,6 +90,38 @@ afterEach(() => {
 	vi.runAllTimers(); // flush all pending setTimeout callbacks before teardown
 	vi.useRealTimers();
 	teardownBlobStubs();
+});
+
+// ─── finalizeCalmForWrite (shared by Save / Save As / Export) ────────────────
+
+describe('finalizeCalmForWrite', () => {
+	const SCHEMA_URL = 'https://calm.finos.org/release/1.2/meta/calm.json';
+
+	it('injects the canonical $schema when absent', () => {
+		const result = JSON.parse(finalizeCalmForWrite(JSON.stringify(createMinimalArch())));
+		expect(result['$schema']).toBe(SCHEMA_URL);
+	});
+
+	it('preserves an existing $schema untouched', () => {
+		const arch = { '$schema': 'https://example.com/custom/schema.json', ...createMinimalArch() };
+		const result = JSON.parse(finalizeCalmForWrite(JSON.stringify(arch)));
+		expect(result['$schema']).toBe('https://example.com/custom/schema.json');
+	});
+
+	it('strips _template scratch metadata', () => {
+		const arch = { ...createMinimalArch(), _template: { id: 'x', name: 'x' } };
+		const result = JSON.parse(finalizeCalmForWrite(JSON.stringify(arch)));
+		expect(result).not.toHaveProperty('_template');
+	});
+
+	it('does NOT add a governance decorator (AIGF is Export-only)', () => {
+		const result = JSON.parse(finalizeCalmForWrite(JSON.stringify(createAIGovernanceArch())));
+		expect(result.decorators).toBeUndefined();
+	});
+
+	it('returns the input unchanged for malformed JSON', () => {
+		expect(finalizeCalmForWrite('not-json')).toBe('not-json');
+	});
 });
 
 // ─── exportAsCalm — _template metadata stripping ─────────────────────────────
@@ -185,6 +217,45 @@ describe('exportAsCalm — AIGF decorator injection', () => {
 		exportAsCalm(JSON.stringify(createAIGovernanceArch(), null, 2));
 		const result = JSON.parse(getFirstBlobContent()!);
 		expect(result.decorators[0].data.framework).toBe('FINOS AI Governance Framework');
+	});
+
+	it('preserves a pre-existing non-AIGF decorator and adds the AIGF overlay (merge, not overwrite)', () => {
+		const arch = createAIGovernanceArch({
+			decorators: [
+				{ 'unique-id': 'threat-model-overlay', type: 'threat-model', target: [], 'applies-to': [], data: {} },
+			],
+		});
+		exportAsCalm(JSON.stringify(arch, null, 2));
+		const result = JSON.parse(getFirstBlobContent()!);
+		const ids: string[] = result.decorators.map((d: { 'unique-id': string }) => d['unique-id']);
+		expect(ids).toContain('threat-model-overlay');
+		expect(ids).toContain('aigf-governance-overlay');
+	});
+
+	it('re-exporting keeps foreign decorators and does not duplicate the AIGF overlay', () => {
+		// A user exports, reopens the exported file, and exports again. Their own
+		// (non-AIGF) decorators must survive every export, and the managed AIGF
+		// overlay must stay singular. The old overwrite code dropped foreign
+		// decorators on the FIRST export, so the `toContain` assertion below fails
+		// on pre-fix code — giving this test real teeth (count alone could not,
+		// since overwrite and merge both yield a single overlay).
+		const arch = createAIGovernanceArch({
+			decorators: [
+				{ 'unique-id': 'threat-model-overlay', type: 'threat-model', target: [], 'applies-to': [], data: {} },
+			],
+		});
+		exportAsCalm(JSON.stringify(arch, null, 2));
+		const firstExport = JSON.parse(getFirstBlobContent()!);
+
+		// Re-export the first output (simulating reopen → re-export).
+		teardownBlobStubs();
+		setupBlobStubs();
+		exportAsCalm(JSON.stringify(firstExport, null, 2));
+		const secondExport = JSON.parse(getFirstBlobContent()!);
+
+		const ids: string[] = secondExport.decorators.map((d: { 'unique-id': string }) => d['unique-id']);
+		expect(ids).toContain('threat-model-overlay');
+		expect(ids.filter((id) => id === 'aigf-governance-overlay')).toHaveLength(1);
 	});
 });
 

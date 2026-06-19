@@ -52,7 +52,11 @@ function withMutex(fn: () => void): boolean {
  */
 export function applyFromJson(arch: CalmArchitecture): boolean {
 	return withMutex(() => {
-		model = { nodes: [...arch.nodes], relationships: [...arch.relationships] };
+		// Preserve ALL document-level keys ($schema, metadata, flows, adrs,
+		// decorators, controls, …); nodes/relationships are copied as arrays.
+		// Previously this rebuilt { nodes, relationships } only, silently dropping
+		// every other section on open→save.
+		model = { ...arch, nodes: [...arch.nodes], relationships: [...arch.relationships] };
 	});
 }
 
@@ -64,7 +68,10 @@ export function applyFromJson(arch: CalmArchitecture): boolean {
 export function applyFromCanvas(nodes: Node[], edges: Edge[]): boolean {
 	return withMutex(() => {
 		const arch = flowToCalm(nodes, edges);
-		model = { nodes: [...arch.nodes], relationships: [...arch.relationships] };
+		// Merge: graph (nodes/relationships) comes from the canvas; document-level
+		// keys are retained from the prior model so a canvas edit doesn't drop
+		// flows/metadata/decorators/etc.
+		model = { ...model, nodes: [...arch.nodes], relationships: [...arch.relationships] };
 	});
 }
 

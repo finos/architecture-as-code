@@ -25,6 +25,7 @@ import {
 	resetModel,
 } from '$lib/stores/calmModel.svelte';
 import { calmToFlow, flowToCalm } from '$lib/stores/projection';
+import { finalizeCalmForWrite } from '$lib/io/export';
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
@@ -201,6 +202,122 @@ describe('getModelJson round-trip', () => {
 		const json = getModelJson();
 		const reparsed = JSON.parse(json) as CalmArchitecture;
 		expect(reparsed.relationships).toHaveLength(arch.relationships.length);
+	});
+});
+
+// ─── document-level key preservation (cross-tool interop) ─────────────────────
+
+describe('document-level key preservation', () => {
+	const SCHEMA_URL = 'https://calm.finos.org/release/1.2/meta/calm.json';
+
+	/** A minimal arch carrying $schema, flows, and doc-level metadata. */
+	function fullArch(): CalmArchitecture & { '$schema'?: string } {
+		const arch = createMinimalArch({
+			flows: [
+				{
+					'unique-id': 'flow-1',
+					name: 'Example flow',
+					description: 'An example business flow',
+					transitions: [
+						{ 'relationship-unique-id': 'api-to-db', 'sequence-number': 1, description: 'call' },
+					],
+				},
+			],
+			metadata: { owner: 'platform-team' },
+		}) as CalmArchitecture & { '$schema'?: string };
+		// $schema is a valid CALM key but isn't on the CalmArchitecture type.
+		arch['$schema'] = SCHEMA_URL;
+		return arch;
+	}
+
+	it('preserves $schema, flows, and metadata through applyFromJson', () => {
+		applyFromJson(fullArch());
+		const model = getModel() as CalmArchitecture & { '$schema'?: string };
+		expect(model['$schema']).toBe(SCHEMA_URL);
+		expect(model.flows).toHaveLength(1);
+		expect(model.metadata).toEqual({ owner: 'platform-team' });
+	});
+
+	it('retains document-level keys through a subsequent canvas edit', () => {
+		applyFromJson(fullArch());
+		// Simulate a canvas round-trip (e.g. a drag): model -> flow -> model.
+		const { nodes, edges } = calmToFlow(getModel());
+		applyFromCanvas(nodes, edges);
+		const model = getModel() as CalmArchitecture & { '$schema'?: string };
+		expect(model['$schema']).toBe(SCHEMA_URL);
+		expect(model.flows).toHaveLength(1);
+		expect(model.metadata).toEqual({ owner: 'platform-team' });
+	});
+
+	it('exposes loaded flows on the model (flow-overlay regression guard)', () => {
+		// flowState reads getModel().flows; before this fix it was always
+		// undefined for loaded docs, so the flow overlay never worked on open.
+		applyFromJson(fullArch());
+		expect(getModel().flows).toBeDefined();
+		expect(getModel().flows?.[0]['unique-id']).toBe('flow-1');
+	});
+
+	it('preserves adrs through applyFromJson and a canvas edit', () => {
+		const arch = createMinimalArch({ adrs: ['https://example.com/adrs/001'] });
+		applyFromJson(arch);
+		const { nodes, edges } = calmToFlow(getModel());
+		applyFromCanvas(nodes, edges);
+		expect(getModel().adrs).toEqual(['https://example.com/adrs/001']);
+	});
+
+	it('preserves document-level controls through applyFromJson and a canvas edit', () => {
+		const arch = createMinimalArch({
+			controls: {
+				'data-residency': {
+					description: 'UK only',
+					requirements: [
+						{ 'requirement-url': 'https://example.com/req', 'config-url': 'https://example.com/cfg' },
+					],
+				},
+			},
+		});
+		applyFromJson(arch);
+		const { nodes, edges } = calmToFlow(getModel());
+		applyFromCanvas(nodes, edges);
+		expect(getModel().controls?.['data-residency']).toBeDefined();
+	});
+
+	it('preserves decorators loaded from a document through a canvas edit', () => {
+		const arch = createMinimalArch({
+			decorators: [
+				{ 'unique-id': 'threat-model-overlay', type: 'threat-model', target: [], 'applies-to': [], data: {} },
+			],
+		});
+		applyFromJson(arch);
+		const { nodes, edges } = calmToFlow(getModel());
+		applyFromCanvas(nodes, edges);
+		expect(getModel().decorators?.find((d) => d['unique-id'] === 'threat-model-overlay')).toBeDefined();
+	});
+
+	it('full Save-path composition: getModelJson -> finalizeCalmForWrite -> reparse keeps every doc-level key', () => {
+		// Mirrors handleSave/handleSaveAs: serialize the model, finalize for write,
+		// then re-parse (as a reopen would). $schema is injected by finalize.
+		const arch = createMinimalArch({
+			flows: [
+				{
+					'unique-id': 'f1',
+					name: 'Test',
+					description: 'Test flow',
+					transitions: [
+						{ 'relationship-unique-id': 'api-to-db', 'sequence-number': 1, description: 'call' },
+					],
+				},
+			],
+			adrs: ['https://example.com/adrs/001'],
+			metadata: { owner: 'team-a' },
+		});
+		applyFromJson(arch);
+		const finalJson = finalizeCalmForWrite(getModelJson());
+		const result = JSON.parse(finalJson) as CalmArchitecture & { '$schema'?: string };
+		expect(result['$schema']).toBe('https://calm.finos.org/release/1.2/meta/calm.json');
+		expect(result.flows).toHaveLength(1);
+		expect(result.adrs).toEqual(['https://example.com/adrs/001']);
+		expect(result.metadata).toEqual({ owner: 'team-a' });
 	});
 });
 
