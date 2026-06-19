@@ -326,53 +326,73 @@ class TestCalmHubPermissionCheckerShould {
         assertFalse(checker.allowNamespaceAdmin(mockIdentity, "foo"));
     }
 
-    // --- Domain READ checks (unchanged — still use getUserAccessForUsername) ---
+    // --- Domain READ checks ---
 
     @Test
-    void read_grant_for_domain_allows_domain_read() throws UserAccessNotFoundException {
+    void read_grant_for_domain_allows_domain_read() {
         givenAuthenticatedUser("alice");
         UserAccess grant = new UserAccess.UserAccessBuilder()
                 .setUsername("alice").setPermission(UserAccess.Permission.read).setDomain("payments").build();
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(grant));
 
         assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
     }
 
     @Test
-    void write_grant_for_domain_allows_domain_read() throws UserAccessNotFoundException {
+    void write_grant_for_domain_allows_domain_read() {
         givenAuthenticatedUser("alice");
         UserAccess grant = new UserAccess.UserAccessBuilder()
                 .setUsername("alice").setPermission(UserAccess.Permission.write).setDomain("payments").build();
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(grant));
 
         assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
     }
 
     @Test
-    void grant_for_different_domain_denies_domain_read() throws UserAccessNotFoundException {
+    void grant_for_different_domain_denies_domain_read() {
         givenAuthenticatedUser("alice");
         UserAccess grant = new UserAccess.UserAccessBuilder()
                 .setUsername("alice").setPermission(UserAccess.Permission.read).setDomain("orders").build();
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(grant));
 
         assertFalse(checker.canReadByDomain(mockIdentity, "payments"));
     }
 
     @Test
-    void namespace_grant_does_not_satisfy_domain_read() throws UserAccessNotFoundException {
+    void namespace_grant_does_not_satisfy_domain_read() {
         givenAuthenticatedUser("alice");
-        when(mockUserAccessStore.getUserAccessForUsername("alice"))
+        when(mockUserAccessStore.getGrantsForUser("alice"))
                 .thenReturn(List.of(grant("alice", UserAccess.Permission.read, "payments")));
 
         assertFalse(checker.canReadByDomain(mockIdentity, "payments"));
     }
 
     @Test
-    void user_with_no_grants_is_denied_domain_read() throws UserAccessNotFoundException {
+    void user_with_no_grants_is_denied_domain_read() {
         givenAuthenticatedUser("alice");
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
 
         assertFalse(checker.canReadByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void wildcard_read_grant_for_domain_allows_domain_read() {
+        givenAuthenticatedUser("alice");
+        UserAccess wildcardGrant = new UserAccess.UserAccessBuilder()
+                .setUsername("*").setPermission(UserAccess.Permission.read).setDomain("payments").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(wildcardGrant));
+
+        assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void global_admin_is_allowed_domain_read_without_domain_grant() {
+        givenAuthenticatedUser("alice");
+        UserAccess globalGrant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.admin).setNamespace("GLOBAL").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(globalGrant));
+
+        assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
     }
 
     @Test
@@ -385,23 +405,82 @@ class TestCalmHubPermissionCheckerShould {
     // --- Domain WRITE checks ---
 
     @Test
-    void read_grant_for_domain_denies_domain_write() throws UserAccessNotFoundException {
+    void read_grant_for_domain_denies_domain_write() {
         givenAuthenticatedUser("alice");
         UserAccess grant = new UserAccess.UserAccessBuilder()
                 .setUsername("alice").setPermission(UserAccess.Permission.read).setDomain("payments").build();
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(grant));
 
         assertFalse(checker.canWriteByDomain(mockIdentity, "payments"));
     }
 
     @Test
-    void write_grant_for_domain_allows_domain_write() throws UserAccessNotFoundException {
+    void write_grant_for_domain_allows_domain_write() {
         givenAuthenticatedUser("alice");
         UserAccess grant = new UserAccess.UserAccessBuilder()
                 .setUsername("alice").setPermission(UserAccess.Permission.write).setDomain("payments").build();
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(grant));
 
         assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void wildcard_write_grant_for_domain_allows_domain_write() {
+        givenAuthenticatedUser("alice");
+        UserAccess wildcardGrant = new UserAccess.UserAccessBuilder()
+                .setUsername("*").setPermission(UserAccess.Permission.write).setDomain("payments").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(wildcardGrant));
+
+        assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
+    }
+
+    @Test
+    void global_admin_is_allowed_domain_write_without_domain_grant() {
+        givenAuthenticatedUser("alice");
+        UserAccess globalGrant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.admin).setNamespace("GLOBAL").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(globalGrant));
+
+        assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
+    }
+
+    // --- Domain ADMIN checks ---
+
+    @Test
+    void admin_grant_for_domain_allows_domain_admin() {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.admin).setDomain("payments").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(grant));
+
+        assertTrue(checker.allowDomainAdmin(mockIdentity, "payments"));
+    }
+
+    @Test
+    void write_grant_for_domain_denies_domain_admin() {
+        givenAuthenticatedUser("alice");
+        UserAccess grant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.write).setDomain("payments").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(grant));
+
+        assertFalse(checker.allowDomainAdmin(mockIdentity, "payments"));
+    }
+
+    @Test
+    void global_admin_is_allowed_domain_admin_without_domain_grant() {
+        givenAuthenticatedUser("alice");
+        UserAccess globalGrant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.admin).setNamespace("GLOBAL").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(globalGrant));
+
+        assertTrue(checker.allowDomainAdmin(mockIdentity, "payments"));
+    }
+
+    @Test
+    void no_auth_mode_grants_domain_admin_without_store_lookup() {
+        checker.authEnabled = false;
+
+        assertTrue(checker.allowDomainAdmin(mockIdentity, "payments"));
     }
 
     // --- authEnabled=false (no-auth mode) ---

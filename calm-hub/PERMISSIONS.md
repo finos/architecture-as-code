@@ -88,8 +88,8 @@ All grants apply equally to named users and the `*` wildcard (any user).
 | `read` | Domain `D` | Read content in `D` | Flat — no hierarchy | — |
 | `write` | Namespace `N` | Read + write content in `N` and descendants | **OR any ancestor** — one ancestor grant covers all descendants | — |
 | `write` | Domain `D` | Read + write content in `D` | Flat — no hierarchy | — |
-| `admin` | Namespace `N` | Read + write content in `N` and descendants; list/grant/revoke entitlements in `N` and descendants; create child namespaces of `N` | **OR any ancestor** | `NamespaceResource.createNamespace` requires `GLOBAL_ADMIN` — child namespace creation not yet enforced |
-| `admin` | Domain `D` | Read + write content in `D`; list/grant/revoke entitlements for `D` | Flat — no hierarchy | `DomainUserAccessResource` requires `GLOBAL_ADMIN` — domain entitlement management not yet enforced |
+| `admin` | Namespace `N` | Read + write content in `N` and descendants; list/grant/revoke entitlements in `N` and descendants; create child namespaces of `N` | **OR any ancestor** | — |
+| `admin` | Domain `D` | Read + write content in `D`; list/grant/revoke entitlements for `D` | Flat — no hierarchy | — |
 | `admin` | `GLOBAL` | Create/delete any namespace or domain; read + write all content; manage all entitlements (including further `GLOBAL admin` grants) | Bypasses all checks via `hasGlobalAdmin()` | Only `admin` is valid on `GLOBAL`; `read`/`write` grants are rejected with 400 |
 
 ---

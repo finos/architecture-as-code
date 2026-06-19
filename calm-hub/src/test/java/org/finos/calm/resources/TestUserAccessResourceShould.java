@@ -318,6 +318,20 @@ public class TestUserAccessResourceShould {
     }
 
     @Test
+    void return_400_when_wildcard_username_is_used_for_global_namespace() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"permission\":\"admin\"}")
+                .when()
+                .post("/api/calm/namespaces/GLOBAL/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Wildcard username is not permitted for the GLOBAL namespace"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
+
+    @Test
     void return_400_when_write_permission_is_used_for_global_namespace() throws Exception {
         given()
                 .header("Content-Type", "application/json")

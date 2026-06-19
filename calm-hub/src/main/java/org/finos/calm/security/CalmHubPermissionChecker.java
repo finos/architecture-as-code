@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 
 @ApplicationScoped
@@ -85,6 +84,12 @@ public class CalmHubPermissionChecker {
     public boolean canWriteByDomain(SecurityIdentity identity, String domain) {
         return isAuthDisabled()
                 || hasDomainAccess(identity, domain, UserAction.WRITE);
+    }
+
+    @PermissionChecker(CalmHubScopes.DOMAIN_ADMIN)
+    public boolean allowDomainAdmin(SecurityIdentity identity, String domain) {
+        return isAuthDisabled()
+                || hasDomainAccess(identity, domain, UserAction.ADMIN);
     }
 
     @PermissionChecker(CalmHubScopes.GLOBAL_ADMIN)
@@ -170,28 +175,26 @@ public class CalmHubPermissionChecker {
     }
 
     private boolean hasDomainAccess(SecurityIdentity identity, String domain, UserAction action) {
-        return hasAccess(identity, "domain", domain, action,
-                grant -> domain != null && domain.equals(grant.getDomain()));
-    }
-
-    private boolean hasAccess(SecurityIdentity identity, String scopeType, String scopeValue,
-                              UserAction action, Predicate<UserAccess> grantMatcher) {
+        if (domain == null) return false;
         String username = identity.getPrincipal().getName();
-        logger.debug("Checking {} access for user [{}] on {} [{}] action=[{}]",
-                scopeType, username, scopeType, scopeValue, action);
-        try {
-            boolean result = userAccessStore.getUserAccessForUsername(username).stream()
-                    .anyMatch(grant -> grantMatcher.test(grant) && permissionSufficient(grant, action));
-            if (result) {
-                logger.debug("User [{}] AUTHORIZED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
-            } else {
-                logger.debug("User [{}] DENIED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
-            }
-            return result;
-        } catch (UserAccessNotFoundException e) {
-            logger.debug("No access grants found for user [{}]", username);
-            return false;
+        logger.debug("Checking domain access for user [{}] on domain [{}] action=[{}]", username, domain, action);
+
+        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+
+        if (isGlobalAdminFromGrants(username, grants)) {
+            logger.debug("User [{}] AUTHORIZED for [{}] in domain [{}] via GLOBAL admin grant", username, action, domain);
+            return true;
         }
+
+        boolean result = grants.stream().anyMatch(g ->
+                domain.equals(g.getDomain()) && permissionSufficient(g, action));
+
+        if (result) {
+            logger.debug("User [{}] AUTHORIZED for [{}] in domain [{}]", username, action, domain);
+        } else {
+            logger.debug("User [{}] DENIED for [{}] in domain [{}]", username, action, domain);
+        }
+        return result;
     }
 
     private boolean permissionSufficient(UserAccess grant, UserAction action) {
