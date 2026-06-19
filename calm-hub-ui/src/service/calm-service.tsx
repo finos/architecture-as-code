@@ -55,6 +55,30 @@ export class CalmService {
             });
     }
 
+    public async createNamespace(name: string, description: string): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .post('/api/calm/namespaces', { name, description }, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = `Error creating namespace ${name}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async createDomain(name: string): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .post('/api/calm/domains', { name }, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = `Error creating domain ${name}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
     public async fetchPatternSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
