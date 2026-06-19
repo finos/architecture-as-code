@@ -127,7 +127,7 @@ public class CalmHubPermissionChecker {
 
         List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
 
-        if (action == UserAction.ADMIN && isGlobalAdminFromGrants(username, grants)) {
+        if (isGlobalAdminFromGrants(username, grants)) {
             logger.debug("User [{}] AUTHORIZED for [{}] in namespace [{}] via GLOBAL admin grant", username, action, namespace);
             return true;
         }
