@@ -2,6 +2,7 @@ import type { DocifyViewModel } from '../view-model/docify.view-model'
 import type { VsCodeApi } from '../../webview/panel.view-model'
 import MermaidRenderer from '../../webview/mermaid-renderer'
 import { DiagramControls } from '../../webview/diagram-controls'
+import { DiagramExportControl } from '../../webview/diagram-export-control'
 import { exportDiagram } from '../../webview/diagram-export'
 
 const DOM_SETTLE_DELAY_MS = 150
@@ -17,6 +18,7 @@ export class DocifyTabView {
     private container: HTMLElement
     private markdownRenderer = new MermaidRenderer()
     private diagramControls: Map<string, DiagramControls> = new Map()
+    private diagramExportControls: Map<string, DiagramExportControl> = new Map()
     private vscode: VsCodeApi
 
     constructor(viewModel: DocifyViewModel, container: HTMLElement, vscode: VsCodeApi) {
@@ -91,13 +93,21 @@ export class DocifyTabView {
             })
 
             if (panZoomManager) {
-                // Create controls for this diagram
-                const controls = new DiagramControls(panZoomManager, {
+                // Create zoom/pan controls for this diagram
+                const controls = new DiagramControls(panZoomManager)
+                const toolbar = controls.createControls(container as HTMLElement)
+                this.diagramControls.set(diagramId, controls)
+
+                // Compose the export dropdown into the same toolbar
+                const exportControl = new DiagramExportControl({
                     onExportSvg: () => this.handleExportDiagram(container as HTMLElement, 'svg', index + 1),
                     onExportPng: () => this.handleExportDiagram(container as HTMLElement, 'png', index + 1),
                 })
-                controls.createControls(container as HTMLElement)
-                this.diagramControls.set(diagramId, controls)
+                const exportElement = exportControl.createControl()
+                if (exportElement) {
+                    toolbar.appendChild(exportElement)
+                }
+                this.diagramExportControls.set(diagramId, exportControl)
             }
 
             // Add click event listeners to Mermaid diagram nodes
@@ -281,6 +291,8 @@ export class DocifyTabView {
     private cleanupDiagramControls(): void {
         this.diagramControls.forEach(controls => controls.destroy())
         this.diagramControls.clear()
+        this.diagramExportControls.forEach(exportControl => exportControl.destroy())
+        this.diagramExportControls.clear()
         this.markdownRenderer.destroyAllPanZoom()
     }
 

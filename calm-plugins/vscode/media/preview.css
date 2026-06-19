@@ -342,7 +342,42 @@ body {
 }
 
 .diagram-export-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    z-index: 1;
     min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    background: var(--vscode-menu-background, var(--vscode-editor-background, #fff));
+    border: 1px solid var(--vscode-menu-border, var(--vscode-editorWidget-border, #ddd));
+    border-radius: 4px;
+    padding: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.diagram-export-menu-item {
+    appearance: none;
+    background: none;
+    border: none;
+    color: var(--vscode-menu-foreground, var(--vscode-foreground));
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.diagram-export-menu-item:hover,
+.diagram-export-menu-item:focus-visible {
+    background-color: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground));
+    color: var(--vscode-menu-selectionForeground, var(--vscode-foreground));
+}
+
+.diagram-export-menu-item:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
 }
 
 /* Mermaid diagram container styling */

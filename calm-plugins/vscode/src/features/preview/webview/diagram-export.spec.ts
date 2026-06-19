@@ -1,12 +1,21 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-
-vi.mock('html-to-image', () => ({
-    toPng: vi.fn(),
-}))
-
-import { toPng } from 'html-to-image'
 import { serializeSvgElement, rasterizeSvgElementToPng, exportDiagram } from './diagram-export'
+
+class FakeImage {
+    onload: (() => void) | null = null
+    onerror: (() => void) | null = null
+    private _src = ''
+
+    get src() {
+        return this._src
+    }
+
+    set src(value: string) {
+        this._src = value
+        queueMicrotask(() => this.onload?.())
+    }
+}
 
 function createSvgElement(): SVGSVGElement {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg') as unknown as SVGSVGElement
@@ -48,9 +57,28 @@ function createPanZoomedSvgElement(originalViewBox: string | null): SVGSVGElemen
     return svg
 }
 
+class FakeFileReader {
+    onload: (() => void) | null = null
+    onerror: (() => void) | null = null
+    result: string | null = null
+
+    readAsDataURL(blob: Blob): void {
+        this.result = `data:${blob.type};base64,FAKE`
+        queueMicrotask(() => this.onload?.())
+    }
+}
+
 describe('diagram-export', () => {
+    let drawImage: ReturnType<typeof vi.fn>
+
     beforeEach(() => {
         vi.clearAllMocks()
+        vi.stubGlobal('Image', FakeImage)
+        vi.stubGlobal('FileReader', FakeFileReader)
+
+        drawImage = vi.fn()
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D)
+        vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,QkJC')
     })
 
     describe('serializeSvgElement', () => {
@@ -154,40 +182,60 @@ describe('diagram-export', () => {
     })
 
     describe('rasterizeSvgElementToPng', () => {
-        it('strips the data URL prefix from the html-to-image result', async () => {
-            vi.mocked(toPng).mockResolvedValue('data:image/png;base64,AAAA')
-
+        it('strips the data URL prefix from the rasterized result', async () => {
             const result = await rasterizeSvgElementToPng(createSvgElement())
 
-            expect(result).toBe('AAAA')
-            expect(toPng).toHaveBeenCalledWith(expect.anything(), { pixelRatio: 2 })
+            expect(result).toBe('QkJC')
         })
 
-        it('rasterizes an off-screen fixed clone rather than the live svg', async () => {
-            const svg = createSvgElement()
-            const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
-            svg.appendChild(foreignObject)
+        it('loads the serialized clone via a base64 data URI, never fetching anything over the network', async () => {
+            const readAsDataURLSpy = vi.spyOn(FakeFileReader.prototype, 'readAsDataURL')
 
-            let wasAttached = false
-            vi.mocked(toPng).mockImplementation(async (node) => {
-                wasAttached = document.body.contains(node as unknown as Node)
-                expect(node).not.toBe(svg)
-                expect((node as unknown as Element).querySelector('foreignObject')?.getAttribute('style')).toContain('overflow: visible')
-                return 'data:image/png;base64,AAAA'
-            })
+            await rasterizeSvgElementToPng(createSvgElement())
 
-            await rasterizeSvgElementToPng(svg)
-
-            expect(wasAttached).toBe(true)
+            expect(readAsDataURLSpy).toHaveBeenCalledWith(expect.any(Blob))
+            const [blob] = readAsDataURLSpy.mock.calls[0]
+            expect(blob.type).toBe('image/svg+xml;charset=utf-8')
         })
 
-        it('removes the off-screen clone from the document after rasterizing, even on failure', async () => {
-            vi.mocked(toPng).mockRejectedValue(new Error('boom'))
-            const childCountBefore = document.body.childElementCount
+        it('sizes the canvas from the restored viewBox dimensions at the given pixel ratio', async () => {
+            const svg = createPanZoomedSvgElement('4 4 1223.7734375 715')
 
-            await expect(rasterizeSvgElementToPng(createSvgElement())).rejects.toThrow('boom')
+            await rasterizeSvgElementToPng(svg, 2)
 
-            expect(document.body.childElementCount).toBe(childCountBefore)
+            // canvas.width/height are integers per the HTML spec, so fractional viewBox
+            // dimensions get truncated - assert against what the canvas actually receives.
+            expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, Math.trunc(1223.7734375 * 2), 715 * 2)
+        })
+
+        it('throws when the canvas 2D context is unavailable', async () => {
+            vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
+
+            await expect(rasterizeSvgElementToPng(createSvgElement())).rejects.toThrow('Canvas 2D context unavailable')
+        })
+
+        it('rejects when the SVG cannot be encoded to a data URI', async () => {
+            class FailingFileReader extends FakeFileReader {
+                readAsDataURL(): void {
+                    queueMicrotask(() => this.onerror?.())
+                }
+            }
+            vi.stubGlobal('FileReader', FailingFileReader)
+
+            await expect(rasterizeSvgElementToPng(createSvgElement())).rejects.toThrow('Failed to encode SVG for rasterization')
+        })
+
+        it('rejects when the image fails to load', async () => {
+            class FailingImage {
+                onload: (() => void) | null = null
+                onerror: (() => void) | null = null
+                set src(_value: string) {
+                    queueMicrotask(() => this.onerror?.())
+                }
+            }
+            vi.stubGlobal('Image', FailingImage)
+
+            await expect(rasterizeSvgElementToPng(createSvgElement())).rejects.toThrow('Failed to load SVG for rasterization')
         })
     })
 
@@ -204,9 +252,7 @@ describe('diagram-export', () => {
             expect(message.data).toContain('<svg')
         })
 
-        it('returns a png export message using html-to-image', async () => {
-            vi.mocked(toPng).mockResolvedValue('data:image/png;base64,QkJC')
-
+        it('returns a png export message', async () => {
             const container = document.createElement('div')
             container.appendChild(createSvgElement())
 

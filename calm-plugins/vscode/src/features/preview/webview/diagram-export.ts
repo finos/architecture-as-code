@@ -1,5 +1,3 @@
-import { toPng } from 'html-to-image'
-
 export type DiagramExportFormat = 'svg' | 'png'
 
 export interface DiagramExportMessage {
@@ -67,32 +65,60 @@ function buildExportClone(svg: SVGSVGElement): SVGSVGElement {
 }
 
 /**
- * Rasterizing the live SVG directly would reproduce the same clipped labels as the
- * unfixed export (the live SVG is also missing Mermaid's original viewBox, since
- * svg-pan-zoom strips it). Build the same fixed clone used for SVG export and render
- * it off-screen so html-to-image can compute its layout and styles before rasterizing.
+ * Rasterizes the fixed SVG clone using the browser's native SVG image decoder rather
+ * than an external library. The clone is loaded as a `data:` URI rather than a `blob:`
+ * URL: Chromium currently taints the canvas when rasterizing an SVG containing a
+ * <foreignObject> (which Mermaid uses for labels) loaded via a `blob:` URL, but `data:`
+ * URIs have never tainted in any browser, independent of foreignObject content. The
+ * clone is already self-contained - font-family is inlined as a literal value and
+ * Mermaid's own <style> rules travel with it - so this needs no network access at all.
  */
-export async function rasterizeSvgElementToPng(svg: SVGSVGElement): Promise<string> {
+export async function rasterizeSvgElementToPng(svg: SVGSVGElement, pixelRatio = 2): Promise<string> {
     const clone = buildExportClone(svg)
+    const svgString = new XMLSerializer().serializeToString(clone)
+    const width = parseFloat(clone.getAttribute('width') ?? '') || svg.clientWidth
+    const height = parseFloat(clone.getAttribute('height') ?? '') || svg.clientHeight
 
-    // Render the clone off-screen so html-to-image can compute its layout and styles
-    // before rasterizing, without disturbing the visible page. The positioning goes on
-    // a wrapper, not the clone itself - html-to-image inlines the clone's own computed
-    // style onto its internal copy, and `position: fixed; left: -99999px` on the clone
-    // would carry over and render its content off-canvas, producing a blank image.
-    const offscreen = document.createElement('div')
-    offscreen.style.position = 'fixed'
-    offscreen.style.left = '-99999px'
-    offscreen.style.top = '0'
-    offscreen.appendChild(clone)
-    document.body.appendChild(offscreen)
+    const dataUri = await svgStringToDataUri(svgString)
+    const image = await loadImage(dataUri)
 
-    try {
-        const dataUrl = await toPng(clone as unknown as HTMLElement, { pixelRatio: 2 })
-        return dataUrl.slice(dataUrl.indexOf(',') + 1)
-    } finally {
-        offscreen.remove()
+    const canvas = document.createElement('canvas')
+    canvas.width = width * pixelRatio
+    canvas.height = height * pixelRatio
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+        throw new Error('Canvas 2D context unavailable')
     }
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+    const dataUrl = canvas.toDataURL('image/png')
+    return dataUrl.slice(dataUrl.indexOf(',') + 1)
+}
+
+/**
+ * Encodes via Blob + FileReader rather than `btoa(svgString)` directly - `btoa` throws
+ * on any non-Latin1 character (e.g. an accented name in an architecture description),
+ * while FileReader handles arbitrary Unicode and produces a base64 `data:` URI, which
+ * has a bounded ~33% size overhead rather than the unpredictable blowup percent-encoding
+ * gives XML-heavy content (every `<`, `>`, `"` becomes a 3-character escape).
+ */
+function svgStringToDataUri(svgString: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Failed to encode SVG for rasterization'))
+        reader.readAsDataURL(new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' }))
+    })
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+        const image = new Image()
+        image.onload = () => resolve(image)
+        image.onerror = () => reject(new Error('Failed to load SVG for rasterization'))
+        image.src = src
+    })
 }
 
 export async function exportDiagram(

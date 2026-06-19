@@ -42,7 +42,14 @@ export interface WebviewCommand<T extends InMsg = InMsg> {
 export class CommandRegistry {
   private map = new Map<InMsg['type'], WebviewCommand>()
   register(cmd: WebviewCommand) { this.map.set(cmd.type, cmd) }
-  dispatch(msg: InMsg) { this.map.get(msg.type)?.execute(msg as any) }
+  dispatch(msg: InMsg) {
+    // execute() may return a Promise for async commands (e.g. ExportDiagramCmd) - catch any
+    // rejection here so a failure outside a command's own try/catch (e.g. a disposed panel
+    // racing the write) doesn't surface as an unhandled promise rejection.
+    this.map.get(msg.type)?.execute(msg as any)?.catch?.((err: unknown) => {
+      console.error(`[CommandRegistry] Unhandled error executing command "${msg.type}":`, err)
+    })
+  }
 }
 
 // Concrete command implementations - each operates on the PreviewCommandTarget
