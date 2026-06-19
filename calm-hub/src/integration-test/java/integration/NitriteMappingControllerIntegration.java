@@ -145,7 +145,7 @@ public class NitriteMappingControllerIntegration {
     @Test
     @Order(12)
     void add_specific_version_via_versioned_endpoint() {
-        String payload = "{\"name\": \"front-controller-test-v4\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/2.0.0\"}";
+        String payload = "{\"title\": \"Front Controller Test v4\", \"name\": \"front-controller-test-v4\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/2.0.0\"}";
 
         given()
                 .body(payload)
@@ -159,7 +159,7 @@ public class NitriteMappingControllerIntegration {
     @Test
     @Order(13)
     void return_409_when_specific_version_already_exists() {
-        String payload = "{\"name\": \"front-controller-test-dup\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/2.0.0\"}";
+        String payload = "{\"title\": \"Front Controller Test Dup\", \"name\": \"front-controller-test-dup\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/2.0.0\"}";
 
         given()
                 .body(payload)
@@ -172,7 +172,7 @@ public class NitriteMappingControllerIntegration {
     @Test
     @Order(14)
     void return_400_when_versioned_id_does_not_match_path() {
-        String payload = "{\"name\": \"mismatch\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/4.0.0\"}";
+        String payload = "{\"title\": \"Front Controller Test Mismatch\", \"name\": \"mismatch\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/test-pattern/versions/4.0.0\"}";
 
         given()
                 .body(payload)
@@ -186,7 +186,7 @@ public class NitriteMappingControllerIntegration {
     @Test
     @Order(15)
     void return_400_when_first_version_is_not_1_0_0() {
-        String payload = "{\"name\": \"seeded\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/seeded-pattern/versions/2.0.0\"}";
+        String payload = "{\"title\": \"Front Controller Test First\", \"name\": \"seeded\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/seeded-pattern/versions/2.0.0\"}";
 
         given()
                 .body(payload)
@@ -251,7 +251,7 @@ public class NitriteMappingControllerIntegration {
     @Test
     @Order(20)
     void user_facing_create_control_returns_201_with_name_based_location() {
-        String payload = "{\"type\":\"requirement\",\"description\":\"Ensure proper access control\",\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/requirement/versions/1.0.0\"}";
+        String payload = "{\"title\": \"ACL control\", \"type\":\"requirement\",\"description\":\"Ensure proper access control\",\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/requirement/versions/1.0.0\"}";
         given()
                 .header("Content-Type", "application/json")
                 .body(payload)
