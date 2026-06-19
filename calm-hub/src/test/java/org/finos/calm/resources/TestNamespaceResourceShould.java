@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
+import org.finos.calm.domain.exception.NamespaceParentNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.services.NamespaceService;
@@ -271,6 +272,23 @@ public class TestNamespaceResourceShould {
                 .header("Location", containsString("/api/calm/namespaces/org.finos"));
 
         verify(namespaceService).createNamespace("org.finos", "FINOS sub-namespace");
+    }
+
+    @Test
+    void return_422_when_direct_parent_namespace_does_not_exist() throws Exception {
+        doThrow(new NamespaceParentNotFoundException("org.ecosystem.a"))
+                .when(namespaceService).createNamespace("org.ecosystem.a.b", "desc");
+
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"org.ecosystem.a.b\",\"description\":\"desc\"}")
+                .when()
+                .post("/api/calm/namespaces")
+                .then()
+                .statusCode(422)
+                .body(containsString("org.ecosystem.a"));
+
+        verify(namespaceService).createNamespace("org.ecosystem.a.b", "desc");
     }
 
     @Test

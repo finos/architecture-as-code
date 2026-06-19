@@ -13,6 +13,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.NamespaceRequest;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
+import org.finos.calm.domain.exception.NamespaceParentNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.services.NamespaceService;
@@ -79,6 +80,10 @@ public class NamespaceResource {
 
         try {
             namespaceService.createNamespace(name, description);
+        } catch (NamespaceParentNotFoundException e) {
+            return Response.status(422)
+                    .entity("{\"error\":\"" + e.getMessage() + "\"}")
+                    .build();
         } catch (NamespaceAlreadyExistsException e) {
             return Response.status(Response.Status.CONFLICT)
                     .entity("{\"error\":\"Namespace already exists\"}")
