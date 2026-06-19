@@ -302,4 +302,32 @@ public class TestUserAccessResourceShould {
 
         verify(mockUserAccessStore, times(1)).deleteUserAccessForNamespace("finos", 999);
     }
+
+    @Test
+    void return_400_when_non_admin_permission_is_used_for_global_namespace() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"alice\",\"permission\":\"read\"}")
+                .when()
+                .post("/api/calm/namespaces/GLOBAL/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Only 'admin' permission is valid for the GLOBAL namespace"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
+
+    @Test
+    void return_400_when_write_permission_is_used_for_global_namespace() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"alice\",\"permission\":\"write\"}")
+                .when()
+                .post("/api/calm/namespaces/GLOBAL/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Only 'admin' permission is valid for the GLOBAL namespace"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
 }
