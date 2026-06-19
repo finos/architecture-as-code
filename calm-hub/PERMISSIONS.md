@@ -78,23 +78,39 @@ canWrite(username, namespace):
 
 ---
 
+## Permission reference
+
+All grants apply equally to named users and the `*` wildcard (any user).
+
+| Permission | Scope | Capabilities | Evaluation rule | Implementation gaps |
+|------------|-------|--------------|-----------------|---------------------|
+| `read` | Namespace `N` | Read content in `N` | **AND all ancestors** — every ancestor level must have a matching grant | — |
+| `read` | Domain `D` | Read content in `D` | Flat — no hierarchy | — |
+| `write` | Namespace `N` | Read + write content in `N` and descendants | **OR any ancestor** — one ancestor grant covers all descendants | — |
+| `write` | Domain `D` | Read + write content in `D` | Flat — no hierarchy | — |
+| `admin` | Namespace `N` | Read + write content in `N` and descendants; list/grant/revoke entitlements in `N` and descendants; create child namespaces of `N` | **OR any ancestor** | `NamespaceResource.createNamespace` requires `GLOBAL_ADMIN` — child namespace creation not yet enforced |
+| `admin` | Domain `D` | Read + write content in `D`; list/grant/revoke entitlements for `D` | Flat — no hierarchy | `DomainUserAccessResource` requires `GLOBAL_ADMIN` — domain entitlement management not yet enforced |
+| `admin` | `GLOBAL` | Create/delete any namespace or domain; read + write all content; manage all entitlements (including further `GLOBAL admin` grants) | Bypasses all checks via `hasGlobalAdmin()` | Only `admin` is valid on `GLOBAL`; `read`/`write` grants are rejected with 400 |
+
+---
+
 ## Special bypasses
 
 ### `allow-public-read` config flag
 
 `calm.auth.allow-public-read=true` is a global bypass in `CalmHubPermissionChecker.canRead`. It short-circuits all namespace checks. Intended for fully-open deployments; default is `false`.
 
-### GLOBAL admin
+### GLOBAL admin bootstrap
 
-A user with `admin` on `GLOBAL` bypasses all namespace-level permission checks via `hasGlobalAdmin`. Domain access is also granted. `GLOBAL` is not part of the namespace hierarchy.
+`GLOBAL` is a sentinel value — not a real namespace in the store. To bootstrap a new deployment, create the first `GLOBAL admin` grant directly via the API in `no-auth` mode (or via Swagger UI), then switch to a secured auth profile.
 
 ---
 
-## Default-open namespace behaviour
+## Default-open behaviour
 
-When a namespace is created via `NamespaceService`, a `UserAccess("*", read, namespace)` record is inserted automatically. This keeps the hub open by default.
+When a namespace is created via `NamespaceService`, a `UserAccess("*", read, namespace)` record is inserted automatically. When a domain is created, a `UserAccess("*", read, domain)` record is inserted in the same way. This keeps both namespaces and domains open by default.
 
-To restrict a namespace: delete the `* read` record. The AND rule for child namespaces means restriction cascades automatically.
+To restrict a namespace: delete the `* read` record. The AND rule for child namespaces means restriction cascades automatically. To restrict a domain: delete the `* read` record for that domain.
 
 ---
 
