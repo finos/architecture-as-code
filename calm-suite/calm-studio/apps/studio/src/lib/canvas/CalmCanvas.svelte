@@ -381,12 +381,14 @@
 
 	let edgeMenu = $state<{ x: number; y: number; edgeId: string } | null>(null);
 
+	// 'options' is intentionally omitted: it has no decision-authoring UI and an
+	// options edge could only emit schema-invalid CALM. Loaded options relationships
+	// are preserved (calmModel.applyFromCanvas), just not authored on the canvas.
 	const EDGE_TYPE_OPTIONS = [
 		{ value: 'connects', label: 'Connects' },
 		{ value: 'interacts', label: 'Interacts' },
 		{ value: 'deployed-in', label: 'Deployed In' },
 		{ value: 'composed-of', label: 'Composed Of' },
-		{ value: 'options', label: 'Options' },
 	];
 
 	function handleEdgeContextMenu(event: { event: MouseEvent; edge: Edge }) {

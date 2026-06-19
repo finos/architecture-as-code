@@ -32,7 +32,10 @@
 			case 'interacts':
 				return { interacts: { actor: source, nodes: [target] } };
 			case 'options':
-				return { options: [] };
+				// Unreachable: 'options' is not offered as an edge type (Studio has
+				// no decision-authoring UI; an options edge could only emit invalid
+				// CALM). Throw rather than emit a schema-invalid `{ options: [] }`.
+				throw new Error('options is not an authorable edge type');
 		}
 	}
 
@@ -48,12 +51,15 @@
 		onmutate?: () => void;
 	} = $props();
 
+	// 'options' is intentionally omitted: Studio has no decision-authoring UI, so
+	// an options edge could only produce schema-invalid CALM. Options relationships
+	// loaded from a file are preserved (calmModel.applyFromCanvas), just not
+	// authored on the canvas.
 	const RELATIONSHIP_TYPES: CalmRelationshipVariant[] = [
 		'connects',
 		'interacts',
 		'deployed-in',
 		'composed-of',
-		'options',
 	];
 
 	const PROTOCOL_TYPES = ['connects', 'interacts'];
@@ -101,6 +107,11 @@
 	);
 	const showProtocol: boolean = $derived(PROTOCOL_TYPES.includes(relType));
 
+	// Edits target the underlying relationship. A multi-child edge's id is
+	// `<relId>#<i>`, so resolve the real relationship id via calmRelId; otherwise
+	// the model lookup (keyed by relationship unique-id) would miss.
+	const relId: string = $derived((edge.data?.calmRelId as string | undefined) ?? edge.id);
+
 	let descTimer: ReturnType<typeof setTimeout>;
 	let protocolTimer: ReturnType<typeof setTimeout>;
 
@@ -119,7 +130,7 @@
 		// connectivity but reshapes the payload (e.g. connects.source.node →
 		// composed-of.container).
 		const nested = buildRelationshipType(value, edge.source, edge.target);
-		updateEdgeProperty(edge.id, 'relationship-type', nested);
+		updateEdgeProperty(relId, 'relationship-type', nested);
 		onmutate?.();
 	}
 
@@ -133,7 +144,7 @@
 		showCustomProtocol = false;
 		localProtocol = value;
 		signalFirstEdit();
-		updateEdgeProperty(edge.id, 'protocol', value);
+		updateEdgeProperty(relId, 'protocol', value);
 		onmutate?.();
 	}
 
@@ -143,7 +154,7 @@
 		signalFirstEdit();
 		clearTimeout(protocolTimer);
 		protocolTimer = setTimeout(() => {
-			updateEdgeProperty(edge.id, 'protocol', value);
+			updateEdgeProperty(relId, 'protocol', value);
 			onmutate?.();
 		}, 300);
 	}
@@ -154,7 +165,7 @@
 		signalFirstEdit();
 		clearTimeout(descTimer);
 		descTimer = setTimeout(() => {
-			updateEdgeProperty(edge.id, 'description', value);
+			updateEdgeProperty(relId, 'description', value);
 			onmutate?.();
 		}, 300);
 	}
@@ -179,7 +190,9 @@
 		<!-- unique-id: read-only -->
 		<div class="field">
 			<label class="field-label" for="edge-unique-id">Unique ID</label>
-			<div class="read-only-field" id="edge-unique-id" title={edge.id}>{edge.id}</div>
+			<!-- Show the relationship's id (relId), not the suffixed edge id, so a
+			     multi-child edge displays the relationship that edits actually target. -->
+			<div class="read-only-field" id="edge-unique-id" title={relId}>{relId}</div>
 		</div>
 
 		<!-- relationship-type dropdown -->
@@ -264,7 +277,7 @@
 		controls={edge.data?.controls}
 		onupdate={(newControls) => {
 			signalFirstEdit();
-			updateEdgeProperty(edge.id, 'controls', newControls);
+			updateEdgeProperty(relId, 'controls', newControls);
 			onmutate?.();
 		}}
 		readonly={!onmutate}

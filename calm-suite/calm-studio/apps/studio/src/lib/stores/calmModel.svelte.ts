@@ -17,7 +17,7 @@
 
 import type { Node, Edge } from '@xyflow/svelte';
 import type { CalmArchitecture, CalmInterface, CalmNode, CalmRelationship } from '@calmstudio/calm-core';
-import { flowToCalm } from '$lib/stores/projection';
+import { flowToCalm, variantOf } from '$lib/stores/projection';
 
 // ─── Module-level state ───────────────────────────────────────────────────────
 
@@ -67,12 +67,48 @@ export function applyFromJson(arch: CalmArchitecture): boolean {
  */
 export function applyFromCanvas(nodes: Node[], edges: Edge[]): boolean {
 	return withMutex(() => {
-		const arch = flowToCalm(nodes, edges);
-		// Merge: graph (nodes/relationships) comes from the canvas; document-level
-		// keys are retained from the prior model so a canvas edit doesn't drop
-		// flows/metadata/decorators/etc.
-		model = { ...model, nodes: [...arch.nodes], relationships: [...arch.relationships] };
+		const projected = flowToCalm(nodes, edges);
+
+		// `options` relationships have no edge representation, so they never come
+		// back from flowToCalm. Carry them from the prior model, but GC any
+		// decision whose node/relationship references no longer resolve (and drop
+		// an options rel left with no decisions), so we never write a dangling ref.
+		const nodeIds = new Set(projected.nodes.map((n) => n['unique-id']));
+		const relIds = new Set(projected.relationships.map((r) => r['unique-id']));
+		const preservedOptions = model.relationships
+			.filter((r) => variantOf(r['relationship-type']) === 'options')
+			.map((r) => gcDecisions(r, nodeIds, relIds))
+			.filter((r) => ((r['relationship-type'].options ?? []).length > 0));
+
+		// Merge: graph from the canvas; document-level keys retained from the prior
+		// model so a canvas edit doesn't drop flows/metadata/decorators/etc.
+		model = {
+			...model,
+			nodes: [...projected.nodes],
+			relationships: [...projected.relationships, ...preservedOptions]
+		};
 	});
+}
+
+/**
+ * Drop decisions whose node/relationship references no longer resolve in the
+ * post-edit graph. A reference is dangling only when an id is *present but
+ * missing* from the graph — empty `nodes`/`relationships` arrays are valid and
+ * are kept. Returns a new relationship with the surviving decisions.
+ */
+function gcDecisions(
+	rel: CalmRelationship,
+	nodeIds: Set<string>,
+	relIds: Set<string>
+): CalmRelationship {
+	const rt = rel['relationship-type'];
+	const decisions = rt.options ?? [];
+	const kept = decisions.filter(
+		(dec) =>
+			(dec.nodes ?? []).every((id) => nodeIds.has(id)) &&
+			(dec.relationships ?? []).every((id) => relIds.has(id))
+	);
+	return { ...rel, 'relationship-type': { ...rt, options: kept } };
 }
 
 // ─── Read accessors ───────────────────────────────────────────────────────────

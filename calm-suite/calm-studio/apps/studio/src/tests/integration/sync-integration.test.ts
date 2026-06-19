@@ -338,3 +338,215 @@ describe('flowToCalm from calmToFlow output', () => {
 		expect(result.relationships).toHaveLength(arch.relationships.length);
 	});
 });
+
+// ─── flowToCalm graph fidelity (lossless canvas round-trip) ───────────────────
+
+describe('flowToCalm graph fidelity', () => {
+	it('round-trips connects endpoint interfaces', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'A' },
+				{ 'unique-id': 'b', 'node-type': 'service', name: 'B', description: 'B' }
+			],
+			relationships: [
+				{
+					'unique-id': 'a-b',
+					'relationship-type': {
+						connects: {
+							source: { node: 'a', interfaces: ['a-http'] },
+							destination: { node: 'b', interfaces: ['b-http'] }
+						}
+					}
+				}
+			]
+		};
+		const { nodes, edges } = calmToFlow(arch);
+		const rt = flowToCalm(nodes, edges).relationships[0]['relationship-type'];
+		expect(rt.connects?.source.interfaces).toEqual(['a-http']);
+		expect(rt.connects?.destination.interfaces).toEqual(['b-http']);
+	});
+
+	it('re-aggregates a multi-child composed-of into ONE relationship with the original id', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{ 'unique-id': 'box', 'node-type': 'system', name: 'Box', description: 'Box' },
+				{ 'unique-id': 'c1', 'node-type': 'service', name: 'C1', description: 'C1' },
+				{ 'unique-id': 'c2', 'node-type': 'service', name: 'C2', description: 'C2' },
+				{ 'unique-id': 'c3', 'node-type': 'service', name: 'C3', description: 'C3' }
+			],
+			relationships: [
+				{
+					'unique-id': 'box-children',
+					'relationship-type': { 'composed-of': { container: 'box', nodes: ['c1', 'c2', 'c3'] } }
+				}
+			]
+		};
+		const { nodes, edges } = calmToFlow(arch);
+		expect(edges).toHaveLength(3); // expands to one edge per child
+		const rels = flowToCalm(nodes, edges).relationships;
+		expect(rels).toHaveLength(1); // re-aggregated, not fragmented
+		expect(rels[0]['unique-id']).toBe('box-children'); // original id restored
+		expect(new Set(rels[0]['relationship-type']['composed-of']?.nodes)).toEqual(
+			new Set(['c1', 'c2', 'c3'])
+		);
+	});
+
+	it('re-aggregates multi-child deployed-in and interacts', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{ 'unique-id': 'host', 'node-type': 'system', name: 'Host', description: 'h' },
+				{ 'unique-id': 's1', 'node-type': 'service', name: 'S1', description: 's1' },
+				{ 'unique-id': 's2', 'node-type': 'service', name: 'S2', description: 's2' },
+				{ 'unique-id': 'actor', 'node-type': 'actor', name: 'Actor', description: 'a' },
+				{ 'unique-id': 'x1', 'node-type': 'service', name: 'X1', description: 'x1' },
+				{ 'unique-id': 'x2', 'node-type': 'service', name: 'X2', description: 'x2' }
+			],
+			relationships: [
+				{ 'unique-id': 'dep', 'relationship-type': { 'deployed-in': { container: 'host', nodes: ['s1', 's2'] } } },
+				{ 'unique-id': 'int', 'relationship-type': { interacts: { actor: 'actor', nodes: ['x1', 'x2'] } } }
+			]
+		};
+		const { nodes, edges } = calmToFlow(arch);
+		const rels = flowToCalm(nodes, edges).relationships;
+		const dep = rels.find((r) => r['unique-id'] === 'dep');
+		const int = rels.find((r) => r['unique-id'] === 'int');
+		expect(rels).toHaveLength(2);
+		expect(dep?.['relationship-type']['deployed-in']?.container).toBe('host');
+		expect(int?.['relationship-type'].interacts?.actor).toBe('actor');
+		expect(new Set(dep?.['relationship-type']['deployed-in']?.nodes)).toEqual(new Set(['s1', 's2']));
+		expect(new Set(int?.['relationship-type'].interacts?.nodes)).toEqual(new Set(['x1', 'x2']));
+	});
+
+	it('does NOT absorb a drawn edge (no calmRelId) into an existing multi-child group', () => {
+		// Pins the grouping contract: keying on calmRelId (not source/variant). A
+		// user draws box→c3 with no calmRelId; it must become its OWN relationship,
+		// not merge into the existing box-children composed-of.
+		const base = calmToFlow({
+			nodes: [
+				{ 'unique-id': 'box', 'node-type': 'system', name: 'Box', description: 'Box' },
+				{ 'unique-id': 'c1', 'node-type': 'service', name: 'C1', description: 'C1' },
+				{ 'unique-id': 'c2', 'node-type': 'service', name: 'C2', description: 'C2' },
+				{ 'unique-id': 'c3', 'node-type': 'service', name: 'C3', description: 'C3' }
+			],
+			relationships: [
+				{ 'unique-id': 'box-children', 'relationship-type': { 'composed-of': { container: 'box', nodes: ['c1', 'c2'] } } }
+			]
+		});
+		const drawn = {
+			id: 'drawn-1',
+			source: 'box',
+			target: 'c3',
+			type: 'composed-of',
+			data: { calmVariant: 'composed-of' }
+		} as (typeof base.edges)[number];
+		const rels = flowToCalm(base.nodes, [...base.edges, drawn]).relationships;
+		expect(rels).toHaveLength(2);
+		expect(new Set(rels.find((r) => r['unique-id'] === 'box-children')?.['relationship-type']['composed-of']?.nodes)).toEqual(
+			new Set(['c1', 'c2'])
+		);
+		expect(rels.find((r) => r['unique-id'] === 'drawn-1')).toBeDefined();
+	});
+
+	it('re-aggregates a multi-child composed-of through the full applyFromCanvas path', () => {
+		// The pure-function tests above bypass the store; this guards the wiring
+		// (flowToCalm result is actually stored re-aggregated, not overridden).
+		applyFromJson({
+			nodes: [
+				{ 'unique-id': 'box', 'node-type': 'system', name: 'Box', description: 'Box' },
+				{ 'unique-id': 'c1', 'node-type': 'service', name: 'C1', description: 'C1' },
+				{ 'unique-id': 'c2', 'node-type': 'service', name: 'C2', description: 'C2' },
+				{ 'unique-id': 'c3', 'node-type': 'service', name: 'C3', description: 'C3' }
+			],
+			relationships: [
+				{ 'unique-id': 'box-children', 'relationship-type': { 'composed-of': { container: 'box', nodes: ['c1', 'c2', 'c3'] } } }
+			]
+		});
+		const { nodes, edges } = calmToFlow(getModel());
+		applyFromCanvas(nodes, edges);
+		const rels = getModel().relationships;
+		expect(rels).toHaveLength(1);
+		expect(rels[0]['unique-id']).toBe('box-children');
+		expect(new Set(rels[0]['relationship-type']['composed-of']?.nodes)).toEqual(new Set(['c1', 'c2', 'c3']));
+	});
+});
+
+// ─── options preservation (no edge form; carried via applyFromCanvas + GC) ─────
+
+describe('options preservation through applyFromCanvas', () => {
+	function archWithOptions(): CalmArchitecture {
+		return {
+			nodes: [
+				{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'A' },
+				{ 'unique-id': 'b', 'node-type': 'service', name: 'B', description: 'B' }
+			],
+			relationships: [
+				{ 'unique-id': 'conn', 'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } } },
+				{
+					'unique-id': 'decision-1',
+					'relationship-type': {
+						options: [{ description: 'pick a or b', nodes: ['a', 'b'], relationships: ['conn'] }]
+					}
+				}
+			]
+		};
+	}
+
+	it('preserves a loaded options relationship across a canvas round-trip', () => {
+		applyFromJson(archWithOptions());
+		const { nodes, edges } = calmToFlow(getModel());
+		applyFromCanvas(nodes, edges);
+		const opts = getModel().relationships.find((r) => 'options' in r['relationship-type']);
+		expect(opts?.['unique-id']).toBe('decision-1');
+	});
+
+	it('GCs an options decision whose referenced node/relationship was deleted on canvas', () => {
+		applyFromJson(archWithOptions());
+		const { nodes, edges } = calmToFlow(getModel());
+		// Simulate deleting node 'b' (and its connects edge) on the canvas.
+		const nodes2 = nodes.filter((n) => (n.data as { calmId?: string }).calmId !== 'b');
+		const edges2 = edges.filter((e) => e.source !== 'b' && e.target !== 'b');
+		applyFromCanvas(nodes2, edges2);
+		// decision-1 references the now-missing 'b'/'conn' → GC'd → options rel dropped.
+		expect(getModel().relationships.find((r) => 'options' in r['relationship-type'])).toBeUndefined();
+	});
+
+	it('flowToCalm never emits an options relationship', () => {
+		const { nodes, edges } = calmToFlow(archWithOptions());
+		const rels = flowToCalm(nodes, edges).relationships;
+		expect(rels.some((r) => 'options' in r['relationship-type'])).toBe(false);
+	});
+
+	it('GCs only the dangling decision, keeping the surviving one (partial survival)', () => {
+		applyFromJson({
+			nodes: [{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'A' }],
+			relationships: [
+				{
+					'unique-id': 'opts',
+					'relationship-type': {
+						options: [
+							{ description: 'good', nodes: ['a'], relationships: [] },
+							{ description: 'bad', nodes: ['a', 'missing-node'], relationships: [] }
+						]
+					}
+				}
+			]
+		});
+		const { nodes, edges } = calmToFlow(getModel());
+		applyFromCanvas(nodes, edges);
+		const opts = getModel().relationships.find((r) => 'options' in r['relationship-type']);
+		expect(opts?.['relationship-type'].options).toHaveLength(1);
+		expect(opts?.['relationship-type'].options?.[0].description).toBe('good');
+	});
+
+	it('keeps an options decision with empty nodes/relationships arrays (empty is valid CALM)', () => {
+		applyFromJson({
+			nodes: [{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'A' }],
+			relationships: [
+				{ 'unique-id': 'opts', 'relationship-type': { options: [{ description: 'open', nodes: [], relationships: [] }] } }
+			]
+		});
+		const { nodes, edges } = calmToFlow(getModel());
+		applyFromCanvas(nodes, edges);
+		expect(getModel().relationships.find((r) => 'options' in r['relationship-type'])).toBeDefined();
+	});
+});
