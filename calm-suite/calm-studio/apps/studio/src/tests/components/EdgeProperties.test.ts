@@ -148,8 +148,15 @@ describe('EdgeProperties', () => {
 
 		// The edit must land on 'box-children' (keyed by calmRelId), not the
 		// non-existent 'box-children#1'. With the old edit-by-edge.id it no-ops.
-		const rel = getModel().relationships.find((r) => r['unique-id'] === 'box-children');
-		expect(rel).toBeDefined();
-		expect('interacts' in rel!['relationship-type']).toBe(true);
+		const rt = getModel().relationships.find((r) => r['unique-id'] === 'box-children')?.[
+			'relationship-type'
+		];
+		expect(rt && 'interacts' in rt).toBe(true);
+		// Switching the type must PRESERVE all children, not collapse to the edited
+		// edge's single child (the original composed-of had c1 AND c2).
+		if (rt && 'interacts' in rt) {
+			expect(rt.interacts.actor).toBe('box');
+			expect(new Set(rt.interacts.nodes)).toEqual(new Set(['c1', 'c2']));
+		}
 	});
 });

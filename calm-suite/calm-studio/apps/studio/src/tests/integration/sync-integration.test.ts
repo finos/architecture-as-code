@@ -506,8 +506,26 @@ describe('options preservation through applyFromCanvas', () => {
 		const nodes2 = nodes.filter((n) => (n.data as { calmId?: string }).calmId !== 'b');
 		const edges2 = edges.filter((e) => e.source !== 'b' && e.target !== 'b');
 		applyFromCanvas(nodes2, edges2);
-		// decision-1 references the now-missing 'b'/'conn' → GC'd → options rel dropped.
-		expect(getModel().relationships.find((r) => 'options' in r['relationship-type'])).toBeUndefined();
+		// decision-1 references the now-missing 'b'/'conn' → the decision is GC'd.
+		// The options relationship itself is KEPT (empty `options: []` is valid CALM),
+		// just with the dangling decision removed.
+		const opts = getModel().relationships.find((r) => 'options' in r['relationship-type']);
+		expect(opts).toBeDefined();
+		expect(opts?.['relationship-type'].options).toHaveLength(0);
+	});
+
+	it('preserves a legitimately-empty options relationship (options: []) across a round-trip', () => {
+		// `option-type` has no minItems, so `options: []` is valid CALM and must not
+		// be dropped (PR feedback). Would fail on the old `.filter(length > 0)`.
+		applyFromJson({
+			nodes: [{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'A' }],
+			relationships: [{ 'unique-id': 'empty-opts', 'relationship-type': { options: [] } }]
+		});
+		const { nodes, edges } = calmToFlow(getModel());
+		applyFromCanvas(nodes, edges);
+		const opts = getModel().relationships.find((r) => r['unique-id'] === 'empty-opts');
+		expect(opts).toBeDefined();
+		expect(opts?.['relationship-type'].options).toEqual([]);
 	});
 
 	it('flowToCalm never emits an options relationship', () => {

@@ -70,15 +70,16 @@ export function applyFromCanvas(nodes: Node[], edges: Edge[]): boolean {
 		const projected = flowToCalm(nodes, edges);
 
 		// `options` relationships have no edge representation, so they never come
-		// back from flowToCalm. Carry them from the prior model, but GC any
-		// decision whose node/relationship references no longer resolve (and drop
-		// an options rel left with no decisions), so we never write a dangling ref.
+		// back from flowToCalm. Carry them from the prior model, GC'ing any
+		// decision whose node/relationship references no longer resolve so we never
+		// write a dangling ref. The relationship itself is kept even when its
+		// decisions array ends up empty — `options: []` is valid CALM (no minItems),
+		// so dropping it would be lossy for a legitimately-empty options input.
 		const nodeIds = new Set(projected.nodes.map((n) => n['unique-id']));
 		const relIds = new Set(projected.relationships.map((r) => r['unique-id']));
 		const preservedOptions = model.relationships
 			.filter((r) => variantOf(r['relationship-type']) === 'options')
-			.map((r) => gcDecisions(r, nodeIds, relIds))
-			.filter((r) => ((r['relationship-type'].options ?? []).length > 0));
+			.map((r) => gcDecisions(r, nodeIds, relIds));
 
 		// Merge: graph from the canvas; document-level keys retained from the prior
 		// model so a canvas edit doesn't drop flows/metadata/decorators/etc.

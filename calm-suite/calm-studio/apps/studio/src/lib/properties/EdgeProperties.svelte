@@ -12,25 +12,32 @@
 		CalmRelationshipType,
 		CalmRelationshipVariant
 	} from '@calmstudio/calm-core';
-	import { updateEdgeProperty } from '$lib/stores/calmModel.svelte';
+	import { updateEdgeProperty, getModel } from '$lib/stores/calmModel.svelte';
 	import ControlsList from './ControlsList.svelte';
 
+	/**
+	 * Build a nested relationship-type from an anchor (connects-source / container
+	 * / actor) and its full member set. Switching the variant of a multi-child
+	 * relationship must preserve ALL members, not just the edited edge's child.
+	 */
 	function buildRelationshipType(
 		variant: CalmRelationshipVariant,
-		source: string,
-		target: string,
+		anchor: string,
+		members: string[],
 	): CalmRelationshipType {
 		switch (variant) {
 			case 'connects':
+				// connects is strictly 1:1 — no multi-target shape exists, so
+				// converting a multi-child relationship reduces to its first member.
 				return {
-					connects: { source: { node: source }, destination: { node: target } },
+					connects: { source: { node: anchor }, destination: { node: members[0] } },
 				};
 			case 'composed-of':
-				return { 'composed-of': { container: source, nodes: [target] } };
+				return { 'composed-of': { container: anchor, nodes: members } };
 			case 'deployed-in':
-				return { 'deployed-in': { container: source, nodes: [target] } };
+				return { 'deployed-in': { container: anchor, nodes: members } };
 			case 'interacts':
-				return { interacts: { actor: source, nodes: [target] } };
+				return { interacts: { actor: anchor, nodes: members } };
 			case 'options':
 				// Unreachable: 'options' is not offered as an edge type (Studio has
 				// no decision-authoring UI; an options edge could only emit invalid
@@ -122,14 +129,30 @@
 		}
 	}
 
+	/**
+	 * The relationship's anchor + full member set, read from the model (not just
+	 * this edge), so switching variant on a multi-child relationship keeps every
+	 * child. Falls back to this edge's endpoints for an un-aggregated/new edge.
+	 */
+	function currentAnchorMembers(): { anchor: string; members: string[] } {
+		const rt = getModel().relationships.find((r) => r['unique-id'] === relId)?.['relationship-type'];
+		if (rt) {
+			if ('connects' in rt) return { anchor: rt.connects.source.node, members: [rt.connects.destination.node] };
+			if ('composed-of' in rt) return { anchor: rt['composed-of'].container, members: rt['composed-of'].nodes };
+			if ('deployed-in' in rt) return { anchor: rt['deployed-in'].container, members: rt['deployed-in'].nodes };
+			if ('interacts' in rt) return { anchor: rt.interacts.actor, members: rt.interacts.nodes };
+		}
+		return { anchor: edge.source, members: [edge.target] };
+	}
+
 	function handleRelTypeChange(e: Event) {
 		const value = (e.target as HTMLSelectElement).value as CalmRelationshipVariant;
 		signalFirstEdit();
-		// CALM 1.2 nested form: build a fresh relationship-type object using the
-		// edge's current source/target endpoints. Switching variant preserves
-		// connectivity but reshapes the payload (e.g. connects.source.node →
-		// composed-of.container).
-		const nested = buildRelationshipType(value, edge.source, edge.target);
+		// CALM 1.2 nested form: rebuild from the relationship's FULL membership so
+		// switching the type of a multi-child relationship doesn't drop its other
+		// children. (connects, being 1:1, reduces to the first member.)
+		const { anchor, members } = currentAnchorMembers();
+		const nested = buildRelationshipType(value, anchor, members);
 		updateEdgeProperty(relId, 'relationship-type', nested);
 		onmutate?.();
 	}

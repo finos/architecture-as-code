@@ -15,9 +15,12 @@
  *   unique-id (`<base>#<i>`) so Svelte Flow stays 1-edge-per-row.
  *
  * flowToCalm: converts Svelte Flow nodes[] and edges[] back to
- * CalmArchitecture. Each Svelte Flow edge becomes exactly one
- * CalmRelationship; multi-child round-trips therefore split into
- * separate single-child rels (a documented, lossy-but-correct trade-off).
+ * CalmArchitecture. Edges are re-aggregated by their source relationship id
+ * (`data.calmRelId`), so a multi-child composed-of/deployed-in/interacts that
+ * expanded to N edges round-trips back to ONE relationship with its original
+ * unique-id (lossless). A user-drawn edge with no `calmRelId` becomes its own
+ * relationship. (`options` relationships have no edge form — they are preserved
+ * separately via `calmModel.applyFromCanvas`.)
  *
  * IMPORTANT: This file must NOT import from .svelte.ts files (not testable
  * in vitest without additional Svelte transform setup).
