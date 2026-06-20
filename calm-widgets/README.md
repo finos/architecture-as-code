@@ -221,6 +221,7 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 | `render-node-type-shapes` | boolean | `false` | If `true`, render nodes with different Mermaid shapes based on their `node-type`. Supports built-in CALM types: `actor`, `database`, `webclient`, `service`, `system`, `messagebus`. |
 | `node-type-map`       | stringified JSON map | — | Custom mapping of node types to built-in shapes, e.g. `{"cache": "database", "queue": "messagebus"}`. Only used when `render-node-type-shapes` is `true`. |
 | `render-interfaces`   | boolean | `false` | If `true`, render each node’s `interfaces` as small interface boxes connected by dotted lines. |
+| `ignore-connected-interfaces` | boolean | `false` | Only meaningful when `render-interfaces=true`. If `true`, only render interfaces that appear in the active (filtered) relationships — hiding all others. Useful with `focus-interfaces` + `edges=connected` to declutter connected nodes while keeping the relevant interface endpoints visible. |
 | `include-containers`  | `'none' \| 'parents' \| 'all'` | `'all'` | Which containers (systems) to draw. |
 | `include-children`    | `'none' \| 'direct' \| 'all'` | `'all'` | When focusing container nodes, include their direct/all descendants. |
 | `edges`               | `'connected' \| 'seeded' \| 'all' \| 'none'` | `'connected'` | For non-flow views, expand visible set with directly connected neighbors. When flows are focused, only flow edges are shown. |
@@ -329,6 +330,7 @@ For more examples, see the test fixtures:
 - [Basic structures](./test-fixtures/block-architecture-widget/basic-structures/)
 - [Enterprise trading system](./test-fixtures/block-architecture-widget/enterprise-bank-trading/)
 - [Interface variations](./test-fixtures/block-architecture-widget/interface-variations/)
+- [Ignore connected interfaces](./test-fixtures/block-architecture-widget/ignore-connected-interfaces/)
 - [Focus flows](./test-fixtures/block-architecture-widget/focus-flows/)
 - [Domain interaction](./test-fixtures/block-architecture-widget/domain-interaction/)
 - [Node type shapes](./test-fixtures/block-architecture-widget/node-type-shapes/)
