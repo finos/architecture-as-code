@@ -109,4 +109,45 @@ public class TestReadOnlyRequestFilterShould {
 
         verify(requestContext, never()).abortWith(any());
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"POST", "PUT", "DELETE", "PATCH"})
+    void reject_mutating_methods_on_api_calm_path_when_readonly(String method) {
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn(method);
+        when(uriInfo.getPath()).thenReturn("api/calm/namespaces");
+
+        filter.filter(requestContext);
+
+        ArgumentCaptor<Response> captor = ArgumentCaptor.forClass(Response.class);
+        verify(requestContext).abortWith(captor.capture());
+        assertEquals(405, captor.getValue().getStatus());
+        assertEquals("GET, HEAD, OPTIONS", captor.getValue().getHeaderString("Allow"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"POST", "PUT", "DELETE", "PATCH"})
+    void reject_mutating_methods_on_api_calm_path_with_leading_slash_when_readonly(String method) {
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn(method);
+        when(uriInfo.getPath()).thenReturn("/api/calm/namespaces");
+
+        filter.filter(requestContext);
+
+        ArgumentCaptor<Response> captor = ArgumentCaptor.forClass(Response.class);
+        verify(requestContext).abortWith(captor.capture());
+        assertEquals(405, captor.getValue().getStatus());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "HEAD", "OPTIONS"})
+    void allow_read_methods_on_api_calm_path_when_readonly(String method) {
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn(method);
+        when(uriInfo.getPath()).thenReturn("/api/calm/namespaces");
+
+        filter.filter(requestContext);
+
+        verify(requestContext, never()).abortWith(any());
+    }
 }

@@ -6,26 +6,42 @@
 #   MODE      - 'readonly' or 'readwrite' (default: readwrite)
 #   TIMEOUT   - seconds to wait for readiness (default: 120)
 #
+# API surface tested
+# ──────────────────
+# Numeric-ID storage endpoints live under /api/calm/... (NamespaceResource,
+# ArchitectureResource, PatternResource, etc.)
+#
+# User-facing name-based endpoints live under /calm/... (MappingControllerResource):
+#   POST /calm/namespaces/{ns}/{type}/{name}/versions/{version}
+#   GET  /calm/namespaces/{ns}/{type}/{name}/versions
+#   GET  /calm/namespaces/{ns}/{type}/{name}/versions/{version}
+#   GET  /calm/namespaces/{ns}/{type}
+#   PUT  /calm  → 403 when allow.put.operations=false (default)
+#
 # Readonly mode assertions:
-#   GET    /calm/namespaces                         -> 200  (reads work)
-#   GET    /calm/namespaces/finos/architectures      -> 200  (seeded namespace)
-#   GET    /calm/namespaces/finos/patterns           -> 200
-#   GET    /calm/namespaces/traderx/architectures    -> 200
-#   GET    /calm/namespaces/finos/architectures      body contains "name","description"
-#   GET    /calm/namespaces/finos/patterns           body contains "name"
-#   POST   /calm/namespaces                         -> 405  (blocked by ReadOnlyRequestFilter)
-#   PUT    /calm/namespaces/smoke                   -> 405
-#   DELETE /calm/namespaces/smoke                   -> 405
+#   GET    /api/calm/namespaces                              -> 200  (reads work)
+#   GET    /api/calm/namespaces/finos/architectures          -> 200  (seeded namespace)
+#   GET    /api/calm/namespaces/finos/patterns               -> 200
+#   GET    /api/calm/namespaces/traderx/architectures        -> 200
+#   GET    /api/calm/namespaces/finos/architectures          body contains "name","description"
+#   GET    /api/calm/namespaces/finos/patterns               body contains "name"
+#   POST   /api/calm/namespaces                             -> 405  (blocked by ReadOnlyRequestFilter)
+#   PUT    /api/calm/namespaces/smoke                       -> 405
+#   DELETE /api/calm/namespaces/smoke                       -> 405
+#   POST   /calm                                            -> 405  (user-facing API also blocked)
+#   PUT    /calm                                            -> 405
 #
 # Readwrite mode assertions:
-#   GET    /calm/namespaces                                        -> 200
-#   POST   /calm/namespaces                                        -> 201  (create namespace)
-#   GET    /calm/namespaces                                        -> 200
-#   POST   /calm/namespaces/smoke-test/architectures               -> 201  (create architecture)
-#   GET    /calm/namespaces/smoke-test/architectures               -> 200
-#   GET    /calm/namespaces/smoke-test/architectures               body contains "name"
-#   GET    /calm/namespaces/smoke-test/architectures/1/versions              -> 200
-#   GET    /calm/namespaces/smoke-test/architectures/1/versions/1.0.0        -> 200
+#   GET    /api/calm/namespaces                                          -> 200
+#   POST   /api/calm/namespaces                                          -> 201  (create namespace)
+#   GET    /api/calm/namespaces                                          -> 200
+#   POST   /calm/namespaces/smoke-test/architectures/smoke-arch/versions/1.0.0  -> 201
+#   GET    /calm/namespaces/smoke-test/architectures                     -> 200
+#   GET    /calm/namespaces/smoke-test/architectures                     body contains "name"
+#   GET    /calm/namespaces/smoke-test/architectures/smoke-arch/versions -> 200
+#   GET    /calm/namespaces/smoke-test/architectures/smoke-arch/versions/1.0.0  -> 200
+#   GET    /calm/namespaces/smoke-test/architectures/smoke-arch/versions/1.0.0  body contains "$id"
+#   PUT    /calm                                                         -> 403  (allow.put.operations=false)
 #
 # Readiness polling uses /q/swagger-ui rather than /q/health/ready because the
 # MongoDB health check is disabled in standalone profile, causing /q/health/ready
@@ -69,11 +85,11 @@ assert() {
     fi
 }
 
-# assert_body_contains GET PATH SUBSTRING
-# Fetches the response body and fails unless it contains SUBSTRING. This guards
+# assert_body_contains METHOD PATH SUBSTRING
+# Fetches the response body and fails unless it contains SUBSTRING.  This guards
 # against the native-image serialization regression where summary endpoints
-# returned HTTP 200 but with empty objects (e.g. {"values":[{}]}) because the
-# DTOs returned via raw Response were not registered for reflection.
+# returned HTTP 200 but with empty objects (e.g. {"values":[{}]}) because DTOs
+# returned via raw Response were not registered for reflection.
 assert_body_contains() {
     local method="$1" path="$2" needle="$3"
     local body
@@ -90,35 +106,50 @@ assert_body_contains() {
 echo "[smoke] Running assertions (mode: ${MODE})..."
 
 if [[ "${MODE}" == "readonly" ]]; then
-    # Read access to pre-seeded namespaces
-    assert GET /calm/namespaces 200
-    assert GET /calm/namespaces/finos/architectures 200
-    assert GET /calm/namespaces/finos/patterns 200
-    assert GET /calm/namespaces/traderx/architectures 200
+    # Read access to pre-seeded namespaces (numeric-ID storage API)
+    assert GET /api/calm/namespaces 200
+    assert GET /api/calm/namespaces/finos/architectures 200
+    assert GET /api/calm/namespaces/finos/patterns 200
+    assert GET /api/calm/namespaces/traderx/architectures 200
     # Summary payloads must be populated, not empty objects (native serialization
     # regression guard): a seeded summary must carry name and description fields.
-    assert_body_contains GET /calm/namespaces/finos/architectures '"name"'
-    assert_body_contains GET /calm/namespaces/finos/architectures '"description"'
-    assert_body_contains GET /calm/namespaces/finos/patterns '"name"'
-    # All mutating methods must be blocked
-    assert POST   /calm/namespaces       405 -H 'Content-Type: application/json' -d '{"name":"smoke-test","description":"smoke test namespace"}'
-    assert PUT    /calm/namespaces/smoke  405
-    assert DELETE /calm/namespaces/smoke  405
+    assert_body_contains GET /api/calm/namespaces/finos/architectures '"name"'
+    assert_body_contains GET /api/calm/namespaces/finos/architectures '"description"'
+    assert_body_contains GET /api/calm/namespaces/finos/patterns '"name"'
+    # All mutating methods must be blocked on both API surfaces
+    assert POST   /api/calm/namespaces       405 -H 'Content-Type: application/json' -d '{"name":"smoke-test","description":"smoke test namespace"}'
+    assert PUT    /api/calm/namespaces/smoke  405
+    assert DELETE /api/calm/namespaces/smoke  405
+    assert POST   /calm                      405 -H 'Content-Type: application/json' -d '{}'
+    assert PUT    /calm                      405 -H 'Content-Type: application/json' -d '{}'
 else
-    # Reads work before any writes
-    assert GET /calm/namespaces 200
-    # Create and verify namespace
-    assert POST /calm/namespaces 201 -H 'Content-Type: application/json' -d '{"name":"smoke-test","description":"smoke test namespace"}'
-    assert GET  /calm/namespaces 200
-    # Create an architecture, then retrieve by list, ID, and version
-    arch_body='{"name":"smoke-arch","description":"smoke architecture","architectureJson":"{}"}'
-    assert POST /calm/namespaces/smoke-test/architectures 201 -H 'Content-Type: application/json' -d "${arch_body}"
-    assert GET  /calm/namespaces/smoke-test/architectures 200
-    # Summary payload must be populated, not an empty object (native serialization
-    # regression guard): the created architecture must surface its name.
-    assert_body_contains GET /calm/namespaces/smoke-test/architectures '"name"'
-    assert GET  /calm/namespaces/smoke-test/architectures/1/versions 200
-    assert GET  /calm/namespaces/smoke-test/architectures/1/versions/1.0.0 200
+    # Reads work before any writes (numeric-ID storage API)
+    assert GET /api/calm/namespaces 200
+    # Create and verify namespace via numeric-ID API
+    assert POST /api/calm/namespaces 201 -H 'Content-Type: application/json' -d '{"name":"smoke-test","description":"smoke test namespace"}'
+    assert GET  /api/calm/namespaces 200
+
+    # Create an architecture via the user-facing name-based API.
+    # The $id must equal the canonical versioned URL:
+    #   {BASE_URL}/calm/namespaces/{namespace}/{type}/{name}/versions/{version}
+    # calm.hub.base-url defaults to http://localhost:8080, which matches BASE_URL
+    # when the smoke container is accessed on localhost:8080.
+    arch_id="${BASE_URL}/calm/namespaces/smoke-test/architectures/smoke-arch/versions/1.0.0"
+    arch_body='{"$id":"'"${arch_id}"'","title":"Smoke Architecture","description":"smoke test architecture"}'
+    assert POST /calm/namespaces/smoke-test/architectures/smoke-arch/versions/1.0.0 \
+        201 -H 'Content-Type: application/json' -d "${arch_body}"
+
+    # List and retrieve via the user-facing API
+    assert GET /calm/namespaces/smoke-test/architectures 200
+    # Summary payload must carry the resource name (customId field in ResourceMapping)
+    assert_body_contains GET /calm/namespaces/smoke-test/architectures '"customId"'
+    assert GET /calm/namespaces/smoke-test/architectures/smoke-arch/versions 200
+    assert GET /calm/namespaces/smoke-test/architectures/smoke-arch/versions/1.0.0 200
+    # The returned document must carry $id rewritten to the canonical versioned URL
+    assert_body_contains GET /calm/namespaces/smoke-test/architectures/smoke-arch/versions/1.0.0 '"$id"'
+
+    # PUT /calm must return 403 when allow.put.operations=false (the default)
+    assert PUT /calm 403 -H 'Content-Type: application/json' -d '{}'
 fi
 
 echo "[smoke] All assertions passed (mode: ${MODE})."
