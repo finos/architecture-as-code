@@ -3,7 +3,6 @@ package org.finos.calm.resources;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +20,6 @@ public class TestCurrentUserAccessResourceNoAuthShould {
     UserAccessStore mockUserAccessStore;
 
     @Test
-    @TestSecurity(user = "alice")
     void return_synthetic_global_admin_grant_when_auth_disabled() {
         given()
                 .when()
@@ -30,7 +28,7 @@ public class TestCurrentUserAccessResourceNoAuthShould {
                 .statusCode(200)
                 .body(containsString("GLOBAL"))
                 .body(containsString("admin"))
-                .body(containsString("alice"));
+                .body(containsString("no-auth"));
 
         verify(mockUserAccessStore, never()).getGrantsForUser(any());
     }
