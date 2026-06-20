@@ -20,8 +20,8 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
     const isRelationship = isCALMRelationship(selectedData);
 
     return (
-        <div className="p-4 lg:pl-2 h-full w-full lg:w-96 shrink-0">
-            <div className="h-full bg-base-100 rounded-box shadow-xl flex flex-col overflow-hidden">
+        <div className="h-full w-full lg:w-96 shrink-0 lg:p-4 lg:pl-2">
+            <div className="h-full bg-base-100 lg:rounded-box lg:shadow-xl flex flex-col overflow-hidden">
                 <div className="bg-base-200 px-6 py-4 border-b border-base-300 flex items-center justify-between">
                     <h2 className="text-xl font-semibold flex items-center gap-2">
                         {isNode ? (

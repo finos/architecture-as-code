@@ -121,29 +121,19 @@ export default function Hub() {
                     </div>
                 )}
 
-                {/* Mobile: off-canvas tree-navigation drawer. Kept mounted (slid off
-                    screen) so deep-link / global-search loading — which lives inside
-                    TreeNavigation — runs even while the drawer is closed. */}
+                {/* Mobile: full-screen tree-navigation panel that slides in from the
+                    left. Kept mounted (slid off screen) so deep-link / global-search
+                    loading — which lives inside TreeNavigation — runs even while the
+                    panel is closed. Dismissed via the panel's own back button. */}
                 {isMobile && (
-                    <>
-                        {isMobileNavOpen && (
-                            <button
-                                aria-label="Close navigation"
-                                className="fixed inset-0 z-40 bg-black/40"
-                                onClick={() => setIsMobileNavOpen(false)}
-                            />
-                        )}
-                        <div
-                            className={`fixed top-0 left-0 z-40 h-full w-80 max-w-[85%] p-3 pr-0 transition-transform duration-300 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'}`}
-                            role="dialog"
-                            aria-modal={isMobileNavOpen}
-                            aria-hidden={!isMobileNavOpen}
-                        >
-                            <div className="h-full bg-base-100 rounded-box overflow-hidden shadow-xl flex flex-col">
-                                <div className="flex-1 min-h-0 overflow-hidden">{treeNavigation}</div>
-                            </div>
-                        </div>
-                    </>
+                    <div
+                        className={`fixed inset-0 z-40 bg-base-100 flex flex-col transition-transform duration-300 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'}`}
+                        role="dialog"
+                        aria-modal={isMobileNavOpen}
+                        aria-hidden={!isMobileNavOpen}
+                    >
+                        <div className="flex-1 min-h-0 overflow-hidden">{treeNavigation}</div>
+                    </div>
                 )}
 
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -162,15 +152,12 @@ export default function Hub() {
 
                 {selectedItem && isDiagramView && (
                     isMobile ? (
-                        <div className="fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true">
-                            <button
-                                aria-label="Close details"
-                                className="absolute inset-0 bg-black/40"
-                                onClick={closeSidebar}
-                            />
-                            <div className="relative h-full w-full max-w-sm">
-                                <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />
-                            </div>
+                        <div
+                            className="fixed inset-0 z-40 bg-base-100 animate-slide-in-right"
+                            role="dialog"
+                            aria-modal="true"
+                        >
+                            <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />
                         </div>
                     ) : (
                         <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />

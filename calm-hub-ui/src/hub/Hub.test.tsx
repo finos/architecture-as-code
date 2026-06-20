@@ -310,36 +310,37 @@ describe('Hub', () => {
             renderWithRouter(<Hub />);
 
             // Tree stays mounted (so deep-link / search loading still runs) but the
-            // drawer is closed — no backdrop — until the menu button is pressed.
+            // full-screen panel is closed (aria-hidden, so excluded from the dialog
+            // role) until the menu button is pressed.
             expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
             expect(screen.getByLabelText('Open navigation')).toBeInTheDocument();
-            expect(screen.queryByLabelText('Close navigation')).not.toBeInTheDocument();
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
             restore();
         });
 
-        it('opens the tree navigation drawer when the menu button is clicked', () => {
+        it('opens the full-screen tree navigation panel when the menu button is clicked', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
             fireEvent.click(screen.getByLabelText('Open navigation'));
             expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
-            // Backdrop present means the drawer is open.
-            expect(screen.getByLabelText('Close navigation')).toBeInTheDocument();
+            // The panel is now exposed (not aria-hidden), so the dialog is present.
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
 
             restore();
         });
 
-        it('closes the drawer after a resource is loaded', () => {
+        it('closes the panel after a resource is loaded', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
             fireEvent.click(screen.getByLabelText('Open navigation'));
-            expect(screen.getByLabelText('Close navigation')).toBeInTheDocument();
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
 
             fireEvent.click(screen.getByText('Load Test Data'));
-            // Drawer closes (backdrop gone) but the tree remains mounted.
-            expect(screen.queryByLabelText('Close navigation')).not.toBeInTheDocument();
+            // Panel closes (aria-hidden again) but the tree remains mounted.
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
             expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
             expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
 
