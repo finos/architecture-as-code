@@ -16,9 +16,9 @@ import java.util.Set;
 
 /**
  * When {@code calm.readonly=true} this filter intercepts every request on the
- * {@code /calm/*} path and rejects any mutating HTTP method (POST, PUT, DELETE,
- * PATCH) with {@code 405 Method Not Allowed}.  Read-only methods (GET, HEAD,
- * OPTIONS) are passed through unchanged.
+ * {@code /calm/*} and {@code /api/calm/*} paths and rejects any mutating HTTP
+ * method (POST, PUT, DELETE, PATCH) with {@code 405 Method Not Allowed}.
+ * Read-only methods (GET, HEAD, OPTIONS) are passed through unchanged.
  *
  * <p>This filter runs at priority 0 (before {@link AccessControlFilter} at
  * priority 1) so read-only violations are rejected before auth checks.
@@ -41,6 +41,7 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
 
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "DELETE", "PATCH");
     private static final String CALM_PATH_PREFIX = "/calm/";
+    private static final String API_CALM_PATH_PREFIX = "/api/calm/";
     private static final String ALLOW_HEADER = "Allow";
     private static final String ALLOWED_METHODS = "GET, HEAD, OPTIONS";
 
@@ -69,7 +70,9 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
         // normalise so the prefix check is reliable in all deployments.
         String rawPath = requestContext.getUriInfo().getPath();
         String path = rawPath.startsWith("/") ? rawPath : "/" + rawPath;
-        if (!path.startsWith(CALM_PATH_PREFIX) && !path.equals("/calm")) {
+        boolean onCalmPath = path.startsWith(CALM_PATH_PREFIX) || path.equals("/calm")
+                || path.startsWith(API_CALM_PATH_PREFIX) || path.equals("/api/calm");
+        if (!onCalmPath) {
             return;
         }
 
