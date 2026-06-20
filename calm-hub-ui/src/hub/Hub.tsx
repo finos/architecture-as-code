@@ -92,7 +92,7 @@ export default function Hub() {
     ) : adrData ? (
         <AdrRenderer adrDetails={adrData} />
     ) : isDiagramView ? (
-        <DiagramSection data={data} onItemSelect={handleItemSelect} />
+        <DiagramSection data={data} onItemSelect={handleItemSelect} hasDetailsPanel={!!selectedItem} />
     ) : (
         <DocumentDetailSection data={data} />
     );

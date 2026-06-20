@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoMenuOutline } from 'react-icons/io5';
+import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
+import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
 import { CompareView } from './compare/CompareView.js';
 import { diffArchitectures, diffPatterns, type NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
@@ -27,6 +28,7 @@ import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/cont
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
     onItemSelect?: (item: SelectedItem) => void;
+    hasDetailsPanel?: boolean;
 }
 
 const iconMap = {
@@ -36,7 +38,7 @@ const iconMap = {
 
 type DiagramTabType = 'diagram' | 'json' | 'deployments';
 
-export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
+export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramSectionProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const tabParam = searchParams.get('tab') as DiagramTabType | null;
@@ -286,10 +288,43 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
     const tabButtonClass = (tab: DiagramTabType) =>
         `btn btn-sm justify-start gap-2 ${!comparing && activeTab === tab ? 'tab-active !bg-accent !text-white' : 'btn-ghost'}`;
 
-    // The render pane is full-bleed; the breadcrumb and view-mode switch live in
-    // a menu opened from a hamburger pinned to the top-right of the canvas. On
-    // mobile it opens as a full-screen overlay (like the explorer); on desktop
-    // it's a dropdown.
+    // Desktop: inline tabs in the section header (unchanged).
+    const tabs = (
+        <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
+            <button
+                role="tab"
+                aria-label="Diagram"
+                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'diagram' ? 'tab-active !bg-accent !text-white' : ''}`}
+                onClick={() => setActiveTab('diagram')}
+            >
+                <IoEyeOutline />
+                <span className="hidden sm:inline">Diagram</span>
+            </button>
+            <button
+                role="tab"
+                aria-label="JSON"
+                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'json' ? 'tab-active !bg-accent !text-white' : ''}`}
+                onClick={() => setActiveTab('json')}
+            >
+                <IoCodeOutline />
+                <span className="hidden sm:inline">JSON</span>
+            </button>
+            {isArchitecture && (
+                <button
+                    role="tab"
+                    aria-label="Deployments"
+                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
+                    onClick={() => setActiveTab('deployments')}
+                >
+                    <IoRocketOutline />
+                    <span className="hidden sm:inline">Deployments</span>
+                </button>
+            )}
+        </div>
+    );
+
+    // Mobile: full-bleed render pane; the view-options menu lives in the navbar
+    // and opens as a full-screen overlay. The trigger shows the active view icon.
     const breadcrumb = (
         <h2 className="text-sm font-semibold flex flex-wrap items-center gap-x-1">
             <Icon className="text-accent shrink-0" />
@@ -322,14 +357,17 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
         </div>
     );
 
-    const viewMenu = isMobile ? (
+    const activeViewIcon =
+        activeTab === 'json' ? <IoCodeOutline size={20} /> : activeTab === 'deployments' ? <IoRocketOutline size={20} /> : <IoEyeOutline size={20} />;
+
+    const viewMenu = (
         <>
             <button
                 aria-label="View options"
                 className="btn btn-ghost btn-circle text-primary"
                 onClick={() => setShowViewMenu(true)}
             >
-                <IoMenuOutline size={20} />
+                {activeViewIcon}
             </button>
             {showViewMenu && (
                 <div className="fixed inset-0 z-40 bg-base-100 flex flex-col animate-slide-in-right" role="dialog" aria-modal="true">
@@ -346,58 +384,81 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
                 </div>
             )}
         </>
+    );
+
+    const content = comparing ? (
+        <CompareView
+            calmType={data.calmType}
+            versionA={compareFrom ?? ''}
+            versionB={compareTo ?? ''}
+            sourceA={compareSourceA}
+            sourceB={compareSourceB}
+            diffResult={diffResult}
+            error={compareError}
+        />
+    ) : activeTab === 'diagram' ? (
+        <div className="w-full h-full">
+            <Drawer data={data} onItemSelect={onItemSelect} decorators={decorators} />
+        </div>
+    ) : activeTab === 'deployments' && isArchitecture ? (
+        <div className="h-full bg-base-200 overflow-auto p-4">
+            <DeploymentPanel decorators={decorators} />
+        </div>
     ) : (
-        <div className="dropdown dropdown-end">
-            <button
-                tabIndex={0}
-                role="button"
-                aria-label="View options"
-                className="btn btn-ghost btn-circle text-primary"
-            >
-                <IoMenuOutline size={20} />
-            </button>
-            <div
-                tabIndex={0}
-                className="dropdown-content z-30 mt-1 w-64 rounded-box border border-base-300 bg-base-100 p-3 shadow-lg"
-            >
-                <div className="mb-2">{breadcrumb}</div>
-                {renderViewModes()}
-            </div>
+        <div className="h-full bg-base-200 overflow-auto">
+            <JsonRenderer json={data} />
         </div>
     );
 
+    const timelineBar = (
+        <TimelineBar
+            moments={moments}
+            currentVersion={data.version}
+            displayName={displayName}
+            timelineCurrentMomentId={timelineCurrentMomentId}
+            timelineIsExplicit={timelineIsExplicit}
+            compareFrom={compareFrom}
+            compareTo={compareTo}
+            diffResult={diffResult}
+            loadChangesForVersion={loadChangesForVersion}
+            onNavigate={handleVersionChange}
+            onCompare={startCompare}
+        />
+    );
+
+    // Desktop keeps the original layout: section header with inline tabs, card
+    // chrome, and an inline timeline bar.
+    if (!isMobile) {
+        return (
+            <div className={`w-full h-full py-4 pl-2 ${hasDetailsPanel ? 'pr-2' : 'pr-4'}`}>
+                <div className="h-full bg-base-100 rounded-box overflow-hidden flex flex-col shadow-xl">
+                    <SectionHeader
+                        icon={<Icon className="text-accent" />}
+                        namespace={data.name}
+                        id={data.id}
+                        version={data.version}
+                        showVersion={false}
+                        displayName={displayName}
+                        typeLabel={typeLabel}
+                        rightContent={tabs}
+                    />
+                    <div className="flex-1 min-h-0 overflow-hidden">{content}</div>
+                    {timelineBar}
+                </div>
+            </div>
+        );
+    }
+
+    // Mobile: full-bleed render pane; view-options menu in the navbar; timeline
+    // tucked behind a floating button.
     return (
         <div className="w-full h-full">
             {navbarSlot ? createPortal(viewMenu, navbarSlot) : viewMenu}
             <div className="h-full bg-base-100 overflow-hidden flex flex-col">
                 <div className="flex-1 min-h-0 overflow-hidden relative">
-                    {comparing ? (
-                        <CompareView
-                            calmType={data.calmType}
-                            versionA={compareFrom ?? ''}
-                            versionB={compareTo ?? ''}
-                            sourceA={compareSourceA}
-                            sourceB={compareSourceB}
-                            diffResult={diffResult}
-                            error={compareError}
-                        />
-                    ) : activeTab === 'diagram' ? (
-                        <div className="w-full h-full">
-                            <Drawer data={data} onItemSelect={onItemSelect} decorators={decorators} />
-                        </div>
-                    ) : activeTab === 'deployments' && isArchitecture ? (
-                        <div className="h-full bg-base-200 overflow-auto p-4">
-                            <DeploymentPanel decorators={decorators} />
-                        </div>
-                    ) : (
-                        <div className="h-full bg-base-200 overflow-auto">
-                            <JsonRenderer json={data} />
-                        </div>
-                    )}
+                    {content}
 
-                    {/* Mobile: timeline is tucked behind a floating button so it
-                        doesn't permanently occupy the short viewport. */}
-                    {isMobile && !showTimeline && (
+                    {!showTimeline && (
                         <button
                             type="button"
                             aria-label="Show timeline"
@@ -408,25 +469,9 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
                         </button>
                     )}
                 </div>
-
-                {!isMobile && (
-                    <TimelineBar
-                        moments={moments}
-                        currentVersion={data.version}
-                        displayName={displayName}
-                        timelineCurrentMomentId={timelineCurrentMomentId}
-                        timelineIsExplicit={timelineIsExplicit}
-                        compareFrom={compareFrom}
-                        compareTo={compareTo}
-                        diffResult={diffResult}
-                        loadChangesForVersion={loadChangesForVersion}
-                        onNavigate={handleVersionChange}
-                        onCompare={startCompare}
-                    />
-                )}
             </div>
 
-            {isMobile && showTimeline && (
+            {showTimeline && (
                 <div className="fixed inset-0 z-40 flex flex-col justify-end" role="dialog" aria-modal="true">
                     <button
                         aria-label="Close timeline"
