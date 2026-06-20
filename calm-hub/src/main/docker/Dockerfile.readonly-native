@@ -66,10 +66,15 @@ COPY target/readonly-seed/controls/ /controls/
 # CALM_HUB_NATIVE_BINARY is intentionally left unset so seed-readonly.sh launches
 # the JVM (java -jar /deployments/quarkus-run.jar). The resulting database file
 # lands at /data/calmSchemas.db.
+# After seeding, mark the db file read-only so that COPY in the final stage
+# preserves 0444 on the file without needing --chmod (which would also apply
+# 0444 to the parent directory, stripping the execute bit and making the
+# directory non-traversable at runtime).
 RUN DATA_DIR=/data \
     CALM_SCHEMA_BASE_PATH=/calm \
     CALM_CONTROLS_BASE_PATH=/controls \
-    bash /nitrite/seed-readonly.sh
+    bash /nitrite/seed-readonly.sh \
+    && chmod 0444 /data/calmSchemas.db
 
 
 # ── Stage 2: Final read-only native image ─────────────────────────────────────
@@ -92,9 +97,12 @@ COPY --from=libz /libz-out/ /usr/lib/
 COPY --chmod=0755 --chown=1001:root target/*-runner /deployments/calm-hub-runner
 
 # Bake the seeded database (produced by the JVM seed stage) as a read-only file
-# owned by the runtime user.  COPY auto-creates parent directories, so no
-# mkdir is needed.
-COPY --chmod=0444 --chown=1001:root --from=seed /data/calmSchemas.db /deployments/data/calmSchemas.db
+# owned by the runtime user.  COPY without --chmod preserves the source file's
+# 0444 permissions (set in the seed stage via chmod) while letting Docker create
+# the /deployments/data/ parent directory with the default 0755 mode.  Using
+# --chmod=0444 here would also apply 0444 to the directory, stripping its execute
+# bit and making the directory non-traversable at container runtime.
+COPY --chown=1001:root --from=seed /data/calmSchemas.db /deployments/data/calmSchemas.db
 
 EXPOSE 8080
 USER 1001
