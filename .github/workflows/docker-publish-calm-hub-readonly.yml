@@ -77,7 +77,40 @@ jobs:
                       type=sha,format=short,suffix=-read-only-static
                       type=ref,event=tag,suffix=-read-only-static
 
-            # Step 8: Build and push the read-only static image.
+            # Step 8: Smoke test — build a local linux/amd64 image and verify the API
+            # contract before pushing to the registry.  The image is self-contained
+            # (NitriteDB baked in, CALM_READONLY=true), so no external services are
+            # needed.  The test asserts: GET /api/calm/namespaces -> 200 (reads work on
+            # seeded data) and mutating verbs -> 405 on both /api/calm/... and /calm
+            # (ReadOnlyRequestFilter).  Auth is disabled by the standalone profile baked
+            # into this image (QUARKUS_PROFILE=standalone).
+            # The cache-to here primes the GHA layer cache so the multi-arch push
+            # below is a cache hit for the amd64 layer.
+            - name: Build image for smoke test
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: calm-hub
+                  file: calm-hub/src/main/docker/Dockerfile.readonly-static
+                  platforms: linux/amd64
+                  load: true
+                  tags: calm-hub:smoke
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
+
+            - name: Smoke test
+              run: |
+                  docker run -d --name calmhub -p 8080:8080 calm-hub:smoke
+                  bash calm-hub/smoke-test.sh http://localhost:8080 readonly
+
+            - name: Dump container logs on failure
+              if: failure()
+              run: docker logs calmhub 2>/dev/null || true
+
+            - name: Cleanup smoke test container
+              if: always()
+              run: docker rm -f calmhub 2>/dev/null || true
+
+            # Step 9: Build and push the read-only static image.
             # The seed stage (Stage 1) is pinned to linux/amd64 in the Dockerfile so it
             # runs natively on this runner.  The final stage is built for all platforms;
             # the .db file is architecture-neutral (H2 MVStore / pure-Java format).

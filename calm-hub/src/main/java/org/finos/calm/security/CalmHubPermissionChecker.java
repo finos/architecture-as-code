@@ -121,8 +121,13 @@ public class CalmHubPermissionChecker {
         logger.debug("Checking namespace access for user [{}] on namespace [{}] action=[{}]", username, namespace, action);
 
         List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
-        List<String> ancestors = ancestorChain(namespace);
 
+        if (action == UserAction.ADMIN && isGlobalAdminFromGrants(username, grants)) {
+            logger.debug("User [{}] AUTHORIZED for [{}] in namespace [{}] via GLOBAL admin grant", username, action, namespace);
+            return true;
+        }
+
+        List<String> ancestors = ancestorChain(namespace);
         boolean result = action == UserAction.READ
                 ? allAncestorsHaveGrant(ancestors, grants, action)
                 : anyAncestorHasGrant(ancestors, grants, action);
@@ -133,6 +138,13 @@ public class CalmHubPermissionChecker {
             logger.debug("User [{}] DENIED for [{}] in namespace [{}]", username, action, namespace);
         }
         return result;
+    }
+
+    private boolean isGlobalAdminFromGrants(String username, List<UserAccess> grants) {
+        return grants.stream()
+                .anyMatch(g -> username.equals(g.getUsername())
+                        && GLOBAL_ACCESS.equals(g.getNamespace())
+                        && permissionSufficient(g, UserAction.ADMIN));
     }
 
     private boolean allAncestorsHaveGrant(List<String> ancestors, List<UserAccess> grants, UserAction action) {

@@ -91,7 +91,9 @@ export async function fetchVersionsForResource(
         case 'Standards':
             return calmService.fetchStandardVersions(namespace, resourceID);
         case 'ADRs':
-            return (await adrService.fetchAdrRevisions(namespace, resourceID)).map((rev) => rev.toString());
+            return (await adrService.fetchAdrRevisions(namespace, resourceID))
+                .filter((rev) => rev != null)
+                .map((rev) => rev.toString());
         default:
             return [];
     }

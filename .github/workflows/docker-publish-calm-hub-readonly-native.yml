@@ -9,6 +9,7 @@ on:
             - main
         paths:
             - 'calm-hub/**'
+            - 'calm-hub-ui/**'
             - 'calm/**'
             - '.github/workflows/docker-publish-calm-hub-readonly-native.yml'
     # Manual trigger from GitHub UI (allows custom tag)
@@ -24,9 +25,25 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
-    build-and-push:
-        name: Build and Push Read-Only Native Docker Image
-        runs-on: ubuntu-latest
+    # ── Per-architecture build, smoke test, and digest push ──────────────────
+    # Each runner compiles the native binary for its own architecture (GraalVM
+    # native binaries are arch-specific) via Quarkus container-build, seeds the
+    # NitriteDB (using the JVM; the resulting .db is architecture-neutral), and
+    # bakes the database into the final image.  After a smoke test the image is
+    # pushed by digest; the merge job assembles the multi-arch manifest.
+    build:
+        name: Build ${{ matrix.arch }}
+        runs-on: ${{ matrix.runner }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - arch: amd64
+                      runner: ubuntu-latest
+                      platform: linux/amd64
+                    - arch: arm64
+                      runner: ubuntu-24.04-arm
+                      platform: linux/arm64
 
         steps:
             # Step 1: Checkout the full repository (calm/ schemas are outside calm-hub/)
@@ -45,17 +62,17 @@ jobs:
               uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
               with:
                   path: ~/.m2
-                  key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
+                  key: ${{ runner.os }}-${{ matrix.arch }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
                   restore-keys: |
-                      ${{ runner.os }}-m2-
+                      ${{ runner.os }}-${{ matrix.arch }}-m2-
 
-            # Step 4: Build the JVM fast-jar + native binary and stage seed content via
-            # the shared script.  The script produces BOTH target/quarkus-app/ (used by
-            # the JVM seed stage) and target/*-runner (the native runtime binary), then
-            # stages the calm/ schemas and controls for seeding.
-            # --no-docker: skip the local docker build; this workflow uses buildx below.
-            # The native compile runs inside the Mandrel builder container (Docker is
-            # available on ubuntu-latest) and targets linux/amd64.
+            # Step 4: Build the JVM fast-jar + native binary and stage seed content.
+            # A single Maven invocation produces both target/quarkus-app/ (used by
+            # the JVM seed stage in the Dockerfile) and target/*-runner (the native
+            # runtime binary for this architecture).  Seeding runs on the JVM because
+            # NitriteDB's writable commit path requires full Java serialization.
+            # The resulting .db is architecture-neutral (H2 MVStore / pure-Java format).
+            # --no-docker: skip the local docker build; buildx handles the image below.
             - name: Build application and stage seed content
               run: bash calm-hub/build-readonly-native-image.sh --no-docker
 
@@ -63,14 +80,105 @@ jobs:
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-            # Step 6: Login to Docker Hub
+            # Step 6: Login to Docker Hub (required for the push-by-digest step)
             - name: Login to Docker Hub
               uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
               with:
                   username: ${{ secrets.DOCKER_USERNAME }}
                   password: ${{ secrets.DOCKER_PASSWORD }}
 
-            # Step 7: Extract metadata for Docker
+            # Step 7: Build image locally for smoke testing.
+            # load: true loads the single-arch image into the local Docker daemon.
+            # The image is self-contained (NitriteDB baked in, CALM_READONLY=true),
+            # so no external services are needed for the smoke test.
+            - name: Build image for smoke test
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: calm-hub
+                  file: calm-hub/src/main/docker/Dockerfile.readonly-native
+                  platforms: ${{ matrix.platform }}
+                  load: true
+                  tags: calm-hub:smoke
+                  cache-from: type=gha,scope=readonly-native-${{ matrix.arch }}
+                  cache-to: type=gha,mode=max,scope=readonly-native-${{ matrix.arch }}
+
+            # Step 8: Smoke test — start the self-contained read-only native container
+            # and assert the API contract: reads return 200, all mutating methods are
+            # rejected with 405 (enforced by ReadOnlyRequestFilter at startup via
+            # CALM_READONLY=true baked into the image).
+            - name: Smoke test
+              run: |
+                  docker run -d --name calmhub -p 8080:8080 calm-hub:smoke
+                  bash calm-hub/smoke-test.sh http://localhost:8080 readonly
+
+            - name: Dump container logs on failure
+              if: failure()
+              run: docker logs calmhub 2>/dev/null || true
+
+            - name: Cleanup smoke test container
+              if: always()
+              run: docker rm -f calmhub 2>/dev/null || true
+
+            # Produce labels for the image (no tags; only the merge job applies tags)
+            - name: Extract Docker labels
+              id: meta-labels
+              uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+              with:
+                  images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
+
+            # Step 9: Push this architecture's image by digest (no tag).
+            # Tags are applied in the merge job once both arch digests are available.
+            # The GHA layer cache from the smoke build makes this a fast cache hit.
+            - name: Build and push by digest
+              id: push
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: calm-hub
+                  file: calm-hub/src/main/docker/Dockerfile.readonly-native
+                  platforms: ${{ matrix.platform }}
+                  outputs: type=image,name=${{ secrets.DOCKER_USERNAME }}/calm-hub,push-by-digest=true,name-canonical=true,push=true
+                  labels: ${{ steps.meta-labels.outputs.labels }}
+                  cache-from: type=gha,scope=readonly-native-${{ matrix.arch }}
+                  cache-to: type=gha,mode=max,scope=readonly-native-${{ matrix.arch }}
+
+            # Step 10: Export the pushed digest to a file for the merge job.
+            - name: Export digest
+              run: |
+                  mkdir -p /tmp/digests
+                  digest="${{ steps.push.outputs.digest }}"
+                  touch "/tmp/digests/${digest#sha256:}"
+
+            - name: Upload digest
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              with:
+                  name: digests-readonly-native-${{ matrix.arch }}
+                  path: /tmp/digests/*
+                  if-no-files-found: error
+                  retention-days: 1
+
+    # ── Merge per-arch digests into a single multi-arch manifest ─────────────
+    merge:
+        name: Merge multi-arch manifest
+        runs-on: ubuntu-latest
+        needs: build
+
+        steps:
+            - name: Download digests
+              uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+              with:
+                  path: /tmp/digests
+                  pattern: digests-readonly-native-*
+                  merge-multiple: true
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+            - name: Login to Docker Hub
+              uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+              with:
+                  username: ${{ secrets.DOCKER_USERNAME }}
+                  password: ${{ secrets.DOCKER_PASSWORD }}
+
             - name: Extract Docker metadata
               id: meta
               uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
@@ -81,17 +189,13 @@ jobs:
                       type=sha,format=short,suffix=-read-only-native
                       type=ref,event=tag,suffix=-read-only-native
 
-            # Step 8: Build and push the read-only native image.
-            # linux/amd64 only: the native binary is architecture-specific and is
-            # compiled for amd64 on this runner, so the image cannot be multi-arch.
-            - name: Build and push
-              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-              with:
-                  context: calm-hub
-                  file: calm-hub/src/main/docker/Dockerfile.readonly-native
-                  platforms: linux/amd64
-                  push: true
-                  tags: ${{ steps.meta.outputs.tags }}
-                  labels: ${{ steps.meta.outputs.labels }}
-                  cache-from: type=gha
-                  cache-to: type=gha,mode=max
+            # Assemble a multi-arch manifest from the per-arch digests and tag it.
+            - name: Create multi-arch manifest
+              working-directory: /tmp/digests
+              run: |
+                  docker buildx imagetools create \
+                    $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+                    $(printf '${{ secrets.DOCKER_USERNAME }}/calm-hub@sha256:%s ' *)
+
+            - name: Inspect manifest
+              run: docker buildx imagetools inspect ${{ secrets.DOCKER_USERNAME }}/calm-hub:${{ steps.meta.outputs.version }}

@@ -585,37 +585,55 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     }, [navigate, selectedNamespace, calmService, adrService]);
 
     const getResourceIDs = (type: string): string[] => {
-        const toId = (s: ResourceSummary) => s.customId ?? s.id.toString();
+        const toId = (s: ResourceSummary) => s.customId ?? s.id?.toString();
+        const idsOf = (list: ResourceSummary[]) =>
+            list.map(toId).filter((id): id is string => id != null && id !== '');
         switch (type) {
             case 'Architectures':
-                return architectureSummaries.map(toId);
+                return idsOf(architectureSummaries);
             case 'Patterns':
-                return patternSummaries.map(toId);
+                return idsOf(patternSummaries);
             case 'Flows':
-                return flowSummaries.map(toId);
+                return idsOf(flowSummaries);
             case 'Standards':
-                return standardSummaries.map(toId);
+                return idsOf(standardSummaries);
             case 'ADRs':
-                return adrSummaries.map((s) => s.id.toString());
+                return adrSummaries
+                    .map((s) => s.id?.toString())
+                    .filter((id): id is string => id != null && id !== '');
             default:
                 return [];
         }
     };
 
     const getResourceNames = (type: string): Record<string, string> => {
-        const toEntry = (s: ResourceSummary): [string, string] => [(s.customId ?? s.id.toString()), s.name];
+        const toEntry = (s: ResourceSummary): [string, string] | null => {
+            const id = s.customId ?? s.id?.toString();
+            return id != null && id !== '' ? [id, s.name] : null;
+        };
+        const entriesOf = (list: ResourceSummary[]) =>
+            Object.fromEntries(
+                list.map(toEntry).filter((e): e is [string, string] => e !== null)
+            );
         switch (type) {
             case 'Architectures':
-                return Object.fromEntries(architectureSummaries.map(toEntry));
+                return entriesOf(architectureSummaries);
             case 'Patterns':
-                return Object.fromEntries(patternSummaries.map(toEntry));
+                return entriesOf(patternSummaries);
             case 'Flows':
-                return Object.fromEntries(flowSummaries.map(toEntry));
+                return entriesOf(flowSummaries);
             case 'Standards':
-                return Object.fromEntries(standardSummaries.map(toEntry));
+                return entriesOf(standardSummaries);
             case 'ADRs':
                 return Object.fromEntries(
-                    adrSummaries.map((s) => [s.id.toString(), s.title + ' (' + s.status + ')'])
+                    adrSummaries
+                        .map((s): [string, string] | null => {
+                            const id = s.id?.toString();
+                            return id != null && id !== ''
+                                ? [id, s.title + ' (' + s.status + ')']
+                                : null;
+                        })
+                        .filter((e): e is [string, string] => e !== null)
                 );
             default:
                 return {};
