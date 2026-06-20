@@ -87,7 +87,7 @@ CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH}" \
 # warnings), so an empty database can otherwise pass the build undetected. Query
 # the namespaces endpoint and fail loudly if nothing was persisted.
 echo "[seed] Verifying seeded data..."
-NAMESPACE_RESPONSE="$(curl -s "${CALM_HUB_URL}/calm/namespaces" || true)"
+NAMESPACE_RESPONSE="$(curl -s "${CALM_HUB_URL}/api/calm/namespaces" || true)"
 NAMESPACE_COUNT="$(echo "${NAMESPACE_RESPONSE}" | jq -r '.values | length' 2>/dev/null || echo 0)"
 echo "[seed] Namespaces persisted: ${NAMESPACE_COUNT}"
 if [[ -z "${NAMESPACE_COUNT}" || "${NAMESPACE_COUNT}" == "0" ]]; then
