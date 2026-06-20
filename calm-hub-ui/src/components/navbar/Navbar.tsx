@@ -33,10 +33,15 @@ export function Navbar({ onExploreClick }: NavbarProps) {
                     />
                 </a>
             </div>
-            {/* Desktop keeps search in the navbar; on mobile it lives inside the
-                explorer panel instead, so it is hidden here below the lg breakpoint. */}
-            <div className="navbar-end hidden lg:flex">
-                <GlobalSearchBar />
+            <div className="navbar-end flex items-center gap-1">
+                {/* Portal target for page-level actions (e.g. the diagram's
+                    view-options menu), always visible across breakpoints. */}
+                <div id="navbar-actions" className="flex items-center" />
+                {/* Desktop keeps search in the navbar; on mobile it lives inside the
+                    explorer panel instead, so it is hidden here below the lg breakpoint. */}
+                <div className="hidden lg:flex">
+                    <GlobalSearchBar />
+                </div>
             </div>
         </div>
     );

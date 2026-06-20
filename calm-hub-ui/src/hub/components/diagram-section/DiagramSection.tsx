@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoMenuOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
@@ -43,6 +44,12 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
     const isMobile = useIsMobile();
     const [showTimeline, setShowTimeline] = useState(false);
     const [showViewMenu, setShowViewMenu] = useState(false);
+    // The view-options menu trigger lives in the navbar (top nav), not floating
+    // over the canvas; resolve the navbar slot after mount.
+    const [navbarSlot, setNavbarSlot] = useState<HTMLElement | null>(null);
+    useLayoutEffect(() => {
+        setNavbarSlot(document.getElementById('navbar-actions'));
+    }, []);
     const calmService = useMemo(() => new CalmService(), []);
     const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
@@ -319,10 +326,10 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
         <>
             <button
                 aria-label="View options"
-                className="btn btn-sm btn-circle bg-base-100 border border-base-300 shadow absolute top-2 right-2 z-20"
+                className="btn btn-ghost btn-circle text-primary"
                 onClick={() => setShowViewMenu(true)}
             >
-                <IoMenuOutline size={18} />
+                <IoMenuOutline size={20} />
             </button>
             {showViewMenu && (
                 <div className="fixed inset-0 z-40 bg-base-100 flex flex-col animate-slide-in-right" role="dialog" aria-modal="true">
@@ -340,14 +347,14 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
             )}
         </>
     ) : (
-        <div className="dropdown dropdown-end absolute top-2 right-2 z-20">
+        <div className="dropdown dropdown-end">
             <button
                 tabIndex={0}
                 role="button"
                 aria-label="View options"
-                className="btn btn-sm btn-circle bg-base-100 border border-base-300 shadow"
+                className="btn btn-ghost btn-circle text-primary"
             >
-                <IoMenuOutline size={18} />
+                <IoMenuOutline size={20} />
             </button>
             <div
                 tabIndex={0}
@@ -361,9 +368,9 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
 
     return (
         <div className="w-full h-full">
+            {navbarSlot ? createPortal(viewMenu, navbarSlot) : viewMenu}
             <div className="h-full bg-base-100 overflow-hidden flex flex-col">
                 <div className="flex-1 min-h-0 overflow-hidden relative">
-                    {viewMenu}
                     {comparing ? (
                         <CompareView
                             calmType={data.calmType}
