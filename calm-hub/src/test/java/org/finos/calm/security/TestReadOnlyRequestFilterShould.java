@@ -30,7 +30,6 @@ public class TestReadOnlyRequestFilterShould {
         MockitoAnnotations.openMocks(this);
         filter = new ReadOnlyRequestFilter();
         when(requestContext.getUriInfo()).thenReturn(uriInfo);
-        // RESTEasy typically returns paths without a leading slash
         when(uriInfo.getPath()).thenReturn("calm/namespaces");
     }
 
@@ -65,7 +64,7 @@ public class TestReadOnlyRequestFilterShould {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "HEAD", "OPTIONS"})
-    void allow_read_methods_on_calm_path_when_readonly(String method) {
+    void allow_read_methods_when_readonly(String method) {
         filter.readOnly = true;
         when(requestContext.getMethod()).thenReturn(method);
 
@@ -87,23 +86,69 @@ public class TestReadOnlyRequestFilterShould {
 
     @ParameterizedTest
     @ValueSource(strings = {"POST", "PUT", "DELETE", "PATCH"})
-    void allow_mutating_methods_on_non_calm_paths_when_readonly(String method) {
+    void reject_mutating_methods_on_non_calm_paths_when_readonly(String method) {
+        // Filter now guards all paths, not just /calm and /api/calm.
+        // A mutation anywhere (e.g. /q/health, /mcp) must be blocked.
         filter.readOnly = true;
         when(requestContext.getMethod()).thenReturn(method);
-        // RESTEasy typically returns paths without a leading slash
         when(uriInfo.getPath()).thenReturn("q/health");
 
         filter.filter(requestContext);
 
-        verify(requestContext, never()).abortWith(any());
+        ArgumentCaptor<Response> captor = ArgumentCaptor.forClass(Response.class);
+        verify(requestContext).abortWith(captor.capture());
+        assertEquals(405, captor.getValue().getStatus());
+        assertEquals("GET, HEAD, OPTIONS", captor.getValue().getHeaderString("Allow"));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"POST", "PUT", "DELETE", "PATCH"})
-    void allow_mutating_methods_on_non_calm_paths_with_leading_slash_when_readonly(String method) {
+    void reject_mutating_methods_on_non_calm_paths_with_leading_slash_when_readonly(String method) {
         filter.readOnly = true;
         when(requestContext.getMethod()).thenReturn(method);
         when(uriInfo.getPath()).thenReturn("/q/health");
+
+        filter.filter(requestContext);
+
+        ArgumentCaptor<Response> captor = ArgumentCaptor.forClass(Response.class);
+        verify(requestContext).abortWith(captor.capture());
+        assertEquals(405, captor.getValue().getStatus());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"POST", "PUT", "DELETE", "PATCH"})
+    void reject_mutating_methods_on_api_calm_path_when_readonly(String method) {
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn(method);
+        when(uriInfo.getPath()).thenReturn("api/calm/namespaces");
+
+        filter.filter(requestContext);
+
+        ArgumentCaptor<Response> captor = ArgumentCaptor.forClass(Response.class);
+        verify(requestContext).abortWith(captor.capture());
+        assertEquals(405, captor.getValue().getStatus());
+        assertEquals("GET, HEAD, OPTIONS", captor.getValue().getHeaderString("Allow"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"POST", "PUT", "DELETE", "PATCH"})
+    void reject_mutating_methods_on_api_calm_path_with_leading_slash_when_readonly(String method) {
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn(method);
+        when(uriInfo.getPath()).thenReturn("/api/calm/namespaces");
+
+        filter.filter(requestContext);
+
+        ArgumentCaptor<Response> captor = ArgumentCaptor.forClass(Response.class);
+        verify(requestContext).abortWith(captor.capture());
+        assertEquals(405, captor.getValue().getStatus());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "HEAD", "OPTIONS"})
+    void allow_read_methods_on_api_calm_path_when_readonly(String method) {
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn(method);
 
         filter.filter(requestContext);
 

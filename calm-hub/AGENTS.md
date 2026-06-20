@@ -41,6 +41,15 @@ java -jar target/quarkus-app/quarkus-run.jar  # Run packaged app
 # Docker Build
 docker buildx build --platform linux/amd64,linux/arm64 \
   -f src/main/docker/Dockerfile.jvm -t calm-hub --push .
+
+# Docker image variants (from repo root)
+bash calm-hub/build-readonly-image.sh                 # JVM read-only (calm-hub:read-only-static)
+bash calm-hub/build-native-image.sh                   # Native MongoDB (calm-hub:native)
+bash calm-hub/build-readonly-native-image.sh          # Native read-only (calm-hub:read-only-native)
+
+# Smoke tests — validate a running image (MODE: readonly | readwrite)
+bash calm-hub/smoke-test.sh http://localhost:8080 readonly 120
+bash calm-hub/smoke-test.sh http://localhost:8080 readwrite 120
 ```
 
 ## Architecture Overview
@@ -106,11 +115,12 @@ CALM Hub supports pluggable storage backends via CDI Producers:
 **Modes**:
 1. **mongo** (default) - MongoDB production storage
 2. **standalone** - NitriteDB embedded storage (no external DB needed)
+3. **read-only** - `standalone` + `calm.readonly=true`; pre-seeded NitriteDB opened with `.readOnly(true)`
 
 **How It Works**:
 - Store interfaces defined in `org.finos.calm.store`
 - Implementations in `store/mongo/` and `store/nitrite/`
-- Producers in `store/producer/` select implementation at runtime
+- Producers in `store/producer/` select implementation at runtime via `@LookupIfProperty`
 
 Example Producer Pattern:
 ```java
@@ -170,6 +180,140 @@ There are **four auth modes**, each selected by a separate property file:
 - The upstream proxy injects the authenticated username in a header (default
   `Remote-User`, overridable via `calm.security.proxy.username-header`), handled by
   `ProxyAuthenticationMechanism` / `ProxyIdentityProvider`
+
+## Docker Image Variants
+
+CALM Hub is published as **four container image variants**:
+
+| Tag | Dockerfile | Runtime | Storage | Writes |
+|:----|:-----------|:--------|:--------|:-------|
+| `latest` | `Dockerfile.jvm` | JVM (OpenJDK 21) | MongoDB (external) | ✅ Yes |
+| `latest-native` | `Dockerfile.native` | GraalVM native binary | MongoDB (external) | ✅ Yes |
+| `latest-read-only-static` | `Dockerfile.readonly-static` | JVM | Pre-seeded NitriteDB | ❌ 405 |
+| `latest-read-only-native` | `Dockerfile.readonly-native` | GraalVM native binary | Pre-seeded NitriteDB | ❌ 405 |
+
+All images are multi-arch (`linux/amd64` + `linux/arm64`). Native images are built per-arch on native runners (no QEMU).
+
+### Read-Only Mode
+
+**How it works:**
+
+1. `ReadOnlyRequestFilter` (`@PreMatching`, `@Priority(0)`) intercepts every request to `/calm/*`.  
+   Any mutating method (POST, PUT, DELETE, PATCH) is immediately rejected with `HTTP 405` and `Allow: GET, HEAD, OPTIONS`.  
+   The filter reads `calm.readonly` via `ConfigProvider` (not `@ConfigProperty`) so the value is respected in native images where runtime config injection may differ.
+
+2. `NitriteDBConfig` opens the NitriteDB file with `.readOnly(true).autoCommit(false)`. The database file must exist (pre-seeded) — the application will throw on startup if the file is absent.
+
+**Environment variables for read-only images:**
+```
+CALM_READONLY=true
+QUARKUS_PROFILE=standalone
+CALM_STANDALONE_DATA_DIRECTORY=/deployments/data
+```
+
+### How the Read-Only Data Image Layer is Built
+
+The read-only images use a **two-stage Docker build**:
+
+```
+Stage 1 — seed (JVM, writable)
+  FROM ubi9/openjdk-21
+  COPY quarkus-app/ + calm/ schemas + controls/
+  RUN boot Quarkus in standalone (writable) mode
+      init script POSTs all namespaces, schemas, controls
+      graceful SIGTERM → NitriteDB flushes + commits (~290–450 KB)
+      result: /data/calmSchemas.db
+
+Stage 2 — runtime (minimal base)
+  COPY --from=seed /data/calmSchemas.db   ← baked as an image layer
+  chmod 0444                              ← filesystem-level immutability
+  ENV CALM_READONLY=true
+  ENV QUARKUS_PROFILE=standalone
+```
+
+**Why native read-only uses JVM for seeding:** GraalVM native binaries cannot reliably *write* (commit) the H2 MVStore backing NitriteDB due to Java serialisation requirements not fully supported in native. The JVM seed stage writes the database; the native binary only reads it. Serialisation metadata for the read path is registered in `META-INF/native-image/org.finos/calm-hub/serialization-config.json`.
+
+### Build Scripts
+
+| Script | Output | Notes |
+|:-------|:-------|:------|
+| `build-readonly-image.sh [--no-docker] [--no-maven] [TAG]` | `calm-hub:read-only-static` | `--no-docker` skips local build (used by CI buildx); `--no-maven` reuses existing build |
+| `build-native-image.sh [TAG]` | `calm-hub:native` | GraalVM Mandrel container build; requires ≥8 GB Docker RAM |
+| `build-readonly-native-image.sh [TAG]` | `calm-hub:read-only-native` | Builds JVM jar (for seed stage) AND native binary; two-stage Docker |
+
+### Smoke Tests
+
+`smoke-test.sh [BASE_URL] [MODE] [TIMEOUT]` is the shared assertion script used by all four Docker-publish CI workflows.
+
+**Arguments:**
+- `BASE_URL` — default `http://localhost:8080`
+- `MODE` — `readonly` or `readwrite` (default: `readwrite`)
+- `TIMEOUT` — seconds to wait for startup (default: `120`)
+
+**Readiness:** polls `/q/swagger-ui` (always available regardless of DB profile).
+
+**Assertions:**
+- `readonly`: `GET /api/calm/namespaces` → 200 (reads seeded data); POST/PUT/DELETE → 405 on both `/api/calm/...` and `/calm` (ReadOnlyRequestFilter)
+- `readwrite`: `GET /api/calm/namespaces` → 200; `POST /api/calm/namespaces` → 201; name-based `/calm/...` POST/GET → 201/200; `PUT /calm` → 403
+
+```bash
+# Read-only image (auth disabled by the standalone profile baked into the image)
+docker run --rm -p 8080:8080 calm-hub:read-only-static
+bash calm-hub/smoke-test.sh http://localhost:8080 readonly 120
+
+# MongoDB image (requires running Mongo; disable auth for unauthenticated smoke-test calls)
+cd calm-hub/local-dev && docker-compose up -d && cd ../..
+docker run --rm -p 8080:8080 \
+  -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://localhost:27017 \
+  -e CALM_AUTH_ENABLED=false \
+  calm-hub:latest
+bash calm-hub/smoke-test.sh http://localhost:8080 readwrite 120
+```
+
+## MCP Server
+
+CALM Hub includes an experimental [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server.
+
+**Dependency:** `io.quarkiverse.mcp:quarkus-mcp-server-http:1.12.1`  
+**Endpoint:** `POST /mcp` (HTTP Streamable JSON-RPC 2.0)  
+**Config:** `calm.mcp.enabled=false` (env: `CALM_MCP_ENABLED`)
+
+Tool providers are in `src/main/java/org/finos/calm/mcp/tools/`:  
+`ArchitectureTools`, `PatternTools`, `ControlTools`, `DomainTools`, `InterfaceTools`,  
+`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`.
+
+Enable for development:
+```bash
+../mvnw quarkus:dev -Dcalm.mcp.enabled=true
+# or
+export CALM_MCP_ENABLED=true && ../mvnw quarkus:dev
+```
+
+Dev-mode traffic logging: `%dev.quarkus.mcp.server.traffic-logging=true` (set in `application.properties`).
+
+Test with curl:
+```bash
+curl -s -X POST http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+## GitHub Actions — Docker Publish Workflows
+
+| Workflow file | Image tag | Trigger (path filter on `main`) |
+|:-------------|:----------|:-------------------------------|
+| `docker-publish-calm-hub.yml` | `latest` | `calm-hub/**`, `calm-hub-ui/**` |
+| `docker-publish-calm-hub-native.yml` | `latest-native` | `calm-hub/**`, `calm-hub-ui/**` |
+| `docker-publish-calm-hub-readonly.yml` | `latest-read-only-static` | `calm-hub/**`, `calm-hub-ui/**`, `calm/**` |
+| `docker-publish-calm-hub-readonly-native.yml` | `latest-read-only-native` | `calm-hub/**`, `calm-hub-ui/**`, `calm/**` |
+
+All four workflows:
+- Support `workflow_dispatch` with a `tag` input (default: the tag above).
+- Run `smoke-test.sh` against a locally loaded single-arch image before pushing to Docker Hub.
+- Use `${{ secrets.DOCKER_USERNAME }}/calm-hub` as the image namespace.
+- Have `cancel-in-progress: false` (a publish in flight is never cancelled).
+
+**Native workflows** (`-native.yml`) use a per-architecture build matrix (`ubuntu-latest` for `amd64`, `ubuntu-24.04-arm` for `arm64`). Each runner builds for its own arch, pushes by digest, and a final merge job assembles the multi-arch manifest via `docker buildx imagetools create`.
 
 ## Key Concepts
 

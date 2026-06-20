@@ -1,7 +1,10 @@
 package org.finos.calm.domain.standards;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.util.Objects;
 
+@RegisterForReflection
 public class NamespaceStandardSummary {
     private String name;
     private String description;
