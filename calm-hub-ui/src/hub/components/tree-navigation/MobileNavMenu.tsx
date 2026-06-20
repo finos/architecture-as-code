@@ -18,6 +18,7 @@ import {
     loadResourceForId,
     fetchVersionsForResource,
 } from './navigation-loaders.js';
+import { ExplorerSearch } from '../../../components/navbar/ExplorerSearch.js';
 
 const RESOURCE_TYPES: TypeInUI[] = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
 
@@ -76,6 +77,7 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
     const [domains, setDomains] = useState<string[]>([]);
     const [leafItems, setLeafItems] = useState<LeafItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [searching, setSearching] = useState(false);
 
     useEffect(() => {
         calmService.fetchNamespaces().then(setNamespaces).catch(() => setNamespaces([]));
@@ -320,30 +322,34 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
                 </button>
             </div>
 
-            <ul className="flex-1 overflow-auto divide-y divide-base-200">
-                {loading && (
-                    <li className="flex items-center justify-center py-8">
-                        <span className="loading loading-spinner loading-md text-base-content/50" />
-                    </li>
-                )}
-                {isEmpty && (
-                    <li className="px-4 py-8 text-center text-base-content/50 text-sm">Nothing here</li>
-                )}
-                {!loading &&
-                    rows.map((row) => (
-                        <li key={row.key}>
-                            <button
-                                className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200"
-                                onClick={row.onClick}
-                            >
-                                <span className="flex-1 min-w-0 truncate">{row.label}</span>
-                                {!row.isLeaf && (
-                                    <IoChevronForwardOutline className="text-base-content/40 shrink-0" size={18} />
-                                )}
-                            </button>
+            <ExplorerSearch onSearchingChange={setSearching} />
+
+            {!searching && (
+                <ul className="flex-1 overflow-auto divide-y divide-base-200">
+                    {loading && (
+                        <li className="flex items-center justify-center py-8">
+                            <span className="loading loading-spinner loading-md text-base-content/50" />
                         </li>
-                    ))}
-            </ul>
+                    )}
+                    {isEmpty && (
+                        <li className="px-4 py-8 text-center text-base-content/50 text-sm">Nothing here</li>
+                    )}
+                    {!loading &&
+                        rows.map((row) => (
+                            <li key={row.key}>
+                                <button
+                                    className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200"
+                                    onClick={row.onClick}
+                                >
+                                    <span className="flex-1 min-w-0 truncate">{row.label}</span>
+                                    {!row.isLeaf && (
+                                        <IoChevronForwardOutline className="text-base-content/40 shrink-0" size={18} />
+                                    )}
+                                </button>
+                            </li>
+                        ))}
+                </ul>
+            )}
         </div>
     );
 }

@@ -221,7 +221,8 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                         onReset={handleDecisionReset}
                     />
                 </Panel>
-                <Panel position="top-right">
+                {/* Offset left so it clears the diagram's top-right view-options menu. */}
+                <Panel position="top-right" style={{ marginRight: '2.75rem' }}>
                     <SearchBar
                         searchTerm={searchTerm}
                         onSearchChange={setSearchTerm}

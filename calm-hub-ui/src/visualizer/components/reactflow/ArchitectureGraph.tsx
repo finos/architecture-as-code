@@ -149,7 +149,8 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
                         maskColor={`${THEME.colors.background}cc`}
                     />
                 )}
-                <Panel position="top-right">
+                {/* Offset left so it clears the diagram's top-right view-options menu. */}
+                <Panel position="top-right" style={{ marginRight: '2.75rem' }}>
                     <SearchBar
                         searchTerm={searchTerm}
                         onSearchChange={setSearchTerm}

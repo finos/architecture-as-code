@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5';
+import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoMenuOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
-import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
 import { CompareView } from './compare/CompareView.js';
 import { diffArchitectures, diffPatterns, type NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
@@ -27,7 +26,6 @@ import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/cont
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
     onItemSelect?: (item: SelectedItem) => void;
-    hasDetailsPanel?: boolean;
 }
 
 const iconMap = {
@@ -37,7 +35,7 @@ const iconMap = {
 
 type DiagramTabType = 'diagram' | 'json' | 'deployments';
 
-export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramSectionProps) {
+export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const tabParam = searchParams.get('tab') as DiagramTabType | null;
@@ -277,55 +275,60 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const Icon = iconMap[data.calmType];
     const comparing = compareFrom !== null && compareTo !== null;
 
-    const tabs = (
-        <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
+    const tabButtonClass = (tab: DiagramTabType) =>
+        `btn btn-sm justify-start gap-2 ${!comparing && activeTab === tab ? 'tab-active !bg-accent !text-white' : 'btn-ghost'}`;
+
+    // The render pane is full-bleed; the breadcrumb and view-mode switch live in
+    // a hamburger menu pinned to the top-right of the canvas.
+    const viewMenu = (
+        <div className="dropdown dropdown-end absolute top-2 right-2 z-20">
             <button
-                role="tab"
-                aria-label="Diagram"
-                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'diagram' ? 'tab-active !bg-accent !text-white' : ''}`}
-                onClick={() => setActiveTab('diagram')}
+                tabIndex={0}
+                role="button"
+                aria-label="View options"
+                className="btn btn-sm btn-circle bg-base-100 border border-base-300 shadow"
             >
-                <IoEyeOutline />
-                <span className="hidden sm:inline">Diagram</span>
+                <IoMenuOutline size={18} />
             </button>
-            <button
-                role="tab"
-                aria-label="JSON"
-                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'json' ? 'tab-active !bg-accent !text-white' : ''}`}
-                onClick={() => setActiveTab('json')}
+            <div
+                tabIndex={0}
+                className="dropdown-content z-30 mt-1 w-64 rounded-box border border-base-300 bg-base-100 p-3 shadow-lg"
             >
-                <IoCodeOutline />
-                <span className="hidden sm:inline">JSON</span>
-            </button>
-            {isArchitecture && (
-                <button
-                    role="tab"
-                    aria-label="Deployments"
-                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
-                    onClick={() => setActiveTab('deployments')}
-                >
-                    <IoRocketOutline />
-                    <span className="hidden sm:inline">Deployments</span>
-                </button>
-            )}
+                <h2 className="text-sm font-semibold mb-2 flex flex-wrap items-center gap-x-1">
+                    <Icon className="text-accent shrink-0" />
+                    {data.name}
+                    {typeLabel && (
+                        <>
+                            <span className="text-gray-400">/</span> {typeLabel}
+                        </>
+                    )}
+                    <span className="text-gray-400">/</span>
+                    <span title={data.id} className="break-all">
+                        {displayName || data.id}
+                    </span>
+                </h2>
+                <div role="tablist" className="flex flex-col gap-1">
+                    <button role="tab" aria-label="Diagram" className={tabButtonClass('diagram')} onClick={() => setActiveTab('diagram')}>
+                        <IoEyeOutline /> Diagram
+                    </button>
+                    <button role="tab" aria-label="JSON" className={tabButtonClass('json')} onClick={() => setActiveTab('json')}>
+                        <IoCodeOutline /> JSON
+                    </button>
+                    {isArchitecture && (
+                        <button role="tab" aria-label="Deployments" className={tabButtonClass('deployments')} onClick={() => setActiveTab('deployments')}>
+                            <IoRocketOutline /> Deployments
+                        </button>
+                    )}
+                </div>
+            </div>
         </div>
     );
 
     return (
-        <div className={`w-full h-full py-4 pl-2 ${hasDetailsPanel ? 'pr-2' : 'pr-4'}`}>
-            <div className="h-full bg-base-100 rounded-box overflow-hidden flex flex-col shadow-xl">
-                <SectionHeader
-                    icon={<Icon className="text-accent" />}
-                    namespace={data.name}
-                    id={data.id}
-                    version={data.version}
-                    showVersion={false}
-                    displayName={displayName}
-                    typeLabel={typeLabel}
-                    rightContent={tabs}
-                />
-
+        <div className="w-full h-full">
+            <div className="h-full bg-base-100 overflow-hidden flex flex-col">
                 <div className="flex-1 min-h-0 overflow-hidden relative">
+                    {viewMenu}
                     {comparing ? (
                         <CompareView
                             calmType={data.calmType}

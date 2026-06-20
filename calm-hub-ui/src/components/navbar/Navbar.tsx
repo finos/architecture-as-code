@@ -33,7 +33,9 @@ export function Navbar({ onExploreClick }: NavbarProps) {
                     />
                 </a>
             </div>
-            <div className="navbar-end">
+            {/* Desktop keeps search in the navbar; on mobile it lives inside the
+                explorer panel instead, so it is hidden here below the lg breakpoint. */}
+            <div className="navbar-end hidden lg:flex">
                 <GlobalSearchBar />
             </div>
         </div>

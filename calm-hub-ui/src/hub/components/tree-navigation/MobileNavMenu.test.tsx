@@ -12,6 +12,12 @@ vi.mock('react-router-dom', async () => {
     };
 });
 
+// Stub the explorer search so it doesn't instantiate real services during these
+// drill-down tests.
+vi.mock('../../../components/navbar/ExplorerSearch.js', () => ({
+    ExplorerSearch: () => <div data-testid="explorer-search" />,
+}));
+
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(function () { return ({
         fetchNamespaces: vi.fn().mockResolvedValue(['finos', 'traderx']),
