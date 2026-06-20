@@ -1,7 +1,9 @@
 import './Navbar.css';
+import { useContext } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { IoMenuOutline } from 'react-icons/io5';
 import { GlobalSearchBar } from './GlobalSearchBar.js';
+import { UserAccessContext } from '../../admin/context/UserAccessContext.js';
 
 interface NavbarProps {
     /**
@@ -13,6 +15,9 @@ interface NavbarProps {
 }
 
 export function Navbar({ onExploreClick }: NavbarProps) {
+    const { loading, isGlobalAdmin, grants } = useContext(UserAccessContext);
+    const showAdminLink = !loading && (isGlobalAdmin || grants.some((g) => g.permission === 'admin'));
+
     return (
         <div className="navbar relative bg-base-100 border-b-2 border-base-200 text-primary-content gap-1">
             <div className="navbar-start flex items-center gap-1 min-w-0">
@@ -47,9 +52,11 @@ export function Navbar({ onExploreClick }: NavbarProps) {
                     <NavLink className="btn btn-ghost text-primary" to="/visualizer">
                         Visualizer
                     </NavLink>
-                    <NavLink className="btn btn-ghost text-primary" to="/admin">
-                        Admin
-                    </NavLink>
+                    {showAdminLink && (
+                        <NavLink className="btn btn-ghost text-primary" to="/admin">
+                            Admin
+                        </NavLink>
+                    )}
                     <GlobalSearchBar />
                 </div>
             </div>
