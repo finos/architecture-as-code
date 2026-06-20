@@ -9,6 +9,8 @@ import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
+import { SearchBar } from '../../../visualizer/components/reactflow/SearchBar.js';
+import { NodeSearchProvider, type NodeSearchState } from '../../../visualizer/components/reactflow/node-search-context.js';
 import { CompareView } from './compare/CompareView.js';
 import { diffArchitectures, diffPatterns, type NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
 import type { CalmArchitectureSchema } from '@finos/calm-models/types';
@@ -52,6 +54,23 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     useLayoutEffect(() => {
         setNavbarSlot(document.getElementById('navbar-actions'));
     }, []);
+    // Node ("component") search state, surfaced inside the mobile view menu and
+    // applied to the graph via NodeSearchProvider.
+    const [nodeSearchTerm, setNodeSearchTerm] = useState('');
+    const [nodeTypeFilter, setNodeTypeFilter] = useState('');
+    const [nodeTypes, setNodeTypes] = useState<string[]>([]);
+    const nodeSearch = useMemo<NodeSearchState>(
+        () => ({
+            searchTerm: nodeSearchTerm,
+            setSearchTerm: setNodeSearchTerm,
+            typeFilter: nodeTypeFilter,
+            setTypeFilter: setNodeTypeFilter,
+            availableNodeTypes: nodeTypes,
+            setAvailableNodeTypes: setNodeTypes,
+            external: true,
+        }),
+        [nodeSearchTerm, nodeTypeFilter, nodeTypes]
+    );
     const calmService = useMemo(() => new CalmService(), []);
     const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
@@ -380,6 +399,21 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                     <div className="p-4 flex flex-col gap-4 overflow-auto">
                         {breadcrumb}
                         {renderViewModes(() => setShowViewMenu(false))}
+                        {!comparing && activeTab === 'diagram' && (
+                            <div>
+                                <div className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">
+                                    Search components
+                                </div>
+                                <SearchBar
+                                    searchTerm={nodeSearchTerm}
+                                    onSearchChange={setNodeSearchTerm}
+                                    typeFilter={nodeTypeFilter}
+                                    onTypeFilterChange={setNodeTypeFilter}
+                                    nodeTypes={nodeTypes}
+                                    forceExpanded
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -449,9 +483,10 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         );
     }
 
-    // Mobile: full-bleed render pane; view-options menu in the navbar; timeline
-    // tucked behind a floating button.
+    // Mobile: full-bleed render pane; view-options menu (with component search)
+    // in the navbar; timeline tucked behind a floating button.
     return (
+        <NodeSearchProvider value={nodeSearch}>
         <div className="w-full h-full">
             {navbarSlot ? createPortal(viewMenu, navbarSlot) : viewMenu}
             <div className="h-full bg-base-100 overflow-hidden flex flex-col">
@@ -509,5 +544,6 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                 </div>
             )}
         </div>
+        </NodeSearchProvider>
     );
 }

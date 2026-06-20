@@ -9,6 +9,8 @@ interface SearchBarProps {
     typeFilter: string;
     onTypeFilterChange: (type: string) => void;
     nodeTypes: string[];
+    /** Render the full bar (no collapse-to-icon), e.g. inside the mobile view menu. */
+    forceExpanded?: boolean;
 }
 
 const iconButtonStyle: React.CSSProperties = {
@@ -31,14 +33,16 @@ export function SearchBar({
     typeFilter,
     onTypeFilterChange,
     nodeTypes,
+    forceExpanded = false,
 }: SearchBarProps) {
     const isMobile = useIsMobile();
     const [expanded, setExpanded] = useState(false);
 
-    // On small screens the full search/filter bar steals too much canvas, so it
+    // On small screens the floating canvas bar steals too much room, so it
     // collapses to a single icon button until tapped. An active search/filter
     // keeps it expanded so the user can see and clear what's applied.
-    const showCompact = isMobile && !expanded && !searchTerm && !typeFilter;
+    // forceExpanded (e.g. inside the view menu) always shows the full bar.
+    const showCompact = isMobile && !expanded && !searchTerm && !typeFilter && !forceExpanded;
 
     if (showCompact) {
         return (
@@ -63,7 +67,8 @@ export function SearchBar({
                 border: `1px solid ${THEME.colors.border}`,
                 borderRadius: '8px',
                 padding: '6px 10px',
-                boxShadow: THEME.shadows.md,
+                boxShadow: forceExpanded ? 'none' : THEME.shadows.md,
+                width: forceExpanded ? '100%' : undefined,
             }}
         >
             <Search style={{ width: '14px', height: '14px', color: THEME.colors.muted, flexShrink: 0 }} />
@@ -78,8 +83,10 @@ export function SearchBar({
                     outline: 'none',
                     background: 'transparent',
                     color: THEME.colors.foreground,
-                    fontSize: '12px',
-                    width: isMobile ? '110px' : '140px',
+                    fontSize: forceExpanded ? '14px' : '12px',
+                    minWidth: 0,
+                    flex: forceExpanded ? 1 : undefined,
+                    width: forceExpanded ? 'auto' : isMobile ? '110px' : '140px',
                 }}
             />
             {searchTerm && (
@@ -122,7 +129,7 @@ export function SearchBar({
                     ))}
                 </select>
             )}
-            {isMobile && (
+            {isMobile && !forceExpanded && (
                 <button
                     type="button"
                     onClick={() => {

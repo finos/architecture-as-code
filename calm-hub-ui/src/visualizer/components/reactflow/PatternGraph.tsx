@@ -24,6 +24,7 @@ import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/s
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
 import { applyStoredPositions } from '../../services/node-position-service.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useNodeSearch } from './node-search-context.js';
 import { DecisionSelectorPanel } from './DecisionSelectorPanel.js';
 import {
     extractDecisionPoints,
@@ -56,8 +57,8 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
 
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [typeFilter, setTypeFilter] = useState('');
+    const { searchTerm, setSearchTerm, typeFilter, setTypeFilter, availableNodeTypes, setAvailableNodeTypes, external: externalSearch } =
+        useNodeSearch();
     const [decisionSelections, setDecisionSelections] = useState<DecisionSelections>(new Map());
 
     // Refs hold the structural node/edge data from parsing.
@@ -66,7 +67,6 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
     const sourceNodesRef = useRef<Node[]>([]);
     const sourceEdgesRef = useRef<Edge[]>([]);
 
-    const [availableNodeTypes, setAvailableNodeTypes] = useState<string[]>([]);
     const [decisionPoints, setDecisionPoints] = useState<ReturnType<typeof extractDecisionPoints>>([]);
     const isMobile = useIsMobile();
 
@@ -95,7 +95,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
         setDecisionPoints(extractDecisionPoints(parsedNodes));
-    }, [patternData, setNodes, setEdges, viewportKey]);
+    }, [patternData, setNodes, setEdges, setAvailableNodeTypes, viewportKey]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';
@@ -221,8 +221,8 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                         onReset={handleDecisionReset}
                     />
                 </Panel>
-                {/* Offset left so it clears the diagram's top-right view-options menu. */}
-                <Panel position="top-right" style={{ marginRight: '2.75rem' }}>
+                {!externalSearch && (
+                <Panel position="top-right">
                     <SearchBar
                         searchTerm={searchTerm}
                         onSearchChange={setSearchTerm}
@@ -231,6 +231,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                         nodeTypes={availableNodeTypes}
                     />
                 </Panel>
+                )}
             </ReactFlow>
         </div>
     );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import ReactFlow, {
     Node,
     Background,
@@ -22,6 +22,7 @@ import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/s
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
 import { applyStoredPositions } from '../../services/node-position-service.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useNodeSearch } from './node-search-context.js';
 import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
 
 const edgeTypes = { custom: FloatingEdge };
@@ -38,15 +39,14 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
 
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [typeFilter, setTypeFilter] = useState('');
+    const { searchTerm, setSearchTerm, typeFilter, setTypeFilter, availableNodeTypes, setAvailableNodeTypes, external: externalSearch } =
+        useNodeSearch();
 
     // Ref holds the structural node data from parsing.
     // Filter effect reads from this instead of reactive state to avoid
     // re-triggering when setNodes/setEdges update styles.
     const sourceNodesRef = useRef<Node[]>([]);
 
-    const [availableNodeTypes, setAvailableNodeTypes] = useState<string[]>([]);
     const isMobile = useIsMobile();
 
     const {
@@ -72,7 +72,7 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         setNodes(viewportKey ? applyStoredPositions(viewportKey, parsedNodes) : parsedNodes);
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
-    }, [jsonData, setNodes, setEdges, onNodeClick, viewportKey]);
+    }, [jsonData, setNodes, setEdges, setAvailableNodeTypes, onNodeClick, viewportKey]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';
@@ -149,16 +149,17 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
                         maskColor={`${THEME.colors.background}cc`}
                     />
                 )}
-                {/* Offset left so it clears the diagram's top-right view-options menu. */}
-                <Panel position="top-right" style={{ marginRight: '2.75rem' }}>
-                    <SearchBar
-                        searchTerm={searchTerm}
-                        onSearchChange={setSearchTerm}
-                        typeFilter={typeFilter}
-                        onTypeFilterChange={setTypeFilter}
-                        nodeTypes={availableNodeTypes}
-                    />
-                </Panel>
+                {!externalSearch && (
+                    <Panel position="top-right">
+                        <SearchBar
+                            searchTerm={searchTerm}
+                            onSearchChange={setSearchTerm}
+                            typeFilter={typeFilter}
+                            onTypeFilterChange={setTypeFilter}
+                            nodeTypes={availableNodeTypes}
+                        />
+                    </Panel>
+                )}
             </ReactFlow>
         </div>
     );
