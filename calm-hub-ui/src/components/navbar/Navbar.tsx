@@ -13,11 +13,11 @@ interface NavbarProps {
 
 export function Navbar({ onExploreClick }: NavbarProps) {
     return (
-        <div className="navbar bg-base-100 border-b-2 border-base-200 text-primary-content">
-            <div className="navbar-start flex items-center gap-1">
+        <div className="navbar relative bg-base-100 border-b-2 border-base-200 text-primary-content gap-1">
+            <div className="navbar-start flex items-center gap-1 min-w-0">
                 {onExploreClick && (
                     <button
-                        className="btn btn-ghost gap-2 text-primary"
+                        className="btn btn-ghost gap-2 text-primary shrink-0"
                         onClick={onExploreClick}
                         aria-label="Toggle explorer"
                     >
@@ -25,7 +25,9 @@ export function Navbar({ onExploreClick }: NavbarProps) {
                         <span className="hidden sm:inline">Explore</span>
                     </button>
                 )}
-                <a className="btn btn-ghost">
+            </div>
+            <div className="navbar-center absolute left-1/2 -translate-x-1/2">
+                <a className="btn btn-ghost min-w-0 px-1">
                     <img
                         src="/brand/Horizontal/2025_CALM_Horizontal_Navbar_Logo.svg"
                         alt="CALM Logo"
@@ -33,7 +35,7 @@ export function Navbar({ onExploreClick }: NavbarProps) {
                     />
                 </a>
             </div>
-            <div className="navbar-end flex items-center gap-1">
+            <div className="navbar-end flex items-center gap-1 min-w-0 shrink-0">
                 {/* Portal target for page-level actions (e.g. the diagram's
                     view-options menu), always visible across breakpoints. */}
                 <div id="navbar-actions" className="flex items-center" />

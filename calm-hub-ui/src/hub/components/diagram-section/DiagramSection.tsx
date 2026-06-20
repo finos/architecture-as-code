@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5';
+import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
@@ -304,9 +304,6 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const Icon = iconMap[data.calmType];
     const comparing = compareFrom !== null && compareTo !== null;
 
-    const tabButtonClass = (tab: DiagramTabType) =>
-        `btn btn-sm justify-start gap-2 ${!comparing && activeTab === tab ? 'tab-active !bg-accent !text-white' : 'btn-ghost'}`;
-
     // Desktop: inline tabs in the section header (unchanged).
     const tabs = (
         <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
@@ -343,36 +340,51 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     );
 
     // Mobile: full-bleed render pane; the view-options menu lives in the navbar
-    // and opens as a full-screen overlay. The trigger shows the active view icon.
+    // and opens as a full-screen overlay styled like the explorer. The trigger
+    // shows the active view icon.
     const breadcrumb = (
-        <h2 className="text-sm font-semibold flex flex-wrap items-center gap-x-1">
+        <h2 className="px-4 py-3 text-sm font-medium flex flex-wrap items-center gap-x-1 border-b border-base-200 text-base-content">
             <Icon className="text-accent shrink-0" />
             {data.name}
             {typeLabel && (
                 <>
-                    <span className="text-gray-400">/</span> {typeLabel}
+                    <span className="text-base-content/40">/</span> <span className="text-base-content/70">{typeLabel}</span>
                 </>
             )}
-            <span className="text-gray-400">/</span>
+            <span className="text-base-content/40">/</span>
             <span title={data.id} className="break-all">
                 {displayName || data.id}
             </span>
         </h2>
     );
 
+    const viewModeRow = (tab: DiagramTabType, icon: ReactNode, label: string, onSelect?: () => void) => {
+        const active = !comparing && activeTab === tab;
+        return (
+            <button
+                role="tab"
+                aria-label={label}
+                aria-selected={active}
+                onClick={() => {
+                    setActiveTab(tab);
+                    onSelect?.();
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 ${
+                    active ? 'bg-base-200 text-accent font-semibold' : 'text-base-content'
+                }`}
+            >
+                <span className={active ? 'text-accent' : 'text-base-content/60'}>{icon}</span>
+                <span className="flex-1 min-w-0 truncate">{label}</span>
+                {active && <IoCheckmarkOutline size={18} className="text-accent shrink-0" />}
+            </button>
+        );
+    };
+
     const renderViewModes = (onSelect?: () => void) => (
-        <div role="tablist" className="flex flex-col gap-1">
-            <button role="tab" aria-label="Diagram" className={tabButtonClass('diagram')} onClick={() => { setActiveTab('diagram'); onSelect?.(); }}>
-                <IoEyeOutline /> Diagram
-            </button>
-            <button role="tab" aria-label="JSON" className={tabButtonClass('json')} onClick={() => { setActiveTab('json'); onSelect?.(); }}>
-                <IoCodeOutline /> JSON
-            </button>
-            {isArchitecture && (
-                <button role="tab" aria-label="Deployments" className={tabButtonClass('deployments')} onClick={() => { setActiveTab('deployments'); onSelect?.(); }}>
-                    <IoRocketOutline /> Deployments
-                </button>
-            )}
+        <div role="tablist" className="divide-y divide-base-200 border-b border-base-200">
+            {viewModeRow('diagram', <IoEyeOutline size={18} />, 'Diagram', onSelect)}
+            {viewModeRow('json', <IoCodeOutline size={18} />, 'JSON', onSelect)}
+            {isArchitecture && viewModeRow('deployments', <IoRocketOutline size={18} />, 'Deployments', onSelect)}
         </div>
     );
 
@@ -396,11 +408,27 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                             <IoCloseOutline size={22} />
                         </button>
                     </div>
-                    <div className="p-4 flex flex-col gap-4 overflow-auto">
+                    <div className="flex-1 overflow-auto">
                         {breadcrumb}
                         {renderViewModes(() => setShowViewMenu(false))}
+                        <div className="divide-y divide-base-200 border-b border-base-200">
+                            <button
+                                type="button"
+                                aria-label="Show timeline"
+                                onClick={() => {
+                                    setShowViewMenu(false);
+                                    setShowTimeline(true);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 text-base-content"
+                            >
+                                <span className="text-base-content/60">
+                                    <IoTimeOutline size={18} />
+                                </span>
+                                <span className="flex-1 min-w-0 truncate">Timeline</span>
+                            </button>
+                        </div>
                         {!comparing && activeTab === 'diagram' && (
-                            <div>
+                            <div className="p-4">
                                 <div className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">
                                     Search components
                                 </div>
@@ -483,8 +511,10 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         );
     }
 
-    // Mobile: full-bleed render pane; view-options menu (with component search)
-    // in the navbar; timeline tucked behind a floating button.
+    // Mobile: full-bleed render pane; the view-options menu (which now also
+    // contains the component search and the timeline action) lives in the navbar
+    // right-hand actions — nothing floats over the canvas where iOS chrome would
+    // hide it.
     return (
         <NodeSearchProvider value={nodeSearch}>
         <div className="w-full h-full">
@@ -492,17 +522,6 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             <div className="h-full bg-base-100 overflow-hidden flex flex-col">
                 <div className="flex-1 min-h-0 overflow-hidden relative">
                     {content}
-
-                    {!showTimeline && (
-                        <button
-                            type="button"
-                            aria-label="Show timeline"
-                            className="btn btn-sm btn-circle btn-accent shadow-lg absolute bottom-3 right-3 z-20"
-                            onClick={() => setShowTimeline(true)}
-                        >
-                            <IoTimeOutline size={18} />
-                        </button>
-                    )}
                 </div>
             </div>
 
