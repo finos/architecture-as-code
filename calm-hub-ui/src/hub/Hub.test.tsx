@@ -2,7 +2,28 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Hub from './Hub.js';
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, afterEach } from 'vitest';
+
+/**
+ * Force `useIsMobile()` (which reads window.matchMedia) to report a mobile
+ * viewport. Returns a restore function.
+ */
+function mockMobileViewport(isMobile: boolean) {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+        matches: isMobile,
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    return () => {
+        window.matchMedia = original;
+    };
+}
 
 vi.mock('./components/tree-navigation/TreeNavigation', () => ({
     TreeNavigation: ({
@@ -266,6 +287,57 @@ describe('Hub', () => {
 
             fireEvent.click(screen.getByLabelText('Expand sidebar'));
             expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+        });
+    });
+
+    describe('mobile layout', () => {
+        afterEach(() => {
+            // Restore the default desktop matchMedia mock from vitest.setup.ts.
+            window.matchMedia = ((query: string) => ({
+                matches: false,
+                media: query,
+                onchange: null,
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                addListener: () => {},
+                removeListener: () => {},
+                dispatchEvent: () => false,
+            })) as unknown as typeof window.matchMedia;
+        });
+
+        it('hides the tree navigation behind a menu button by default', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            // Tree is not rendered until the drawer is opened.
+            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+            expect(screen.getByLabelText('Open navigation')).toBeInTheDocument();
+
+            restore();
+        });
+
+        it('opens the tree navigation drawer when the menu button is clicked', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            fireEvent.click(screen.getByLabelText('Open navigation'));
+            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+
+            restore();
+        });
+
+        it('closes the drawer after a resource is loaded', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            fireEvent.click(screen.getByLabelText('Open navigation'));
+            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByText('Load Test Data'));
+            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+            restore();
         });
     });
 });
