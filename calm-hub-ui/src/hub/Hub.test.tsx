@@ -90,6 +90,35 @@ vi.mock('./components/tree-navigation/TreeNavigation', () => ({
     ),
 }));
 
+vi.mock('./components/tree-navigation/MobileNavMenu', () => ({
+    MobileNavMenu: ({
+        onDataLoad,
+        onClose,
+    }: {
+        onDataLoad: (data: unknown) => void;
+        onClose: () => void;
+    }) => (
+        <div data-testid="mobile-nav-menu">
+            <button aria-label="Close navigation" onClick={onClose}>
+                Close
+            </button>
+            <button
+                onClick={() =>
+                    onDataLoad({
+                        id: 'test',
+                        version: '1.0',
+                        calmType: 'Patterns',
+                        name: 'test-namespace',
+                        data: {},
+                    })
+                }
+            >
+                Mobile Load Test Data
+            </button>
+        </div>
+    ),
+}));
+
 vi.mock('./components/json-renderer/JsonRenderer', () => ({
     JsonRenderer: ({ json }: { json: unknown }) => (
         <div data-testid="json-renderer">{json ? 'JSON' : ''}</div>
@@ -305,26 +334,28 @@ describe('Hub', () => {
             })) as unknown as typeof window.matchMedia;
         });
 
-        it('keeps tree navigation mounted off-canvas with a menu button by default', () => {
+        it('keeps the drill-down menu mounted off-canvas with a menu button by default', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
-            // Tree stays mounted (so deep-link / search loading still runs) but the
-            // full-screen panel is closed (aria-hidden, so excluded from the dialog
-            // role) until the menu button is pressed.
-            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+            // The drill-down menu stays mounted (so deep-link / search loading still
+            // runs) but the full-screen panel is closed (aria-hidden, so excluded from
+            // the dialog role) until the menu button is pressed. The desktop tree is
+            // not rendered on mobile.
+            expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
+            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
             expect(screen.getByLabelText('Open navigation')).toBeInTheDocument();
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
             restore();
         });
 
-        it('opens the full-screen tree navigation panel when the menu button is clicked', () => {
+        it('opens the full-screen drill-down panel when the menu button is clicked', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
             fireEvent.click(screen.getByLabelText('Open navigation'));
-            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+            expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
             // The panel is now exposed (not aria-hidden), so the dialog is present.
             expect(screen.getByRole('dialog')).toBeInTheDocument();
 
@@ -338,10 +369,10 @@ describe('Hub', () => {
             fireEvent.click(screen.getByLabelText('Open navigation'));
             expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-            fireEvent.click(screen.getByText('Load Test Data'));
-            // Panel closes (aria-hidden again) but the tree remains mounted.
+            fireEvent.click(screen.getByText('Mobile Load Test Data'));
+            // Panel closes (aria-hidden again) but the menu remains mounted.
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+            expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
             expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
 
             restore();

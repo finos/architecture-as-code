@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { IoChevronForwardOutline, IoMenuOutline } from 'react-icons/io5';
 import { TreeNavigation } from './components/tree-navigation/TreeNavigation.js';
+import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { Data, Adr } from '../model/calm.js';
 import { ControlData } from '../model/control.js';
@@ -80,7 +81,7 @@ export default function Hub() {
             onAdrLoad={memoizedAdrLoad}
             onControlLoad={handleControlLoad}
             onInterfaceLoad={handleInterfaceLoad}
-            onCollapse={isMobile ? () => setIsMobileNavOpen(false) : () => setIsSidebarOpen(false)}
+            onCollapse={() => setIsSidebarOpen(false)}
         />
     );
 
@@ -121,10 +122,10 @@ export default function Hub() {
                     </div>
                 )}
 
-                {/* Mobile: full-screen tree-navigation panel that slides in from the
-                    left. Kept mounted (slid off screen) so deep-link / global-search
-                    loading — which lives inside TreeNavigation — runs even while the
-                    panel is closed. Dismissed via the panel's own back button. */}
+                {/* Mobile: full-screen drill-down navigation panel that slides in from
+                    the left. Kept mounted (slid off screen) so deep-link / global-search
+                    loading — which lives inside MobileNavMenu — runs even while the panel
+                    is closed. Dismissed via the panel's own close button. */}
                 {isMobile && (
                     <div
                         className={`fixed inset-0 z-40 bg-base-100 flex flex-col transition-transform duration-300 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'}`}
@@ -132,7 +133,15 @@ export default function Hub() {
                         aria-modal={isMobileNavOpen}
                         aria-hidden={!isMobileNavOpen}
                     >
-                        <div className="flex-1 min-h-0 overflow-hidden">{treeNavigation}</div>
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                            <MobileNavMenu
+                                onDataLoad={memoizedDataLoad}
+                                onAdrLoad={memoizedAdrLoad}
+                                onControlLoad={handleControlLoad}
+                                onInterfaceLoad={handleInterfaceLoad}
+                                onClose={() => setIsMobileNavOpen(false)}
+                            />
+                        </div>
                     </div>
                 )}
 
