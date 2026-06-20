@@ -1,4 +1,4 @@
-import { CalmCoreCanonicalModel, CalmNodeCanonicalModel } from '@finos/calm-models/canonical';
+import { CalmCoreCanonicalModel, CalmNodeCanonicalModel, CalmRelationshipCanonicalModel, toKindView } from '@finos/calm-models/canonical';
 import { prettyLabel } from './utils';
 import { BlockArchVM, NormalizedOptions, VMContainer, VMLeafNode, VMAttach, VMEdge } from '../types';
 import { buildParentHierarchy, ParentHierarchyResult } from './relationship-analyzer';
@@ -80,11 +80,17 @@ export class BlockArchVMBuilder {
             }
         }
 
+        const activeInterfaceIds: Set<string> | undefined =
+            this.options.ignoreConnectedInterfaces
+                ? collectActiveInterfaceIds(this.visibilityResult.filteredRels)
+                : undefined;
+
         const { containers: initialContainers, attachments, looseNodes: initialLooseNodes } = buildContainerForest(
             filteredNodes,
             this.parentHierarchyResult.parentOf,
             this.visibilityResult.containerIds,
-            this.options.renderInterfaces
+            this.options.renderInterfaces,
+            activeInterfaceIds
         );
 
         let looseNodes = initialLooseNodes;
@@ -192,6 +198,22 @@ export class BlockArchVMBuilder {
             .finalizeViewModel()
             .build();
     }
+}
+
+/**
+ * Collects all interface unique-ids referenced as source or destination in connects relationships.
+ * Used to whitelist only "active" interfaces when ignore-connected-interfaces is set.
+ */
+function collectActiveInterfaceIds(rels: CalmRelationshipCanonicalModel[]): Set<string> {
+    const ids = new Set<string>();
+    for (const rel of rels) {
+        const kind = toKindView(rel['relationship-type']);
+        if (kind.kind === 'connects') {
+            (kind.source.interfaces ?? []).forEach(id => ids.add(id));
+            (kind.destination.interfaces ?? []).forEach(id => ids.add(id));
+        }
+    }
+    return ids;
 }
 
 /**

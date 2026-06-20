@@ -49,6 +49,11 @@ describe('options-parser', () => {
         expect(parseOptions({ 'render-interfaces': true }).renderInterfaces).toBe(true);
     });
 
+    it('ignore-connected-interfaces: undefined by default; true when set', () => {
+        expect(parseOptions().ignoreConnectedInterfaces).toBeUndefined();
+        expect(parseOptions({ 'ignore-connected-interfaces': true }).ignoreConnectedInterfaces).toBe(true);
+    });
+
     it('passes through link-prefix', () => {
         const out = parseOptions({ 'link-prefix': '/docs/' });
         expect(out.linkPrefix).toBe('/docs/');
