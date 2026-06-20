@@ -80,8 +80,10 @@ jobs:
             # Step 8: Smoke test — build a local linux/amd64 image and verify the API
             # contract before pushing to the registry.  The image is self-contained
             # (NitriteDB baked in, CALM_READONLY=true), so no external services are
-            # needed.  The test asserts: GET /calm/namespaces -> 200 (reads work) and
-            # mutating methods -> 405 (ReadOnlyRequestFilter).
+            # needed.  The test asserts: GET /api/calm/namespaces -> 200 (reads work on
+            # seeded data) and mutating verbs -> 405 on both /api/calm/... and /calm
+            # (ReadOnlyRequestFilter).  Auth is disabled by the standalone profile baked
+            # into this image (QUARKUS_PROFILE=standalone).
             # The cache-to here primes the GHA layer cache so the multi-arch push
             # below is a cache hit for the amd64 layer.
             - name: Build image for smoke test

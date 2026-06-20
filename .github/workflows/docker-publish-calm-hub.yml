@@ -80,8 +80,9 @@ jobs:
             # Step 8: Smoke test — build a local linux/amd64 image and verify the API
             # contract before pushing to the registry.  A transient MongoDB container
             # is started on a private Docker network so the app can connect.  The test
-            # asserts: GET /calm/namespaces -> 200 and POST /calm/namespaces -> 201
+            # asserts: GET /api/calm/namespaces -> 200 and POST /api/calm/namespaces -> 201
             # (writes enabled; this is the writable MongoDB-backed JVM image).
+            # Auth is disabled for the smoke test (the prod image defaults to auth-on).
             # The cache-to here primes the GHA layer cache so the multi-arch push
             # below is a cache hit for the amd64 layer.
             - name: Build image for smoke test
@@ -102,6 +103,8 @@ jobs:
                   docker run -d --name calmhub --network smoke-net \
                     -p 8080:8080 \
                     -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongo:27017 \
+                    -e CALM_AUTH_ENABLED=false \
+                    -e QUARKUS_OIDC_TENANT_ENABLED=false \
                     calm-hub:smoke
                   bash calm-hub/smoke-test.sh http://localhost:8080 readwrite
 

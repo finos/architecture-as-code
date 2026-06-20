@@ -253,19 +253,19 @@ Stage 2 — runtime (minimal base)
 **Readiness:** polls `/q/swagger-ui` (always available regardless of DB profile).
 
 **Assertions:**
-- Always: `GET /calm/namespaces` → 200
-- `readonly`: POST, PUT, DELETE each → 405
-- `readwrite`: `POST /calm/namespaces` → 201
+- `readonly`: `GET /api/calm/namespaces` → 200 (reads seeded data); POST/PUT/DELETE → 405 on both `/api/calm/...` and `/calm` (ReadOnlyRequestFilter)
+- `readwrite`: `GET /api/calm/namespaces` → 200; `POST /api/calm/namespaces` → 201; name-based `/calm/...` POST/GET → 201/200; `PUT /calm` → 403
 
 ```bash
-# Read-only image
+# Read-only image (auth disabled by the standalone profile baked into the image)
 docker run --rm -p 8080:8080 calm-hub:read-only-static
 bash calm-hub/smoke-test.sh http://localhost:8080 readonly 120
 
-# MongoDB image (requires running Mongo)
+# MongoDB image (requires running Mongo; disable auth for unauthenticated smoke-test calls)
 cd calm-hub/local-dev && docker-compose up -d && cd ../..
 docker run --rm -p 8080:8080 \
   -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://localhost:27017 \
+  -e CALM_AUTH_ENABLED=false \
   calm-hub:latest
 bash calm-hub/smoke-test.sh http://localhost:8080 readwrite 120
 ```
