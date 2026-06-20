@@ -42,6 +42,7 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
     const activeTab: DiagramTabType = tabParam ?? 'diagram';
     const isMobile = useIsMobile();
     const [showTimeline, setShowTimeline] = useState(false);
+    const [showViewMenu, setShowViewMenu] = useState(false);
     const calmService = useMemo(() => new CalmService(), []);
     const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
@@ -279,8 +280,66 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
         `btn btn-sm justify-start gap-2 ${!comparing && activeTab === tab ? 'tab-active !bg-accent !text-white' : 'btn-ghost'}`;
 
     // The render pane is full-bleed; the breadcrumb and view-mode switch live in
-    // a hamburger menu pinned to the top-right of the canvas.
-    const viewMenu = (
+    // a menu opened from a hamburger pinned to the top-right of the canvas. On
+    // mobile it opens as a full-screen overlay (like the explorer); on desktop
+    // it's a dropdown.
+    const breadcrumb = (
+        <h2 className="text-sm font-semibold flex flex-wrap items-center gap-x-1">
+            <Icon className="text-accent shrink-0" />
+            {data.name}
+            {typeLabel && (
+                <>
+                    <span className="text-gray-400">/</span> {typeLabel}
+                </>
+            )}
+            <span className="text-gray-400">/</span>
+            <span title={data.id} className="break-all">
+                {displayName || data.id}
+            </span>
+        </h2>
+    );
+
+    const renderViewModes = (onSelect?: () => void) => (
+        <div role="tablist" className="flex flex-col gap-1">
+            <button role="tab" aria-label="Diagram" className={tabButtonClass('diagram')} onClick={() => { setActiveTab('diagram'); onSelect?.(); }}>
+                <IoEyeOutline /> Diagram
+            </button>
+            <button role="tab" aria-label="JSON" className={tabButtonClass('json')} onClick={() => { setActiveTab('json'); onSelect?.(); }}>
+                <IoCodeOutline /> JSON
+            </button>
+            {isArchitecture && (
+                <button role="tab" aria-label="Deployments" className={tabButtonClass('deployments')} onClick={() => { setActiveTab('deployments'); onSelect?.(); }}>
+                    <IoRocketOutline /> Deployments
+                </button>
+            )}
+        </div>
+    );
+
+    const viewMenu = isMobile ? (
+        <>
+            <button
+                aria-label="View options"
+                className="btn btn-sm btn-circle bg-base-100 border border-base-300 shadow absolute top-2 right-2 z-20"
+                onClick={() => setShowViewMenu(true)}
+            >
+                <IoMenuOutline size={18} />
+            </button>
+            {showViewMenu && (
+                <div className="fixed inset-0 z-40 bg-base-100 flex flex-col animate-slide-in-right" role="dialog" aria-modal="true">
+                    <div className="bg-base-200 px-3 py-3 border-b border-base-300 flex items-center justify-between">
+                        <span className="text-lg font-semibold">View</span>
+                        <button aria-label="Close view options" className="btn btn-ghost btn-sm btn-circle" onClick={() => setShowViewMenu(false)}>
+                            <IoCloseOutline size={22} />
+                        </button>
+                    </div>
+                    <div className="p-4 flex flex-col gap-4 overflow-auto">
+                        {breadcrumb}
+                        {renderViewModes(() => setShowViewMenu(false))}
+                    </div>
+                </div>
+            )}
+        </>
+    ) : (
         <div className="dropdown dropdown-end absolute top-2 right-2 z-20">
             <button
                 tabIndex={0}
@@ -294,32 +353,8 @@ export function DiagramSection({ data, onItemSelect }: DiagramSectionProps) {
                 tabIndex={0}
                 className="dropdown-content z-30 mt-1 w-64 rounded-box border border-base-300 bg-base-100 p-3 shadow-lg"
             >
-                <h2 className="text-sm font-semibold mb-2 flex flex-wrap items-center gap-x-1">
-                    <Icon className="text-accent shrink-0" />
-                    {data.name}
-                    {typeLabel && (
-                        <>
-                            <span className="text-gray-400">/</span> {typeLabel}
-                        </>
-                    )}
-                    <span className="text-gray-400">/</span>
-                    <span title={data.id} className="break-all">
-                        {displayName || data.id}
-                    </span>
-                </h2>
-                <div role="tablist" className="flex flex-col gap-1">
-                    <button role="tab" aria-label="Diagram" className={tabButtonClass('diagram')} onClick={() => setActiveTab('diagram')}>
-                        <IoEyeOutline /> Diagram
-                    </button>
-                    <button role="tab" aria-label="JSON" className={tabButtonClass('json')} onClick={() => setActiveTab('json')}>
-                        <IoCodeOutline /> JSON
-                    </button>
-                    {isArchitecture && (
-                        <button role="tab" aria-label="Deployments" className={tabButtonClass('deployments')} onClick={() => setActiveTab('deployments')}>
-                            <IoRocketOutline /> Deployments
-                        </button>
-                    )}
-                </div>
+                <div className="mb-2">{breadcrumb}</div>
+                {renderViewModes()}
             </div>
         </div>
     );
