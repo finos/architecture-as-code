@@ -80,17 +80,17 @@ canWrite(username, namespace):
 
 ## Permission reference
 
-All grants apply equally to named users and the `*` wildcard (any user).
+`read` and `write` grants may use either a named username or the `*` wildcard. **`admin` grants must always use a named username** — attempts to create a wildcard admin grant on any namespace, domain, or GLOBAL are rejected with `400 Bad Request`. The permission checker additionally ignores any wildcard admin grant that exists in the store (e.g. from hand-edited data), so `*` can never confer administrative access at runtime.
 
-| Permission | Scope | Capabilities | Evaluation rule | Implementation gaps |
-|------------|-------|--------------|-----------------|---------------------|
-| `read` | Namespace `N` | Read content in `N` | **AND all ancestors** — every ancestor level must have a matching grant | — |
-| `read` | Domain `D` | Read content in `D` | Flat — no hierarchy | — |
-| `write` | Namespace `N` | Read + write content in `N` and descendants | **OR any ancestor** — one ancestor grant covers all descendants | — |
-| `write` | Domain `D` | Read + write content in `D` | Flat — no hierarchy | — |
-| `admin` | Namespace `N` | Read + write content in `N` and descendants; list/grant/revoke entitlements in `N` and descendants; create child namespaces of `N` | **OR any ancestor** | — |
-| `admin` | Domain `D` | Read + write content in `D`; list/grant/revoke entitlements for `D` | Flat — no hierarchy | — |
-| `admin` | `GLOBAL` | Create/delete any namespace or domain; read + write all content; manage all entitlements (including further `GLOBAL admin` grants) | Bypasses all checks via `hasGlobalAdmin()` | Only `admin` is valid on `GLOBAL`; `read`/`write` grants are rejected with 400 |
+| Permission | Scope | Capabilities | Evaluation rule |
+|------------|-------|--------------|-----------------|
+| `read` | Namespace `N` | Read content in `N` | **AND all ancestors** — every ancestor level must have a matching grant |
+| `read` | Domain `D` | Read content in `D` | Flat — no hierarchy |
+| `write` | Namespace `N` | Read + write content in `N` and descendants | **OR any ancestor** — one ancestor grant covers all descendants |
+| `write` | Domain `D` | Read + write content in `D` | Flat — no hierarchy |
+| `admin` | Namespace `N` | Read + write content in `N` and descendants; list/grant/revoke entitlements in `N` and descendants; create child namespaces of `N` | **OR any ancestor** |
+| `admin` | Domain `D` | Read + write content in `D`; list/grant/revoke entitlements for `D` | Flat — no hierarchy |
+| `admin` | `GLOBAL` | Create/delete any namespace or domain; read + write all content; manage all entitlements (including further `GLOBAL admin` grants) | Bypasses all checks via `hasGlobalAdmin()` — only `admin` is valid; `read`/`write` grants on `GLOBAL` are rejected with 400 |
 
 ---
 

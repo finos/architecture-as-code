@@ -38,7 +38,13 @@ export function useCurrentUserAccess(service?: UserAccessService): CurrentUserAc
     const canAdminNamespace = useCallback(
         (namespace: string) =>
             isGlobalAdmin ||
-            grants.some((g) => g.namespace === namespace && g.permission === 'admin'),
+            grants.some(
+                (g) =>
+                    g.permission === 'admin' &&
+                    g.namespace != null &&
+                    // OR across ancestors: admin on 'org' covers 'org', 'org.ab', 'org.ab.cd', etc.
+                    (namespace === g.namespace || namespace.startsWith(g.namespace + '.'))
+            ),
         [grants, isGlobalAdmin]
     );
 

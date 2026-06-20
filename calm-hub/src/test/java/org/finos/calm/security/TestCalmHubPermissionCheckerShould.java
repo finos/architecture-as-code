@@ -476,13 +476,13 @@ class TestCalmHubPermissionCheckerShould {
     }
 
     @Test
-    void wildcard_admin_grant_for_domain_allows_domain_admin() {
+    void wildcard_admin_grant_for_domain_does_not_grant_domain_admin() {
         givenAuthenticatedUser("alice");
         UserAccess wildcardGrant = new UserAccess.UserAccessBuilder()
                 .setUsername("*").setPermission(UserAccess.Permission.admin).setDomain("payments").build();
         when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(wildcardGrant));
 
-        assertTrue(checker.allowDomainAdmin(mockIdentity, "payments"));
+        assertFalse(checker.allowDomainAdmin(mockIdentity, "payments"));
     }
 
     @Test

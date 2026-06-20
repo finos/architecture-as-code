@@ -11,7 +11,7 @@ const wildcardGrant: UserAccess = { userAccessId: 3, username: '*', permission: 
 function mockSvc(overrides: Partial<Record<keyof UserAccessService, unknown>> = {}): UserAccessService {
     const svc = new UserAccessService();
     vi.spyOn(svc, 'getNamespaceUserAccess').mockResolvedValue([readGrant, adminGrant]);
-    vi.spyOn(svc, 'grantNamespaceAccess').mockResolvedValue({ ...readGrant, userAccessId: 99 });
+    vi.spyOn(svc, 'grantNamespaceAccess').mockResolvedValue(undefined);
     vi.spyOn(svc, 'revokeNamespaceAccess').mockResolvedValue(undefined);
     Object.entries(overrides).forEach(([k, v]) => {
         vi.spyOn(svc, k as keyof UserAccessService).mockImplementation(v as never);

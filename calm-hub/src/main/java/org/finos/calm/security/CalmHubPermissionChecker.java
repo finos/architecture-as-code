@@ -177,7 +177,9 @@ public class CalmHubPermissionChecker {
         }
 
         boolean result = grants.stream().anyMatch(g ->
-                domain.equals(g.getDomain()) && permissionSufficient(g, action));
+                domain.equals(g.getDomain())
+                        && permissionSufficient(g, action)
+                        && !(action == UserAction.ADMIN && "*".equals(g.getUsername())));
 
         if (result) {
             logger.debug("User [{}] AUTHORIZED for [{}] in domain [{}]", username, action, domain);
