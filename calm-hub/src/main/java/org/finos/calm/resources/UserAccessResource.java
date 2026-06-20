@@ -1,7 +1,6 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.PermissionsAllowed;
-import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -11,6 +10,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.UserAccess;
+import org.finos.calm.domain.UserAccessRequest;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
@@ -46,17 +46,17 @@ public class UserAccessResource {
     )
     @PermissionsAllowed(CalmHubScopes.ADMIN)
     public Response createUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-                                                 @Valid @NotNull UserAccess createUserAccessRequest) {
+                                                 @Valid @NotNull UserAccessRequest request) {
 
-        createUserAccessRequest.setCreationDateTime(LocalDateTime.now());
-        createUserAccessRequest.setUpdateDateTime(LocalDateTime.now());
-        if (!namespace.equals(createUserAccessRequest.getNamespace())) {
-            logger.error("Request contains an invalid namespace [{}]", createUserAccessRequest.getNamespace());
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Bad Request").build();
-        }
+        UserAccess userAccess = new UserAccess.UserAccessBuilder()
+                .setNamespace(namespace)
+                .setUsername(request.getUsername())
+                .setPermission(request.getPermission())
+                .build();
+        userAccess.setCreationDateTime(LocalDateTime.now());
+        userAccess.setUpdateDateTime(LocalDateTime.now());
         try {
-            return locationResponse(store.createUserAccessForNamespace(createUserAccessRequest));
+            return locationResponse(store.createUserAccessForNamespace(userAccess));
         } catch (NamespaceNotFoundException exception) {
             logger.error("Invalid namespace [{}] when creating user access", namespace, exception);
             return invalidNamespaceResponse(namespace);
@@ -78,16 +78,10 @@ public class UserAccessResource {
     public Response getUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace) {
 
         try {
-            return Response.ok(store.getUserAccessForNamespace(namespace))
-                    .build();
+            return Response.ok(store.getUserAccessForNamespace(namespace)).build();
         } catch (NamespaceNotFoundException exception) {
             logger.error("Invalid namespace [{}] when getting user-access details", namespace, exception);
             return invalidNamespaceResponse(namespace);
-        } catch (UserAccessNotFoundException ex) {
-            logger.error("Use-access details are not found [{}]", namespace, ex);
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("No access permissions found")
-                    .build();
         }
     }
 
@@ -110,6 +104,28 @@ public class UserAccessResource {
             return invalidNamespaceResponse(namespace);
         } catch (UserAccessNotFoundException ex) {
             logger.error("Use-access details are not found [{}]", namespace, ex);
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("No access permissions found").build();
+        }
+    }
+
+    @DELETE
+    @Path("{namespace}/user-access/{userAccessId}")
+    @Operation(
+            summary = "Revoke a user-access grant",
+            description = "Deletes the user-access record for the given namespace and id"
+    )
+    @PermissionsAllowed(CalmHubScopes.ADMIN)
+    public Response deleteUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+                                                 @PathParam("userAccessId") @NotNull Integer userAccessId) {
+        try {
+            store.deleteUserAccessForNamespace(namespace, userAccessId);
+            return Response.noContent().build();
+        } catch (NamespaceNotFoundException exception) {
+            logger.error("Invalid namespace [{}] when deleting user access", namespace, exception);
+            return invalidNamespaceResponse(namespace);
+        } catch (UserAccessNotFoundException ex) {
+            logger.error("User-access record [{}] not found in namespace [{}]", userAccessId, namespace, ex);
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("No access permissions found").build();
         }

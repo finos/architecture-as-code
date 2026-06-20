@@ -2,7 +2,6 @@ package org.finos.calm.services;
 
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
 import org.finos.calm.store.UserAccessStore;
@@ -43,7 +42,7 @@ class TestNamespaceMigrationServiceShould {
     @Test
     void inserts_wildcard_read_grant_when_namespace_has_no_grants() throws Exception {
         when(mockUserAccessStore.getUserAccessForNamespace("org"))
-                .thenThrow(new UserAccessNotFoundException());
+                .thenReturn(List.of());
 
         boolean result = service.backfillIfNeeded("org");
 
@@ -103,7 +102,7 @@ class TestNamespaceMigrationServiceShould {
     @Test
     void returns_false_when_grant_insertion_fails() throws Exception {
         when(mockUserAccessStore.getUserAccessForNamespace("org"))
-                .thenThrow(new UserAccessNotFoundException());
+                .thenReturn(List.of());
         doThrow(new NamespaceNotFoundException())
                 .when(mockUserAccessStore).createUserAccessForNamespace(any());
 
@@ -121,7 +120,7 @@ class TestNamespaceMigrationServiceShould {
                 new NamespaceInfo("org.ab", "")
         ));
         when(mockUserAccessStore.getUserAccessForNamespace(any()))
-                .thenThrow(new UserAccessNotFoundException());
+                .thenReturn(List.of());
 
         service.onStart(null);
 
@@ -144,7 +143,7 @@ class TestNamespaceMigrationServiceShould {
         // First run: no grants → inserts
         when(mockNamespaceStore.getNamespaces()).thenReturn(List.of(new NamespaceInfo("org", "")));
         when(mockUserAccessStore.getUserAccessForNamespace("org"))
-                .thenThrow(new UserAccessNotFoundException())
+                .thenReturn(List.of())
                 .thenReturn(List.of(new UserAccess("*", UserAccess.Permission.read, "org")));
 
         service.onStart(null);

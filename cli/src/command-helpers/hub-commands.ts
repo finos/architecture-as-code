@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubArchitectureSummary, HubClientError, HubPatternSummary, HubStandardSummary, HubDomainSummary, HubControlRequirementSummary, HubDomainCreateResult } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -35,7 +35,7 @@ export async function resolveCalmHubOptions(inputOptions: CalmHubOptions): Promi
         options.calmHubUrl = config.calmHubUrl;
     }
     if (config && config.authPluginPath && !options.authPlugin) {
-        options.authPlugin = await cliConfig.loadAuthPlugin(config.authPluginPath, false); // TODO logging
+        options.authPlugin = await cliConfig.loadAuthPlugin(config.authPluginPath, false);
     }
 
     if (!options.calmHubUrl) {
@@ -50,20 +50,20 @@ export async function resolveCalmHubOptions(inputOptions: CalmHubOptions): Promi
 
 // ── push architecture ─────────────────────────────────────────────────────────
 
-export interface PushArchitectureOptions {
+export interface PushOptions {
     calmHubOptions: CalmHubOptions;
-    namespace: string;
     name?: string;
     description?: string;
     file: string;
-    id?: string;
     version?: string;
     format?: string;
+    changeType?: ResourceChangeType;
 }
 
-export interface PushArchitectureResult {
-    id: number;
-    version?: string;
+export interface PushResult {
+    version: string;
+    mapping: string;
+    namespace: string;
     location: string;
 }
 
@@ -72,13 +72,13 @@ export interface PushArchitectureResult {
  * @param result Push result payload.
  * @param format Output format selector.
  */
-export function printPushResult(result: PushArchitectureResult, format: OutputFormat): void {
+export function printPushResult(result: PushResult, format: OutputFormat): void {
     if (format === 'pretty') {
         printTableSuccess(
-            [{ STATUS: 'Created', ID: result.id, VERSION: result.version ?? '', LOCATION: result.location }],
+            [{ STATUS: 'Created', MAPPING: result.mapping, VERSION: result.version, LOCATION: result.location }],
             [
                 { key: 'STATUS', header: 'STATUS' },
-                { key: 'ID', header: 'ID' },
+                { key: 'MAPPING', header: 'MAPPING' },
                 { key: 'VERSION', header: 'VERSION' },
                 { key: 'LOCATION', header: 'LOCATION' }
             ]
@@ -86,89 +86,6 @@ export function printPushResult(result: PushArchitectureResult, format: OutputFo
     } else {
         printJsonSuccess(result);
     }
-}
-
-/**
- * Resolves missing architecture name/description from an existing architecture id.
- * @param client CALM Hub API client.
- * @param namespace Target namespace.
- * @param parsedId Architecture id.
- * @param name Optional name supplied by the user.
- * @param description Optional description supplied by the user.
- * @param format Output format used for error handling.
- * @returns Resolved name and description.
- */
-export async function resolveVersionedMetadata(
-    client: CalmHubClient,
-    namespace: string,
-    parsedId: number,
-    name: string | undefined,
-    description: string | undefined,
-    format: OutputFormat
-): Promise<{ name: string; description: string }> {
-    if (name && description !== undefined) {
-        return { name, description };
-    }
-
-    let architectures: HubArchitectureSummary[] = [];
-    try {
-        architectures = await client.listArchitectures(namespace);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const existing = architectures.find(a => a.id === parsedId);
-    if (!existing) {
-        printError(0, `Architecture with id ${parsedId} not found in namespace ${namespace}`, 'push architecture', format);
-        process.exit(1);
-    }
-    return {
-        name: name ?? existing.name,
-        description: description ?? existing.description ?? ''
-    };
-}
-
-/**
- * Pushes a new architecture version for an existing architecture id.
- * @param client CALM Hub API client.
- * @param options Command options.
- * @param fileContent Architecture JSON payload.
- * @param format Output format used for error handling.
- * @returns Push result with id, version, and location.
- */
-export async function pushVersioned(
-    client: CalmHubClient,
-    options: PushArchitectureOptions,
-    fileContent: string,
-    format: OutputFormat
-): Promise<PushArchitectureResult> {
-    if (!options.version) {
-        printError(0, '--version is required when --id is provided', 'push architecture', format);
-        process.exit(1);
-    }
-
-    const parsedId = parseInt(options.id!, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'push architecture', format);
-        process.exit(1);
-    }
-
-    const { name, description } = await resolveVersionedMetadata(
-        client,
-        options.namespace,
-        parsedId,
-        options.name,
-        options.description,
-        format
-    );
-
-    return client.pushArchitectureVersion(
-        options.namespace,
-        parsedId,
-        options.version,
-        name,
-        description,
-        fileContent
-    );
 }
 
 /**
@@ -186,77 +103,202 @@ async function handleOptionsLoadError(opts: CalmHubOptions, format: OutputFormat
 }
 
 /**
- * Pushes a new architecture or a versioned update to CALM Hub.
- * @param options Command options.
+ * Handles errors from hub operations and exits with formatted error output.
+ * @param filePath The path to the file to load.
+ * @param requestedCommand The command that requested this operation, used for error context.
+ * @param format The format for the error message.
+ * @returns The raw file as a UTF-8 string.
  */
-export async function runPushArchitecture(options: PushArchitectureOptions): Promise<void> {
+export async function loadFileContent(filePath: string, requestedCommand: string, format: OutputFormat): Promise<string> {
+    try {
+        return await readFile(filePath, 'utf-8');
+    } catch {
+        printError(0, `Could not read file: ${filePath}`, requestedCommand, format);
+        process.exit(1);
+    }
+}
+
+/**
+ * Validates and minifies JSON content.
+ * @param fileContent The raw file content.
+ * @param filePath The path to the file.
+ * @param requestedCommand The command that requested this operation.
+ * @param format The output format.
+ * @returns The validated and minified JSON string.
+ */
+export function validateAndMinifyJSON(fileContent: string, filePath: string, requestedCommand: string, format: OutputFormat): string {
+    try {
+        const parsed = JSON.parse(fileContent);
+        fileContent = JSON.stringify(parsed); // re-stringify to ensure consistent formatting for storage and comparison, and to catch any JSON issues before sending to the hub.
+    } catch {
+        printError(0, `File is not valid JSON: ${filePath}`, requestedCommand, format);
+        process.exit(1);
+    }
+    return fileContent;
+}
+
+/**
+ * Extracts document metadata, and exits with formatted error output on failure.
+ * @param fileContent The raw file content.
+ * @param requestedCommand The command that requested this operation.
+ * @param format The output format.
+ * @returns The extracted document metadata.
+ */
+export function handleMetadataParsing(fileContent: string, requestedCommand: string, format: OutputFormat) {
+    let metadata: DocumentMetadata;
+    try {
+        metadata = extractDocumentMetadata(fileContent);
+    } catch (error) {
+        printError(0, `Failed to extract document metadata: ${error instanceof Error ? error.message : String(error)}`, requestedCommand, format);
+        process.exit(1);
+    }
+    return metadata;
+}
+
+/**
+ * Handles the actual push stage of the operation i.e. the integration with CalmHub.
+ * Checks whether it already exists to determine whether to create a new mapping or update an existing one.
+ * @param client The CalmHub client.
+ * @param namespace The namespace for the document.
+ * @param mapping The mapping for the document.
+ * @param metadata The metadata for the document.
+ * @param fileContent The content of the document.
+ * @param resourceType The type of the resource.
+ * @param changeType The type of change.
+ * @param options The push options.
+ * @param format The output format.
+ * @returns A promise resolving to the metadata of the pushed document.
+ */
+export async function pushDocument(
+    client: CalmHubClient, 
+    namespace: string, 
+    mapping: string, 
+    metadata: DocumentMetadata, 
+    fileContent: string, 
+    resourceType: ResourceType,
+    changeType: ResourceChangeType,
+    options: PushOptions): Promise<DocumentMetadata> {
+
+    // allow changing of name/description if not already set.
+    const name = options.name ?? metadata.name;
+    const description = options.description ?? metadata.description ?? '';
+
+    // const resourceTypeString: string = resourceType;
+    const mappedResourceVersions = await client.getMappedResourceVersions(namespace, mapping, resourceType);
+    const mappingExists = mappedResourceVersions.length > 0;
+
+    // override name/description if set
+    const newDocumentMetadata = {
+        ...metadata,
+        name,
+        description
+    };
+    if (mappingExists) {
+        // Sort defensively so the highest version is last, regardless of the order Hub returns them in.
+        const sortedVersions = sortSemVer(mappedResourceVersions);
+        const latestVersion = sortedVersions[sortedVersions.length - 1];
+        const newVersion = computeSemVerBump(latestVersion, changeType);
+        newDocumentMetadata.version = newVersion;
+        fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
+        await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
+    } else {
+        newDocumentMetadata.version = '1.0.0';
+        fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
+        await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
+    }
+    return newDocumentMetadata;
+}
+
+/**
+ * Handle all the steps for pushing a document, which is the same for all document types:
+ * - Setup client
+ * - Load and validate the document
+ * - Extract all necessary information
+ * - Push to CalmHub
+ * - Update the document on-disk with the new version and ID returned from CalmHub
+ */
+export async function orchestratePush(options: PushOptions, resourceType: ResourceType): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
-
-    if (!options.id && !options.name) {
-        printError(0, '--name is required when creating a new architecture', 'push architecture', format);
-        process.exit(1);
-    }
-
-    if (!options.id && !options.description) {
-        printError(0, '--description is required when creating a new architecture', 'push architecture', format);
-        process.exit(1);
-    }
-
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);
 
-    let fileContent: string;
-    try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `push architecture ${options.file}`, format);
-        process.exit(1);
-    }
+    const requestedCommand = `push ${resourceType} ${options.file}`;
+    let fileContent = await loadFileContent(options.file, requestedCommand, format);
 
     // Validate the file is parseable JSON before sending
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `push architecture ${options.file}`, format);
+    fileContent = validateAndMinifyJSON(fileContent, options.file, requestedCommand, format);
+
+    const metadata: DocumentMetadata = handleMetadataParsing(fileContent, requestedCommand, format);
+
+    if (!metadata.namespace || !metadata.mapping) {
+        printError(0, `Document metadata must include namespace and mapping: ${options.file}`, requestedCommand, format);
         process.exit(1);
     }
+    const namespace = metadata.namespace;
+    const mapping = metadata.mapping;
 
+    let documentMetadata: DocumentMetadata;
     try {
-        const result = options.id
-            ? await pushVersioned(client, options, fileContent, format)
-            : await client.pushArchitecture(options.namespace, options.name!, options.description!, fileContent);
+        documentMetadata = await pushDocument(
+            client, 
+            namespace, 
+            mapping, 
+            metadata, 
+            fileContent, 
+            resourceType, 
+            options.changeType ?? 'PATCH', 
+            options);
+        const newDocument = updateDocumentMetadata(fileContent, documentMetadata);
+        await writeFile(options.file, newDocument, 'utf-8');
+        const result: PushResult = {
+            mapping,
+            version: documentMetadata.version!,
+            namespace,
+            location: constructDocumentId(documentMetadata)
+        };
         printPushResult(result, format);
     } catch (err) {
         handleHubError(err, format);
     }
 }
 
+/**
+ * Pushes a new architecture or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
+export async function runPushArchitecture(options: PushOptions): Promise<void> {
+    return await orchestratePush(options, 'architectures');
+}
+
+
 // ── pull architecture ─────────────────────────────────────────────────────────
 
-export interface PullArchitectureOptions {
+export interface PullOptions {
     calmHubOptions: CalmHubOptions;
     namespace: string;
-    id: string;
-    version: string;
+    mapping: string;
+    version?: string;
     output?: string;
 }
 
-/**
- * Pulls an architecture version from CALM Hub and writes it to stdout or a file.
- * @param options Command options.
- */
-export async function runPullArchitecture(options: PullArchitectureOptions): Promise<void> {
+export async function pullDocument(options: PullOptions, resourceType: ResourceType): Promise<void> {
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions);
     const client = new CalmHubClient(calmHubOptions);
 
-    const parsedId = parseInt(options.id, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'pull architecture', 'json');
-        process.exit(1);
-    }
+    const mapping = options.mapping;
+    const namespace = options.namespace;
+    const version = options.version;
+    const pullLatest = !version;
+
+    console.error(`Pulling ${resourceType} from CALM Hub with namespace=${namespace}, mapping=${mapping}, version=${version ?? 'latest'}`);
 
     try {
-        const result = await client.pullArchitecture(options.namespace, parsedId, options.version);
+        let result;
+        if (pullLatest) {
+            result = await client.getMappedResourceLatestVersion(namespace, mapping, resourceType);
+        } else {
+            result = await client.getMappedResourceByVersion(namespace, mapping, version, resourceType);
+        }
         const pretty = JSON.stringify(result, null, 2);
 
         if (options.output) {
@@ -269,41 +311,57 @@ export async function runPullArchitecture(options: PullArchitectureOptions): Pro
     }
 }
 
+/**
+ * Pulls an architecture version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
+export async function runPullArchitecture(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'architectures');
+}
+
 // ── list architectures ────────────────────────────────────────────────────────
 
-export interface ListArchitecturesOptions {
+export interface ListOptions {
     calmHubOptions: CalmHubOptions;
     namespace: string;
     format?: string;
 }
 
 /**
- * Lists architectures in a namespace.
+ * Lists the custom IDs of mapped resources of a given type in a namespace.
+ * Backed by GET /calm/namespaces/{namespace}/{type}, which returns the list of mapped resource IDs.
  * @param options Command options.
+ * @param resourceType The resource type to list.
  */
-export async function runListArchitectures(options: ListArchitecturesOptions): Promise<void> {
+export async function runListMappedResources(options: ListOptions, resourceType: ResourceType): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);
 
     try {
-        const architectures = await client.listArchitectures(options.namespace);
+        const mappingIds = await client.getNamespaceMappings(options.namespace, resourceType);
 
         if (format === 'pretty') {
             printTableSuccess(
-                architectures.map(a => ({ ID: a.id, NAME: a.name, VERSIONS: a.versions.join(', ') })),
+                mappingIds.map(mappingId => ({ MAPPING: mappingId })),
                 [
-                    { key: 'ID', header: 'ID' },
-                    { key: 'NAME', header: 'NAME' },
-                    { key: 'VERSIONS', header: 'VERSIONS' }
+                    { key: 'MAPPING', header: 'MAPPING' }
                 ]
             );
         } else {
-            printJsonSuccess(architectures);
+            printJsonSuccess(mappingIds);
         }
     } catch (err) {
         handleHubError(err, format);
     }
+}
+
+/**
+ * Lists architectures in a namespace.
+ * @param options Command options.
+ */
+export async function runListArchitectures(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'architectures');
 }
 
 // ── create namespace ──────────────────────────────────────────────────────────
@@ -384,143 +442,12 @@ export async function runListNamespaces(options: ListNamespacesOptions): Promise
 
 // ── push pattern ──────────────────────────────────────────────────────────────
 
-export interface PushPatternOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    name?: string;
-    description?: string;
-    file: string;
-    id?: string;
-    version?: string;
-    format?: string;
-}
-
-/**
- * Resolves missing pattern name/description from an existing pattern id.
- * @param client CALM Hub API client.
- * @param namespace Target namespace.
- * @param parsedId Pattern id.
- * @param name Optional name supplied by the user.
- * @param description Optional description supplied by the user.
- * @param format Output format used for error handling.
- * @returns Resolved name and description.
- */
-export async function resolvePatternMetadata(
-    client: CalmHubClient,
-    namespace: string,
-    parsedId: number,
-    name: string | undefined,
-    description: string | undefined,
-    format: OutputFormat
-): Promise<{ name: string; description: string }> {
-    if (name && description !== undefined) {
-        return { name, description };
-    }
-
-    let patterns: HubPatternSummary[] = [];
-    try {
-        patterns = await client.listPatterns(namespace);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const existing = patterns.find(p => p.id === parsedId);
-    if (!existing) {
-        printError(0, `Pattern with id ${parsedId} not found in namespace ${namespace}`, 'push pattern', format);
-        process.exit(1);
-    }
-    return {
-        name: name ?? existing.name,
-        description: description ?? existing.description ?? ''
-    };
-}
-
-/**
- * Pushes a new pattern version for an existing pattern id.
- * @param client CALM Hub API client.
- * @param options Command options.
- * @param fileContent Pattern JSON payload.
- * @param format Output format used for error handling.
- * @returns Push result with id, version, and location.
- */
-export async function pushPatternVersioned(
-    client: CalmHubClient,
-    options: PushPatternOptions,
-    fileContent: string,
-    format: OutputFormat
-): Promise<PushArchitectureResult> {
-    if (!options.version) {
-        printError(0, '--ver is required when --id is provided', 'push pattern', format);
-        process.exit(1);
-    }
-
-    const parsedId = parseInt(options.id!, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'push pattern', format);
-        process.exit(1);
-    }
-
-    const { name, description } = await resolvePatternMetadata(
-        client,
-        options.namespace,
-        parsedId,
-        options.name,
-        options.description,
-        format
-    );
-
-    return client.pushPatternVersion(
-        options.namespace,
-        parsedId,
-        options.version,
-        name,
-        description,
-        fileContent
-    );
-}
-
 /**
  * Pushes a new pattern or a versioned update to CALM Hub.
  * @param options Command options.
  */
-export async function runPushPattern(options: PushPatternOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-
-    if (!options.id && !options.name) {
-        printError(0, '--name is required when creating a new pattern', 'push pattern', format);
-        process.exit(1);
-    }
-
-    if (!options.id && !options.description) {
-        printError(0, '--description is required when creating a new pattern', 'push pattern', format);
-        process.exit(1);
-    }
-
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    let fileContent: string;
-    try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `push pattern ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `push pattern ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        const result = options.id
-            ? await pushPatternVersioned(client, options, fileContent, format)
-            : await client.pushPattern(options.namespace, options.name!, options.description!, fileContent);
-        printPushResult(result, format);
-    } catch (err) {
-        handleHubError(err, format);
-    }
+export async function runPushPattern(options: PushOptions): Promise<void> {
+    return orchestratePush(options, 'patterns');
 }
 
 // ── pull pattern ──────────────────────────────────────────────────────────────
@@ -528,291 +455,57 @@ export async function runPushPattern(options: PushPatternOptions): Promise<void>
 export interface PullPatternOptions {
     calmHubOptions: CalmHubOptions;
     namespace: string;
-    id: string;
-    version: string;
+    version?: string;
     output?: string;
+    mapping: string;
 }
 
 /**
  * Pulls a pattern version from CALM Hub and writes it to stdout or a file.
  * @param options Command options.
  */
-export async function runPullPattern(options: PullPatternOptions): Promise<void> {
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
-    const client = new CalmHubClient(calmHubOptions);
-
-    const parsedId = parseInt(options.id, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'pull pattern', 'json');
-        process.exit(1);
-    }
-
-    try {
-        const result = await client.pullPattern(options.namespace, parsedId, options.version);
-        const pretty = JSON.stringify(result, null, 2);
-
-        if (options.output) {
-            await writeFile(options.output, pretty, 'utf-8');
-        } else {
-            console.log(pretty);
-        }
-    } catch (err) {
-        handleHubError(err, 'json');
-    }
+export async function runPullPattern(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'patterns');
 }
 
 // ── list patterns ─────────────────────────────────────────────────────────────
-
-export interface ListPatternsOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    format?: string;
-}
 
 /**
  * Lists patterns in a namespace.
  * @param options Command options.
  */
-export async function runListPatterns(options: ListPatternsOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    try {
-        const patterns = await client.listPatterns(options.namespace);
-
-        if (format === 'pretty') {
-            printTableSuccess(
-                patterns.map(p => ({ ID: p.id, NAME: p.name, VERSIONS: p.versions.join(', ') })),
-                [
-                    { key: 'ID', header: 'ID' },
-                    { key: 'NAME', header: 'NAME' },
-                    { key: 'VERSIONS', header: 'VERSIONS' }
-                ]
-            );
-        } else {
-            printJsonSuccess(patterns);
-        }
-    } catch (err) {
-        handleHubError(err, format);
-    }
+export async function runListPatterns(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'patterns');
 }
 
 // ── push standard ─────────────────────────────────────────────────────────────
-
-export interface PushStandardOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    name?: string;
-    description?: string;
-    file: string;
-    id?: string;
-    version?: string;
-    format?: string;
-}
-
-/**
- * Resolves missing standard name/description from an existing standard id.
- * @param client CALM Hub API client.
- * @param namespace Target namespace.
- * @param parsedId Standard id.
- * @param name Optional name supplied by the user.
- * @param description Optional description supplied by the user.
- * @param format Output format used for error handling.
- * @returns Resolved name and description.
- */
-export async function resolveStandardMetadata(
-    client: CalmHubClient,
-    namespace: string,
-    parsedId: number,
-    name: string | undefined,
-    description: string | undefined,
-    format: OutputFormat
-): Promise<{ name: string; description: string }> {
-    if (name && description !== undefined) {
-        return { name, description };
-    }
-
-    let standards: HubStandardSummary[] = [];
-    try {
-        standards = await client.listStandards(namespace);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-    const existing = standards.find(s => s.id === parsedId);
-    if (!existing) {
-        printError(0, `Standard with id ${parsedId} not found in namespace ${namespace}`, 'push standard', format);
-        process.exit(1);
-    }
-    return {
-        name: name ?? existing.name,
-        description: description ?? existing.description ?? ''
-    };
-}
-
-/**
- * Pushes a new standard version for an existing standard id.
- * @param client CALM Hub API client.
- * @param options Command options.
- * @param fileContent Standard JSON payload.
- * @param format Output format used for error handling.
- * @returns Push result with id, version, and location.
- */
-export async function pushStandardVersioned(
-    client: CalmHubClient,
-    options: PushStandardOptions,
-    fileContent: string,
-    format: OutputFormat
-): Promise<PushArchitectureResult> {
-    if (!options.version) {
-        printError(0, '--ver is required when --id is provided', 'push standard', format);
-        process.exit(1);
-    }
-
-    const parsedId = parseInt(options.id!, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'push standard', format);
-        process.exit(1);
-    }
-
-    const { name, description } = await resolveStandardMetadata(
-        client,
-        options.namespace,
-        parsedId,
-        options.name,
-        options.description,
-        format
-    );
-
-    return client.pushStandardVersion(
-        options.namespace,
-        parsedId,
-        options.version,
-        name,
-        description,
-        fileContent
-    );
-}
 
 /**
  * Pushes a new standard or a versioned update to CALM Hub.
  * @param options Command options.
  */
-export async function runPushStandard(options: PushStandardOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-
-    if (!options.id && !options.name) {
-        printError(0, '--name is required when creating a new standard', 'push standard', format);
-        process.exit(1);
-    }
-
-    if (!options.id && !options.description) {
-        printError(0, '--description is required when creating a new standard', 'push standard', format);
-        process.exit(1);
-    }
-
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    let fileContent: string;
-    try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `push standard ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `push standard ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        const result = options.id
-            ? await pushStandardVersioned(client, options, fileContent, format)
-            : await client.pushStandard(options.namespace, options.name!, options.description!, fileContent);
-        printPushResult(result, format);
-    } catch (err) {
-        handleHubError(err, format);
-    }
+export async function runPushStandard(options: PushOptions): Promise<void> {
+    return orchestratePush(options, 'standards');
 }
 
 // ── pull standard ─────────────────────────────────────────────────────────────
-
-export interface PullStandardOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    id: string;
-    version: string;
-    output?: string;
-}
 
 /**
  * Pulls a standard version from CALM Hub and writes it to stdout or a file.
  * @param options Command options.
  */
-export async function runPullStandard(options: PullStandardOptions): Promise<void> {
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
-    const client = new CalmHubClient(calmHubOptions);
-
-    const parsedId = parseInt(options.id, 10);
-    if (!Number.isFinite(parsedId)) {
-        printError(0, '--id must be a valid integer', 'pull standard', 'json');
-        process.exit(1);
-    }
-
-    try {
-        const result = await client.pullStandard(options.namespace, parsedId, options.version);
-        const pretty = JSON.stringify(result, null, 2);
-
-        if (options.output) {
-            await writeFile(options.output, pretty, 'utf-8');
-        } else {
-            console.log(pretty);
-        }
-    } catch (err) {
-        handleHubError(err, 'json');
-    }
+export async function runPullStandard(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'standards');
 }
 
 // ── list standards ────────────────────────────────────────────────────────────
-
-export interface ListStandardsOptions {
-    calmHubOptions: CalmHubOptions;
-    namespace: string;
-    format?: string;
-}
 
 /**
  * Lists standards in a namespace.
  * @param options Command options.
  */
-export async function runListStandards(options: ListStandardsOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    try {
-        const standards = await client.listStandards(options.namespace);
-
-        if (format === 'pretty') {
-            printTableSuccess(
-                standards.map(s => ({ ID: s.id, NAME: s.name, DESCRIPTION: s.description ?? '', VERSIONS: s.versions.join(', ') })),
-                [
-                    { key: 'ID', header: 'ID' },
-                    { key: 'NAME', header: 'NAME' },
-                    { key: 'DESCRIPTION', header: 'DESCRIPTION' },
-                    { key: 'VERSIONS', header: 'VERSIONS' }
-                ]
-            );
-        } else {
-            printJsonSuccess(standards);
-        }
-    } catch (err) {
-        handleHubError(err, format);
-    }
+export async function runListStandards(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'standards');
 }
 
 // ── create domain ───────────────────────────────────────────────────────────
@@ -903,90 +596,223 @@ export async function runListDomains(options: ListDomainsOptions): Promise<void>
     }
 }
 
-// ── create control ────────────────────────────────────────────────────────────
+// ── push control documents ─────────────────────────────────────────────────────
 
-export interface CreateControlRequirementOptions {
+export interface PushControlOptions {
     calmHubOptions: CalmHubOptions;
-    domain: string;
-    name: string;
-    description: string;
     file: string;
     format?: string;
+    changeType?: ResourceChangeType;
+}
+
+export interface ControlPushResult {
+    domain: string;
+    controlName: string;
+    configName?: string;
+    version: string;
+    location: string;
 }
 
 /**
- * Creates a control requirement from a local JSON file.
- * @param options Command options.
+ * Prints a control push result in either pretty table or JSON format.
  */
-export async function runCreateControlRequirement(options: CreateControlRequirementOptions): Promise<void> {
+function printControlPushResult(result: ControlPushResult, format: OutputFormat): void {
+    if (format === 'pretty') {
+        const row: Record<string, string> = {
+            STATUS: 'Created',
+            DOMAIN: result.domain,
+            CONTROL: result.controlName
+        };
+        const columns = [
+            { key: 'STATUS', header: 'STATUS' },
+            { key: 'DOMAIN', header: 'DOMAIN' },
+            { key: 'CONTROL', header: 'CONTROL' }
+        ];
+        if (result.configName) {
+            row.CONFIG = result.configName;
+            columns.push({ key: 'CONFIG', header: 'CONFIG' });
+        }
+        row.VERSION = result.version;
+        row.LOCATION = result.location;
+        columns.push({ key: 'VERSION', header: 'VERSION' }, { key: 'LOCATION', header: 'LOCATION' });
+        printTableSuccess([row], columns);
+    } else {
+        printJsonSuccess(result);
+    }
+}
+
+/**
+ * Pushes a control requirement or configuration document to CALM Hub.
+ *
+ * Mirrors the mapped-resource push flow: the domain, control (and config) names and
+ * version are derived from the document $id; the next version is computed from the
+ * existing versions and the change type (1.0.0 on first push); the $id is rewritten
+ * with the new version and the raw document is POSTed to the versioned endpoint.
+ */
+async function orchestrateControlPush(options: PushControlOptions, kind: ControlDocumentKind): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
-
-    if (!options.name?.trim()) {
-        handleHubError(new Error('--name is required and must not be blank'), format);
-    }
-    if (!options.description?.trim()) {
-        handleHubError(new Error('--description is required and must not be blank'), format);
-    }
-
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);
 
-    let fileContent: string;
+    const requestedCommand = `push control-${kind} ${options.file}`;
+    let fileContent = await loadFileContent(options.file, requestedCommand, format);
+    fileContent = validateAndMinifyJSON(fileContent, options.file, requestedCommand, format);
+
+    let metadata: ControlDocumentMetadata;
     try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `create control-requirement ${options.file}`, format);
+        metadata = extractControlMetadata(fileContent);
+    } catch (error) {
+        printError(0, `Failed to extract control document metadata: ${error instanceof Error ? error.message : String(error)}`, requestedCommand, format);
         process.exit(1);
     }
 
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `create control-requirement ${options.file}`, format);
+    if (metadata.kind !== kind) {
+        printError(0, `Document $id describes a control ${metadata.kind}, but a control ${kind} was expected: ${options.file}`, requestedCommand, format);
         process.exit(1);
     }
 
+    const changeType = options.changeType ?? 'PATCH';
     try {
-        const result = await client.createControl(options.domain, options.name, options.description, fileContent);
-        printIdCreateResult(result, format);
+        const existingVersions = kind === 'configuration'
+            ? await client.getControlConfigurationVersions(metadata.domain, metadata.controlName, metadata.configName!)
+            : await client.getControlRequirementVersions(metadata.domain, metadata.controlName);
+
+        let newVersion = '1.0.0';
+        if (existingVersions.length > 0) {
+            const sorted = sortSemVer(existingVersions);
+            newVersion = computeSemVerBump(sorted[sorted.length - 1], changeType);
+        }
+
+        const newMetadata: ControlDocumentMetadata = { ...metadata, version: newVersion };
+        fileContent = updateControlDocumentMetadata(fileContent, newMetadata);
+
+        const location = kind === 'configuration'
+            ? await client.createControlConfigurationVersion(metadata.domain, metadata.controlName, metadata.configName!, newVersion, fileContent)
+            : await client.createControlRequirementVersion(metadata.domain, metadata.controlName, newVersion, fileContent);
+
+        await writeFile(options.file, fileContent, 'utf-8');
+
+        printControlPushResult({
+            domain: metadata.domain,
+            controlName: metadata.controlName,
+            configName: metadata.configName,
+            version: newVersion,
+            location
+        }, format);
     } catch (err) {
         handleHubError(err, format);
     }
 }
 
-// ── list controls ─────────────────────────────────────────────────────────────
+/**
+ * Pushes a control requirement version to CALM Hub (derives addressing from the document $id).
+ * @param options Command options.
+ */
+export async function runPushControlRequirement(options: PushControlOptions): Promise<void> {
+    return orchestrateControlPush(options, 'requirement');
+}
 
-export interface ListControlRequirementsOptions {
+/**
+ * Pushes a control configuration version to CALM Hub (derives addressing from the document $id).
+ * @param options Command options.
+ */
+export async function runPushControlConfiguration(options: PushControlOptions): Promise<void> {
+    return orchestrateControlPush(options, 'configuration');
+}
+
+// ── pull control documents ──────────────────────────────────────────────────────
+
+export interface PullControlOptions {
+    calmHubOptions: CalmHubOptions;
+    domain: string;
+    controlName: string;
+    configName?: string;
+    version?: string;
+    output?: string;
+}
+
+/**
+ * Pulls a control requirement or configuration version and writes it to stdout or a file.
+ * When no version is supplied, the highest available version is pulled.
+ */
+async function pullControlDocument(options: PullControlOptions, kind: ControlDocumentKind): Promise<void> {
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
+    const client = new CalmHubClient(calmHubOptions);
+
+    const { domain, controlName, configName, version } = options;
+    const pullLatest = !version;
+
+    try {
+        let resolvedVersion = version;
+        if (pullLatest) {
+            const versions = kind === 'configuration'
+                ? await client.getControlConfigurationVersions(domain, controlName, configName!)
+                : await client.getControlRequirementVersions(domain, controlName);
+            if (versions.length === 0) {
+                printError(0, `No control ${kind} versions found in domain ${domain} for control ${controlName}`, `pull control-${kind}`, 'json');
+                process.exit(1);
+            }
+            const sorted = sortSemVer(versions);
+            resolvedVersion = sorted[sorted.length - 1];
+        }
+
+        const result = kind === 'configuration'
+            ? await client.getControlConfigurationVersion(domain, controlName, configName!, resolvedVersion!)
+            : await client.getControlRequirementVersion(domain, controlName, resolvedVersion!);
+
+        const pretty = JSON.stringify(result, null, 2);
+        if (options.output) {
+            await writeFile(options.output, pretty, 'utf-8');
+        } else {
+            console.log(pretty);
+        }
+    } catch (err) {
+        handleHubError(err, 'json');
+    }
+}
+
+/**
+ * Pulls a control requirement version from CALM Hub.
+ * @param options Command options.
+ */
+export async function runPullControlRequirement(options: PullControlOptions): Promise<void> {
+    return pullControlDocument(options, 'requirement');
+}
+
+/**
+ * Pulls a control configuration version from CALM Hub.
+ * @param options Command options.
+ */
+export async function runPullControlConfiguration(options: PullControlOptions): Promise<void> {
+    return pullControlDocument(options, 'configuration');
+}
+
+// ── list controls / configurations ──────────────────────────────────────────────
+
+export interface ListControlsOptions {
     calmHubOptions: CalmHubOptions;
     domain: string;
     format?: string;
 }
 
 /**
- * Lists controls for a domain.
+ * Lists the control names in a domain (single column / JSON array).
  * @param options Command options.
  */
-export async function runListControlRequirements(options: ListControlRequirementsOptions): Promise<void> {
+export async function runListControls(options: ListControlsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);
 
     try {
-        const controls: HubControlRequirementSummary[] = await client.listControlRequirements(options.domain);
-
+        const controls: HubControlSummary[] = await client.listControls(options.domain);
         if (format === 'pretty') {
             printTableSuccess(
-                controls.map(c => ({
-                    'CONTROL-ID': c['control-id'],
-                    NAME: c.name,
-                    DESCRIPTION: c.description ?? '',
-                    VERSIONS: c.versions.join(', ')
-                })),
+                controls.map(c => ({ NAME: c.name, ID: c.id ?? '', DESCRIPTION: c.description ?? '' })),
                 [
-                    { key: 'CONTROL-ID', header: 'CONTROL-ID' },
                     { key: 'NAME', header: 'NAME' },
-                    { key: 'DESCRIPTION', header: 'DESCRIPTION' },
-                    { key: 'VERSIONS', header: 'VERSIONS' }
+                    { key: 'ID', header: 'ID' },
+                    { key: 'DESCRIPTION', header: 'DESCRIPTION' }
                 ]
             );
         } else {
@@ -997,349 +823,35 @@ export async function runListControlRequirements(options: ListControlRequirement
     }
 }
 
-// ── push control-requirement ──────────────────────────────────────────────────
-
-export interface PushControlRequirementOptions {
-    calmHubOptions: CalmHubOptions;
-    domain: string;
-    controlId: string;
-    version: string;
-    name?: string;
-    description?: string;
-    file: string;
-    format?: string;
-}
-
-/**
- * Pushes a versioned control requirement from a local JSON file.
- * @param options Command options.
- */
-export async function runPushControlRequirement(options: PushControlRequirementOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-
-    const parsedControlId = parseInt(options.controlId, 10);
-    if (!Number.isFinite(parsedControlId)) {
-        printError(0, '--control-id must be a valid integer', 'push control-requirement', format);
-        process.exit(1);
-    }
-
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    let fileContent: string;
-    try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `push control-requirement ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `push control-requirement ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        const trimmedName = options.name?.trim();
-        const trimmedDescription = options.description?.trim();
-
-        let resolvedName = trimmedName;
-        let resolvedDescription = trimmedDescription;
-
-        if (!resolvedName || !resolvedDescription) {
-            const controls = await client.listControls(options.domain);
-            const matchingControl = controls.find(control => control.id === parsedControlId);
-
-            if (!matchingControl) {
-                printError(
-                    0,
-                    `Control with id ${parsedControlId} not found in domain ${options.domain}`,
-                    'push control-requirement',
-                    format
-                );
-                process.exit(1);
-            }
-
-            if (!resolvedName) {
-                resolvedName = matchingControl.name?.trim();
-            }
-
-            if (!resolvedDescription) {
-                resolvedDescription = matchingControl.description?.trim();
-            }
-
-            if (!resolvedName || !resolvedDescription) {
-                printError(
-                    0,
-                    `Control with id ${parsedControlId} in domain ${options.domain} is missing name or description`,
-                    'push control-requirement',
-                    format
-                );
-                process.exit(1);
-            }
-        }
-
-        const result = await client.pushControlRequirement(
-            options.domain,
-            parsedControlId,
-            options.version,
-            resolvedName,
-            resolvedDescription,
-            fileContent
-        );
-        printPushResult(result, format);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-}
-
-// ── pull control-requirement ──────────────────────────────────────────────────
-
-export interface PullControlRequirementOptions {
-    calmHubOptions: CalmHubOptions;
-    domain: string;
-    controlId: string;
-    version: string;
-    output?: string;
-}
-
-/**
- * Pulls a versioned control requirement and writes it to stdout or a file.
- * @param options Command options.
- */
-export async function runPullControlRequirement(options: PullControlRequirementOptions): Promise<void> {
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
-    const client = new CalmHubClient(calmHubOptions);
-
-    const parsedControlId = parseInt(options.controlId, 10);
-    if (!Number.isFinite(parsedControlId)) {
-        printError(0, '--control-id must be a valid integer', 'pull control-requirement', 'json');
-        process.exit(1);
-    }
-
-    try {
-        const result = await client.pullControlRequirement(options.domain, parsedControlId, options.version);
-        const pretty = JSON.stringify(result, null, 2);
-
-        if (options.output) {
-            await writeFile(options.output, pretty, 'utf-8');
-        } else {
-            console.log(pretty);
-        }
-    } catch (err) {
-        handleHubError(err, 'json');
-    }
-}
-
-// ── push control-configuration ───────────────────────────────────────────────
-
-export interface PushControlConfigurationOptions {
-    calmHubOptions: CalmHubOptions;
-    domain: string;
-    controlId: string;
-    configId: string;
-    version: string;
-    file: string;
-    format?: string;
-}
-
-/**
- * Pushes a versioned control configuration from a local JSON file.
- * @param options Command options.
- */
-export async function runPushControlConfiguration(options: PushControlConfigurationOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-
-    const parsedControlId = parseInt(options.controlId, 10);
-    if (!Number.isFinite(parsedControlId)) {
-        printError(0, '--control-id must be a valid integer', 'push control-configuration', format);
-        process.exit(1);
-    }
-
-    const parsedConfigId = parseInt(options.configId, 10);
-    if (!Number.isFinite(parsedConfigId)) {
-        printError(0, '--config-id must be a valid integer', 'push control-configuration', format);
-        process.exit(1);
-    }
-
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    let fileContent: string;
-    try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `push control-configuration ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `push control-configuration ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        const result = await client.pushControlConfiguration(options.domain, parsedControlId, parsedConfigId, options.version, fileContent);
-        printPushResult(result, format);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-}
-
-// ── pull control-configuration ───────────────────────────────────────────────
-
-export interface PullControlConfigurationOptions {
-    calmHubOptions: CalmHubOptions;
-    domain: string;
-    controlId: string;
-    configId: string;
-    version: string;
-    output?: string;
-}
-
-/**
- * Pulls a versioned control configuration and writes it to stdout or a file.
- * @param options Command options.
- */
-export async function runPullControlConfiguration(options: PullControlConfigurationOptions): Promise<void> {
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, 'json');
-    const client = new CalmHubClient(calmHubOptions);
-
-    const parsedControlId = parseInt(options.controlId, 10);
-    if (!Number.isFinite(parsedControlId)) {
-        printError(0, '--control-id must be a valid integer', 'pull control-configuration', 'json');
-        process.exit(1);
-    }
-
-    const parsedConfigId = parseInt(options.configId, 10);
-    if (!Number.isFinite(parsedConfigId)) {
-        printError(0, '--config-id must be a valid integer', 'pull control-configuration', 'json');
-        process.exit(1);
-    }
-
-    try {
-        const result = await client.pullControlConfiguration(options.domain, parsedControlId, parsedConfigId, options.version);
-        const pretty = JSON.stringify(result, null, 2);
-
-        if (options.output) {
-            await writeFile(options.output, pretty, 'utf-8');
-        } else {
-            console.log(pretty);
-        }
-    } catch (err) {
-        handleHubError(err, 'json');
-    }
-}
-
-// ── create control-configuration ──────────────────────────────────────────────
-
-export interface CreateControlConfigurationOptions {
-    calmHubOptions: CalmHubOptions;
-    domain: string;
-    controlId: string;
-    file: string;
-    format?: string;
-}
-
-/**
- * Creates a control configuration from a local JSON file.
- * @param options Command options.
- */
-export async function runCreateControlConfiguration(options: CreateControlConfigurationOptions): Promise<void> {
-    const format: OutputFormat = parseOutputFormat(options.format);
-
-    const parsedControlId = parseInt(options.controlId, 10);
-    if (!Number.isFinite(parsedControlId)) {
-        printError(0, '--control-id must be a valid integer', 'create control-configuration', format);
-        process.exit(1);
-    }
-
-    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
-    const client = new CalmHubClient(calmHubOptions);
-
-    let fileContent: string;
-    try {
-        fileContent = await readFile(options.file, 'utf-8');
-    } catch {
-        printError(0, `Could not read file: ${options.file}`, `create control-configuration ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        JSON.parse(fileContent);
-    } catch {
-        printError(0, `File is not valid JSON: ${options.file}`, `create control-configuration ${options.file}`, format);
-        process.exit(1);
-    }
-
-    try {
-        const result = await client.createControlConfiguration(options.domain, parsedControlId, fileContent);
-        printIdCreateResult(result as { id: number; location: string }, format);
-    } catch (err) {
-        handleHubError(err, format);
-    }
-}
-
-// ── list control-configurations ───────────────────────────────────────────────
-
 export interface ListControlConfigurationsOptions {
     calmHubOptions: CalmHubOptions;
     domain: string;
-    controlId: string;
+    controlName: string;
     format?: string;
 }
 
 /**
- * Summarizes a control configuration with the versions available for it.
- */
-interface ControlConfigurationSummary {
-    configId: number;
-    versions: string[];
-}
-
-/**
- * Lists control configurations for a control requirement, including the versions available for each configuration.
+ * Lists the configuration names for a named control (single column / JSON array).
  * @param options Command options.
  */
 export async function runListControlConfigurations(options: ListControlConfigurationsOptions): Promise<void> {
     const format: OutputFormat = parseOutputFormat(options.format);
-
-    const parsedControlId = parseInt(options.controlId, 10);
-    if (!Number.isFinite(parsedControlId)) {
-        printError(0, '--control-id must be a valid integer', 'list control-configurations', format);
-        process.exit(1);
-    }
-
     const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
     const client = new CalmHubClient(calmHubOptions);
 
     try {
-        const ids: number[] = await client.listControlConfigurations(options.domain, parsedControlId);
-        const sortedIds = [...ids].sort((a, b) => a - b);
-        const configurations: ControlConfigurationSummary[] = [];
-
-        for (const id of sortedIds) {
-            const versions = await client.listControlConfigurationVersions(options.domain, parsedControlId, id);
-            configurations.push({ configId: id, versions });
-        }
-
+        const configurations: HubControlSummary[] = await client.listControlConfigurations(options.domain, options.controlName);
         if (format === 'pretty') {
             printTableSuccess(
-                configurations.map(configuration => ({
-                    'CONFIG-ID': configuration.configId,
-                    VERSIONS: configuration.versions.join(', ')
-                })),
+                configurations.map(c => ({ NAME: c.name, ID: c.id ?? '', DESCRIPTION: c.description ?? '' })),
                 [
-                    { key: 'CONFIG-ID', header: 'CONFIG-ID' },
-                    { key: 'VERSIONS', header: 'VERSIONS' }
+                    { key: 'NAME', header: 'NAME' },
+                    { key: 'ID', header: 'ID' },
+                    { key: 'DESCRIPTION', header: 'DESCRIPTION' }
                 ]
             );
         } else {
-            printJsonSuccess(configurations.map(c => ({ 'config-id': c.configId, versions: c.versions })));
+            printJsonSuccess(configurations);
         }
     } catch (err) {
         handleHubError(err, format);

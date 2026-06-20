@@ -5,6 +5,25 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.46.0] - 2026-06-17
+
+## [1.46.0](https://github.com/finos/architecture-as-code/compare/cli-v1.45.0...cli-v1.46.0) (2026-06-17)
+
+### chore
+
+* **deps:** bump the npm_and_yarn group across 1 directory with 1 update (#2663) ([](https://github.com/finos/architecture-as-code/commit/f2a3d2d03794262fcdeb0aba93bf3fa4d9baa86c)), closes [#2663](https://github.com/finos/architecture-as-code/issues/2663)
+* **deps:** patch 4 npm security vulnerabilities (#2655) ([](https://github.com/finos/architecture-as-code/commit/0c85722d8ec2f313dae1610f6735ad9f8b20dc88)), closes [#2655](https://github.com/finos/architecture-as-code/issues/2655) [#2657](https://github.com/finos/architecture-as-code/issues/2657)
+* **deps:** update dependency vite to v8 [security] (#2657) ([](https://github.com/finos/architecture-as-code/commit/7146105d43d01948b02e9b6fb14bfbcc4a8684d8)), closes [#2657](https://github.com/finos/architecture-as-code/issues/2657)
+
+### docs
+
+* group CALM Studio with the other tools under Working with CALM (#2667) ([](https://github.com/finos/architecture-as-code/commit/6c2a646be202748b03dee360ffb1421893937171)), closes [#2667](https://github.com/finos/architecture-as-code/issues/2667)
+
+### feat
+
+* **calm-hub:** fix missed /api/calm refactor in tests (#2665) ([](https://github.com/finos/architecture-as-code/commit/c58ef2019e85550849fb3ee48d1e07cd62e76122)), closes [#2665](https://github.com/finos/architecture-as-code/issues/2665)
+* **calm-hub:** hierarchical namespace entitlements (#2640) ([](https://github.com/finos/architecture-as-code/commit/0e05788e28fa592c0aaa7278ce4db6139ffbdf41)), closes [#2640](https://github.com/finos/architecture-as-code/issues/2640)
+
 ## [1.45.0] - 2026-06-15
 
 ## [1.45.0](https://github.com/finos/architecture-as-code/compare/cli-v1.44.1...cli-v1.45.0) (2026-06-15)

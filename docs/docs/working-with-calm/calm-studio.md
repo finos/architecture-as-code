@@ -124,4 +124,87 @@ Import a CALM JSON file to start from an existing architecture (e.g., one genera
 
 ## MCP Server Integration
 
-CALM Studio ships a standalone MCP server (`@calmstudio/mcp-server`) that lets AI tools like Claude Code and GitHub Copilot create and modify CALM architectures programmatically. The server exposes tools covering node CRUD, relationship management, rendering, and validation.
+CALM Studio ships a standalone MCP server (`@calmstudio/mcp`) that lets AI tools like Claude Code and GitHub Copilot create and modify CALM architectures programmatically. The server exposes 20 tools covering node CRUD, relationship management, rendering, and validation.
+
+### Recommended workflow
+
+Always call `read_calm_guide` before creating nodes or relationships. It returns the full node-type vocabulary and relationship forms that the other tools enforce.
+
+```
+1. read_calm_guide()                        ← node types, relationship forms, usage tips
+2. read_calm_guide(topic="arb-conversion")  ← AI architecture mapping table (optional)
+3. create_architecture(file, nodes, relationships)
+4. validate_architecture(file)              ← fix errors before continuing
+5. finalize_architecture(file)              ← validates + attaches AIGF if AI nodes present
+6. export_calm(file, destination)
+```
+
+### Relationship form — nested object, not a string
+
+`relationship-type` is an **object** keyed by variant. This is enforced by the CALM 1.2 schema and by `validate_architecture`. The flat string form (`"relationship-type": "connects"`) is invalid and will be rejected.
+
+**connects** — point-to-point communication:
+
+```json
+{
+  "unique-id": "api-to-db",
+  "relationship-type": {
+    "connects": {
+      "source": { "node": "api-service" },
+      "destination": { "node": "postgres-db" }
+    }
+  },
+  "protocol": "JDBC"
+}
+```
+
+**composed-of** — structural containment:
+
+```json
+{
+  "unique-id": "platform-composed-of-services",
+  "relationship-type": {
+    "composed-of": {
+      "container": "platform",
+      "nodes": ["auth-service", "api-service"]
+    }
+  }
+}
+```
+
+**interacts** — actor to system:
+
+```json
+{
+  "unique-id": "user-interacts-app",
+  "relationship-type": {
+    "interacts": {
+      "actor": "end-user",
+      "nodes": ["web-frontend"]
+    }
+  }
+}
+```
+
+**deployed-in** — deployment containment:
+
+```json
+{
+  "unique-id": "service-in-cluster",
+  "relationship-type": {
+    "deployed-in": {
+      "container": "k8s-cluster",
+      "nodes": ["api-service"]
+    }
+  }
+}
+```
+
+### Common mistakes
+
+| Mistake | Fix |
+|---|---|
+| `"relationship-type": "connects"` (string) | Use nested object: `{ "connects": { "source": ..., "destination": ... } }` |
+| `"source": "node-id"` as a sibling key | Move inside variant: `"connects": { "source": { "node": "node-id" } }` |
+| Adding relationships before nodes | `add_relationship` validates refs — add nodes first |
+| `export_calm` before `finalize_architecture` | Always finalize first; it runs final validation |

@@ -102,6 +102,13 @@ describe('buildImpliedTimeline', () => {
 
         expect(timeline.moments[0].name).toBe('broken');
     });
+
+    it('returns timeline without current-moment when given no architectures', () => {
+        const timeline = buildImpliedTimeline([]);
+
+        expect(timeline.moments).toHaveLength(0);
+        expect(timeline['current-moment']).toBeUndefined();
+    });
 });
 
 describe('runTimelineGenerate', () => {
@@ -131,6 +138,16 @@ describe('runTimelineGenerate', () => {
         const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
 
         runTimelineGenerate({ architecturePaths: [], verbose: false });
+
+        expect(exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('handles non-Error thrown values in the catch block', () => {
+        const a = writeArch('a.json', { name: 'A' });
+        const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+        vi.spyOn(process.stdout, 'write').mockImplementation(() => { throw 'non-error string'; });
+
+        runTimelineGenerate({ architecturePaths: [a], verbose: false });
 
         expect(exitSpy).toHaveBeenCalledWith(1);
     });

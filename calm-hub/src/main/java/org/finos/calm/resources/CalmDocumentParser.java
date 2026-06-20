@@ -123,6 +123,25 @@ public class CalmDocumentParser {
     }
 
     /**
+     * Extracts the raw {@code $id} string from a JSON document, throwing
+     * {@link JsonProcessingException} if the input is not valid JSON.
+     * Returns {@code null} if the JSON is valid but {@code $id} is absent or non-string.
+     *
+     * <p>Unlike {@link #extractIdFromJson}, this method surfaces parse failures so
+     * callers can distinguish "malformed JSON" from "valid JSON without an {@code $id}".</p>
+     */
+    public String extractIdFromJsonStrict(String json) throws JsonProcessingException {
+        JsonNode tree = OBJECT_MAPPER.readTree(json);
+        if (tree.isObject()) {
+            JsonNode node = tree.get("$id");
+            if (node != null && !node.isNull() && node.isTextual()) {
+                return node.asText();
+            }
+        }
+        return null;
+    }
+
+    /**
      * Extracts a named string field from a JSON document.
      * Returns an empty string if the field is absent or cannot be parsed.
      */
