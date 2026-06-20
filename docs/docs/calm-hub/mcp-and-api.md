@@ -30,30 +30,47 @@ The Swagger UI is always included in the image (`quarkus.swagger-ui.always-inclu
 
 ### Base URL
 
-All CALM Hub REST endpoints are prefixed with `/calm`:
+CALM Hub exposes two REST surfaces:
+
+**Numeric-id storage API** — `/api/calm/...`
+
+The primary CRUD interface for namespaces, architectures, patterns, flows, standards, and other artefacts. Resources are addressed by server-assigned numeric IDs.
 
 ```
-GET  /calm/namespaces
+GET    /api/calm/namespaces
+POST   /api/calm/namespaces
+GET    /api/calm/namespaces/{namespace}/architectures
+POST   /api/calm/namespaces/{namespace}/architectures
+GET    /api/calm/namespaces/{namespace}/architectures/{id}/versions/{version}
+```
+
+**Name-based API** — `/calm/...`
+
+A user-facing layer that maps human-readable names (slugs) to their numeric IDs and provides versioned access by name. All paths include a `/versions/` segment.
+
+```
+POST /calm/namespaces/{namespace}/architectures/{name}/versions/{version}
+GET  /calm/namespaces/{namespace}/architectures/{name}/versions
+GET  /calm/namespaces/{namespace}/architectures/{name}/versions/{version}
 GET  /calm/namespaces/{namespace}/architectures
-GET  /calm/namespaces/{namespace}/architectures/{architectureId}
-GET  /calm/namespaces/{namespace}/architectures/{architectureId}/versions/{version}
-POST /calm/namespaces/{namespace}/architectures
-...
 ```
 
 The full endpoint list with request/response schemas is visible in the Swagger UI at `/q/swagger-ui`.
 
 ### Access Control
 
-Endpoints are protected by scope-based access control. The required scope is declared on each resource method. Common scopes:
+Endpoints are protected by **per-namespace permissions**. Access is granted via `UserAccess` records stored in the active backend; each record ties a username to a permission level for a specific namespace or control domain.
 
-| Scope | Access |
-|:------|:-------|
-| `architectures:read` | Read architectures |
-| `architectures:all` | Read and write architectures |
-| `patterns:read` | Read patterns |
-| `patterns:all` | Read and write patterns |
-| `namespace:admin` | Create/delete namespaces |
+| Permission | Scope | What it grants |
+|:-----------|:------|:---------------|
+| `read` | namespace | Read artefacts in a namespace |
+| `write` | namespace | Read + write artefacts (implies `read`) |
+| `admin` | namespace | Read + write + manage access grants (implies `write`) |
+| `domain_read` | control domain | Read controls in a domain |
+| `domain_write` | control domain | Write controls in a domain |
+| `global_admin` | all namespaces | Bypasses all namespace permission checks (`admin` on the reserved `GLOBAL` namespace) |
+
+Namespace permissions follow a hierarchical model using `.` as a separator (`org`, `org.team`, `org.team.project`). `read` is AND-ed across the ancestor chain (every level must have a matching grant); `write` and `admin` cascade from any ancestor via OR. See [`calm-hub/PERMISSIONS.md`](https://github.com/finos/architecture-as-code/blob/main/calm-hub/PERMISSIONS.md) and the [entitlements guide](../working-with-calm/calm-hub-entitlements.md) for the full model.
 
 When running without the `secure` Quarkus profile, authentication is disabled and all endpoints are accessible without a token.
 
