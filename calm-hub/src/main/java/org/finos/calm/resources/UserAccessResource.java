@@ -50,12 +50,13 @@ public class UserAccessResource {
     public Response createUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
                                                  @Valid @NotNull UserAccessRequest request) {
 
+        if ("*".equals(request.getUsername()) && request.getPermission() == UserAccess.Permission.admin) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Wildcard username is not permitted for admin permission")
+                    .build();
+        }
+
         if (GLOBAL_ACCESS.equals(namespace)) {
-            if ("*".equals(request.getUsername())) {
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity("Wildcard username is not permitted for the GLOBAL namespace")
-                        .build();
-            }
             if (request.getPermission() != UserAccess.Permission.admin) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity("Only 'admin' permission is valid for the GLOBAL namespace")
