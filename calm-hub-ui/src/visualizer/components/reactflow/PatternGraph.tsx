@@ -23,6 +23,7 @@ import { parsePatternData } from './utils/patternTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
 import { applyStoredPositions } from '../../services/node-position-service.js';
+import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { DecisionSelectorPanel } from './DecisionSelectorPanel.js';
 import {
     extractDecisionPoints,
@@ -67,6 +68,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
 
     const [availableNodeTypes, setAvailableNodeTypes] = useState<string[]>([]);
     const [decisionPoints, setDecisionPoints] = useState<ReturnType<typeof extractDecisionPoints>>([]);
+    const isMobile = useIsMobile();
 
     const {
         onNodesChange,
@@ -199,14 +201,16 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                         borderRadius: '8px',
                     }}
                 />
-                <MiniMap
-                    style={{
-                        background: THEME.colors.backgroundSecondary,
-                        border: `1px solid ${THEME.colors.border}`,
-                    }}
-                    nodeColor={THEME.colors.accent}
-                    maskColor={`${THEME.colors.background}cc`}
-                />
+                {!isMobile && (
+                    <MiniMap
+                        style={{
+                            background: THEME.colors.backgroundSecondary,
+                            border: `1px solid ${THEME.colors.border}`,
+                        }}
+                        nodeColor={THEME.colors.accent}
+                        maskColor={`${THEME.colors.background}cc`}
+                    />
+                )}
                 <Panel position="top-left">
                     <DecisionSelectorPanel
                         decisionPoints={decisionPoints}

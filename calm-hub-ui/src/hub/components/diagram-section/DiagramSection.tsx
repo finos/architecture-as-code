@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline } from 'react-icons/io5';
+import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5';
+import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
@@ -41,6 +42,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const navigate = useNavigate();
     const tabParam = searchParams.get('tab') as DiagramTabType | null;
     const activeTab: DiagramTabType = tabParam ?? 'diagram';
+    const isMobile = useIsMobile();
+    const [showTimeline, setShowTimeline] = useState(false);
     const calmService = useMemo(() => new CalmService(), []);
     const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
@@ -278,28 +281,31 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
             <button
                 role="tab"
+                aria-label="Diagram"
                 className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'diagram' ? 'tab-active !bg-accent !text-white' : ''}`}
                 onClick={() => setActiveTab('diagram')}
             >
                 <IoEyeOutline />
-                Diagram
+                <span className="hidden sm:inline">Diagram</span>
             </button>
             <button
                 role="tab"
+                aria-label="JSON"
                 className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'json' ? 'tab-active !bg-accent !text-white' : ''}`}
                 onClick={() => setActiveTab('json')}
             >
                 <IoCodeOutline />
-                JSON
+                <span className="hidden sm:inline">JSON</span>
             </button>
             {isArchitecture && (
                 <button
                     role="tab"
+                    aria-label="Deployments"
                     className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
                     onClick={() => setActiveTab('deployments')}
                 >
                     <IoRocketOutline />
-                    Deployments
+                    <span className="hidden sm:inline">Deployments</span>
                 </button>
             )}
         </div>
@@ -319,7 +325,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                     rightContent={tabs}
                 />
 
-                <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-hidden relative">
                     {comparing ? (
                         <CompareView
                             calmType={data.calmType}
@@ -343,22 +349,75 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                             <JsonRenderer json={data} />
                         </div>
                     )}
+
+                    {/* Mobile: timeline is tucked behind a floating button so it
+                        doesn't permanently occupy the short viewport. */}
+                    {isMobile && !showTimeline && (
+                        <button
+                            type="button"
+                            aria-label="Show timeline"
+                            className="btn btn-sm btn-circle btn-accent shadow-lg absolute bottom-3 right-3 z-20"
+                            onClick={() => setShowTimeline(true)}
+                        >
+                            <IoTimeOutline size={18} />
+                        </button>
+                    )}
                 </div>
 
-                <TimelineBar
-                    moments={moments}
-                    currentVersion={data.version}
-                    displayName={displayName}
-                    timelineCurrentMomentId={timelineCurrentMomentId}
-                    timelineIsExplicit={timelineIsExplicit}
-                    compareFrom={compareFrom}
-                    compareTo={compareTo}
-                    diffResult={diffResult}
-                    loadChangesForVersion={loadChangesForVersion}
-                    onNavigate={handleVersionChange}
-                    onCompare={startCompare}
-                />
+                {!isMobile && (
+                    <TimelineBar
+                        moments={moments}
+                        currentVersion={data.version}
+                        displayName={displayName}
+                        timelineCurrentMomentId={timelineCurrentMomentId}
+                        timelineIsExplicit={timelineIsExplicit}
+                        compareFrom={compareFrom}
+                        compareTo={compareTo}
+                        diffResult={diffResult}
+                        loadChangesForVersion={loadChangesForVersion}
+                        onNavigate={handleVersionChange}
+                        onCompare={startCompare}
+                    />
+                )}
             </div>
+
+            {isMobile && showTimeline && (
+                <div className="fixed inset-0 z-40 flex flex-col justify-end" role="dialog" aria-modal="true">
+                    <button
+                        aria-label="Close timeline"
+                        className="absolute inset-0 bg-black/40"
+                        onClick={() => setShowTimeline(false)}
+                    />
+                    <div className="relative max-h-[75%] overflow-auto bg-base-200 rounded-t-box shadow-xl">
+                        <div className="flex items-center justify-between px-4 py-2 border-b border-base-300 sticky top-0 bg-base-200 z-10">
+                            <span className="font-semibold flex items-center gap-2">
+                                <IoTimeOutline /> Timeline
+                            </span>
+                            <button
+                                aria-label="Close timeline"
+                                className="btn btn-ghost btn-xs btn-circle"
+                                onClick={() => setShowTimeline(false)}
+                            >
+                                <IoCloseOutline size={18} />
+                            </button>
+                        </div>
+                        <TimelineBar
+                            moments={moments}
+                            currentVersion={data.version}
+                            displayName={displayName}
+                            timelineCurrentMomentId={timelineCurrentMomentId}
+                            timelineIsExplicit={timelineIsExplicit}
+                            compareFrom={compareFrom}
+                            compareTo={compareTo}
+                            diffResult={diffResult}
+                            loadChangesForVersion={loadChangesForVersion}
+                            onNavigate={(v) => { handleVersionChange(v); setShowTimeline(false); }}
+                            onCompare={startCompare}
+                            initialExpanded
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

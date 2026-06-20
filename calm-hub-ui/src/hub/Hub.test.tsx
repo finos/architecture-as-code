@@ -305,13 +305,15 @@ describe('Hub', () => {
             })) as unknown as typeof window.matchMedia;
         });
 
-        it('hides the tree navigation behind a menu button by default', () => {
+        it('keeps tree navigation mounted off-canvas with a menu button by default', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
-            // Tree is not rendered until the drawer is opened.
-            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+            // Tree stays mounted (so deep-link / search loading still runs) but the
+            // drawer is closed — no backdrop — until the menu button is pressed.
+            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
             expect(screen.getByLabelText('Open navigation')).toBeInTheDocument();
+            expect(screen.queryByLabelText('Close navigation')).not.toBeInTheDocument();
 
             restore();
         });
@@ -322,6 +324,8 @@ describe('Hub', () => {
 
             fireEvent.click(screen.getByLabelText('Open navigation'));
             expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+            // Backdrop present means the drawer is open.
+            expect(screen.getByLabelText('Close navigation')).toBeInTheDocument();
 
             restore();
         });
@@ -331,10 +335,12 @@ describe('Hub', () => {
             renderWithRouter(<Hub />);
 
             fireEvent.click(screen.getByLabelText('Open navigation'));
-            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+            expect(screen.getByLabelText('Close navigation')).toBeInTheDocument();
 
             fireEvent.click(screen.getByText('Load Test Data'));
-            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+            // Drawer closes (backdrop gone) but the tree remains mounted.
+            expect(screen.queryByLabelText('Close navigation')).not.toBeInTheDocument();
+            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
             expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
 
             restore();

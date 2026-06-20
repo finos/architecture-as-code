@@ -121,34 +121,41 @@ export default function Hub() {
                     </div>
                 )}
 
-                {/* Mobile: off-canvas tree-navigation drawer */}
-                {isMobile && isMobileNavOpen && (
-                    <div className="fixed inset-0 z-40 flex" role="dialog" aria-modal="true">
-                        <button
-                            aria-label="Close navigation"
-                            className="absolute inset-0 bg-black/40"
-                            onClick={() => setIsMobileNavOpen(false)}
-                        />
-                        <div className="relative h-full w-80 max-w-[85%] p-3 pr-0">
+                {/* Mobile: off-canvas tree-navigation drawer. Kept mounted (slid off
+                    screen) so deep-link / global-search loading — which lives inside
+                    TreeNavigation — runs even while the drawer is closed. */}
+                {isMobile && (
+                    <>
+                        {isMobileNavOpen && (
+                            <button
+                                aria-label="Close navigation"
+                                className="fixed inset-0 z-40 bg-black/40"
+                                onClick={() => setIsMobileNavOpen(false)}
+                            />
+                        )}
+                        <div
+                            className={`fixed top-0 left-0 z-40 h-full w-80 max-w-[85%] p-3 pr-0 transition-transform duration-300 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'}`}
+                            role="dialog"
+                            aria-modal={isMobileNavOpen}
+                            aria-hidden={!isMobileNavOpen}
+                        >
                             <div className="h-full bg-base-100 rounded-box overflow-hidden shadow-xl flex flex-col">
                                 <div className="flex-1 min-h-0 overflow-hidden">{treeNavigation}</div>
                             </div>
                         </div>
-                    </div>
+                    </>
                 )}
 
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                     {isMobile && (
-                        <div className="px-3 pt-3 shrink-0">
-                            <button
-                                aria-label="Open navigation"
-                                className="btn btn-sm btn-ghost gap-2"
-                                onClick={() => setIsMobileNavOpen(true)}
-                            >
-                                <IoMenuOutline className="text-lg" />
-                                Explore
-                            </button>
-                        </div>
+                        <button
+                            aria-label="Open navigation"
+                            className="btn btn-xs btn-ghost gap-1 self-start m-2 shrink-0"
+                            onClick={() => setIsMobileNavOpen(true)}
+                        >
+                            <IoMenuOutline className="text-base" />
+                            Explore
+                        </button>
                     )}
                     <div className="flex-1 overflow-auto min-w-0">{detailContent}</div>
                 </div>
