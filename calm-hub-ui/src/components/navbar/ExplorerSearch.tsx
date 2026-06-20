@@ -76,7 +76,7 @@ export function ExplorerSearch({
     const navigate = useNavigate();
 
     const active = query.trim().length > 0;
-    const flatResults = results ? flattenResults(results) : [];
+    const flatResults = useMemo(() => (results ? flattenResults(results) : []), [results]);
 
     useEffect(() => {
         onSearchingChange?.(active);
@@ -189,6 +189,20 @@ export function ExplorerSearch({
         [navigate, resolveLatestVersion]
     );
 
+    const handleClear = useCallback(() => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        setQuery('');
+        setResults(null);
+        setSelectedIndex(-1);
+        setError(false);
+        inputRef.current?.focus();
+    }, []);
+
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
             if (!active || flatResults.length === 0) return;
@@ -206,23 +220,8 @@ export function ExplorerSearch({
                 handleClear();
             }
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [active, flatResults, selectedIndex, navigateToResult]
+        [active, flatResults, selectedIndex, navigateToResult, handleClear]
     );
-
-    const handleClear = useCallback(() => {
-        if (debounceRef.current) {
-            clearTimeout(debounceRef.current);
-        }
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
-        setQuery('');
-        setResults(null);
-        setSelectedIndex(-1);
-        setError(false);
-        inputRef.current?.focus();
-    }, []);
 
     useEffect(() => {
         return () => {
