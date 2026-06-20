@@ -159,6 +159,30 @@ describe('EntitlementsPanel', () => {
             await screen.findByRole('combobox', { name: /select namespace/i });
             expect(screen.queryByRole('region', { name: /domain access/i })).not.toBeInTheDocument();
         });
+
+        it('shows Global Admin Access section for global admins', async () => {
+            const { calmSvc, userAccessSvc } = mockServices([NS_FINOS], [globalAdminGrant]);
+            renderPanel(calmSvc, userAccessSvc);
+            await waitFor(() =>
+                expect(screen.getByRole('region', { name: /global admin access/i })).toBeInTheDocument()
+            );
+        });
+
+        it('does not show Global Admin Access section for namespace-scoped admins', async () => {
+            const { calmSvc, userAccessSvc } = mockServices([NS_FINOS], [adminGrant(NS_FINOS)]);
+            renderPanel(calmSvc, userAccessSvc);
+            await screen.findByRole('combobox', { name: /select namespace/i });
+            expect(screen.queryByRole('region', { name: /global admin access/i })).not.toBeInTheDocument();
+        });
+
+        it('loads GLOBAL namespace grants in the Global Admin Access panel', async () => {
+            const { calmSvc, userAccessSvc } = mockServices([NS_FINOS], [globalAdminGrant]);
+            renderPanel(calmSvc, userAccessSvc);
+            await waitFor(() =>
+                expect(screen.getByRole('region', { name: /global admin access/i })).toBeInTheDocument()
+            );
+            expect(userAccessSvc.getNamespaceUserAccess).toHaveBeenCalledWith('GLOBAL');
+        });
     });
 
     describe('domain dropdown', () => {

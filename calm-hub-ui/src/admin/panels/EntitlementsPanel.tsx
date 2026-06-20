@@ -92,6 +92,16 @@ export function EntitlementsPanel({ calmService, userAccessService }: Entitlemen
                     </section>
 
                     {isGlobalAdmin && (
+                        <section aria-label="Global admin access">
+                            <h2 className="text-lg font-semibold mb-3">Global Admin Access</h2>
+                            <NamespaceAccessPanel
+                                namespace="GLOBAL"
+                                service={userAccessSvc}
+                            />
+                        </section>
+                    )}
+
+                    {isGlobalAdmin && (
                         <section aria-label="Domain access">
                             <h2 className="text-lg font-semibold mb-3">Domain Access</h2>
                             {domains.length === 0 ? (
