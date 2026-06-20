@@ -1,40 +1,30 @@
 import './Navbar.css';
-import { NavLink } from 'react-router-dom';
+import { IoMenuOutline } from 'react-icons/io5';
 import { GlobalSearchBar } from './GlobalSearchBar.js';
 
-export function Navbar() {
+interface NavbarProps {
+    /**
+     * When provided, renders an "Explore" button in the navbar that toggles the
+     * navigation/explorer (the desktop sidebar, or the mobile drill-down panel).
+     * Pages without an explorer (e.g. the Visualizer) omit this.
+     */
+    onExploreClick?: () => void;
+}
+
+export function Navbar({ onExploreClick }: NavbarProps) {
     return (
         <div className="navbar bg-base-100 border-b-2 border-base-200 text-primary-content">
-            <div className="navbar-start flex items-center">
-                <div className="dropdown lg:hidden">
-                    <div tabIndex={0} role="button" className="btn btn-ghost text-primary" aria-label="Open Menu">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M4 6h16M4 12h8m-8 6h16"
-                            />
-                        </svg>
-                    </div>
-                    <ul
-                        tabIndex={0}
-                        className="menu menu-xs dropdown-content bg-base-100 text-primary rounded-box z-[1] mt-3 w-52 p-2 shadow"
+            <div className="navbar-start flex items-center gap-1">
+                {onExploreClick && (
+                    <button
+                        className="btn btn-ghost gap-2 text-primary"
+                        onClick={onExploreClick}
+                        aria-label="Toggle explorer"
                     >
-                        <li>
-                            <NavLink to="/">Hub</NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/visualizer">Visualizer</NavLink>
-                        </li>
-                    </ul>
-                </div>
+                        <IoMenuOutline className="h-5 w-5" />
+                        <span className="hidden sm:inline">Explore</span>
+                    </button>
+                )}
                 <a className="btn btn-ghost">
                     <img
                         src="/brand/Horizontal/2025_CALM_Horizontal_Navbar_Logo.svg"
@@ -42,20 +32,6 @@ export function Navbar() {
                         className="h-10 logo"
                     />
                 </a>
-                <div className="hidden lg:flex">
-                    <ul className="menu menu-horizontal px-1">
-                        <li>
-                            <NavLink className="btn-ghost btn text-primary" to="/">
-                                Hub
-                            </NavLink>
-                        </li>
-                        <li>
-                            <NavLink className="btn-ghost btn text-primary" to="/visualizer">
-                                Visualizer
-                            </NavLink>
-                        </li>
-                    </ul>
-                </div>
             </div>
             <div className="navbar-end">
                 <GlobalSearchBar />

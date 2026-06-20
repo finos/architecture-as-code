@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { IoChevronForwardOutline, IoMenuOutline } from 'react-icons/io5';
+import { IoChevronForwardOutline } from 'react-icons/io5';
 import { TreeNavigation } from './components/tree-navigation/TreeNavigation.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
@@ -99,7 +99,7 @@ export default function Hub() {
 
     return (
         <div className="flex flex-col h-screen overflow-hidden">
-            <Navbar />
+            <Navbar onExploreClick={() => (isMobile ? setIsMobileNavOpen(true) : setIsSidebarOpen((v) => !v))} />
             <div className="relative flex flex-row flex-1 overflow-hidden bg-base-300">
                 {/* Desktop: inline, collapsible tree-navigation column */}
                 {!isMobile && (
@@ -146,16 +146,6 @@ export default function Hub() {
                 )}
 
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                    {isMobile && (
-                        <button
-                            aria-label="Open navigation"
-                            className="btn btn-xs btn-ghost gap-1 self-start m-2 shrink-0"
-                            onClick={() => setIsMobileNavOpen(true)}
-                        >
-                            <IoMenuOutline className="text-base" />
-                            Explore
-                        </button>
-                    )}
                     <div className="flex-1 overflow-auto min-w-0">{detailContent}</div>
                 </div>
 

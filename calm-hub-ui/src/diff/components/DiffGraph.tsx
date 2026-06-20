@@ -88,13 +88,15 @@ function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphPr
             style={{ background: THEME.colors.background }}
         >
             <Background color={THEME.colors.border} gap={16} />
-            <Controls
-                style={{
-                    background: THEME.colors.card,
-                    border: `1px solid ${THEME.colors.border}`,
-                    borderRadius: '8px',
-                }}
-            />
+            {!isMobile && (
+                <Controls
+                    style={{
+                        background: THEME.colors.card,
+                        border: `1px solid ${THEME.colors.border}`,
+                        borderRadius: '8px',
+                    }}
+                />
+            )}
             {!isMobile && (
                 <MiniMap
                     style={{
