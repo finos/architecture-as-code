@@ -7,7 +7,6 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.UserAction;
-import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,23 +100,14 @@ public class CalmHubPermissionChecker {
         }
         String username = identity.getPrincipal().getName();
         logger.debug("Checking global admin access for user [{}]", username);
-        try {
-            boolean granted =
-                    userAccessStore.getUserAccessForUsername(username)
-                            .stream()
-                            .anyMatch(grant -> GLOBAL_ACCESS.equals(grant.getNamespace())
-                                    && permissionSufficient(grant, UserAction.ADMIN));
-
-            if (granted) {
-                logger.debug("User [{}] AUTHORIZED for GLOBAL admin privileges", username);
-            } else {
-                logger.debug("User [{}] DENIED for GLOBAL admin privileges", username);
-            }
-            return granted;
-        } catch (UserAccessNotFoundException e) {
-            logger.debug("No access grants found for user [{}]", username);
-            return false;
+        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+        boolean granted = isGlobalAdminFromGrants(username, grants);
+        if (granted) {
+            logger.debug("User [{}] AUTHORIZED for GLOBAL admin privileges", username);
+        } else {
+            logger.debug("User [{}] DENIED for GLOBAL admin privileges", username);
         }
+        return granted;
     }
 
     private boolean hasNamespaceAccess(SecurityIdentity identity, String namespace, UserAction action) {

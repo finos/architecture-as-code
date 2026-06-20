@@ -28,7 +28,7 @@ export function AdminPage() {
                     <aside className="w-52 bg-base-200 flex-shrink-0 border-r border-base-300">
                         <ul className="menu p-4 gap-1">
                             <li><NavLink to="namespaces" className={navClass}>Namespaces</NavLink></li>
-                            <li><NavLink to="domains" className={navClass}>Domains</NavLink></li>
+                            {isGlobalAdmin && <li><NavLink to="domains" className={navClass}>Domains</NavLink></li>}
                             <li><NavLink to="entitlements" className={navClass}>Entitlements</NavLink></li>
                         </ul>
                     </aside>

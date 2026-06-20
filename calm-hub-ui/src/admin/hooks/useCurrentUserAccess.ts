@@ -30,7 +30,7 @@ export function useCurrentUserAccess(service?: UserAccessService): CurrentUserAc
 
     const isGlobalAdmin = useMemo(
         () => grants.some(
-            (g) => g.namespace === GLOBAL_NAMESPACE && g.permission === 'admin'
+            (g) => g.namespace === GLOBAL_NAMESPACE && g.permission === 'admin' && g.username !== '*'
         ),
         [grants]
     );

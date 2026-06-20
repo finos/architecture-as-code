@@ -2,7 +2,6 @@ package org.finos.calm.security;
 
 import io.quarkus.security.identity.SecurityIdentity;
 import org.finos.calm.domain.UserAccess;
-import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -505,10 +504,10 @@ class TestCalmHubPermissionCheckerShould {
     }
 
     @Test
-    void public_read_enabled_does_not_grant_global_admin() throws UserAccessNotFoundException {
+    void public_read_enabled_does_not_grant_global_admin() {
         checker.allowPublicRead = true;
         givenAuthenticatedUser("alice");
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
 
         assertFalse(checker.hasGlobalAdmin(mockIdentity));
     }
@@ -619,38 +618,48 @@ class TestCalmHubPermissionCheckerShould {
     // --- GLOBAL ADMIN checks (unchanged) ---
 
     @Test
-    void global_admin_grant_on_global_namespace_grants_global_admin() throws UserAccessNotFoundException {
+    void global_admin_grant_on_global_namespace_grants_global_admin() {
         givenAuthenticatedUser("alice");
         UserAccess globalGrant = new UserAccess.UserAccessBuilder()
                 .setUsername("alice").setPermission(UserAccess.Permission.admin).setNamespace("GLOBAL").build();
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(globalGrant));
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(globalGrant));
 
         assertTrue(checker.hasGlobalAdmin(mockIdentity));
     }
 
     @Test
-    void write_grant_on_global_namespace_denies_global_admin() throws UserAccessNotFoundException {
+    void write_grant_on_global_namespace_denies_global_admin() {
         givenAuthenticatedUser("alice");
         UserAccess grant = new UserAccess.UserAccessBuilder()
                 .setUsername("alice").setPermission(UserAccess.Permission.write).setNamespace("GLOBAL").build();
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenReturn(List.of(grant));
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(grant));
 
         assertFalse(checker.hasGlobalAdmin(mockIdentity));
     }
 
     @Test
-    void admin_grant_on_non_global_namespace_denies_global_admin() throws UserAccessNotFoundException {
+    void admin_grant_on_non_global_namespace_denies_global_admin() {
         givenAuthenticatedUser("alice");
-        when(mockUserAccessStore.getUserAccessForUsername("alice"))
+        when(mockUserAccessStore.getGrantsForUser("alice"))
                 .thenReturn(List.of(grant("alice", UserAccess.Permission.admin, "finos")));
 
         assertFalse(checker.hasGlobalAdmin(mockIdentity));
     }
 
     @Test
-    void user_with_no_grants_is_denied_global_admin() throws UserAccessNotFoundException {
+    void user_with_no_grants_is_denied_global_admin() {
         givenAuthenticatedUser("alice");
-        when(mockUserAccessStore.getUserAccessForUsername("alice")).thenThrow(new UserAccessNotFoundException());
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+
+        assertFalse(checker.hasGlobalAdmin(mockIdentity));
+    }
+
+    @Test
+    void wildcard_global_admin_grant_does_not_grant_global_admin() {
+        givenAuthenticatedUser("alice");
+        UserAccess wildcardGlobal = new UserAccess.UserAccessBuilder()
+                .setUsername("*").setPermission(UserAccess.Permission.admin).setNamespace("GLOBAL").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(wildcardGlobal));
 
         assertFalse(checker.hasGlobalAdmin(mockIdentity));
     }

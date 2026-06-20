@@ -54,6 +54,11 @@ public class DomainUserAccessResource {
         if (!domainStore.domainExists(domain)) {
             return invalidDomainResponse(domain);
         }
+        if ("*".equals(request.getUsername()) && request.getPermission() == UserAccess.Permission.admin) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Wildcard username is not permitted for admin permission on a domain")
+                    .build();
+        }
         UserAccess userAccess = new UserAccess.UserAccessBuilder()
                 .setDomain(domain)
                 .setUsername(request.getUsername())

@@ -90,18 +90,16 @@ describe('UserAccessService', () => {
     describe('grantNamespaceAccess', () => {
         const request: UserAccessRequest = { username: 'alice', permission: 'read' };
 
-        it('posts to the correct endpoint and returns the created grant', async () => {
-            mock.onPost(`/api/calm/namespaces/${namespace}/user-access`).reply(201, grant1);
+        it('posts to the correct endpoint and resolves void on success', async () => {
+            mock.onPost(`/api/calm/namespaces/${namespace}/user-access`).reply(201);
 
-            const result = await service.grantNamespaceAccess(namespace, request);
-            expect(result).toEqual(grant1);
+            await expect(service.grantNamespaceAccess(namespace, request)).resolves.toBeUndefined();
         });
 
         it('sends the request body', async () => {
-            mock.onPost(`/api/calm/namespaces/${namespace}/user-access`, request).reply(201, grant1);
+            mock.onPost(`/api/calm/namespaces/${namespace}/user-access`, request).reply(201);
 
-            const result = await service.grantNamespaceAccess(namespace, request);
-            expect(result).toEqual(grant1);
+            await expect(service.grantNamespaceAccess(namespace, request)).resolves.toBeUndefined();
         });
 
         it('rejects on server error', async () => {
@@ -159,11 +157,10 @@ describe('UserAccessService', () => {
     describe('grantDomainAccess', () => {
         const request: UserAccessRequest = { username: 'carol', permission: 'admin' };
 
-        it('posts to the correct endpoint and returns the created grant', async () => {
-            mock.onPost(`/api/calm/domains/${domain}/user-access`).reply(201, domainGrant);
+        it('posts to the correct endpoint and resolves void on success', async () => {
+            mock.onPost(`/api/calm/domains/${domain}/user-access`).reply(201);
 
-            const result = await service.grantDomainAccess(domain, request);
-            expect(result).toEqual(domainGrant);
+            await expect(service.grantDomainAccess(domain, request)).resolves.toBeUndefined();
         });
 
         it('rejects on server error', async () => {

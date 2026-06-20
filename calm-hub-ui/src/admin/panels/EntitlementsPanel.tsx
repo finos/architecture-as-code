@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalmService } from '../../service/calm-service.js';
 import { UserAccessService } from '../../service/user-access-service.js';
-import { useCurrentUserAccess } from '../hooks/useCurrentUserAccess.js';
+import { useUserAccess } from '../context/UserAccessContext.js';
 import { NamespaceAccessPanel } from '../components/namespace-access/NamespaceAccessPanel.js';
 import { DomainAccessPanel } from '../components/domain-access/DomainAccessPanel.js';
 
@@ -25,7 +25,7 @@ export function EntitlementsPanel({ calmService, userAccessService }: Entitlemen
     const [selectedDomain, setSelectedDomain] = useState<string>('');
 
     const { canAdminNamespace, isGlobalAdmin, loading: accessLoading, error: accessError } =
-        useCurrentUserAccess(userAccessSvc);
+        useUserAccess();
 
     useEffect(() => {
         calmSvc.fetchNamespaces()

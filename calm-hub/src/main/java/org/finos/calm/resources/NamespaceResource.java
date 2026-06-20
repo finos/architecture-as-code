@@ -55,6 +55,8 @@ public class NamespaceResource {
             summary = "Create Namespace",
             description = "Create a new namespace in the Calm Hub"
     )
+    // @Authenticated + manual check rather than @PermissionsAllowed because the namespace name
+    // is in the request body (not a path param), so Quarkus Security cannot bind it declaratively.
     @Authenticated
     public Response createNamespace(@Valid @NotNull(message = "Request must not be null") NamespaceRequest request) throws URISyntaxException {
 

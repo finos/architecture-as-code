@@ -34,11 +34,11 @@ export class UserAccessService {
             });
     }
 
-    public async grantNamespaceAccess(namespace: string, request: UserAccessRequest): Promise<UserAccess> {
+    public async grantNamespaceAccess(namespace: string, request: UserAccessRequest): Promise<void> {
         const headers = await getAuthHeaders();
         return this.ax
             .post(`/api/calm/namespaces/${encodeURIComponent(namespace)}/user-access`, request, { headers })
-            .then((res) => res.data)
+            .then(() => undefined)
             .catch((error) => {
                 const errorMessage = `Error granting access on namespace ${namespace}:`;
                 console.error('%s', errorMessage, error);
@@ -70,11 +70,11 @@ export class UserAccessService {
             });
     }
 
-    public async grantDomainAccess(domain: string, request: UserAccessRequest): Promise<UserAccess> {
+    public async grantDomainAccess(domain: string, request: UserAccessRequest): Promise<void> {
         const headers = await getAuthHeaders();
         return this.ax
             .post(`/api/calm/domains/${encodeURIComponent(domain)}/user-access`, request, { headers })
-            .then((res) => res.data)
+            .then(() => undefined)
             .catch((error) => {
                 const errorMessage = `Error granting access on domain ${domain}:`;
                 console.error('%s', errorMessage, error);

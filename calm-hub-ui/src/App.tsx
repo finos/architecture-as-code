@@ -13,19 +13,19 @@ function App() {
     //Currently the format of the route allows deeplinks to only be used within a single CalmHub.
     return (
         <UserAccessProvider>
-        <Router>
-            <Routes>
-                <Route path="/" element={<Hub />} />
-                <Route path="/:namespace/:type/:id/:version" element={<Hub />} />
-                <Route path="/visualizer" element={<Visualizer />} />
-                <Route path="/admin" element={<AdminPage />}>
-                    <Route index element={<Navigate to="entitlements" replace />} />
-                    <Route path="namespaces" element={<NamespacesPanel />} />
-                    <Route path="domains" element={<DomainsPanel />} />
-                    <Route path="entitlements" element={<EntitlementsPanel />} />
-                </Route>
-            </Routes>
-        </Router>
+            <Router>
+                <Routes>
+                    <Route path="/" element={<Hub />} />
+                    <Route path="/:namespace/:type/:id/:version" element={<Hub />} />
+                    <Route path="/visualizer" element={<Visualizer />} />
+                    <Route path="/admin" element={<AdminPage />}>
+                        <Route index element={<Navigate to="entitlements" replace />} />
+                        <Route path="namespaces" element={<NamespacesPanel />} />
+                        <Route path="domains" element={<DomainsPanel />} />
+                        <Route path="entitlements" element={<EntitlementsPanel />} />
+                    </Route>
+                </Routes>
+            </Router>
         </UserAccessProvider>
     );
 }
