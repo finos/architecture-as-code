@@ -442,6 +442,42 @@ class TestCalmHubPermissionCheckerShould {
         assertTrue(checker.canWriteByDomain(mockIdentity, "payments"));
     }
 
+    // --- Global admin implies namespace admin ---
+
+    @Test
+    void global_admin_is_allowed_namespace_admin_on_any_namespace() {
+        givenAuthenticatedUser("alice");
+        UserAccess globalGrant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.admin).setNamespace("GLOBAL").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(globalGrant));
+
+        assertTrue(checker.allowNamespaceAdmin(mockIdentity, "finos"));
+        assertTrue(checker.allowNamespaceAdmin(mockIdentity, "org.payments.fx"));
+    }
+
+    @Test
+    void global_admin_can_manage_namespace_access_when_no_namespace_grants_exist() {
+        // Bootstrapping: global admin creates a namespace; no namespace-specific grants exist yet.
+        // Global admin must be able to grant the first namespace admin without needing a pre-existing grant.
+        givenAuthenticatedUser("alice");
+        UserAccess globalGrant = new UserAccess.UserAccessBuilder()
+                .setUsername("alice").setPermission(UserAccess.Permission.admin).setNamespace("GLOBAL").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(globalGrant));
+
+        assertTrue(checker.allowNamespaceAdmin(mockIdentity, "brand-new-namespace"));
+    }
+
+    @Test
+    void wildcard_global_admin_grant_does_not_grant_namespace_admin() {
+        // A * grant on GLOBAL must not elevate all users to global admin.
+        givenAuthenticatedUser("alice");
+        UserAccess wildcardGlobal = new UserAccess.UserAccessBuilder()
+                .setUsername("*").setPermission(UserAccess.Permission.admin).setNamespace("GLOBAL").build();
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(wildcardGlobal));
+
+        assertFalse(checker.allowNamespaceAdmin(mockIdentity, "finos"));
+    }
+
     // --- GLOBAL ADMIN checks (unchanged) ---
 
     @Test

@@ -1,7 +1,10 @@
 package org.finos.calm.domain.pattern;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.util.Objects;
 
+@RegisterForReflection
 public class NamespacePatternSummary {
     private String name;
     private String description;

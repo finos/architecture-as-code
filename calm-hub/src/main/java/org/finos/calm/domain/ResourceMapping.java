@@ -1,11 +1,14 @@
 package org.finos.calm.domain;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.util.Objects;
 
 /**
  * Represents a mapping between a human-readable custom ID (slug) and a numeric resource ID
  * within a namespace. Immutable once built.
  */
+@RegisterForReflection
 public class ResourceMapping {
     private final String namespace;
     private final String customId;

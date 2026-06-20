@@ -203,8 +203,15 @@ public class MappingControllerResource {
             return CalmResourceErrorResponses.invalidNamespaceResponse(canonical.namespace());
         }
         String storedBody = documentParser.stripId(requestBody);
+        String title = documentParser.extractStringField(requestBody, "title");
+        if (title.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("'title' is required in the document body").build();
+        }
+        String description = documentParser.extractStringField(requestBody, "description");
         return service.updateVersionedResource(canonical.resourceType(), canonical.namespace(),
-                canonical.type(), canonical.name(), existing.getNumericId(), canonical.version(), storedBody);
+                canonical.type(), canonical.name(), existing.getNumericId(), canonical.version(),
+                title, description, storedBody);
     }
 
     // =========================================================================

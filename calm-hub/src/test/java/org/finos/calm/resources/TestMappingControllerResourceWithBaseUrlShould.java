@@ -239,7 +239,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
         when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(existing);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
 
-        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/2.0.0\" }";
+        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/2.0.0\", \"title\": \"API gateway pattern\" }";
 
         given()
                 .header("Content-Type", "application/json")
