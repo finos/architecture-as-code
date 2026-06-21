@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { IoChevronForwardOutline } from 'react-icons/io5';
+import { IoChevronForwardOutline, IoCompassOutline } from 'react-icons/io5';
 import { TreeNavigation } from './components/tree-navigation/TreeNavigation.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
@@ -99,7 +99,17 @@ export default function Hub() {
 
     return (
         <div className="flex flex-col h-screen overflow-hidden">
-            <Navbar onExploreClick={() => (isMobile ? setIsMobileNavOpen(true) : setIsSidebarOpen((v) => !v))} />
+            <Navbar />
+            {isMobile && (
+                <button
+                    aria-label="Explore"
+                    className="w-full flex items-center gap-2 px-4 py-2 bg-base-200 border-b border-base-300 text-sm text-primary"
+                    onClick={() => setIsMobileNavOpen(true)}
+                >
+                    <IoCompassOutline size={16} />
+                    <span>Explore</span>
+                </button>
+            )}
             <div className="relative flex flex-row flex-1 overflow-hidden bg-base-300">
                 {/* Desktop: inline, collapsible tree-navigation column */}
                 {!isMobile && (

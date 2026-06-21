@@ -144,16 +144,7 @@ vi.mock('./components/interface-detail-section/InterfaceDetailSection', () => ({
 }));
 
 vi.mock('../components/navbar/Navbar', () => ({
-    Navbar: ({ onExploreClick }: { onExploreClick?: () => void }) => (
-        <nav data-testid="navbar">
-            Navbar
-            {onExploreClick && (
-                <button aria-label="Toggle explorer" onClick={onExploreClick}>
-                    Explore
-                </button>
-            )}
-        </nav>
-    ),
+    Navbar: () => <nav data-testid="navbar">Navbar</nav>,
 }));
 
 vi.mock('./components/diagram-section/DiagramSection', () => ({
@@ -327,16 +318,6 @@ describe('Hub', () => {
             expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
         });
 
-        it('toggles the desktop sidebar from the navbar Explore button', () => {
-            renderWithRouter(<Hub />);
-            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
-
-            fireEvent.click(screen.getByLabelText('Toggle explorer'));
-            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
-
-            fireEvent.click(screen.getByLabelText('Toggle explorer'));
-            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
-        });
     });
 
     describe('mobile layout', () => {
@@ -354,27 +335,27 @@ describe('Hub', () => {
             })) as unknown as typeof window.matchMedia;
         });
 
-        it('keeps the drill-down menu mounted off-canvas with a menu button by default', () => {
+        it('keeps the drill-down menu mounted off-canvas with an Explore button by default', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
             // The drill-down menu stays mounted (so deep-link / search loading still
             // runs) but the full-screen panel is closed (aria-hidden, so excluded from
-            // the dialog role) until the menu button is pressed. The desktop tree is
+            // the dialog role) until the Explore button is pressed. The desktop tree is
             // not rendered on mobile.
             expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
             expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
-            expect(screen.getByLabelText('Toggle explorer')).toBeInTheDocument();
+            expect(screen.getByLabelText('Explore')).toBeInTheDocument();
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
             restore();
         });
 
-        it('opens the full-screen drill-down panel when the menu button is clicked', () => {
+        it('opens the full-screen drill-down panel when the Explore button is clicked', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
-            fireEvent.click(screen.getByLabelText('Toggle explorer'));
+            fireEvent.click(screen.getByLabelText('Explore'));
             expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
             // The panel is now exposed (not aria-hidden), so the dialog is present.
             expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -386,7 +367,7 @@ describe('Hub', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
-            fireEvent.click(screen.getByLabelText('Toggle explorer'));
+            fireEvent.click(screen.getByLabelText('Explore'));
             expect(screen.getByRole('dialog')).toBeInTheDocument();
 
             fireEvent.click(screen.getByText('Mobile Load Test Data'));

@@ -1,36 +1,31 @@
 import './Navbar.css';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { IoMenuOutline } from 'react-icons/io5';
 import { GlobalSearchBar } from './GlobalSearchBar.js';
 import { UserAccessContext } from '../../admin/context/UserAccessContext.js';
 
-interface NavbarProps {
-    /**
-     * When provided, renders an "Explore" button in the navbar that toggles the
-     * navigation/explorer (the desktop sidebar, or the mobile drill-down panel).
-     * Pages without an explorer (e.g. the Visualizer) omit this.
-     */
-    onExploreClick?: () => void;
+function menuNavClass({ isActive }: { isActive: boolean }) {
+    return `w-full flex items-center px-4 py-3 text-left hover:bg-base-200 active:bg-base-200${isActive ? ' bg-base-200 font-semibold' : ''}`;
 }
 
-export function Navbar({ onExploreClick }: NavbarProps) {
+export function Navbar() {
     const { loading, isGlobalAdmin, grants } = useContext(UserAccessContext);
     const showAdminLink = !loading && (isGlobalAdmin || grants.some((g) => g.permission === 'admin'));
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    const closeMenu = () => setIsMenuOpen(false);
 
     return (
         <div className="navbar relative bg-base-100 border-b-2 border-base-200 text-primary-content gap-1">
             <div className="navbar-start flex items-center gap-1 min-w-0">
-                {onExploreClick && (
-                    <button
-                        className="btn btn-ghost gap-2 text-primary shrink-0"
-                        onClick={onExploreClick}
-                        aria-label="Toggle explorer"
-                    >
-                        <IoMenuOutline className="h-5 w-5" />
-                        <span className="hidden sm:inline">Explore</span>
-                    </button>
-                )}
+                <button
+                    className="btn btn-ghost gap-2 text-primary shrink-0"
+                    onClick={() => setIsMenuOpen((v) => !v)}
+                    aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+                >
+                    <IoMenuOutline className="h-5 w-5" />
+                </button>
             </div>
             <div className="navbar-center absolute left-1/2 -translate-x-1/2">
                 <Link to="/" className="btn btn-ghost min-w-0 px-1" aria-label="CALM Hub home">
@@ -45,26 +40,45 @@ export function Navbar({ onExploreClick }: NavbarProps) {
                 {/* Portal target for page-level actions (e.g. the diagram's
                     view-options menu), always visible across breakpoints. */}
                 <div id="navbar-actions" className="flex items-center" />
-                {/* Admin link visible on mobile only — desktop renders it inside the lg:flex block below. */}
-                {showAdminLink && (
-                    <NavLink className="btn btn-ghost text-primary lg:hidden" to="/admin">
-                        Admin
-                    </NavLink>
-                )}
-                {/* Desktop keeps the Visualizer link and search in the navbar; on
-                    mobile both live inside the explorer panel instead, so they are
-                    hidden here below the lg breakpoint. */}
-                <div className="hidden lg:flex items-center gap-1">
-                    <NavLink className="btn btn-ghost text-primary" to="/visualizer">
-                        Visualizer
-                    </NavLink>
-                    {showAdminLink && (
-                        <NavLink className="btn btn-ghost text-primary" to="/admin">
-                            Admin
-                        </NavLink>
-                    )}
+                <div className="hidden lg:flex items-center">
                     <GlobalSearchBar />
                 </div>
+            </div>
+
+            {/* Backdrop — dims the page behind the drawer; tap to close */}
+            <div
+                className={`fixed inset-x-0 bottom-0 top-16 z-40 bg-black/30 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                aria-hidden="true"
+                onClick={closeMenu}
+            />
+
+            {/* Destinations drawer — slides in from the left */}
+            <div
+                className={`fixed left-0 bottom-0 top-16 z-40 w-64 bg-base-100 text-base-content flex flex-col shadow-xl transition-transform duration-300 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'}`}
+                role="dialog"
+                aria-modal={isMenuOpen}
+                aria-hidden={!isMenuOpen}
+                inert={!isMenuOpen}
+            >
+                <ul className="flex-1 overflow-auto divide-y divide-base-200">
+                    <li>
+                        <NavLink to="/" className={menuNavClass} onClick={closeMenu} end>
+                            Hub
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink to="/visualizer" className={menuNavClass} onClick={closeMenu}>
+                            Visualizer
+                        </NavLink>
+                    </li>
+                    {showAdminLink && (
+                        <li>
+                            <NavLink to="/admin" className={menuNavClass} onClick={closeMenu}>
+                                Admin
+                            </NavLink>
+                        </li>
+                    )}
+                </ul>
             </div>
         </div>
     );

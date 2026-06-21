@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, it, expect, afterEach } from 'vitest';
 import { AdminPage } from './AdminPage.js';
@@ -111,49 +110,32 @@ describe('AdminPage (mobile layout)', () => {
 
     afterEach(() => restore?.());
 
-    it('shows the Explore button on mobile and hides the desktop sidebar', () => {
+    it('shows a tab bar on mobile for an admin user', () => {
         restore = mockMobileViewport(true);
         renderLayout(adminState);
-        expect(screen.getByRole('button', { name: /toggle explorer/i })).toBeInTheDocument();
-        expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
-    });
-
-    it('opens the mobile nav overlay when Explore is tapped', async () => {
-        restore = mockMobileViewport(true);
-        renderLayout(adminState);
-        const overlay = screen.getByRole('dialog', { hidden: true });
-        expect(overlay).toHaveAttribute('aria-hidden', 'true');
-        await userEvent.click(screen.getByRole('button', { name: /toggle explorer/i }));
-        expect(overlay).toHaveAttribute('aria-hidden', 'false');
-    });
-
-    it('closes the mobile nav overlay when the close button is tapped', async () => {
-        restore = mockMobileViewport(true);
-        renderLayout(adminState);
-        await userEvent.click(screen.getByRole('button', { name: /toggle explorer/i }));
-        await userEvent.click(screen.getByRole('button', { name: /close navigation/i }));
-        expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('aria-hidden', 'true');
-    });
-
-    it('shows all three nav links in the mobile overlay for a global admin', async () => {
-        restore = mockMobileViewport(true);
-        renderLayout(adminState);
-        await userEvent.click(screen.getByRole('button', { name: /toggle explorer/i }));
+        const nav = screen.getByRole('navigation', { name: /admin sections/i });
+        expect(nav).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /namespaces/i })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /domains/i })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /entitlements/i })).toBeInTheDocument();
     });
 
-    it('hides the Domains link in the mobile overlay for a namespace-scoped admin', async () => {
+    it('hides the Domains tab for a namespace-scoped admin', () => {
         restore = mockMobileViewport(true);
         renderLayout(nsAdminState);
-        await userEvent.click(screen.getByRole('button', { name: /toggle explorer/i }));
-        expect(screen.queryByRole('link', { name: /domains/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('navigation', { name: /admin sections/i })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /^domains$/i })).not.toBeInTheDocument();
     });
 
-    it('does not show the Explore button on desktop', () => {
+    it('hides the desktop sidebar on mobile', () => {
+        restore = mockMobileViewport(true);
+        renderLayout(adminState);
+        expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    });
+
+    it('does not show the tab bar on desktop', () => {
         restore = mockMobileViewport(false);
         renderLayout(adminState);
-        expect(screen.queryByRole('button', { name: /toggle explorer/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('navigation', { name: /admin sections/i })).not.toBeInTheDocument();
     });
 });
