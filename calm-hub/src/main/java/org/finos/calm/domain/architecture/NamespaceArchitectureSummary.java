@@ -1,7 +1,10 @@
 package org.finos.calm.domain.architecture;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.util.Objects;
 
+@RegisterForReflection
 public class NamespaceArchitectureSummary {
     private String name;
     private String description;
