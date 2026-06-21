@@ -1,7 +1,7 @@
 ---
 id: calm-hub
 title: CALM Hub
-sidebar_label: UI Walkthrough
+sidebar_label: CALM Hub
 sidebar_position: 4
 ---
 
