@@ -43,6 +43,7 @@ export function AdminPage() {
                             role="dialog"
                             aria-modal={isMobileNavOpen}
                             aria-hidden={!isMobileNavOpen}
+                            inert={!isMobileNavOpen}
                         >
                             <div className="bg-base-200 px-3 py-3 border-b border-base-300 flex items-center gap-2">
                                 <h2 className="text-lg font-semibold flex-1 min-w-0 truncate">Admin</h2>
