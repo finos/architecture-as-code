@@ -45,6 +45,12 @@ export function Navbar({ onExploreClick }: NavbarProps) {
                 {/* Portal target for page-level actions (e.g. the diagram's
                     view-options menu), always visible across breakpoints. */}
                 <div id="navbar-actions" className="flex items-center" />
+                {/* Admin link visible on mobile only — desktop renders it inside the lg:flex block below. */}
+                {showAdminLink && (
+                    <NavLink className="btn btn-ghost text-primary lg:hidden" to="/admin">
+                        Admin
+                    </NavLink>
+                )}
                 {/* Desktop keeps the Visualizer link and search in the navbar; on
                     mobile both live inside the explorer panel instead, so they are
                     hidden here below the lg breakpoint. */}
