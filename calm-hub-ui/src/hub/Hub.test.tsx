@@ -2,7 +2,28 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Hub from './Hub.js';
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, afterEach } from 'vitest';
+
+/**
+ * Force `useIsMobile()` (which reads window.matchMedia) to report a mobile
+ * viewport. Returns a restore function.
+ */
+function mockMobileViewport(isMobile: boolean) {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+        matches: isMobile,
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    return () => {
+        window.matchMedia = original;
+    };
+}
 
 vi.mock('./components/tree-navigation/TreeNavigation', () => ({
     TreeNavigation: ({
@@ -69,6 +90,35 @@ vi.mock('./components/tree-navigation/TreeNavigation', () => ({
     ),
 }));
 
+vi.mock('./components/tree-navigation/MobileNavMenu', () => ({
+    MobileNavMenu: ({
+        onDataLoad,
+        onClose,
+    }: {
+        onDataLoad: (data: unknown) => void;
+        onClose: () => void;
+    }) => (
+        <div data-testid="mobile-nav-menu">
+            <button aria-label="Close navigation" onClick={onClose}>
+                Close
+            </button>
+            <button
+                onClick={() =>
+                    onDataLoad({
+                        id: 'test',
+                        version: '1.0',
+                        calmType: 'Patterns',
+                        name: 'test-namespace',
+                        data: {},
+                    })
+                }
+            >
+                Mobile Load Test Data
+            </button>
+        </div>
+    ),
+}));
+
 vi.mock('./components/json-renderer/JsonRenderer', () => ({
     JsonRenderer: ({ json }: { json: unknown }) => (
         <div data-testid="json-renderer">{json ? 'JSON' : ''}</div>
@@ -94,7 +144,16 @@ vi.mock('./components/interface-detail-section/InterfaceDetailSection', () => ({
 }));
 
 vi.mock('../components/navbar/Navbar', () => ({
-    Navbar: () => <nav data-testid="navbar">Navbar</nav>,
+    Navbar: ({ onExploreClick }: { onExploreClick?: () => void }) => (
+        <nav data-testid="navbar">
+            Navbar
+            {onExploreClick && (
+                <button aria-label="Toggle explorer" onClick={onExploreClick}>
+                    Explore
+                </button>
+            )}
+        </nav>
+    ),
 }));
 
 vi.mock('./components/diagram-section/DiagramSection', () => ({
@@ -266,6 +325,77 @@ describe('Hub', () => {
 
             fireEvent.click(screen.getByLabelText('Expand sidebar'));
             expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+        });
+
+        it('toggles the desktop sidebar from the navbar Explore button', () => {
+            renderWithRouter(<Hub />);
+            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Toggle explorer'));
+            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Toggle explorer'));
+            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+        });
+    });
+
+    describe('mobile layout', () => {
+        afterEach(() => {
+            // Restore the default desktop matchMedia mock from vitest.setup.ts.
+            window.matchMedia = ((query: string) => ({
+                matches: false,
+                media: query,
+                onchange: null,
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                addListener: () => {},
+                removeListener: () => {},
+                dispatchEvent: () => false,
+            })) as unknown as typeof window.matchMedia;
+        });
+
+        it('keeps the drill-down menu mounted off-canvas with a menu button by default', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            // The drill-down menu stays mounted (so deep-link / search loading still
+            // runs) but the full-screen panel is closed (aria-hidden, so excluded from
+            // the dialog role) until the menu button is pressed. The desktop tree is
+            // not rendered on mobile.
+            expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
+            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+            expect(screen.getByLabelText('Toggle explorer')).toBeInTheDocument();
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+            restore();
+        });
+
+        it('opens the full-screen drill-down panel when the menu button is clicked', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            fireEvent.click(screen.getByLabelText('Toggle explorer'));
+            expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
+            // The panel is now exposed (not aria-hidden), so the dialog is present.
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+            restore();
+        });
+
+        it('closes the panel after a resource is loaded', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            fireEvent.click(screen.getByLabelText('Toggle explorer'));
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByText('Mobile Load Test Data'));
+            // Panel closes (aria-hidden again) but the menu remains mounted.
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+            restore();
         });
     });
 });

@@ -1,17 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline } from 'react-icons/io5';
+import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
+import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
+import { SearchBar } from '../../../visualizer/components/reactflow/SearchBar.js';
+import { NodeSearchProvider, type NodeSearchState } from '../../../visualizer/components/reactflow/node-search-context.js';
 import { CompareView } from './compare/CompareView.js';
 import { diffArchitectures, diffPatterns, type NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
 import type { CalmArchitectureSchema } from '@finos/calm-models/types';
 import type { DiffSource } from '../../../diff/model/diff-ui-types.js';
 import { TimelineBar, type TimelineMoment } from './timeline/TimelineBar.js';
+import { MobileTimeline } from './timeline/MobileTimeline.js';
 import {
     currentMomentIdFromTimeline,
     isExplicitTimeline,
@@ -41,6 +46,32 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const navigate = useNavigate();
     const tabParam = searchParams.get('tab') as DiagramTabType | null;
     const activeTab: DiagramTabType = tabParam ?? 'diagram';
+    const isMobile = useIsMobile();
+    const [showTimeline, setShowTimeline] = useState(false);
+    const [showViewMenu, setShowViewMenu] = useState(false);
+    // The view-options menu trigger lives in the navbar (top nav), not floating
+    // over the canvas; resolve the navbar slot after mount.
+    const [navbarSlot, setNavbarSlot] = useState<HTMLElement | null>(null);
+    useLayoutEffect(() => {
+        setNavbarSlot(document.getElementById('navbar-actions'));
+    }, []);
+    // Node ("component") search state, surfaced inside the mobile view menu and
+    // applied to the graph via NodeSearchProvider.
+    const [nodeSearchTerm, setNodeSearchTerm] = useState('');
+    const [nodeTypeFilter, setNodeTypeFilter] = useState('');
+    const [nodeTypes, setNodeTypes] = useState<string[]>([]);
+    const nodeSearch = useMemo<NodeSearchState>(
+        () => ({
+            searchTerm: nodeSearchTerm,
+            setSearchTerm: setNodeSearchTerm,
+            typeFilter: nodeTypeFilter,
+            setTypeFilter: setNodeTypeFilter,
+            availableNodeTypes: nodeTypes,
+            setAvailableNodeTypes: setNodeTypes,
+            external: true,
+        }),
+        [nodeSearchTerm, nodeTypeFilter, nodeTypes]
+    );
     const calmService = useMemo(() => new CalmService(), []);
     const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
@@ -274,91 +305,242 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const Icon = iconMap[data.calmType];
     const comparing = compareFrom !== null && compareTo !== null;
 
+    // Desktop: inline tabs in the section header (unchanged).
     const tabs = (
         <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
             <button
                 role="tab"
+                aria-label="Diagram"
                 className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'diagram' ? 'tab-active !bg-accent !text-white' : ''}`}
                 onClick={() => setActiveTab('diagram')}
             >
                 <IoEyeOutline />
-                Diagram
+                <span className="hidden sm:inline">Diagram</span>
             </button>
             <button
                 role="tab"
+                aria-label="JSON"
                 className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'json' ? 'tab-active !bg-accent !text-white' : ''}`}
                 onClick={() => setActiveTab('json')}
             >
                 <IoCodeOutline />
-                JSON
+                <span className="hidden sm:inline">JSON</span>
             </button>
             {isArchitecture && (
                 <button
                     role="tab"
+                    aria-label="Deployments"
                     className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
                     onClick={() => setActiveTab('deployments')}
                 >
                     <IoRocketOutline />
-                    Deployments
+                    <span className="hidden sm:inline">Deployments</span>
                 </button>
             )}
         </div>
     );
 
-    return (
-        <div className={`w-full h-full py-4 pl-2 ${hasDetailsPanel ? 'pr-2' : 'pr-4'}`}>
-            <div className="h-full bg-base-100 rounded-box overflow-hidden flex flex-col shadow-xl">
-                <SectionHeader
-                    icon={<Icon className="text-accent" />}
-                    namespace={data.name}
-                    id={data.id}
-                    version={data.version}
-                    showVersion={false}
-                    displayName={displayName}
-                    typeLabel={typeLabel}
-                    rightContent={tabs}
-                />
+    // Mobile: full-bleed render pane; the view-options menu lives in the navbar
+    // and opens as a full-screen overlay styled like the explorer. The trigger
+    // shows the active view icon.
+    const breadcrumb = (
+        <h2 className="px-4 py-3 text-sm font-medium flex flex-wrap items-center gap-x-1 border-b border-base-200 text-base-content">
+            <Icon className="text-accent shrink-0" />
+            {data.name}
+            {typeLabel && (
+                <>
+                    <span className="text-base-content/40">/</span> <span className="text-base-content/70">{typeLabel}</span>
+                </>
+            )}
+            <span className="text-base-content/40">/</span>
+            <span title={data.id} className="break-all">
+                {displayName || data.id}
+            </span>
+        </h2>
+    );
 
-                <div className="flex-1 min-h-0 overflow-hidden">
-                    {comparing ? (
-                        <CompareView
-                            calmType={data.calmType}
-                            versionA={compareFrom ?? ''}
-                            versionB={compareTo ?? ''}
-                            sourceA={compareSourceA}
-                            sourceB={compareSourceB}
-                            diffResult={diffResult}
-                            error={compareError}
-                        />
-                    ) : activeTab === 'diagram' ? (
-                        <div className="w-full h-full">
-                            <Drawer data={data} onItemSelect={onItemSelect} decorators={decorators} />
-                        </div>
-                    ) : activeTab === 'deployments' && isArchitecture ? (
-                        <div className="h-full bg-base-200 overflow-auto p-4">
-                            <DeploymentPanel decorators={decorators} />
-                        </div>
-                    ) : (
-                        <div className="h-full bg-base-200 overflow-auto">
-                            <JsonRenderer json={data} />
-                        </div>
-                    )}
-                </div>
+    const viewModeRow = (tab: DiagramTabType, icon: ReactNode, label: string, onSelect?: () => void) => {
+        const active = !comparing && activeTab === tab;
+        return (
+            <button
+                role="tab"
+                aria-label={label}
+                aria-selected={active}
+                onClick={() => {
+                    setActiveTab(tab);
+                    onSelect?.();
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 ${
+                    active ? 'bg-base-200 text-accent font-semibold' : 'text-base-content'
+                }`}
+            >
+                <span className={active ? 'text-accent' : 'text-base-content/60'}>{icon}</span>
+                <span className="flex-1 min-w-0 truncate">{label}</span>
+                {active && <IoCheckmarkOutline size={18} className="text-accent shrink-0" />}
+            </button>
+        );
+    };
 
-                <TimelineBar
-                    moments={moments}
-                    currentVersion={data.version}
-                    displayName={displayName}
-                    timelineCurrentMomentId={timelineCurrentMomentId}
-                    timelineIsExplicit={timelineIsExplicit}
-                    compareFrom={compareFrom}
-                    compareTo={compareTo}
-                    diffResult={diffResult}
-                    loadChangesForVersion={loadChangesForVersion}
-                    onNavigate={handleVersionChange}
-                    onCompare={startCompare}
-                />
-            </div>
+    const renderViewModes = (onSelect?: () => void) => (
+        <div role="tablist" className="divide-y divide-base-200 border-b border-base-200">
+            {viewModeRow('diagram', <IoEyeOutline size={18} />, 'Diagram', onSelect)}
+            {viewModeRow('json', <IoCodeOutline size={18} />, 'JSON', onSelect)}
+            {isArchitecture && viewModeRow('deployments', <IoRocketOutline size={18} />, 'Deployments', onSelect)}
         </div>
+    );
+
+    const activeViewIcon =
+        activeTab === 'json' ? <IoCodeOutline size={20} /> : activeTab === 'deployments' ? <IoRocketOutline size={20} /> : <IoEyeOutline size={20} />;
+
+    const viewMenu = (
+        <>
+            <button
+                aria-label="View options"
+                className="btn btn-ghost btn-circle text-primary"
+                onClick={() => setShowViewMenu(true)}
+            >
+                {activeViewIcon}
+            </button>
+            {showViewMenu && (
+                <div className="fixed inset-0 z-40 bg-base-100 flex flex-col animate-slide-in-right" role="dialog" aria-modal="true">
+                    <div className="bg-base-200 px-3 py-3 border-b border-base-300 flex items-center justify-between">
+                        <span className="text-lg font-semibold">View</span>
+                        <button aria-label="Close view options" className="btn btn-ghost btn-sm btn-circle" onClick={() => setShowViewMenu(false)}>
+                            <IoCloseOutline size={22} />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-auto">
+                        {breadcrumb}
+                        {renderViewModes(() => setShowViewMenu(false))}
+                        <div className="divide-y divide-base-200 border-b border-base-200">
+                            <button
+                                type="button"
+                                aria-label="Show timeline"
+                                onClick={() => {
+                                    setShowViewMenu(false);
+                                    setShowTimeline(true);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 text-base-content"
+                            >
+                                <span className="text-base-content/60">
+                                    <IoTimeOutline size={18} />
+                                </span>
+                                <span className="flex-1 min-w-0 truncate">Timeline</span>
+                            </button>
+                        </div>
+                        {!comparing && activeTab === 'diagram' && (
+                            <div className="p-4">
+                                <div className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">
+                                    Search components
+                                </div>
+                                <SearchBar
+                                    searchTerm={nodeSearchTerm}
+                                    onSearchChange={setNodeSearchTerm}
+                                    typeFilter={nodeTypeFilter}
+                                    onTypeFilterChange={setNodeTypeFilter}
+                                    nodeTypes={nodeTypes}
+                                    forceExpanded
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </>
+    );
+
+    const content = comparing ? (
+        <CompareView
+            calmType={data.calmType}
+            versionA={compareFrom ?? ''}
+            versionB={compareTo ?? ''}
+            sourceA={compareSourceA}
+            sourceB={compareSourceB}
+            diffResult={diffResult}
+            error={compareError}
+        />
+    ) : activeTab === 'diagram' ? (
+        <div className="w-full h-full">
+            <Drawer data={data} onItemSelect={onItemSelect} decorators={decorators} />
+        </div>
+    ) : activeTab === 'deployments' && isArchitecture ? (
+        <div className="h-full bg-base-200 overflow-auto p-4">
+            <DeploymentPanel decorators={decorators} />
+        </div>
+    ) : (
+        <div className="h-full bg-base-200 overflow-auto">
+            <JsonRenderer json={data} />
+        </div>
+    );
+
+    const timelineBar = (
+        <TimelineBar
+            moments={moments}
+            currentVersion={data.version}
+            displayName={displayName}
+            timelineCurrentMomentId={timelineCurrentMomentId}
+            timelineIsExplicit={timelineIsExplicit}
+            compareFrom={compareFrom}
+            compareTo={compareTo}
+            diffResult={diffResult}
+            loadChangesForVersion={loadChangesForVersion}
+            onNavigate={handleVersionChange}
+            onCompare={startCompare}
+        />
+    );
+
+    // Desktop keeps the original layout: section header with inline tabs, card
+    // chrome, and an inline timeline bar.
+    if (!isMobile) {
+        return (
+            <div className={`w-full h-full py-4 pl-2 ${hasDetailsPanel ? 'pr-2' : 'pr-4'}`}>
+                <div className="h-full bg-base-100 rounded-box overflow-hidden flex flex-col shadow-xl">
+                    <SectionHeader
+                        icon={<Icon className="text-accent" />}
+                        namespace={data.name}
+                        id={data.id}
+                        version={data.version}
+                        showVersion={false}
+                        displayName={displayName}
+                        typeLabel={typeLabel}
+                        rightContent={tabs}
+                    />
+                    <div className="flex-1 min-h-0 overflow-hidden">{content}</div>
+                    {timelineBar}
+                </div>
+            </div>
+        );
+    }
+
+    // Mobile: full-bleed render pane; the view-options menu (which now also
+    // contains the component search and the timeline action) lives in the navbar
+    // right-hand actions — nothing floats over the canvas where iOS chrome would
+    // hide it.
+    return (
+        <NodeSearchProvider value={nodeSearch}>
+        <div className="w-full h-full">
+            {navbarSlot ? createPortal(viewMenu, navbarSlot) : viewMenu}
+            <div className="h-full bg-base-100 overflow-hidden flex flex-col">
+                <div className="flex-1 min-h-0 overflow-hidden relative">
+                    {content}
+                </div>
+            </div>
+
+            {showTimeline && (
+                <div className="fixed inset-0 z-40 bg-base-100 flex flex-col animate-slide-in-right" role="dialog" aria-modal="true">
+                    <MobileTimeline
+                        moments={moments}
+                        currentVersion={data.version}
+                        displayName={displayName}
+                        timelineCurrentMomentId={timelineCurrentMomentId}
+                        timelineIsExplicit={timelineIsExplicit}
+                        loadChangesForVersion={loadChangesForVersion}
+                        onNavigate={handleVersionChange}
+                        onClose={() => setShowTimeline(false)}
+                    />
+                </div>
+            )}
+        </div>
+        </NodeSearchProvider>
     );
 }
