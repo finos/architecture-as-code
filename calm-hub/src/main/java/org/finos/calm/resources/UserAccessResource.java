@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
 @Path("/api/calm/namespaces")
@@ -139,7 +140,7 @@ public class UserAccessResource {
 
     private Response invalidNamespaceResponse(String namespace) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Invalid namespace provided: " + namespace)
+                .entity("Invalid namespace provided: " + STRICT_SANITIZATION_POLICY.sanitize(namespace))
                 .build();
     }
 }
