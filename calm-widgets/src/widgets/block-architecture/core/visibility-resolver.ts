@@ -22,7 +22,6 @@ export interface VisibilityResult {
     filteredNodes: CalmNodeCanonicalModel[];
     filteredRels: CalmRelationshipCanonicalModel[];
     containerIds: Set<string>;
-    seedNodes?: Set<string>;
     warnings: string[];
 }
 
@@ -205,7 +204,6 @@ export function resolveVisibilityWithStrategies(
         filteredNodes,
         filteredRels,
         containerIds,
-        seedNodes: result.seedNodes,
         warnings: [...parentHierarchyResult.warnings, ...result.warnings],
     };
 }
