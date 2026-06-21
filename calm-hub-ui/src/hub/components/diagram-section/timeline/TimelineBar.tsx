@@ -79,6 +79,12 @@ interface TimelineBarProps {
      * exists. Provided by DiagramSection so this component stays service-free.
      */
     loadChangesForVersion?: (prevVersion: string, currVersion: string) => Promise<VersionChange[]>;
+    /**
+     * Force the initial expand state and skip the persisted preference. Used by
+     * the mobile bottom-sheet, which always wants the bar opened to the cards
+     * view (and shouldn't leak that into the desktop inline bar's saved state).
+     */
+    initialExpanded?: boolean;
 }
 
 /**
@@ -103,18 +109,22 @@ export function TimelineBar({
     onNavigate,
     onCompare,
     loadChangesForVersion,
+    initialExpanded,
 }: TimelineBarProps) {
-    const [expanded, setExpanded] = useState<boolean>(readExpanded);
+    const [expanded, setExpanded] = useState<boolean>(() => initialExpanded ?? readExpanded());
     const [hasSeenTimeline, setHasSeenTimeline] = useState<boolean>(readSeen);
 
     // Remember the expand/collapse choice so a refresh keeps the bar as it was.
+    // Skipped when initialExpanded is forced (mobile sheet) so it doesn't leak
+    // into the desktop inline bar's saved preference.
     useEffect(() => {
+        if (initialExpanded !== undefined) return;
         try {
             localStorage.setItem(EXPANDED_STORAGE_KEY, String(expanded));
         } catch {
             /* ignore unavailable storage */
         }
-    }, [expanded]);
+    }, [expanded, initialExpanded]);
 
     const markSeen = useCallback(() => {
         setHasSeenTimeline((prev) => {

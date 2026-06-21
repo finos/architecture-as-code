@@ -37,6 +37,21 @@ code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
+/* Full-screen detail panel slide-in (mobile push overlay) */
+@keyframes slide-in-right {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.animate-slide-in-right {
+    animation: slide-in-right 0.25s ease-out;
+}
+
 /* ReactFlow style overrides */
 .react-flow__background {
     background-color: #ffffff;

@@ -5,6 +5,7 @@ import { SearchService } from '../../service/search-service.js';
 import { CalmService } from '../../service/calm-service.js';
 import { AdrService } from '../../service/adr-service/adr-service.js';
 import { GroupedSearchResults, SearchResult } from '../../model/search.js';
+import { pickLatestVersion } from '../../model/version.js';
 
 interface FlatResult {
     type: string;
@@ -41,22 +42,32 @@ function flattenResults(grouped: GroupedSearchResults): FlatResult[] {
     return flat;
 }
 
-interface GlobalSearchBarProps {
+interface ExplorerSearchProps {
     searchService?: SearchService;
     calmService?: CalmService;
     adrService?: AdrService;
+    /** Notifies the parent explorer when a search is active so it can hide its nav. */
+    onSearchingChange?: (active: boolean) => void;
 }
 
-export function GlobalSearchBar({ searchService, calmService: calmServiceProp, adrService: adrServiceProp }: GlobalSearchBarProps) {
+/**
+ * Always-visible search bar for the explorer. While a query is present the
+ * results render inline and take over the explorer body (the parent hides its
+ * tree / drill-down). Selecting a result navigates to the resource.
+ */
+export function ExplorerSearch({
+    searchService,
+    calmService: calmServiceProp,
+    adrService: adrServiceProp,
+    onSearchingChange,
+}: ExplorerSearchProps) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<GroupedSearchResults | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
-    const [showDropdown, setShowDropdown] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
 
     const inputRef = useRef<HTMLInputElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const service = useMemo(() => searchService ?? new SearchService(), [searchService]);
@@ -65,41 +76,46 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
 
     const navigate = useNavigate();
 
-    const flatResults = results ? flattenResults(results) : [];
+    const active = query.trim().length > 0;
+    const flatResults = useMemo(() => (results ? flattenResults(results) : []), [results]);
 
-    const performSearch = useCallback(async (searchQuery: string) => {
-        if (!searchQuery.trim()) {
-            setResults(null);
-            setShowDropdown(false);
-            setError(false);
-            return;
-        }
+    useEffect(() => {
+        onSearchingChange?.(active);
+    }, [active, onSearchingChange]);
 
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
-        const controller = new AbortController();
-        abortControllerRef.current = controller;
-
-        setLoading(true);
-        setError(false);
-        try {
-            const data = await service.search(searchQuery);
-            if (controller.signal.aborted) return;
-            setResults(data);
-            setShowDropdown(true);
-            setSelectedIndex(-1);
-        } catch {
-            if (controller.signal.aborted) return;
-            setResults(null);
-            setError(true);
-            setShowDropdown(true);
-        } finally {
-            if (!controller.signal.aborted) {
-                setLoading(false);
+    const performSearch = useCallback(
+        async (searchQuery: string) => {
+            if (!searchQuery.trim()) {
+                setResults(null);
+                setError(false);
+                return;
             }
-        }
-    }, [service]);
+
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            const controller = new AbortController();
+            abortControllerRef.current = controller;
+
+            setLoading(true);
+            setError(false);
+            try {
+                const data = await service.search(searchQuery);
+                if (controller.signal.aborted) return;
+                setResults(data);
+                setSelectedIndex(-1);
+            } catch {
+                if (controller.signal.aborted) return;
+                setResults(null);
+                setError(true);
+            } finally {
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
+            }
+        },
+        [service]
+    );
 
     const handleInputChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,8 +155,9 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                 default:
                     throw new Error(`Unknown type: ${type}`);
             }
-            if (!versions || versions.length === 0) throw new Error('No versions found');
-            return String(versions[versions.length - 1]);
+            const latest = pickLatestVersion((versions ?? []).map(String));
+            if (!latest) throw new Error('No versions found');
+            return latest;
         },
         [calmService, adrService]
     );
@@ -148,7 +165,6 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
     const navigateToResult = useCallback(
         (flatResult: FlatResult) => {
             const { type, result } = flatResult;
-            setShowDropdown(false);
             setQuery('');
             setResults(null);
 
@@ -175,9 +191,23 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
         [navigate, resolveLatestVersion]
     );
 
+    const handleClear = useCallback(() => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        setQuery('');
+        setResults(null);
+        setSelectedIndex(-1);
+        setError(false);
+        inputRef.current?.focus();
+    }, []);
+
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
-            if (!showDropdown || flatResults.length === 0) return;
+            if (!active || flatResults.length === 0) return;
 
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -189,39 +219,11 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                 e.preventDefault();
                 navigateToResult(flatResults[selectedIndex]);
             } else if (e.key === 'Escape') {
-                setShowDropdown(false);
-                setSelectedIndex(-1);
+                handleClear();
             }
         },
-        [showDropdown, flatResults, selectedIndex, navigateToResult]
+        [active, flatResults, selectedIndex, navigateToResult, handleClear]
     );
-
-    const handleClear = useCallback(() => {
-        if (debounceRef.current) {
-            clearTimeout(debounceRef.current);
-        }
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
-        setQuery('');
-        setResults(null);
-        setShowDropdown(false);
-        setSelectedIndex(-1);
-        setError(false);
-        inputRef.current?.focus();
-    }, []);
-
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setShowDropdown(false);
-                setSelectedIndex(-1);
-            }
-        }
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     useEffect(() => {
         return () => {
@@ -239,11 +241,11 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
             return <div className="p-3 text-sm text-error">Search failed, please try again</div>;
         }
 
-        if (!results) return null;
+        if (!results) {
+            return loading ? null : null;
+        }
 
-        const groups = Object.entries(results).filter(
-            ([, items]) => (items as SearchResult[]).length > 0
-        );
+        const groups = Object.entries(results).filter(([, items]) => (items as SearchResult[]).length > 0);
 
         if (groups.length === 0) {
             return <div className="p-3 text-sm text-base-content/60">No results found</div>;
@@ -270,9 +272,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                         >
                             <div className="font-medium text-base-content">{item.name}</div>
                             {item.description && (
-                                <div className="text-xs text-base-content/60 truncate">
-                                    {item.description}
-                                </div>
+                                <div className="text-xs text-base-content/60 truncate">{item.description}</div>
                             )}
                         </button>
                     );
@@ -282,22 +282,23 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
     };
 
     return (
-        <div ref={containerRef} className="relative">
-            <div className="flex items-center gap-1 bg-base-200 rounded-lg px-3 py-1.5">
+        <>
+            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-base-300 bg-base-100">
                 <IoSearchOutline className="text-base-content/50 h-4 w-4 shrink-0" />
                 <input
                     ref={inputRef}
                     type="text"
                     placeholder="Search CALM Hub..."
-                    className="bg-transparent border-none outline-none text-sm text-base-content placeholder:text-base-content/40 w-28 sm:w-48 lg:w-64"
+                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-base-content placeholder:text-base-content/40"
                     value={query}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     aria-label="Search"
                     role="combobox"
-                    aria-expanded={showDropdown}
+                    aria-expanded={active}
                     aria-haspopup="listbox"
                 />
+                {loading && <span className="loading loading-spinner loading-xs text-base-content/50" />}
                 {query && (
                     <button
                         onClick={handleClear}
@@ -307,18 +308,12 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                         <IoCloseOutline className="h-4 w-4" />
                     </button>
                 )}
-                {loading && (
-                    <span className="loading loading-spinner loading-xs text-base-content/50" />
-                )}
             </div>
-            {showDropdown && (
-                <div
-                    className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-lg shadow-lg z-50"
-                    role="listbox"
-                >
+            {active && (
+                <div className="flex-1 min-h-0 overflow-y-auto" role="listbox">
                     {renderGroupedResults()}
                 </div>
             )}
-        </div>
+        </>
     );
 }

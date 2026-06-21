@@ -75,6 +75,29 @@ describe('container-builder', () => {
         expect(attachments).toHaveLength(0);
     });
 
+    it('passes activeInterfaceIds to the node factory when provided', () => {
+        const capturedActiveIds: Array<Set<string> | undefined> = [];
+        const fakeNodeFactory: VMNodeFactory = {
+            createLeafNode: (node: CalmNodeCanonicalModel, _renderInterfaces: boolean, activeInterfaceIds?: Set<string>) => {
+                capturedActiveIds.push(activeInterfaceIds);
+                return { node: { id: node['unique-id'], label: node.name || node['unique-id'] }, attachments: [] };
+            }
+        };
+        VMFactoryProvider.setFactories(fakeNodeFactory, undefined);
+
+        const nodes: CalmNodeCanonicalModel[] = [
+            { 'unique-id': 'svcA', name: 'A', 'node-type': 'service', description: '' },
+            { 'unique-id': 'svcB', name: 'B', 'node-type': 'service', description: '' },
+        ];
+        const activeInterfaceIds = new Set<string>(['payment-api', 'fraud-check-api']);
+
+        buildContainerForest(nodes, new Map(), new Set(), true, activeInterfaceIds);
+
+        expect(capturedActiveIds).toHaveLength(2);
+        expect(capturedActiveIds[0]).toBe(activeInterfaceIds);
+        expect(capturedActiveIds[1]).toBe(activeInterfaceIds);
+    });
+
     it('creates container → container nesting when both are rendered', () => {
         const fakeNodeFactory: VMNodeFactory = {
             createLeafNode: (node: CalmNodeCanonicalModel) => ({
