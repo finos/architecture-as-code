@@ -1,4 +1,5 @@
 import './Navbar.css';
+import { Link, NavLink } from 'react-router-dom';
 import { IoMenuOutline } from 'react-icons/io5';
 import { GlobalSearchBar } from './GlobalSearchBar.js';
 
@@ -27,21 +28,25 @@ export function Navbar({ onExploreClick }: NavbarProps) {
                 )}
             </div>
             <div className="navbar-center absolute left-1/2 -translate-x-1/2">
-                <a className="btn btn-ghost min-w-0 px-1">
+                <Link to="/" className="btn btn-ghost min-w-0 px-1" aria-label="CALM Hub home">
                     <img
                         src="/brand/Horizontal/2025_CALM_Horizontal_Navbar_Logo.svg"
                         alt="CALM Logo"
                         className="h-10 logo"
                     />
-                </a>
+                </Link>
             </div>
             <div className="navbar-end flex items-center gap-1 min-w-0 shrink-0">
                 {/* Portal target for page-level actions (e.g. the diagram's
                     view-options menu), always visible across breakpoints. */}
                 <div id="navbar-actions" className="flex items-center" />
-                {/* Desktop keeps search in the navbar; on mobile it lives inside the
-                    explorer panel instead, so it is hidden here below the lg breakpoint. */}
-                <div className="hidden lg:flex">
+                {/* Desktop keeps the Visualizer link and search in the navbar; on
+                    mobile both live inside the explorer panel instead, so they are
+                    hidden here below the lg breakpoint. */}
+                <div className="hidden lg:flex items-center gap-1">
+                    <NavLink className="btn btn-ghost text-primary" to="/visualizer">
+                        Visualizer
+                    </NavLink>
                     <GlobalSearchBar />
                 </div>
             </div>

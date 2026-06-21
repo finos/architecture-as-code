@@ -5,6 +5,7 @@ import { SearchService } from '../../service/search-service.js';
 import { CalmService } from '../../service/calm-service.js';
 import { AdrService } from '../../service/adr-service/adr-service.js';
 import { GroupedSearchResults, SearchResult } from '../../model/search.js';
+import { pickLatestVersion } from '../../model/version.js';
 
 interface FlatResult {
     type: string;
@@ -154,8 +155,9 @@ export function ExplorerSearch({
                 default:
                     throw new Error(`Unknown type: ${type}`);
             }
-            if (!versions || versions.length === 0) throw new Error('No versions found');
-            return String(versions[versions.length - 1]);
+            const latest = pickLatestVersion((versions ?? []).map(String));
+            if (!latest) throw new Error('No versions found');
+            return latest;
         },
         [calmService, adrService]
     );

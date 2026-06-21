@@ -26,8 +26,16 @@ export function useMediaQuery(query: string): boolean {
 
         // Sync immediately in case the query changed between render and effect.
         handleChange();
-        mediaQueryList.addEventListener('change', handleChange);
-        return () => mediaQueryList.removeEventListener('change', handleChange);
+
+        // Older browsers (notably Safari < 14) only implement the deprecated
+        // addListener/removeListener API, so fall back to it when the modern
+        // addEventListener is unavailable.
+        if (typeof mediaQueryList.addEventListener === 'function') {
+            mediaQueryList.addEventListener('change', handleChange);
+            return () => mediaQueryList.removeEventListener('change', handleChange);
+        }
+        mediaQueryList.addListener(handleChange);
+        return () => mediaQueryList.removeListener(handleChange);
     }, [query]);
 
     return matches;
