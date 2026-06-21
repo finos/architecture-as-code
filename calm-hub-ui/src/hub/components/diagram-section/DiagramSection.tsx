@@ -16,6 +16,7 @@ import { diffArchitectures, diffPatterns, type NodesAndRelationshipsDiffResult }
 import type { CalmArchitectureSchema } from '@finos/calm-models/types';
 import type { DiffSource } from '../../../diff/model/diff-ui-types.js';
 import { TimelineBar, type TimelineMoment } from './timeline/TimelineBar.js';
+import { MobileTimeline } from './timeline/MobileTimeline.js';
 import {
     currentMomentIdFromTimeline,
     isExplicitTimeline,
@@ -527,34 +528,16 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
 
             {showTimeline && (
                 <div className="fixed inset-0 z-40 bg-base-100 flex flex-col animate-slide-in-right" role="dialog" aria-modal="true">
-                    <div className="bg-base-200 px-3 py-3 border-b border-base-300 flex items-center justify-between">
-                        <span className="text-lg font-semibold flex items-center gap-2">
-                            <IoTimeOutline /> Timeline
-                        </span>
-                        <button
-                            aria-label="Close timeline"
-                            className="btn btn-ghost btn-sm btn-circle"
-                            onClick={() => setShowTimeline(false)}
-                        >
-                            <IoCloseOutline size={22} />
-                        </button>
-                    </div>
-                    <div className="flex-1 overflow-auto">
-                        <TimelineBar
-                            moments={moments}
-                            currentVersion={data.version}
-                            displayName={displayName}
-                            timelineCurrentMomentId={timelineCurrentMomentId}
-                            timelineIsExplicit={timelineIsExplicit}
-                            compareFrom={compareFrom}
-                            compareTo={compareTo}
-                            diffResult={diffResult}
-                            loadChangesForVersion={loadChangesForVersion}
-                            onNavigate={(v) => { handleVersionChange(v); setShowTimeline(false); }}
-                            onCompare={startCompare}
-                            initialExpanded
-                        />
-                    </div>
+                    <MobileTimeline
+                        moments={moments}
+                        currentVersion={data.version}
+                        displayName={displayName}
+                        timelineCurrentMomentId={timelineCurrentMomentId}
+                        timelineIsExplicit={timelineIsExplicit}
+                        loadChangesForVersion={loadChangesForVersion}
+                        onNavigate={handleVersionChange}
+                        onClose={() => setShowTimeline(false)}
+                    />
                 </div>
             )}
         </div>
