@@ -43,7 +43,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
 ```
 
-## Focus on payment-api ignoring connected node interfaces [focus-interfaces="payment-api" edges="connected" render-interfaces=true ignore-connected-interfaces=true]
+## Focus on payment-api with only related interfaces rendered [focus-interfaces="payment-api" edges="connected" render-interfaces=related]
 ```mermaid
 ---
 config:

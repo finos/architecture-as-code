@@ -80,8 +80,9 @@ export class BlockArchVMBuilder {
             }
         }
 
+        const shouldRenderInterfaces = this.options.renderInterfaces !== false;
         const activeInterfaceIds: Set<string> | undefined =
-            this.options.ignoreConnectedInterfaces
+            this.options.renderInterfaces === 'related'
                 ? collectActiveInterfaceIds(this.visibilityResult.filteredRels)
                 : undefined;
 
@@ -89,7 +90,7 @@ export class BlockArchVMBuilder {
             filteredNodes,
             this.parentHierarchyResult.parentOf,
             this.visibilityResult.containerIds,
-            this.options.renderInterfaces,
+            shouldRenderInterfaces,
             activeInterfaceIds
         );
 
@@ -120,7 +121,7 @@ export class BlockArchVMBuilder {
             ? []
             : buildEdges(
                 this.visibilityResult.filteredRels,
-                this.options.renderInterfaces,
+                this.options.renderInterfaces !== false,
                 this.options.edgeLabels,
                 this.options.collapseRelationships,
                 ifaceNames,
@@ -202,7 +203,7 @@ export class BlockArchVMBuilder {
 
 /**
  * Collects all interface unique-ids referenced as source or destination in connects relationships.
- * Used to whitelist only "active" interfaces when ignore-connected-interfaces is set.
+ * Collects the interface IDs referenced in active relationships; used to restrict interface rendering when render-interfaces=related.
  */
 function collectActiveInterfaceIds(rels: CalmRelationshipCanonicalModel[]): Set<string> {
     const ids = new Set<string>();

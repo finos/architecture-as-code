@@ -50,8 +50,8 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
 
     if (raw['highlight-nodes']) o.highlightNodes = csv(raw['highlight-nodes']);
     if (raw['node-types']) o.nodeTypes = csv(raw['node-types']);
-    if (raw['render-interfaces']) o.renderInterfaces = true;
-    if (raw['ignore-connected-interfaces']) o.ignoreConnectedInterfaces = true;
+    if (raw['render-interfaces'] === 'related') o.renderInterfaces = 'related';
+    else if (raw['render-interfaces']) o.renderInterfaces = true;
     if (raw['render-node-type-shapes']) o.renderNodeTypeShapes = true;
     if (raw['collapse-relationships']) o.collapseRelationships = true;
 
