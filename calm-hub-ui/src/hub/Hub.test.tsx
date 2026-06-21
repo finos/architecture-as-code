@@ -335,29 +335,14 @@ describe('Hub', () => {
             })) as unknown as typeof window.matchMedia;
         });
 
-        it('keeps the drill-down menu mounted off-canvas with an Explore button by default', () => {
+        it('opens the drill-down panel immediately on mobile so the explorer is visible on landing', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
-            // The drill-down menu stays mounted (so deep-link / search loading still
-            // runs) but the full-screen panel is closed (aria-hidden, so excluded from
-            // the dialog role) until the Explore button is pressed. The desktop tree is
-            // not rendered on mobile.
+            // On mobile the explorer opens straight away — the mobile equivalent of
+            // the desktop tree being visible. The desktop tree is not rendered on mobile.
             expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
             expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
-            expect(screen.getByLabelText('Explore')).toBeInTheDocument();
-            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-            restore();
-        });
-
-        it('opens the full-screen drill-down panel when the Explore button is clicked', () => {
-            const restore = mockMobileViewport(true);
-            renderWithRouter(<Hub />);
-
-            fireEvent.click(screen.getByLabelText('Explore'));
-            expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
-            // The panel is now exposed (not aria-hidden), so the dialog is present.
             expect(screen.getByRole('dialog')).toBeInTheDocument();
 
             restore();
@@ -367,14 +352,24 @@ describe('Hub', () => {
             const restore = mockMobileViewport(true);
             renderWithRouter(<Hub />);
 
-            fireEvent.click(screen.getByLabelText('Explore'));
-            expect(screen.getByRole('dialog')).toBeInTheDocument();
-
             fireEvent.click(screen.getByText('Mobile Load Test Data'));
             // Panel closes (aria-hidden again) but the menu remains mounted.
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
             expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
             expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+            restore();
+        });
+
+        it('reopens the drill-down panel when the Explore button is clicked after closing', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            fireEvent.click(screen.getByText('Mobile Load Test Data'));
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Explore'));
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
 
             restore();
         });

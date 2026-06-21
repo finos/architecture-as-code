@@ -22,7 +22,7 @@ export default function Hub() {
     const [controlData, setControlData] = useState<ControlData | undefined>();
     const [interfaceData, setInterfaceData] = useState<InterfaceData | undefined>();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     const isMobile = useIsMobile();
 
