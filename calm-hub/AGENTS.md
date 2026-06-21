@@ -157,6 +157,42 @@ Security: `@PermissionsAllowed` on resource methods is resolved by
 `CalmHubPermissionChecker`, which consults `UserAccessValidator` against the
 caller's grants. See [PERMISSIONS.md](./PERMISSIONS.md) for the full model.
 
+#### Preventing Cross-Site Scripting (XSS) in Responses
+
+**CRITICAL — never echo user-controlled input into a response body unsanitized.** CodeQL's
+`java/xss` rule (CWE-79) flags any path where a request value (`@PathParam`, `@QueryParam`,
+request-body field, or `exception.getMessage()` derived from one) reaches a `Response` entity
+or a log line. `@Pattern` bean-validation on the parameter is **not** a recognised barrier — CodeQL
+still flags it, and content negotiation can serve the error body as `text/html`, making reflected
+XSS exploitable.
+
+**The barrier:** wrap every user-derived value with the shared OWASP sanitizer before
+concatenating it into a body or log message:
+
+```java
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
+
+return Response.status(Response.Status.NOT_FOUND)
+        .entity("Invalid namespace provided: " + STRICT_SANITIZATION_POLICY.sanitize(namespace))
+        .build();
+
+logger.error("Cannot parse JSON for namespace [{}]: [{}]",
+        namespace, STRICT_SANITIZATION_POLICY.sanitize(request.getJson()), e);
+```
+
+Rules:
+- **Sanitize in the helper, not the call site.** Fix shared/private error-response helpers
+  (e.g. `invalidNamespaceResponse`, `invalidDomainResponse`) so every caller is covered — not just
+  the one method CodeQL happened to flag.
+- **Prefer not echoing input at all.** When the value adds no diagnostic value to the *client*,
+  return a generic message (see `CalmResourceErrorResponses.invalidJsonResponse`, which deliberately
+  does not echo the payload). Sanitize only when the echoed value genuinely helps the caller.
+- **Always set `@Produces`.** Every endpoint should declare `@Produces(MediaType.APPLICATION_JSON)`
+  (mutating endpoints with no return body included). A missing `@Produces` lets the entity be
+  content-negotiated to `text/html`, which is what turns an echoed string into an XSS sink.
+- The reference implementations are `ControlResource`, `MappingControllerResource`, and
+  `CalmResourceErrorResponses` — match how they sanitize.
+
 There are **four auth modes**, each selected by a separate property file:
 
 **Default** (secure, no mechanism configured) — `application.properties`:
@@ -501,6 +537,9 @@ private static final int PATTERN_ID = 42;
 4. Write unit tests in `test/`
 5. Add integration test in `integration-test/`
 6. Document with OpenAPI annotations
+7. Declare `@Produces(MediaType.APPLICATION_JSON)` on every method, and sanitize any
+   user-derived value echoed into a response body or log with `STRICT_SANITIZATION_POLICY.sanitize(...)`
+   (see [Preventing Cross-Site Scripting (XSS) in Responses](#preventing-cross-site-scripting-xss-in-responses))
 
 ### Adding a New Storage Backend
 1. Create package: `org.finos.calm.store.mybackend`
@@ -552,6 +591,10 @@ CALM Hub is largely independent - it's a standalone REST API server.
      `quarkus.profile=standalone` via the plugin's own `systemProperties` configuration.
 4. **Certificate Issues**: Use exact CN in URLs when using self-signed certs
 5. **Profile Selection**: Remember to pass `-Dquarkus.profile=secure` for secure mode
+6. **Reflected XSS in error bodies/logs**: Concatenating a raw `@PathParam`/`@QueryParam`/request
+   field into a `Response` entity or log message triggers CodeQL `java/xss`. `@Pattern` validation
+   is not a barrier — wrap the value in `STRICT_SANITIZATION_POLICY.sanitize(...)`. See
+   [Preventing Cross-Site Scripting (XSS) in Responses](#preventing-cross-site-scripting-xss-in-responses).
 
 ## Known Issues
 

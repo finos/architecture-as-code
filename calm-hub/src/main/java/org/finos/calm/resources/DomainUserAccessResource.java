@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
 @Path("/api/calm/domains")
@@ -130,7 +131,7 @@ public class DomainUserAccessResource {
 
     private Response invalidDomainResponse(String domain) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Invalid domain provided: " + domain)
+                .entity("Invalid domain provided: " + STRICT_SANITIZATION_POLICY.sanitize(domain))
                 .build();
     }
 
