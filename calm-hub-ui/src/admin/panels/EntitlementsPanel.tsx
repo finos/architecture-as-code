@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CalmService } from '../../service/calm-service.js';
 import { UserAccessService } from '../../service/user-access-service.js';
 import { useUserAccess } from '../context/UserAccessContext.js';
@@ -14,15 +15,17 @@ export function EntitlementsPanel({ calmService, userAccessService }: Entitlemen
     const calmSvc = useMemo(() => calmService ?? new CalmService(), [calmService]);
     const userAccessSvc = useMemo(() => userAccessService ?? new UserAccessService(), [userAccessService]);
 
+    const [searchParams, setSearchParams] = useSearchParams();
+    const selectedNamespace = searchParams.get('namespace') ?? '';
+    const selectedDomain = searchParams.get('domain') ?? '';
+
     const [namespaces, setNamespaces] = useState<string[]>([]);
     const [namespacesLoading, setNamespacesLoading] = useState(true);
     const [namespacesError, setNamespacesError] = useState<string | null>(null);
-    const [selectedNamespace, setSelectedNamespace] = useState<string>('');
 
     const [domains, setDomains] = useState<string[]>([]);
     const [domainsLoading, setDomainsLoading] = useState(true);
     const [domainsError, setDomainsError] = useState<string | null>(null);
-    const [selectedDomain, setSelectedDomain] = useState<string>('');
 
     const { canAdminNamespace, isGlobalAdmin, loading: accessLoading, error: accessError } =
         useUserAccess();
@@ -74,7 +77,12 @@ export function EntitlementsPanel({ calmService, userAccessService }: Entitlemen
                         <select
                             className="select select-bordered select-sm w-full max-w-xs mb-4"
                             value={selectedNamespace}
-                            onChange={(e) => setSelectedNamespace(e.target.value)}
+                            onChange={(e) => setSearchParams(prev => {
+                                const next = new URLSearchParams(prev);
+                                if (e.target.value) next.set('namespace', e.target.value);
+                                else next.delete('namespace');
+                                return next;
+                            })}
                             aria-label="Select namespace"
                         >
                             <option value="">Select a namespace…</option>
@@ -111,7 +119,12 @@ export function EntitlementsPanel({ calmService, userAccessService }: Entitlemen
                                     <select
                                         className="select select-bordered select-sm w-full max-w-xs mb-4"
                                         value={selectedDomain}
-                                        onChange={(e) => setSelectedDomain(e.target.value)}
+                                        onChange={(e) => setSearchParams(prev => {
+                                    const next = new URLSearchParams(prev);
+                                    if (e.target.value) next.set('domain', e.target.value);
+                                    else next.delete('domain');
+                                    return next;
+                                })}
                                         aria-label="Select domain"
                                     >
                                         <option value="">Select a domain…</option>

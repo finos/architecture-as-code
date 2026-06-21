@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EntitlementsPanel } from './EntitlementsPanel.js';
 import { CalmService } from '../../service/calm-service.js';
@@ -48,6 +48,25 @@ function renderPanel(
             <BrowserRouter>
                 <EntitlementsPanel calmService={calmSvc} userAccessService={userAccessSvc} />
             </BrowserRouter>
+        </UserAccessContext.Provider>
+    );
+}
+
+function renderPanelWithUrl(
+    accessState: CurrentUserAccessState,
+    calmSvc: CalmService,
+    userAccessSvc: UserAccessService,
+    initialUrl: string
+) {
+    return render(
+        <UserAccessContext.Provider value={accessState}>
+            <MemoryRouter initialEntries={[initialUrl]}>
+                <Routes>
+                    <Route path="*" element={
+                        <EntitlementsPanel calmService={calmSvc} userAccessService={userAccessSvc} />
+                    } />
+                </Routes>
+            </MemoryRouter>
         </UserAccessContext.Provider>
     );
 }
@@ -240,6 +259,48 @@ describe('EntitlementsPanel', () => {
             renderPanel(makeAccessState({}), calmSvc, userAccessSvc);
             await waitFor(() =>
                 expect(screen.getByRole('heading', { name: /access management/i })).toBeInTheDocument()
+            );
+        });
+    });
+
+    describe('URL search param persistence', () => {
+        it('pre-selects the namespace from the URL and shows its grants panel', async () => {
+            const { calmSvc, userAccessSvc } = mockServices([NS_FINOS, NS_PAYMENTS]);
+            renderPanelWithUrl(
+                makeAccessState({ canAdminNamespace: (ns) => ns === NS_FINOS || ns === NS_PAYMENTS }),
+                calmSvc,
+                userAccessSvc,
+                `/?namespace=${NS_FINOS}`
+            );
+            await waitFor(() =>
+                expect(screen.getByRole('heading', { name: NS_FINOS })).toBeInTheDocument()
+            );
+            const select = screen.getByRole('combobox', { name: /select namespace/i });
+            expect((select as HTMLSelectElement).value).toBe(NS_FINOS);
+        });
+
+        it('pre-selects the domain from the URL and shows its grants panel', async () => {
+            const { calmSvc, userAccessSvc } = mockServices([NS_FINOS], ['retail', 'wholesale']);
+            renderPanelWithUrl(globalAdminState, calmSvc, userAccessSvc, '/?domain=retail');
+            await waitFor(() =>
+                expect(screen.getByRole('heading', { name: 'retail' })).toBeInTheDocument()
+            );
+            const select = screen.getByRole('combobox', { name: /select domain/i });
+            expect((select as HTMLSelectElement).value).toBe('retail');
+        });
+
+        it('updates the URL when the namespace selection changes', async () => {
+            const { calmSvc, userAccessSvc } = mockServices([NS_FINOS, NS_PAYMENTS]);
+            renderPanelWithUrl(
+                makeAccessState({ canAdminNamespace: (ns) => ns === NS_FINOS || ns === NS_PAYMENTS }),
+                calmSvc,
+                userAccessSvc,
+                '/'
+            );
+            const select = await screen.findByRole('combobox', { name: /select namespace/i });
+            fireEvent.change(select, { target: { value: NS_PAYMENTS } });
+            await waitFor(() =>
+                expect(screen.getByRole('heading', { name: NS_PAYMENTS })).toBeInTheDocument()
             );
         });
     });
