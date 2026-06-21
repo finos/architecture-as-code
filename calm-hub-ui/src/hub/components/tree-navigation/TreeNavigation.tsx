@@ -6,6 +6,15 @@ import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr, ResourceSummary, AdrSummary, ResourceMapping, isSlug } from '../../../model/calm.js';
 import { pickLatestVersion } from '../../../model/version.js';
+import {
+    type TypeInUrl,
+    type TypeInUI,
+    mapTypeInUrlToTypeInUI,
+    mapTypeInUIToTypeInUrl,
+    loadResource,
+    loadResourceForId,
+    fetchVersionsForResource,
+} from './navigation-loaders.js';
 
 function mapCalmTypeToResourceType(type: string): string {
     switch (type) {
@@ -22,8 +31,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { DomainItem } from './DomainItem.js';
 import { InterfaceItem } from './InterfaceItem.js';
 
-type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs' | 'standards' | 'interfaces' | 'controls';
-type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs' | 'Standards' | 'Interfaces' | 'Controls';
 type HubParams = {
     namespace: string;
     type: TypeInUrl;
@@ -41,17 +48,6 @@ interface LoadResourceIdsOptions {
     setStandardSummaries: (summaries: ResourceSummary[]) => void;
     adrService: AdrService;
     setAdrSummaries: (summaries: AdrSummary[]) => void;
-}
-
-interface LoadResourceOptions {
-    version: string;
-    type: string;
-    namespace: string;
-    resourceID: string;
-    calmService: CalmService;
-    onDataLoad: (data: Data) => void;
-    onAdrLoad: (adr: Adr) => void;
-    adrService: AdrService;
 }
 
 const basePath = '';
@@ -146,48 +142,6 @@ export function buildNamespaceTree(namespaces: string[]): NamespaceNode[] {
         }
     }
     return collapseToTree(root, '');
-}
-
-function mapTypeInUrlToTypeInUI(urlType: TypeInUrl): TypeInUI {
-    switch (urlType) {
-        case 'architectures':
-            return 'Architectures';
-        case 'patterns':
-            return 'Patterns';
-        case 'flows':
-            return 'Flows';
-        case 'adrs':
-            return 'ADRs';
-        case 'standards':
-            return 'Standards';
-        case 'interfaces':
-            return 'Interfaces';
-        case 'controls':
-            return 'Controls';
-        default:
-            throw new Error(`Unhandled type: ${urlType}`);
-    }
-}
-
-function mapTypeInUIToTypeInUrl(uiType: TypeInUI): TypeInUrl {
-    switch (uiType) {
-        case 'Architectures':
-            return 'architectures';
-        case 'Patterns':
-            return 'patterns';
-        case 'Flows':
-            return 'flows';
-        case 'ADRs':
-            return 'adrs';
-        case 'Standards':
-            return 'standards';
-        case 'Interfaces':
-            return 'interfaces';
-        case 'Controls':
-            return 'controls';
-        default:
-            throw new Error(`Unhandled type: ${uiType}`);
-    }
 }
 
 function ResourceItem({
@@ -385,67 +339,6 @@ function loadResourceIds({
     }
 }
 
-function loadResourceForId(
-    version: string,
-    type: string,
-    namespace: string,
-    resourceID: string,
-    calmService: CalmService,
-    onDataLoad: (data: Data) => void,
-) {
-    if (isSlug(resourceID)) {
-        calmService.fetchResourceByCustomId(namespace, resourceID, version, type).then(onDataLoad);
-    }
-}
-
-async function fetchVersionsForResource(
-    resourceID: string,
-    type: string,
-    namespace: string,
-    calmService: CalmService,
-    adrService: AdrService,
-): Promise<string[]> {
-    if (isSlug(resourceID) && type !== 'ADRs') {
-        return calmService.fetchVersionsByCustomId(namespace, resourceID, type);
-    }
-    switch (type) {
-        case 'Architectures':
-            return calmService.fetchArchitectureVersions(namespace, resourceID);
-        case 'Patterns':
-            return calmService.fetchPatternVersions(namespace, resourceID);
-        case 'Flows':
-            return calmService.fetchFlowVersions(namespace, resourceID);
-        case 'Standards':
-            return calmService.fetchStandardVersions(namespace, resourceID);
-        case 'ADRs':
-            return (await adrService.fetchAdrRevisions(namespace, resourceID)).map((rev) => rev.toString());
-        default:
-            return [];
-    }
-}
-
-function loadResource({ 
-    version, 
-    type, 
-    namespace, 
-    resourceID,
-    calmService,
-    onDataLoad,
-    onAdrLoad,
-    adrService
-}: LoadResourceOptions) {
-    if (type === 'Architectures') {
-        calmService.fetchArchitecture(namespace, resourceID, version).then(onDataLoad);
-    } else if (type === 'Patterns') {
-        calmService.fetchPattern(namespace, resourceID, version).then(onDataLoad);
-    } else if (type === 'Flows') {
-        calmService.fetchFlow(namespace, resourceID, version).then(onDataLoad);
-    } else if (type === 'Standards') {
-        calmService.fetchStandard(namespace, resourceID, version).then(onDataLoad);
-    } else if (type === 'ADRs') {
-        adrService.fetchAdr(namespace, resourceID, version).then(onAdrLoad);
-    }
-}
 
 export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfaceLoad, onCollapse }: TreeNavigationProps) {
     const navigate = useNavigate();
@@ -692,37 +585,55 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     }, [navigate, selectedNamespace, calmService, adrService]);
 
     const getResourceIDs = (type: string): string[] => {
-        const toId = (s: ResourceSummary) => s.customId ?? s.id.toString();
+        const toId = (s: ResourceSummary) => s.customId ?? s.id?.toString();
+        const idsOf = (list: ResourceSummary[]) =>
+            list.map(toId).filter((id): id is string => id != null && id !== '');
         switch (type) {
             case 'Architectures':
-                return architectureSummaries.map(toId);
+                return idsOf(architectureSummaries);
             case 'Patterns':
-                return patternSummaries.map(toId);
+                return idsOf(patternSummaries);
             case 'Flows':
-                return flowSummaries.map(toId);
+                return idsOf(flowSummaries);
             case 'Standards':
-                return standardSummaries.map(toId);
+                return idsOf(standardSummaries);
             case 'ADRs':
-                return adrSummaries.map((s) => s.id.toString());
+                return adrSummaries
+                    .map((s) => s.id?.toString())
+                    .filter((id): id is string => id != null && id !== '');
             default:
                 return [];
         }
     };
 
     const getResourceNames = (type: string): Record<string, string> => {
-        const toEntry = (s: ResourceSummary): [string, string] => [(s.customId ?? s.id.toString()), s.name];
+        const toEntry = (s: ResourceSummary): [string, string] | null => {
+            const id = s.customId ?? s.id?.toString();
+            return id != null && id !== '' ? [id, s.name] : null;
+        };
+        const entriesOf = (list: ResourceSummary[]) =>
+            Object.fromEntries(
+                list.map(toEntry).filter((e): e is [string, string] => e !== null)
+            );
         switch (type) {
             case 'Architectures':
-                return Object.fromEntries(architectureSummaries.map(toEntry));
+                return entriesOf(architectureSummaries);
             case 'Patterns':
-                return Object.fromEntries(patternSummaries.map(toEntry));
+                return entriesOf(patternSummaries);
             case 'Flows':
-                return Object.fromEntries(flowSummaries.map(toEntry));
+                return entriesOf(flowSummaries);
             case 'Standards':
-                return Object.fromEntries(standardSummaries.map(toEntry));
+                return entriesOf(standardSummaries);
             case 'ADRs':
                 return Object.fromEntries(
-                    adrSummaries.map((s) => [s.id.toString(), s.title + ' (' + s.status + ')'])
+                    adrSummaries
+                        .map((s): [string, string] | null => {
+                            const id = s.id?.toString();
+                            return id != null && id !== ''
+                                ? [id, s.title + ' (' + s.status + ')']
+                                : null;
+                        })
+                        .filter((e): e is [string, string] => e !== null)
                 );
             default:
                 return {};

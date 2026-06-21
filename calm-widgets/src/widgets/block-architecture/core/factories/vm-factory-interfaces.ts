@@ -5,7 +5,7 @@ import { VMLeafNode, VMEdge, VMAttach, EdgeLabels } from '../../types';
  * Factory interface for creating view model nodes
  */
 export interface VMNodeFactory {
-    createLeafNode(node: CalmNodeCanonicalModel, renderInterfaces: boolean): { node: VMLeafNode; attachments: VMAttach[] };
+    createLeafNode(node: CalmNodeCanonicalModel, renderInterfaces: boolean, activeInterfaceIds?: Set<string>): { node: VMLeafNode; attachments: VMAttach[] };
 }
 
 /**

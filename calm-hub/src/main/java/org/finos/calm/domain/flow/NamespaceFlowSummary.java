@@ -1,7 +1,10 @@
 package org.finos.calm.domain.flow;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.util.Objects;
 
+@RegisterForReflection
 public class NamespaceFlowSummary {
     private String name;
     private String description;

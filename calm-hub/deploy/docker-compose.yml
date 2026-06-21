@@ -1,7 +1,32 @@
+# CALM Hub — local Docker Compose entry point.
+#
+# A single compose file with four profiles, one per published image variant:
+#
+#   jvm              (default)   finos/calm-hub:latest                  multi-arch (amd64, arm64)
+#   native                       finos/calm-hub:latest-native           multi-arch (amd64, arm64)
+#   readonly-static              finos/calm-hub:latest-read-only-static multi-arch (amd64, arm64), seeded NitriteDB baked in
+#   readonly-native              finos/calm-hub:latest-read-only-native multi-arch (amd64, arm64), seeded NitriteDB baked in
+#
+# Selection:
+#   docker compose up                          # uses .env default (jvm)
+#   docker compose --profile native up
+#   docker compose --profile readonly-static up
+#   docker compose --profile readonly-native up
+#
+# All services bind 8080:8080 on the host; pick one profile at a time.
+#
+# The jvm and native profiles also start a MongoDB sidecar.  The readonly
+# variants are self-contained (NitriteDB baked into the image).
+#
+# WARNING: jvm and native profiles use the `no-auth` Quarkus profile for local
+# quick-start only.  DO NOT use in production — see calm-hub/README.md for the
+# secure / proxy-auth profiles.
+
 services:
   mongodb:
     image: mongo:latest
     container_name: calm_mongodb
+    profiles: [jvm, native]
     ports:
       - "27017:27017"
     volumes:
@@ -11,9 +36,11 @@ services:
       - CALM_SCHEMA_BASE_PATH=/calm
     networks:
       - calm-net
+
   calmhub:
     image: finos/calm-hub:latest
     container_name: calm-hub
+    profiles: [jvm]
     ports:
       - "8080:8080"
     environment:
@@ -22,6 +49,43 @@ services:
       - JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017 -Dquarkus.profile=no-auth
     networks:
       - calm-net
+
+  calmhub-native:
+    image: finos/calm-hub:latest-native
+    container_name: calm-hub-native
+    profiles: [native]
+    ports:
+      - "8080:8080"
+    # Native binaries do NOT read JAVA_OPTS; configure via Quarkus env vars.
+    environment:
+      - QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongodb:27017
+      # Local demo only: disable auth so the UI works without an IdP.
+      # WARNING: never run with auth disabled in production.
+      - QUARKUS_PROFILE=no-auth
+      - CALM_AUTH_ENABLED=false
+    networks:
+      - calm-net
+
+  calmhub-readonly-static:
+    image: finos/calm-hub:latest-read-only-static
+    container_name: calm-hub-readonly-static
+    profiles: [readonly-static]
+    ports:
+      - "8080:8080"
+    # Self-contained: NitriteDB baked into the image, mutating verbs return 405.
+    networks:
+      - calm-net
+
+  calmhub-readonly-native:
+    image: finos/calm-hub:latest-read-only-native
+    container_name: calm-hub-readonly-native
+    profiles: [readonly-native]
+    ports:
+      - "8080:8080"
+    # Self-contained: NitriteDB baked into the image, mutating verbs return 405.
+    networks:
+      - calm-net
+
 networks:
   calm-net:
     driver: bridge

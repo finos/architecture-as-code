@@ -1,8 +1,14 @@
 ---
 id: calm-hub
 title: CALM Hub
+sidebar_label: CALM Hub
 sidebar_position: 4
 ---
+
+
+:::tip CALM Hub documentation
+This page covers the **visual interface** of CALM Hub. For the technical reference see the [overview and runtimes](/calm-hub/), the [developer guide](/calm-hub/calm-hub-developer-guide), and the [MCP and API reference](/calm-hub/calm-hub-mcp-api).
+:::
 
 # CALM Hub
 

@@ -38,8 +38,8 @@ export function SectionHeader({ icon, namespace, id, version, rightContent, vers
 
     return (
         <div>
-            <div className="bg-base-200 px-6 py-4 flex items-center justify-between border-b border-base-300">
-                <h2 className="text-xl font-semibold flex items-center gap-2 whitespace-nowrap">
+            <div className="bg-base-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2 border-b border-base-300">
+                <h2 className="text-base sm:text-xl font-semibold flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                     {icon}
                     {namespace}
                     {typeLabel && (
@@ -77,7 +77,7 @@ export function SectionHeader({ icon, namespace, id, version, rightContent, vers
                 {rightContent}
             </div>
             {showShareBar && (
-                <div className="bg-base-200 px-6 py-2 flex items-center gap-2 border-b border-base-300" data-testid="share-bar">
+                <div className="bg-base-200 px-4 sm:px-6 py-2 flex items-center gap-2 border-b border-base-300" data-testid="share-bar">
                     <IoLinkOutline className="text-base-content/50 shrink-0" />
                     <div className="join shrink-0">
                         <button

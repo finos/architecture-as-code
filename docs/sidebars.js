@@ -49,7 +49,17 @@ const sidebars = {
       link: {type: 'doc', id: 'working-with-calm/working-with-calm-index'},
       items: [
         'working-with-calm/calm-ai-tools',
-        'working-with-calm/calm-hub',
+        {
+          type: 'category',
+          label: 'CALM Hub',
+          link: {type: 'doc', id: 'calm-hub/calm-hub-overview'},
+          items: [
+            'working-with-calm/calm-hub',
+            'calm-hub/calm-hub-developer-guide',
+            'calm-hub/calm-hub-mcp-api',
+            'working-with-calm/calm-hub-entitlements',
+          ],
+        },
         'working-with-calm/calm-studio',
         'working-with-calm/vscode-extension',
         'working-with-calm/cli',

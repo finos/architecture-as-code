@@ -7,7 +7,6 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
 import org.finos.calm.store.UserAccessStore;
@@ -61,11 +60,11 @@ public class NamespaceMigrationService {
     boolean backfillIfNeeded(String namespace) {
         try {
             List<UserAccess> existing = userAccessStore.getUserAccessForNamespace(namespace);
-            // Namespace has explicit grants — admin configured access intentionally, do not add * read
-            LOG.debug("Namespace [{}] has {} existing grant(s) — skipping", namespace, existing.size());
-            return false;
-        } catch (UserAccessNotFoundException e) {
-            // no grants at all — safe to insert the default public read
+            if (!existing.isEmpty()) {
+                // Namespace has explicit grants — admin configured access intentionally, do not add * read
+                LOG.debug("Namespace [{}] has {} existing grant(s) — skipping", namespace, existing.size());
+                return false;
+            }
         } catch (NamespaceNotFoundException e) {
             LOG.warn("Namespace [{}] not found during migration — skipping", namespace);
             return false;

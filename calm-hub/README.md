@@ -2,19 +2,32 @@
 
 ## Quick Start - No Coding, Just Product
 
-You can run a version of Calm Hub locally, by using the `docker-compose` deploy configuration.
-Note, this currently depends on @jpgough-ms publishing a Docker image, which will be fixed in the next few weeks by producing a build from this mono-repo.
-The only supported architectures at this time are `amd64` and `arm64`.
+You can run a version of CALM Hub locally using the published Docker images.
+The provided `docker-compose` file exposes four profiles, one per published image variant:
+
+| Profile           | Image                                  | Architectures   | Storage             |
+| ----------------- | -------------------------------------- | --------------- | ------------------- |
+| `jvm` *(default)* | `finos/calm-hub:latest`                | `amd64`/`arm64` | MongoDB sidecar     |
+| `native`          | `finos/calm-hub:latest-native`         | `amd64`/`arm64` | MongoDB sidecar     |
+| `readonly-static` | `finos/calm-hub:latest-read-only-static` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
+| `readonly-native` | `finos/calm-hub:latest-read-only-native` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
 
 ```shell
 cd deploy
-docker-compose up
+
+# Default JVM image with MongoDB sidecar (uses .env COMPOSE_PROFILES=jvm)
+docker compose up
+
+# Or pick a specific variant
+docker compose --profile native up
+docker compose --profile readonly-static up
+docker compose --profile readonly-native up
 ```
 
-A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)  
+A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 
-> **Note:** The `deploy/docker-compose.yml` starts CalmHub with the `no-auth` profile for local convenience. The default profile is **secure** (see [Auth Profiles](#auth-profiles) below) and rejects all requests with 401 unless you explicitly select an auth profile.
+> **Note:** The `jvm` and `native` profiles start CALM Hub with the `no-auth` Quarkus profile for local convenience. The default profile is **secure** (see [Auth Profiles](#auth-profiles) below) and rejects all requests with 401 unless you explicitly select an auth profile. The `readonly-static` and `readonly-native` profiles use the `standalone` Quarkus profile (NitriteDB baked into the image) and reject all mutating HTTP verbs with 405.
 
 ## Working with the project
 
