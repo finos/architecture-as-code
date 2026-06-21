@@ -6,7 +6,7 @@ import { useUserAccess } from './context/UserAccessContext.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 
 function sidebarNavClass({ isActive }: { isActive: boolean }) {
-    return isActive ? 'active' : '';
+    return isActive ? 'menu-active' : '';
 }
 
 function mobileNavClass({ isActive }: { isActive: boolean }) {
