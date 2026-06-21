@@ -10,8 +10,8 @@
   "dependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^6.0.0",
-    "@calmstudio/calm-core": "file:../calm-core",
-    "@calmstudio/mcp": "file:../mcp-server"
+    "@calmstudio/calm-core": "*",
+    "@calmstudio/mcp": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
