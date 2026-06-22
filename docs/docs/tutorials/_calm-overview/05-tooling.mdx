@@ -1,0 +1,173 @@
+{/* ─────────────────────────────────────────────
+    PART 5 — TOOLING
+───────────────────────────────────────────── */}
+
+<section>
+  <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%'}}>
+    <h1 style={{color:'#bf360c'}}>Part 5</h1>
+    <h2>The Tooling Ecosystem</h2>
+    <p style={{color:'#555'}}>CLI · VSCode · CALM Hub · Widgets</p>
+  </div>
+  <aside className="notes">
+    The CALM spec is only as useful as the tools that use it.
+    The ecosystem has matured significantly — let's look at the major pieces.
+  </aside>
+</section>
+
+<section>
+  <h2>⌨️ CALM CLI</h2>
+  <pre><code className="language-bash">{`# Install
+npm install -g @finos/calm-cli
+# or: brew install calm-cli
+
+# Generate an architecture from a pattern
+calm generate -p pattern.json -o architecture.json
+
+# Validate architecture against pattern (and optional standard)
+calm validate -p pattern.json -a architecture.json
+
+# Render a documentation website from your CALM model
+calm docify -a architecture.json -o ./docs-output
+
+# Visualise as SVG diagram
+calm visualize -a architecture.json -o diagram.svg
+
+# Generate files (e.g. Kubernetes manifests) from a template bundle
+calm template -a architecture.json -b ./bundles/k8s -o ./output
+
+# Compare two CALM documents and report what changed
+calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
+  <aside className="notes">
+    The CLI is the backbone. Everything else builds on top of these operations.
+    `calm docify` generates a full static documentation site from your architecture JSON.
+    `calm template` renders Handlebars bundles — Kubernetes manifests, Terraform, whatever you need.
+    `calm diff` is a CI superpower: gate version bumps when the architecture changes.
+  </aside>
+</section>
+
+<section>
+  <h2>🧩 VSCode Extension</h2>
+  <p>First-class IDE support for working with CALM architectures.</p>
+  <img src="/img/vscode/04-preview-hero.png" alt="VSCode CALM preview" style={{maxHeight:'360px', maxWidth:'90%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0 auto'}} />
+  <aside className="notes">
+    The VSCode extension gives you a live preview of your architecture as a diagram,
+    a tree view of nodes and relationships, real-time validation, and timeline visualisation.
+    It's the best way to author CALM files.
+  </aside>
+</section>
+
+<section>
+  <h2>🧩 VSCode — Validation &amp; Timeline</h2>
+  <div className="two-col">
+    <div>
+      <img src="/img/vscode/07-validation-problems.png" alt="VSCode validation problems" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
+      <p style={{fontSize:'0.8rem', textAlign:'center', color:'#666'}}>Live validation errors</p>
+    </div>
+    <div>
+      <img src="/img/vscode/09-timeline.png" alt="VSCode timeline view" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
+      <p style={{fontSize:'0.8rem', textAlign:'center', color:'#666'}}>Timeline visualisation</p>
+    </div>
+  </div>
+  <aside className="notes">
+    Validation runs in real-time as you edit. The timeline view shows the evolution
+    of the architecture across moments — you can click to compare moments side-by-side.
+  </aside>
+</section>
+
+<section>
+  <h2>🏛️ CALM Hub</h2>
+  <p>A versioned, queryable architecture repository — the shared source of truth that files in Git alone can't give you.</p>
+  <p style={{fontSize:'0.85rem', color:'#555', marginTop:'-0.3rem', marginBottom:'0.5rem'}}>
+    Browse architectures across teams · compare timeline moments · view control compliance · REST API &amp; MCP for AI tools
+  </p>
+  <img src="/img/hub-ui/diagram-view.png" alt="CALM Hub diagram view" style={{maxHeight:'330px', maxWidth:'80%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0.4rem auto'}} />
+  <aside className="notes">
+    CALM Hub is a Quarkus-backed REST API + React UI for storing, browsing, and viewing
+    architectures. It gives teams a shared source of truth for the whole architecture landscape.
+    The key differentiator from "just Git": Hub has structured search, timeline comparison,
+    a control compliance view, and an MCP API for AI tools — things you'd have to build
+    yourself on top of raw files.
+  </aside>
+</section>
+
+<section>
+  <h2>🏛️ CALM Hub — Features</h2>
+  <div className="two-col">
+    <div>
+      <img src="/img/hub-ui/timeline-compare.png" alt="CALM Hub timeline compare" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
+      <p style={{fontSize:'0.8rem', textAlign:'center', color:'#666'}}>Timeline comparison view</p>
+    </div>
+    <div>
+      <img src="/img/hub-ui/control-view.png" alt="CALM Hub control view" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
+      <p style={{fontSize:'0.8rem', textAlign:'center', color:'#666'}}>Controls compliance view</p>
+    </div>
+  </div>
+  <aside className="notes">
+    The timeline comparison view lets you see what changed between architectural moments.
+    The controls view gives a clear picture of compliance status across the architecture —
+    exactly what a regulatory audit needs.
+  </aside>
+</section>
+
+<section>
+  <h2>📊 CALM Widgets &amp; Docify</h2>
+  <div className="two-col">
+    <div>
+      <p><strong>Widgets</strong> are Handlebars templates that render CALM data into:</p>
+      <ul>
+        <li>Markdown tables and lists</li>
+        <li>Mermaid block diagrams</li>
+        <li>Mermaid sequence diagrams (from flows)</li>
+        <li>Related-node views</li>
+      </ul>
+    </div>
+    <div>
+      <img src="/img/docify.png" alt="Docify output" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
+    </div>
+  </div>
+  <p style={{fontSize:'0.85rem', color:'#666'}}>
+    <code>calm docify</code> uses widgets to generate a full documentation site from your architecture — always in sync.
+  </p>
+  <aside className="notes">
+    Docify is the "living documentation" answer. Instead of manually keeping a separate
+    architecture document in sync, you generate it from the CALM file. Every time the
+    architecture changes, run docify and the docs are updated.
+  </aside>
+</section>
+
+<section>
+  <h2>🤖 CALM in Your AI Assistant</h2>
+  <p style={{fontSize:'0.95rem', marginBottom:'0.6rem'}}>One command installs 14 CALM-aware task prompts into your AI coding assistant — enabling it to author valid CALM documents in-IDE.</p>
+  <pre><code className="language-bash">{`# Install CALM AI tools for your assistant of choice
+calm init-ai -p copilot   # GitHub Copilot
+calm init-ai -p kiro      # AWS Kiro / Amazon Q
+calm init-ai -p claude    # Claude Code
+calm init-ai -p codex     # OpenAI Codex`}</code></pre>
+  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginTop:'0.8rem'}}>
+    <div style={{background:'#e8f5e9', borderRadius:'8px', padding:'0.9rem 1.1rem'}}>
+      <p style={{fontSize:'0.88rem', margin:0, fontWeight:'bold', marginBottom:'0.4rem'}}>What gets installed:</p>
+      <ul style={{fontSize:'0.85rem', margin:0, lineHeight:'1.8'}}>
+        <li>14 task-specific prompt files (node-creation, flow-creation, control-creation …)</li>
+        <li>Schema v1.2 rules, examples, pitfall warnings</li>
+        <li>AI assistant config (<code>.github/copilot-instructions</code> etc.)</li>
+      </ul>
+    </div>
+    <div style={{background:'#e3f2fd', borderRadius:'8px', padding:'0.9rem 1.1rem'}}>
+      <p style={{fontSize:'0.88rem', margin:0, fontWeight:'bold', marginBottom:'0.4rem'}}>What it enables:</p>
+      <ul style={{fontSize:'0.85rem', margin:0, lineHeight:'1.8'}}>
+        <li>Assistant authors valid CALM JSON directly in the IDE</li>
+        <li>Understands all node types, interface types, control patterns</li>
+        <li>Catches schema errors before you run <code>calm validate</code></li>
+      </ul>
+    </div>
+  </div>
+  <aside className="notes">
+    The calm-ai package is at calm-ai/ in the repo. It ships 14 tools/* prompt files —
+    each one is a task-specific CALM-aware instruction (architecture creation, pattern creation,
+    control creation, flow creation, etc.) with schema-v1.2 rules, good examples, and
+    known pitfalls called out explicitly.
+    calm init-ai writes these into the right place for each AI provider's convention —
+    .github/copilot-instructions for Copilot, .kiro/steering for Kiro, CLAUDE.md for Claude Code,
+    AGENTS.md for Codex — so the assistant has them in context on every file it touches.
+  </aside>
+</section>

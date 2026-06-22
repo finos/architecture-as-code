@@ -1,0 +1,158 @@
+{/* ─────────────────────────────────────────────
+    PART 2 — THE THREE BUILDING BLOCKS
+───────────────────────────────────────────── */}
+
+<section>
+  <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%'}}>
+    <h1 style={{color:'#2e7d32'}}>Part 2</h1>
+    <h2>The Three Building Blocks</h2>
+    <p style={{color:'#555'}}>Nodes · Relationships · Interfaces</p>
+  </div>
+  <aside className="notes">
+    Everything in CALM is built from these three primitives.
+    Once you understand them, the whole model makes sense.
+  </aside>
+</section>
+
+<section>
+  <h2>🟦 Nodes — The "Boxes"</h2>
+  <p style={{fontSize:'1.25rem'}}>A node represents any component in your architecture.</p>
+  <div className="two-col">
+    <div>
+      <h3 style={{fontSize:'1.35rem'}}>Node types</h3>
+      <ul style={{fontSize:'1.35rem', lineHeight:'1.6'}}>
+        <li><code>service</code> — microservice, API</li>
+        <li><code>database</code> — SQL, NoSQL, cache</li>
+        <li><code>system</code> — external system</li>
+        <li><code>actor</code> — a person or role</li>
+        <li><code>webclient</code> — browser UI</li>
+        <li><code>network</code> — network zone</li>
+        <li><code>data-asset</code> — a data set or stream</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style={{fontSize:'1.35rem'}}>Core properties</h3>
+      <ul style={{fontSize:'1.35rem', lineHeight:'1.6'}}>
+        <li><code>unique-id</code> ★ required</li>
+        <li><code>node-type</code> ★ required</li>
+        <li><code>name</code> ★ required</li>
+        <li><code>description</code> ★ required</li>
+        <li><code>details</code> (optional)</li>
+        <li><code>metadata</code> (optional — org context)</li>
+      </ul>
+      <p style={{fontSize:'0.9rem', color:'#666', marginTop:'0.6rem'}}>Interfaces &amp; controls are covered later.</p>
+    </div>
+  </div>
+  <aside className="notes">
+    The unique-id is critical — it's how relationships reference nodes.
+    Keep it simple here: nodes have four required fields and optional metadata.
+    Interfaces and controls come in Part 2 and Part 3 respectively.
+  </aside>
+</section>
+
+<section>
+  <h2>🟦 Nodes — Example</h2>
+  <pre><code className="language-json">{`{
+  "unique-id": "payment-service",
+  "node-type": "service",
+  "name": "Payment Service",
+  "description": "Handles all payment transactions"
+}`}</code></pre>
+  <aside className="notes">
+    Four required fields — unique-id, node-type, name, description.
+    unique-id is critical: it's how relationships reference nodes, so keep it stable.
+    Optional fields (interfaces, controls, metadata) attach here too — we'll cover those in the next slides.
+  </aside>
+</section>
+
+<section>
+  <h2>➡️ Relationships — The "Arrows"</h2>
+  <p>Relationships link nodes and describe how they interact.</p>
+  <ul style={{fontSize:'1.2rem', lineHeight:'2.1', marginTop:'0.8rem'}}>
+    <li>🔗 <code>connects</code> — links a <strong>specific interface</strong> on destination (most precise)</li>
+    <li>💬 <code>interacts</code> — node-to-node without naming an interface (higher-level)</li>
+    <li>🖥️ <code>deployed-in</code> — node runs inside a container, VM, or cloud cluster</li>
+    <li>📦 <code>composed-of</code> — hierarchical nesting of systems or services</li>
+  </ul>
+  <p style={{fontSize:'0.85rem', color:'#666', marginTop:'0.3rem'}}>
+    Each relationship has a <code>unique-id</code>, <code>relationship-type</code>, optional <code>protocol</code>, and optional <code>controls</code>.
+  </p>
+  <aside className="notes">
+    `connects` is the most precise — it links specific interfaces (next slide shows how).
+    `interacts` is higher-level — node-to-node without specifying which interface.
+    `deployed-in` is great for showing containers, VMs, cloud regions.
+    Controls on relationships are Part 3 — just plant the seed here.
+  </aside>
+</section>
+
+<section>
+  <h2>➡️ Relationships — Example</h2>
+  <pre><code className="language-json">{`{
+  "unique-id": "service-to-db",
+  "description": "Spring Boot service connects to PostgreSQL for persistence",
+  "protocol": "JDBC",
+  "relationship-type": {
+    "connects": {
+      "source": {
+        "node": "spring-service"
+      },
+      "destination": {
+        "node": "postgres-db",
+        "interfaces": ["db-interface"]
+      }
+    }
+  }
+}`}</code></pre>
+  <p style={{fontSize:'0.85rem', color:'#666'}}>
+    Source connects implicitly; destination exposes a named interface.
+  </p>
+  <aside className="notes">
+    Note that the source has no interface specified — the calling node doesn't need to expose
+    an interface. Only the destination (the thing being called) needs to define its interface.
+    This is a deliberate design decision in CALM.
+  </aside>
+</section>
+
+<section>
+  <h2>🔌 Interfaces — Connection Points</h2>
+  <p style={{marginBottom:'1rem', fontSize:'1.2rem'}}>
+    Interfaces are the named, typed entry points a node exposes.<br/>A <code>connects</code> relationship targets a specific interface — and controls enforce policy on it.
+  </p>
+  <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'1.5rem', margin:'0.5rem 0 1rem'}}>
+    <div style={{background:'#e3f2fd', border:'2px solid #1565c0', borderRadius:'8px', padding:'1rem 1.4rem', textAlign:'center', minWidth:'130px'}}>
+      <div style={{fontSize:'1.8rem', marginBottom:'0.3rem'}}>🖥️</div>
+      <div style={{fontWeight:'bold', fontSize:'1rem'}}>Trading UI</div>
+      <div style={{fontSize:'0.9rem', color:'#555'}}>webclient</div>
+    </div>
+    <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'0.15rem'}}>
+      <span style={{fontSize:'0.85rem', color:'#555', fontFamily:'monospace'}}>connects via</span>
+      <span style={{fontSize:'0.9rem', color:'#c62828', fontWeight:'bold', fontFamily:'monospace'}}>host-port :443</span>
+      <svg width="60" height="18" viewBox="0 0 60 18">
+        <line x1="2" y1="9" x2="50" y2="9" stroke="#555" strokeWidth="2"/>
+        <polygon points="50,4 60,9 50,14" fill="#555"/>
+      </svg>
+    </div>
+    <div style={{background:'#e8f5e9', border:'2px solid #2e7d32', borderRadius:'8px', padding:'1rem 1.4rem', textAlign:'center', minWidth:'150px'}}>
+      <div style={{fontSize:'1.8rem', marginBottom:'0.3rem'}}>⚙️</div>
+      <div style={{fontWeight:'bold', fontSize:'1rem'}}>Payment Service</div>
+      <div style={{fontSize:'0.9rem', color:'#555'}}>service</div>
+    </div>
+    <div style={{borderLeft:'3px solid #2e7d32', paddingLeft:'1rem', display:'flex', flexDirection:'column', gap:'0.35rem'}}>
+      <div style={{fontSize:'0.9rem', color:'#555', fontWeight:'bold', marginBottom:'0.2rem'}}>Exposed interfaces:</div>
+      <div style={{background:'#fff3e0', border:'1px solid #e65100', borderRadius:'4px', padding:'0.25rem 0.6rem', fontSize:'0.9rem', fontFamily:'monospace'}}>host-port :443</div>
+      <div style={{background:'#f3e5f5', border:'1px solid #6a1b9a', borderRadius:'4px', padding:'0.25rem 0.6rem', fontSize:'0.9rem', fontFamily:'monospace'}}>url-path /api/payments</div>
+      <div style={{background:'#fce4ec', border:'1px solid #880e4f', borderRadius:'4px', padding:'0.25rem 0.6rem', fontSize:'0.9rem', fontFamily:'monospace'}}>oauth2-audience payments</div>
+    </div>
+  </div>
+  <p style={{fontSize:'0.95rem', color:'#555'}}>
+    Interface types: <code>host-port</code> · <code>url-path</code> · <code>oauth2-audience</code> · <code>hostname</code> · <code>rate-limit</code> · and more.
+    Optional — but controls need them to enforce connection-level policy.
+  </p>
+  <aside className="notes">
+    Trading UI connects to Payment Service via the host-port :443 interface.
+    The service also exposes url-path and oauth2-audience interfaces — each is a distinct,
+    typed connection point that can be independently controlled.
+    Without interfaces, "A connects to B" is just a line. With them, you know the exact
+    host, port, path, and auth contract — which a control can then enforce (Part 3).
+  </aside>
+</section>
