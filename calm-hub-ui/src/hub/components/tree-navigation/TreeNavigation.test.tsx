@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TreeNavigation, buildNamespaceTree } from './TreeNavigation.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
 import { InterfaceService } from '../../../service/interface-service.js';
 import { MemoryRouter, useParams, useNavigate } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { authStore } from '../../../service/utils/auth-store.js';
 
 // Mock react-router-dom
 vi.mock('react-router-dom', async () => {
@@ -113,6 +114,10 @@ const mockProps = {
 describe('TreeNavigation', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        authStore.setAuthError(null);
     });
 
     it('renders the tree navigation component', async () => {
@@ -328,6 +333,254 @@ describe('TreeNavigation', () => {
         await waitFor(() => {
             expect(navigate).toHaveBeenCalledWith('/test-namespace/architectures/201/2.0.0');
         });
+    });
+
+    it('clears the selected type and resource list when authStore emits a 403', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        // Override to return a known architecture so we can assert its removal
+        await screen.findByText('test-namespace');
+        calmServiceInstance!.fetchArchitectureSummaries.mockResolvedValue([{ id: 1, name: 'arch-a', description: '' }]);
+
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+        await screen.findByText('arch-a');
+
+        act(() => {
+            authStore.setAuthError(403);
+        });
+
+        expect(screen.queryByText('arch-a')).not.toBeInTheDocument();
+    });
+
+    it('does not show stale summaries from the previous namespace while the new fetch is pending', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+        // First call (test-namespace) resolves; second call (another-namespace) never resolves
+        calmServiceInstance!.fetchArchitectureSummaries
+            .mockResolvedValueOnce([{ id: 1, name: 'arch-a', description: '' }])
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        // Load arch-a under test-namespace
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+        await screen.findByText('arch-a');
+
+        // Switch to another-namespace and open Architectures (fetch never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+
+        // arch-a must be gone immediately — not shown while the new fetch is pending
+        expect(screen.queryByText('arch-a')).not.toBeInTheDocument();
+    });
+
+    it('clears selected domain and controls when authStore emits a 403', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-domain');
+        controlServiceInstance!.fetchControlsForDomain.mockResolvedValue([{ id: 1, name: 'Alpha Control', description: '' }]);
+
+        fireEvent.click(screen.getByText('test-domain'));
+        await screen.findByText('Alpha Control');
+
+        act(() => {
+            authStore.setAuthError(403);
+        });
+
+        expect(screen.queryByText('Alpha Control')).not.toBeInTheDocument();
+    });
+
+    it('does not show stale controls from the previous domain while the new fetch is pending', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+        vi.mocked(ControlService).mockImplementationOnce(function () {
+            controlServiceInstance = {
+                fetchDomains: vi.fn().mockResolvedValue(['domain-a', 'domain-b']),
+                fetchControlsForDomain: vi.fn()
+                    .mockResolvedValueOnce([{ id: 1, name: 'Alpha Control', description: '' }])
+                    .mockReturnValueOnce(new Promise(() => {})),
+            };
+            return controlServiceInstance as unknown as InstanceType<typeof ControlService>;
+        });
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        // Load Alpha Control under domain-a
+        fireEvent.click(await screen.findByText('domain-a'));
+        await screen.findByText('Alpha Control');
+
+        // Switch to domain-b (fetch never resolves)
+        fireEvent.click(screen.getByText('domain-b'));
+
+        // Alpha Control must be gone immediately — not shown while the new fetch is pending
+        expect(screen.queryByText('Alpha Control')).not.toBeInTheDocument();
+    });
+
+    it('does not show stale ADR summaries from the previous namespace while the new fetch is pending', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+        adrServiceInstance!.fetchAdrSummaries
+            .mockResolvedValueOnce([{ id: 201, title: 'Use CALM', status: 'accepted' }])
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        // Load ADR summaries under test-namespace
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('ADRs'));
+        await screen.findByText('Use CALM (accepted)');
+
+        // Switch to another-namespace and open ADRs (fetch never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('ADRs'));
+
+        // Use CALM (accepted) must be gone immediately — not shown while the new fetch is pending
+        expect(screen.queryByText('Use CALM (accepted)')).not.toBeInTheDocument();
+    });
+
+    it('discards a stale architecture response that resolves after a newer request has started', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        let resolveStale!: (value: unknown[]) => void;
+        const stalePromise = new Promise<unknown[]>((resolve) => { resolveStale = resolve; });
+
+        calmServiceInstance!.fetchArchitectureSummaries
+            .mockReturnValueOnce(stalePromise)
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+
+        // Start first request (stale, deferred)
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+
+        // Start second request (in-flight, never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+
+        // Stale first request resolves late with data
+        act(() => { resolveStale([{ id: 1, name: 'stale-arch', description: '' }]); });
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('stale-arch')).not.toBeInTheDocument();
+    });
+
+    it('discards a stale ADR response that resolves after a newer request has started', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        let resolveStale!: (value: unknown[]) => void;
+        const stalePromise = new Promise<unknown[]>((resolve) => { resolveStale = resolve; });
+
+        adrServiceInstance!.fetchAdrSummaries
+            .mockReturnValueOnce(stalePromise)
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+
+        // Start first request (stale, deferred)
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('ADRs'));
+
+        // Start second request (in-flight, never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('ADRs'));
+
+        // Stale first request resolves late with data
+        act(() => { resolveStale([{ id: 201, title: 'Stale ADR', status: 'accepted' }]); });
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('Stale ADR (accepted)')).not.toBeInTheDocument();
+    });
+
+    it('discards a stale interfaces response that resolves after a newer request has started', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+
+        let resolveStale!: (value: unknown[]) => void;
+        const stalePromise = new Promise<unknown[]>((resolve) => { resolveStale = resolve; });
+
+        interfaceServiceInstance!.fetchInterfacesForNamespace
+            .mockReturnValueOnce(stalePromise)
+            .mockReturnValueOnce(new Promise(() => {}));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+
+        // Start first request (stale, deferred)
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Interfaces'));
+
+        // Start second request (in-flight, never resolves)
+        fireEvent.click(screen.getByText('another-namespace'));
+        fireEvent.click(await screen.findByText('Interfaces'));
+
+        // Stale first request resolves late with data
+        act(() => { resolveStale([{ id: 1, name: 'Stale Interface', description: '' }]); });
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('Stale Interface')).not.toBeInTheDocument();
+    });
+
+    it('shows an empty list and does not throw when fetchArchitectureSummaries rejects', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+        calmServiceInstance!.fetchArchitectureSummaries.mockRejectedValueOnce(new Error('403'));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-namespace');
+        fireEvent.click(screen.getByText('test-namespace'));
+        fireEvent.click(await screen.findByText('Architectures'));
+
+        // Wait for the rejected promise to settle
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('arch-a')).not.toBeInTheDocument();
+    });
+
+    it('shows an empty list and does not throw when fetchControlsForDomain rejects', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+        controlServiceInstance!.fetchControlsForDomain.mockRejectedValueOnce(new Error('403'));
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await screen.findByText('test-domain');
+        fireEvent.click(screen.getByText('test-domain'));
+
+        // Wait for the rejected promise to settle
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(screen.queryByText('Alpha Control')).not.toBeInTheDocument();
     });
 });
 

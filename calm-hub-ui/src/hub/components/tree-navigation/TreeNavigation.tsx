@@ -6,6 +6,7 @@ import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr, ResourceSummary, AdrSummary, ResourceMapping, isSlug } from '../../../model/calm.js';
 import { pickLatestVersion } from '../../../model/version.js';
+import { authStore } from '../../../service/utils/auth-store.js';
 import {
     type TypeInUrl,
     type TypeInUI,
@@ -327,15 +328,15 @@ function loadResourceIds({
     setAdrSummaries
 }: LoadResourceIdsOptions) {
     if (type === 'Architectures') {
-        calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries);
+        calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries).catch(() => setArchitectureSummaries([]));
     } else if (type === 'Patterns') {
-        calmService.fetchPatternSummaries(namespace).then(setPatternSummaries);
+        calmService.fetchPatternSummaries(namespace).then(setPatternSummaries).catch(() => setPatternSummaries([]));
     } else if (type === 'Flows') {
-        calmService.fetchFlowSummaries(namespace).then(setFlowSummaries);
+        calmService.fetchFlowSummaries(namespace).then(setFlowSummaries).catch(() => setFlowSummaries([]));
     } else if (type === 'Standards') {
-        calmService.fetchStandardSummaries(namespace).then(setStandardSummaries);
+        calmService.fetchStandardSummaries(namespace).then(setStandardSummaries).catch(() => setStandardSummaries([]));
     } else if (type === 'ADRs') {
-        adrService.fetchAdrSummaries(namespace).then(setAdrSummaries);
+        adrService.fetchAdrSummaries(namespace).then(setAdrSummaries).catch(() => setAdrSummaries([]));
     }
 }
 
@@ -351,6 +352,8 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     // Stable ref for onControlLoad to avoid re-triggering the deep-link useEffect
     const onControlLoadRef = useRef(onControlLoad);
     onControlLoadRef.current = onControlLoad;
+
+    const reqSeq = useRef(0);
 
     const [namespaces, setNamespaces] = useState<string[]>([]);
     const [selectedNamespace, setSelectedNamespace] = useState<string>(EMPTY_STR_VALUE);
@@ -378,6 +381,25 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const interfaceService = useMemo(() => new InterfaceService(), []);
     const adrService = useMemo(() => new AdrService(), []);
 
+    useEffect(() => {
+        return authStore.subscribe((status) => {
+            if (status === 401 || status === 403) {
+                setSelectedType(EMPTY_STR_VALUE);
+                setSelectedResourceID(EMPTY_STR_VALUE);
+                setArchitectureSummaries([]);
+                setPatternSummaries([]);
+                setFlowSummaries([]);
+                setStandardSummaries([]);
+                setAdrSummaries([]);
+                setNamespaceInterfaces([]);
+                setSelectedInterfaceId(null);
+                setSelectedDomain('');
+                setDomainControls([]);
+                setSelectedControlId(null);
+            }
+        });
+    }, []);
+
     // Resource mappings: merge customId into summaries after fetching
     const mergeMappings = useCallback((summaries: ResourceSummary[], mappings: ResourceMapping[]): ResourceSummary[] => {
         const byNumericId = new Map(mappings.map(m => [m.numericId, m.customId]));
@@ -401,8 +423,8 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     }, [namespaces, viewMode]);
 
     useEffect(() => {
-        calmService.fetchNamespaces().then(setNamespaces);
-        controlService.fetchDomains().then(setDomains);
+        calmService.fetchNamespaces().then(setNamespaces).catch(() => setNamespaces([]));
+        controlService.fetchDomains().then(setDomains).catch(() => setDomains([]));
     }, [calmService, controlService]);
 
     useEffect(() => {
@@ -507,7 +529,8 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             setSelectedDomain('');
         } else {
             setSelectedDomain(domain);
-            controlService.fetchControlsForDomain(domain).then(setDomainControls);
+            setDomainControls([]);
+            controlService.fetchControlsForDomain(domain).then(setDomainControls).catch(() => setDomainControls([]));
         }
         setSelectedControlId(null);
         // Clear namespace selection when navigating domains
@@ -544,25 +567,38 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             setSelectedType(EMPTY_STR_VALUE);
         } else {
             setSelectedType(type);
+            const seq = ++reqSeq.current;
             if (type === 'Interfaces') {
-                interfaceService.fetchInterfacesForNamespace(selectedNamespace).then(setNamespaceInterfaces).catch((error) => {
+                setNamespaceInterfaces([]);
+                interfaceService.fetchInterfacesForNamespace(selectedNamespace).then((interfaces) => {
+                    if (seq !== reqSeq.current) return;
+                    setNamespaceInterfaces(interfaces);
+                }).catch((error) => {
                     console.error('Failed to fetch interfaces', error);
                     setNamespaceInterfaces([]);
                 });
             } else if (type === 'ADRs') {
-                adrService.fetchAdrSummaries(selectedNamespace).then(setAdrSummaries);
+                setAdrSummaries([]);
+                adrService.fetchAdrSummaries(selectedNamespace).then((summaries) => {
+                    if (seq !== reqSeq.current) return;
+                    setAdrSummaries(summaries);
+                }).catch(() => setAdrSummaries([]));
             } else {
                 const setter = type === 'Architectures' ? setArchitectureSummaries
                     : type === 'Patterns' ? setPatternSummaries
                     : type === 'Flows' ? setFlowSummaries
                     : setStandardSummaries;
+                setter([]);
                 const fetcher = type === 'Architectures' ? calmService.fetchArchitectureSummaries.bind(calmService)
                     : type === 'Patterns' ? calmService.fetchPatternSummaries.bind(calmService)
                     : type === 'Flows' ? calmService.fetchFlowSummaries.bind(calmService)
                     : calmService.fetchStandardSummaries.bind(calmService);
                 fetcher(selectedNamespace).then((summaries: ResourceSummary[]) => {
-                    enrichWithMappings(type, summaries, setter);
-                });
+                    if (seq !== reqSeq.current) return;
+                    enrichWithMappings(type, summaries, (result) => {
+                        if (seq === reqSeq.current) setter(result);
+                    });
+                }).catch(() => setter([]));
             }
         }
         setSelectedResourceID(EMPTY_STR_VALUE);

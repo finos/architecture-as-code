@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { IoChevronForwardOutline, IoCompassOutline } from 'react-icons/io5';
 import { TreeNavigation } from './components/tree-navigation/TreeNavigation.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
@@ -14,6 +14,7 @@ import { InterfaceDetailSection } from './components/interface-detail-section/In
 import { DiagramSection } from './components/diagram-section/DiagramSection.js';
 import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
 import type { SelectedItem } from '../visualizer/contracts/contracts.js';
+import { authStore } from '../service/utils/auth-store.js';
 import './Hub.css';
 
 export default function Hub() {
@@ -25,6 +26,18 @@ export default function Hub() {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     const isMobile = useIsMobile();
+
+    useEffect(() => {
+        return authStore.subscribe((status) => {
+            if (status === 401 || status === 403) {
+                setData(undefined);
+                setAdrData(undefined);
+                setControlData(undefined);
+                setInterfaceData(undefined);
+                setSelectedItem(null);
+            }
+        });
+    }, []);
 
     function handleDataLoad(data: Data) {
         setData(data);
