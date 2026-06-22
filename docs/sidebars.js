@@ -71,6 +71,7 @@ const sidebars = {
 
   // Learning sidebar - tutorials
   learningSidebar: [
+    'tutorials/calm-overview-presentation',
     {
       type: 'category',
       label: 'Tutorials',
