@@ -3,18 +3,15 @@
 .deckWrapper {
   position: relative;
   width: 100%;
-  /* 16:9 aspect ratio */
-  padding-bottom: 56.25%;
+  /* 1280×800 logical canvas (800/1280 = 62.5%).
+     Matches the Reveal width/height in index.js so there are no side gutters.
+     Taller than 16:9 (56.25%) to give dense slides more vertical room. */
+  padding-bottom: 62.5%;
   background: #191919;
   border-radius: 8px;
   overflow: hidden;
   margin: 1.5rem 0;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-}
-
-.deckWrapper.fullscreen {
-  padding-bottom: 0;
-  border-radius: 0;
 }
 
 .revealContainer {
@@ -25,21 +22,18 @@
   height: 100%;
 }
 
-/* When the native Fullscreen API is active the wrapper fills the screen. */
-.deckWrapper:fullscreen,
-.deckWrapper:-webkit-full-screen,
-.deckWrapper:-moz-full-screen {
-  padding-bottom: 0;
-  border-radius: 0;
-}
+/* When the native Fullscreen API is active the wrapper fills the screen.
+   IMPORTANT: each vendor pseudo-class must be in its OWN rule — a CSS selector
+   list is NOT forgiving. One unknown pseudo (e.g. :-moz-full-screen in Chrome)
+   silently discards the ENTIRE rule, so the aspect-ratio padding-bottom would
+   never be zeroed and content would overflow the bottom of the screen. */
+.deckWrapper:fullscreen          { padding-bottom: 0; border-radius: 0; }
+.deckWrapper:-webkit-full-screen { padding-bottom: 0; border-radius: 0; }
+.deckWrapper:-moz-full-screen    { padding-bottom: 0; border-radius: 0; }
 
-.deckWrapper:fullscreen .revealContainer,
-.deckWrapper:-webkit-full-screen .revealContainer,
-.deckWrapper:-moz-full-screen .revealContainer {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
+.deckWrapper:fullscreen .revealContainer          { position: relative; width: 100%; height: 100%; }
+.deckWrapper:-webkit-full-screen .revealContainer { position: relative; width: 100%; height: 100%; }
+.deckWrapper:-moz-full-screen .revealContainer    { position: relative; width: 100%; height: 100%; }
 
 /* ── Toolbar ────────────────────────────────────────────────────────────── */
 

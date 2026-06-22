@@ -77,13 +77,10 @@
     }
   }
 }`}</code></pre>
-  <p style={{fontSize:'0.85rem', color:'#666', marginTop:'0.4rem'}}>
-    Attach to: <strong>nodes</strong> · <strong>relationships</strong> · <strong>flows</strong> · <strong>whole architecture</strong>.
-    &nbsp;|&nbsp; Requirement URL = policy schema · Config URL = this element's implementation.
-  </p>
   <aside className="notes">
-    The requirement URL and config URL are both independently versioned JSON documents.
-    The policy team owns the requirement; the architecture team owns the config.
+    Controls attach at node, relationship, flow, or whole-architecture level.
+    The requirement URL and config URL are independently versioned JSON documents —
+    the policy team owns the requirement; the architecture team owns the config.
     Separating them means governance policies can be updated without changing every architecture.
   </aside>
 </section>
@@ -129,9 +126,6 @@
       <pre><code className="language-json">{`"nodes": { "items": {
   "$ref": "https://example.com/standards/node-standard.json"
 }}`}</code></pre>
-      <p style={{fontSize:'0.82rem', color:'#555', marginTop:'0.3rem'}}>
-        Then validate normally — <code>calm validate -p pattern.json -a architecture.json</code> — and fail the build if any architecture is non-compliant.
-      </p>
     </div>
   </div>
   <aside className="notes">
@@ -143,6 +137,58 @@
     via $ref, then run ordinary `calm validate`. Deviation fails the build automatically.
     That's the progression: start with custom properties, promote to standards when cross-org
     consistency becomes non-negotiable.
+  </aside>
+</section>
+
+<section>
+  <h2>🏷️ Decorators — Augment Without Touching the Architecture</h2>
+  <div className="two-col">
+    <div>
+      <h3 style={{fontSize:'1.1rem', marginBottom:'0.4rem'}}>What is a decorator?</h3>
+      <p style={{fontSize:'0.9rem', marginBottom:'0.45rem'}}>
+        A <strong>decorator</strong> is a standalone document (CALM 1.2+) that attaches typed,
+        cross-cutting data to existing elements by <code>unique-id</code> — without modifying
+        the architecture itself.
+      </p>
+      <p style={{fontSize:'0.85rem', marginBottom:'0.25rem', fontWeight:'bold'}}>Reach for a decorator when data:</p>
+      <ul style={{fontSize:'0.85rem', margin:'0 0 0.5rem', paddingLeft:'1.2rem'}}>
+        <li>Is owned by a <strong>different team</strong></li>
+        <li>Changes independently — e.g. <strong>live deployment status</strong></li>
+        <li>Spans <strong>multiple architecture files</strong></li>
+        <li>Would clutter the core definition</li>
+      </ul>
+      <div style={{background:'#e3f2fd', borderRadius:'6px', padding:'0.4rem 0.7rem', fontSize:'0.82rem', color:'#1a237e', marginTop:'0.3rem'}}>
+        <strong>vs metadata:</strong> <code>metadata</code> lives <em>inside</em> the architecture;
+        a decorator lives <em>outside</em> it and points back in by <code>unique-id</code>.
+      </div>
+    </div>
+    <div>
+      <h3 style={{fontSize:'1.1rem', marginBottom:'0.4rem'}}>Deployment decorator example</h3>
+      <pre><code className="language-json">{`{
+  "$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator",
+  "unique-id": "payment-svc-deploy-001",
+  "type": "deployment",
+  "target": ["trading-system.arch.json"],
+  "applies-to": ["payment-service"],
+  "data": {
+    "deployment-start-time": "2026-02-12T09:30:00Z",
+    "deployment-status": "completed"
+  }
+}`}</code></pre>
+    </div>
+  </div>
+  <aside className="notes">
+    Five required fields on every decorator: unique-id (the decorator instance id),
+    type (free-form string — conventions: deployment, security, business, guide for ADRs,
+    threat-model, observability, operational), target (array of file paths/URLs of the CALM
+    documents being decorated), applies-to (array of unique-ids of elements within those
+    documents), data (payload whose shape is determined by the type's own schema).
+    The data object is open by design — each decorator type constrains it further via allOf.
+    Rule of thumb: if the information is owned by a different team, changes on a different
+    cadence, or would appear across many architecture files, put it in a decorator.
+    If it's a simple annotation (owner, cost-centre, classification) a metadata key-value is simpler.
+    The payment-service node was introduced in Building Blocks — the decorator here records its
+    deployment status without touching the architecture file at all.
   </aside>
 </section>
 
@@ -188,24 +234,16 @@
   "nodes": {
     "minItems": 3, "maxItems": 3,
     "prefixItems": [
-      {
-        "properties": {
-          "unique-id": { "const": "trading-ui" },
-          "node-type": { "const": "webclient" }
-        }
-      },
-      {
-        "properties": {
-          "unique-id": { "const": "trading-api" },
-          "node-type": { "const": "service" }
-        }
-      }
+      { "properties": { "unique-id": { "const": "trading-ui" },
+                        "node-type": { "const": "webclient" } } },
+      { "properties": { "unique-id": { "const": "trading-api" },
+                        "node-type": { "const": "service" } } }
     ]
   },
   "relationships": {
-    "prefixItems": [{
-      "properties": { "protocol": { "const": "HTTPS" } }
-    }]
+    "prefixItems": [
+      { "properties": { "protocol": { "const": "HTTPS" } } }
+    ]
   }
 }`}</code></pre>
   <aside className="notes">
