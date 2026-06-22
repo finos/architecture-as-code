@@ -108,11 +108,13 @@ function RevealPresentationInner({ children }) {
     };
     document.addEventListener('fullscreenchange', onFullscreenChange);
     document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    document.addEventListener('mozfullscreenchange', onFullscreenChange);
 
     return () => {
       destroyed = true;
       document.removeEventListener('fullscreenchange', onFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', onFullscreenChange);
       if (deckRef.current) {
         try { deckRef.current.destroy(); } catch (_) {}
         deckRef.current = null;
