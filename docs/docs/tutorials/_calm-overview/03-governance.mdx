@@ -123,8 +123,14 @@
     }}
   }
 }`}</code></pre>
-      <p style={{fontSize:'0.85rem', color:'#555', marginTop:'0.4rem'}}>
-        Run <code>calm validate --standard</code> — fail the build if any architecture is non-compliant.
+      <p style={{fontSize:'0.82rem', color:'#555', marginTop:'0.3rem', marginBottom:'0.3rem'}}>
+        Reference it from a pattern so every node is checked:
+      </p>
+      <pre><code className="language-json">{`"nodes": { "items": {
+  "$ref": "https://example.com/standards/node-standard.json"
+}}`}</code></pre>
+      <p style={{fontSize:'0.82rem', color:'#555', marginTop:'0.3rem'}}>
+        Then validate normally — <code>calm validate -p pattern.json -a architecture.json</code> — and fail the build if any architecture is non-compliant.
       </p>
     </div>
   </div>
@@ -133,7 +139,8 @@
     Any node or relationship can carry arbitrary metadata key/value pairs — owner, classification,
     cost centre, whatever the team needs. This is the flexible, additive layer.
     When your org decides "every architecture *must* carry cost-centre on every node," you write
-    a CALM standard (a JSON Schema extension) and wire it into CI. Now deviation fails the build.
+    a CALM standard (a JSON Schema extension using allOf composition), reference it from a pattern
+    via $ref, then run ordinary `calm validate`. Deviation fails the build automatically.
     That's the progression: start with custom properties, promote to standards when cross-org
     consistency becomes non-negotiable.
   </aside>

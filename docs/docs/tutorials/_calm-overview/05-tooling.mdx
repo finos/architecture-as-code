@@ -23,14 +23,14 @@ npm install -g @finos/calm-cli
 # Generate an architecture from a pattern
 calm generate -p pattern.json -o architecture.json
 
-# Validate architecture against pattern (and optional standard)
+# Validate architecture against pattern
 calm validate -p pattern.json -a architecture.json
 
 # Render a documentation website from your CALM model
 calm docify -a architecture.json -o ./docs-output
 
-# Visualise as SVG diagram
-calm visualize -a architecture.json -o diagram.svg
+# Export architecture diagrams as SVG while rendering docs
+calm docify -a architecture.json -o ./docs-output --export-diagrams svg
 
 # Generate files (e.g. Kubernetes manifests) from a template bundle
 calm template -a architecture.json -b ./bundles/k8s -o ./output
