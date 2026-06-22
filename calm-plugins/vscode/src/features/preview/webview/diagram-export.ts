@@ -90,6 +90,11 @@ export async function rasterizeSvgElementToPng(svg: SVGSVGElement, pixelRatio = 
     if (!ctx) {
         throw new Error('Canvas 2D context unavailable')
     }
+    // Canvas is transparent by default; without filling it first, the PNG has no
+    // background and looks broken against anything but a white surface.
+    const bgColor = getComputedStyle(document.body).getPropertyValue('--vscode-editor-background').trim() || '#ffffff'
+    ctx.fillStyle = bgColor
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
 
     const dataUrl = canvas.toDataURL('image/png')

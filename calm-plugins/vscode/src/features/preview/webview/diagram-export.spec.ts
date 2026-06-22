@@ -70,6 +70,8 @@ class FakeFileReader {
 
 describe('diagram-export', () => {
     let drawImage: ReturnType<typeof vi.fn>
+    let fillRect: ReturnType<typeof vi.fn>
+    let fakeCtx: { drawImage: typeof drawImage; fillRect: typeof fillRect; fillStyle: string }
 
     beforeEach(() => {
         vi.clearAllMocks()
@@ -77,7 +79,9 @@ describe('diagram-export', () => {
         vi.stubGlobal('FileReader', FakeFileReader)
 
         drawImage = vi.fn()
-        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D)
+        fillRect = vi.fn()
+        fakeCtx = { drawImage, fillRect, fillStyle: '' }
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fakeCtx as unknown as CanvasRenderingContext2D)
         vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,QkJC')
     })
 
@@ -206,6 +210,26 @@ describe('diagram-export', () => {
             // canvas.width/height are integers per the HTML spec, so fractional viewBox
             // dimensions get truncated - assert against what the canvas actually receives.
             expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, Math.trunc(1223.7734375 * 2), 715 * 2)
+        })
+
+        it('fills the canvas with the VS Code editor background before drawing, so the PNG is not transparent', async () => {
+            document.body.style.setProperty('--vscode-editor-background', '#1e1e1e')
+
+            try {
+                await rasterizeSvgElementToPng(createSvgElement())
+
+                expect(fakeCtx.fillStyle).toBe('#1e1e1e')
+                expect(fillRect).toHaveBeenCalledWith(0, 0, expect.anything(), expect.anything())
+                expect(fillRect.mock.invocationCallOrder[0]).toBeLessThan(drawImage.mock.invocationCallOrder[0])
+            } finally {
+                document.body.style.removeProperty('--vscode-editor-background')
+            }
+        })
+
+        it('falls back to white when no VS Code background variable is set', async () => {
+            await rasterizeSvgElementToPng(createSvgElement())
+
+            expect(fakeCtx.fillStyle).toBe('#ffffff')
         })
 
         it('throws when the canvas 2D context is unavailable', async () => {
