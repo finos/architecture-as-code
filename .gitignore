@@ -73,3 +73,8 @@ next-env.d.ts
 # Playwright
 playwright-report/
 test-results/
+
+# QCon demo generated artifacts (output of `calm template`)
+conferences/qcon/scenario*/infrastructure/
+conferences/qcon/scenario*/generated/
+conferences/qcon/scenario*/generated-*/

@@ -1,0 +1,512 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "$id": "https://calm.finos.org/calm/namespaces/qcon/patterns/trades-api-and-mcp/versions/1.0.0",
+  "title": "Secure Trades API and MCP Pattern with Network Controls",
+  "description": "A pattern for an MCP-based architecture with enforced network segmentation and connection controls. The Kubernetes cluster must have micro-segmentation enabled, and all connections must be explicitly permitted through controls.",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        {
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "mcp-client"
+            },
+            "name": {
+              "const": "Claude"
+            },
+            "description": {
+              "const": "MCP client that queries trade data using natural language via the MCP server"
+            },
+            "node-type": {
+              "const": "actor"
+            }
+          },
+          "required": [
+            "unique-id",
+            "name",
+            "description",
+            "node-type"
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "mcp-server"
+            },
+            "name": {
+              "const": "Trades MCP Server"
+            },
+            "description": {
+              "const": "MCP server that exposes tools for querying and interacting with trade data"
+            },
+            "node-type": {
+              "const": "service"
+            },
+            "interfaces": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "#/defs/container-image-interface",
+                  "properties": {
+                    "unique-id": {
+                      "const": "mcp-server-image"
+                    }
+                  },
+                  "required": [
+                    "unique-id",
+                    "image"
+                  ]
+                },
+                {
+                  "$ref": "#/defs/port-interface",
+                  "properties": {
+                    "unique-id": {
+                      "const": "mcp-server-port"
+                    }
+                  },
+                  "required": [
+                    "unique-id",
+                    "port"
+                  ]
+                }
+              ]
+            },
+            "controls": {
+              "type": "object",
+              "properties": {
+                "mcp-guardrail": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "const": "Enforces restrictions on trading symbols that the MCP server cannot access"
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "prefixItems": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "requirement-url": {
+                              "const": "controls/mcp-guardrail.requirement.json"
+                            },
+                            "config-url": {
+                              "const": "controls/mcp-guardrail.config.json"
+                            }
+                          },
+                          "required": [
+                            "requirement-url",
+                            "config-url"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "description",
+                    "requirements"
+                  ]
+                }
+              },
+              "required": [
+                "mcp-guardrail"
+              ]
+            }
+          },
+          "required": [
+            "unique-id",
+            "name",
+            "description",
+            "node-type",
+            "interfaces"
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "trades-api"
+            },
+            "name": {
+              "const": "Trades API"
+            },
+            "description": {
+              "const": "REST API for accessing and managing trade data"
+            },
+            "node-type": {
+              "const": "service"
+            },
+            "details": {
+              "type": "object",
+              "properties": {
+                "required-pattern": {
+                  "const": "trades-api.pattern.json"
+                }
+              },
+              "required": [
+                "required-pattern"
+              ]
+            },
+            "interfaces": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "#/defs/container-image-interface",
+                  "properties": {
+                    "unique-id": {
+                      "const": "trades-api-image"
+                    }
+                  },
+                  "required": [
+                    "unique-id",
+                    "image"
+                  ]
+                },
+                {
+                  "$ref": "#/defs/port-interface",
+                  "properties": {
+                    "unique-id": {
+                      "const": "trades-api-port"
+                    }
+                  },
+                  "required": [
+                    "unique-id",
+                    "port"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "unique-id",
+            "name",
+            "description",
+            "node-type",
+            "interfaces"
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "k8s-cluster"
+            },
+            "name": {
+              "const": "Kubernetes Cluster"
+            },
+            "description": {
+              "const": "Kubernetes cluster with network policy enforcement"
+            },
+            "node-type": {
+              "const": "system"
+            },
+            "interfaces": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "prefixItems": [
+                {
+                  "$ref": "#/defs/cluster-type-interface",
+                  "properties": {
+                    "unique-id": {
+                      "const": "cluster-type"
+                    }
+                  },
+                  "required": [
+                    "unique-id",
+                    "value"
+                  ]
+                }
+              ]
+            },
+            "controls": {
+              "$ref": "https://calm.finos.org/release/1.0/meta/control.json#/defs/controls",
+              "properties": {
+                "security": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "const": "Security requirements for the Kubernetes cluster"
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "prefixItems": [
+                        {
+                          "$ref": "https://calm.finos.org/release/1.0/meta/control.json#/defs/control-detail",
+                          "properties": {
+                            "requirement-url": {
+                              "const": "controls/micro-segmentation.requirement.json"
+                            },
+                            "config-url": {
+                              "const": "controls/micro-segmentation.config.json"
+                            }
+                          },
+                          "required": [
+                            "requirement-url",
+                            "config-url"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "description",
+                    "requirements"
+                  ]
+                }
+              },
+              "required": [
+                "security"
+              ]
+            }
+          },
+          "required": [
+            "unique-id",
+            "name",
+            "description",
+            "node-type",
+            "interfaces",
+            "controls"
+          ]
+        }
+      ]
+    },
+    "relationships": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "mcp-client-to-mcp-server"
+            },
+            "description": {
+              "const": "MCP client connects to MCP server to query trade data"
+            },
+            "protocol": {
+              "const": "HTTP"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "mcp-client"
+                  },
+                  "destination": {
+                    "node": "mcp-server",
+                    "interfaces": [
+                      "mcp-server-port"
+                    ]
+                  }
+                }
+              }
+            },
+            "controls": {
+              "$ref": "https://calm.finos.org/release/1.0/meta/control.json#/defs/controls",
+              "properties": {
+                "security": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "const": "Connection authorization for MCP client to MCP server"
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "prefixItems": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "requirement-url": {
+                              "const": "controls/permitted-connection.requirement.json"
+                            },
+                            "config-url": {
+                              "const": "controls/permitted-connection-http.config.json"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "description",
+                    "requirements"
+                  ]
+                }
+              },
+              "required": [
+                "security"
+              ]
+            }
+          },
+          "required": [
+            "unique-id",
+            "description",
+            "protocol",
+            "relationship-type",
+            "controls"
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "mcp-server-to-trades-api"
+            },
+            "description": {
+              "const": "MCP server connects to Trades API to fetch trade data"
+            },
+            "protocol": {
+              "const": "HTTP"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "mcp-server"
+                  },
+                  "destination": {
+                    "node": "trades-api",
+                    "interfaces": [
+                      "trades-api-port"
+                    ]
+                  }
+                }
+              }
+            },
+            "controls": {
+              "$ref": "https://calm.finos.org/release/1.0/meta/control.json#/defs/controls",
+              "properties": {
+                "security": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "const": "Connection authorization for MCP server to Trades API"
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "prefixItems": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "requirement-url": {
+                              "const": "controls/permitted-connection.requirement.json"
+                            },
+                            "config-url": {
+                              "const": "controls/permitted-connection-http.config.json"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "description",
+                    "requirements"
+                  ]
+                }
+              },
+              "required": [
+                "security"
+              ]
+            }
+          },
+          "required": [
+            "unique-id",
+            "description",
+            "protocol",
+            "relationship-type",
+            "controls"
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "deployed-in-k8s-cluster"
+            },
+            "description": {
+              "const": "MCP server and Trades API deployed on the Kubernetes cluster"
+            },
+            "relationship-type": {
+              "const": {
+                "deployed-in": {
+                  "container": "k8s-cluster",
+                  "nodes": [
+                    "mcp-server",
+                    "trades-api"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "unique-id",
+            "description",
+            "relationship-type"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "nodes",
+    "relationships"
+  ],
+  "defs": {
+    "container-image-interface": {
+      "$ref": "https://calm.finos.org/release/1.0/meta/interface.json#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "image"
+      ]
+    },
+    "port-interface": {
+      "$ref": "https://calm.finos.org/release/1.0/meta/interface.json#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "port"
+      ]
+    },
+    "cluster-type-interface": {
+      "$ref": "https://calm.finos.org/release/1.0/meta/interface.json#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ]
+    }
+  }
+}

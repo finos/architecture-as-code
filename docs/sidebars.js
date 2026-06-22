@@ -113,6 +113,13 @@ const sidebars = {
         },
         {
           type: 'category',
+          label: '🔴 Advanced',
+          items: [
+            'tutorials/advanced/qcon-demos',
+          ],
+        },
+        {
+          type: 'category',
           label: '🛠️ Practitioner',
           link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
           items: [

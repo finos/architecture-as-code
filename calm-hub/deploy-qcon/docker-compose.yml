@@ -1,0 +1,26 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: calm_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ../mongo/controls:/controls:ro
+    environment:
+      - CALM_CONTROLS_BASE_PATH=/controls
+    networks:
+      - calm-net
+  calmhub:
+    image: jpgough/calm-hub:latest
+    container_name: calm-hub
+    ports:
+      - "8085:8080"
+    environment:
+      - QUARKUS_PROFILE=no-auth
+      - JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017
+    networks:
+      - calm-net
+networks:
+  calm-net:
+    driver: bridge

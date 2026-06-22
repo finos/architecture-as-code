@@ -1,0 +1,13 @@
+{
+    "$schema": "mcp-guardrail.requirement.json",
+    "$id": "https://calm.finos.org/qcon/controls/mcp-guardrail.config.json",
+    "control-id": "mcp-001",
+    "name": "MCP Trading Symbol Restriction",
+    "description": "Enforces restrictions on trading symbols that the MCP server cannot access",
+    "denied-symbols": [
+        "VOD",
+        "GME",
+        "AMC"
+    ],
+    "enforcement-point": "mcp-server"
+}
