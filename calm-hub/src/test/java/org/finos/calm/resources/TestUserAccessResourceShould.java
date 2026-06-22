@@ -302,4 +302,78 @@ public class TestUserAccessResourceShould {
 
         verify(mockUserAccessStore, times(1)).deleteUserAccessForNamespace("finos", 999);
     }
+
+    @Test
+    void return_400_when_non_admin_permission_is_used_for_global_namespace() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"alice\",\"permission\":\"read\"}")
+                .when()
+                .post("/api/calm/namespaces/GLOBAL/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Only 'admin' permission is valid for the GLOBAL namespace"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
+
+    @Test
+    void return_400_when_wildcard_username_is_used_for_global_namespace() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"permission\":\"admin\"}")
+                .when()
+                .post("/api/calm/namespaces/GLOBAL/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Wildcard username is not permitted for admin permission"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
+
+    @Test
+    void return_400_when_wildcard_admin_grant_attempted_on_regular_namespace() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"permission\":\"admin\"}")
+                .when()
+                .post("/api/calm/namespaces/finos/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Wildcard username is not permitted for admin permission"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
+
+    @Test
+    void return_201_when_wildcard_read_grant_is_created_on_regular_namespace() throws Exception {
+        UserAccess created = new UserAccess();
+        created.setNamespace("finos");
+        created.setPermission(UserAccess.Permission.read);
+        created.setUsername("*");
+        created.setUserAccessId(103);
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class))).thenReturn(created);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"permission\":\"read\"}")
+                .when()
+                .post("/api/calm/namespaces/finos/user-access")
+                .then()
+                .statusCode(201);
+    }
+
+    @Test
+    void return_400_when_write_permission_is_used_for_global_namespace() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"alice\",\"permission\":\"write\"}")
+                .when()
+                .post("/api/calm/namespaces/GLOBAL/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Only 'admin' permission is valid for the GLOBAL namespace"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
 }

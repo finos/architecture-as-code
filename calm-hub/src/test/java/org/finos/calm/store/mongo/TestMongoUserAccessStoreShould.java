@@ -375,6 +375,50 @@ public class TestMongoUserAccessStoreShould {
     }
 
     @Test
+    void create_user_access_for_global_namespace_without_namespace_existence_check() throws NamespaceNotFoundException {
+        when(counterStore.getNextUserAccessSequenceValue()).thenReturn(202);
+
+        UserAccess userAccess = new UserAccess.UserAccessBuilder()
+                .setNamespace("GLOBAL")
+                .setUsername("alice")
+                .setPermission(Permission.admin)
+                .build();
+
+        UserAccess actual = mongoUserAccessStore.createUserAccessForNamespace(userAccess);
+
+        assertThat(actual.getUserAccessId(), is(202));
+        assertThat(actual.getNamespace(), is("GLOBAL"));
+        verify(namespaceStore, never()).namespaceExists("GLOBAL");
+        verify(userAccessCollection).insertOne(ArgumentMatchers.any(Document.class));
+    }
+
+    @Test
+    void get_user_access_for_global_namespace_without_namespace_existence_check() throws NamespaceNotFoundException {
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(false);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(Filters.eq("namespace", "GLOBAL"))).thenReturn(findIterable);
+
+        List<UserAccess> actual = mongoUserAccessStore.getUserAccessForNamespace("GLOBAL");
+
+        assertThat(actual, hasSize(0));
+        verify(namespaceStore, never()).namespaceExists("GLOBAL");
+    }
+
+    @Test
+    void delete_user_access_for_global_namespace_without_namespace_existence_check() throws NamespaceNotFoundException, UserAccessNotFoundException {
+        com.mongodb.client.result.DeleteResult deleteResult = mock(com.mongodb.client.result.DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(1L);
+        when(userAccessCollection.deleteOne(ArgumentMatchers.any(Bson.class))).thenReturn(deleteResult);
+
+        mongoUserAccessStore.deleteUserAccessForNamespace("GLOBAL", 202);
+
+        verify(namespaceStore, never()).namespaceExists("GLOBAL");
+        verify(userAccessCollection).deleteOne(ArgumentMatchers.any(Bson.class));
+    }
+
+    @Test
     void throw_user_access_not_found_exception_when_deleting_non_existent_grant() {
         String namespace = "finos";
         Integer userAccessId = 999;

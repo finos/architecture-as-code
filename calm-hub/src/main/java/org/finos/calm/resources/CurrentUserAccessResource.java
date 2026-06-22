@@ -9,12 +9,15 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.finos.calm.security.CalmHubPermissionChecker.GLOBAL_ACCESS;
 
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
 @Path("/api/calm/user-access")
@@ -25,6 +28,10 @@ public class CurrentUserAccessResource {
 
     @Inject
     SecurityIdentity identity;
+
+    @Inject
+    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
 
     public CurrentUserAccessResource(UserAccessStore store) {
         this.store = store;
@@ -40,6 +47,15 @@ public class CurrentUserAccessResource {
     )
     public Response getCurrentUserAccess() {
         String username = identity.getPrincipal().getName();
+        if (!authEnabled) {
+            logger.debug("Auth disabled — returning synthetic GLOBAL admin grant for user [{}]", username);
+            UserAccess syntheticGrant = new UserAccess.UserAccessBuilder()
+                    .setUsername(username)
+                    .setPermission(UserAccess.Permission.admin)
+                    .setNamespace(GLOBAL_ACCESS)
+                    .build();
+            return Response.ok(List.of(syntheticGrant)).build();
+        }
         logger.debug("Fetching grants for user [{}]", username);
         List<UserAccess> grants = store.getGrantsForUser(username);
         return Response.ok(grants).build();

@@ -292,6 +292,38 @@ public class TestDomainUserAccessResourceShould {
     }
 
     @Test
+    void return_400_when_wildcard_admin_grant_attempted_on_domain() {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"permission\":\"admin\"}")
+                .when()
+                .post("/api/calm/domains/payments/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Wildcard username is not permitted for admin"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForDomain(any());
+    }
+
+    @Test
+    void return_201_when_wildcard_read_grant_is_created_on_domain() {
+        UserAccess created = new UserAccess();
+        created.setDomain("payments");
+        created.setPermission(UserAccess.Permission.read);
+        created.setUsername("*");
+        created.setUserAccessId(202);
+        when(mockUserAccessStore.createUserAccessForDomain(any(UserAccess.class))).thenReturn(created);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"permission\":\"read\"}")
+                .when()
+                .post("/api/calm/domains/payments/user-access")
+                .then()
+                .statusCode(201);
+    }
+
+    @Test
     void return_404_when_domain_does_not_exist_on_delete_user_access() throws Exception {
         when(mockDomainStore.domainExists("unknown")).thenReturn(false);
 

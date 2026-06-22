@@ -41,6 +41,44 @@ export class CalmService {
             });
     }
 
+    public async fetchDomains(): Promise<string[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get('/api/calm/domains', { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = 'Error fetching domains:';
+                console.error(errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async createNamespace(name: string, description: string): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .post('/api/calm/namespaces', { name, description }, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = `Error creating namespace ${name}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async createDomain(name: string): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .post('/api/calm/domains', { name }, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = `Error creating domain ${name}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
     public async fetchPatternSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
