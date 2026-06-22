@@ -1,0 +1,137 @@
+/* ── RevealPresentation container ───────────────────────────────────────── */
+
+.deckWrapper {
+  position: relative;
+  width: 100%;
+  /* 16:9 aspect ratio */
+  padding-bottom: 56.25%;
+  background: #191919;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 1.5rem 0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.deckWrapper.fullscreen {
+  padding-bottom: 0;
+  border-radius: 0;
+}
+
+.revealContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* When the native Fullscreen API is active the wrapper fills the screen. */
+.deckWrapper:fullscreen,
+.deckWrapper:-webkit-full-screen,
+.deckWrapper:-moz-full-screen {
+  padding-bottom: 0;
+  border-radius: 0;
+}
+
+.deckWrapper:fullscreen .revealContainer,
+.deckWrapper:-webkit-full-screen .revealContainer,
+.deckWrapper:-moz-full-screen .revealContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Toolbar ────────────────────────────────────────────────────────────── */
+
+.toolbar {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.7rem;
+  z-index: 100;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.toolbarBtn {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.4;
+  transition: background 0.15s;
+}
+
+.toolbarBtn:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.toolbarHint {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.7rem;
+  align-self: center;
+  white-space: nowrap;
+  margin-right: 0.3rem;
+  user-select: none;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+/* Focus ring — shown when the deck is active (keyboard nav enabled) */
+.revealContainer:focus,
+.revealContainer:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.45);
+  outline-offset: -2px;
+}
+
+/* ── Scope reveal.js styles inside our container ────────────────────────── */
+
+/*
+ * Reveal scopes most of its rules under `.reveal`, but its CSS resets
+ * for html/body can bleed. We contain those here by overriding the
+ * Reveal-generated styles on the wrapper.
+ */
+.revealContainer :global(.reveal) {
+  font-family: inherit;
+}
+
+.revealContainer :global(.reveal .slides) {
+  text-align: left;
+}
+
+.revealContainer :global(.reveal .slides section) {
+  text-align: left;
+}
+
+.revealContainer :global(.reveal h1),
+.revealContainer :global(.reveal h2),
+.revealContainer :global(.reveal h3) {
+  text-transform: none;
+  letter-spacing: -0.01em;
+  text-align: left;
+}
+
+/* Tighten h2 so long content-slide titles fit one line and sit closer to
+   natural position (less crowding at the top of the slide). */
+.revealContainer :global(.reveal h2) {
+  font-size: 1.5em;
+  margin-top: 0;
+  margin-bottom: 0.4em;
+}
+
+/* Code blocks in slides: keep the monokai highlight theme */
+.revealContainer :global(.reveal pre) {
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+/* Two-column layout helper used in some slides.
+   Increased gap from 1.2rem → 2.5rem for clear visual column separation. */
+.revealContainer :global(.two-col) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
