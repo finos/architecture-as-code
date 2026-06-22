@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-from-app-to-db
+spec:
+  podSelector:
+    matchLabels:
+      app: attendees
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              db: attendees-store
+  policyTypes:
+    - Egress

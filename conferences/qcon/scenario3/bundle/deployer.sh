@@ -1,0 +1,219 @@
+#!/bin/bash
+
+# ============================================================================
+# CALM-Aware Deployer Script - Validation Gate Only
+# ============================================================================
+# This script validates CALM architectures before deployment by:
+# 1. Checking if required patterns exist in CALM Hub
+# 2. Validating the architecture against the pattern using `calm validate`
+# 3. Only deploying if validation passes
+#
+# NOTE: This version removes infrastructure validation gates.
+#       Focus is purely on CALM architecture compliance.
+# ============================================================================
+
+set -e
+
+# ANSI color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+# Configuration
+CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8085}"
+NAMESPACE="${NAMESPACE:-qcon}"
+ARCHITECTURE_FILE="${ARCHITECTURE_FILE}"
+KUSTOMIZE_DIR="${KUSTOMIZE_DIR}"
+VERBOSE_MODE="${VERBOSE_MODE:-false}"
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+error() {
+    echo -e "${RED}✗ ERROR: $1${NC}" >&2
+}
+
+success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+info() {
+    echo -e "${BLUE}ℹ $1${NC}"
+}
+
+warning() {
+    echo -e "${YELLOW}⚠ $1${NC}"
+}
+
+section() {
+    echo ""
+    echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${BLUE}  $1${NC}"
+    echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
+# ============================================================================
+# Validation Functions
+# ============================================================================
+
+check_calm_hub() {
+    info "Checking CALM Hub connectivity..."
+    if ! curl -sf "${CALM_HUB_URL}/q/swagger-ui/" > /dev/null 2>&1; then
+        error "CALM Hub is not accessible at ${CALM_HUB_URL}"
+        error "Please ensure CALM Hub is running (docker-compose up in calm-hub/deploy-qcon)"
+        return 1
+    fi
+    success "CALM Hub is accessible at ${CALM_HUB_URL}"
+    return 0
+}
+
+extract_pattern_from_schema() {
+    local architecture_file=$1
+    # Extract pattern name from $schema field
+    # Example: "https://calm.finos.org/qcon/scenario3/calm/trades-api-and-mcp.pattern.json"
+    # Returns: "trades-api-and-mcp"
+    local schema_url=$(jq -r '."$schema" // empty' "$architecture_file")
+    
+    if [ -z "$schema_url" ]; then
+        echo ""
+        return
+    fi
+    
+    # Extract pattern name: get basename, remove .pattern.json
+    local pattern_name=$(basename "$schema_url" .pattern.json)
+    echo "$pattern_name"
+}
+
+check_pattern_in_hub() {
+    local pattern_name=$1
+
+    if [ -z "$pattern_name" ]; then
+        error "No pattern specified in architecture \$schema field"
+        return 1
+    fi
+
+    info "Attempting to pull pattern '${pattern_name}' from CALM Hub..."
+    info "Namespace: ${NAMESPACE}"
+    echo ""
+
+    if [ "${VERBOSE_MODE:-false}" == "true" ]; then
+        info "📖 Using calm hub CLI to fetch the pattern by slug:"
+    fi
+    info "> calm hub pull pattern --namespace ${NAMESPACE} --mapping ${pattern_name} --ver 1.0.0 --calm-hub-url ${CALM_HUB_URL}"
+    echo ""
+
+    if calm hub pull pattern --namespace "${NAMESPACE}" --mapping "${pattern_name}" --ver 1.0.0 --calm-hub-url "${CALM_HUB_URL}" > /dev/null 2>&1; then
+        success "✅ GATE 1 PASSED: Pattern '${pattern_name}' found in CALM Hub (namespace: ${NAMESPACE})"
+        info "   Pattern is centrally managed - all teams reference the same validated pattern"
+        return 0
+    fi
+
+    error "❌ GATE 1 REJECTED: Pattern '${pattern_name}' not found in CALM Hub"
+    info "   Namespace: ${NAMESPACE}"
+    info "   Governance requirement: All patterns must be pre-approved and registered"
+    return 1
+}
+
+validate_architecture() {
+    local architecture_file=$1
+    
+    section "Gate 2: Architecture Validation"
+    
+    info "Validating architecture against pattern requirements..."
+    
+    # Extract pattern file from architecture $schema
+    local schema_url=$(jq -r '."$schema" // empty' "$architecture_file")
+    if [ -z "$schema_url" ]; then
+        error "No $schema field found in architecture"
+        return 1
+    fi
+    
+    # Extract pattern file path: get basename from URL
+    local pattern_basename=$(basename "$schema_url")
+    local pattern_file="calm/${pattern_basename}"
+    
+    info "Running: calm validate --pattern \"$pattern_basename\" --architecture \"$(basename $architecture_file)\""
+    echo ""
+    
+    # Use calm validate command with pattern and architecture flags
+    if calm validate --pattern "$pattern_file" --architecture "$architecture_file" 2>&1; then
+        echo ""
+        success "✅ GATE 2 PASSED: Architecture validation passed"
+        info "   Architecture conforms to pattern requirements"
+        return 0
+    else
+        echo ""
+        error "❌ GATE 2 REJECTED: Architecture validation failed"
+        info "   Architecture does not conform to pattern requirements"
+        info "   Common issues: missing controls, incorrect node types, relationship violations"
+        return 1
+    fi
+}
+
+# ============================================================================
+# Main Execution
+# ============================================================================
+
+main() {
+    if [ -z "$ARCHITECTURE_FILE" ] || [ -z "$KUSTOMIZE_DIR" ]; then
+        error "Usage: ARCHITECTURE_FILE=<arch.json> KUSTOMIZE_DIR=<dir> $0"
+        error "Or set environment variables: ARCHITECTURE_FILE and KUSTOMIZE_DIR"
+        exit 1
+    fi
+    
+    if [ ! -f "$ARCHITECTURE_FILE" ]; then
+        error "Architecture file not found: $ARCHITECTURE_FILE"
+        exit 1
+    fi
+    
+    if [ ! -d "$KUSTOMIZE_DIR" ]; then
+        error "Kustomize directory not found: $KUSTOMIZE_DIR"
+        exit 1
+    fi
+    
+    echo ""
+    echo -e "${BOLD}${BLUE}╔═══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${BLUE}║           CALM-Aware Deployment Validation Gate                  ║${NC}"
+    echo -e "${BOLD}${BLUE}╚═══════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    # Preliminary: Check CALM Hub connectivity
+    section "Preliminary Check: CALM Hub Connectivity"
+    if ! check_calm_hub; then
+        error "Cannot proceed without CALM Hub"
+        exit 1
+    fi
+    echo ""
+    
+    # Gate 1: Check if pattern exists in CALM Hub
+    section "Gate 1: Pattern Registration Check"
+    local pattern_name=$(extract_pattern_from_schema "$ARCHITECTURE_FILE")
+    if ! check_pattern_in_hub "$pattern_name"; then
+        echo ""
+        exit 1
+    fi
+    echo ""
+    
+    # Gate 2: Validate architecture
+    if ! validate_architecture "$ARCHITECTURE_FILE"; then
+        echo ""
+        exit 1
+    fi
+    
+    # All gates passed
+    echo ""
+    echo -e "${GREEN}${BOLD}╔═══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}${BOLD}║              ✓ ALL VALIDATION GATES PASSED                        ║${NC}"
+    echo -e "${GREEN}${BOLD}╚═══════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    success "✅ Architecture is valid and ready for deployment"
+    echo ""
+}
+
+# Run main function
+main "$@"
