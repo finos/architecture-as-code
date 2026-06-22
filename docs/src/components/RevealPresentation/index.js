@@ -70,13 +70,14 @@ function RevealPresentationInner({ children }) {
         // Only handle keyboard events when the presentation is focused,
         // so we don't steal keys from the rest of the page.
         keyboardCondition: 'focused',
-        // Match the 16:9 container (padding-bottom: 56.25%) so Reveal's
-        // logical canvas fills the full width with no side gutters.
-        // Default 960×700 left ~23% of horizontal space unused, causing
-        // unnecessary text wrapping and clipping on tall slides.
+        // Match the container dimensions (padding-bottom: 62.5% = 800/1280)
+        // so Reveal's logical canvas fills the full width with no side gutters.
+        // Height increased from 720→800 to give dense slides more vertical
+        // space before content overflows the canvas. Default 960×700 left
+        // ~23% of horizontal space unused; this canvas avoids that.
         width: 1280,
-        height: 720,
-        margin: 0.03,
+        height: 800,
+        margin: 0.06,
         hash: false,
         history: false,
         controls: true,
@@ -93,8 +94,25 @@ function RevealPresentationInner({ children }) {
       });
     }).catch(console.error);
 
+    // When the browser enters or exits native fullscreen on our wrapper,
+    // the container size changes but window.resize is NOT fired (the window
+    // didn't change). Reveal recomputes scale on resize events, so without
+    // this handler the deck stays at its embedded scale in fullscreen —
+    // content appears clipped at the bottom. Calling layout() after a short
+    // delay (element dimensions settle during the fullscreen transition)
+    // forces Reveal to recalculate the transform and fill the screen.
+    const onFullscreenChange = () => {
+      requestAnimationFrame(() => {
+        deckRef.current?.layout();
+      });
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
     return () => {
       destroyed = true;
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
       if (deckRef.current) {
         try { deckRef.current.destroy(); } catch (_) {}
         deckRef.current = null;
