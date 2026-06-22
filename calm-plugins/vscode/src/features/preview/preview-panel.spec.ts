@@ -30,6 +30,9 @@ vi.mock('vscode', () => ({
       onDidDispose: vi.fn(),
       reveal: vi.fn(),
     }; }),
+    showSaveDialog: vi.fn(),
+    showInformationMessage: vi.fn(),
+    showErrorMessage: vi.fn(),
   },
   workspace: {
     workspaceFolders: [
@@ -40,6 +43,9 @@ vi.mock('vscode', () => ({
         },
       },
     ],
+    fs: {
+      writeFile: vi.fn(),
+    },
   },
   Disposable: {
     from: vi.fn(function () { return { dispose: vi.fn() }; }),
@@ -490,10 +496,91 @@ End of document.`
       await panel['handleRunDocifyImpl']()
 
       // Verify that preprocessing was NOT applied (no markdown preprocessing logs)
-      const preprocessingLogs = mockLogger.info.mock.calls.filter((call: any) => 
+      const preprocessingLogs = mockLogger.info.mock.calls.filter((call: any) =>
         call[0] && call[0].includes('Preprocessing markdown images')
       )
       expect(preprocessingLogs).toHaveLength(0)
+    })
+  })
+
+  describe('handleExportDiagram', () => {
+    let panel: CalmPreviewPanel
+
+    beforeEach(() => {
+      panel = new (CalmPreviewPanel as any)(mockPanel, mockContext, mockConfig, mockLogger)
+      panel.viewModel.setCurrentUri('/test/source/arch.json')
+    })
+
+    afterEach(() => {
+      panel.dispose()
+    })
+
+    it('computes a default save location from the current file and shows the save dialog', async () => {
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(undefined)
+
+      await panel.handleExportDiagram('svg', '<svg></svg>', 1)
+
+      const callArgs = vi.mocked(vscode.window.showSaveDialog).mock.calls[0][0] as any
+      expect(callArgs.defaultUri.fsPath).toBe('/test/source/arch-diagram-1.svg')
+      expect(callArgs.filters).toEqual({ 'SVG Image': ['svg'] })
+    })
+
+    it('uses a PNG filter and the diagram index in the default filename for PNG exports', async () => {
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(undefined)
+
+      await panel.handleExportDiagram('png', 'QkJC', 2)
+
+      const callArgs = vi.mocked(vscode.window.showSaveDialog).mock.calls[0][0] as any
+      expect(callArgs.defaultUri.fsPath).toBe('/test/source/arch-diagram-2.png')
+      expect(callArgs.filters).toEqual({ 'PNG Image': ['png'] })
+    })
+
+    it('does not write a file when the user cancels the save dialog', async () => {
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(undefined)
+
+      await panel.handleExportDiagram('svg', '<svg></svg>', 1)
+
+      expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled()
+    })
+
+    it('writes SVG data as a utf8 buffer and shows a confirmation message', async () => {
+      const saveUri = { fsPath: '/test/source/arch-diagram-1.svg' } as any
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(saveUri)
+
+      await panel.handleExportDiagram('svg', '<svg>diagram</svg>', 1)
+
+      expect(vscode.workspace.fs.writeFile).toHaveBeenCalledWith(saveUri, Buffer.from('<svg>diagram</svg>', 'utf8'))
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('Diagram exported to /test/source/arch-diagram-1.svg')
+    })
+
+    it('writes PNG data as a base64-decoded buffer', async () => {
+      const saveUri = { fsPath: '/test/source/arch-diagram-1.png' } as any
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(saveUri)
+
+      await panel.handleExportDiagram('png', 'QkJC', 1)
+
+      expect(vscode.workspace.fs.writeFile).toHaveBeenCalledWith(saveUri, Buffer.from('QkJC', 'base64'))
+    })
+
+    it('shows an error message and logs when writing the file fails', async () => {
+      const saveUri = { fsPath: '/test/source/arch-diagram-1.svg' } as any
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(saveUri)
+      vi.mocked(vscode.workspace.fs.writeFile).mockRejectedValue(new Error('disk full'))
+
+      await panel.handleExportDiagram('svg', '<svg></svg>', 1)
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('disk full'))
+      expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('disk full'))
+    })
+
+    it('falls back to the workspace root and a generic name when no file is open', async () => {
+      panel.viewModel.clearCurrentUri()
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(undefined)
+
+      await panel.handleExportDiagram('png', 'QkJC', 3)
+
+      const callArgs = vi.mocked(vscode.window.showSaveDialog).mock.calls[0][0] as any
+      expect(callArgs.defaultUri.fsPath).toBe('/test/workspace/diagram-diagram-3.png')
     })
   })
 })
