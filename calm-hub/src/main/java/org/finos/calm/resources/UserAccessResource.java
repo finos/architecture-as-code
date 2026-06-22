@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
+import static org.finos.calm.security.CalmHubPermissionChecker.GLOBAL_ACCESS;
 
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
 @Path("/api/calm/namespaces")
@@ -48,6 +49,20 @@ public class UserAccessResource {
     @PermissionsAllowed(CalmHubScopes.ADMIN)
     public Response createUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
                                                  @Valid @NotNull UserAccessRequest request) {
+
+        if ("*".equals(request.getUsername()) && request.getPermission() == UserAccess.Permission.admin) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Wildcard username is not permitted for admin permission")
+                    .build();
+        }
+
+        if (GLOBAL_ACCESS.equals(namespace)) {
+            if (request.getPermission() != UserAccess.Permission.admin) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Only 'admin' permission is valid for the GLOBAL namespace")
+                        .build();
+            }
+        }
 
         UserAccess userAccess = new UserAccess.UserAccessBuilder()
                 .setNamespace(namespace)

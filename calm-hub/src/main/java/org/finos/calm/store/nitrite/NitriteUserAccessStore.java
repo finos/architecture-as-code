@@ -12,6 +12,8 @@ import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
+
+import static org.finos.calm.security.CalmHubPermissionChecker.GLOBAL_ACCESS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +62,8 @@ public class NitriteUserAccessStore implements UserAccessStore {
     @Override
     public UserAccess createUserAccessForNamespace(UserAccess userAccess) throws NamespaceNotFoundException {
         LOG.info("User-access details: {}", userAccess);
-        
-        if (!namespaceStore.namespaceExists(userAccess.getNamespace())) {
+
+        if (!GLOBAL_ACCESS.equals(userAccess.getNamespace()) && !namespaceStore.namespaceExists(userAccess.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
 
@@ -121,7 +123,7 @@ public class NitriteUserAccessStore implements UserAccessStore {
 
     @Override
     public List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
+        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
         Filter filter = where(NAMESPACE_FIELD).eq(namespace);
@@ -223,7 +225,7 @@ public class NitriteUserAccessStore implements UserAccessStore {
     public void deleteUserAccessForNamespace(String namespace, Integer userAccessId)
             throws NamespaceNotFoundException, UserAccessNotFoundException {
 
-        if (!namespaceStore.namespaceExists(namespace)) {
+        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 

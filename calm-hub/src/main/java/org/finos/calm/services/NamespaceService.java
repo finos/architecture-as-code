@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.NamespaceParentNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
 import org.finos.calm.store.UserAccessStore;
@@ -32,6 +33,14 @@ public class NamespaceService {
     }
 
     public void createNamespace(String name, String description) throws NamespaceAlreadyExistsException {
+        if (name.contains(".")) {
+            String parent = name.substring(0, name.lastIndexOf('.'));
+            boolean parentExists = namespaceStore.getNamespaces().stream()
+                    .anyMatch(ns -> parent.equals(ns.getName()));
+            if (!parentExists) {
+                throw new NamespaceParentNotFoundException(parent);
+            }
+        }
         namespaceStore.createNamespace(name, description);
         insertPublicReadGrant(name);
     }
