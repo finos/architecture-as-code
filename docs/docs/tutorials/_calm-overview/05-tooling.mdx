@@ -48,7 +48,7 @@ calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
 <section>
   <h2>🧩 VSCode Extension</h2>
   <p>First-class IDE support for working with CALM architectures.</p>
-  <img src="/img/vscode/04-preview-hero.png" alt="VSCode CALM preview" style={{maxHeight:'360px', maxWidth:'90%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0 auto'}} />
+  <img src="/img/vscode/04-preview-hero.png" alt="VSCode CALM preview" style={{maxHeight:'460px', maxWidth:'95%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0 auto'}} />
   <aside className="notes">
     The VSCode extension gives you a live preview of your architecture as a diagram,
     a tree view of nodes and relationships, real-time validation, and timeline visualisation.
@@ -61,11 +61,11 @@ calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
   <div className="two-col">
     <div>
       <img src="/img/vscode/07-validation-problems.png" alt="VSCode validation problems" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
-      <p style={{fontSize:'0.8rem', textAlign:'center', color:'#666'}}>Live validation errors</p>
+      <p style={{fontSize:'0.92rem', textAlign:'center', color:'#666'}}>Live validation errors</p>
     </div>
     <div>
       <img src="/img/vscode/09-timeline.png" alt="VSCode timeline view" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
-      <p style={{fontSize:'0.8rem', textAlign:'center', color:'#666'}}>Timeline visualisation</p>
+      <p style={{fontSize:'0.92rem', textAlign:'center', color:'#666'}}>Timeline visualisation</p>
     </div>
   </div>
   <aside className="notes">
@@ -77,10 +77,10 @@ calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
 <section>
   <h2>🏛️ CALM Hub</h2>
   <p>A versioned, queryable architecture repository — the shared source of truth that files in Git alone can't give you.</p>
-  <p style={{fontSize:'0.85rem', color:'#555', marginTop:'-0.3rem', marginBottom:'0.5rem'}}>
+  <p style={{fontSize:'0.95rem', color:'#555', marginTop:'-0.3rem', marginBottom:'0.5rem'}}>
     Browse architectures across teams · compare timeline moments · view control compliance · REST API &amp; MCP for AI tools
   </p>
-  <img src="/img/hub-ui/diagram-view.png" alt="CALM Hub diagram view" style={{maxHeight:'330px', maxWidth:'80%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0.4rem auto'}} />
+  <img src="/img/hub-ui/diagram-view.png" alt="CALM Hub diagram view" style={{maxHeight:'380px', maxWidth:'90%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0.4rem auto'}} />
   <aside className="notes">
     CALM Hub is a Quarkus-backed REST API + React UI for storing, browsing, and viewing
     architectures. It gives teams a shared source of truth for the whole architecture landscape.
@@ -95,11 +95,11 @@ calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
   <div className="two-col">
     <div>
       <img src="/img/hub-ui/timeline-compare.png" alt="CALM Hub timeline compare" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
-      <p style={{fontSize:'0.8rem', textAlign:'center', color:'#666'}}>Timeline comparison view</p>
+      <p style={{fontSize:'0.92rem', textAlign:'center', color:'#666'}}>Timeline comparison view</p>
     </div>
     <div>
       <img src="/img/hub-ui/control-view.png" alt="CALM Hub control view" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
-      <p style={{fontSize:'0.8rem', textAlign:'center', color:'#666'}}>Controls compliance view</p>
+      <p style={{fontSize:'0.92rem', textAlign:'center', color:'#666'}}>Controls compliance view</p>
     </div>
   </div>
   <aside className="notes">
@@ -125,7 +125,7 @@ calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
       <img src="/img/docify.png" alt="Docify output" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
     </div>
   </div>
-  <p style={{fontSize:'0.85rem', color:'#666'}}>
+  <p style={{fontSize:'0.95rem', color:'#666'}}>
     <code>calm docify</code> uses widgets to generate a full documentation site from your architecture — always in sync.
   </p>
   <aside className="notes">
@@ -145,16 +145,16 @@ calm init-ai -p claude    # Claude Code
 calm init-ai -p codex     # OpenAI Codex`}</code></pre>
   <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginTop:'0.8rem'}}>
     <div style={{background:'#e8f5e9', borderRadius:'8px', padding:'0.9rem 1.1rem'}}>
-      <p style={{fontSize:'0.88rem', margin:0, fontWeight:'bold', marginBottom:'0.4rem'}}>What gets installed:</p>
-      <ul style={{fontSize:'0.85rem', margin:0, lineHeight:'1.8'}}>
+      <p style={{fontSize:'1.0rem', margin:0, fontWeight:'bold', marginBottom:'0.4rem'}}>What gets installed:</p>
+      <ul style={{fontSize:'0.95rem', margin:0, lineHeight:'1.8'}}>
         <li>14 task-specific prompt files (node-creation, flow-creation, control-creation …)</li>
         <li>Schema v1.2 rules, examples, pitfall warnings</li>
         <li>AI assistant config (<code>.github/copilot-instructions</code> etc.)</li>
       </ul>
     </div>
     <div style={{background:'#e3f2fd', borderRadius:'8px', padding:'0.9rem 1.1rem'}}>
-      <p style={{fontSize:'0.88rem', margin:0, fontWeight:'bold', marginBottom:'0.4rem'}}>What it enables:</p>
-      <ul style={{fontSize:'0.85rem', margin:0, lineHeight:'1.8'}}>
+      <p style={{fontSize:'1.0rem', margin:0, fontWeight:'bold', marginBottom:'0.4rem'}}>What it enables:</p>
+      <ul style={{fontSize:'0.95rem', margin:0, lineHeight:'1.8'}}>
         <li>Assistant authors valid CALM JSON directly in the IDE</li>
         <li>Understands all node types, interface types, control patterns</li>
         <li>Catches schema errors before you run <code>calm validate</code></li>
