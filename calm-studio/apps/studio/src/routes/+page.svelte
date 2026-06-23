@@ -51,7 +51,8 @@
 	import OverlayToggle from '$lib/viz/overlay/OverlayToggle.svelte';
 	import ThreatPanel from '$lib/viz/overlay/ThreatPanel.svelte';
 	import { createOverlayStore } from '$lib/viz/overlay/overlayStore.svelte';
-	import type { Badge } from '@calmstudio/calm-core';
+	import DetailDrawer from '$lib/viz/drawer/DetailDrawer.svelte';
+	import type { Badge, CalmNode as CalmNodeT } from '@calmstudio/calm-core';
 	import { pushSnapshot, resetHistory, undo, redo } from '$lib/stores/history.svelte';
 	import { layoutCalm, type LayoutDirection } from '$lib/layout/elkLayout';
 	import { openFile, saveFile, saveFileAs } from '$lib/io/fileSystem';
@@ -132,6 +133,19 @@
 		} catch {
 			threatBadges = [];
 		}
+	});
+
+	/**
+	 * Selected CalmNode for the viz DetailDrawer. Resolved from the canonical
+	 * model whenever the selection or model changes; falls back to null when no
+	 * node is selected or the id can't be found.
+	 */
+	const selectedCalmNode = $derived.by<CalmNodeT | null>(() => {
+		if (!selectedNodeId) return null;
+		const sel = nodes.find((n) => n.id === selectedNodeId);
+		const calmId = (sel?.data?.calmId as string | undefined) ?? selectedNodeId;
+		const model = getModel();
+		return (model.nodes?.find((n) => n['unique-id'] === calmId) as CalmNodeT | undefined) ?? null;
 	});
 
 	// ─── Desktop: native title bar sync ───────────────────────────────────────
@@ -1289,8 +1303,15 @@
 									/>
 								{/if}
 
-								<!-- Threat panel (spike viz) — overlay-driven, no-selection -->
-								{#if overlay.mode === 'threat' && threatBadges.length > 0}
+								<!-- Detail drawer (spike viz) — selection-driven, takes precedence -->
+								{#if selectedCalmNode}
+									<DetailDrawer
+										arch={getModel()}
+										selectedNode={selectedCalmNode}
+										onclose={() => (selectedNodeId = null)}
+									/>
+								{:else if overlay.mode === 'threat' && threatBadges.length > 0}
+									<!-- Threat panel (spike viz) — overlay-driven, no-selection -->
 									<ThreatPanel threats={threatBadges} />
 								{/if}
 
