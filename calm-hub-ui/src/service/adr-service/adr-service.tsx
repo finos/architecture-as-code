@@ -1,6 +1,6 @@
 import { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../../authService.js';
-import { CalmAdrMeta } from '@finos/calm-shared/src/view-model/adr.js';
+import { CalmAdrMetaSchema } from '@finos/calm-models/types';
 import { AdrSummary } from '../../model/calm.js';
 import { apiClient } from '../utils/api-client.js';
 
@@ -53,7 +53,7 @@ export class AdrService {
     /**
      * Fetch a specific adr by namespace, adr ID, and revision, and set it using the provided setter function.
      */
-    async fetchAdr(namespace: string, adrID: string, revision: string): Promise<CalmAdrMeta> {
+    async fetchAdr(namespace: string, adrID: string, revision: string): Promise<CalmAdrMetaSchema> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions/${encodeURIComponent(revision)}`, {
