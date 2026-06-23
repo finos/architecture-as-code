@@ -9,7 +9,7 @@ on:
             - 'main'
             - 'release*'
         paths:
-            - 'calm-suite/calm-guard/**'
+            - 'calm-guard/**'
             - '.github/workflows/build-calm-guard.yml'
             - 'package.json'
             - 'package-lock.json'
@@ -18,7 +18,7 @@ on:
             - 'main'
             - 'release*'
         paths:
-            - 'calm-suite/calm-guard/**'
+            - 'calm-guard/**'
             - '.github/workflows/build-calm-guard.yml'
             - 'package.json'
             - 'package-lock.json'

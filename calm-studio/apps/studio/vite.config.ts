@@ -12,7 +12,7 @@ export default defineConfig({
 	server: {
 		fs: {
 			// npm-workspaces installs some deps (e.g. @sveltejs/kit) into
-			// calm-suite/calm-studio/node_modules, outside Vite's default
+			// calm-studio/node_modules, outside Vite's default
 			// allow root at apps/studio. Allow up to the repo root.
 			allow: [path.resolve('../../../..')],
 		},

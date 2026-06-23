@@ -6,9 +6,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/finos/architecture-as-code.git",
-    "directory": "calm-suite/calm-guard"
+    "directory": "calm-guard"
   },
-  "homepage": "https://github.com/finos/architecture-as-code/tree/main/calm-suite/calm-guard",
+  "homepage": "https://github.com/finos/architecture-as-code/tree/main/calm-guard",
   "bugs": {
     "url": "https://github.com/finos/architecture-as-code/issues"
   },

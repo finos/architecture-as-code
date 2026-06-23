@@ -37,7 +37,7 @@ This installs all workspaces (calm-guard, calm-studio, cli, server, etc.) from t
 
 ### 3. Configure environment variables
 
-Create a `.env.local` file in `calm-suite/calm-guard/`:
+Create a `.env.local` file in `calm-guard/`:
 
 ```bash
 # Required — Gemini is the default LLM provider

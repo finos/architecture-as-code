@@ -8,7 +8,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CANONICAL_META = resolve(__dirname, '../../../../calm/release/1.2/meta');
+const CANONICAL_META = resolve(__dirname, '../../../calm/release/1.2/meta');
 const DEST = resolve(__dirname, 'dist/schemas');
 
 const SCHEMA_FILES = [

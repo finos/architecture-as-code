@@ -20,7 +20,7 @@ From the monorepo root:
 npm run start --workspace=calmguard-docs
 ```
 
-Or from `calm-suite/calm-guard/`:
+Or from `calm-guard/`:
 
 ```bash
 npm run docs:dev
@@ -36,7 +36,7 @@ From the monorepo root:
 npm run build --workspace=calmguard-docs
 ```
 
-Or from `calm-suite/calm-guard/`:
+Or from `calm-guard/`:
 
 ```bash
 npm run docs:build

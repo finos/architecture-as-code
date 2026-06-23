@@ -162,7 +162,7 @@ examples/                       # Demo CALM architecture JSON files
 
 ## Key Commands
 
-Run from monorepo root (preferred) or from `calm-suite/calm-guard/` (drop the `--workspace=calmguard` flag).
+Run from monorepo root (preferred) or from `calm-guard/` (drop the `--workspace=calmguard` flag).
 
 ```bash
 # From monorepo root
@@ -174,7 +174,7 @@ npm run typecheck --workspace=calmguard      # TypeScript strict check
 npm run test:run --workspace=calmguard       # Vitest single run
 
 # Docs site (Docusaurus)
-npm run docs:dev                             # From calm-suite/calm-guard/
+npm run docs:dev                             # From calm-guard/
 ```
 
 ## Environment Variables

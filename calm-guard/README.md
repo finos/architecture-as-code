@@ -106,7 +106,7 @@ From the monorepo root:
 npm run dev --workspace=calmguard          # Start dev server at http://localhost:3000
 ```
 
-Or from `calm-suite/calm-guard/`:
+Or from `calm-guard/`:
 
 ```bash
 npm run dev

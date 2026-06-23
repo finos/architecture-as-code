@@ -23,7 +23,7 @@ CalmGuard lives in the [`finos/architecture-as-code`](https://github.com/finos/a
 git clone https://github.com/finos/architecture-as-code.git
 cd architecture-as-code
 npm ci
-cp calm-suite/calm-guard/.env.example calm-suite/calm-guard/.env.local
+cp calm-guard/.env.example calm-guard/.env.local
 # Edit .env.local and add your GOOGLE_GENERATIVE_AI_API_KEY
 npm run dev --workspace=calmguard
 ```

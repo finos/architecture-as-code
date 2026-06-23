@@ -70,7 +70,7 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          href: 'https://github.com/finos/architecture-as-code/tree/main/calm-suite/calm-guard',
+          href: 'https://github.com/finos/architecture-as-code/tree/main/calm-guard',
           label: 'GitHub',
           position: 'right',
         },
@@ -118,7 +118,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/finos/architecture-as-code/tree/main/calm-suite/calm-guard',
+              href: 'https://github.com/finos/architecture-as-code/tree/main/calm-guard',
             },
           ],
         },
