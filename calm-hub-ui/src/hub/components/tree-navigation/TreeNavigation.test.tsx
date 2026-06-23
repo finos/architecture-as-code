@@ -111,6 +111,29 @@ const mockProps = {
     onInterfaceLoad: vi.fn()
 };
 
+// Override the next CalmService instance so fetchNamespaces returns a specific set;
+// all other methods resolve empty so the tree renders without further fetches.
+function mockCalmServiceWithNamespaces(namespaces: string[]) {
+    vi.mocked(CalmService).mockImplementationOnce(function () { return {
+        fetchNamespaces: vi.fn().mockResolvedValue(namespaces),
+        fetchPatternSummaries: vi.fn().mockResolvedValue([]),
+        fetchFlowSummaries: vi.fn().mockResolvedValue([]),
+        fetchStandardSummaries: vi.fn().mockResolvedValue([]),
+        fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
+        fetchPatternVersions: vi.fn().mockResolvedValue([]),
+        fetchFlowVersions: vi.fn().mockResolvedValue([]),
+        fetchStandardVersions: vi.fn().mockResolvedValue([]),
+        fetchArchitectureVersions: vi.fn().mockResolvedValue([]),
+        fetchPattern: vi.fn().mockResolvedValue({}),
+        fetchFlow: vi.fn().mockResolvedValue({}),
+        fetchStandard: vi.fn().mockResolvedValue({}),
+        fetchArchitecture: vi.fn().mockResolvedValue({}),
+        fetchMappings: vi.fn().mockResolvedValue([]),
+        fetchVersionsByCustomId: vi.fn().mockResolvedValue([]),
+        fetchResourceByCustomId: vi.fn().mockResolvedValue({}),
+    }; } as unknown as InstanceType<typeof CalmService>);
+}
+
 describe('TreeNavigation', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -333,6 +356,50 @@ describe('TreeNavigation', () => {
         await waitFor(() => {
             expect(navigate).toHaveBeenCalledWith('/test-namespace/architectures/201/2.0.0');
         });
+    });
+
+    it('keeps the parent namespace open when a child sub-namespace is collapsed', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+        // 'a' is a real namespace that also contains the sub-namespaces 'a.b' and 'a.c'
+        mockCalmServiceWithNamespaces(['a', 'a.b', 'a.c']);
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        // Open the parent namespace 'a'
+        fireEvent.click(await screen.findByText('a'));
+
+        // Its sub-namespaces are now visible
+        await screen.findByText('a.b');
+        expect(screen.getByText('a.c')).toBeInTheDocument();
+
+        // Open then collapse the child sub-namespace 'a.b'
+        fireEvent.click(screen.getByText('a.b'));
+        fireEvent.click(screen.getByText('a.b'));
+
+        // Collapsing the child must NOT collapse the parent — its other child is still shown
+        expect(screen.getByText('a.c')).toBeInTheDocument();
+    });
+
+    it('collapses a deselected childless namespace instead of leaving an empty expander', async () => {
+        vi.mocked(useParams).mockReturnValue({});
+        mockCalmServiceWithNamespaces(['a', 'a.b', 'a.c']);
+
+        render(<MemoryRouter initialEntries={['/']}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        // Open parent 'a', then select the childless sub-namespace 'a.b'
+        fireEvent.click(await screen.findByText('a'));
+        fireEvent.click(await screen.findByText('a.b'));
+        expect(screen.getByText('a.b').closest('details')).toHaveAttribute('open');
+
+        // Select sibling 'a.c' — 'a.b' is deselected and has no children, so it collapses
+        fireEvent.click(screen.getByText('a.c'));
+        expect(screen.getByText('a.b').closest('details')).not.toHaveAttribute('open');
+        // Parent 'a' has children, so it stays open and both children remain visible
+        expect(screen.getByText('a.c')).toBeInTheDocument();
     });
 
     it('clears the selected type and resource list when authStore emits a 403', async () => {
