@@ -78,8 +78,9 @@ architecture-as-code/
 ## Node Version Requirements
 
 **Canonical Node version: 26.** All CI workflows run on Node 26 via `node-version-file: '.nvmrc'`
-(which pins `26.3.1`). The `engines` field (`^22.14.0 || >=24.10.0`) still permits Node 22 and 24
-locally, but **Node 26 is the version used to validate builds and tests in CI**.
+(which pins `26.3.1`). The `engines` field (`>=26.0.0`) requires Node 26+, and `engine-strict`
+in `.npmrc` blocks installs on anything older. **Node 26 is the version used to validate builds
+and tests in CI.**
 
 **Before running any commands**, verify your Node version:
 ```bash

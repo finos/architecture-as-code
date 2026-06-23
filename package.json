@@ -4,7 +4,7 @@
     "private": true,
     "packageManager": "npm@11.12.1",
     "engines": {
-        "node": "^22.14.0 || >=24.10.0"
+        "node": ">=26.0.0"
     },
     "workspaces": [
         "calm-models",
