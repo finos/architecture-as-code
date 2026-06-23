@@ -61,5 +61,5 @@ A guided introduction to the Common Architecture Language Model — what it is, 
 | 39 | Part 7 divider — Putting It Together | — |
 | 40–42 | Trading system example (architecture, what's modelled, workflow) | 4 min |
 | 43 | Getting Involved (open source, Slack, community) | 1 min |
-| 44 | Workshop (Beginner / Intermediate / Practitioner) | 1 min |
+| 44 | Workshop (Beginner / Intermediate / Practitioner / Advanced) | 1 min |
 | 45 | Close | — |
