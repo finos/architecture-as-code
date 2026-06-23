@@ -162,9 +162,9 @@
       "automerge": false
     },
     {
-      "description": "Pin @types/node to v22 to match CI Node version",
+      "description": "Pin @types/node to v26 to match canonical Node version",
       "matchPackageNames": ["@types/node"],
-      "allowedVersions": "<23.0.0",
+      "allowedVersions": "<27.0.0",
       "rangeStrategy": "bump"
     }
   ]

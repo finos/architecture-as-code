@@ -77,39 +77,67 @@ architecture-as-code/
 
 ## Node Version Requirements
 
-**CRITICAL — YOU MUST USE NODE 22**: This project targets **Node 22** as its CI baseline. All CI workflows run on Node 22, and lockfiles must be compatible with Node 22. **Do not use Node 25 or any other unsupported version — tests will fail silently or produce false results.**
-
-The `engines` field in `package.json` (`^22.14.0 || >=24.10.0`) also permits Node 24+ for local development, but **Node 22 is the canonical version** used to validate builds and tests.
+**Canonical Node version: 26.** All CI workflows run on Node 26 via `node-version-file: '.nvmrc'`
+(which pins `26.3.1`). The `engines` field (`>=26.0.0`) requires Node 26+, and `engine-strict`
+in `.npmrc` blocks installs on anything older. **Node 26 is the version used to validate builds
+and tests in CI.**
 
 **Before running any commands**, verify your Node version:
 ```bash
-node --version   # MUST show v22.x.x
+node --version   # MUST show v26.x.x
 ```
 
 If you are on the wrong version:
 ```bash
-# If using Homebrew:
-brew install node@22
-export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
-
 # If using nvm:
-nvm use   # reads .nvmrc → 22.22.2
+nvm use   # reads .nvmrc → 26.3.1
 ```
 
-### Known Node 25 Bug — localStorage
+### Node 26 — Web Storage API and localStorage
 
-Node 25 introduces a built-in `localStorage` global that is an **incomplete stub** (no `.clear()`, `.getItem()`, etc.). This shadows jsdom's full `localStorage` implementation during vitest runs, causing **false test failures** in any test that uses `localStorage` (e.g. `node-position-service.test.tsx`). These tests pass on Node 22 and in CI. **If you see `TypeError: localStorage.clear is not a function`, you are on the wrong Node version.**
+Node 25+ shipped the [Web Storage API](https://nodejs.org/api/globals.html) as a global, meaning
+`localStorage` and `sessionStorage` are now real globals in the Node runtime. Node 26 made this
+stricter: accessing `localStorage` without `--localstorage-file` **throws a `DOMException`** at
+runtime.
+
+In Vitest's jsdom environment, Node's global **shadows** jsdom's `localStorage`, breaking any test
+that calls methods like `.clear()` or `.getItem()`.
+
+**How calm-hub-ui handles this:**
+
+1. **Storage Dependency Injection** — `node-position-service.tsx`, `TimelineBar.tsx`, and
+   `viewportStore.ts` all accept an optional `Storage` parameter (defaulting to `localStorage` /
+   `sessionStorage`). Tests inject an explicit `createMemoryStorage()` fake from
+   `src/test-support/memory-storage.ts`.
+
+2. **`vi.stubGlobal` safety net** — `calm-hub-ui/vitest.setup.ts` stubs both `localStorage` and
+   `sessionStorage` with `createMemoryStorage()` instances for the entire test run, ensuring even
+   tests that don't inject explicitly see a working Storage, not Node's throwing global.
+
+If you add new tests that use `localStorage`/`sessionStorage`, follow this pattern:
+- In pure services/utilities: inject a `Storage` parameter with `= localStorage` default.
+- In React components: accept `storage?: Storage` as a prop, default to `localStorage`.
+- In tests: pass `createMemoryStorage()` explicitly, or rely on the global stub in `vitest.setup.ts`.
+
+⚠️ **Latent risk in calm-studio:** `calm-suite/calm-studio/apps/studio/src/lib/stores/theme.svelte.ts`
+uses `localStorage` in production code under a jsdom test environment. No test currently exercises
+this path, but the first jsdom test written against it on Node 26 will need the same stub pattern.
 
 ### Configuration Details
 
-- **`.nvmrc`** pins `22.22.2` — run `nvm use` to switch automatically
-- **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on Node versions outside the `engines` range (e.g. Node 18, 20, or 23)
-- **`@types/node`** is overridden to `^22.19.15` in root `package.json` to prevent transitive dependencies from pulling in a different major version
-- **Renovate** is configured with `allowedVersions: "<23.0.0"` for `@types/node`
+- **`.nvmrc`** pins `26.3.1` — run `nvm use` to switch automatically
+- **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on Node versions outside
+  the `engines` range
+- **`@types/node`** is overridden to `^26` in root `package.json` to prevent transitive dependencies
+  from pulling in a different major version
+- **Renovate** is configured with `allowedVersions: "<27.0.0"` for `@types/node`
 
 ### Lockfile Regeneration
 
-**CRITICAL**: npm has a known bug ([npm/cli#4828](https://github.com/npm/cli/issues/4828)) where running `npm install` with an existing `node_modules` directory prunes optional platform-specific dependencies (e.g. `@tailwindcss/oxide`, `@swc/core`, `@esbuild`) for platforms other than the current machine. This causes CI failures on Linux runners when the lockfile was regenerated on macOS.
+**CRITICAL**: npm has a known bug ([npm/cli#4828](https://github.com/npm/cli/issues/4828)) where
+running `npm install` with an existing `node_modules` directory prunes optional platform-specific
+dependencies (e.g. `@tailwindcss/oxide`, `@swc/core`, `@esbuild`) for platforms other than the
+current machine. This causes CI failures on Linux runners when the lockfile was regenerated on macOS.
 
 **Correct method** — always delete both `node_modules` and the lockfile:
 
@@ -117,15 +145,20 @@ Node 25 introduces a built-in `localStorage` global that is an **incomplete stub
 rm -rf node_modules package-lock.json && npm install
 ```
 
-**Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile` CI workflow checks that all expected platform variants are present in `package-lock.json`.
+**Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile`
+CI workflow checks that all expected platform variants are present in `package-lock.json`.
 
 ### Why this matters
 
-Running `npm install` or tests on a different Node major version (e.g. Node 25) causes:
-1. **Test failures from global API conflicts** — Node 25 exposes incomplete browser API stubs (`localStorage`) that shadow jsdom's implementations, causing tests to fail with cryptic errors that **do not reproduce in CI**
-2. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong Node ABI, breaking CI builds
-3. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow `@types/node@25` to be hoisted to root, masking usage of APIs unavailable in Node 22
-4. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing large spurious changes
+Running `npm install` or tests on a different Node major version causes:
+1. **Test failures from Web Storage conflicts** — Node 26's global `localStorage` shadows jsdom's
+   implementation, causing `DOMException` instead of working Storage methods
+2. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`)
+   resolve for the wrong Node ABI, breaking CI builds
+3. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow
+   an older `@types/node` to be hoisted to root, masking API differences
+4. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing
+   large spurious changes
 
 ## Quick Navigation
 
