@@ -29,17 +29,17 @@ const EXPANDED_STORAGE_KEY = 'calmHub.timelineExpanded';
 /** Whether the user has interacted with the timeline at least once (drives the NEW pill). */
 const SEEN_STORAGE_KEY = 'calmHub.timelineSeen';
 
-function readExpanded(): boolean {
+function readExpanded(storage: Storage): boolean {
     try {
-        return localStorage.getItem(EXPANDED_STORAGE_KEY) === 'true';
+        return storage.getItem(EXPANDED_STORAGE_KEY) === 'true';
     } catch {
         return false;
     }
 }
 
-function readSeen(): boolean {
+function readSeen(storage: Storage): boolean {
     try {
-        return localStorage.getItem(SEEN_STORAGE_KEY) === '1';
+        return storage.getItem(SEEN_STORAGE_KEY) === '1';
     } catch {
         return false;
     }
@@ -85,6 +85,9 @@ interface TimelineBarProps {
      * view (and shouldn't leak that into the desktop inline bar's saved state).
      */
     initialExpanded?: boolean;
+    /** Storage instance for persisting expand/seen state. Defaults to localStorage.
+     *  Inject a fake in tests. */
+    storage?: Storage;
 }
 
 /**
@@ -110,9 +113,10 @@ export function TimelineBar({
     onCompare,
     loadChangesForVersion,
     initialExpanded,
+    storage = localStorage,
 }: TimelineBarProps) {
-    const [expanded, setExpanded] = useState<boolean>(() => initialExpanded ?? readExpanded());
-    const [hasSeenTimeline, setHasSeenTimeline] = useState<boolean>(readSeen);
+    const [expanded, setExpanded] = useState<boolean>(() => initialExpanded ?? readExpanded(storage));
+    const [hasSeenTimeline, setHasSeenTimeline] = useState<boolean>(() => readSeen(storage));
 
     // Remember the expand/collapse choice so a refresh keeps the bar as it was.
     // Skipped when initialExpanded is forced (mobile sheet) so it doesn't leak
@@ -120,23 +124,23 @@ export function TimelineBar({
     useEffect(() => {
         if (initialExpanded !== undefined) return;
         try {
-            localStorage.setItem(EXPANDED_STORAGE_KEY, String(expanded));
+            storage.setItem(EXPANDED_STORAGE_KEY, String(expanded));
         } catch {
             /* ignore unavailable storage */
         }
-    }, [expanded, initialExpanded]);
+    }, [expanded, initialExpanded, storage]);
 
     const markSeen = useCallback(() => {
         setHasSeenTimeline((prev) => {
             if (prev) return prev;
             try {
-                localStorage.setItem(SEEN_STORAGE_KEY, '1');
+                storage.setItem(SEEN_STORAGE_KEY, '1');
             } catch {
                 /* ignore unavailable storage */
             }
             return true;
         });
-    }, []);
+    }, [storage]);
 
     const comparing = compareFrom !== null && compareTo !== null;
 

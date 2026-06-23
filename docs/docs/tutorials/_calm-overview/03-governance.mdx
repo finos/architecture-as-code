@@ -18,19 +18,22 @@
   <h2>🔐 Controls — The Problem They Solve</h2>
   <div style={{display:'flex', justifyContent:'center', margin:'0.5rem 0 0.8rem'}}>
     <blockquote style={{
-      fontSize:'1.35rem', fontStyle:'italic', textAlign:'center',
+      fontSize:'1.65rem', fontStyle:'italic', textAlign:'center',
       background:'#fff8f8', border:'2px solid #c62828', borderRadius:'8px',
       padding:'1rem 2rem', maxWidth:'820px', margin:0
     }}>
       "OMS → Trade Database carries PII. Policy says mTLS. How do you prevent someone shipping plain TCP?"
     </blockquote>
   </div>
-  <p style={{fontSize:'0.88rem', marginBottom:'0.5rem', textAlign:'center'}}>
+  <p style={{fontSize:'1.65rem', marginBottom:'0.3rem', textAlign:'center', color:'#1565c0', fontWeight:'bold'}}>
+    Controls are how CALM expresses <strong>Non-Functional Requirements (NFRs)</strong> — security, performance, resilience — as <strong>machine-checkable rules</strong>.
+  </p>
+  <p style={{fontSize:'1.65rem', marginBottom:'0.5rem', textAlign:'center'}}>
     A <strong>control</strong> = a <strong>requirement</strong> (schema: what "compliant" means) + a <strong>config</strong> (this element's answer). Compliance becomes <strong>machine-checkable</strong>.
   </p>
   <div className="two-col">
     <div>
-      <p style={{fontSize:'0.8rem', fontWeight:'bold', marginBottom:'0.3rem'}}>Requirement — JSON Schema of allowed values:</p>
+      <p style={{fontSize:'1.65rem', fontWeight:'bold', marginBottom:'0.3rem'}}>Requirement — JSON Schema of allowed values:</p>
       <pre><code className="language-json">{`{
   "control-id": "security-002",
   "name": "Permitted Connection",
@@ -40,18 +43,20 @@
 }`}</code></pre>
     </div>
     <div>
-      <p style={{fontSize:'0.8rem', fontWeight:'bold', marginBottom:'0.3rem'}}>Config — validated against the requirement:</p>
+      <p style={{fontSize:'1.65rem', fontWeight:'bold', marginBottom:'0.3rem'}}>Config — validated against the requirement:</p>
       <pre><code className="language-json">{`{
   "control-id": "security-002",
   "name": "Permitted Connection",
   "protocol": "mTLS"
 }`}</code></pre>
-      <p style={{fontSize:'0.83rem', color:'#2e7d32', marginTop:'0.5rem', fontWeight:'bold'}}>
+      <p style={{fontSize:'1.65rem', color:'#2e7d32', marginTop:'0.5rem', fontWeight:'bold'}}>
         ✓ Governance is a validation check — not a PDF nobody reads.
       </p>
     </div>
   </div>
   <aside className="notes">
+    Key framing: controls are CALM's mechanism for NFRs — the security, performance, and resilience
+    requirements that architects normally write in prose and hope someone reads.
     The requirement defines an enum of allowed protocols — anything not in that list fails validation.
     The config must satisfy that schema. So "use mTLS" isn't just a policy comment — it's a
     constraint that tooling can verify. Controls attach at node, relationship, flow, or architecture level.
@@ -60,14 +65,14 @@
 
 <section>
   <h2>🔐 Controls — In Your Architecture</h2>
-  <p style={{marginBottom:'0.5rem'}}>Attach a control to the relevant element — the architecture JSON makes the policy explicit:</p>
+  <p style={{marginBottom:'0.5rem'}}>Attach a control to the relevant element, keyed by <strong>security domain</strong> — the architecture JSON makes the policy explicit:</p>
   <pre><code className="language-json">{`{
   "unique-id": "oms-to-trade-db",
   "description": "OMS → Trade Database (carries PII)",
   "protocol": "mTLS",
   "controls": {
-    "permitted-connection": {
-      "description": "Connection must use an approved protocol",
+    "security": {
+      "description": "Security — connection must use an approved protocol",
       "requirements": [{
         "control-requirement-url":
           "https://calm.finos.org/controls/security/schema/permitted-connection.json",
@@ -78,6 +83,8 @@
   }
 }`}</code></pre>
   <aside className="notes">
+    Controls are keyed by security domain — "security", "performance", "resilience" etc.
+    Here the key is "security" because this is a security-domain requirement.
     Controls attach at node, relationship, flow, or whole-architecture level.
     The requirement URL and config URL are independently versioned JSON documents —
     the policy team owns the requirement; the architecture team owns the config.
@@ -86,57 +93,68 @@
 </section>
 
 <section>
-  <h2>🧩 Customizations</h2>
+  <h2>🧩 Customizations — Custom Properties</h2>
   <div className="two-col">
     <div>
-      <h3 style={{fontSize:'1.1rem', marginBottom:'0.4rem'}}>Custom properties</h3>
-      <p style={{fontSize:'0.95rem', marginBottom:'0.5rem'}}>
-        Add any key/value context to <strong>nodes</strong> <em>and</em> <strong>relationships</strong> via <code>metadata</code> — ownership, classification, cost attribution, whatever your org needs.
+      <p style={{fontSize:'1.65rem', marginBottom:'0.6rem'}}>
+        Add any key/value <strong>directly to a node</strong> (or relationship) — ownership, classification, cost attribution, whatever your org needs. Nodes allow arbitrary extra properties.
       </p>
-      <pre><code className="language-json">{`"metadata": [
-  { "key": "owner",
-    "value": "payments-team" },
-  { "key": "data-classification",
-    "value": "PII" },
-  { "key": "cost-centre",
-    "value": "CC-1042" }
-]`}</code></pre>
-      <p style={{fontSize:'0.85rem', color:'#555', marginTop:'0.4rem'}}>Works on both nodes and relationships — attach context wherever it lives.</p>
+      <p style={{fontSize:'1.65rem', color:'#555'}}>Works on both nodes and relationships — attach context wherever it lives.</p>
     </div>
-    <div style={{paddingTop:'0.2rem'}}>
-      <h3 style={{fontSize:'1.1rem', marginBottom:'0.4rem'}}>📏 Standards — stricter, cross-org</h3>
-      <p style={{fontSize:'0.9rem', marginBottom:'0.4rem'}}>
+    <div>
+      <pre><code className="language-json">{`{
+  "unique-id": "trade-database",
+  "node-type": "database",
+  "name": "Trade Database",
+  "cost-center": "CC-1042"
+}`}</code></pre>
+    </div>
+  </div>
+  <aside className="notes">
+    Any node or relationship can carry arbitrary extra properties directly — cost-center, owner,
+    classification, whatever the team needs. This works because CALM nodes allow additionalProperties.
+    Custom properties are the lowest-friction extension point — no schema changes needed.
+    When informal properties become org-wide requirements, promote them to a Standard (next slide).
+  </aside>
+</section>
+
+<section>
+  <h2>📏 Standards — Stricter, Cross-Org</h2>
+  <div className="two-col">
+    <div>
+      <p style={{fontSize:'1.65rem', marginBottom:'0.5rem'}}>
         When you need consistency <em>across teams</em>, promote a custom property into a <strong>standard</strong> — a JSON Schema extension that makes it mandatory on every architecture.
       </p>
       <pre><code className="language-json">{`{
   "allOf": [{"$ref": "…/calm.json"}],
   "properties": {
     "nodes": { "items": {
-      "properties": { "metadata": {
-        "contains": { "properties": {
-          "key": {"const":"cost-centre"}
-        }}
-      }}
+      "required": ["cost-center"],
+      "properties": {
+        "cost-center": { "type": "string" }
+      }
     }}
   }
 }`}</code></pre>
-      <p style={{fontSize:'0.82rem', color:'#555', marginTop:'0.3rem', marginBottom:'0.3rem'}}>
+    </div>
+    <div>
+      <p style={{fontSize:'1.65rem', color:'#555', marginBottom:'0.5rem'}}>
         Reference it from a pattern so every node is checked:
       </p>
       <pre><code className="language-json">{`"nodes": { "items": {
   "$ref": "https://example.com/standards/node-standard.json"
 }}`}</code></pre>
+      <p style={{fontSize:'1.65rem', marginTop:'0.7rem'}}>
+        Run <code>calm validate</code> — deviation <strong>fails the build automatically</strong>. Start with custom properties; promote to standards when cross-org consistency becomes non-negotiable.
+      </p>
     </div>
   </div>
   <aside className="notes">
-    Two levels: informal customization and enforced standards.
-    Any node or relationship can carry arbitrary metadata key/value pairs — owner, classification,
-    cost centre, whatever the team needs. This is the flexible, additive layer.
-    When your org decides "every architecture *must* carry cost-centre on every node," you write
-    a CALM standard (a JSON Schema extension using allOf composition), reference it from a pattern
-    via $ref, then run ordinary `calm validate`. Deviation fails the build automatically.
-    That's the progression: start with custom properties, promote to standards when cross-org
-    consistency becomes non-negotiable.
+    When your org decides "every architecture *must* carry cost-center on every node," you write
+    a CALM standard (a JSON Schema extension using allOf composition plus required/properties),
+    reference it from a pattern via $ref, then run ordinary `calm validate`. Deviation fails the
+    build automatically. That's the progression: start with custom properties on nodes, promote to
+    standards when cross-org consistency becomes non-negotiable.
   </aside>
 </section>
 
@@ -145,19 +163,19 @@
   <div className="two-col">
     <div>
       <h3 style={{fontSize:'1.1rem', marginBottom:'0.4rem'}}>What is a decorator?</h3>
-      <p style={{fontSize:'0.9rem', marginBottom:'0.45rem'}}>
+      <p style={{fontSize:'1.65rem', marginBottom:'0.45rem'}}>
         A <strong>decorator</strong> is a standalone document (CALM 1.2+) that attaches typed,
         cross-cutting data to existing elements by <code>unique-id</code> — without modifying
         the architecture itself.
       </p>
-      <p style={{fontSize:'0.85rem', marginBottom:'0.25rem', fontWeight:'bold'}}>Reach for a decorator when data:</p>
-      <ul style={{fontSize:'0.85rem', margin:'0 0 0.5rem', paddingLeft:'1.2rem'}}>
+      <p style={{fontSize:'1.65rem', marginBottom:'0.25rem', fontWeight:'bold'}}>Reach for a decorator when data:</p>
+      <ul style={{fontSize:'1.65rem', margin:'0 0 0.5rem', paddingLeft:'1.2rem'}}>
         <li>Is owned by a <strong>different team</strong></li>
         <li>Changes independently — e.g. <strong>live deployment status</strong></li>
         <li>Spans <strong>multiple architecture files</strong></li>
         <li>Would clutter the core definition</li>
       </ul>
-      <div style={{background:'#e3f2fd', borderRadius:'6px', padding:'0.4rem 0.7rem', fontSize:'0.82rem', color:'#1a237e', marginTop:'0.3rem'}}>
+      <div style={{background:'#e3f2fd', borderRadius:'6px', padding:'0.4rem 0.7rem', fontSize:'1.65rem', color:'#1a237e', marginTop:'0.3rem'}}>
         <strong>vs metadata:</strong> <code>metadata</code> lives <em>inside</em> the architecture;
         a decorator lives <em>outside</em> it and points back in by <code>unique-id</code>.
       </div>
@@ -186,7 +204,7 @@
     The data object is open by design — each decorator type constrains it further via allOf.
     Rule of thumb: if the information is owned by a different team, changes on a different
     cadence, or would appear across many architecture files, put it in a decorator.
-    If it's a simple annotation (owner, cost-centre, classification) a metadata key-value is simpler.
+    If it's a simple annotation (owner, cost-center, classification) a metadata key-value is simpler.
     The payment-service node was introduced in Building Blocks — the decorator here records its
     deployment status without touching the architecture file at all.
   </aside>
@@ -199,7 +217,7 @@
     <div style={{background:'#e3f2fd', borderRadius:'8px', padding:'1.4rem 1.6rem', textAlign:'center'}}>
       <div style={{fontSize:'2.4rem', marginBottom:'0.4rem'}}>▦</div>
       <h3 style={{marginTop:0, marginBottom:'0.5rem', fontSize:'1.2rem'}}>Pattern = the rules</h3>
-      <ul style={{textAlign:'left', fontSize:'0.9rem', margin:0}}>
+      <ul style={{textAlign:'left', fontSize:'1.65rem', margin:0}}>
         <li>Which nodes must exist (by <code>const</code> ID)</li>
         <li>How they must connect</li>
         <li>Which protocols are required</li>
@@ -209,7 +227,7 @@
     <div style={{background:'#e8f5e9', borderRadius:'8px', padding:'1.4rem 1.6rem', textAlign:'center'}}>
       <div style={{fontSize:'2.4rem', marginBottom:'0.4rem'}}>📄</div>
       <h3 style={{marginTop:0, marginBottom:'0.5rem', fontSize:'1.2rem'}}>Architecture = the instance</h3>
-      <ul style={{textAlign:'left', fontSize:'0.9rem', margin:0}}>
+      <ul style={{textAlign:'left', fontSize:'1.65rem', margin:0}}>
         <li>Must conform to the pattern</li>
         <li>Fills in descriptions &amp; metadata</li>
         <li>Can be <em>generated</em> from a pattern</li>
@@ -217,7 +235,7 @@
       </ul>
     </div>
   </div>
-  <p style={{fontSize:'0.88rem', color:'#555', marginTop:'0.8rem', textAlign:'center'}}>
+  <p style={{fontSize:'1.65rem', color:'#555', marginTop:'0.8rem', textAlign:'center'}}>
     Architects publish patterns → teams scaffold conforming architectures → CI validates continuously.
   </p>
   <aside className="notes">
@@ -229,7 +247,7 @@
 
 <section>
   <h2>▦ Patterns — The Schema</h2>
-  <p style={{marginBottom:'0.5rem', fontSize:'0.9rem'}}>Pattern constraints use standard JSON Schema keywords — <code>const</code> to pin IDs, <code>prefixItems</code> to require specific nodes:</p>
+  <p style={{marginBottom:'0.5rem', fontSize:'1.65rem'}}>Pattern constraints use standard JSON Schema keywords — <code>const</code> to pin IDs, <code>prefixItems</code> to require specific nodes:</p>
   <pre><code className="language-json">{`{
   "nodes": {
     "minItems": 3, "maxItems": 3,
@@ -265,10 +283,10 @@ calm generate -p patterns/trading-platform.json \\
 calm validate -p patterns/trading-platform.json \\
               -a architectures/my-trading-system.json`}</code></pre>
   <div style={{marginTop:'0.5rem'}}>
-    <p style={{fontSize:'0.9rem', marginBottom:'0.3rem'}}>
+    <p style={{fontSize:'1.65rem', marginBottom:'0.3rem'}}>
       <strong>Architect</strong> publishes a pattern → <strong>Team</strong> generates a scaffold → fills <code>[[ PLACEHOLDERS ]]</code> → <strong>CI</strong> validates continuously.
     </p>
-    <p style={{fontSize:'0.85rem', color:'#555', marginTop:0}}>
+    <p style={{fontSize:'1.65rem', color:'#555', marginTop:0}}>
       Pattern = reuse <em>and</em> governance in one artifact. Divergence from the pattern fails validation before it ships.
     </p>
   </div>
@@ -282,25 +300,25 @@ calm validate -p patterns/trading-platform.json \\
 
 <section>
   <h2>Pattern vs Standard vs Control</h2>
-  <p style={{marginBottom:'0.7rem', fontSize:'0.95rem'}}>Three kinds of governance in CALM — all schemas, but at different scopes:</p>
+  <p style={{marginBottom:'0.7rem', fontSize:'1.65rem'}}>Three kinds of governance in CALM — all schemas, but at different scopes:</p>
   <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'1.2rem'}}>
     <div style={{background:'#e3f2fd', borderRadius:'8px', padding:'1.4rem 1.6rem', textAlign:'center'}}>
       <div style={{fontSize:'2.4rem', marginBottom:'0.4rem'}}>▦</div>
       <h3 style={{marginTop:0, marginBottom:'0.4rem', fontSize:'1.2rem'}}>Pattern</h3>
-      <p style={{fontSize:'0.88rem', color:'#444', marginBottom:'0.4rem', fontStyle:'italic'}}>"Must have exactly these nodes connected by HTTPS"</p>
-      <p style={{fontSize:'0.82rem', color:'#555', margin:0}}><strong>Scope:</strong> one whole architecture — scaffold &amp; validate structure</p>
+      <p style={{fontSize:'1.65rem', color:'#444', marginBottom:'0.4rem', fontStyle:'italic'}}>"Must have exactly these nodes connected by HTTPS"</p>
+      <p style={{fontSize:'1.65rem', color:'#555', margin:0}}><strong>Scope:</strong> one whole architecture — scaffold &amp; validate structure</p>
     </div>
     <div style={{background:'#fff8e1', borderRadius:'8px', padding:'1.4rem 1.6rem', textAlign:'center'}}>
       <div style={{fontSize:'2.4rem', marginBottom:'0.4rem'}}>📏</div>
       <h3 style={{marginTop:0, marginBottom:'0.4rem', fontSize:'1.2rem'}}>Standard</h3>
-      <p style={{fontSize:'0.88rem', color:'#444', marginBottom:'0.4rem', fontStyle:'italic'}}>"Every node must carry a cost-centre"</p>
-      <p style={{fontSize:'0.82rem', color:'#555', margin:0}}><strong>Scope:</strong> all architectures org-wide — enforce mandatory fields</p>
+      <p style={{fontSize:'1.65rem', color:'#444', marginBottom:'0.4rem', fontStyle:'italic'}}>"Every node must carry a cost-center"</p>
+      <p style={{fontSize:'1.65rem', color:'#555', margin:0}}><strong>Scope:</strong> all architectures org-wide — enforce mandatory fields</p>
     </div>
     <div style={{background:'#fce4ec', borderRadius:'8px', padding:'1.4rem 1.6rem', textAlign:'center'}}>
       <div style={{fontSize:'2.4rem', marginBottom:'0.4rem'}}>🔐</div>
       <h3 style={{marginTop:0, marginBottom:'0.4rem', fontSize:'1.2rem'}}>Control</h3>
-      <p style={{fontSize:'0.88rem', color:'#444', marginBottom:'0.4rem', fontStyle:'italic'}}>"This connection must use mTLS"</p>
-      <p style={{fontSize:'0.82rem', color:'#555', margin:0}}><strong>Scope:</strong> a specific node, relationship, or flow — element-level policy</p>
+      <p style={{fontSize:'1.65rem', color:'#444', marginBottom:'0.4rem', fontStyle:'italic'}}>"This connection must use mTLS"</p>
+      <p style={{fontSize:'1.65rem', color:'#555', margin:0}}><strong>Scope:</strong> a specific node, relationship, or flow — element-level policy</p>
     </div>
   </div>
   <aside className="notes">

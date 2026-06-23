@@ -4,7 +4,7 @@
     "private": true,
     "packageManager": "npm@11.12.1",
     "engines": {
-        "node": "^22.14.0 || >=24.10.0"
+        "node": ">=26.0.0"
     },
     "workspaces": [
         "calm-models",
@@ -58,7 +58,7 @@
         "@types/json-pointer": "^1.0.34",
         "@types/junit-report-builder": "^3.0.2",
         "@types/lodash": "^4.17.16",
-        "@types/node": "^22.19.21",
+        "@types/node": "^26",
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
         "@vitest/coverage-v8": "^4.0.0",
@@ -80,7 +80,7 @@
     },
     "overrides": {
         "@babel/plugin-transform-modules-systemjs": "^7.29.4",
-        "@types/node": "^22.19.21",
+        "@types/node": "^26",
         "axios": "^1.15.2",
         "dompurify": "^3.4.11",
         "esbuild": "^0.28.1",
