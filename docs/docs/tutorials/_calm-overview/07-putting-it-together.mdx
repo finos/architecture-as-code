@@ -15,7 +15,7 @@
 </section>
 
 <section>
-  <h2>Trading System — Architecture at a Glance</h2>
+  <h2>TraderX Example Architecture</h2>
   <img src="/img/hub-ui/diagram-view.png" alt="TraderX architecture in CALM Hub" style={{maxHeight:'380px', maxWidth:'90%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0.3rem auto'}} />
   <aside className="notes">
     This diagram is generated from a single CALM JSON file.
@@ -29,7 +29,7 @@
   <div className="two-col">
     <div>
       <h3 style={{fontSize:'1rem', marginBottom:'0.5rem'}}>Nodes (13)</h3>
-      <ul style={{fontSize:'0.9rem', lineHeight:'1.8'}}>
+      <ul style={{fontSize:'1.65rem', lineHeight:'1.8'}}>
         <li>Trader (actor)</li>
         <li>Trading Web UI (webclient)</li>
         <li>Trading API Gateway (service)</li>
@@ -43,13 +43,13 @@
     </div>
     <div>
       <h3 style={{fontSize:'1rem', marginBottom:'0.5rem'}}>What it captures</h3>
-      <ul style={{fontSize:'0.9rem', lineHeight:'1.8'}}>
+      <ul style={{fontSize:'1.65rem', lineHeight:'1.8'}}>
         <li>18 relationships with explicit protocols</li>
         <li>7 business flows (order placement, risk check, settlement)</li>
         <li>Controls on PII connections — mTLS enforced</li>
         <li>Metadata: classification tags, cost centres, owners</li>
       </ul>
-      <p style={{fontSize:'0.85rem', color:'#2e7d32', marginTop:'0.8rem', fontWeight:'bold'}}>
+      <p style={{fontSize:'1.65rem', color:'#2e7d32', marginTop:'0.8rem', fontWeight:'bold'}}>
         One JSON file. Validated, visualised, and published automatically.
       </p>
     </div>
@@ -64,66 +64,58 @@
 <section>
   <h2>The CALM Workflow</h2>
   <div style={{display:'flex', justifyContent:'center', marginTop:'0.3rem'}}>
-    <svg viewBox="0 0 1100 480" style={{width:'100%', maxHeight:'500px', fontFamily:'inherit'}}>
+    <svg viewBox="0 0 1120 500" style={{width:'100%', maxHeight:'500px', fontFamily:'inherit'}}>
       <defs>
         <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
           <polygon points="0,0 8,3 0,6" fill="#555"/>
         </marker>
-        <marker id="arrg" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0,0 8,3 0,6" fill="#2e7d32"/>
-        </marker>
+
       </defs>
       {/* Boxes row 1: C4 → Pattern → Architecture → CALM Hub */}
       {/* C4 Design */}
-      <rect x="20" y="160" width="140" height="56" rx="8" fill="#e3f2fd" stroke="#1565c0" strokeWidth="2"/>
-      <text x="90" y="182" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#1565c0">C4 Design</text>
-      <text x="90" y="200" textAnchor="middle" fontSize="12" fill="#555">&amp; Review</text>
-      {/* Arrow C4 → Pattern */}
-      <line x1="160" y1="188" x2="218" y2="188" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
-      <text x="189" y="178" textAnchor="middle" fontSize="10" fill="#555">calm</text>
-      <text x="189" y="190" textAnchor="middle" fontSize="10" fill="#555">generate</text>
+      <rect x="20" y="168" width="150" height="72" rx="8" fill="#e3f2fd" stroke="#1565c0" strokeWidth="2"/>
+      <text x="95" y="199" textAnchor="middle" fontSize="20" fontWeight="bold" fill="#1565c0">C4 Design</text>
+      <text x="95" y="222" textAnchor="middle" fontSize="18" fill="#555">&amp; Review</text>
+      {/* Arrow C4 → Pattern — label floated above boxes */}
+      <text x="202" y="150" textAnchor="middle" fontSize="18" fill="#555">create</text>
+      <line x1="170" y1="204" x2="228" y2="204" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
       {/* Pattern */}
-      <rect x="220" y="160" width="140" height="56" rx="8" fill="#e8f5e9" stroke="#2e7d32" strokeWidth="2"/>
-      <text x="290" y="182" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#2e7d32">▦ Pattern</text>
-      <text x="290" y="200" textAnchor="middle" fontSize="12" fill="#555">blueprint</text>
-      {/* Arrow Pattern → Architecture */}
-      <line x1="360" y1="188" x2="418" y2="188" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
-      <text x="389" y="178" textAnchor="middle" fontSize="10" fill="#555">calm</text>
-      <text x="389" y="190" textAnchor="middle" fontSize="10" fill="#555">validate</text>
+      <rect x="230" y="168" width="150" height="72" rx="8" fill="#e8f5e9" stroke="#2e7d32" strokeWidth="2"/>
+      <text x="305" y="199" textAnchor="middle" fontSize="20" fontWeight="bold" fill="#2e7d32">▦ Pattern</text>
+      <text x="305" y="222" textAnchor="middle" fontSize="18" fill="#555">blueprint</text>
+      {/* Arrow Pattern → Architecture — label floated above boxes */}
+      <text x="402" y="150" textAnchor="middle" fontSize="18" fill="#555">calm generate</text>
+      <line x1="380" y1="204" x2="438" y2="204" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
       {/* Architecture */}
-      <rect x="420" y="160" width="140" height="56" rx="8" fill="#fff8e1" stroke="#f57f17" strokeWidth="2"/>
-      <text x="490" y="182" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#f57f17">📄 Architecture</text>
-      <text x="490" y="200" textAnchor="middle" fontSize="12" fill="#555">instance</text>
-      {/* Arrow Architecture → CALM Hub */}
-      <line x1="560" y1="188" x2="618" y2="188" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
-      <text x="589" y="178" textAnchor="middle" fontSize="10" fill="#555">hub</text>
-      <text x="589" y="190" textAnchor="middle" fontSize="10" fill="#555">push</text>
+      <rect x="440" y="168" width="150" height="72" rx="8" fill="#fff8e1" stroke="#f57f17" strokeWidth="2"/>
+      <text x="515" y="199" textAnchor="middle" fontSize="20" fontWeight="bold" fill="#f57f17">📄 Architecture</text>
+      <text x="515" y="222" textAnchor="middle" fontSize="18" fill="#555">instance</text>
+      {/* Arrow Architecture → CALM Hub — label floated above boxes */}
+      <text x="612" y="150" textAnchor="middle" fontSize="18" fill="#555">calm hub push</text>
+      <line x1="590" y1="204" x2="648" y2="204" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
       {/* CALM Hub */}
-      <rect x="620" y="160" width="140" height="56" rx="8" fill="#fce4ec" stroke="#880e4f" strokeWidth="2"/>
-      <text x="690" y="182" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#880e4f">🏛 CALM Hub</text>
-      <text x="690" y="200" textAnchor="middle" fontSize="12" fill="#555">registry</text>
+      <rect x="650" y="168" width="150" height="72" rx="8" fill="#fce4ec" stroke="#880e4f" strokeWidth="2"/>
+      <text x="725" y="199" textAnchor="middle" fontSize="20" fontWeight="bold" fill="#880e4f">🏛 CALM Hub</text>
+      <text x="725" y="222" textAnchor="middle" fontSize="18" fill="#555">registry</text>
       {/* Arrow Hub → branches (vertical down) */}
-      <line x1="760" y1="188" x2="810" y2="188" stroke="#555" strokeWidth="2"/>
+      <line x1="800" y1="204" x2="840" y2="204" stroke="#555" strokeWidth="2"/>
       {/* vertical spine */}
-      <line x1="810" y1="90" x2="810" y2="310" stroke="#555" strokeWidth="2"/>
+      <line x1="840" y1="104" x2="840" y2="328" stroke="#555" strokeWidth="2"/>
       {/* Branch 1: IaC */}
-      <line x1="810" y1="100" x2="858" y2="100" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
-      <rect x="860" y="72" width="210" height="52" rx="8" fill="#e8f5e9" stroke="#2e7d32" strokeWidth="2"/>
-      <text x="965" y="93" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#2e7d32">📦 IaC</text>
-      <text x="965" y="109" textAnchor="middle" fontSize="11" fill="#555">calm template (bundles)</text>
-      <text x="835" y="95" textAnchor="middle" fontSize="10" fill="#2e7d32">template</text>
+      <line x1="840" y1="114" x2="878" y2="114" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
+      <rect x="880" y="86" width="220" height="56" rx="8" fill="#e8f5e9" stroke="#2e7d32" strokeWidth="2"/>
+      <text x="990" y="110" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#2e7d32">📦 IaC</text>
+      <text x="990" y="129" textAnchor="middle" fontSize="16" fill="#555">calm template (bundles)</text>
       {/* Branch 2: Docs */}
-      <line x1="810" y1="196" x2="858" y2="196" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
-      <rect x="860" y="172" width="210" height="48" rx="8" fill="#e3f2fd" stroke="#1565c0" strokeWidth="2"/>
-      <text x="965" y="192" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#1565c0">📄 Documentation</text>
-      <text x="965" y="208" textAnchor="middle" fontSize="11" fill="#555">calm docify</text>
-      <text x="835" y="191" textAnchor="middle" fontSize="10" fill="#1565c0">docify</text>
+      <line x1="840" y1="209" x2="878" y2="209" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
+      <rect x="880" y="185" width="220" height="50" rx="8" fill="#e3f2fd" stroke="#1565c0" strokeWidth="2"/>
+      <text x="990" y="206" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1565c0">📄 Documentation</text>
+      <text x="990" y="223" textAnchor="middle" fontSize="16" fill="#555">calm docify</text>
       {/* Branch 3: Config */}
-      <line x1="810" y1="300" x2="858" y2="300" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
-      <rect x="860" y="274" width="210" height="48" rx="8" fill="#fff8e1" stroke="#f57f17" strokeWidth="2"/>
-      <text x="965" y="295" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#f57f17">⚙️ Config</text>
-      <text x="965" y="311" textAnchor="middle" fontSize="11" fill="#555">calm generate (env config)</text>
-      <text x="835" y="295" textAnchor="middle" fontSize="10" fill="#f57f17">generate</text>
+      <line x1="840" y1="315" x2="878" y2="315" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
+      <rect x="880" y="290" width="220" height="50" rx="8" fill="#fff8e1" stroke="#f57f17" strokeWidth="2"/>
+      <text x="990" y="311" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#f57f17">⚙️ Config</text>
+      <text x="990" y="328" textAnchor="middle" fontSize="16" fill="#555">calm generate (env config)</text>
     </svg>
   </div>
   <aside className="notes">
