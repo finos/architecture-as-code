@@ -7,7 +7,7 @@
  *
  * Two APIs:
  *   - `decorateFlowNodes(nodes, badgeAPI, severity)` — pre-built indices (advanced)
- *   - `decorateFromArch(nodes, arch)` — builds indices once and returns decorated nodes (recommended)
+ *   - `decorateFromArch(nodes, arch, opts?)` — builds indices once and returns decorated nodes (recommended)
  *
  * Both are pure functions that return new node arrays — callers should replace
  * their `$state.raw` nodes array in one shot to keep Svelte Flow happy.
@@ -23,12 +23,19 @@ import {
 	controlsAdapter
 } from '@calmstudio/calm-core';
 
-export function decorateFlowNodes(nodes: Node[], badgeAPI: BadgeIndex, severity: SeverityIndex): Node[] {
+export type OverlayModeForDecoration = 'default' | 'threat';
+
+export function decorateFlowNodes(
+	nodes: Node[],
+	badgeAPI: BadgeIndex,
+	severity: SeverityIndex,
+	overlayMode: OverlayModeForDecoration = 'default'
+): Node[] {
 	return nodes.map((node) => {
 		const calmId =
 			((node.data as Record<string, unknown> | undefined)?.calmId as string | undefined) ?? node.id;
 		const badges = badgeAPI.forNode(calmId);
-		const sev = severity.forNode(calmId);
+		const sev = overlayMode === 'threat' ? severity.forNode(calmId) : 'unknown';
 		return {
 			...node,
 			data: {
@@ -42,11 +49,36 @@ export function decorateFlowNodes(nodes: Node[], badgeAPI: BadgeIndex, severity:
 
 /**
  * Convenience wrapper: build BadgeAPI + severity resolver from the arch (with the
- * spike's two default adapters — decorators and controls), then decorate. Cheap
- * enough to call on every re-projection of the model.
+ * spike's two default adapters — decorators and controls), then decorate.
+ *
+ * `overlayMode` controls whether severity tints flow into `data.severity`:
+ *   - 'default' (default): badges always render, severity is forced to 'unknown'
+ *     so node borders stay neutral.
+ *   - 'threat': badges + computed severity → node borders tinted by severity.
  */
-export function decorateFromArch(nodes: Node[], arch: CalmArchitecture): Node[] {
+export function decorateFromArch(
+	nodes: Node[],
+	arch: CalmArchitecture,
+	opts?: { overlayMode?: OverlayModeForDecoration }
+): Node[] {
 	const badgeAPI = createBadgeAPI(arch, [decoratorsAdapter, controlsAdapter]);
 	const severity = createSeverityResolver(badgeAPI, arch);
-	return decorateFlowNodes(nodes, badgeAPI, severity);
+	return decorateFlowNodes(nodes, badgeAPI, severity, opts?.overlayMode ?? 'default');
+}
+
+/**
+ * Extract all "threat" decorator badges across an architecture, sorted by
+ * severity (highest first), useful for populating the ThreatPanel side surface.
+ */
+export function collectThreatBadges(
+	arch: CalmArchitecture
+): import('@calmstudio/calm-core').Badge[] {
+	const badgeAPI = createBadgeAPI(arch, [decoratorsAdapter, controlsAdapter]);
+	const out: import('@calmstudio/calm-core').Badge[] = [];
+	for (const n of arch.nodes ?? []) {
+		for (const b of badgeAPI.forNode(n['unique-id'])) {
+			if (b.source === 'decorators' && b.data?.decoratorType === 'threat') out.push(b);
+		}
+	}
+	return out;
 }
