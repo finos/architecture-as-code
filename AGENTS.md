@@ -165,6 +165,7 @@ Running `npm install` or tests on a different Node major version causes:
 ### Package-Specific Guides
 
 For detailed guidance on specific packages, see:
+- **[calm/AGENTS.md](calm/AGENTS.md)** - CALM JSON Meta Schema, schema change workflow, draft/release rules
 - **[cli/AGENTS.md](cli/AGENTS.md)** - CLI commands, build pipeline, Commander.js patterns
 - **[calm-hub/AGENTS.md](calm-hub/AGENTS.md)** - Java/Quarkus backend, storage modes, security
 - **[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md)** - React frontend, service patterns, component conventions
