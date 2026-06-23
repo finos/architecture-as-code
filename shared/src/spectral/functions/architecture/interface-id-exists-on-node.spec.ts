@@ -147,6 +147,29 @@ describe('interfaceIdExistsOnNode', () => {
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);
     });
 
+    it('should report a missing interface once when both singular and plural forms reference it', () => {
+        const input = { node: 'node1', interface: 'intf2', interfaces: ['intf2'] };
+        const context = {
+            document: {
+                data: {
+                    nodes: [
+                        {
+                            'unique-id': 'node1',
+                            'interfaces': [
+                                {'unique-id': 'intf1'}
+                            ]
+                        }
+                    ]
+                }
+            },
+            path: ['/relationships/0/connects/destination']
+        };
+
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
+        expect(result.length).toBe(1);
+        expect(result[0].message).toBe(`Referenced interface with ID 'intf2' was not defined on the node with ID '${input.node}'.`);
+    });
+
     it('should return a message when one interface does not exist', () => {
         const input = { node: 'node1', interfaces: ['intf1', 'intf2'] };
         const context = {

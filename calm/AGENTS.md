@@ -21,7 +21,8 @@ calm/
 │   ├── meta/                  #   the proposed schema documents
 │   └── prototype/             #   examples demonstrating the change
 ├── release/<version>/         # Published, IMMUTABLE releases (1.0, 1.1, 1.2, …)
-│   └── meta/                  #   release candidates (e.g. 1.0-rc1) also live here during testing
+│   └── meta/                  #   the published schema documents
+├── release/<version>-rcN/      # Release candidates (e.g. 1.0-rc1) — siblings of the release, during testing
 ├── controls/                  # Golden-source standardised control definitions
 ├── interfaces/                # Golden-source standardised interface definitions
 ├── architecture/              # Reference architectures (e.g. calm-1.json, calm-2.json)

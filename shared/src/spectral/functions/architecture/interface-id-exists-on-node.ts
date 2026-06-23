@@ -19,11 +19,12 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
         return [];
     }
 
-    // all of these must be present on the referenced node
-    const desiredInterfaces = [
+    // all of these must be present on the referenced node; dedupe so the same
+    // interface referenced via both the array and string forms is reported once
+    const desiredInterfaces = [...new Set([
         ...(Array.isArray(input.interfaces) ? input.interfaces : []),
         ...(typeof input.interface === 'string' ? [input.interface] : [])
-    ];
+    ])];
 
     if (desiredInterfaces.length === 0) {
         return [];
