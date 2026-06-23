@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -31,7 +32,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITI
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class PatternResource {
 
     private final PatternStore store;
@@ -239,7 +241,7 @@ public class PatternResource {
     }
 
     private Response patternWithLocationResponse(Pattern pattern) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + pattern.getNamespace() + "/patterns/" + pattern.getId() + "/versions/" + pattern.getDotVersion())).build();
+        return Response.created(new URI("/api/calm/namespaces/" + pattern.getNamespace() + "/patterns/" + pattern.getId() + "/versions/" + pattern.getDotVersion())).build();
     }
     private Response invalidPatternResponse(int patternId) {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid pattern provided: " + patternId).build();

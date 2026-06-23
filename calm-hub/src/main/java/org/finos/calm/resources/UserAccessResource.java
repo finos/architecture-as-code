@@ -1,7 +1,6 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.PermissionsAllowed;
-import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -9,7 +8,9 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.UserAccess;
+import org.finos.calm.domain.UserAccessRequest;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
@@ -23,8 +24,11 @@ import java.time.LocalDateTime;
 
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
+import static org.finos.calm.security.CalmHubPermissionChecker.GLOBAL_ACCESS;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class UserAccessResource {
 
     private final UserAccessStore store;
@@ -44,17 +48,31 @@ public class UserAccessResource {
     )
     @PermissionsAllowed(CalmHubScopes.ADMIN)
     public Response createUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-                                                 @Valid @NotNull UserAccess createUserAccessRequest) {
+                                                 @Valid @NotNull UserAccessRequest request) {
 
-        createUserAccessRequest.setCreationDateTime(LocalDateTime.now());
-        createUserAccessRequest.setUpdateDateTime(LocalDateTime.now());
-        if (!namespace.equals(createUserAccessRequest.getNamespace())) {
-            logger.error("Request contains an invalid namespace [{}]", createUserAccessRequest.getNamespace());
+        if ("*".equals(request.getUsername()) && request.getPermission() == UserAccess.Permission.admin) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Bad Request").build();
+                    .entity("Wildcard username is not permitted for admin permission")
+                    .build();
         }
+
+        if (GLOBAL_ACCESS.equals(namespace)) {
+            if (request.getPermission() != UserAccess.Permission.admin) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Only 'admin' permission is valid for the GLOBAL namespace")
+                        .build();
+            }
+        }
+
+        UserAccess userAccess = new UserAccess.UserAccessBuilder()
+                .setNamespace(namespace)
+                .setUsername(request.getUsername())
+                .setPermission(request.getPermission())
+                .build();
+        userAccess.setCreationDateTime(LocalDateTime.now());
+        userAccess.setUpdateDateTime(LocalDateTime.now());
         try {
-            return locationResponse(store.createUserAccessForNamespace(createUserAccessRequest));
+            return locationResponse(store.createUserAccessForNamespace(userAccess));
         } catch (NamespaceNotFoundException exception) {
             logger.error("Invalid namespace [{}] when creating user access", namespace, exception);
             return invalidNamespaceResponse(namespace);
@@ -76,16 +94,10 @@ public class UserAccessResource {
     public Response getUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace) {
 
         try {
-            return Response.ok(store.getUserAccessForNamespace(namespace))
-                    .build();
+            return Response.ok(store.getUserAccessForNamespace(namespace)).build();
         } catch (NamespaceNotFoundException exception) {
             logger.error("Invalid namespace [{}] when getting user-access details", namespace, exception);
             return invalidNamespaceResponse(namespace);
-        } catch (UserAccessNotFoundException ex) {
-            logger.error("Use-access details are not found [{}]", namespace, ex);
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("No access permissions found")
-                    .build();
         }
     }
 
@@ -113,15 +125,37 @@ public class UserAccessResource {
         }
     }
 
+    @DELETE
+    @Path("{namespace}/user-access/{userAccessId}")
+    @Operation(
+            summary = "Revoke a user-access grant",
+            description = "Deletes the user-access record for the given namespace and id"
+    )
+    @PermissionsAllowed(CalmHubScopes.ADMIN)
+    public Response deleteUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+                                                 @PathParam("userAccessId") @NotNull Integer userAccessId) {
+        try {
+            store.deleteUserAccessForNamespace(namespace, userAccessId);
+            return Response.noContent().build();
+        } catch (NamespaceNotFoundException exception) {
+            logger.error("Invalid namespace [{}] when deleting user access", namespace, exception);
+            return invalidNamespaceResponse(namespace);
+        } catch (UserAccessNotFoundException ex) {
+            logger.error("User-access record [{}] not found in namespace [{}]", userAccessId, namespace, ex);
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("No access permissions found").build();
+        }
+    }
+
     private Response locationResponse(UserAccess userAccess) throws URISyntaxException {
         return Response.created(new URI(
-                        String.format("/calm/namespaces/%s/user-access/%s", userAccess.getNamespace(), userAccess.getUserAccessId())))
+                        String.format("/api/calm/namespaces/%s/user-access/%s", userAccess.getNamespace(), userAccess.getUserAccessId())))
                 .build();
     }
 
     private Response invalidNamespaceResponse(String namespace) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Invalid namespace provided: " + namespace)
+                .entity("Invalid namespace provided: " + STRICT_SANITIZATION_POLICY.sanitize(namespace))
                 .build();
     }
 }

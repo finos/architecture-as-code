@@ -3,6 +3,7 @@ package org.finos.calm.store.mongo;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.result.DeleteResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
@@ -10,6 +11,8 @@ import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
+
+import static org.finos.calm.security.CalmHubPermissionChecker.GLOBAL_ACCESS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +41,7 @@ public class MongoUserAccessStore implements UserAccessStore {
             throws NamespaceNotFoundException {
 
         log.info("User-access details: {}", userAccess);
-        if (!namespaceStore.namespaceExists(userAccess.getNamespace())) {
+        if (!GLOBAL_ACCESS.equals(userAccess.getNamespace()) && !namespaceStore.namespaceExists(userAccess.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
 
@@ -101,19 +104,22 @@ public class MongoUserAccessStore implements UserAccessStore {
     }
 
     @Override
-    public List<UserAccess> getUserAccessForNamespace(String namespace)
-            throws NamespaceNotFoundException, UserAccessNotFoundException {
+    public List<UserAccess> getGrantsForUser(String username) {
+        List<UserAccess> grants = new ArrayList<>();
+        for (Document doc : userAccessCollection.find(Filters.in("username", username, "*"))) {
+            grants.add(buildFromDocument(doc));
+        }
+        return grants;
+    }
 
-        if (!namespaceStore.namespaceExists(namespace)) {
+    @Override
+    public List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException {
+        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
         List<UserAccess> userAccessList = new ArrayList<>();
         for (Document doc : userAccessCollection.find(Filters.eq("namespace", namespace))) {
             userAccessList.add(buildFromDocument(doc));
-        }
-
-        if (userAccessList.isEmpty()) {
-            throw new UserAccessNotFoundException();
         }
         return userAccessList;
     }
@@ -138,16 +144,10 @@ public class MongoUserAccessStore implements UserAccessStore {
     }
 
     @Override
-    public List<UserAccess> getUserAccessForDomain(String domain)
-            throws UserAccessNotFoundException {
-
+    public List<UserAccess> getUserAccessForDomain(String domain) {
         List<UserAccess> userAccessList = new ArrayList<>();
         for (Document doc : userAccessCollection.find(Filters.eq("domain", domain))) {
             userAccessList.add(buildFromDocument(doc));
-        }
-
-        if (userAccessList.isEmpty()) {
-            throw new UserAccessNotFoundException();
         }
         return userAccessList;
     }
@@ -165,6 +165,33 @@ public class MongoUserAccessStore implements UserAccessStore {
             throw new UserAccessNotFoundException();
         }
         return buildFromDocument(document);
+    }
+
+    @Override
+    public void deleteUserAccessForDomain(String domain, Integer userAccessId) throws UserAccessNotFoundException {
+        DeleteResult result = userAccessCollection.deleteOne(Filters.and(
+                Filters.eq("domain", domain),
+                Filters.eq("userAccessId", userAccessId)));
+        if (result.getDeletedCount() == 0) {
+            throw new UserAccessNotFoundException();
+        }
+    }
+
+    @Override
+    public void deleteUserAccessForNamespace(String namespace, Integer userAccessId)
+            throws NamespaceNotFoundException, UserAccessNotFoundException {
+
+        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
+            throw new NamespaceNotFoundException();
+        }
+
+        DeleteResult result = userAccessCollection.deleteOne(Filters.and(
+                Filters.eq("namespace", namespace),
+                Filters.eq("userAccessId", userAccessId)));
+
+        if (result.getDeletedCount() == 0) {
+            throw new UserAccessNotFoundException();
+        }
     }
 
     private UserAccess buildFromDocument(Document doc) {

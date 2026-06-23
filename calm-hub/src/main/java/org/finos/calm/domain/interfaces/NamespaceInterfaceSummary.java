@@ -1,7 +1,10 @@
 package org.finos.calm.domain.interfaces;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.util.Objects;
 
+@RegisterForReflection
 public class NamespaceInterfaceSummary {
     private String name;
     private String description;

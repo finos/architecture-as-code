@@ -45,7 +45,7 @@ public class TestPatternResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/patterns")
+                .get("/api/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(404);
 
@@ -56,7 +56,7 @@ public class TestPatternResourceShould {
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_patterns() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/fin_os/patterns")
+                .get("/api/calm/namespaces/fin_os/patterns")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -72,7 +72,7 @@ public class TestPatternResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/patterns")
+                .get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("Pattern One"))
@@ -96,7 +96,7 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/patterns")
+                .post("/api/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(404);
 
@@ -114,7 +114,7 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/patterns")
+                .post("/api/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(400);
 
@@ -130,7 +130,7 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid_/patterns")
+                .post("/api/calm/namespaces/invalid_/patterns")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -156,11 +156,11 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/finos/patterns")
+                .post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(201)
                 //Derived from stubbed pattern in resource
-                .header("Location", containsString("/calm/namespaces/finos/patterns/12/versions/1.0.0"));
+                .header("Location", containsString("/api/calm/namespaces/finos/patterns/12/versions/1.0.0"));
 
         verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace));
     }
@@ -169,7 +169,7 @@ public class TestPatternResourceShould {
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_pattern_versions() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/fin_os/patterns/12/versions")
+                .get("/api/calm/namespaces/fin_os/patterns/12/versions")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -206,14 +206,14 @@ public class TestPatternResourceShould {
             String expectedBody = "{\"values\":[\"1.0.0\",\"1.0.1\"]}";
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/patterns/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/patterns/12/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/patterns/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/patterns/12/versions")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -225,7 +225,7 @@ public class TestPatternResourceShould {
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_pattern() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/fin_os/patterns/12/versions/1.0.0")
+                .get("/api/calm/namespaces/fin_os/patterns/12/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -235,7 +235,7 @@ public class TestPatternResourceShould {
     void return_a_400_when_an_invalid_format_of_version_is_provided_on_get_pattern() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/finos/patterns/12/versions/1.0.invalid0")
+                .get("/api/calm/namespaces/finos/patterns/12/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -273,14 +273,14 @@ public class TestPatternResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/patterns/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/patterns/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo("{ \"test\": \"json\" }"));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/patterns/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/patterns/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -294,7 +294,7 @@ public class TestPatternResourceShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
-                .post("/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
+                .post("/api/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -306,7 +306,7 @@ public class TestPatternResourceShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
-                .post("/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
+                .post("/api/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -318,7 +318,7 @@ public class TestPatternResourceShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\"}")
-                .post("/calm/namespaces/finos/patterns/20/versions/1.0.1")
+                .post("/api/calm/namespaces/finos/patterns/20/versions/1.0.1")
                 .then()
                 .statusCode(400);
     }
@@ -356,17 +356,17 @@ public class TestPatternResourceShould {
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
                     //Derived from stubbed pattern in resource
-                    .header("Location", containsString("/calm/namespaces/test/patterns/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/patterns/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -380,7 +380,7 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                 .when()
-                .put("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                .put("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                 .then()
                 .statusCode(403);
     }

@@ -215,7 +215,7 @@ public class ArchitectureTimelineService {
 
         ObjectNode details = moment.putObject("details");
         details.put("detailed-architecture",
-                "/calm/namespaces/" + namespace + "/architectures/" + architectureId + "/versions/" + version);
+                "/api/calm/namespaces/" + namespace + "/architectures/" + architectureId + "/versions/" + version);
 
         return moment;
     }

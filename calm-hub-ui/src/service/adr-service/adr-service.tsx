@@ -1,7 +1,8 @@
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../../authService.js';
 import { CalmAdrMeta } from '@finos/calm-shared/src/view-model/adr.js';
 import { AdrSummary } from '../../model/calm.js';
+import { apiClient } from '../utils/api-client.js';
 
 export class AdrService {
     private readonly ax: AxiosInstance;
@@ -10,7 +11,7 @@ export class AdrService {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
-            this.ax = axios.create();
+            this.ax = apiClient;
         }
     }
     /**
@@ -19,7 +20,7 @@ export class AdrService {
     async fetchAdrSummaries(namespace: string): Promise<AdrSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/adrs`, {
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs`, {
                 headers,
             })
             .then((res) => {
@@ -38,10 +39,10 @@ export class AdrService {
     async fetchAdrRevisions(namespace: string, adrID: string): Promise<number[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions`, {
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions`, {
                 headers,
             })
-            .then((res) => res.data.values)
+            .then((res) => (Array.isArray(res.data?.values) ? res.data.values : []))
             .catch((error) => {
                 const errorMessage = `Error fetching revisions for ADR ID ${adrID}:`;
                 console.error('Error fetching revisions for ADR ID %s:', adrID, error);
@@ -55,7 +56,7 @@ export class AdrService {
     async fetchAdr(namespace: string, adrID: string, revision: string): Promise<CalmAdrMeta> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions/${encodeURIComponent(revision)}`, {
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrID)}/revisions/${encodeURIComponent(revision)}`, {
                 headers,
             })
             .then((res) => res.data)

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: denied-symbols
+  labels:
+    app: trades-mcp-server
+data:
+  denied-symbols: "VOD,GME,AMC"

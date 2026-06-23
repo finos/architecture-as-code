@@ -14,12 +14,14 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.bson.conversions.Bson;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -86,19 +88,53 @@ public class TestMongoUserAccessStoreShould {
     }
 
     @Test
-    void throw_exception_if_no_user_access_found_for_namespace() {
+    void return_empty_list_from_get_grants_for_user_when_no_grants_exist() {
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(false);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(ArgumentMatchers.any(Bson.class))).thenReturn(findIterable);
+
+        List<UserAccess> result = mongoUserAccessStore.getGrantsForUser("alice");
+        assertThat(result, hasSize(0));
+    }
+
+    @Test
+    void return_user_and_wildcard_grants_from_get_grants_for_user() {
+        Document userDoc = new Document("username", "alice")
+                .append("namespace", "org")
+                .append("permission", Permission.write.name())
+                .append("userAccessId", 1);
+        Document wildcardDoc = new Document("username", "*")
+                .append("namespace", "org.ab")
+                .append("permission", Permission.read.name())
+                .append("userAccessId", 2);
+
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, true, false);
+        when(cursor.next()).thenReturn(userDoc, wildcardDoc);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(ArgumentMatchers.any(Bson.class))).thenReturn(findIterable);
+
+        List<UserAccess> result = mongoUserAccessStore.getGrantsForUser("alice");
+        assertThat(result, hasSize(2));
+        assertThat(result.stream().map(UserAccess::getUsername).toList(),
+                containsInAnyOrder("alice", "*"));
+    }
+
+    @Test
+    void return_empty_list_when_no_user_access_found_for_namespace() throws Exception {
         String namespace = "finos";
         DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
         DocumentMongoCursor mockMongoCursor = mock(DocumentMongoCursor.class);
         when(mockMongoCursor.hasNext()).thenReturn(false);
         when(findIterable.iterator()).thenReturn(mockMongoCursor);
 
-        when(userAccessCollection.find(Filters.eq("namespace", namespace)))
-                .thenReturn(findIterable);
+        when(userAccessCollection.find(Filters.eq("namespace", namespace))).thenReturn(findIterable);
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        assertThrows(UserAccessNotFoundException.class,
-                () -> mongoUserAccessStore.getUserAccessForNamespace(namespace));
+        assertThat(mongoUserAccessStore.getUserAccessForNamespace(namespace), hasSize(0));
     }
 
     @Test
@@ -218,7 +254,7 @@ public class TestMongoUserAccessStoreShould {
     }
 
     @Test
-    void throw_exception_if_no_user_access_found_for_domain() {
+    void return_empty_list_when_no_user_access_found_for_domain() {
         String domain = "payments";
         DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
         DocumentMongoCursor mockMongoCursor = mock(DocumentMongoCursor.class);
@@ -226,8 +262,7 @@ public class TestMongoUserAccessStoreShould {
         when(findIterable.iterator()).thenReturn(mockMongoCursor);
         when(userAccessCollection.find(Filters.eq("domain", domain))).thenReturn(findIterable);
 
-        assertThrows(UserAccessNotFoundException.class,
-                () -> mongoUserAccessStore.getUserAccessForDomain(domain));
+        assertThat(mongoUserAccessStore.getUserAccessForDomain(domain), hasSize(0));
     }
 
     @Test
@@ -285,6 +320,117 @@ public class TestMongoUserAccessStoreShould {
 
         assertThat(actual.getDomain(), is(domain));
         assertThat(actual.getUserAccessId(), is(userAccessId));
+    }
+
+    @Test
+    void delete_user_access_for_domain_succeeds() throws Exception {
+        String domain = "payments";
+        Integer userAccessId = 201;
+
+        com.mongodb.client.result.DeleteResult deleteResult = mock(com.mongodb.client.result.DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(1L);
+        when(userAccessCollection.deleteOne(ArgumentMatchers.any(Bson.class))).thenReturn(deleteResult);
+
+        mongoUserAccessStore.deleteUserAccessForDomain(domain, userAccessId);
+
+        verify(userAccessCollection).deleteOne(ArgumentMatchers.any(Bson.class));
+    }
+
+    @Test
+    void throw_user_access_not_found_when_deleting_non_existent_domain_grant() {
+        String domain = "payments";
+        Integer userAccessId = 999;
+
+        com.mongodb.client.result.DeleteResult deleteResult = mock(com.mongodb.client.result.DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(0L);
+        when(userAccessCollection.deleteOne(ArgumentMatchers.any(Bson.class))).thenReturn(deleteResult);
+
+        assertThrows(UserAccessNotFoundException.class,
+                () -> mongoUserAccessStore.deleteUserAccessForDomain(domain, userAccessId));
+    }
+
+    @Test
+    void delete_user_access_for_namespace_succeeds() throws Exception {
+        String namespace = "finos";
+        Integer userAccessId = 101;
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        com.mongodb.client.result.DeleteResult deleteResult = mock(com.mongodb.client.result.DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(1L);
+        when(userAccessCollection.deleteOne(ArgumentMatchers.any(Bson.class))).thenReturn(deleteResult);
+
+        mongoUserAccessStore.deleteUserAccessForNamespace(namespace, userAccessId);
+
+        verify(userAccessCollection).deleteOne(ArgumentMatchers.any(Bson.class));
+    }
+
+    @Test
+    void throw_namespace_not_found_exception_when_deleting_with_invalid_namespace() {
+        when(namespaceStore.namespaceExists("invalid")).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoUserAccessStore.deleteUserAccessForNamespace("invalid", 1));
+        verify(userAccessCollection, never()).deleteOne(ArgumentMatchers.any(Bson.class));
+    }
+
+    @Test
+    void create_user_access_for_global_namespace_without_namespace_existence_check() throws NamespaceNotFoundException {
+        when(counterStore.getNextUserAccessSequenceValue()).thenReturn(202);
+
+        UserAccess userAccess = new UserAccess.UserAccessBuilder()
+                .setNamespace("GLOBAL")
+                .setUsername("alice")
+                .setPermission(Permission.admin)
+                .build();
+
+        UserAccess actual = mongoUserAccessStore.createUserAccessForNamespace(userAccess);
+
+        assertThat(actual.getUserAccessId(), is(202));
+        assertThat(actual.getNamespace(), is("GLOBAL"));
+        verify(namespaceStore, never()).namespaceExists("GLOBAL");
+        verify(userAccessCollection).insertOne(ArgumentMatchers.any(Document.class));
+    }
+
+    @Test
+    void get_user_access_for_global_namespace_without_namespace_existence_check() throws NamespaceNotFoundException {
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(false);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(Filters.eq("namespace", "GLOBAL"))).thenReturn(findIterable);
+
+        List<UserAccess> actual = mongoUserAccessStore.getUserAccessForNamespace("GLOBAL");
+
+        assertThat(actual, hasSize(0));
+        verify(namespaceStore, never()).namespaceExists("GLOBAL");
+    }
+
+    @Test
+    void delete_user_access_for_global_namespace_without_namespace_existence_check() throws NamespaceNotFoundException, UserAccessNotFoundException {
+        com.mongodb.client.result.DeleteResult deleteResult = mock(com.mongodb.client.result.DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(1L);
+        when(userAccessCollection.deleteOne(ArgumentMatchers.any(Bson.class))).thenReturn(deleteResult);
+
+        mongoUserAccessStore.deleteUserAccessForNamespace("GLOBAL", 202);
+
+        verify(namespaceStore, never()).namespaceExists("GLOBAL");
+        verify(userAccessCollection).deleteOne(ArgumentMatchers.any(Bson.class));
+    }
+
+    @Test
+    void throw_user_access_not_found_exception_when_deleting_non_existent_grant() {
+        String namespace = "finos";
+        Integer userAccessId = 999;
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        com.mongodb.client.result.DeleteResult deleteResult = mock(com.mongodb.client.result.DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(0L);
+        when(userAccessCollection.deleteOne(ArgumentMatchers.any(Bson.class))).thenReturn(deleteResult);
+
+        assertThrows(UserAccessNotFoundException.class,
+                () -> mongoUserAccessStore.deleteUserAccessForNamespace(namespace, userAccessId));
     }
 
     private interface DocumentFindIterable extends FindIterable<Document> {

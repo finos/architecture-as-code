@@ -1,0 +1,40 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/qcon/controls/mcp-guardrail.requirement.json",
+    "title": "MCP Server Trading Symbol Guardrail",
+    "type": "object",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/release/1.0/meta/control-requirement.json"
+        }
+    ],
+    "properties": {
+        "control-id": {
+            "const": "mcp-001"
+        },
+        "name": {
+            "const": "MCP Trading Symbol Restriction"
+        },
+        "description": {
+            "const": "Enforces restrictions on trading symbols that the MCP server cannot access"
+        },
+        "denied-symbols": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "List of trading symbols that the MCP server is denied access to"
+        },
+        "enforcement-point": {
+            "type": "string",
+            "description": "The component where the restriction is enforced"
+        }
+    },
+    "required": [
+        "control-id",
+        "name",
+        "description",
+        "denied-symbols",
+        "enforcement-point"
+    ]
+}

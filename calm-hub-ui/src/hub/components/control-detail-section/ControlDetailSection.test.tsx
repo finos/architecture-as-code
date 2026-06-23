@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ControlDetailSection } from './ControlDetailSection.js';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ControlData } from '../../../model/control.js';
 
 // ── Mocks ─────────────────────────────────────────────────
@@ -33,6 +33,27 @@ vi.mock('../../../service/control-service.js', () => ({
         fetchConfigurationForVersion: (...args: unknown[]) => mockFetchConfigurationForVersion(...args),
     }; }),
 }));
+
+/**
+ * Force `useIsMobile()` (which reads window.matchMedia) to report the given
+ * viewport. Returns a restore function.
+ */
+function mockViewport(isMobile: boolean) {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+        matches: isMobile,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
+    return () => {
+        window.matchMedia = original;
+    };
+}
 
 // ── Test data ─────────────────────────────────────────────
 
@@ -445,6 +466,81 @@ describe('ControlDetailSection', () => {
                 expect(document.querySelectorAll('[data-cy="json-renderer-wrapper"]')).toHaveLength(0);
                 expect(screen.getAllByTestId('readable-json-view')).toHaveLength(2);
             });
+        });
+    });
+
+    // ──────────────────────────────────────────────────
+    // Mobile tabbed layout
+    // ──────────────────────────────────────────────────
+    describe('mobile layout', () => {
+        let restore: () => void;
+
+        beforeEach(() => {
+            restore = mockViewport(true);
+        });
+
+        afterEach(() => {
+            restore();
+        });
+
+        it('renders Requirement and Configuration tabs instead of stacked panels', async () => {
+            setupMocks();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: 'Requirement' })).toBeInTheDocument();
+                expect(screen.getByRole('tab', { name: 'Configuration' })).toBeInTheDocument();
+            });
+
+            // Only the active (requirement) panel is shown, so just one readable view.
+            expect(screen.getAllByTestId('readable-json-view')).toHaveLength(1);
+        });
+
+        it('shows the requirement panel by default', async () => {
+            setupMocks({ reqSchema: requirementSchema });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                const view = screen.getByTestId('readable-json-view');
+                expect(view).toHaveTextContent(JSON.stringify(requirementSchema));
+            });
+        });
+
+        it('omits the Configuration tab when no configurations exist', async () => {
+            setupMocks({ configIds: [] });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: 'Requirement' })).toBeInTheDocument();
+            });
+            expect(screen.queryByRole('tab', { name: 'Configuration' })).not.toBeInTheDocument();
+        });
+
+        it('switches to the configuration panel and shows its config tabs', async () => {
+            setupMocks({ configIds: [10, 20] });
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await user.click(await screen.findByRole('tab', { name: 'Configuration' }));
+
+            expect(screen.getByRole('tab', { name: 'Config 10' })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Config 20' })).toBeInTheDocument();
+            // Requirement version pickers are not visible on the configuration panel.
+            expect(screen.queryByText('Requirement /')).not.toBeInTheDocument();
+        });
+
+        it('applies the active style to the selected panel tab', async () => {
+            setupMocks();
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            const reqTab = await screen.findByRole('tab', { name: 'Requirement' });
+            expect(reqTab).toHaveClass('tab-active');
+
+            await user.click(screen.getByRole('tab', { name: 'Configuration' }));
+
+            expect(screen.getByRole('tab', { name: 'Configuration' })).toHaveClass('tab-active');
+            expect(screen.getByRole('tab', { name: 'Requirement' })).not.toHaveClass('tab-active');
         });
     });
 

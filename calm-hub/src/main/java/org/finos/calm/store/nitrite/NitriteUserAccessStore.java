@@ -12,6 +12,8 @@ import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
+
+import static org.finos.calm.security.CalmHubPermissionChecker.GLOBAL_ACCESS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +62,8 @@ public class NitriteUserAccessStore implements UserAccessStore {
     @Override
     public UserAccess createUserAccessForNamespace(UserAccess userAccess) throws NamespaceNotFoundException {
         LOG.info("User-access details: {}", userAccess);
-        
-        if (!namespaceStore.namespaceExists(userAccess.getNamespace())) {
+
+        if (!GLOBAL_ACCESS.equals(userAccess.getNamespace()) && !namespaceStore.namespaceExists(userAccess.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
 
@@ -110,23 +112,24 @@ public class NitriteUserAccessStore implements UserAccessStore {
     }
 
     @Override
-    public List<UserAccess> getUserAccessForNamespace(String namespace) 
-            throws NamespaceNotFoundException, UserAccessNotFoundException {
-        
-        if (!namespaceStore.namespaceExists(namespace)) {
+    public List<UserAccess> getGrantsForUser(String username) {
+        Filter filter = where(USERNAME_FIELD).in(username, "*");
+        List<UserAccess> grants = new ArrayList<>();
+        for (Document doc : userAccessCollection.find(filter)) {
+            grants.add(buildUserAccessFromDocument(doc));
+        }
+        return grants;
+    }
+
+    @Override
+    public List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException {
+        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
-        
         Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         List<UserAccess> userAccessList = new ArrayList<>();
-        
         for (Document doc : userAccessCollection.find(filter)) {
-            UserAccess userAccess = buildUserAccessFromDocument(doc);
-            userAccessList.add(userAccess);
-        }
-
-        if (userAccessList.isEmpty()) {
-            throw new UserAccessNotFoundException();
+            userAccessList.add(buildUserAccessFromDocument(doc));
         }
         return userAccessList;
     }
@@ -182,16 +185,11 @@ public class NitriteUserAccessStore implements UserAccessStore {
     }
 
     @Override
-    public List<UserAccess> getUserAccessForDomain(String domain) throws UserAccessNotFoundException {
+    public List<UserAccess> getUserAccessForDomain(String domain) {
         Filter filter = where(DOMAIN_FIELD).eq(domain);
         List<UserAccess> userAccessList = new ArrayList<>();
-
         for (Document doc : userAccessCollection.find(filter)) {
             userAccessList.add(buildUserAccessFromDocument(doc));
-        }
-
-        if (userAccessList.isEmpty()) {
-            throw new UserAccessNotFoundException();
         }
         return userAccessList;
     }
@@ -206,6 +204,42 @@ public class NitriteUserAccessStore implements UserAccessStore {
         }
 
         return buildUserAccessFromDocument(document);
+    }
+
+    @Override
+    public void deleteUserAccessForDomain(String domain, Integer userAccessId) throws UserAccessNotFoundException {
+        lock.lock();
+        try {
+            Filter filter = where(DOMAIN_FIELD).eq(domain).and(where(USER_ACCESS_ID_FIELD).eq(userAccessId));
+            Document existing = userAccessCollection.find(filter).firstOrNull();
+            if (existing == null) {
+                throw new UserAccessNotFoundException();
+            }
+            userAccessCollection.remove(existing);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void deleteUserAccessForNamespace(String namespace, Integer userAccessId)
+            throws NamespaceNotFoundException, UserAccessNotFoundException {
+
+        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
+            throw new NamespaceNotFoundException();
+        }
+
+        lock.lock();
+        try {
+            Filter filter = where(NAMESPACE_FIELD).eq(namespace).and(where(USER_ACCESS_ID_FIELD).eq(userAccessId));
+            Document existing = userAccessCollection.find(filter).firstOrNull();
+            if (existing == null) {
+                throw new UserAccessNotFoundException();
+            }
+            userAccessCollection.remove(existing);
+        } finally {
+            lock.unlock();
+        }
     }
 
     private UserAccess buildUserAccessFromDocument(Document doc) {

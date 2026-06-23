@@ -1,8 +1,30 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Hub from './Hub.js';
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, afterEach } from 'vitest';
+import { authStore } from '../service/utils/auth-store.js';
+
+/**
+ * Force `useIsMobile()` (which reads window.matchMedia) to report a mobile
+ * viewport. Returns a restore function.
+ */
+function mockMobileViewport(isMobile: boolean) {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+        matches: isMobile,
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    return () => {
+        window.matchMedia = original;
+    };
+}
 
 vi.mock('./components/tree-navigation/TreeNavigation', () => ({
     TreeNavigation: ({
@@ -64,6 +86,35 @@ vi.mock('./components/tree-navigation/TreeNavigation', () => ({
                 }
             >
                 Load Test Interface
+            </button>
+        </div>
+    ),
+}));
+
+vi.mock('./components/tree-navigation/MobileNavMenu', () => ({
+    MobileNavMenu: ({
+        onDataLoad,
+        onClose,
+    }: {
+        onDataLoad: (data: unknown) => void;
+        onClose: () => void;
+    }) => (
+        <div data-testid="mobile-nav-menu">
+            <button aria-label="Close navigation" onClick={onClose}>
+                Close
+            </button>
+            <button
+                onClick={() =>
+                    onDataLoad({
+                        id: 'test',
+                        version: '1.0',
+                        calmType: 'Patterns',
+                        name: 'test-namespace',
+                        data: {},
+                    })
+                }
+            >
+                Mobile Load Test Data
             </button>
         </div>
     ),
@@ -266,6 +317,92 @@ describe('Hub', () => {
 
             fireEvent.click(screen.getByLabelText('Expand sidebar'));
             expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+        });
+
+    });
+
+    describe('mobile layout', () => {
+        afterEach(() => {
+            // Restore the default desktop matchMedia mock from vitest.setup.ts.
+            window.matchMedia = ((query: string) => ({
+                matches: false,
+                media: query,
+                onchange: null,
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                addListener: () => {},
+                removeListener: () => {},
+                dispatchEvent: () => false,
+            })) as unknown as typeof window.matchMedia;
+        });
+
+        it('opens the drill-down panel immediately on mobile so the explorer is visible on landing', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            // On mobile the explorer opens straight away — the mobile equivalent of
+            // the desktop tree being visible. The desktop tree is not rendered on mobile.
+            expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
+            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+            restore();
+        });
+
+        it('closes the panel after a resource is loaded', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            fireEvent.click(screen.getByText('Mobile Load Test Data'));
+            // Panel closes (aria-hidden again) but the menu remains mounted.
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+            restore();
+        });
+
+        it('reopens the drill-down panel when the Explore button is clicked after closing', () => {
+            const restore = mockMobileViewport(true);
+            renderWithRouter(<Hub />);
+
+            fireEvent.click(screen.getByText('Mobile Load Test Data'));
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Explore'));
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+            restore();
+        });
+    });
+
+    describe('auth error clears content', () => {
+        afterEach(() => {
+            authStore.setAuthError(null);
+        });
+
+        it('clears displayed diagram content when a 403 is emitted', () => {
+            renderWithRouter(<Hub />);
+            fireEvent.click(screen.getByText('Load Test Data'));
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+            act(() => {
+                authStore.setAuthError(403);
+            });
+
+            expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+        });
+
+        it('clears displayed ADR content when a 401 is emitted', () => {
+            renderWithRouter(<Hub />);
+            fireEvent.click(screen.getByText('Load Test ADR'));
+            expect(screen.getByTestId('adr-renderer')).toBeInTheDocument();
+
+            act(() => {
+                authStore.setAuthError(401);
+            });
+
+            expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
         });
     });
 });

@@ -52,7 +52,7 @@ create_namespaces() {
     for namespace in finos workshop traderx ai-governance-v2 timeline-demo; do
         print_status "Creating namespace: $namespace"
         local http_code
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/namespaces" \
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces" \
             -H "$CONTENT_TYPE" \
             -d "{\"name\": \"$namespace\", \"description\": \"$namespace namespace\"}")
         if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
@@ -165,7 +165,7 @@ post_document() {
         '{name: $name, description: $description} + {($field): ($doc | tojson)}')
 
     local http_code
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/namespaces/$namespace/$resource" \
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/$resource" \
         -H "$CONTENT_TYPE" \
         -d "$payload")
 
@@ -185,7 +185,7 @@ get_resource_id_by_name() {
     local resource="$2"
     local name="$3"
 
-    curl -s "$CALM_HUB_URL/calm/namespaces/$namespace/$resource" -H "$CONTENT_TYPE" \
+    curl -s "$CALM_HUB_URL/api/calm/namespaces/$namespace/$resource" -H "$CONTENT_TYPE" \
         | jq -r --arg name "$name" '.values[] | select(.name == $name) | .id' \
         | head -n1
 }
@@ -209,7 +209,7 @@ post_architecture_version() {
 
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        "$CALM_HUB_URL/calm/namespaces/$namespace/architectures/$architecture_id/versions/$version" \
+        "$CALM_HUB_URL/api/calm/namespaces/$namespace/architectures/$architecture_id/versions/$version" \
         -H "$CONTENT_TYPE" \
         -d "$payload")
 
@@ -237,7 +237,7 @@ post_pattern_version() {
 
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        "$CALM_HUB_URL/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
+        "$CALM_HUB_URL/api/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
         -H "$CONTENT_TYPE" \
         -d "$doc")
 
@@ -2162,7 +2162,7 @@ create_user_access() {
     # Create sample user access for different namespaces
     for namespace in finos workshop traderx ai-governance-v2; do
         print_status "Creating user access for namespace: $namespace"
-        curl -s -X POST "$CALM_HUB_URL/calm/namespaces/$namespace/user-access" \
+        curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/user-access" \
             -H "$CONTENT_TYPE" \
             -d "{
                 \"username\": \"admin\",
@@ -2179,7 +2179,7 @@ create_standards() {
     
     # Create a sample NIST standard
     print_status "Creating NIST standard..."
-    curl -s -X POST "$CALM_HUB_URL/calm/namespaces/finos/standards" \
+    curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/finos/standards" \
         -H "$CONTENT_TYPE" \
         -d '{
             "name": "NIST Cybersecurity Framework",
@@ -2222,7 +2222,7 @@ create_domains_and_controls() {
 
         print_status "Creating domain: $domain"
         local domain_code
-        domain_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/domains" \
+        domain_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/domains" \
             -H "$CONTENT_TYPE" \
             -d "{\"name\": \"$domain\"}")
         if [[ "$domain_code" == "200" || "$domain_code" == "201" ]]; then
@@ -2250,7 +2250,7 @@ create_domains_and_controls() {
                 '{name: $name, description: $description, requirementJson: $requirementJson}')
 
             local location new_id
-            location=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/calm/domains/$domain/controls" \
+            location=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/api/calm/domains/$domain/controls" \
                 -H "$CONTENT_TYPE" \
                 -d "$payload" | grep -i '^location:' | tr -d '\r')
             new_id=$(echo "$location" | sed -E 's#.*/controls/([0-9]+).*#\1#')
@@ -2928,7 +2928,7 @@ create_timeline_demo() {
 
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        "$CALM_HUB_URL/calm/namespaces/timeline-demo/timelines" \
+        "$CALM_HUB_URL/api/calm/namespaces/timeline-demo/timelines" \
         -H "$CONTENT_TYPE" -d "$tl_payload")
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created explicit timeline for Trading Platform in timeline-demo"
@@ -3069,7 +3069,7 @@ create_timeline_demo() {
                 '{name: $n, description: $d, patternJson: ($doc | tojson)}')
             local code
             code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-                "$CALM_HUB_URL/calm/namespaces/timeline-demo/patterns/$pattern_id/versions/$version" \
+                "$CALM_HUB_URL/api/calm/namespaces/timeline-demo/patterns/$pattern_id/versions/$version" \
                 -H "$CONTENT_TYPE" -d "$payload")
             if [[ "$code" == "200" || "$code" == "201" ]]; then
                 print_status "Created Demo Pattern version $version in timeline-demo"

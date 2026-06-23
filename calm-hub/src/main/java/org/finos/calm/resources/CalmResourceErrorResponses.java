@@ -7,6 +7,12 @@ public class CalmResourceErrorResponses {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid namespace provided: " + namespace).build();
     }
 
+    public static Response invalidDomainResponse(String domain) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Invalid domain provided: " + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(domain))
+                .build();
+    }
+
     /**
      * Returns a 400 response for an unparseable JSON payload. The body is intentionally generic and does not
      * echo the request payload, to avoid leaking user input into error responses.

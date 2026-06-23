@@ -18,6 +18,7 @@ import { DecisionGroupNode } from '../../visualizer/components/reactflow/Decisio
 import { THEME } from '../../visualizer/components/reactflow/theme.js';
 import { parseCALMDataWithDiff } from './utils/diffTransformer.js';
 import { parsePatternDataWithDiff } from './utils/patternDiffTransformer.js';
+import { useIsMobile } from '../../hooks/useMediaQuery.js';
 import type { DiffGraphProps } from '../model/diff-ui-types.js';
 
 const edgeTypes = { custom: FloatingEdge };
@@ -30,6 +31,7 @@ function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphPr
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { fitView } = useReactFlow();
     const nodesInitialized = useNodesInitialized();
+    const isMobile = useIsMobile();
     const containerRef = useRef<HTMLDivElement>(null);
     const fitFrameRef = useRef<number>();
 
@@ -86,21 +88,25 @@ function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphPr
             style={{ background: THEME.colors.background }}
         >
             <Background color={THEME.colors.border} gap={16} />
-            <Controls
-                style={{
-                    background: THEME.colors.card,
-                    border: `1px solid ${THEME.colors.border}`,
-                    borderRadius: '8px',
-                }}
-            />
-            <MiniMap
-                style={{
-                    background: THEME.colors.backgroundSecondary,
-                    border: `1px solid ${THEME.colors.border}`,
-                }}
-                nodeColor={THEME.colors.accent}
-                maskColor={`${THEME.colors.background}cc`}
-            />
+            {!isMobile && (
+                <Controls
+                    style={{
+                        background: THEME.colors.card,
+                        border: `1px solid ${THEME.colors.border}`,
+                        borderRadius: '8px',
+                    }}
+                />
+            )}
+            {!isMobile && (
+                <MiniMap
+                    style={{
+                        background: THEME.colors.backgroundSecondary,
+                        border: `1px solid ${THEME.colors.border}`,
+                    }}
+                    nodeColor={THEME.colors.accent}
+                    maskColor={`${THEME.colors.background}cc`}
+                />
+            )}
         </ReactFlow>
         </div>
     );

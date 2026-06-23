@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trades-mcp-server
+  labels:
+    app: trades-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trades-mcp-server
+  template:
+    metadata:
+      labels:
+        app: trades-mcp-server
+    spec:
+      containers:
+        - name: trades-mcp-server
+          image: {{ mcp-server-image }}
+          imagePullPolicy: Never
+          ports:
+            - containerPort: {{ mcp-server-port }}
+          # Platform opinion: enforce resource limits for cluster stability
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          env:
+            - name: QUARKUS_REST_CLIENT__COM_DEMO_TRADESMCP_TRADESAPICLIENT__URL
+              value: "http://trades"
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: {{ mcp-server-port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: {{ mcp-server-port }}
+            initialDelaySeconds: 10
+            periodSeconds: 30

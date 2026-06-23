@@ -5,6 +5,49 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.46.0] - 2026-06-17
+
+## [1.46.0](https://github.com/finos/architecture-as-code/compare/cli-v1.45.0...cli-v1.46.0) (2026-06-17)
+
+### chore
+
+* **deps:** bump the npm_and_yarn group across 1 directory with 1 update (#2663) ([](https://github.com/finos/architecture-as-code/commit/f2a3d2d03794262fcdeb0aba93bf3fa4d9baa86c)), closes [#2663](https://github.com/finos/architecture-as-code/issues/2663)
+* **deps:** patch 4 npm security vulnerabilities (#2655) ([](https://github.com/finos/architecture-as-code/commit/0c85722d8ec2f313dae1610f6735ad9f8b20dc88)), closes [#2655](https://github.com/finos/architecture-as-code/issues/2655) [#2657](https://github.com/finos/architecture-as-code/issues/2657)
+* **deps:** update dependency vite to v8 [security] (#2657) ([](https://github.com/finos/architecture-as-code/commit/7146105d43d01948b02e9b6fb14bfbcc4a8684d8)), closes [#2657](https://github.com/finos/architecture-as-code/issues/2657)
+
+### docs
+
+* group CALM Studio with the other tools under Working with CALM (#2667) ([](https://github.com/finos/architecture-as-code/commit/6c2a646be202748b03dee360ffb1421893937171)), closes [#2667](https://github.com/finos/architecture-as-code/issues/2667)
+
+### feat
+
+* **calm-hub:** fix missed /api/calm refactor in tests (#2665) ([](https://github.com/finos/architecture-as-code/commit/c58ef2019e85550849fb3ee48d1e07cd62e76122)), closes [#2665](https://github.com/finos/architecture-as-code/issues/2665)
+* **calm-hub:** hierarchical namespace entitlements (#2640) ([](https://github.com/finos/architecture-as-code/commit/0e05788e28fa592c0aaa7278ce4db6139ffbdf41)), closes [#2640](https://github.com/finos/architecture-as-code/issues/2640)
+
+## [1.45.0] - 2026-06-15
+
+## [1.45.0](https://github.com/finos/architecture-as-code/compare/cli-v1.44.1...cli-v1.45.0) (2026-06-15)
+
+* Native build issues (#2619) ([](https://github.com/finos/architecture-as-code/commit/92c5b0426f48c037d0b2da542c852fcd99aa8cba)), closes [#2619](https://github.com/finos/architecture-as-code/issues/2619) [#2608](https://github.com/finos/architecture-as-code/issues/2608)
+* Quarkus 3.34.2 => 3.34.7 (#2608) ([](https://github.com/finos/architecture-as-code/commit/1d18c5441388ef5cb84017d7a6a4296a83bbf4ac)), closes [#2608](https://github.com/finos/architecture-as-code/issues/2608)
+
+### chore
+
+* **deps:** bump the npm_and_yarn group across 3 directories with 1 update (#2638) ([](https://github.com/finos/architecture-as-code/commit/ea9e1fa400828e61284aa270a3c7807b0209249c)), closes [#2638](https://github.com/finos/architecture-as-code/issues/2638)
+* **deps:** update security updates to v6.4.4 (#2644) ([](https://github.com/finos/architecture-as-code/commit/78ecca5ced13f1de3be1fc145e8b050f7b5e4a85)), closes [#2644](https://github.com/finos/architecture-as-code/issues/2644)
+* **deps:** update semgrep/semgrep docker digest to f4791a5 (#2641) ([](https://github.com/finos/architecture-as-code/commit/6373aeb295554453bf9e821436fbac2d5fde231a)), closes [#2641](https://github.com/finos/architecture-as-code/issues/2641)
+* **deps:** update step-security/harden-runner digest to 9af89fc (#2642) ([](https://github.com/finos/architecture-as-code/commit/bb702d134a39f485886883722b299b2a20e25fdc)), closes [#2642](https://github.com/finos/architecture-as-code/issues/2642)
+
+### feat
+
+* **calm-hub:** nest mapping controller under /mappings and add link-… (#2633) ([](https://github.com/finos/architecture-as-code/commit/409d320e3f2985519db4f9c4e936573635e81de5)), closes [#2633](https://github.com/finos/architecture-as-code/issues/2633) [#2628](https://github.com/finos/architecture-as-code/issues/2628)
+
+### fix
+
+* **calm-hub:** fix missing validation annotations (#2630) ([](https://github.com/finos/architecture-as-code/commit/0d364c6de63381f4d6d4d89e9a56be703bbdcfb2)), closes [#2630](https://github.com/finos/architecture-as-code/issues/2630)
+* **calm-hub:** make the default profile secure and introduce no-auth profile (#2629) ([](https://github.com/finos/architecture-as-code/commit/c75e5a18b4dad072b1f6ae7bc23b453e7292e027)), closes [#2629](https://github.com/finos/architecture-as-code/issues/2629)
+* **calm-hub:** pin MCP server to 1.12.1 to restore native image builds (#2618) ([](https://github.com/finos/architecture-as-code/commit/0673bc6e6dd026e03be62c531e171f9bfa7417dd)), closes [#2618](https://github.com/finos/architecture-as-code/issues/2618)
+
 ## [1.44.1] - 2026-06-09
 
 ## [1.44.1](https://github.com/finos/architecture-as-code/compare/cli-v1.44.0...cli-v1.44.1) (2026-06-09)

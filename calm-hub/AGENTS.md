@@ -41,6 +41,15 @@ java -jar target/quarkus-app/quarkus-run.jar  # Run packaged app
 # Docker Build
 docker buildx build --platform linux/amd64,linux/arm64 \
   -f src/main/docker/Dockerfile.jvm -t calm-hub --push .
+
+# Docker image variants (from repo root)
+bash calm-hub/build-readonly-image.sh                 # JVM read-only (calm-hub:read-only-static)
+bash calm-hub/build-native-image.sh                   # Native MongoDB (calm-hub:native)
+bash calm-hub/build-readonly-native-image.sh          # Native read-only (calm-hub:read-only-native)
+
+# Smoke tests — validate a running image (MODE: readonly | readwrite)
+bash calm-hub/smoke-test.sh http://localhost:8080 readonly 120
+bash calm-hub/smoke-test.sh http://localhost:8080 readwrite 120
 ```
 
 ## Architecture Overview
@@ -106,11 +115,12 @@ CALM Hub supports pluggable storage backends via CDI Producers:
 **Modes**:
 1. **mongo** (default) - MongoDB production storage
 2. **standalone** - NitriteDB embedded storage (no external DB needed)
+3. **read-only** - `standalone` + `calm.readonly=true`; pre-seeded NitriteDB opened with `.readOnly(true)`
 
 **How It Works**:
 - Store interfaces defined in `org.finos.calm.store`
 - Implementations in `store/mongo/` and `store/nitrite/`
-- Producers in `store/producer/` select implementation at runtime
+- Producers in `store/producer/` select implementation at runtime via `@LookupIfProperty`
 
 Example Producer Pattern:
 ```java
@@ -147,6 +157,42 @@ Security: `@PermissionsAllowed` on resource methods is resolved by
 `CalmHubPermissionChecker`, which consults `UserAccessValidator` against the
 caller's grants. See [PERMISSIONS.md](./PERMISSIONS.md) for the full model.
 
+#### Preventing Cross-Site Scripting (XSS) in Responses
+
+**CRITICAL — never echo user-controlled input into a response body unsanitized.** CodeQL's
+`java/xss` rule (CWE-79) flags any path where a request value (`@PathParam`, `@QueryParam`,
+request-body field, or `exception.getMessage()` derived from one) reaches a `Response` entity
+or a log line. `@Pattern` bean-validation on the parameter is **not** a recognised barrier — CodeQL
+still flags it, and content negotiation can serve the error body as `text/html`, making reflected
+XSS exploitable.
+
+**The barrier:** wrap every user-derived value with the shared OWASP sanitizer before
+concatenating it into a body or log message:
+
+```java
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
+
+return Response.status(Response.Status.NOT_FOUND)
+        .entity("Invalid namespace provided: " + STRICT_SANITIZATION_POLICY.sanitize(namespace))
+        .build();
+
+logger.error("Cannot parse JSON for namespace [{}]: [{}]",
+        namespace, STRICT_SANITIZATION_POLICY.sanitize(request.getJson()), e);
+```
+
+Rules:
+- **Sanitize in the helper, not the call site.** Fix shared/private error-response helpers
+  (e.g. `invalidNamespaceResponse`, `invalidDomainResponse`) so every caller is covered — not just
+  the one method CodeQL happened to flag.
+- **Prefer not echoing input at all.** When the value adds no diagnostic value to the *client*,
+  return a generic message (see `CalmResourceErrorResponses.invalidJsonResponse`, which deliberately
+  does not echo the payload). Sanitize only when the echoed value genuinely helps the caller.
+- **Always set `@Produces`.** Every endpoint should declare `@Produces(MediaType.APPLICATION_JSON)`
+  (mutating endpoints with no return body included). A missing `@Produces` lets the entity be
+  content-negotiated to `text/html`, which is what turns an echoed string into an XSS sink.
+- The reference implementations are `ControlResource`, `MappingControllerResource`, and
+  `CalmResourceErrorResponses` — match how they sanitize.
+
 There are **four auth modes**, each selected by a separate property file:
 
 **Default** (secure, no mechanism configured) — `application.properties`:
@@ -170,6 +216,140 @@ There are **four auth modes**, each selected by a separate property file:
 - The upstream proxy injects the authenticated username in a header (default
   `Remote-User`, overridable via `calm.security.proxy.username-header`), handled by
   `ProxyAuthenticationMechanism` / `ProxyIdentityProvider`
+
+## Docker Image Variants
+
+CALM Hub is published as **four container image variants**:
+
+| Tag | Dockerfile | Runtime | Storage | Writes |
+|:----|:-----------|:--------|:--------|:-------|
+| `latest` | `Dockerfile.jvm` | JVM (OpenJDK 21) | MongoDB (external) | ✅ Yes |
+| `latest-native` | `Dockerfile.native` | GraalVM native binary | MongoDB (external) | ✅ Yes |
+| `latest-read-only-static` | `Dockerfile.readonly-static` | JVM | Pre-seeded NitriteDB | ❌ 405 |
+| `latest-read-only-native` | `Dockerfile.readonly-native` | GraalVM native binary | Pre-seeded NitriteDB | ❌ 405 |
+
+All images are multi-arch (`linux/amd64` + `linux/arm64`). Native images are built per-arch on native runners (no QEMU).
+
+### Read-Only Mode
+
+**How it works:**
+
+1. `ReadOnlyRequestFilter` (`@PreMatching`, `@Priority(0)`) intercepts every request to `/calm/*`.  
+   Any mutating method (POST, PUT, DELETE, PATCH) is immediately rejected with `HTTP 405` and `Allow: GET, HEAD, OPTIONS`.  
+   The filter reads `calm.readonly` via `ConfigProvider` (not `@ConfigProperty`) so the value is respected in native images where runtime config injection may differ.
+
+2. `NitriteDBConfig` opens the NitriteDB file with `.readOnly(true).autoCommit(false)`. The database file must exist (pre-seeded) — the application will throw on startup if the file is absent.
+
+**Environment variables for read-only images:**
+```
+CALM_READONLY=true
+QUARKUS_PROFILE=standalone
+CALM_STANDALONE_DATA_DIRECTORY=/deployments/data
+```
+
+### How the Read-Only Data Image Layer is Built
+
+The read-only images use a **two-stage Docker build**:
+
+```
+Stage 1 — seed (JVM, writable)
+  FROM ubi9/openjdk-21
+  COPY quarkus-app/ + calm/ schemas + controls/
+  RUN boot Quarkus in standalone (writable) mode
+      init script POSTs all namespaces, schemas, controls
+      graceful SIGTERM → NitriteDB flushes + commits (~290–450 KB)
+      result: /data/calmSchemas.db
+
+Stage 2 — runtime (minimal base)
+  COPY --from=seed /data/calmSchemas.db   ← baked as an image layer
+  chmod 0444                              ← filesystem-level immutability
+  ENV CALM_READONLY=true
+  ENV QUARKUS_PROFILE=standalone
+```
+
+**Why native read-only uses JVM for seeding:** GraalVM native binaries cannot reliably *write* (commit) the H2 MVStore backing NitriteDB due to Java serialisation requirements not fully supported in native. The JVM seed stage writes the database; the native binary only reads it. Serialisation metadata for the read path is registered in `META-INF/native-image/org.finos/calm-hub/serialization-config.json`.
+
+### Build Scripts
+
+| Script | Output | Notes |
+|:-------|:-------|:------|
+| `build-readonly-image.sh [--no-docker] [--no-maven] [TAG]` | `calm-hub:read-only-static` | `--no-docker` skips local build (used by CI buildx); `--no-maven` reuses existing build |
+| `build-native-image.sh [TAG]` | `calm-hub:native` | GraalVM Mandrel container build; requires ≥8 GB Docker RAM |
+| `build-readonly-native-image.sh [TAG]` | `calm-hub:read-only-native` | Builds JVM jar (for seed stage) AND native binary; two-stage Docker |
+
+### Smoke Tests
+
+`smoke-test.sh [BASE_URL] [MODE] [TIMEOUT]` is the shared assertion script used by all four Docker-publish CI workflows.
+
+**Arguments:**
+- `BASE_URL` — default `http://localhost:8080`
+- `MODE` — `readonly` or `readwrite` (default: `readwrite`)
+- `TIMEOUT` — seconds to wait for startup (default: `120`)
+
+**Readiness:** polls `/q/swagger-ui` (always available regardless of DB profile).
+
+**Assertions:**
+- `readonly`: `GET /api/calm/namespaces` → 200 (reads seeded data); POST/PUT/DELETE → 405 on both `/api/calm/...` and `/calm` (ReadOnlyRequestFilter)
+- `readwrite`: `GET /api/calm/namespaces` → 200; `POST /api/calm/namespaces` → 201; name-based `/calm/...` POST/GET → 201/200; `PUT /calm` → 403
+
+```bash
+# Read-only image (auth disabled by the standalone profile baked into the image)
+docker run --rm -p 8080:8080 calm-hub:read-only-static
+bash calm-hub/smoke-test.sh http://localhost:8080 readonly 120
+
+# MongoDB image (requires running Mongo; disable auth for unauthenticated smoke-test calls)
+cd calm-hub/local-dev && docker-compose up -d && cd ../..
+docker run --rm -p 8080:8080 \
+  -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://localhost:27017 \
+  -e CALM_AUTH_ENABLED=false \
+  calm-hub:latest
+bash calm-hub/smoke-test.sh http://localhost:8080 readwrite 120
+```
+
+## MCP Server
+
+CALM Hub includes an experimental [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server.
+
+**Dependency:** `io.quarkiverse.mcp:quarkus-mcp-server-http:1.12.1`  
+**Endpoint:** `POST /mcp` (HTTP Streamable JSON-RPC 2.0)  
+**Config:** `calm.mcp.enabled=false` (env: `CALM_MCP_ENABLED`)
+
+Tool providers are in `src/main/java/org/finos/calm/mcp/tools/`:  
+`ArchitectureTools`, `PatternTools`, `ControlTools`, `DomainTools`, `InterfaceTools`,  
+`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`.
+
+Enable for development:
+```bash
+../mvnw quarkus:dev -Dcalm.mcp.enabled=true
+# or
+export CALM_MCP_ENABLED=true && ../mvnw quarkus:dev
+```
+
+Dev-mode traffic logging: `%dev.quarkus.mcp.server.traffic-logging=true` (set in `application.properties`).
+
+Test with curl:
+```bash
+curl -s -X POST http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+## GitHub Actions — Docker Publish Workflows
+
+| Workflow file | Image tag | Trigger (path filter on `main`) |
+|:-------------|:----------|:-------------------------------|
+| `docker-publish-calm-hub.yml` | `latest` | `calm-hub/**`, `calm-hub-ui/**` |
+| `docker-publish-calm-hub-native.yml` | `latest-native` | `calm-hub/**`, `calm-hub-ui/**` |
+| `docker-publish-calm-hub-readonly.yml` | `latest-read-only-static` | `calm-hub/**`, `calm-hub-ui/**`, `calm/**` |
+| `docker-publish-calm-hub-readonly-native.yml` | `latest-read-only-native` | `calm-hub/**`, `calm-hub-ui/**`, `calm/**` |
+
+All four workflows:
+- Support `workflow_dispatch` with a `tag` input (default: the tag above).
+- Run `smoke-test.sh` against a locally loaded single-arch image before pushing to Docker Hub.
+- Use `${{ secrets.DOCKER_USERNAME }}/calm-hub` as the image namespace.
+- Have `cancel-in-progress: false` (a publish in flight is never cancelled).
+
+**Native workflows** (`-native.yml`) use a per-architecture build matrix (`ubuntu-latest` for `amd64`, `ubuntu-24.04-arm` for `arm64`). Each runner builds for its own arch, pushes by digest, and a final merge job assembles the multi-arch manifest via `docker buildx imagetools create`.
 
 ## Key Concepts
 
@@ -357,6 +537,9 @@ private static final int PATTERN_ID = 42;
 4. Write unit tests in `test/`
 5. Add integration test in `integration-test/`
 6. Document with OpenAPI annotations
+7. Declare `@Produces(MediaType.APPLICATION_JSON)` on every method, and sanitize any
+   user-derived value echoed into a response body or log with `STRICT_SANITIZATION_POLICY.sanitize(...)`
+   (see [Preventing Cross-Site Scripting (XSS) in Responses](#preventing-cross-site-scripting-xss-in-responses))
 
 ### Adding a New Storage Backend
 1. Create package: `org.finos.calm.store.mybackend`
@@ -408,6 +591,10 @@ CALM Hub is largely independent - it's a standalone REST API server.
      `quarkus.profile=standalone` via the plugin's own `systemProperties` configuration.
 4. **Certificate Issues**: Use exact CN in URLs when using self-signed certs
 5. **Profile Selection**: Remember to pass `-Dquarkus.profile=secure` for secure mode
+6. **Reflected XSS in error bodies/logs**: Concatenating a raw `@PathParam`/`@QueryParam`/request
+   field into a `Response` entity or log message triggers CodeQL `java/xss`. `@Pattern` validation
+   is not a barrier — wrap the value in `STRICT_SANITIZATION_POLICY.sanitize(...)`. See
+   [Preventing Cross-Site Scripting (XSS) in Responses](#preventing-cross-site-scripting-xss-in-responses).
 
 ## Known Issues
 
