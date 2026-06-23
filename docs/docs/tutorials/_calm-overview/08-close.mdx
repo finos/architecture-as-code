@@ -35,31 +35,38 @@
 
 <section>
   <h2>🏋️ Workshop</h2>
-  <div style={{background:'#e8f5e9', border:'2px solid #2e7d32', borderRadius:'8px', padding:'1.2rem 1.6rem', marginBottom:'1rem'}}>
-    <h3 style={{marginTop:0, fontSize:'1.15rem', color:'#1b5e20'}}>🟢 Beginner — Getting started with CALM</h3>
-    <p style={{fontSize:'0.95rem', margin:'0.3rem 0 0.5rem', color:'#333'}}>
-      Install the CLI, model your first node and relationship, then validate against a pattern.
-    </p>
-    <p style={{fontSize:'0.9rem', margin:0, color:'#555'}}>
-      <code>npm install -g @finos/calm-cli</code> &nbsp;·&nbsp; VSCode: search <strong>"CALM"</strong> in marketplace &nbsp;·&nbsp; <a href="https://calm.finos.org">calm.finos.org tutorials</a>
-    </p>
-  </div>
-  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.2rem'}}>
-    <div style={{background:'#fff8e1', border:'2px solid #f57f17', borderRadius:'8px', padding:'1rem 1.3rem'}}>
-      <h3 style={{marginTop:0, fontSize:'1.05rem', color:'#e65100'}}>🟡 Intermediate</h3>
-      <p style={{fontSize:'0.88rem', margin:0, color:'#555'}}>Tools are set up and you want more experience — work with patterns, customizations &amp; standards, and run <code>calm docify</code> on a richer architecture.</p>
+  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'0.8rem'}}>
+    <div style={{background:'#e8f5e9', border:'2px solid #2e7d32', borderRadius:'8px', padding:'1rem 1.2rem'}}>
+      <h3 style={{marginTop:0, fontSize:'1.05rem', color:'#1b5e20'}}>🟢 Beginner</h3>
+      <p style={{fontSize:'0.88rem', margin:'0.3rem 0 0.5rem', color:'#333'}}>
+        Install the CLI, model your first node and relationship, then validate against a pattern.
+      </p>
+      <p style={{fontSize:'0.82rem', margin:0, color:'#555'}}>
+        <code>npm install -g @finos/calm-cli</code> &nbsp;·&nbsp; <a href="https://calm.finos.org">calm.finos.org tutorials</a>
+      </p>
     </div>
-    <div style={{background:'#fce4ec', border:'2px solid #880e4f', borderRadius:'8px', padding:'1rem 1.3rem'}}>
+    <div style={{background:'#fff8e1', border:'2px solid #f57f17', borderRadius:'8px', padding:'1rem 1.2rem'}}>
+      <h3 style={{marginTop:0, fontSize:'1.05rem', color:'#e65100'}}>🟡 Intermediate</h3>
+      <p style={{fontSize:'0.88rem', margin:0, color:'#555'}}>Tools are set up — work with patterns, customizations &amp; standards, and run <code>calm docify</code> on a richer architecture.</p>
+    </div>
+    <div style={{background:'#fce4ec', border:'2px solid #880e4f', borderRadius:'8px', padding:'1rem 1.2rem'}}>
       <h3 style={{marginTop:0, fontSize:'1.05rem', color:'#880e4f'}}>🔴 Practitioner</h3>
-      <p style={{fontSize:'0.88rem', margin:0, color:'#555'}}>Take on the more advanced problems — timelines, controls, template bundles, and CI gating with <code>calm validate</code>.</p>
+      <p style={{fontSize:'0.88rem', margin:0, color:'#555'}}>Step into the shoes of an architect — use CALM's AI tools to model a real architecture from scratch, guided by the AI agent.</p>
+    </div>
+    <div style={{background:'#ede7f6', border:'2px solid #4527a0', borderRadius:'8px', padding:'1rem 1.2rem'}}>
+      <h3 style={{marginTop:0, fontSize:'1.05rem', color:'#4527a0'}}>🟣 Advanced</h3>
+      <p style={{fontSize:'0.88rem', margin:0, color:'#555'}}>The QCon demo — five scenarios end-to-end. <strong>Requires Minikube.</strong> Deploy a CALM-driven platform, add controls, and run autonomous agents.</p>
     </div>
   </div>
   <aside className="notes">
-    Three tiers, pick your entry point.
+    Four tiers, pick your entry point.
     Beginner: install CLI, write your first CALM file, validate it. Should take 20–30 minutes.
     Intermediate: assumes tools are installed. Focus is on patterns, customizations/standards,
     and running docify to generate a documentation site.
-    Practitioner: deeper water — timelines, controls, template bundles, CI gating.
+    Practitioner: AI-assisted architectural modelling — participants use the CALM AI tools to model
+    a real system from the architect's perspective. Great for people who already know the basics.
+    Advanced (QCon demo): the full five-scenario end-to-end walkthrough. Requires a Kubernetes
+    cluster (see conferences/qcon). Plan 30–60 minutes for the full flow.
     Encourage people to pair up — the Slack #calm channel is there if they get stuck.
   </aside>
 </section>
