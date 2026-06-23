@@ -3,9 +3,13 @@
 <script lang="ts">
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+	import NodeFrame from '$lib/viz/nodes/NodeFrame.svelte';
+	import type { Badge, Severity } from '@calmstudio/calm-core';
 	let { id, data, selected }: NodeProps = $props();
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
+	const badges = $derived(((data as Record<string, unknown>).badges as Badge[]) ?? []);
+	const severity = $derived(((data as Record<string, unknown>).severity as Severity) ?? 'unknown');
 </script>
 
 <Handle type="target" position={Position.Top} />
@@ -19,19 +23,21 @@
 	{/each}
 {/if}
 
-<div class="node" class:selected>
-	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
-	<svg width="52" height="46" viewBox="0 0 52 46" fill="none" aria-hidden="true">
-		<polygon
-			points="26,2 50,14 50,34 26,46 2,34 2,14"
-			fill="var(--node-ecosystem-bg)"
-			stroke="var(--node-ecosystem-stroke)"
-			stroke-width="1.5"
-			stroke-linejoin="round"
-		/>
-	</svg>
-	<span class="label">{data.label ?? data.calmId}</span>
-</div>
+<NodeFrame {badges} {severity}>
+	<div class="node" class:selected>
+		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+		<svg width="52" height="46" viewBox="0 0 52 46" fill="none" aria-hidden="true">
+			<polygon
+				points="26,2 50,14 50,34 26,46 2,34 2,14"
+				fill="var(--node-ecosystem-bg)"
+				stroke="var(--node-ecosystem-stroke)"
+				stroke-width="1.5"
+				stroke-linejoin="round"
+			/>
+		</svg>
+		<span class="label">{data.label ?? data.calmId}</span>
+	</div>
+</NodeFrame>
 
 <style>
 	.node {

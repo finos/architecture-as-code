@@ -3,9 +3,13 @@
 <script lang="ts">
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+	import NodeFrame from '$lib/viz/nodes/NodeFrame.svelte';
+	import type { Badge, Severity } from '@calmstudio/calm-core';
 	let { id, data, selected }: NodeProps = $props();
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
+	const badges = $derived(((data as Record<string, unknown>).badges as Badge[]) ?? []);
+	const severity = $derived(((data as Record<string, unknown>).severity as Severity) ?? 'unknown');
 </script>
 
 <Handle type="target" position={Position.Top} />
@@ -19,21 +23,23 @@
 	{/each}
 {/if}
 
-<div class="node" class:selected>
-	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
-	<svg width="40" height="48" viewBox="0 0 40 48" fill="none" aria-hidden="true">
-		<path
-			d="M20 2 L36 9 L36 26 Q36 40 20 46 Q4 40 4 26 L4 9 Z"
-			fill="var(--node-ldap-bg)"
-			stroke="var(--node-ldap-stroke)"
-			stroke-width="1.5"
-			stroke-linejoin="round"
-		/>
-		<circle cx="20" cy="20" r="4" stroke="var(--node-ldap-stroke)" stroke-width="1.2" fill="none" />
-		<path d="M20 24v6M20 28h3" stroke="var(--node-ldap-stroke)" stroke-width="1.2" stroke-linecap="round" />
-	</svg>
-	<span class="label">{data.label ?? data.calmId}</span>
-</div>
+<NodeFrame {badges} {severity}>
+	<div class="node" class:selected>
+		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+		<svg width="40" height="48" viewBox="0 0 40 48" fill="none" aria-hidden="true">
+			<path
+				d="M20 2 L36 9 L36 26 Q36 40 20 46 Q4 40 4 26 L4 9 Z"
+				fill="var(--node-ldap-bg)"
+				stroke="var(--node-ldap-stroke)"
+				stroke-width="1.5"
+				stroke-linejoin="round"
+			/>
+			<circle cx="20" cy="20" r="4" stroke="var(--node-ldap-stroke)" stroke-width="1.2" fill="none" />
+			<path d="M20 24v6M20 28h3" stroke="var(--node-ldap-stroke)" stroke-width="1.2" stroke-linecap="round" />
+		</svg>
+		<span class="label">{data.label ?? data.calmId}</span>
+	</div>
+</NodeFrame>
 
 <style>
 	.node {
