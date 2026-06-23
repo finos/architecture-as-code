@@ -220,23 +220,32 @@ function NamespaceItem({
     const resourceTypes = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
     const isThisSelected = node.namespace !== null && node.namespace === selectedNamespace;
     const hasSelectedDescendant = selectedNamespace.startsWith(node.label + '.');
+    const hasChildren = node.children.length > 0;
+    const shouldAutoOpen = isThisSelected || hasSelectedDescendant;
 
-    // Grouping nodes (no real namespace) track their own open state so users can toggle them
-    const [groupingOpen, setGroupingOpen] = useState(hasSelectedDescendant);
+    // Every node (real namespace or grouping-only) tracks its own expanded state. Selection
+    // expands it (one-directional, never auto-collapses) so deep-links and ancestor expansion
+    // work, while collapsing a child no longer forces its ancestors closed.
+    const [expanded, setExpanded] = useState(shouldAutoOpen);
     useEffect(() => {
-        if (hasSelectedDescendant) setGroupingOpen(true);
-    }, [hasSelectedDescendant]);
+        if (shouldAutoOpen) setExpanded(true);
+    }, [shouldAutoOpen]);
 
-    const isOpen = node.namespace !== null
-        ? (isThisSelected || hasSelectedDescendant)
-        : groupingOpen;
+    // An expanded node only has something to render when it is selected (its resource types)
+    // or it has child namespaces. Keeping a childless, deselected node expanded would draw an
+    // empty expander, so it appears collapsed.
+    const isOpen = expanded && (isThisSelected || hasChildren);
 
     const handleSummaryClick = (e: React.MouseEvent) => {
         e.preventDefault();
         if (node.namespace) {
+            // Clicking a real namespace toggles its selection. Selecting it always expands it;
+            // deselecting it (clicking it while selected) collapses just this node.
+            const willSelect = node.namespace !== selectedNamespace;
             onNamespaceClick(node.namespace);
+            setExpanded(willSelect);
         } else {
-            setGroupingOpen((prev) => !prev);
+            setExpanded((prev) => !prev);
         }
     };
 
