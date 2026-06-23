@@ -33,7 +33,9 @@ export interface Dimension {
   extract: (node: CalmNode, arch: CalmArchitecture, opts?: { key?: string }) => string | null;
 }
 
-export const dimensions = {
+export type DimensionKey = 'container' | 'nodeType' | 'aiDomain' | 'owner' | 'customKey';
+
+export const dimensions: Record<DimensionKey, Dimension> = {
   container: {
     key: 'container',
     label: 'Container',
@@ -75,4 +77,4 @@ export const dimensions = {
       return typeof v === 'string' ? v : null;
     },
   },
-} as const satisfies Record<string, Dimension>;
+};

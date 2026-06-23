@@ -27,7 +27,7 @@ describe('decoratorsAdapter', () => {
     const arch = { nodes: [node], relationships: [] } as any;
     const badges = decoratorsAdapter.forNode(node, arch);
     expect(badges).toHaveLength(1);
-    expect(badges[0].id).toBe('ok');
+    expect(badges[0]!.id).toBe('ok');
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
   });
@@ -53,6 +53,6 @@ describe('decoratorsAdapter', () => {
     const arch = { nodes: [], relationships: [edge] } as any;
     const badges = decoratorsAdapter.forEdge(edge, arch);
     expect(badges).toHaveLength(1);
-    expect(badges[0].severity).toBe('low');
+    expect(badges[0]!.severity).toBe('low');
   });
 });

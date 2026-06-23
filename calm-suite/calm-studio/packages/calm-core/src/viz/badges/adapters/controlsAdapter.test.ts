@@ -31,9 +31,9 @@ describe('controlsAdapter', () => {
     } as unknown as CalmNode;
     const badges = controlsAdapter.forNode(node, emptyArch);
     expect(badges).toHaveLength(1);
-    expect(badges[0]).toMatchObject({ source: 'controls', kind: 'count' });
-    expect(badges[0].data?.count).toBe(2);
-    expect(badges[0].data?.mitigations).toBe(3);
+    expect(badges[0]!).toMatchObject({ source: 'controls', kind: 'count' });
+    expect(badges[0]!.data?.count).toBe(2);
+    expect(badges[0]!.data?.mitigations).toBe(3);
   });
 
   it('severity scales with control count', () => {
@@ -52,10 +52,10 @@ describe('controlsAdapter', () => {
         ),
       }) as unknown as CalmNode;
 
-    expect(controlsAdapter.forNode(mkNode(1, 1), emptyArch)[0].severity).toBe('low');
-    expect(controlsAdapter.forNode(mkNode(2, 1), emptyArch)[0].severity).toBe('low');
-    expect(controlsAdapter.forNode(mkNode(3, 1), emptyArch)[0].severity).toBe('medium');
-    expect(controlsAdapter.forNode(mkNode(6, 1), emptyArch)[0].severity).toBe('high');
+    expect(controlsAdapter.forNode(mkNode(1, 1), emptyArch)[0]!.severity).toBe('low');
+    expect(controlsAdapter.forNode(mkNode(2, 1), emptyArch)[0]!.severity).toBe('low');
+    expect(controlsAdapter.forNode(mkNode(3, 1), emptyArch)[0]!.severity).toBe('medium');
+    expect(controlsAdapter.forNode(mkNode(6, 1), emptyArch)[0]!.severity).toBe('high');
   });
 
   it('emits nothing for edges (controls live on nodes in CALM 1.2)', () => {
@@ -74,6 +74,6 @@ describe('controlsAdapter', () => {
         C1: { description: '', requirements: [{ config: { 'control-id': 'C1', mitigates: [] } }] },
       },
     } as unknown as CalmNode;
-    expect(controlsAdapter.forNode(node, emptyArch)[0].id).toBe('controls-service-a');
+    expect(controlsAdapter.forNode(node, emptyArch)[0]!.id).toBe('controls-service-a');
   });
 });

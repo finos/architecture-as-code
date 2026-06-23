@@ -22,32 +22,32 @@ const arch = {
 
 describe('dimensions', () => {
   it('container: returns parent for child, null for top-level', () => {
-    expect(dimensions.container.extract(arch.nodes![1], arch)).toBe('parent');
-    expect(dimensions.container.extract(arch.nodes![0], arch)).toBeNull();
-    expect(dimensions.container.extract(arch.nodes![2], arch)).toBeNull();
+    expect(dimensions.container.extract(arch.nodes![1]!, arch)).toBe('parent');
+    expect(dimensions.container.extract(arch.nodes![0]!, arch)).toBeNull();
+    expect(dimensions.container.extract(arch.nodes![2]!, arch)).toBeNull();
   });
 
   it('nodeType: returns node-type', () => {
-    expect(dimensions.nodeType.extract(arch.nodes![1], arch)).toBe('ai:agent');
+    expect(dimensions.nodeType.extract(arch.nodes![1]!, arch)).toBe('ai:agent');
   });
 
   it('aiDomain: extracts segment after "ai:"', () => {
-    expect(dimensions.aiDomain.extract(arch.nodes![1], arch)).toBe('agent');
-    expect(dimensions.aiDomain.extract(arch.nodes![2], arch)).toBeNull();
+    expect(dimensions.aiDomain.extract(arch.nodes![1]!, arch)).toBe('agent');
+    expect(dimensions.aiDomain.extract(arch.nodes![2]!, arch)).toBeNull();
   });
 
   it('owner: reads metadata.owner', () => {
-    expect(dimensions.owner.extract(arch.nodes![1], arch)).toBe('team-a');
-    expect(dimensions.owner.extract(arch.nodes![2], arch)).toBeNull();
+    expect(dimensions.owner.extract(arch.nodes![1]!, arch)).toBe('team-a');
+    expect(dimensions.owner.extract(arch.nodes![2]!, arch)).toBeNull();
   });
 
   it('customKey: reads dotted path from node', () => {
-    expect(dimensions.customKey.extract(arch.nodes![1], arch, { key: 'metadata.deep.key' })).toBe('value');
-    expect(dimensions.customKey.extract(arch.nodes![1], arch, { key: 'metadata.missing' })).toBeNull();
+    expect(dimensions.customKey.extract(arch.nodes![1]!, arch, { key: 'metadata.deep.key' })).toBe('value');
+    expect(dimensions.customKey.extract(arch.nodes![1]!, arch, { key: 'metadata.missing' })).toBeNull();
   });
 
   it('customKey: returns null without key opt', () => {
-    expect(dimensions.customKey.extract(arch.nodes![1], arch)).toBeNull();
+    expect(dimensions.customKey.extract(arch.nodes![1]!, arch)).toBeNull();
   });
 });
 
