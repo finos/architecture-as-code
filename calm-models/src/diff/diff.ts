@@ -1,6 +1,9 @@
-import { ChangeObject, diffArrays } from 'diff';
+import { ChangeObject, diffArrays, diffSentences } from 'diff';
 import type {
     CalmArchitectureSchema,
+    CalmControlDetailSchema,
+    CalmControlSchema,
+    CalmControlsSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '../types/index.js';
@@ -12,6 +15,9 @@ import type {
     NodesAndRelationshipsDiffResult,
     AdrDiffResult,
     ArchitectureDiffResult,
+    ControlDiffResult,
+    ControlItemDiffResult,
+    ChangeType,
 } from './diff-types.js';
 
 function normalizeValue(value: unknown): unknown {
@@ -85,9 +91,12 @@ export function diffArchitectures(
 
     const adrDiff = diffAdrs(archA.adrs ?? [], archB.adrs ?? []);
 
+    const controlsDiff = diffControls(archA.controls ?? {}, archB.controls ?? {});
+
     return {
         ...nodesAndRelationshipsDiff,
-        ...adrDiff
+        ...adrDiff,
+        ...controlsDiff
     };
 }
 
@@ -221,7 +230,74 @@ export function diffAdrs(
     return {
         adrDiffItems: diffArrays(adrsA, adrsB).flatMap((diff: ChangeObject<string[]>) => diff.value.map((val: string) => ({
             content: val,
-            changeType: diff.added ? 'added' : diff.removed ? 'removed' : 'unchanged',
+            changeType: getChangeTypeFromChangeObject(diff),
         })))
     };
+}
+
+/**
+ * Core diff function for CALM control objects. Identifies which controls are added, removed and unchaged by ID, and identifies control changes under an individual ID.
+ */
+export function diffControls(
+    controlsA: CalmControlsSchema,
+    controlsB: CalmControlsSchema
+): ControlDiffResult {
+
+    const result = {
+        controlItemsAdded: {} as CalmControlsSchema,
+        controlItemsRemoved: {} as CalmControlsSchema,
+        controlItemsUnchanged: {} as CalmControlsSchema,
+        controlItemsModified: {} as { [controlId: string]: ControlItemDiffResult }
+    };
+
+    const commonControlIds: string[] = [];
+
+    Object.keys(controlsA).forEach((id: string) => {
+        if (controlsB[id] != null) {
+            commonControlIds.push(id);
+        } else {
+            result.controlItemsRemoved[id] = controlsA[id];
+        }
+    });
+
+    Object.keys(controlsB).forEach((id: string) => {
+        if (controlsA[id] == null) {
+            result.controlItemsAdded[id] = controlsB[id];
+        }
+    });
+
+    const editedControlIds: string[] = [];
+
+    commonControlIds.forEach((id: string) => {
+        if (JSON.stringify(controlsA[id]) === JSON.stringify(controlsB[id])) {
+            result.controlItemsUnchanged[id] = controlsA[id];
+        } else {
+            editedControlIds.push(id);
+        }
+    });
+
+    editedControlIds.forEach((id: string) => {
+        result.controlItemsModified[id] = diffControlItem(controlsA[id], controlsB[id]);
+    });
+
+    return result;
+}
+
+function diffControlItem(controlItemA: CalmControlSchema, controlItemB: CalmControlSchema): ControlItemDiffResult {
+    const result = {
+        descriptionDiff: diffSentences(controlItemA.description, controlItemB.description).map((diff: ChangeObject<string>) => ({
+            content: diff.value,
+            changeType: getChangeTypeFromChangeObject(diff),
+        })),
+        requirementsDiff: diffArrays<CalmControlDetailSchema>(controlItemA.requirements, controlItemB.requirements).flatMap((diff: ChangeObject<CalmControlDetailSchema[]>) => diff.value.map((val: CalmControlDetailSchema) => ({
+            content: val,
+            changeType: getChangeTypeFromChangeObject(diff),
+        })))
+    };
+
+    return result;
+}
+
+function getChangeTypeFromChangeObject<T>(changeObject: ChangeObject<T>): ChangeType {
+    return changeObject.added ? 'added' : changeObject.removed ? 'removed' : 'unchanged';
 }
