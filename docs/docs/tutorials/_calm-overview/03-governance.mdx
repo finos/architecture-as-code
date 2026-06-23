@@ -93,24 +93,36 @@
 </section>
 
 <section>
-  <h2>🧩 Customizations</h2>
+  <h2>🧩 Customizations — Custom Properties</h2>
   <div className="two-col">
     <div>
-      <h3 style={{fontSize:'1.1rem', marginBottom:'0.4rem'}}>Custom properties</h3>
-      <p style={{fontSize:'1.65rem', marginBottom:'0.5rem'}}>
+      <p style={{fontSize:'1.65rem', marginBottom:'0.6rem'}}>
         Add any key/value <strong>directly to a node</strong> (or relationship) — ownership, classification, cost attribution, whatever your org needs. Nodes allow arbitrary extra properties.
       </p>
+      <p style={{fontSize:'1.65rem', color:'#555'}}>Works on both nodes and relationships — attach context wherever it lives.</p>
+    </div>
+    <div>
       <pre><code className="language-json">{`{
   "unique-id": "trade-database",
   "node-type": "database",
   "name": "Trade Database",
   "cost-center": "CC-1042"
 }`}</code></pre>
-      <p style={{fontSize:'1.65rem', color:'#555', marginTop:'0.4rem'}}>Works on both nodes and relationships — attach context wherever it lives.</p>
     </div>
-    <div style={{paddingTop:'0.2rem'}}>
-      <h3 style={{fontSize:'1.1rem', marginBottom:'0.4rem'}}>📏 Standards — stricter, cross-org</h3>
-      <p style={{fontSize:'1.65rem', marginBottom:'0.4rem'}}>
+  </div>
+  <aside className="notes">
+    Any node or relationship can carry arbitrary extra properties directly — cost-center, owner,
+    classification, whatever the team needs. This works because CALM nodes allow additionalProperties.
+    Custom properties are the lowest-friction extension point — no schema changes needed.
+    When informal properties become org-wide requirements, promote them to a Standard (next slide).
+  </aside>
+</section>
+
+<section>
+  <h2>📏 Standards — Stricter, Cross-Org</h2>
+  <div className="two-col">
+    <div>
+      <p style={{fontSize:'1.65rem', marginBottom:'0.5rem'}}>
         When you need consistency <em>across teams</em>, promote a custom property into a <strong>standard</strong> — a JSON Schema extension that makes it mandatory on every architecture.
       </p>
       <pre><code className="language-json">{`{
@@ -124,18 +136,20 @@
     }}
   }
 }`}</code></pre>
-      <p style={{fontSize:'1.65rem', color:'#555', marginTop:'0.3rem', marginBottom:'0.3rem'}}>
+    </div>
+    <div>
+      <p style={{fontSize:'1.65rem', color:'#555', marginBottom:'0.5rem'}}>
         Reference it from a pattern so every node is checked:
       </p>
       <pre><code className="language-json">{`"nodes": { "items": {
   "$ref": "https://example.com/standards/node-standard.json"
 }}`}</code></pre>
+      <p style={{fontSize:'1.65rem', marginTop:'0.7rem'}}>
+        Run <code>calm validate</code> — deviation <strong>fails the build automatically</strong>. Start with custom properties; promote to standards when cross-org consistency becomes non-negotiable.
+      </p>
     </div>
   </div>
   <aside className="notes">
-    Two levels: informal customization and enforced standards.
-    Any node or relationship can carry arbitrary extra properties directly — cost-center, owner,
-    classification, whatever the team needs. This works because CALM nodes allow additionalProperties.
     When your org decides "every architecture *must* carry cost-center on every node," you write
     a CALM standard (a JSON Schema extension using allOf composition plus required/properties),
     reference it from a pattern via $ref, then run ordinary `calm validate`. Deviation fails the
