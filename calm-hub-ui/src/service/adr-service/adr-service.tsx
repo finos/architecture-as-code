@@ -1,7 +1,8 @@
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../../authService.js';
 import { CalmAdrMetaSchema } from '@finos/calm-models/types';
 import { AdrSummary } from '../../model/calm.js';
+import { apiClient } from '../utils/api-client.js';
 
 export class AdrService {
     private readonly ax: AxiosInstance;
@@ -10,7 +11,7 @@ export class AdrService {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
-            this.ax = axios.create();
+            this.ax = apiClient;
         }
     }
     /**
