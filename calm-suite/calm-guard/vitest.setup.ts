@@ -3,6 +3,9 @@ import { vi } from 'vitest';
 // Stub localStorage and sessionStorage for Node 26 compatibility.
 // Node 26 ships global localStorage/sessionStorage that shadow jsdom's
 // implementation. vi.stubGlobal overrides them with a working in-memory fake.
+//
+// The createMemoryStorage() helper is inlined rather than imported from
+// calm-hub-ui because calmguard has no dependency on that workspace.
 
 function createMemoryStorage(): Storage {
     const store = new Map<string, string>();
