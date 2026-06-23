@@ -125,7 +125,7 @@
    Inline font sizes on prose override this; code blocks carry no inline size,
    so this is the only lever for them. */
 .revealContainer :global(.reveal pre code) {
-  font-size: 0.92rem;
+  font-size: 1.65rem;
   line-height: 1.5;
 }
 
