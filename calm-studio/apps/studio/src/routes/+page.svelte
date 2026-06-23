@@ -47,6 +47,7 @@
 	import { toggleTheme, isDark } from '$lib/stores/theme.svelte';
 	import { getModelJson, applyFromJson, applyFromCanvas, getModel, resetModel } from '$lib/stores/calmModel.svelte';
 	import { calmToFlow } from '$lib/stores/projection';
+	import { decorateFromArch } from '$lib/viz/integration/decorateFlowNodes';
 	import { pushSnapshot, resetHistory, undo, redo } from '$lib/stores/history.svelte';
 	import { layoutCalm, type LayoutDirection } from '$lib/layout/elkLayout';
 	import { openFile, saveFile, saveFileAs } from '$lib/io/fileSystem';
@@ -492,6 +493,7 @@
 				if (applied) {
 					// Project back to Svelte Flow format, preserving positions and selection
 					const projected = calmToFlow(parsed, positionMap);
+					projected.nodes = decorateFromArch(projected.nodes, parsed);
 					const selectionMap = new Map<string, boolean>();
 					for (const n of nodes) {
 						if (n.selected && n.data?.calmId) selectionMap.set(n.data.calmId as string, true);
@@ -537,6 +539,7 @@
 		}
 
 		const projected = calmToFlow(model, positionMap);
+		projected.nodes = decorateFromArch(projected.nodes, model);
 		// Preserve node selection state so SvelteFlow doesn't fire deselection
 		nodes = projected.nodes.map((n) =>
 			selectionMap.has(n.data?.calmId as string)
@@ -652,6 +655,7 @@
 
 		// Project to Svelte Flow
 		const projected = calmToFlow(parsed, positionMap);
+		projected.nodes = decorateFromArch(projected.nodes, parsed);
 		nodes = projected.nodes;
 		edges = projected.edges;
 
@@ -965,6 +969,7 @@
 
 		// Project via calmToFlow with combined position map
 		const projected = calmToFlow(model, finalPositions);
+		projected.nodes = decorateFromArch(projected.nodes, model);
 
 		// Preserve pinned flag on projected nodes
 		const pinnedMap = new Map(nodes.map((n) => [n.id, n.data?.pinned ?? false]));
