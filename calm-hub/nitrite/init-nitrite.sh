@@ -121,27 +121,33 @@ load_schemas_from_dir() {
     done
 }
 
+# Resolve CALM_SCHEMA_BASE_PATH once (falling back to the calm/ dir beside this
+# script when unset) so every schema-reading function — create_core_schemas,
+# create_standards, create_interfaces — sees the same path.  Without this a bare
+# `bash init-nitrite.sh` (no env var) leaves the var empty, which causes those
+# functions to build absolute paths from '/' that don't exist and silently
+# [WARN]-skip content.  seed-readonly.sh always exports CALM_SCHEMA_BASE_PATH,
+# so the Docker build masks the issue; this fix makes the bare run equally safe.
+resolve_schema_base_path() {
+    if [[ -z "$CALM_SCHEMA_BASE_PATH" ]]; then
+        local script_dir
+        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        CALM_SCHEMA_BASE_PATH=$(realpath "$script_dir/../../calm" 2>/dev/null || echo "")
+    fi
+}
+
 # Function to create core schemas
 create_core_schemas() {
     print_status "Creating core schemas..."
 
-    local base_path="$CALM_SCHEMA_BASE_PATH"
-
-    if [[ -z "$base_path" ]]; then
-        # Try to find the calm directory relative to this script's location
-        local script_dir
-        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-        base_path=$(realpath "$script_dir/../../calm" 2>/dev/null || echo "")
-    fi
-
-    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
+    if [[ -z "$CALM_SCHEMA_BASE_PATH" || ! -d "$CALM_SCHEMA_BASE_PATH" ]]; then
         print_error "CALM schema base path not found. Set CALM_SCHEMA_BASE_PATH to the calm/ directory."
         return 1
     fi
 
-    print_status "Loading schemas from: $base_path"
-    load_schemas_from_dir "${base_path}/release" "release"
-    load_schemas_from_dir "${base_path}/draft" "draft"
+    print_status "Loading schemas from: $CALM_SCHEMA_BASE_PATH"
+    load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/release" "release"
+    load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/draft" "draft"
 }
 
 # Function to POST a CALM document using the request envelope expected by the API.
@@ -223,9 +229,8 @@ post_architecture_version() {
 }
 
 # POST an additional version of an existing pattern (mutable version store).
-# Unlike the architecture version endpoint (which takes a name/description/architectureJson
-# envelope), the pattern version endpoint consumes the raw pattern document as the request
-# body, so the document JSON is sent directly.
+# PatternResource.createVersionedPattern requires a {name, description, patternJson}
+# envelope — the document JSON must be stringified into patternJson, not sent raw.
 # Usage: post_pattern_version <namespace> <pattern-id> <version> <name> <description> <document-json>
 post_pattern_version() {
     local namespace="$1"
@@ -235,11 +240,18 @@ post_pattern_version() {
     local description="$5"
     local doc="$6"
 
+    local payload
+    payload=$(jq -n \
+        --arg n "$name" \
+        --arg d "$description" \
+        --argjson doc "$doc" \
+        '{name: $n, description: $d, patternJson: ($doc | tojson)}')
+
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/api/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$doc")
+        -d "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created pattern '$name' version $version in namespace $namespace"
@@ -3072,32 +3084,10 @@ create_timeline_demo() {
     local pattern_id
     pattern_id=$(get_resource_id_by_name "workshop" "patterns" "Demo Pattern (implied timeline)")
     if [[ -n "$pattern_id" ]]; then
-        # Post extra pattern versions with the {name, description, patternJson}
-        # envelope (the shared post_pattern_version helper still sends the raw
-        # doc, which the current endpoint rejects with 400 — see calm-hub
-        # PatternResource.createVersionedPattern).
-        post_demo_pattern_version() {
-            local version="$1" desc="$2" doc="$3"
-            local payload
-            payload=$(jq -n \
-                --arg n "Demo Pattern (implied timeline)" \
-                --arg d "$desc" \
-                --argjson doc "$doc" \
-                '{name: $n, description: $d, patternJson: ($doc | tojson)}')
-            local code
-            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-                "$CALM_HUB_URL/api/calm/namespaces/workshop/patterns/$pattern_id/versions/$version" \
-                -H "$CONTENT_TYPE" -d "$payload")
-            if [[ "$code" == "200" || "$code" == "201" ]]; then
-                print_status "Created Demo Pattern version $version in workshop"
-            elif [[ "$code" == "409" ]]; then
-                print_warning "Demo Pattern version $version already exists, skipping"
-            else
-                print_warning "Failed to create Demo Pattern version $version (HTTP $code)"
-            fi
-        }
-        post_demo_pattern_version "1.1.0" "Added downstream service node." "$pattern_v2"
-        post_demo_pattern_version "2.0.0" "Added gateway→service interacts relationship." "$pattern_v3"
+        post_pattern_version "workshop" "$pattern_id" "1.1.0" \
+            "Demo Pattern (implied timeline)" "Added downstream service node." "$pattern_v2"
+        post_pattern_version "workshop" "$pattern_id" "2.0.0" \
+            "Demo Pattern (implied timeline)" "Added gateway→service interacts relationship." "$pattern_v3"
     else
         print_warning "Could not resolve Demo Pattern id; skipping additional versions"
     fi
@@ -3111,6 +3101,7 @@ main() {
     check_calmhub_status
 
     # Initialize data in order
+    resolve_schema_base_path
     create_namespaces
     create_core_schemas
     create_domains_and_controls
