@@ -14,7 +14,8 @@ export default defineConfig({
 			// npm-workspaces installs some deps (e.g. @sveltejs/kit) into
 			// calm-studio/node_modules, outside Vite's default
 			// allow root at apps/studio. Allow up to the repo root.
-			allow: [path.resolve('../../../..')],
+			// Repo root from cwd (calm-studio/apps/studio) = 3 ups.
+			allow: [path.resolve('../../..')],
 		},
 	},
 	resolve: {
