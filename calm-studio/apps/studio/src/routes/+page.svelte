@@ -4,7 +4,7 @@
 <script lang="ts">
 	import { initAllPacks } from '@calmstudio/extensions';
 	import { type Node, type Edge, SvelteFlowProvider, type Viewport } from '@xyflow/svelte';
-	import { tick, onMount } from 'svelte';
+	import { tick, onMount, untrack } from 'svelte';
 	import { PaneGroup, Pane, PaneResizer } from 'paneforge';
 
 	// Register all extension packs at module load time — before any component renders.
@@ -116,13 +116,19 @@
 	 * React to overlay mode flips by re-decorating the current canvas nodes —
 	 * injects (overlay='threat') or strips (overlay='default') `data.severity`
 	 * without recomputing positions or edges. Cheap, pure replacement.
+	 *
+	 * The `untrack` wrapper is load-bearing: reading and reassigning `nodes`
+	 * inside the effect would create a self-referential dependency on
+	 * `$state.raw` and tip Svelte into `effect_update_depth_exceeded`,
+	 * wedging the canvas on any document with nodes (PR #2731 review).
 	 */
 	$effect(() => {
-		overlay.mode; // dependency
-		const model = getModel();
-		if (nodes.length > 0) {
-			nodes = decorateFromArch(nodes, model, { overlayMode: overlay.mode });
-		}
+		const mode = overlay.mode; // the only dependency
+		untrack(() => {
+			if (nodes.length > 0) {
+				nodes = decorateFromArch(nodes, getModel(), { overlayMode: mode });
+			}
+		});
 	});
 
 	/** Keep the threat-panel list in sync with the loaded architecture. */

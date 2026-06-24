@@ -21,10 +21,17 @@ function countMitigations(node: CalmNode): { controls: number; mitigations: numb
   return { controls: controlIds.length, mitigations };
 }
 
-function severityFromCount(count: number): Severity {
-  if (count >= 6) return 'high';
-  if (count >= 3) return 'medium';
-  if (count >= 1) return 'low';
+/**
+ * Severity scales by total mitigations (sum of `mitigates[]` lengths across all
+ * requirements), not raw control count — the badge signals "how much threat
+ * surface is being addressed", not "how many controls happen to be declared".
+ * A node with one control mitigating ten threats outweighs a node with five
+ * controls each mitigating one.
+ */
+function severityFromMitigations(mitigations: number): Severity {
+  if (mitigations >= 10) return 'high';
+  if (mitigations >= 5) return 'medium';
+  if (mitigations >= 1) return 'low';
   return 'unknown';
 }
 
@@ -38,7 +45,7 @@ export const controlsAdapter: BadgeAdapter = {
         id: `controls-${node['unique-id']}`,
         source: 'controls',
         kind: 'count',
-        severity: severityFromCount(controls),
+        severity: severityFromMitigations(mitigations),
         label: `${controls} control${controls === 1 ? '' : 's'}`,
         data: { count: controls, mitigations },
       },

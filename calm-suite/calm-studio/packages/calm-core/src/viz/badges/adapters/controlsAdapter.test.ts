@@ -36,7 +36,7 @@ describe('controlsAdapter', () => {
     expect(badges[0]!.data?.mitigations).toBe(3);
   });
 
-  it('severity scales with control count', () => {
+  it('severity scales with total mitigations across all controls', () => {
     const mkNode = (ctrlCount: number, mitsEach: number): CalmNode =>
       ({
         'unique-id': 'n',
@@ -52,10 +52,18 @@ describe('controlsAdapter', () => {
         ),
       }) as unknown as CalmNode;
 
+    // 1 control × 1 mitigation = 1 total → low
     expect(controlsAdapter.forNode(mkNode(1, 1), emptyArch)[0]!.severity).toBe('low');
-    expect(controlsAdapter.forNode(mkNode(2, 1), emptyArch)[0]!.severity).toBe('low');
-    expect(controlsAdapter.forNode(mkNode(3, 1), emptyArch)[0]!.severity).toBe('medium');
-    expect(controlsAdapter.forNode(mkNode(6, 1), emptyArch)[0]!.severity).toBe('high');
+    // 4 controls × 1 mitigation = 4 total → low
+    expect(controlsAdapter.forNode(mkNode(4, 1), emptyArch)[0]!.severity).toBe('low');
+    // 1 control × 5 mitigations = 5 total → medium
+    expect(controlsAdapter.forNode(mkNode(1, 5), emptyArch)[0]!.severity).toBe('medium');
+    // 2 controls × 3 mitigations = 6 total → medium
+    expect(controlsAdapter.forNode(mkNode(2, 3), emptyArch)[0]!.severity).toBe('medium');
+    // 1 control × 10 mitigations = 10 total → high
+    expect(controlsAdapter.forNode(mkNode(1, 10), emptyArch)[0]!.severity).toBe('high');
+    // 5 controls × 3 mitigations = 15 total → high
+    expect(controlsAdapter.forNode(mkNode(5, 3), emptyArch)[0]!.severity).toBe('high');
   });
 
   it('emits nothing for edges (controls live on nodes in CALM 1.2)', () => {

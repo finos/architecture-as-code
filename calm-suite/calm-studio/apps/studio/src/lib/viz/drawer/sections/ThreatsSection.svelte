@@ -4,10 +4,11 @@
 -->
 <script lang="ts">
 	import type { CalmNode, CalmDecorator, Severity } from '@calmstudio/calm-core';
+	import { severityFromDecorator } from '@calmstudio/calm-core';
 	let { node }: { node: CalmNode } = $props();
 
 	const threats = $derived(
-		((((node as unknown as { decorators?: unknown[] }).decorators ?? []) as CalmDecorator[]) as CalmDecorator[]).filter(
+		(((node as unknown as { decorators?: unknown[] }).decorators ?? []) as CalmDecorator[]).filter(
 			(d) => d?.type === 'threat'
 		)
 	);
@@ -26,7 +27,7 @@
 		<h3 class="dr-sec-h">Threats <span class="count">{threats.length}</span></h3>
 		{#each threats as t (t['unique-id'])}
 			<div class="dr-item">
-				<span class="dot" style:background-color={sevColor[(t.data?.severity as Severity) ?? 'unknown']}></span>
+				<span class="dot" style:background-color={sevColor[severityFromDecorator(t)]}></span>
 				<span class="k">{t['unique-id']}</span>
 				<span class="v">{(t.data?.name as string) ?? ''}</span>
 			</div>
