@@ -49,7 +49,7 @@ create_namespaces() {
     print_status "Creating namespaces..."
     
     # Create required namespaces (the API requires both a name and a description)
-    for namespace in finos workshop traderx ai-governance-v2 timeline-demo; do
+    for namespace in finos finos.calm finos.traderx workshop; do
         print_status "Creating namespace: $namespace"
         local http_code
         http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces" \
@@ -504,7 +504,7 @@ create_patterns() {
         }
 CALMDOC
 )
-    post_document "finos" "patterns" "patternJson" "API Gateway Pattern" "API Gateway pattern for verifying authorization and access to downstream systems" "$doc"
+    post_document "workshop" "patterns" "patternJson" "API Gateway Pattern" "API Gateway pattern for verifying authorization and access to downstream systems" "$doc"
 
     # Workshop Conference Signup Pattern (Pattern 1) - Exact MongoDB content
     print_status "Creating Workshop Conference Signup Pattern..."
@@ -1311,34 +1311,6 @@ CALMDOC
 create_flows() {
     print_status "Creating flows..."
     
-    # FINOS Flow 1
-    print_status "Creating FINOS flow 1..."
-    local doc
-    doc=$(cat <<'CALMDOC'
-{
-            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-1",
-            "title": "Flow 1",
-            "description": "This is a non-compliant flow document. Just creating something to simulate"
-        }
-CALMDOC
-)
-    post_document "finos" "flows" "flowJson" "Flow 1" "This is a non-compliant flow document. Just creating something to simulate" "$doc"
-
-    # FINOS Flow 2
-    print_status "Creating FINOS flow 2..."
-    local doc
-    doc=$(cat <<'CALMDOC'
-{
-            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-2",
-            "title": "Flow 2",
-            "description": "This is a non-compliant flow document. Just creating something to simulate"
-        }
-CALMDOC
-)
-    post_document "finos" "flows" "flowJson" "Flow 2" "This is a non-compliant flow document. Just creating something to simulate" "$doc"
-
     # TraderX Flow 1 - Add or Update Account
     print_status "Creating TraderX flow 1..."
     local doc
@@ -1381,7 +1353,7 @@ CALMDOC
         }
 CALMDOC
 )
-    post_document "traderx" "flows" "flowJson" "Add or Update Account" "Flow for adding or updating account information in the database." "$doc"
+    post_document "finos.traderx" "flows" "flowJson" "Add or Update Account" "Flow for adding or updating account information in the database." "$doc"
 
     # TraderX Flow 2 - Load List of Accounts
     print_status "Creating TraderX flow 2..."
@@ -1420,27 +1392,13 @@ CALMDOC
         }
 CALMDOC
 )
-    post_document "traderx" "flows" "flowJson" "Load List of Accounts" "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection." "$doc"
+    post_document "finos.traderx" "flows" "flowJson" "Load List of Accounts" "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection." "$doc"
 }
 
 # Function to create architectures
 create_architectures() {
     print_status "Creating architectures..."
     
-    # FINOS Architecture
-    print_status "Creating FINOS architecture..."
-    local doc
-    doc=$(cat <<'CALMDOC'
-{
-            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/arch-1",
-            "title": "Architecture 1",
-            "description": "This is a non-compliant arch document. Just creating something to simulate"
-        }
-CALMDOC
-)
-    post_document "finos" "architectures" "architectureJson" "Architecture 1" "This is a non-compliant arch document. Just creating something to simulate" "$doc"
-
     # Workshop Architecture
     print_status "Creating Workshop architecture..."
     local doc
@@ -2152,7 +2110,7 @@ CALMDOC
         }
 CALMDOC
 )
-    post_document "traderx" "architectures" "architectureJson" "TraderX Architecture" "TraderX simple trading system architecture" "$doc"
+    post_document "finos.traderx" "architectures" "architectureJson" "TraderX Architecture" "TraderX simple trading system architecture" "$doc"
 }
 
 # Function to create user access (if endpoint exists)
@@ -2160,7 +2118,7 @@ create_user_access() {
     print_status "Creating user access entries..."
     
     # Create sample user access for different namespaces
-    for namespace in finos workshop traderx ai-governance-v2; do
+    for namespace in finos finos.calm finos.traderx workshop; do
         print_status "Creating user access for namespace: $namespace"
         curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/user-access" \
             -H "$CONTENT_TYPE" \
@@ -2173,19 +2131,71 @@ create_user_access() {
     done
 }
 
-# Function to create standards (if implemented)
+# Function to create standards
 create_standards() {
     print_status "Creating standards..."
-    
-    # Create a sample NIST standard
-    print_status "Creating NIST standard..."
-    curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/finos/standards" \
-        -H "$CONTENT_TYPE" \
-        -d '{
-            "name": "NIST Cybersecurity Framework",
-            "description": "NIST Cybersecurity Framework standard",
-            "standardJson": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"title\":\"NIST Cybersecurity Framework\",\"type\":\"object\",\"properties\":{\"identify\":{\"type\":\"object\",\"description\":\"Identify function\"},\"protect\":{\"type\":\"object\",\"description\":\"Protect function\"}}}"
-        }' || print_warning "Failed to create NIST standard"
+
+    # Create the CALM Deployment Decorator Standard in finos.calm
+    local f="${CALM_SCHEMA_BASE_PATH}/draft/2026-03/standards/deployment/deployment.decorator.standard.json"
+    if [[ -f "$f" ]]; then
+        local doc payload
+        doc=$(cat "$f")
+        payload=$(jq -n \
+            --arg name "CALM Deployment Decorator Standard" \
+            --arg description "Deployment decorator standard for architectures" \
+            --argjson doc "$doc" \
+            '{name: $name, description: $description, standardJson: ($doc | tojson)}')
+        local http_code
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
+            -H "$CONTENT_TYPE" -d "$payload")
+        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+            print_status "Created deployment standard in finos.calm"
+        elif [[ "$http_code" == "409" ]]; then
+            print_warning "Deployment standard already exists, skipping"
+        else
+            print_warning "Failed to create deployment standard (HTTP $http_code)"
+        fi
+    else
+        print_warning "Deployment standard not found at $f"
+    fi
+}
+
+# Function to seed CALM interface examples into finos.calm
+create_interfaces() {
+    print_status "Creating interfaces in finos.calm..."
+
+    local interfaces_dir="${CALM_SCHEMA_BASE_PATH}/interfaces/example"
+    if [[ ! -d "$interfaces_dir" ]]; then
+        print_warning "Interfaces example directory not found at $interfaces_dir, skipping"
+        return
+    fi
+
+    for f in "$interfaces_dir"/*.json; do
+        [[ -f "$f" ]] || continue
+        local name doc payload http_code
+        # Derive name from the .title field; fall back to the basename without extension
+        name=$(jq -r '.title // empty' "$f")
+        if [[ -z "$name" ]]; then
+            name=$(basename "$f" .json)
+        fi
+        doc=$(cat "$f")
+        payload=$(jq -n \
+            --arg name "$name" \
+            --arg description "CALM interface example: $name" \
+            --argjson doc "$doc" \
+            '{name: $name, description: $description, interfaceJson: ($doc | tojson)}')
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "$CALM_HUB_URL/api/calm/namespaces/finos.calm/interfaces" \
+            -H "$CONTENT_TYPE" -d "$payload")
+        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+            print_status "Created interface '$name' in finos.calm"
+        elif [[ "$http_code" == "409" ]]; then
+            print_warning "Interface '$name' already exists, skipping"
+        else
+            print_warning "Failed to create interface '$name' (HTTP $http_code)"
+        fi
+    done
 }
 
 # Map of ai-governance control IDs (as referenced in source documents) to the IDs
@@ -2220,17 +2230,24 @@ create_domains_and_controls() {
         local domain
         domain=$(basename "$domain_dir")
 
-        print_status "Creating domain: $domain"
+        # Skip the security domain
+        [[ "$domain" == "security" ]] && continue
+
+        # Rename ai-governance → finos-ai-governance (domain regex forbids dots)
+        local api_domain="$domain"
+        [[ "$domain" == "ai-governance" ]] && api_domain="finos-ai-governance"
+
+        print_status "Creating domain: $api_domain"
         local domain_code
         domain_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/domains" \
             -H "$CONTENT_TYPE" \
-            -d "{\"name\": \"$domain\"}")
+            -d "{\"name\": \"$api_domain\"}")
         if [[ "$domain_code" == "200" || "$domain_code" == "201" ]]; then
-            print_status "Created domain $domain"
+            print_status "Created domain $api_domain"
         elif [[ "$domain_code" == "409" ]]; then
-            print_warning "Domain $domain already exists, skipping"
+            print_warning "Domain $api_domain already exists, skipping"
         else
-            print_warning "Failed to create domain $domain (HTTP $domain_code)"
+            print_warning "Failed to create domain $api_domain (HTTP $domain_code)"
         fi
 
         # Create controls in ascending controlId order so assignment is deterministic.
@@ -2250,19 +2267,19 @@ create_domains_and_controls() {
                 '{name: $name, description: $description, requirementJson: $requirementJson}')
 
             local location new_id
-            location=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/api/calm/domains/$domain/controls" \
+            location=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/api/calm/domains/$api_domain/controls" \
                 -H "$CONTENT_TYPE" \
                 -d "$payload" | grep -i '^location:' | tr -d '\r')
             new_id=$(echo "$location" | sed -E 's#.*/controls/([0-9]+).*#\1#')
 
             if [[ -n "$new_id" && "$new_id" =~ ^[0-9]+$ ]]; then
-                print_status "Created control '$name' in domain $domain (id $new_id)"
+                print_status "Created control '$name' in domain $api_domain (id $new_id)"
                 if [[ "$domain" == "ai-governance" ]]; then
                     AI_GOVERNANCE_CONTROL_MAP=$(echo "$AI_GOVERNANCE_CONTROL_MAP" \
                         | jq --arg k "$orig_id" --arg v "$new_id" '. + {($k): $v}')
                 fi
             else
-                print_warning "Failed to create control '$name' in domain $domain"
+                print_warning "Failed to create control '$name' in domain $api_domain"
             fi
         done < <(find "$domain_dir" -maxdepth 1 -name '*.json' | sort)
     done
@@ -2741,7 +2758,7 @@ CALMDOC
 
 # Main execution
 create_timeline_demo() {
-    print_status "Creating timeline-demo architectures + explicit timeline..."
+    print_status "Creating workshop timeline demo architectures + explicit timeline..."
 
     # --- Payments Service (implied timeline) ---------------------------------
     # No stored timeline; the timeline bar projects one from the version list.
@@ -2788,17 +2805,17 @@ create_timeline_demo() {
         ]
     }'
 
-    post_document "timeline-demo" "architectures" "architectureJson" \
+    post_document "workshop" "architectures" "architectureJson" \
         "Payments Service (implied timeline)" \
         "Demo architecture with no curated timeline — the bar projects one from the version list." \
         "$payments_v1"
 
     local payments_id
-    payments_id=$(get_resource_id_by_name "timeline-demo" "architectures" "Payments Service (implied timeline)")
+    payments_id=$(get_resource_id_by_name "workshop" "architectures" "Payments Service (implied timeline)")
     if [[ -n "$payments_id" ]]; then
-        post_architecture_version "timeline-demo" "$payments_id" "1.1.0" \
+        post_architecture_version "workshop" "$payments_id" "1.1.0" \
             "Payments Service (implied timeline)" "Added idempotency cache." "$payments_v2"
-        post_architecture_version "timeline-demo" "$payments_id" "1.2.0" \
+        post_architecture_version "workshop" "$payments_id" "1.2.0" \
             "Payments Service (implied timeline)" "Added async settlement worker." "$payments_v3"
     else
         print_warning "Could not resolve Payments Service id; skipping additional versions"
@@ -2871,23 +2888,23 @@ create_timeline_demo() {
         ]
     }'
 
-    post_document "timeline-demo" "architectures" "architectureJson" \
+    post_document "workshop" "architectures" "architectureJson" \
         "Trading Platform (explicit timeline)" \
         "Demo architecture with a curated timeline. Has four versions; the explicit timeline marks the third as current." \
         "$trading_v1"
 
     local trading_id
-    trading_id=$(get_resource_id_by_name "timeline-demo" "architectures" "Trading Platform (explicit timeline)")
+    trading_id=$(get_resource_id_by_name "workshop" "architectures" "Trading Platform (explicit timeline)")
     if [[ -z "$trading_id" ]]; then
         print_warning "Could not resolve Trading Platform id; skipping additional versions + timeline"
         return
     fi
 
-    post_architecture_version "timeline-demo" "$trading_id" "1.1.0" \
+    post_architecture_version "workshop" "$trading_id" "1.1.0" \
         "Trading Platform (explicit timeline)" "Added centralised order book." "$trading_v2"
-    post_architecture_version "timeline-demo" "$trading_id" "2.0.0" \
+    post_architecture_version "workshop" "$trading_id" "2.0.0" \
         "Trading Platform (explicit timeline)" "Added pre-trade risk engine." "$trading_v3"
-    post_architecture_version "timeline-demo" "$trading_id" "3.0.0" \
+    post_architecture_version "workshop" "$trading_id" "3.0.0" \
         "Trading Platform (explicit timeline)" "Added post-trade settlement." "$trading_v4"
 
     # Explicit stored timeline: 4 curated moments referencing the 4 versions
@@ -2902,19 +2919,19 @@ create_timeline_demo() {
         "moments": [
             { "unique-id": "initial-launch", "node-type": "moment", "name": "Initial launch",
               "description": "Order gateway + matching engine", "valid-from": "2024-01-15",
-              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/1.0.0") },
+              "details": { "detailed-architecture": ("/calm/namespaces/workshop/architectures/" + $id + "/versions/1.0.0") },
               "adrs": ["https://example.com/adr/0001-initial-trading-architecture"] },
             { "unique-id": "order-book-rollout", "node-type": "moment", "name": "Order book rollout",
               "description": "Centralised order book", "valid-from": "2024-04-01",
-              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/1.1.0") },
+              "details": { "detailed-architecture": ("/calm/namespaces/workshop/architectures/" + $id + "/versions/1.1.0") },
               "adrs": ["https://example.com/adr/0002-order-book"] },
             { "unique-id": "risk-controls", "node-type": "moment", "name": "Risk controls go-live",
               "description": "Added pre-trade risk engine", "valid-from": "2024-09-01",
-              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/2.0.0") },
+              "details": { "detailed-architecture": ("/calm/namespaces/workshop/architectures/" + $id + "/versions/2.0.0") },
               "adrs": ["https://example.com/adr/0003-pre-trade-risk"] },
             { "unique-id": "settlement-go-live", "node-type": "moment", "name": "Settlement go-live",
               "description": "Added post-trade settlement", "valid-from": "2025-02-01",
-              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/3.0.0") },
+              "details": { "detailed-architecture": ("/calm/namespaces/workshop/architectures/" + $id + "/versions/3.0.0") },
               "adrs": ["https://example.com/adr/0004-settlement"] }
         ]
     }')
@@ -2928,10 +2945,10 @@ create_timeline_demo() {
 
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        "$CALM_HUB_URL/api/calm/namespaces/timeline-demo/timelines" \
+        "$CALM_HUB_URL/api/calm/namespaces/workshop/timelines" \
         -H "$CONTENT_TYPE" -d "$tl_payload")
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-        print_status "Created explicit timeline for Trading Platform in timeline-demo"
+        print_status "Created explicit timeline for Trading Platform in workshop"
     elif [[ "$http_code" == "409" ]]; then
         print_warning "Trading Platform timeline already exists, skipping"
     else
@@ -3047,13 +3064,13 @@ create_timeline_demo() {
         }
     }'
 
-    post_document "timeline-demo" "patterns" "patternJson" \
+    post_document "workshop" "patterns" "patternJson" \
         "Demo Pattern (implied timeline)" \
         "Demo pattern with three versions to exercise the pattern path of the timeline bar." \
         "$pattern_v1"
 
     local pattern_id
-    pattern_id=$(get_resource_id_by_name "timeline-demo" "patterns" "Demo Pattern (implied timeline)")
+    pattern_id=$(get_resource_id_by_name "workshop" "patterns" "Demo Pattern (implied timeline)")
     if [[ -n "$pattern_id" ]]; then
         # Post extra pattern versions with the {name, description, patternJson}
         # envelope (the shared post_pattern_version helper still sends the raw
@@ -3069,10 +3086,10 @@ create_timeline_demo() {
                 '{name: $n, description: $d, patternJson: ($doc | tojson)}')
             local code
             code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-                "$CALM_HUB_URL/api/calm/namespaces/timeline-demo/patterns/$pattern_id/versions/$version" \
+                "$CALM_HUB_URL/api/calm/namespaces/workshop/patterns/$pattern_id/versions/$version" \
                 -H "$CONTENT_TYPE" -d "$payload")
             if [[ "$code" == "200" || "$code" == "201" ]]; then
-                print_status "Created Demo Pattern version $version in timeline-demo"
+                print_status "Created Demo Pattern version $version in workshop"
             elif [[ "$code" == "409" ]]; then
                 print_warning "Demo Pattern version $version already exists, skipping"
             else
@@ -3100,9 +3117,9 @@ main() {
     create_patterns
     create_flows
     create_architectures
-    create_ai_governance_architecture
     create_user_access
     create_standards
+    create_interfaces
     create_timeline_demo
 
     print_status "CalmHub NitriteDB initialization completed!"
