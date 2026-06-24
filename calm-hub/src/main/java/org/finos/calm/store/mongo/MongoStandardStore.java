@@ -67,10 +67,14 @@ public class MongoStandardStore implements StandardStore {
         List<NamespaceStandardSummary> namespaceStanadardSummary = new ArrayList<>();
 
         for (Document standard : standards) {
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Document versions = (Document) standard.get("versions");
+            int versionCount = versions == null ? 0 : versions.keySet().size();
             NamespaceStandardSummary standardSummary = new NamespaceStandardSummary(
                     standard.getString("name"),
                     standard.getString("description"),
-                    standard.getInteger("standardId")
+                    standard.getInteger("standardId"),
+                    versionCount
             );
 
             namespaceStanadardSummary.add(standardSummary);

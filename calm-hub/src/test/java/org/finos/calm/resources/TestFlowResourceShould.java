@@ -52,8 +52,8 @@ public class TestFlowResourceShould {
     @Test
     void return_list_of_flow_summaries_when_valid_namespace_provided_on_get_flows() throws NamespaceNotFoundException {
         List<NamespaceFlowSummary> summaries = Arrays.asList(
-                new NamespaceFlowSummary("Flow One", "First", 12345),
-                new NamespaceFlowSummary("Flow Two", "Second", 54321)
+                new NamespaceFlowSummary("Flow One", "First", 12345, 3),
+                new NamespaceFlowSummary("Flow Two", "Second", 54321, 1)
         );
         when(mockFlowStore.getFlowsForNamespace(anyString())).thenReturn(summaries);
 
@@ -65,9 +65,11 @@ public class TestFlowResourceShould {
                 .body("values[0].name", equalTo("Flow One"))
                 .body("values[0].description", equalTo("First"))
                 .body("values[0].id", equalTo(12345))
+                .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Flow Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321));
+                .body("values[1].id", equalTo(54321))
+                .body("values[1].versionCount", equalTo(1));
 
         verify(mockFlowStore, times(1)).getFlowsForNamespace("valid");
     }

@@ -93,8 +93,10 @@ public class TestNitritePatternStoreShould {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
-        Document patternDoc1 = Document.createDocument("patternId", 1).put("name", "Pattern One").put("description", "First");
-        Document patternDoc2 = Document.createDocument("patternId", 2).put("name", "Pattern Two").put("description", "Second");
+        Document patternDoc1 = Document.createDocument("patternId", 1).put("name", "Pattern One").put("description", "First")
+                .put("versions", Document.createDocument().put("1-0-0", "{}").put("2-0-0", "{}"));
+        Document patternDoc2 = Document.createDocument("patternId", 2).put("name", "Pattern Two").put("description", "Second")
+                .put("versions", Document.createDocument().put("1-0-0", "{}"));
         List<Document> patterns = Arrays.asList(patternDoc1, patternDoc2);
 
         Document namespaceDoc = Document.createDocument()
@@ -114,9 +116,11 @@ public class TestNitritePatternStoreShould {
         assertThat(result.get(0).getId(), is(1));
         assertThat(result.get(0).getName(), is("Pattern One"));
         assertThat(result.get(0).getDescription(), is("First"));
+        assertThat(result.get(0).getVersionCount(), is(2));
         assertThat(result.get(1).getId(), is(2));
         assertThat(result.get(1).getName(), is("Pattern Two"));
         assertThat(result.get(1).getDescription(), is("Second"));
+        assertThat(result.get(1).getVersionCount(), is(1));
     }
 
     @Test
@@ -140,6 +144,8 @@ public class TestNitritePatternStoreShould {
         assertThat(result.get(0).getId(), is(99));
         assertThat(result.get(0).getName(), is("Pattern 99"));
         assertThat(result.get(0).getDescription(), is(""));
+        // Legacy document carries no versions sub-document → count guards to 0.
+        assertThat(result.get(0).getVersionCount(), is(0));
     }
 
     @Test

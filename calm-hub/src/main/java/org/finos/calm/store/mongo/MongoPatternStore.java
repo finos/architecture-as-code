@@ -78,7 +78,10 @@ public class MongoPatternStore implements PatternStore {
             String description = pattern.getString("description");
             if (name == null) name = "Pattern " + patternId;
             if (description == null) description = "";
-            patternSummaries.add(new NamespacePatternSummary(name, description, patternId));
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Document versions = (Document) pattern.get("versions");
+            int versionCount = versions == null ? 0 : versions.keySet().size();
+            patternSummaries.add(new NamespacePatternSummary(name, description, patternId, versionCount));
         }
 
         return patternSummaries;

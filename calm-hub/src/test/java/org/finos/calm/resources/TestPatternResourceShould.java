@@ -65,8 +65,8 @@ public class TestPatternResourceShould {
     @Test
     void return_list_of_pattern_summaries_when_valid_namespace_provided_on_get_patterns() throws NamespaceNotFoundException {
         List<NamespacePatternSummary> summaries = Arrays.asList(
-                new NamespacePatternSummary("Pattern One", "First", 12345),
-                new NamespacePatternSummary("Pattern Two", "Second", 54321)
+                new NamespacePatternSummary("Pattern One", "First", 12345, 3),
+                new NamespacePatternSummary("Pattern Two", "Second", 54321, 1)
         );
         when(mockPatternStore.getPatternsForNamespace(anyString())).thenReturn(summaries);
 
@@ -78,9 +78,11 @@ public class TestPatternResourceShould {
                 .body("values[0].name", equalTo("Pattern One"))
                 .body("values[0].description", equalTo("First"))
                 .body("values[0].id", equalTo(12345))
+                .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Pattern Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321));
+                .body("values[1].id", equalTo(54321))
+                .body("values[1].versionCount", equalTo(1));
 
         verify(mockPatternStore, times(1)).getPatternsForNamespace("finos");
     }
