@@ -131,6 +131,57 @@ export const colors = {
     },
     timelineBg: '#f6f7f9',
     new: '#ef4444',
+
+    // ── CALM Hub redesign tokens (Phase 1) ────────────────────────────────────
+    // Home for the navigation/browse redesign palette. Deliberately ADDITIVE and
+    // namespaced under `redesign` so it does not touch the existing global brand
+    // (`brand.primary` navy / `brand.accent`) or the logo — `#2563EB` here is the
+    // redesign's interaction / selection colour only, per the design handoff.
+    // Components in the new rail / namespace / domain surfaces consume hex from
+    // here via inline `style`. The one value also needed inside Tailwind
+    // pseudo-variants (e.g. `focus-visible:outline-[var(--color-interaction)]`),
+    // where inline style can't reach, is `primary` — `initThemeCssVars()` mirrors
+    // it as the runtime CSS var `--color-interaction` so there is a single source
+    // of truth for the brand interaction blue. Exact hex values are from the spec.
+    redesign: {
+        // Brand / interaction
+        primary: '#2563EB', // active states, selection, links, focus, primary
+        activeText: '#1D4ED8', // active tab / rail text
+        tintBg: '#EEF4FF', // selected rail row, icon tile, active pill bg
+        tint2: '#F8FAFF', // dropzone / welcome hover bg
+        // Text scale
+        ink: '#0B1220', // H1/H2/H3, node labels
+        bodyStrong: '#0F172A', // current breadcrumb segment, strong body
+        body: '#41506A', // paragraph copy
+        bodyAlt: '#475569', // resting tab text
+        muted: '#5A6678', // sub-copy, card descriptions
+        mutedAlt: '#64748B', // meta
+        faint: '#8A94A6', // mono section labels
+        faintAlt: '#9AA6B8', // faint hints (NAMESPACES label colour)
+        disabled: '#B6BECC', // zero-count tab text + badge
+        // Surfaces / borders
+        borderStrong: '#E2E6ED', // inputs, controls, minimap
+        border: '#E6E9EE', // cards, rails, top bar, dividers
+        tabDivider: '#EAEDF1', // tab bottom border
+        canvas: '#F7F8FA', // diagram stage
+        surface: '#F8FAFC', // search bg, rail bg
+        surfaceAlt: '#FCFCFD', // rail bg, minimap field
+        // Resting count-badge bg / text
+        badgeBg: '#EEF2F7',
+        // Selected-rail accent (inset left bar)
+        railAccentShadow: 'inset 3px 0 0 #2563EB',
+    },
+
+    // Resource-type accents (badges, card thumbnails, node borders, type dots).
+    // `tint` is the soft badge background per accent. Defined now for later phases.
+    resourceTypes: {
+        architecture: { accent: '#2563EB', tint: '#EEF4FF' },
+        pattern: { accent: '#7C3AED', tint: '#F2ECFD' },
+        flow: { accent: '#0891B2', tint: '#E5F6FA' },
+        standard: { accent: '#D97706', tint: '#FCF1E2' },
+        adr: { accent: '#DB2777', tint: '#FCE9F2' },
+        interface: { accent: '#059669', tint: '#E4F5EE' },
+    },
     diffPalette: {
         add: { bg: '#e8f6ee', border: '#b6dfc6', fg: '#15803d', sign: '+' },
         mod: { bg: '#fdf3e2', border: '#f3dca4', fg: '#b45309', sign: '~' },
@@ -150,4 +201,8 @@ export function initThemeCssVars(): void {
     root.style.setProperty('--color-primary', colors.brand.primary);
     root.style.setProperty('--color-accent', colors.brand.accent);
     root.style.setProperty('--color-accent-light', colors.brand.accentLight);
+    // Redesign interaction / selection blue, exposed for Tailwind pseudo-variant
+    // arbitraries (focus rings) that can't read an inline style. Single source of
+    // truth for `#2563EB`; does NOT touch the navy global `--color-primary`.
+    root.style.setProperty('--color-interaction', colors.redesign.primary);
 }

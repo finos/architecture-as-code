@@ -1,6 +1,5 @@
 import { HashRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import Hub from './hub/Hub.js';
-import Visualizer from './visualizer/Visualizer.js';
 import { AdminPage } from './admin/AdminPage.js';
 import { NamespacesPanel } from './admin/panels/NamespacesPanel.js';
 import { DomainsPanel } from './admin/panels/DomainsPanel.js';
@@ -16,8 +15,9 @@ function App() {
             <Router>
                 <Routes>
                     <Route path="/" element={<Hub />} />
+                    <Route path="/namespace/:ns" element={<Hub />} />
+                    <Route path="/domain/:domain" element={<Hub />} />
                     <Route path="/:namespace/:type/:id/:version" element={<Hub />} />
-                    <Route path="/visualizer" element={<Visualizer />} />
                     <Route path="/admin" element={<AdminPage />}>
                         <Route index element={<Navigate to="entitlements" replace />} />
                         <Route path="namespaces" element={<NamespacesPanel />} />

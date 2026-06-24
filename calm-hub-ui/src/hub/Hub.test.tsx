@@ -1,9 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import Hub from './Hub.js';
-import { vi, describe, it, expect, afterEach } from 'vitest';
+import { vi, describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { authStore } from '../service/utils/auth-store.js';
+import type { Data, Adr } from '../model/calm.js';
+import type { ControlData } from '../model/control.js';
+import type { InterfaceData } from '../model/interface.js';
 
 /**
  * Force `useIsMobile()` (which reads window.matchMedia) to report a mobile
@@ -26,98 +29,73 @@ function mockMobileViewport(isMobile: boolean) {
     };
 }
 
-vi.mock('./components/tree-navigation/TreeNavigation', () => ({
-    TreeNavigation: ({
-        onDataLoad,
-        onAdrLoad,
-        onControlLoad,
-        onInterfaceLoad,
-        onCollapse,
-    }: {
-        onDataLoad: (data: unknown) => void;
-        onAdrLoad: (adr: unknown) => void;
-        onControlLoad: (control: unknown) => void;
-        onInterfaceLoad: (iface: unknown) => void;
-        onCollapse?: () => void;
-    }) => (
-        <div data-testid="tree-navigation">
-            <div>Tree Navigation</div>
+// Capture the load callbacks Hub passes to the shared deep-link hook so tests can
+// drive resource loading without a navigation surface owning those callbacks.
+interface CapturedCallbacks {
+    onDataLoad: (data: Data) => void;
+    onAdrLoad: (adr: Adr) => void;
+    onControlLoad: (control: ControlData) => void;
+    onInterfaceLoad: (iface: InterfaceData) => void;
+}
+let captured: CapturedCallbacks | undefined;
+
+vi.mock('./hooks/useResourceFromRoute', () => ({
+    useResourceFromRoute: (opts: CapturedCallbacks) => {
+        captured = opts;
+    },
+}));
+
+vi.mock('./components/explore-rail/ExploreRail', () => ({
+    ExploreRail: ({ onCollapse }: { onCollapse?: () => void }) => (
+        <div data-testid="explore-rail">
+            <div>Explore Rail</div>
             {onCollapse && (
                 <button aria-label="Collapse sidebar" onClick={onCollapse}>
                     Collapse
                 </button>
             )}
-            <button
-                onClick={() =>
-                    onDataLoad({
-                        id: 'test',
-                        version: '1.0',
-                        calmType: 'Patterns',
-                        name: 'test-namespace',
-                        data: {},
-                    })
-                }
-            >
-                Load Test Data
-            </button>
-            <button onClick={() => onAdrLoad({ id: 'test-adr', revision: '1.0' })}>
-                Load Test ADR
-            </button>
-            <button
-                onClick={() =>
-                    onControlLoad({
-                        domain: 'test-domain',
-                        controlId: 1,
-                        controlName: 'test-control',
-                        controlDescription: 'A test control',
-                    })
-                }
-            >
-                Load Test Control
-            </button>
-            <button
-                onClick={() =>
-                    onInterfaceLoad({
-                        namespace: 'org.finos',
-                        interfaceId: 1,
-                        interfaceName: 'test-interface',
-                        interfaceDescription: 'A test interface',
-                    })
-                }
-            >
-                Load Test Interface
-            </button>
         </div>
     ),
 }));
 
 vi.mock('./components/tree-navigation/MobileNavMenu', () => ({
-    MobileNavMenu: ({
-        onDataLoad,
-        onClose,
-    }: {
-        onDataLoad: (data: unknown) => void;
-        onClose: () => void;
-    }) => (
+    MobileNavMenu: ({ onClose }: { onClose: () => void }) => (
         <div data-testid="mobile-nav-menu">
             <button aria-label="Close navigation" onClick={onClose}>
                 Close
             </button>
-            <button
-                onClick={() =>
-                    onDataLoad({
-                        id: 'test',
-                        version: '1.0',
-                        calmType: 'Patterns',
-                        name: 'test-namespace',
-                        data: {},
-                    })
-                }
-            >
-                Mobile Load Test Data
-            </button>
         </div>
     ),
+}));
+
+vi.mock('./components/namespace-page/NamespacePage', () => ({
+    NamespacePage: ({ namespace, total }: { namespace: string; total: number }) => (
+        <div data-testid="namespace-page">
+            Namespace: {namespace} ({total})
+        </div>
+    ),
+}));
+
+vi.mock('./components/domain-page/DomainPage', () => ({
+    DomainPage: ({ domain, controlCount }: { domain: string; controlCount: number }) => (
+        <div data-testid="domain-page">
+            Domain: {domain} ({controlCount})
+        </div>
+    ),
+}));
+
+// Counts service returns deterministic data for the page meta assertions.
+vi.mock('../service/counts-service', () => ({
+    CountsService: class {
+        fetchNamespaceCounts() {
+            return Promise.resolve([
+                { namespace: 'finos', architectures: 1, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 1 },
+            ]);
+        }
+        fetchDomainCounts() {
+            return Promise.resolve([{ domain: 'security', controlCount: 3 }]);
+        }
+    },
 }));
 
 vi.mock('./components/json-renderer/JsonRenderer', () => ({
@@ -154,171 +132,246 @@ vi.mock('./components/diagram-section/DiagramSection', () => ({
     ),
 }));
 
-// Helper to render with router
-const renderWithRouter = (ui: React.ReactElement) => {
-    return render(<BrowserRouter>{ui}</BrowserRouter>);
-};
+// Helpers to drive the captured load callbacks.
+const loadData = () =>
+    act(() => {
+        captured?.onDataLoad({
+            id: 'test',
+            version: '1.0',
+            calmType: 'Patterns',
+            name: 'test-namespace',
+            data: {},
+        } as Data);
+    });
+const loadAdr = () => act(() => captured?.onAdrLoad({ id: 'test-adr' } as unknown as Adr));
+const loadControl = () =>
+    act(() =>
+        captured?.onControlLoad({
+            domain: 'test-domain',
+            controlId: 1,
+            controlName: 'test-control',
+            controlDescription: 'A test control',
+        })
+    );
+const loadInterface = () =>
+    act(() =>
+        captured?.onInterfaceLoad({
+            namespace: 'org.finos',
+            interfaceId: 1,
+            interfaceName: 'test-interface',
+            interfaceDescription: 'A test interface',
+        })
+    );
+
+const renderAt = (path: string) =>
+    render(
+        <MemoryRouter initialEntries={[path]}>
+            <Hub />
+        </MemoryRouter>
+    );
+
+// A tiny in-router harness so tests can drive real react-router navigation
+// (changing location.key) against the same <Hub/> instance — `rerender` with a
+// fresh MemoryRouter would remount Hub and discard its state, defeating the test.
+function NavHarness({ to }: { to: string }) {
+    const navigate = useNavigate();
+    return (
+        <button data-testid={`nav-${to}`} onClick={() => navigate(to)}>
+            go {to}
+        </button>
+    );
+}
+
+const renderWithNav = (path: string, targets: string[]) =>
+    render(
+        <MemoryRouter initialEntries={[path]}>
+            <Hub />
+            {targets.map((t) => (
+                <NavHarness key={t} to={t} />
+            ))}
+        </MemoryRouter>
+    );
+
+const navigateTo = (to: string) => fireEvent.click(screen.getByTestId(`nav-${to}`));
 
 describe('Hub', () => {
-    it('renders Navbar and TreeNavigation components', () => {
-        renderWithRouter(<Hub />);
+    beforeEach(() => {
+        captured = undefined;
+    });
+
+    it('renders Navbar and the browse rail', () => {
+        renderAt('/');
         expect(screen.getByTestId('navbar')).toBeInTheDocument();
-        expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
-        expect(screen.getByText('Tree Navigation')).toBeInTheDocument();
+        expect(screen.getByTestId('explore-rail')).toBeInTheDocument();
+        expect(screen.getByText('Explore Rail')).toBeInTheDocument();
     });
 
     it('renders DiagramSection when pattern data is loaded', () => {
-        renderWithRouter(<Hub />);
-
-        // Initially, no content should be rendered
+        renderAt('/');
         expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
-
-        // Click the Load Test Data button to simulate data loading (loads Pattern data)
-        fireEvent.click(screen.getByText('Load Test Data'));
-
-        // Now DiagramSection should be visible
+        loadData();
         expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
         expect(screen.getByTestId('diagram-section')).toHaveTextContent('Diagram: test');
     });
 
     it('renders AdrRenderer when ADR data is loaded', () => {
-        renderWithRouter(<Hub />);
-
-        // Initially, AdrRenderer should not be visible
+        renderAt('/');
         expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
-
-        // Click the Load Test ADR button to simulate ADR loading
-        fireEvent.click(screen.getByText('Load Test ADR'));
-
-        // Now AdrRenderer should be visible
+        loadAdr();
         expect(screen.getByTestId('adr-renderer')).toBeInTheDocument();
         expect(screen.getByTestId('adr-renderer')).toHaveTextContent('ADR: test-adr');
     });
 
-    it('shows JSON and Diagram tabs when architecture data is loaded', () => {
-        renderWithRouter(<Hub />);
-
-        // Initially, no tabs should be visible
-        expect(screen.queryByLabelText('JSON')).not.toBeInTheDocument();
-        expect(screen.queryByLabelText('Diagram')).not.toBeInTheDocument();
-
-        // Load test data (non-architecture type shouldn't show tabs)
-        fireEvent.click(screen.getByText('Load Test Data'));
-
-        // Still no tabs for non-Architecture calmType
-        expect(screen.queryByLabelText('JSON')).not.toBeInTheDocument();
-        expect(screen.queryByLabelText('Diagram')).not.toBeInTheDocument();
-    });
-
     it('switches between DiagramSection and AdrRenderer correctly', () => {
-        renderWithRouter(<Hub />);
-
-        // Load test data first (Pattern data)
-        fireEvent.click(screen.getByText('Load Test Data'));
+        renderAt('/');
+        loadData();
         expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
         expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
 
-        // Load ADR data
-        fireEvent.click(screen.getByText('Load Test ADR'));
+        loadAdr();
         expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
         expect(screen.getByTestId('adr-renderer')).toBeInTheDocument();
 
-        // Load test data again
-        fireEvent.click(screen.getByText('Load Test Data'));
+        loadData();
         expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
         expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
     });
 
     it('renders ControlDetailSection when control data is loaded', () => {
-        renderWithRouter(<Hub />);
-
-        // Initially, control section should not be visible
+        renderAt('/');
         expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
-
-        // Click the Load Test Control button to simulate control loading
-        fireEvent.click(screen.getByText('Load Test Control'));
-
-        // Now ControlDetailSection should be visible
+        loadControl();
         expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
         expect(screen.getByTestId('control-detail-section')).toHaveTextContent('Control: test-control');
     });
 
     it('switches between Control and other views correctly', () => {
-        renderWithRouter(<Hub />);
-
-        // Load control data
-        fireEvent.click(screen.getByText('Load Test Control'));
+        renderAt('/');
+        loadControl();
         expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
         expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
 
-        // Switch to regular data (Pattern type renders DiagramSection)
-        fireEvent.click(screen.getByText('Load Test Data'));
+        loadData();
         expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
         expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
 
-        // Switch back to control
-        fireEvent.click(screen.getByText('Load Test Control'));
+        loadControl();
         expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
         expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
     });
 
     it('renders InterfaceDetailSection when interface data is loaded', () => {
-        renderWithRouter(<Hub />);
-
+        renderAt('/');
         expect(screen.queryByTestId('interface-detail-section')).not.toBeInTheDocument();
-
-        fireEvent.click(screen.getByText('Load Test Interface'));
-
+        loadInterface();
         expect(screen.getByTestId('interface-detail-section')).toBeInTheDocument();
         expect(screen.getByTestId('interface-detail-section')).toHaveTextContent('Interface: test-interface');
     });
 
     it('switches between Interface and other views correctly', () => {
-        renderWithRouter(<Hub />);
-
-        // Load interface data
-        fireEvent.click(screen.getByText('Load Test Interface'));
+        renderAt('/');
+        loadInterface();
         expect(screen.getByTestId('interface-detail-section')).toBeInTheDocument();
         expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
 
-        // Switch to regular data
-        fireEvent.click(screen.getByText('Load Test Data'));
+        loadData();
         expect(screen.queryByTestId('interface-detail-section')).not.toBeInTheDocument();
         expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
 
-        // Switch back to interface
-        fireEvent.click(screen.getByText('Load Test Interface'));
+        loadInterface();
         expect(screen.getByTestId('interface-detail-section')).toBeInTheDocument();
         expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
     });
 
+    describe('route-driven pages', () => {
+        it('renders NamespacePage with the total from counts on /namespace/:ns', async () => {
+            renderAt('/namespace/finos');
+            expect(await screen.findByTestId('namespace-page')).toHaveTextContent('Namespace: finos (1)');
+        });
+
+        it('renders DomainPage with the control count from counts on /domain/:domain', async () => {
+            renderAt('/domain/security');
+            expect(await screen.findByTestId('domain-page')).toHaveTextContent('Domain: security (3)');
+        });
+
+        it('does not render NamespacePage on the empty landing route', () => {
+            renderAt('/');
+            expect(screen.queryByTestId('namespace-page')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('domain-page')).not.toBeInTheDocument();
+        });
+    });
+
+    // Exercises the real route-driven content selection in Hub: the stale-clearing
+    // layout effect (keyed on location.key) and the in-place-precedence ternary.
+    // The page components stay mocked at their seam, but Hub's routing/clearing
+    // logic runs for real via genuine react-router navigation.
+    describe('route-driven content selection (clearing + in-place precedence)', () => {
+        it('clears stale detail content when navigating from a detail route to a namespace page', async () => {
+            // Start on a detail route with a resource loaded (deep-link style).
+            renderWithNav('/finos/architectures/test/1.0', ['/namespace/finos']);
+            loadData();
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+            // Navigate to /namespace/finos — the stale detail must be cleared and the
+            // NamespacePage shown instead.
+            navigateTo('/namespace/finos');
+            expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+            expect(await screen.findByTestId('namespace-page')).toHaveTextContent('Namespace: finos (1)');
+        });
+
+        it('shows an in-place control load on a domain page and keeps it across a no-nav re-render', () => {
+            renderAt('/domain/security');
+            // Before selecting a control, the domain page (control list) shows.
+            expect(screen.getByTestId('domain-page')).toBeInTheDocument();
+
+            // Selecting a control loads it in place (no navigation) — control detail shows.
+            loadControl();
+            expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+            expect(screen.queryByTestId('domain-page')).not.toBeInTheDocument();
+
+            // A re-render that does NOT navigate (e.g. collapsing the sidebar) must not
+            // clear the in-place control — location.key is unchanged.
+            fireEvent.click(screen.getByLabelText('Collapse sidebar'));
+            expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+            expect(screen.queryByTestId('domain-page')).not.toBeInTheDocument();
+        });
+
+        it('returns to the domain control list when re-navigating to the already-active domain (B2)', () => {
+            // In-place control loaded on the domain page (the navigation dead-end case).
+            renderWithNav('/domain/security', ['/domain/security']);
+            loadControl();
+            expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+
+            // Re-navigating to the SAME domain route changes location.key (verified
+            // empirically for react-router 7), so the in-place control is cleared and
+            // the control list (DomainPage) is shown again.
+            navigateTo('/domain/security');
+            expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
+            expect(screen.getByTestId('domain-page')).toBeInTheDocument();
+        });
+    });
+
     describe('sidebar collapse', () => {
         it('shows sidebar expanded by default with collapse button', () => {
-            renderWithRouter(<Hub />);
-            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+            renderAt('/');
+            expect(screen.getByTestId('explore-rail')).toBeInTheDocument();
             expect(screen.getByLabelText('Collapse sidebar')).toBeInTheDocument();
         });
 
-        it('hides tree navigation when sidebar is collapsed', () => {
-            renderWithRouter(<Hub />);
-
+        it('hides the rail when sidebar is collapsed', () => {
+            renderAt('/');
             fireEvent.click(screen.getByLabelText('Collapse sidebar'));
-
-            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('explore-rail')).not.toBeInTheDocument();
             expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
         });
 
-        it('restores tree navigation when sidebar is expanded again', () => {
-            renderWithRouter(<Hub />);
-
+        it('restores the rail when sidebar is expanded again', () => {
+            renderAt('/');
             fireEvent.click(screen.getByLabelText('Collapse sidebar'));
-            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
-
+            expect(screen.queryByTestId('explore-rail')).not.toBeInTheDocument();
             fireEvent.click(screen.getByLabelText('Expand sidebar'));
-            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+            expect(screen.getByTestId('explore-rail')).toBeInTheDocument();
         });
-
     });
 
     describe('mobile layout', () => {
@@ -336,14 +389,12 @@ describe('Hub', () => {
             })) as unknown as typeof window.matchMedia;
         });
 
-        it('opens the drill-down panel immediately on mobile so the explorer is visible on landing', () => {
+        it('opens the drill-down panel immediately on mobile and does not render the desktop rail', () => {
             const restore = mockMobileViewport(true);
-            renderWithRouter(<Hub />);
+            renderAt('/');
 
-            // On mobile the explorer opens straight away — the mobile equivalent of
-            // the desktop tree being visible. The desktop tree is not rendered on mobile.
             expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
-            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('explore-rail')).not.toBeInTheDocument();
             expect(screen.getByRole('dialog')).toBeInTheDocument();
 
             restore();
@@ -351,9 +402,9 @@ describe('Hub', () => {
 
         it('closes the panel after a resource is loaded', () => {
             const restore = mockMobileViewport(true);
-            renderWithRouter(<Hub />);
+            renderAt('/');
 
-            fireEvent.click(screen.getByText('Mobile Load Test Data'));
+            loadData();
             // Panel closes (aria-hidden again) but the menu remains mounted.
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
             expect(screen.getByTestId('mobile-nav-menu')).toBeInTheDocument();
@@ -364,9 +415,9 @@ describe('Hub', () => {
 
         it('reopens the drill-down panel when the Explore button is clicked after closing', () => {
             const restore = mockMobileViewport(true);
-            renderWithRouter(<Hub />);
+            renderAt('/');
 
-            fireEvent.click(screen.getByText('Mobile Load Test Data'));
+            loadData();
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
             fireEvent.click(screen.getByLabelText('Explore'));
@@ -382,8 +433,8 @@ describe('Hub', () => {
         });
 
         it('clears displayed diagram content when a 403 is emitted', () => {
-            renderWithRouter(<Hub />);
-            fireEvent.click(screen.getByText('Load Test Data'));
+            renderAt('/');
+            loadData();
             expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
 
             act(() => {
@@ -394,8 +445,8 @@ describe('Hub', () => {
         });
 
         it('clears displayed ADR content when a 401 is emitted', () => {
-            renderWithRouter(<Hub />);
-            fireEvent.click(screen.getByText('Load Test ADR'));
+            renderAt('/');
+            loadAdr();
             expect(screen.getByTestId('adr-renderer')).toBeInTheDocument();
 
             act(() => {

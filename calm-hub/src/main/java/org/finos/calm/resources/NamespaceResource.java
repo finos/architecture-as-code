@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.validation.Valid;
@@ -8,24 +9,32 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.NamespaceRequest;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.exception.NamespaceParentNotFoundException;
+import org.finos.calm.domain.namespaces.NamespaceCounts;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubPermissionChecker;
+import org.finos.calm.security.UserAccessValidator;
+import org.finos.calm.services.CountsService;
 import org.finos.calm.services.NamespaceService;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Optional;
+import java.util.Set;
 
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
 @Path("/api/calm/namespaces")
 public class NamespaceResource {
 
     private final NamespaceService namespaceService;
+    private final CountsService countsService;
+    private final Instance<UserAccessValidator> userAccessValidatorInstance;
 
     @Inject
     SecurityIdentity identity;
@@ -34,8 +43,16 @@ public class NamespaceResource {
     CalmHubPermissionChecker permissionChecker;
 
     @Inject
-    public NamespaceResource(NamespaceService namespaceService) {
+    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
+
+    @Inject
+    public NamespaceResource(NamespaceService namespaceService,
+                             CountsService countsService,
+                             Instance<UserAccessValidator> userAccessValidatorInstance) {
         this.namespaceService = namespaceService;
+        this.countsService = countsService;
+        this.userAccessValidatorInstance = userAccessValidatorInstance;
     }
 
     @GET
@@ -46,6 +63,37 @@ public class NamespaceResource {
     @Authenticated
     public ValueWrapper<NamespaceInfo> namespaces() {
         return new ValueWrapper<>(namespaceService.getNamespaces());
+    }
+
+    @GET
+    @Path("counts")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Namespace Resource Counts",
+            description = "Per-namespace counts of each resource type plus a total, for the browse rail and namespace page"
+    )
+    // @Authenticated (not per-namespace @PermissionsAllowed) because @PermissionsAllowed
+    // cannot target a specific namespace for an endpoint that returns all of them. The
+    // per-namespace READ filter is applied inside, mirroring SearchResource: a caller only
+    // sees counts for namespaces they can READ, while global-admin / no-auth / public-read
+    // (Optional.empty) see everything.
+    @Authenticated
+    public ValueWrapper<NamespaceCounts> namespaceCounts() {
+        return new ValueWrapper<>(countsService.getNamespaceCounts(resolveReadableNamespaces()));
+    }
+
+    /**
+     * Resolves the caller's readable namespaces the same way {@code SearchResource} does:
+     * {@link Optional#empty()} (no filtering, see everything) when auth is disabled or the
+     * {@link UserAccessValidator} is not resolvable (no-auth / standalone profile);
+     * otherwise the validator's READ-sufficient set (which is itself empty for global-admin
+     * and public-read, meaning everything).
+     */
+    private Optional<Set<String>> resolveReadableNamespaces() {
+        if (!authEnabled || !userAccessValidatorInstance.isResolvable()) {
+            return Optional.empty();
+        }
+        return userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName());
     }
 
     @POST
