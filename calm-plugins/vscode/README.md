@@ -46,6 +46,13 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 ![Live Docify Mode](https://raw.githubusercontent.com/finos/architecture-as-code/main/calm-plugins/vscode/docs/LiveDocifyMode.png)
 *Live templating mode with real-time documentation generation*
 
+### 🖼️ Diagram Export
+Export any rendered Mermaid diagram directly from the Docify preview panel to a local file — no need to run the CLI separately.
+
+- **Export as SVG**: Click the **Export ▾** dropdown in the diagram toolbar and select *Export as SVG*. A vector image is saved with the viewBox and font-family preserved so it renders correctly in any browser or document editor.
+- **Export as PNG**: Select *Export as PNG* for a rasterised image at 2× pixel ratio, suitable for presentations and sharing with people who don't have the extension installed.
+- **Native save dialog**: VSCode's save dialog opens pre-filled with `<architecture-name>-diagram-<n>.<ext>` in the same directory as the open CALM file.
+
 ## Configuration
     
 The extension can be configured via VS Code settings (`.vscode/settings.json` or User Settings).

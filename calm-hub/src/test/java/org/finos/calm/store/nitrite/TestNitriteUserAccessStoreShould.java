@@ -356,4 +356,45 @@ public class TestNitriteUserAccessStoreShould {
                 () -> userAccessStore.deleteUserAccessForDomain("payments", 999));
         verify(mockCollection, never()).remove(any(Document.class));
     }
+
+    @Test
+    public void createUserAccessForNamespace_succeedsForGlobalWithoutNamespaceExistenceCheck() throws NamespaceNotFoundException {
+        when(mockCounterStore.getNextUserAccessSequenceValue()).thenReturn(303);
+
+        UserAccess userAccess = new UserAccess.UserAccessBuilder()
+                .setNamespace("GLOBAL")
+                .setUsername("alice")
+                .setPermission(UserAccess.Permission.admin)
+                .build();
+
+        UserAccess result = userAccessStore.createUserAccessForNamespace(userAccess);
+
+        assertThat(result.getUserAccessId(), is(303));
+        assertThat(result.getNamespace(), is("GLOBAL"));
+        verify(mockNamespaceStore, never()).namespaceExists("GLOBAL");
+        verify(mockCollection).insert(any(Document.class));
+    }
+
+    @Test
+    public void getUserAccessForNamespace_succeedsForGlobalWithoutNamespaceExistenceCheck() throws NamespaceNotFoundException {
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.iterator()).thenReturn(Collections.emptyIterator());
+
+        List<UserAccess> result = userAccessStore.getUserAccessForNamespace("GLOBAL");
+
+        assertThat(result, hasSize(0));
+        verify(mockNamespaceStore, never()).namespaceExists("GLOBAL");
+    }
+
+    @Test
+    public void deleteUserAccessForNamespace_succeedsForGlobalWithoutNamespaceExistenceCheck() throws Exception {
+        Document mockDoc = mock(Document.class);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.firstOrNull()).thenReturn(mockDoc);
+
+        userAccessStore.deleteUserAccessForNamespace("GLOBAL", 303);
+
+        verify(mockNamespaceStore, never()).namespaceExists("GLOBAL");
+        verify(mockCollection).remove(mockDoc);
+    }
 }

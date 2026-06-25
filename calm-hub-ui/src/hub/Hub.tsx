@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { IoChevronForwardOutline } from 'react-icons/io5';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { IoChevronForwardOutline, IoCompassOutline } from 'react-icons/io5';
 import { TreeNavigation } from './components/tree-navigation/TreeNavigation.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
@@ -14,6 +14,7 @@ import { InterfaceDetailSection } from './components/interface-detail-section/In
 import { DiagramSection } from './components/diagram-section/DiagramSection.js';
 import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
 import type { SelectedItem } from '../visualizer/contracts/contracts.js';
+import { authStore } from '../service/utils/auth-store.js';
 import './Hub.css';
 
 export default function Hub() {
@@ -22,9 +23,21 @@ export default function Hub() {
     const [controlData, setControlData] = useState<ControlData | undefined>();
     const [interfaceData, setInterfaceData] = useState<InterfaceData | undefined>();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     const isMobile = useIsMobile();
+
+    useEffect(() => {
+        return authStore.subscribe((status) => {
+            if (status === 401 || status === 403) {
+                setData(undefined);
+                setAdrData(undefined);
+                setControlData(undefined);
+                setInterfaceData(undefined);
+                setSelectedItem(null);
+            }
+        });
+    }, []);
 
     function handleDataLoad(data: Data) {
         setData(data);
@@ -99,7 +112,17 @@ export default function Hub() {
 
     return (
         <div className="flex flex-col h-screen overflow-hidden">
-            <Navbar onExploreClick={() => (isMobile ? setIsMobileNavOpen(true) : setIsSidebarOpen((v) => !v))} />
+            <Navbar />
+            {isMobile && !isMobileNavOpen && (
+                <button
+                    aria-label="Explore"
+                    className="w-full flex items-center gap-2 px-4 py-2 bg-base-200 border-b border-base-300 text-sm text-primary"
+                    onClick={() => setIsMobileNavOpen(true)}
+                >
+                    <IoCompassOutline size={16} />
+                    <span>Explore</span>
+                </button>
+            )}
             <div className="relative flex flex-row flex-1 overflow-hidden bg-base-300">
                 {/* Desktop: inline, collapsible tree-navigation column */}
                 {!isMobile && (
@@ -122,13 +145,14 @@ export default function Hub() {
                     </div>
                 )}
 
-                {/* Mobile: full-screen drill-down navigation panel that slides in from
-                    the left. Kept mounted (slid off screen) so deep-link / global-search
-                    loading — which lives inside MobileNavMenu — runs even while the panel
-                    is closed. Dismissed via the panel's own close button. */}
+                {/* Mobile: drill-down navigation panel that slides in from the left,
+                    anchored below the Explore bar. Kept mounted (slid off screen) so
+                    deep-link / global-search loading — which lives inside MobileNavMenu
+                    — runs even while the panel is closed. Dismissed via the panel's own
+                    close button. */}
                 {isMobile && (
                     <div
-                        className={`fixed inset-0 z-40 bg-base-100 flex flex-col transition-transform duration-300 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'}`}
+                        className={`absolute inset-0 z-40 bg-base-100 flex flex-col transition-transform duration-300 ${isMobileNavOpen ? 'translate-y-0' : '-translate-y-full pointer-events-none'}`}
                         role="dialog"
                         aria-modal={isMobileNavOpen}
                         aria-hidden={!isMobileNavOpen}

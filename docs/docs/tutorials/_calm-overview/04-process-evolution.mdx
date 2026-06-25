@@ -1,0 +1,111 @@
+{/* ─────────────────────────────────────────────
+    PART 4 — PROCESS & EVOLUTION
+───────────────────────────────────────────── */}
+
+<section>
+  <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%'}}>
+    <h1 style={{color:'#6a1b9a'}}>Part 4</h1>
+    <h2>Process &amp; Evolution</h2>
+    <p style={{color:'#555'}}>Flows · Timelines</p>
+  </div>
+  <aside className="notes">
+    Architecture isn't static — it describes processes and it changes over time.
+    CALM has first-class support for both.
+  </aside>
+</section>
+
+<section>
+  <h2>🔄 Flows — Business Processes</h2>
+  <p>Flows trace business capabilities through your architecture as ordered transitions.</p>
+  <pre><code className="language-json">{`{
+  "unique-id": "order-placement-flow",
+  "name": "Place Order",
+  "transitions": [
+    {
+      "sequence-number": 1,
+      "relationship-unique-id": "trader-to-ui",
+      "direction": "source-to-destination",
+      "description": "Trader submits order via web UI"
+    },
+    {
+      "sequence-number": 2,
+      "relationship-unique-id": "ui-to-api",
+      "direction": "source-to-destination",
+      "description": "UI sends order to Trading API"
+    }
+  ]
+}`}</code></pre>
+  <aside className="notes">
+    Flows reuse existing relationships — they don't add new connections, they sequence
+    existing ones to tell a story about a business process.
+    The CLI can render flows as Mermaid sequence diagrams.
+  </aside>
+</section>
+
+<section>
+  <h2>🔄 Flows — Sequence Diagram Output</h2>
+  <p style={{marginBottom:'0.6rem'}}>Running <code>calm docify</code> renders flows as sequence diagrams — always in sync with your model:</p>
+  <div style={{textAlign:'center'}}>
+    <img src="/img/docify-with-flow.png" alt="Docify flow output" style={{maxHeight:'380px', maxWidth:'90%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0 auto'}} />
+  </div>
+  <aside className="notes">
+    This is the kind of output you'd share with a business stakeholder or auditor.
+    It's generated automatically from the same CALM file — always in sync with the model.
+  </aside>
+</section>
+
+<section>
+  <h2>🕐 Timelines — Architecture Evolution</h2>
+  <p style={{marginBottom:'0.6rem', fontSize:'1.65rem'}}>Track how your architecture changes over time as a series of explicit <strong>moments</strong> — each a full architecture snapshot.</p>
+  <div className="two-col">
+    <div>
+      <pre><code className="language-json">{`{
+  "current-moment": "v2-microservices",
+  "moments": [
+    {
+      "unique-id": "v1-monolith",
+      "node-type": "moment",
+      "name": "Initial Monolith",
+      "valid-from": "2020-01-15",
+      "details": {
+        "detailed-architecture": "architectures/v1.json"
+      },
+      "adrs": ["https://…/adr/001.md"]
+    },
+    {
+      "unique-id": "v2-microservices",
+      "node-type": "moment",
+      "name": "Microservices Migration",
+      "valid-from": "2025-03-10",
+      "details": {
+        "detailed-architecture": "architectures/v2.json"
+      }
+    }
+  ]
+}`}</code></pre>
+    </div>
+    <div style={{paddingTop:'0.3rem'}}>
+      <h3 style={{fontSize:'1rem', marginBottom:'0.5rem'}}>Key concepts</h3>
+      <ul style={{fontSize:'1.65rem', lineHeight:'1.9'}}>
+        <li><strong>moment</strong> — snapshot + link to a full architecture</li>
+        <li><code>current-moment</code> — which snapshot is live <em>now</em></li>
+        <li><code>valid-from</code> — when this version went live (omit for <em>planned</em> moments)</li>
+        <li><code>adrs</code> — <em>why</em> the architecture changed, not just what</li>
+      </ul>
+      <h3 style={{fontSize:'1rem', marginBottom:'0.5rem', marginTop:'0.8rem'}}>Use cases</h3>
+      <ul style={{fontSize:'1.65rem', lineHeight:'1.9'}}>
+        <li>Monolith → microservices migrations</li>
+        <li>Regulatory change impact &amp; audit trail</li>
+        <li>Future-state planning (no <code>valid-from</code> yet)</li>
+      </ul>
+    </div>
+  </div>
+  <aside className="notes">
+    Timelines were introduced in CALM 1.2. Each moment is a node (node-type: "moment") pointing
+    at a full architecture document. current-moment is a pointer to "where we are now."
+    Explicit timelines are authored. Implied timelines are auto-generated from
+    published semver versions of an architecture in CALM Hub — no authoring required.
+    The adrs array links Architecture Decision Records — crucial for regulated environments
+    where you must demonstrate *why* the architecture changed, not just *what* changed.
+  </aside>
+</section>

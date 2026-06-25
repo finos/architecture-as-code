@@ -1,8 +1,8 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.Authenticated;
-import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
@@ -13,9 +13,9 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.NamespaceRequest;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
+import org.finos.calm.domain.exception.NamespaceParentNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubPermissionChecker;
-import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.NamespaceService;
 
 import java.net.URI;
@@ -26,6 +26,12 @@ import java.net.URISyntaxException;
 public class NamespaceResource {
 
     private final NamespaceService namespaceService;
+
+    @Inject
+    SecurityIdentity identity;
+
+    @Inject
+    CalmHubPermissionChecker permissionChecker;
 
     @Inject
     public NamespaceResource(NamespaceService namespaceService) {
@@ -49,7 +55,9 @@ public class NamespaceResource {
             summary = "Create Namespace",
             description = "Create a new namespace in the Calm Hub"
     )
-    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    // @Authenticated + manual check rather than @PermissionsAllowed because the namespace name
+    // is in the request body (not a path param), so Quarkus Security cannot bind it declaratively.
+    @Authenticated
     public Response createNamespace(@Valid @NotNull(message = "Request must not be null") NamespaceRequest request) throws URISyntaxException {
 
         String name = request.getName().trim();
@@ -61,8 +69,23 @@ public class NamespaceResource {
                     .build();
         }
 
+        boolean isGlobalAdmin = permissionChecker.hasGlobalAdmin(identity);
+        boolean isChildNamespace = name.contains(".");
+        boolean isParentAdmin = isChildNamespace
+                && permissionChecker.allowNamespaceAdmin(identity, name.substring(0, name.lastIndexOf('.')));
+
+        if (!isGlobalAdmin && !isParentAdmin) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("{\"error\":\"Insufficient permissions to create namespace\"}")
+                    .build();
+        }
+
         try {
             namespaceService.createNamespace(name, description);
+        } catch (NamespaceParentNotFoundException e) {
+            return Response.status(422)
+                    .entity("{\"error\":\"" + e.getMessage() + "\"}")
+                    .build();
         } catch (NamespaceAlreadyExistsException e) {
             return Response.status(Response.Status.CONFLICT)
                     .entity("{\"error\":\"Namespace already exists\"}")

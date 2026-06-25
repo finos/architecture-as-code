@@ -5,6 +5,7 @@ import {
     createTopLevelLayout,
     calculateChildBounds,
     sortContainersDeepestFirst,
+    sortNodesParentsBeforeChildren,
     getNodeWidth,
     getNodeHeight,
     reflowContainersToFitChildren,
@@ -162,6 +163,55 @@ describe('sortContainersDeepestFirst', () => {
         const before = containers.map((n) => n.id);
         sortContainersDeepestFirst(containers);
         expect(containers.map((n) => n.id)).toEqual(before);
+    });
+});
+
+describe('sortNodesParentsBeforeChildren', () => {
+    it('orders every parent before its children regardless of input order', () => {
+        // Deliberately out-of-order: a nested container (C) before its parent (B),
+        // and the leaf (system) before all of them.
+        const nodes: Node[] = [
+            { id: 'A', position: { x: 0, y: 0 }, data: {} },
+            { id: 'system', parentId: 'C', position: { x: 0, y: 0 }, data: {} },
+            { id: 'C', parentId: 'B', position: { x: 0, y: 0 }, data: {} },
+            { id: 'B', parentId: 'A', position: { x: 0, y: 0 }, data: {} },
+        ];
+
+        const order = sortNodesParentsBeforeChildren(nodes).map((n) => n.id);
+
+        expect(order.indexOf('A')).toBeLessThan(order.indexOf('B'));
+        expect(order.indexOf('B')).toBeLessThan(order.indexOf('C'));
+        expect(order.indexOf('C')).toBeLessThan(order.indexOf('system'));
+    });
+
+    it('does not mutate the input array', () => {
+        const nodes: Node[] = [
+            { id: 'child', parentId: 'parent', position: { x: 0, y: 0 }, data: {} },
+            { id: 'parent', position: { x: 0, y: 0 }, data: {} },
+        ];
+        const before = nodes.map((n) => n.id);
+        sortNodesParentsBeforeChildren(nodes);
+        expect(nodes.map((n) => n.id)).toEqual(before);
+    });
+
+    it('is stable for nodes at the same depth', () => {
+        const nodes: Node[] = [
+            { id: 'p', position: { x: 0, y: 0 }, data: {} },
+            { id: 'c1', parentId: 'p', position: { x: 0, y: 0 }, data: {} },
+            { id: 'c2', parentId: 'p', position: { x: 0, y: 0 }, data: {} },
+            { id: 'c3', parentId: 'p', position: { x: 0, y: 0 }, data: {} },
+        ];
+        const order = sortNodesParentsBeforeChildren(nodes).map((n) => n.id);
+        expect(order).toEqual(['p', 'c1', 'c2', 'c3']);
+    });
+
+    it('does not loop forever on a parent cycle', () => {
+        const nodes: Node[] = [
+            { id: 'x', parentId: 'y', position: { x: 0, y: 0 }, data: {} },
+            { id: 'y', parentId: 'x', position: { x: 0, y: 0 }, data: {} },
+        ];
+        const order = sortNodesParentsBeforeChildren(nodes).map((n) => n.id);
+        expect(order).toHaveLength(2);
     });
 });
 

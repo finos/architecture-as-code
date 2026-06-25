@@ -4,8 +4,11 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
+import org.finos.calm.domain.exception.NamespaceParentNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
+import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.services.NamespaceService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -17,6 +20,8 @@ import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @TestSecurity(authorizationEnabled = false)
@@ -26,6 +31,15 @@ public class TestNamespaceResourceShould {
 
     @InjectMock
     NamespaceService namespaceService;
+
+    @InjectMock
+    CalmHubPermissionChecker mockPermissionChecker;
+
+    @BeforeEach
+    void setUpPermissions() {
+        lenient().when(mockPermissionChecker.hasGlobalAdmin(any())).thenReturn(true);
+        lenient().when(mockPermissionChecker.allowNamespaceAdmin(any(), any())).thenReturn(false);
+    }
 
     @Test
     void return_empty_wrapper_when_no_namespaces_in_store() {
@@ -223,6 +237,73 @@ public class TestNamespaceResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString("Request must not be null"));
+
+        verify(namespaceService, never()).createNamespace(any(), any());
+    }
+
+    @Test
+    void return_403_when_non_admin_creates_top_level_namespace() throws NamespaceAlreadyExistsException {
+        when(mockPermissionChecker.hasGlobalAdmin(any())).thenReturn(false);
+
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"newteam\",\"description\":\"desc\"}")
+                .when()
+                .post("/api/calm/namespaces")
+                .then()
+                .statusCode(403)
+                .body(containsString("Insufficient permissions"));
+
+        verify(namespaceService, never()).createNamespace(any(), any());
+    }
+
+    @Test
+    void return_201_when_namespace_admin_creates_child_namespace() throws NamespaceAlreadyExistsException {
+        when(mockPermissionChecker.hasGlobalAdmin(any())).thenReturn(false);
+        when(mockPermissionChecker.allowNamespaceAdmin(any(), eq("org"))).thenReturn(true);
+
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"org.finos\",\"description\":\"FINOS sub-namespace\"}")
+                .when()
+                .post("/api/calm/namespaces")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/api/calm/namespaces/org.finos"));
+
+        verify(namespaceService).createNamespace("org.finos", "FINOS sub-namespace");
+    }
+
+    @Test
+    void return_422_when_direct_parent_namespace_does_not_exist() throws Exception {
+        doThrow(new NamespaceParentNotFoundException("org.ecosystem.a"))
+                .when(namespaceService).createNamespace("org.ecosystem.a.b", "desc");
+
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"org.ecosystem.a.b\",\"description\":\"desc\"}")
+                .when()
+                .post("/api/calm/namespaces")
+                .then()
+                .statusCode(422)
+                .body(containsString("org.ecosystem.a"));
+
+        verify(namespaceService).createNamespace("org.ecosystem.a.b", "desc");
+    }
+
+    @Test
+    void return_403_when_non_admin_creates_child_namespace_without_parent_admin() throws NamespaceAlreadyExistsException {
+        when(mockPermissionChecker.hasGlobalAdmin(any())).thenReturn(false);
+        when(mockPermissionChecker.allowNamespaceAdmin(any(), eq("org"))).thenReturn(false);
+
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"org.finos\",\"description\":\"desc\"}")
+                .when()
+                .post("/api/calm/namespaces")
+                .then()
+                .statusCode(403)
+                .body(containsString("Insufficient permissions"));
 
         verify(namespaceService, never()).createNamespace(any(), any());
     }

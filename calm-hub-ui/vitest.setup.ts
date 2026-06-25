@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { afterEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { createMemoryStorage } from './src/test-support/memory-storage.js';
+
+// Stub localStorage and sessionStorage for Node 26 compatibility
+vi.stubGlobal('localStorage', createMemoryStorage());
+vi.stubGlobal('sessionStorage', createMemoryStorage());
 
 // Polyfill ResizeObserver for ReactFlow tests
 global.ResizeObserver = class ResizeObserver {
@@ -29,4 +34,6 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
 // runs a clean after each test case (e.g. clearing jsdom)
 afterEach(() => {
     cleanup();
+    localStorage.clear();
+    sessionStorage.clear();
 });

@@ -1,0 +1,193 @@
+{/* ─────────────────────────────────────────────
+    PART 1 — WHAT IS CALM?
+───────────────────────────────────────────── */}
+
+<section>
+  <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', gap:'1.2rem'}}>
+    <img src="/img/2025_CALM_Horizontal.svg" alt="CALM Logo" style={{maxWidth:'420px', marginBottom:'0.5rem'}} />
+    <h2 style={{margin:0}}>Architecture as Code</h2>
+    <p style={{margin:0, fontSize:'1.65rem', color:'#555'}}>A 40-minute introduction to CALM</p>
+    <p style={{margin:0, fontSize:'1.65rem', color:'#888'}}>FINOS · Architecture as Code Working Group</p>
+  </div>
+  <aside className="notes">
+    Welcome! Today we cover what CALM is, its core concepts, and the tooling ecosystem.
+    The presentation runs about 40 minutes and is interactive — feel free to ask questions throughout.
+  </aside>
+</section>
+
+<section>
+  <h2>What We'll Cover</h2>
+  <ol>
+    <li>The problem with traditional architecture</li>
+    <li>What CALM is</li>
+    <li>Building blocks: Nodes, Relationships, Interfaces</li>
+    <li>Governance: Controls, Standards, Patterns</li>
+    <li>Process &amp; evolution: Flows, Timelines</li>
+    <li>The tooling ecosystem</li>
+    <li>CALM in practice: Deployments, Gates, AI tools</li>
+    <li>A real-world example: Trading System</li>
+  </ol>
+  <aside className="notes">
+    Quick roadmap slide. We'll move through each section and use a financial-services
+    trading system as our running example throughout.
+  </aside>
+</section>
+
+{/* ── The Problem ── */}
+
+<section>
+  <h2>The Problem with Traditional Architecture</h2>
+  <div className="two-col">
+    <div>
+      <h3>What we usually do</h3>
+      <ul>
+        <li>Whiteboard sketches</li>
+        <li>Static Visio / draw.io diagrams</li>
+        <li>Word documents, PowerPoints</li>
+        <li>Wikis that go stale</li>
+      </ul>
+    </div>
+    <div>
+      <h3>The consequences</h3>
+      <ul>
+        <li>❌ Inconsistent across teams</li>
+        <li>❌ Drift away from what's built</li>
+        <li>❌ No version history</li>
+        <li>❌ Can't be validated or automated</li>
+        <li>❌ Compliance requires manual review</li>
+      </ul>
+    </div>
+  </div>
+  <aside className="notes">
+    Ask the audience: "How many of you have seen an architecture diagram that turned out to be wrong?"
+    Almost everyone has. This is the gap CALM addresses.
+  </aside>
+</section>
+
+<section>
+  <h2>The Core Insight</h2>
+  <div style={{display:'flex', justifyContent:'center', margin:'1.8rem 0 1.4rem'}}>
+    <blockquote style={{
+      fontSize:'1.65rem', fontStyle:'italic', textAlign:'center',
+      background:'#f1f8e9', border:'2px solid #2e7d32', borderRadius:'8px',
+      padding:'1.4rem 2.5rem', maxWidth:'680px', margin:0
+    }}>
+      "We version-control code. Why not architecture?"
+    </blockquote>
+  </div>
+  <p style={{textAlign:'center'}}>CALM brings architecture into the world of code — structured, consistent, and automated.</p>
+  <p style={{textAlign:'center', color:'#555', fontSize:'1.65rem'}}>Architecture that lives in Git. Validated by CI/CD. Always stays true.</p>
+  <aside className="notes">
+    The analogy to draw: infrastructure as code (Terraform, Pulumi) did this for infrastructure.
+    CALM does it for the higher-level architectural picture.
+  </aside>
+</section>
+
+{/* ── What is CALM ── */}
+
+<section>
+  <h2>What is CALM?</h2>
+  <p><strong>Common Architecture Language Model</strong></p>
+  <ul>
+    <li>Open-source specification from <strong>FINOS</strong> (Fintech Open Source)</li>
+    <li>A <strong>JSON Meta Schema</strong> for describing software architecture</li>
+    <li><strong>Human-readable</strong> and <strong>machine-readable</strong></li>
+    <li>Built for financial services and <strong>regulated environments</strong></li>
+    <li>Current release: <code style={{fontSize:'0.82em'}}>calm.finos.org/release/1.2</code></li>
+  </ul>
+  <aside className="notes">
+    FINOS is the open-source foundation for financial services (similar to Apache for general open source).
+    CALM was created because financial services organisations have strict regulatory requirements
+    that informal architecture simply cannot satisfy.
+  </aside>
+</section>
+
+<section>
+  <h2>Core Benefits</h2>
+  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'1rem', marginTop:'0.5rem'}}>
+    <div style={{background:'#e8f5e9', borderRadius:'8px', padding:'1.1rem 1.2rem', textAlign:'center'}}>
+      <div style={{fontSize:'2rem', marginBottom:'0.4rem'}}>📏</div>
+      <h3 style={{marginTop:0, marginBottom:'0.4rem', fontSize:'1.1rem'}}>Standardise</h3>
+      <p style={{fontSize:'1.65rem', margin:0}}>One common language for architects, developers, and tools — no ambiguity.</p>
+    </div>
+    <div style={{background:'#e3f2fd', borderRadius:'8px', padding:'1.1rem 1.2rem', textAlign:'center'}}>
+      <div style={{fontSize:'2rem', marginBottom:'0.4rem'}}>⚙️</div>
+      <h3 style={{marginTop:0, marginBottom:'0.4rem', fontSize:'1.1rem'}}>Automate</h3>
+      <p style={{fontSize:'1.65rem', margin:0}}>Validate architectures, run compliance checks, generate docs — all in CI/CD.</p>
+    </div>
+    <div style={{background:'#fff8e1', borderRadius:'8px', padding:'1.1rem 1.2rem', textAlign:'center'}}>
+      <div style={{fontSize:'2rem', marginBottom:'0.4rem'}}>📦</div>
+      <h3 style={{marginTop:0, marginBottom:'0.4rem', fontSize:'1.1rem'}}>Version Control</h3>
+      <p style={{fontSize:'1.65rem', margin:0}}>Architecture lives in Git. PR reviews, change history, branch strategies.</p>
+    </div>
+    <div style={{background:'#fce4ec', borderRadius:'8px', padding:'1.1rem 1.2rem', textAlign:'center'}}>
+      <div style={{fontSize:'2rem', marginBottom:'0.4rem'}}>🔒</div>
+      <h3 style={{marginTop:0, marginBottom:'0.4rem', fontSize:'1.1rem'}}>Compliance</h3>
+      <p style={{fontSize:'1.65rem', margin:0}}>Enforce org standards and regulatory policies automatically. Audit trail built-in.</p>
+    </div>
+    <div style={{background:'#e8eaf6', borderRadius:'8px', padding:'1.1rem 1.2rem', textAlign:'center'}}>
+      <div style={{fontSize:'2rem', marginBottom:'0.4rem'}}>🚀</div>
+      <h3 style={{marginTop:0, marginBottom:'0.4rem', fontSize:'1.1rem'}}>Drive Deployments</h3>
+      <p style={{fontSize:'1.65rem', margin:0}}>Architecture drives real infrastructure — template bundles generate IaC, not just docs.</p>
+    </div>
+    <div style={{background:'#f3e5f5', borderRadius:'8px', padding:'1.1rem 1.2rem', textAlign:'center'}}>
+      <div style={{fontSize:'2rem', marginBottom:'0.4rem'}}>🏢</div>
+      <h3 style={{marginTop:0, marginBottom:'0.4rem', fontSize:'1.1rem'}}>Enterprise-Ready</h3>
+      <p style={{fontSize:'1.65rem', margin:0}}>Flexible core, customizable for the enterprise — standards, controls, and patterns layer on top.</p>
+    </div>
+  </div>
+  <aside className="notes">
+    Six pillars now. The two new ones are key: "Drive Deployments" — CALM isn't just documentation,
+    it generates actual IaC via template bundles. "Enterprise-Ready" — the core is flexible
+    but the standards/controls/patterns system lets firms lock it down for regulated environments.
+  </aside>
+</section>
+
+<section>
+  <h2>CALM is JSON</h2>
+  <p>An architecture document is a JSON file conforming to the CALM schema:</p>
+  <div style={{paddingLeft:'2rem'}}>
+  <pre><code className="language-json">{`{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://myorg.example.com/architectures/trading-system.json",
+  "title": "Equity Trading Platform",
+  "description": "Core trading architecture for equities desk",
+  "nodes": [ ... ],
+  "relationships": [ ... ],
+  "flows": [ ... ]
+}`}</code></pre>
+  </div>
+  <p style={{fontSize:'1.65rem', color:'#666'}}>Store it in Git · validate it in CI · render it with CALM tools</p>
+  <aside className="notes">
+    JSON was chosen because it's universally supported, works with JSON Schema validation,
+    and integrates well with existing toolchains. The schema is modular and versioned.
+  </aside>
+</section>
+
+<section>
+  <h2>How CALM Documents Relate</h2>
+  <p>Three document types, each with a distinct role:</p>
+  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'1.5rem', marginTop:'0.8rem'}}>
+    <div style={{background:'#e8f5e9', borderRadius:'8px', padding:'1.6rem 1.4rem', textAlign:'center'}}>
+      <div style={{fontSize:'2.8rem', marginBottom:'0.5rem'}}>📄</div>
+      <h3 style={{marginTop:0, marginBottom:'0.6rem', fontSize:'1.2rem'}}>Architecture</h3>
+      <p style={{fontSize:'1.65rem', color:'#333', margin:0}}>The <strong>instance</strong> — your real system's nodes, relationships &amp; metadata. Authored by hand or generated from a pattern.</p>
+    </div>
+    <div style={{background:'#e3f2fd', borderRadius:'8px', padding:'1.6rem 1.4rem', textAlign:'center'}}>
+      <div style={{fontSize:'2.8rem', marginBottom:'0.5rem'}}>▦</div>
+      <h3 style={{marginTop:0, marginBottom:'0.6rem', fontSize:'1.2rem'}}>Pattern</h3>
+      <p style={{fontSize:'1.65rem', color:'#333', margin:0}}>The <strong>template</strong> — a JSON Schema constraining architectures: which nodes must exist, how they connect, which protocols apply.</p>
+    </div>
+    <div style={{background:'#f3e5f5', borderRadius:'8px', padding:'1.6rem 1.4rem', textAlign:'center'}}>
+      <div style={{fontSize:'2.8rem', marginBottom:'0.5rem'}}>🕐</div>
+      <h3 style={{marginTop:0, marginBottom:'0.6rem', fontSize:'1.2rem'}}>Timeline</h3>
+      <p style={{fontSize:'1.65rem', color:'#333', margin:0}}>The <strong>history</strong> — time-stamped snapshots, each linked to a full architecture and the ADRs that drove the change.</p>
+    </div>
+  </div>
+  <aside className="notes">
+    This is the map for the whole talk. An architecture is the data — what YOUR system looks like.
+    A pattern is a schema — the rules an architecture must satisfy. A timeline is the history —
+    how an architecture evolved. All three are CALM documents; they're just at different levels.
+    We start with architectures, introduce patterns in Part 3, and timelines in Part 4.
+  </aside>
+</section>
