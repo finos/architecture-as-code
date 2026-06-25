@@ -26,6 +26,7 @@ import {
 import { computeChanges, type VersionChange } from './timeline/perVersionChanges.js';
 import { fetchVersionData, fetchVersionList } from './compare/compareData.js';
 import { CalmService } from '../../../service/calm-service.js';
+import { colors } from '../../../theme/colors.js';
 import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
 
 interface DiagramSectionProps {
@@ -394,12 +395,20 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
 
     const viewMenu = (
         <>
+            {/* Labelled "◉ View" pill (redesign problem #11): replaces the bare,
+                unlabeled eye with an icon + visible "View" label, brand-tinted per
+                Frame F. The open/close behaviour and navbar-slot portal are unchanged. */}
             <button
                 aria-label="View options"
-                className="btn btn-ghost btn-circle text-primary"
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold"
+                style={{
+                    backgroundColor: colors.redesign.tintBg,
+                    color: colors.redesign.activeText,
+                }}
                 onClick={() => setShowViewMenu(true)}
             >
                 {activeViewIcon}
+                <span>View</span>
             </button>
             {showViewMenu && (
                 <div className="fixed inset-0 z-40 bg-base-100 flex flex-col animate-slide-in-right" role="dialog" aria-modal="true">

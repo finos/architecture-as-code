@@ -136,8 +136,77 @@ vi.mock('../components/navbar/Navbar', () => ({
 }));
 
 vi.mock('./components/diagram-section/DiagramSection', () => ({
-    DiagramSection: ({ data }: { data: { id?: string } }) => (
-        <div data-testid="diagram-section">Diagram: {data?.id}</div>
+    DiagramSection: ({
+        data,
+        onItemSelect,
+    }: {
+        data: { id?: string };
+        onItemSelect?: (item: { data: unknown }) => void;
+    }) => (
+        <div data-testid="diagram-section">
+            Diagram: {data?.id}
+            {/* Lets tests simulate a node/edge tap on the graph so Hub's node-detail
+                wiring (the mobile bottom-sheet + prev/next steppers) is exercised.
+                `select-node` (n1) is retained for existing tests; `select-n1/n2/n3`
+                let a test pick a specific node (the ids/names match the architecture
+                nodes loaded by `loadArchitectureWithNodes`, so Hub's index resolution
+                and the displayed node name line up). `select-edge` selects a
+                relationship (no `node-type`) to exercise the node-only degradation. */}
+            <button
+                data-testid="select-node"
+                onClick={() =>
+                    onItemSelect?.({
+                        data: { 'unique-id': 'n1', name: 'Node One', 'node-type': 'service' },
+                    })
+                }
+            >
+                select node
+            </button>
+            <button
+                data-testid="select-n1"
+                onClick={() =>
+                    onItemSelect?.({
+                        data: { 'unique-id': 'n1', name: 'Node One', 'node-type': 'service' },
+                    })
+                }
+            >
+                select n1
+            </button>
+            <button
+                data-testid="select-n2"
+                onClick={() =>
+                    onItemSelect?.({
+                        data: { 'unique-id': 'n2', name: 'Node Two', 'node-type': 'service' },
+                    })
+                }
+            >
+                select n2
+            </button>
+            <button
+                data-testid="select-n3"
+                onClick={() =>
+                    onItemSelect?.({
+                        data: { 'unique-id': 'n3', name: 'Node Three', 'node-type': 'service' },
+                    })
+                }
+            >
+                select n3
+            </button>
+            <button
+                data-testid="select-edge"
+                onClick={() =>
+                    onItemSelect?.({
+                        data: {
+                            'unique-id': 'r1',
+                            description: 'Edge One',
+                            'relationship-type': { connects: { source: { node: 'n1' }, destination: { node: 'n2' } } },
+                        },
+                    })
+                }
+            >
+                select edge
+            </button>
+        </div>
     ),
 }));
 
@@ -151,6 +220,46 @@ const loadData = () =>
             name: 'test-namespace',
             data: {},
         } as Data);
+    });
+
+// Architecture load whose `data.nodes` is a flat array (the shape Hub reads for
+// the mobile node steppers). Ids/names match the DiagramSection mock's
+// select-n1/n2/n3 buttons so stepping resolves to the JSON-adjacent neighbour.
+const loadArchitectureWithNodes = () =>
+    act(() => {
+        captured?.onDataLoad({
+            id: 'arch',
+            version: '1.0',
+            calmType: 'Architectures',
+            name: 'test-namespace',
+            data: {
+                nodes: [
+                    { 'unique-id': 'n1', name: 'Node One', 'node-type': 'service' },
+                    { 'unique-id': 'n2', name: 'Node Two', 'node-type': 'service' },
+                    { 'unique-id': 'n3', name: 'Node Three', 'node-type': 'service' },
+                ],
+            },
+        } as unknown as Data);
+    });
+
+// Pattern load whose nodes are nested under `properties.nodes` — so `data.data.nodes`
+// is NOT a flat array and the steppers must degrade (resolve to disabled).
+const loadPatternWithNestedNodes = () =>
+    act(() => {
+        captured?.onDataLoad({
+            id: 'pat',
+            version: '1.0',
+            calmType: 'Patterns',
+            name: 'test-namespace',
+            data: {
+                properties: {
+                    nodes: [
+                        { 'unique-id': 'n1', name: 'Node One', 'node-type': 'service' },
+                        { 'unique-id': 'n2', name: 'Node Two', 'node-type': 'service' },
+                    ],
+                },
+            },
+        } as unknown as Data);
     });
 const loadAdr = () => act(() => captured?.onAdrLoad({ id: 'test-adr' } as unknown as Adr));
 const loadControl = () =>
@@ -436,6 +545,119 @@ describe('Hub', () => {
 
             restore();
         });
+
+        it('raises the node bottom-sheet (not a full-screen takeover) when a node is selected (Frame G)', () => {
+            const restore = mockMobileViewport(true);
+            const { container } = renderAt('/');
+
+            loadData();
+            fireEvent.click(screen.getByTestId('select-node'));
+
+            // The mobile node detail is now the bottom-sheet, and the old
+            // full-screen slide-in takeover is gone.
+            expect(screen.getByTestId('node-sheet')).toBeInTheDocument();
+            expect(screen.getByText('Node One')).toBeInTheDocument();
+            expect(container.querySelector('.animate-slide-in-right')).toBeNull();
+
+            restore();
+        });
+
+        it('closes the bottom-sheet when its close button is tapped', () => {
+            const restore = mockMobileViewport(true);
+            renderAt('/');
+
+            loadData();
+            fireEvent.click(screen.getByTestId('select-node'));
+            expect(screen.getByTestId('node-sheet')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByRole('button', { name: /close-sidebar/i }));
+            expect(screen.queryByTestId('node-sheet')).not.toBeInTheDocument();
+
+            restore();
+        });
+
+        // Frame-G integration: the real prev/next stepper wiring Hub derives from
+        // `data.data.nodes`. These drive the REAL NodeSheet steppers (Hub does not
+        // mock NodeSheet), so they exercise diagramNodes / selectedNodeIndex /
+        // onPrevNode / onNextNode end-to-end. The displayed node name comes from the
+        // real NodeDetails, so it tracks the architecture array as we step.
+        describe('node bottom-sheet prev/next steppers (Frame G)', () => {
+            const prevBtn = () => screen.getByRole('button', { name: /previous node/i });
+            const nextBtn = () => screen.getByRole('button', { name: /next node/i });
+
+            it('walks the architecture node list from the middle: both steppers work, and clamps at the ends', () => {
+                const restore = mockMobileViewport(true);
+                renderAt('/');
+
+                loadArchitectureWithNodes();
+                // Select the MIDDLE node (n2) — both neighbours exist.
+                fireEvent.click(screen.getByTestId('select-n2'));
+                expect(screen.getByTestId('node-sheet')).toBeInTheDocument();
+                expect(screen.getByText('Node Two')).toBeInTheDocument();
+                expect(prevBtn()).toBeEnabled();
+                expect(nextBtn()).toBeEnabled();
+
+                // Next moves to the JSON-adjacent next node (n3), the LAST node, where
+                // next clamps (disabled) and prev still works.
+                fireEvent.click(nextBtn());
+                expect(screen.getByText('Node Three')).toBeInTheDocument();
+                expect(nextBtn()).toBeDisabled();
+                expect(prevBtn()).toBeEnabled();
+
+                // Prev walks back n3 -> n2 -> n1 (the FIRST node), where prev clamps
+                // (disabled) and next still works.
+                fireEvent.click(prevBtn());
+                expect(screen.getByText('Node Two')).toBeInTheDocument();
+                fireEvent.click(prevBtn());
+                expect(screen.getByText('Node One')).toBeInTheDocument();
+                expect(prevBtn()).toBeDisabled();
+                expect(nextBtn()).toBeEnabled();
+
+                restore();
+            });
+
+            it('degrades cleanly for a pattern (nodes nested under properties.nodes): steppers present but disabled', () => {
+                const restore = mockMobileViewport(true);
+                renderAt('/');
+
+                // A selected node still raises the sheet, but `data.data.nodes` is not
+                // a flat array for a pattern, so diagramNodes is empty and both
+                // neighbours resolve to undefined — present-but-disabled, not crashing.
+                loadPatternWithNestedNodes();
+                fireEvent.click(screen.getByTestId('select-n1'));
+                expect(screen.getByTestId('node-sheet')).toBeInTheDocument();
+                expect(prevBtn()).toBeDisabled();
+                expect(nextBtn()).toBeDisabled();
+
+                restore();
+            });
+
+            it('renders no steppers when an edge (no node-type) is selected', () => {
+                const restore = mockMobileViewport(true);
+                renderAt('/');
+
+                // An edge has no place in the node list and is not a node, so the
+                // steppers are not rendered at all (node-only affordance).
+                loadArchitectureWithNodes();
+                fireEvent.click(screen.getByTestId('select-edge'));
+                expect(screen.getByTestId('node-sheet')).toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: /previous node/i })).not.toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: /next node/i })).not.toBeInTheDocument();
+
+                restore();
+            });
+        });
+    });
+
+    it('renders the inline Sidebar drawer (not the bottom-sheet) on desktop when a node is selected', () => {
+        // Desktop default matchMedia (matches:false) — the node detail must stay the
+        // inline desktop drawer, never the mobile NodeSheet.
+        renderAt('/');
+        loadData();
+        fireEvent.click(screen.getByTestId('select-node'));
+        expect(screen.queryByTestId('node-sheet')).not.toBeInTheDocument();
+        // The desktop Sidebar renders the node title in its drawer.
+        expect(screen.getByText('Node One')).toBeInTheDocument();
     });
 
     describe('auth error clears content', () => {
