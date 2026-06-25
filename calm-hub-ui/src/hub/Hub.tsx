@@ -5,6 +5,7 @@ import { ExploreRail } from './components/explore-rail/ExploreRail.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { NamespacePage } from './components/namespace-page/NamespacePage.js';
 import { DomainPage } from './components/domain-page/DomainPage.js';
+import { FirstRunLanding } from './components/first-run-landing/FirstRunLanding.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { Data, Adr } from '../model/calm.js';
@@ -185,7 +186,9 @@ export default function Hub() {
 
     // Route decides the content pane. A loaded resource (including an in-place
     // control/interface selected from the domain/namespace page) takes precedence
-    // over the route-driven page so its detail view shows.
+    // over the route-driven page so its detail view shows. With nothing loaded and
+    // no namespace/domain route (i.e. `/`), the first-run landing fills what was
+    // the ~75% blank canvas (redesign problem #7).
     const content =
         isDetailRoute || controlData || interfaceData || adrData || data ? (
             detailContent
@@ -194,11 +197,11 @@ export default function Hub() {
         ) : activeDomain ? (
             <DomainPage domain={activeDomain} controlCount={domainControlCount} onControlLoad={handleControlLoad} />
         ) : (
-            // Dedicated landing arm: nothing loaded and no browse route active. Kept separate
-            // from detailContent so it never renders DocumentDetailSection with undefined data.
-            <div className="flex-1 flex items-center justify-center text-[14px] text-base-content/50">
-                Select a namespace or control domain from the Explore rail to begin.
-            </div>
+            <FirstRunLanding
+                namespaceCounts={namespaceCounts}
+                domainCounts={domainCounts}
+                countsLoaded={namespaceCountsLoaded}
+            />
         );
 
     return (
