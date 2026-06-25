@@ -8,6 +8,7 @@ import ReactFlow, {
     Panel,
     useNodesState,
     useEdgesState,
+    type ReactFlowInstance,
     type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -43,6 +44,18 @@ const GROUP_NODE_TYPES = ['group'];
  */
 const FIT_VIEW_OPTIONS = { padding: 0.2, minZoom: 0.6, maxZoom: 1.2 } as const;
 
+/**
+ * Mobile fit-to-view (redesign problem #10): the whole graph must fit a ~390px
+ * viewport on load, so the floor drops to the pane-level minZoom (0.1) — far below
+ * the desktop 0.6. A wide/dense graph genuinely needs to zoom out this far to fit a
+ * phone: the seeded TraderX architecture (14 nodes inside a wide boundary group)
+ * fits 390px only at ~0.16, so any higher floor leaves it clipped left/right
+ * (verified live). Pinch-to-zoom is the native way to then read small labels.
+ * Tighter padding (0.1) reclaims width on the narrow screen; maxZoom matches
+ * desktop so a sparse graph isn't blown up.
+ */
+const MOBILE_FIT_VIEW_OPTIONS = { padding: 0.1, minZoom: 0.1, maxZoom: 1.2 } as const;
+
 /** Persist the minimap show/hide choice so it survives a refresh. */
 const MINIMAP_HIDDEN_KEY = 'calmHub.diagramMinimapHidden';
 
@@ -71,6 +84,11 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
     // Filter effect reads from this instead of reactive state to avoid
     // re-triggering when setNodes/setEdges update styles.
     const sourceNodesRef = useRef<Node[]>([]);
+
+    // Holds the React Flow instance on mobile so a viewport resize (rotation,
+    // browser-chrome show/hide) can re-fit the graph. Captured via onInit only on
+    // mobile; desktop never sets it, keeping its props behaviourally unchanged.
+    const flowInstanceRef = useRef<ReactFlowInstance | null>(null);
 
     const isMobile = useIsMobile();
 
@@ -141,6 +159,17 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         );
     }, [searchTerm, typeFilter, isSearchActive, setNodes, setEdges]);
 
+    // Mobile only: re-fit the graph when the viewport resizes (device rotation,
+    // iOS chrome collapsing) so it keeps fitting 390px and never drifts off-screen
+    // (redesign problem #10). The ref keeps this off exhaustive-deps and means the
+    // effect has no desktop counterpart. fitView() is a no-op until onInit runs.
+    useEffect(() => {
+        if (!isMobile) return;
+        const refit = () => flowInstanceRef.current?.fitView(MOBILE_FIT_VIEW_OPTIONS);
+        window.addEventListener('resize', refit);
+        return () => window.removeEventListener('resize', refit);
+    }, [isMobile]);
+
     if (nodes.length === 0) {
         return <EmptyGraphState message="No architecture data to display. Load a CALM architecture to visualize." />;
     }
@@ -164,9 +193,13 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
                 onMove={(_, viewport) => {
                     if (viewportKey) saveViewportForKey(viewportKey, viewport);
                 }}
-                fitView={!savedViewport}
-                defaultViewport={savedViewport}
-                fitViewOptions={FIT_VIEW_OPTIONS}
+                // Mobile always fits on load (ignoring any persisted desktop-scale
+                // viewport) so the whole graph fits 390px (redesign problem #10);
+                // desktop keeps its restore-or-fit behaviour byte-for-byte.
+                onInit={isMobile ? (instance) => { flowInstanceRef.current = instance; } : undefined}
+                fitView={isMobile ? true : !savedViewport}
+                defaultViewport={isMobile ? undefined : savedViewport}
+                fitViewOptions={isMobile ? MOBILE_FIT_VIEW_OPTIONS : FIT_VIEW_OPTIONS}
                 minZoom={0.1}
                 attributionPosition="bottom-left"
                 style={{ background: THEME.colors.background }}
@@ -192,6 +225,21 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
                             />
                         </ControlButton>
                     </Controls>
+                )}
+                {isMobile && (
+                    // Mobile gets visible zoom controls (redesign problem #11) —
+                    // larger touch cells, bottom-right per Frame F, no minimap
+                    // toggle (mobile has no minimap) and no lock cell. Sized via the
+                    // scoped `calm-mobile-controls` CSS class so the desktop Controls
+                    // styling above is untouched.
+                    <Controls
+                        className="calm-mobile-controls"
+                        position="bottom-right"
+                        showInteractive={false}
+                        // Match the on-load fit cap so the "fit" button doesn't
+                        // over-zoom a sparse graph (reactflow's default maxZoom is 2).
+                        fitViewOptions={MOBILE_FIT_VIEW_OPTIONS}
+                    />
                 )}
                 {!isMobile && !minimapHidden && (
                     <MiniMap

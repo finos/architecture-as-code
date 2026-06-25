@@ -52,6 +52,21 @@ code {
     animation: slide-in-right 0.25s ease-out;
 }
 
+/* Bottom-sheet slide-up (mobile node sheet — keeps the diagram peeking above). */
+@keyframes slide-up {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-up {
+    animation: slide-up 0.25s ease-out;
+}
+
 /* ReactFlow style overrides */
 .react-flow__background {
     background-color: #ffffff;
@@ -87,6 +102,21 @@ code {
 
 .react-flow__controls-button svg {
     fill: #64748b;
+}
+
+/* Mobile zoom controls (redesign problem #11): larger touch cells (~40px) bottom
+ * right per Frame F. Scoped to .calm-mobile-controls so the desktop Controls above
+ * keep their default sizing. */
+.calm-mobile-controls .react-flow__controls-button {
+    width: 40px;
+    height: 40px;
+}
+
+.calm-mobile-controls .react-flow__controls-button svg {
+    width: 18px;
+    height: 18px;
+    max-width: 18px;
+    max-height: 18px;
 }
 
 .react-flow__minimap {
