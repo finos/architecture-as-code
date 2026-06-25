@@ -25,11 +25,11 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.finos.calm.store.util.VersionKeySelector;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 import io.quarkus.arc.lookup.LookupIfProperty;
@@ -411,22 +411,6 @@ public class NitriteControlStore implements ControlStore {
         throw new ControlConfigurationNotFoundException();
     }
 
-    private String latestVersionKey(Set<String> keys) {
-        return keys.stream()
-                .max(Comparator.comparingInt(k -> {
-                    String[] parts = k.split("-");
-                    if (parts.length != 3) return 0;
-                    try {
-                        return Integer.parseInt(parts[0]) * 1_000_000
-                                + Integer.parseInt(parts[1]) * 1_000
-                                + Integer.parseInt(parts[2]);
-                    } catch (NumberFormatException e) {
-                        return 0;
-                    }
-                }))
-                .orElse(null);
-    }
-
     private String titleFromJsonString(String json) {
         if (json == null || json.isBlank()) return null;
         try {
@@ -441,14 +425,14 @@ public class NitriteControlStore implements ControlStore {
 
     private String titleFromRequirementNitriteDoc(Document requirement) {
         if (requirement == null || requirement.getFields().isEmpty()) return null;
-        String latestKey = latestVersionKey(requirement.getFields());
+        String latestKey = VersionKeySelector.latestVersionKey(requirement.getFields());
         if (latestKey == null) return null;
         return titleFromJsonString(requirement.get(latestKey, String.class));
     }
 
     private String titleFromVersionsNitriteDoc(Document versions) {
         if (versions == null || versions.getFields().isEmpty()) return null;
-        String latestKey = latestVersionKey(versions.getFields());
+        String latestKey = VersionKeySelector.latestVersionKey(versions.getFields());
         if (latestKey == null) return null;
         return titleFromJsonString(versions.get(latestKey, String.class));
     }

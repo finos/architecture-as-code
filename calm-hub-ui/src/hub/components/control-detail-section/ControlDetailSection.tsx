@@ -168,6 +168,12 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
         <JsonRenderer json={configJson} />
     );
 
+    const controlLabel = controlData.controlTitle ?? controlData.controlName;
+    const selectedCfg = configs.find((c) => c.id === selectedConfigId);
+    const selectedCfgLabel = selectedCfg
+        ? (selectedCfg.title ?? selectedCfg.name ?? `Config ${selectedCfg.id}`)
+        : selectedConfigId !== null ? `Config ${selectedConfigId}` : null;
+
     // ── Mobile: a single full-bleed pane with Requirement / Configuration
     //    tabs, stacked headers, and horizontally scrollable version pickers. ──
     if (isMobile) {
@@ -180,7 +186,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                 <div className="bg-base-200 px-4 py-3 border-b border-base-300">
                     <h2 className="text-base font-bold flex items-center gap-2 text-primary min-w-0">
                         <IoShieldCheckmarkOutline className="text-primary shrink-0" />
-                        <span className="truncate">{controlData.controlName}</span>
+                        <span className="truncate">{controlLabel}</span>
                     </h2>
                 </div>
 
@@ -230,7 +236,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                         <div className="bg-base-200 px-4 py-2 border-b border-base-300 flex items-center justify-between gap-2">
                             <h2 className="text-xs font-semibold text-base-content/70 truncate">
                                 Configurations
-                                {selectedConfigId !== null ? ` / ${configs.find(c => c.id === selectedConfigId)?.title ?? configs.find(c => c.id === selectedConfigId)?.name ?? `Config ${selectedConfigId}`}` : ''}
+                                {selectedCfgLabel ? ` / ${selectedCfgLabel}` : ''}
                                 {selectedConfigVersion ? ` / ${selectedConfigVersion}` : ''}
                             </h2>
                             {viewToggle(cfgViewMode, setCfgViewMode)}
@@ -268,7 +274,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                 <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
                     <h2 className="text-sm font-bold flex items-center gap-2 text-primary">
                         <IoShieldCheckmarkOutline className="text-primary" />
-                        <span>{controlData.controlName}</span>
+                        <span>{controlLabel}</span>
                         <span className="text-gray-400">/</span>
                         <span>Requirement</span>
                         {selectedReqVersion && (
@@ -304,13 +310,13 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                 <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
                     <h2 className="text-sm font-bold flex items-center gap-2">
                         <IoShieldCheckmarkOutline className="text-accent" />
-                        <span>{controlData.controlName}</span>
+                        <span>{controlLabel}</span>
                         <span className="text-gray-400">/</span>
                         <span>Configurations</span>
-                        {selectedConfigId !== null && (
+                        {selectedCfgLabel && (
                             <>
                                 <span className="text-gray-400">/</span>
-                                <span>{configs.find(c => c.id === selectedConfigId)?.title ?? configs.find(c => c.id === selectedConfigId)?.name ?? `Config ${selectedConfigId}`}</span>
+                                <span>{selectedCfgLabel}</span>
                             </>
                         )}
                         {selectedConfigVersion && (

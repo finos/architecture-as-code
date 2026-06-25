@@ -121,6 +121,17 @@ describe('ControlDetailSection', () => {
             });
         });
 
+        it('renders the requirement breadcrumb header with control title when present', async () => {
+            setupMocks();
+            render(<ControlDetailSection controlData={{ ...controlData, controlTitle: 'Pretty Title' }} />);
+
+            await waitFor(() => {
+                const headings = screen.getAllByRole('heading');
+                expect(headings[0]).toHaveTextContent('Pretty Title');
+                expect(headings[0]).not.toHaveTextContent('Access Control');
+            });
+        });
+
         it('renders the configuration breadcrumb header with control name', async () => {
             setupMocks();
             render(<ControlDetailSection controlData={controlData} />);
@@ -269,6 +280,21 @@ describe('ControlDetailSection', () => {
     // Configuration tabs
     // ──────────────────────────────────────────────────
     describe('configuration tabs', () => {
+        it('renders config tab labels using title then name then fallback', async () => {
+            setupMocks({ configs: [
+                { id: 10, title: 'Rate Limit Config' },
+                { id: 20, name: 'config-b' },
+                { id: 30 },
+            ]});
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: 'Rate Limit Config' })).toBeInTheDocument();
+                expect(screen.getByRole('tab', { name: 'config-b' })).toBeInTheDocument();
+                expect(screen.getByRole('tab', { name: 'Config 30' })).toBeInTheDocument();
+            });
+        });
+
         it('renders config ID tabs', async () => {
             setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
             render(<ControlDetailSection controlData={controlData} />);

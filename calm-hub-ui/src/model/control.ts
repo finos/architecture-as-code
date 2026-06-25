@@ -16,4 +16,5 @@ export interface ControlData {
     controlId: number;
     controlName: string;
     controlDescription: string;
+    controlTitle?: string;
 }
