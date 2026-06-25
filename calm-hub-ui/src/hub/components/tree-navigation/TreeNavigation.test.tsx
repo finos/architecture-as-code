@@ -294,7 +294,7 @@ describe('TreeNavigation', () => {
             controlServiceInstance = {
                 fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
                 fetchControlsForDomain: vi.fn().mockResolvedValue([
-                    { id: 401, name: 'Test Control', description: 'A control' },
+                    { id: 401, name: 'test-control', description: 'A control' },
                 ]),
             };
             return controlServiceInstance as unknown as InstanceType<typeof ControlService>;
@@ -303,7 +303,7 @@ describe('TreeNavigation', () => {
         vi.mocked(useParams).mockReturnValue({
             namespace: 'test-domain',
             type: 'controls',
-            id: '401',
+            id: 'test-control',
             version: 'detail',
         });
 
@@ -316,7 +316,7 @@ describe('TreeNavigation', () => {
             expect(mockProps.onControlLoad).toHaveBeenCalledWith({
                 domain: 'test-domain',
                 controlId: 401,
-                controlName: 'Test Control',
+                controlName: 'test-control',
                 controlDescription: 'A control',
             });
         });

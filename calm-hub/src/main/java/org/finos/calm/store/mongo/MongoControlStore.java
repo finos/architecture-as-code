@@ -24,6 +24,7 @@ import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import io.quarkus.arc.lookup.LookupIfProperty;
@@ -90,10 +91,13 @@ public class MongoControlStore implements ControlStore {
 
         List<ControlDetail> result = new ArrayList<>();
         for (Document control : controls) {
+            Document requirement = (Document) control.get("requirement");
+            String title = titleFromRequirementDoc(requirement);
             result.add(new ControlDetail(
                     control.getInteger("controlId"),
                     control.getString("name"),
-                    control.getString("description")
+                    control.getString("description"),
+                    title
             ));
         }
         return result;
@@ -185,9 +189,12 @@ public class MongoControlStore implements ControlStore {
 
         List<ControlConfigDetail> details = new ArrayList<>();
         for (Document config : configurations) {
+            Document versions = (Document) config.get("versions");
+            String title = titleFromVersionsDoc(versions);
             details.add(new ControlConfigDetail(
                     config.getInteger("configurationId"),
-                    config.getString("name")));
+                    config.getString("name"),
+                    title));
         }
         return details;
     }
@@ -357,6 +364,38 @@ public class MongoControlStore implements ControlStore {
         }
 
         throw new ControlConfigurationNotFoundException();
+    }
+
+    private String latestVersionKey(Set<String> keys) {
+        return keys.stream()
+                .max(Comparator.comparingInt(k -> {
+                    String[] parts = k.split("-");
+                    if (parts.length != 3) return 0;
+                    try {
+                        return Integer.parseInt(parts[0]) * 1_000_000
+                                + Integer.parseInt(parts[1]) * 1_000
+                                + Integer.parseInt(parts[2]);
+                    } catch (NumberFormatException e) {
+                        return 0;
+                    }
+                }))
+                .orElse(null);
+    }
+
+    private String titleFromRequirementDoc(Document requirement) {
+        if (requirement == null || requirement.isEmpty()) return null;
+        String latestKey = latestVersionKey(requirement.keySet());
+        if (latestKey == null) return null;
+        Document versionDoc = (Document) requirement.get(latestKey);
+        return versionDoc != null ? versionDoc.getString("title") : null;
+    }
+
+    private String titleFromVersionsDoc(Document versions) {
+        if (versions == null || versions.isEmpty()) return null;
+        String latestKey = latestVersionKey(versions.keySet());
+        if (latestKey == null) return null;
+        Document versionDoc = (Document) versions.get(latestKey);
+        return versionDoc != null ? versionDoc.getString("title") : null;
     }
 
     private void validateDomain(String domain) throws DomainNotFoundException {

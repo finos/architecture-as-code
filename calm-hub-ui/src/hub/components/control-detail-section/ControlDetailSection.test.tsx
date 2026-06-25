@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ControlDetailSection } from './ControlDetailSection.js';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ControlData } from '../../../model/control.js';
+import { ControlConfigDetail, ControlData } from '../../../model/control.js';
 
 // ── Mocks ─────────────────────────────────────────────────
 
@@ -80,19 +80,19 @@ const configJson = { minKeyLength: 256, algorithm: 'AES' };
 function setupMocks({
     reqVersions = ['0.1.0'],
     reqSchema = requirementSchema,
-    configIds = [10],
+    configs = [{ id: 10 }] as ControlConfigDetail[],
     cfgVersions = ['1.0.0'],
     cfgJson = configJson,
 }: {
     reqVersions?: string[];
     reqSchema?: object;
-    configIds?: number[];
+    configs?: ControlConfigDetail[];
     cfgVersions?: string[];
     cfgJson?: object;
 } = {}) {
     mockFetchRequirementVersions.mockResolvedValue(reqVersions);
     mockFetchRequirementForVersion.mockResolvedValue(reqSchema);
-    mockFetchConfigurationsForControl.mockResolvedValue(configIds);
+    mockFetchConfigurationsForControl.mockResolvedValue(configs);
     mockFetchConfigurationVersions.mockResolvedValue(cfgVersions);
     mockFetchConfigurationForVersion.mockResolvedValue(cfgJson);
 }
@@ -135,7 +135,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('hides the configurations panel when no config IDs exist', async () => {
-            setupMocks({ configIds: [] });
+            setupMocks({ configs: [] });
             render(<ControlDetailSection controlData={controlData} />);
 
             // Wait for requirement panel to render, then assert configurations heading is absent
@@ -270,7 +270,7 @@ describe('ControlDetailSection', () => {
     // ──────────────────────────────────────────────────
     describe('configuration tabs', () => {
         it('renders config ID tabs', async () => {
-            setupMocks({ configIds: [10, 20] });
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
@@ -280,7 +280,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('clicking a config ID tab fetches its versions', async () => {
-            setupMocks({ configIds: [10, 20] });
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -294,7 +294,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('applies active style to the selected config tab', async () => {
-            setupMocks({ configIds: [10, 20] });
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -305,7 +305,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('shows the selected config ID in the breadcrumb header', async () => {
-            setupMocks({ configIds: [10] });
+            setupMocks({ configs: [{ id: 10 }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -316,7 +316,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('renders config version tabs after selecting a config ID', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0', '1.1.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0', '1.1.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -329,7 +329,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('clicking a config version tab fetches the configuration JSON', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -350,7 +350,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('applies active style to the selected config version tab', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0', '1.1.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0', '1.1.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -366,7 +366,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('shows the selected config version in the breadcrumb header', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -381,7 +381,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('does not show config version tabs until a config ID is selected', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
@@ -425,7 +425,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('switches configuration panel to Raw JSON view independently', async () => {
-            setupMocks();
+            setupMocks({ configs: [{ id: 10 }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -507,7 +507,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('omits the Configuration tab when no configurations exist', async () => {
-            setupMocks({ configIds: [] });
+            setupMocks({ configs: [] });
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
@@ -517,7 +517,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('switches to the configuration panel and shows its config tabs', async () => {
-            setupMocks({ configIds: [10, 20] });
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 

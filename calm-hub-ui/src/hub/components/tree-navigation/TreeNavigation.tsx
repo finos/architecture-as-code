@@ -465,13 +465,13 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             }
 
             if (uiType === 'Controls') {
-                const controlId = Number(params.id);
+                const controlSlug = params.id;
                 const domain = params.namespace;
                 controlService.fetchControlsForDomain(domain)
                     .then((controls) => {
                         setDomainControls(controls);
                         setSelectedDomain(domain);
-                        const match = controls.find((c) => c.id === controlId);
+                        const match = controls.find((c) => c.name === controlSlug);
                         if (match) {
                             setSelectedControlId(match.id);
                             onControlLoadRef.current({
