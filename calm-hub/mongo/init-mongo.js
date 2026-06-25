@@ -33,9 +33,9 @@ logSection("Counters");
 if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "patternStoreCounter",
-        sequence_value: 1
+        sequence_value: 2
     });
-    logSuccess("Initialized patternStoreCounter with sequence_value 1");
+    logSuccess("Initialized patternStoreCounter with sequence_value 2");
 } else {
     logSkip("patternStoreCounter already exists, no initialization needed");
 }
@@ -74,9 +74,9 @@ if (db.counters.countDocuments({ _id: "standardStoreCounter" }) === 0) {
 if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "flowStoreCounter",
-        sequence_value: 1
+        sequence_value: 2
     });
-    logSuccess("Initialized flowStoreCounter with sequence_value 1");
+    logSuccess("Initialized flowStoreCounter with sequence_value 2");
 } else {
     logSkip("flowStoreCounter already exists, no initialization needed");
 }
