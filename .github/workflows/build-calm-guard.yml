@@ -41,6 +41,12 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            # @finos/calm-models is a typed dependency of CALMGuard's conformance
+            # check (src/lib/calm/conformance.ts). It ships from dist/ and has no
+            # prepare script, so it must be built before typecheck/lint resolve it.
+            - name: Build @finos/calm-models
+              run: npm run build --workspace=@finos/calm-models
+
             - name: Lint
               run: npm run lint --workspace=calmguard
 
@@ -87,6 +93,11 @@ jobs:
 
             - name: Install dependencies
               run: npm ci
+
+            # next build type-checks, and conformance.ts imports @finos/calm-models
+            # types — build it first (ships from dist/, no prepare script).
+            - name: Build @finos/calm-models
+              run: npm run build --workspace=@finos/calm-models
 
             - name: Build
               run: npm run build --workspace=calmguard
