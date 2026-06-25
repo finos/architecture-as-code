@@ -46,11 +46,14 @@ const fieldToCounter = {
     interfaceId: 'interfaceStoreCounter',
     controlId: 'controlStoreCounter',
     decoratorId: 'decoratorStoreCounter',
+    userAccessId: 'userAccessStoreCounter',
 };
 
-// Extract the maximum NumberInt value for each entity id field
+// Extract the maximum NumberInt value for each entity id field.
+// Handles both unquoted JS object syntax (field: NumberInt) and quoted JSON syntax
+// ("field": NumberInt) since init-mongo.js uses both styles in different sections.
 function maxSeedId(field) {
-    const re = new RegExp(`${field}:\\s*NumberInt\\((\\d+)\\)`, 'g');
+    const re = new RegExp(`"?${field}"?:\\s*NumberInt\\((\\d+)\\)`, 'g');
     let max = 0;
     for (const m of seed.matchAll(re)) {
         const v = parseInt(m[1], 10);

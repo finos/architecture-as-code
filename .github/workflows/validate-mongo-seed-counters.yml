@@ -10,12 +10,14 @@ on:
       - 'release*'
     paths:
       - 'calm-hub/mongo/init-mongo.js'
+      - 'scripts/validate-mongo-seed-counters.js'
   push:
     branches:
       - 'main'
       - 'release*'
     paths:
       - 'calm-hub/mongo/init-mongo.js'
+      - 'scripts/validate-mongo-seed-counters.js'
 
 jobs:
   validate-mongo-seed-counters:

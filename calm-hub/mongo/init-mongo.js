@@ -37,7 +37,15 @@ if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 0) {
     });
     logSuccess("Initialized patternStoreCounter with sequence_value 2");
 } else {
-    logSkip("patternStoreCounter already exists, no initialization needed");
+    const patternUpgrade = db.counters.updateOne(
+        { _id: "patternStoreCounter", sequence_value: { $lt: 2 } },
+        { $set: { sequence_value: 2 } }
+    );
+    if (patternUpgrade.modifiedCount > 0) {
+        logSuccess("Upgraded patternStoreCounter to sequence_value 2 (was below minimum)");
+    } else {
+        logSkip("patternStoreCounter already exists with sequence_value >= 2, no update needed");
+    }
 }
 
 if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 0) {
@@ -78,7 +86,15 @@ if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
     });
     logSuccess("Initialized flowStoreCounter with sequence_value 2");
 } else {
-    logSkip("flowStoreCounter already exists, no initialization needed");
+    const flowUpgrade = db.counters.updateOne(
+        { _id: "flowStoreCounter", sequence_value: { $lt: 2 } },
+        { $set: { sequence_value: 2 } }
+    );
+    if (flowUpgrade.modifiedCount > 0) {
+        logSuccess("Upgraded flowStoreCounter to sequence_value 2 (was below minimum)");
+    } else {
+        logSkip("flowStoreCounter already exists with sequence_value >= 2, no update needed");
+    }
 }
 
 if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
