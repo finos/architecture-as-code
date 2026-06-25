@@ -1,9 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { Drawer } from './Drawer.js';
 import { Data } from '../../../model/calm.js';
 import type { ReactFlowVisualizerProps } from '../../contracts/contracts.js';
 import { DropzoneOptions } from 'react-dropzone';
+
+// Captures the `onDrop` the Drawer hands to react-dropzone so tests can invoke
+// it directly with a fake File. Hoisted so the (hoisted) vi.mock factory below
+// can reference it without hitting the temporal-dead-zone.
+const { mockDropzone } = vi.hoisted(() => ({
+    mockDropzone: {} as { onDrop?: (files: File[]) => void | Promise<void> },
+}));
+
+/** A minimal File stand-in whose `.text()` resolves to the given contents. */
+function fakeFile(text: string): File {
+    return { text: () => Promise.resolve(text) } as unknown as File;
+}
 
 const mockFetchDeploymentDecoratorsForArchitecture = vi.fn().mockResolvedValue([]);
 
@@ -32,12 +44,15 @@ vi.mock('react-dropzone', async () => {
     const actual = await vi.importActual('react-dropzone');
     return {
         ...actual,
-        useDropzone: ({ onDrop }: DropzoneOptions) => ({
-            getRootProps: () => ({}),
-            getInputProps: () => ({}),
-            isDragActive: false,
-            onDrop,
-        }),
+        useDropzone: ({ onDrop }: DropzoneOptions) => {
+            mockDropzone.onDrop = onDrop as (files: File[]) => void | Promise<void>;
+            return {
+                getRootProps: () => ({}),
+                getInputProps: () => ({}),
+                isDragActive: false,
+                onDrop,
+            };
+        },
     };
 });
 
@@ -111,10 +126,12 @@ describe('Drawer', () => {
         vi.clearAllMocks();
     });
 
-    it('renders dropzone placeholder when no data is provided', () => {
+    it('renders the bordered dropzone empty state when no data is provided', () => {
         render(<Drawer />);
-        expect(screen.getByText(/Drag and drop your file here or/i)).toBeInTheDocument();
+        expect(screen.getByTestId('dropzone-empty-state')).toBeInTheDocument();
+        expect(screen.getByText(/Drag & drop or/i)).toBeInTheDocument();
         expect(screen.getByText(/Browse/i)).toBeInTheDocument();
+        expect(screen.getByText(/Accepts CALM JSON/i)).toBeInTheDocument();
     });
 
     it('renders ReactFlowVisualizer when data is provided', () => {
@@ -127,6 +144,37 @@ describe('Drawer', () => {
     it('does not show sidebar initially', () => {
         render(<Drawer data={calmData as unknown as Data} />);
         expect(screen.queryByLabelText('close-sidebar')).not.toBeInTheDocument();
+    });
+
+    it('surfaces an error (and does not throw) when a non-JSON file is dropped', async () => {
+        render(<Drawer />);
+
+        await act(async () => {
+            await mockDropzone.onDrop?.([fakeFile('this is { not json')]);
+        });
+
+        expect(screen.getByText(/Couldn't read that file/i)).toBeInTheDocument();
+        // Still resting on the empty state — the bad file was not accepted.
+        expect(screen.getByTestId('dropzone-empty-state')).toBeInTheDocument();
+        expect(screen.queryByTestId('reactflow-visualizer')).not.toBeInTheDocument();
+    });
+
+    it('clears the error and renders the diagram once a valid file is dropped', async () => {
+        render(<Drawer />);
+
+        await act(async () => {
+            await mockDropzone.onDrop?.([fakeFile('not json')]);
+        });
+        expect(screen.getByText(/Couldn't read that file/i)).toBeInTheDocument();
+
+        await act(async () => {
+            await mockDropzone.onDrop?.([
+                fakeFile(JSON.stringify({ nodes: [], relationships: [] })),
+            ]);
+        });
+
+        expect(screen.queryByText(/Couldn't read that file/i)).not.toBeInTheDocument();
+        expect(screen.getByTestId('reactflow-visualizer')).toBeInTheDocument();
     });
 });
 
