@@ -88,6 +88,38 @@ describe('calmToFlow', () => {
 	});
 });
 
+// ─── containment edges ─────────────────────────────────────────────────────────
+
+describe('containment is shown by nesting, not a line', () => {
+	const composedArch: CalmArchitecture = {
+		nodes: [
+			{ 'unique-id': 'sys-1', 'node-type': 'system', name: 'System', description: '' },
+			{ 'unique-id': 'svc-1', 'node-type': 'service', name: 'Service', description: '' },
+		],
+		relationships: [
+			{ 'unique-id': 'co-1', 'relationship-type': { 'composed-of': { container: 'sys-1', nodes: ['svc-1'] } } },
+		],
+	};
+
+	test('child is nested (parentId) and the composed-of edge is hidden', () => {
+		const { nodes, edges } = calmToFlow(composedArch);
+		expect(nodes.find((n) => n.id === 'svc-1')!.parentId).toBe('sys-1');
+		const coEdge = edges.find((e) => e.type === 'composed-of')!;
+		expect(coEdge).toBeDefined();
+		expect(coEdge.hidden).toBe(true);
+	});
+
+	test('the hidden edge still round-trips the composed-of relationship', () => {
+		const { nodes, edges } = calmToFlow(composedArch);
+		const rel = flowToCalm(nodes, edges).relationships.find((r) => 'composed-of' in r['relationship-type'])!;
+		expect(rel).toBeDefined();
+		const rt = rel['relationship-type'];
+		if (!('composed-of' in rt)) throw new Error('expected composed-of');
+		expect(rt['composed-of'].container).toBe('sys-1');
+		expect(rt['composed-of'].nodes).toEqual(['svc-1']);
+	});
+});
+
 // ─── flowToCalm tests ─────────────────────────────────────────────────────────
 
 describe('flowToCalm', () => {
@@ -144,6 +176,53 @@ describe('flowToCalm', () => {
 		const { nodes, edges } = calmToFlow(archWithMeta);
 		const result = flowToCalm(nodes, edges);
 		expect(result.nodes[0].customMetadata).toEqual({ team: 'platform', env: 'prod' });
+	});
+
+	test('preserves node.details (detailed-architecture / required-pattern) round-trip', () => {
+		const details = {
+			'detailed-architecture': 'https://calm.finos.org/marefarch/agent-layer.arch.json',
+			'required-pattern': 'https://calm.finos.org/marefarch/agent-layer.pattern.json',
+		};
+		const arch: CalmArchitecture = {
+			nodes: [{ 'unique-id': 'agent-layer', 'node-type': 'system', name: 'Agent Layer', description: 'x', details }],
+			relationships: [],
+		};
+		const { nodes, edges } = calmToFlow(arch);
+		// carried into canvas data, and survives canvas → model
+		expect((nodes[0]!.data as { details?: unknown }).details).toEqual(details);
+		expect(flowToCalm(nodes, edges).nodes[0]!.details).toEqual(details);
+	});
+
+	test('does not invent an empty details block for nodes without one', () => {
+		const arch: CalmArchitecture = {
+			nodes: [{ 'unique-id': 'svc', 'node-type': 'service', name: 'Svc', description: 'x' }],
+			relationships: [],
+		};
+		const { nodes, edges } = calmToFlow(arch);
+		expect(flowToCalm(nodes, edges).nodes[0]!).not.toHaveProperty('details');
+	});
+
+	test('preserves partial details (detailed-architecture only) without a spurious required-pattern', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{ 'unique-id': 'n', 'node-type': 'system', name: 'N', description: 'x', details: { 'detailed-architecture': 'https://x/a.json' } },
+			],
+			relationships: [],
+		};
+		const { nodes, edges } = calmToFlow(arch);
+		const out = flowToCalm(nodes, edges).nodes[0]!.details!;
+		expect(out).toEqual({ 'detailed-architecture': 'https://x/a.json' });
+		expect(out).not.toHaveProperty('required-pattern');
+	});
+
+	test('details object is cloned, not shared by reference, across projection', () => {
+		const details = { 'detailed-architecture': 'https://x/a.json' };
+		const arch: CalmArchitecture = {
+			nodes: [{ 'unique-id': 'n', 'node-type': 'system', name: 'N', description: 'x', details }],
+			relationships: [],
+		};
+		const { nodes } = calmToFlow(arch);
+		expect((nodes[0]!.data as { details?: unknown }).details).not.toBe(details);
 	});
 });
 

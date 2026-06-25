@@ -1,0 +1,122 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/evaluation-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "evaluation-layer",
+      "node-type": "system",
+      "name": "Evaluation Layer",
+      "description": "Continuous evaluation, human review and runtime protection of agent behaviour.",
+      "controls": {
+        "continuous-evaluation": {
+          "description": "Continuously evaluate agent outputs and route low-confidence decisions to human review.",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/C25",
+              "config": {
+                "control-id": "C25",
+                "threats-mitigated": [
+                  "quality-drift"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "control-plane",
+      "node-type": "system",
+      "name": "Control Plane",
+      "description": "Cluster boundary for gateways, registries and policy services."
+    },
+    {
+      "unique-id": "eval-monitor",
+      "node-type": "ai:eval-monitor",
+      "name": "Evaluation Monitor",
+      "description": "Scores agent outputs against quality and safety criteria."
+    },
+    {
+      "unique-id": "human-review",
+      "node-type": "ai:human-in-the-loop",
+      "name": "Human Review",
+      "description": "Escalation queue for human adjudication of flagged decisions."
+    },
+    {
+      "unique-id": "runtime-protection",
+      "node-type": "ai:guardrail",
+      "name": "Runtime Protection",
+      "description": "Real-time blocking of policy-violating actions."
+    },
+    {
+      "unique-id": "feedback-store",
+      "node-type": "database",
+      "name": "Feedback Store",
+      "description": "Evaluation results and human feedback for improvement."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "evaluation-layer-contains",
+      "description": "Evaluation Layer components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "evaluation-layer",
+          "nodes": [
+            "eval-monitor",
+            "human-review",
+            "runtime-protection",
+            "feedback-store"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "el-monitor-to-store",
+      "description": "Record scores",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "eval-monitor"
+          },
+          "destination": {
+            "node": "feedback-store"
+          }
+        }
+      },
+      "protocol": "JDBC"
+    },
+    {
+      "unique-id": "el-monitor-to-human",
+      "description": "Escalate",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "eval-monitor"
+          },
+          "destination": {
+            "node": "human-review"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "evaluation-layer-deployment",
+      "description": "Evaluation Layer deploys onto the Control Plane.",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "control-plane",
+          "nodes": [
+            "eval-monitor",
+            "human-review",
+            "runtime-protection",
+            "feedback-store"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "c4-level": "container"
+  }
+}

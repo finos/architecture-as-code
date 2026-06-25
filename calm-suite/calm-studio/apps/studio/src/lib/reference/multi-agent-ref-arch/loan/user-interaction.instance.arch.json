@@ -1,0 +1,89 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/user-interaction-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "user-interaction-layer",
+      "node-type": "system",
+      "name": "User Interaction Layer",
+      "description": "Loan-origination user channels."
+    },
+    {
+      "unique-id": "applicant",
+      "node-type": "actor",
+      "name": "Applicant",
+      "description": "A customer applying for a loan."
+    },
+    {
+      "unique-id": "loan-officer",
+      "node-type": "actor",
+      "name": "Loan Officer",
+      "description": "Bank staff who review and approve applications."
+    },
+    {
+      "unique-id": "loan-origination-app",
+      "node-type": "webclient",
+      "name": "Loan Origination App",
+      "description": "Web application for applicants and officers."
+    },
+    {
+      "unique-id": "experience-api",
+      "node-type": "service",
+      "name": "Experience API",
+      "description": "Backend-for-frontend for the loan app."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "uil-loan-contains",
+      "description": "Loan UI components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "user-interaction-layer",
+          "nodes": [
+            "loan-origination-app",
+            "experience-api"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "uil-applicant-uses",
+      "description": "Applicant submits an application.",
+      "relationship-type": {
+        "interacts": {
+          "actor": "applicant",
+          "nodes": [
+            "loan-origination-app"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "uil-officer-uses",
+      "description": "Officer reviews applications.",
+      "relationship-type": {
+        "interacts": {
+          "actor": "loan-officer",
+          "nodes": [
+            "loan-origination-app"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "uil-app-to-api",
+      "description": "Application requests",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "loan-origination-app"
+          },
+          "destination": {
+            "node": "experience-api"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    }
+  ]
+}

@@ -17,8 +17,9 @@
 
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import type { CalmArchitecture, CalmRelationship } from './types.js';
+import type { CalmArchitecture, CalmDecorator, CalmRelationship } from './types.js';
 import { getRelationshipVariant, getReferencedNodeIds } from './helpers.js';
+import { GEMARA_ARCHITECTURE_SCOPE } from './gemara/decorator.js';
 
 import calmSchema from './schemas/calm.json' with { type: 'json' };
 import coreSchema from './schemas/core.json' with { type: 'json' };
@@ -96,6 +97,75 @@ export function validateCalmArchitecture(arch: CalmArchitecture): ValidationIssu
 	// Sort: errors first, then warnings, then info
 	const severityOrder = { error: 0, warning: 1, info: 2 };
 	issues.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+	return issues;
+}
+
+// ─── Decorator validation (standalone *.decorators.json overlay) ─────────────
+
+/**
+ * Validate an architecture's decorators (the standalone overlay). Encodes the
+ * `decorators.json#/defs/decorator` shape constraints (required fields, non-empty
+ * `target`/`applies-to`, object `data`) as errors, and resolves each `applies-to`
+ * id against the document's element unique-ids — emitting a **warning** for any
+ * that don't resolve (the spec leaves `applies-to` an unenforced string match, so
+ * a dangling reference is advisory, not fatal). The `@architecture` whole-document
+ * sentinel is skipped. Pure; reused by the studio store and available to the MCP
+ * server.
+ */
+export function validateDecorators(
+	decorators: CalmDecorator[],
+	arch: CalmArchitecture,
+): ValidationIssue[] {
+	const issues: ValidationIssue[] = [];
+
+	const elementIds = new Set<string>();
+	for (const n of arch.nodes ?? []) if (n['unique-id']) elementIds.add(n['unique-id']);
+	for (const r of arch.relationships ?? []) if (r['unique-id']) elementIds.add(r['unique-id']);
+	for (const f of arch.flows ?? []) {
+		const id = (f as { 'unique-id'?: string })['unique-id'];
+		if (id) elementIds.add(id);
+	}
+
+	const seen = new Set<string>();
+	for (const d of decorators) {
+		const id = d['unique-id'];
+		const label = id || '?';
+
+		if (!id) {
+			issues.push({ severity: 'error', message: 'Decorator is missing unique-id' });
+		} else if (seen.has(id)) {
+			issues.push({ severity: 'error', message: `Duplicate decorator unique-id: "${id}"` });
+		} else {
+			seen.add(id);
+		}
+
+		if (!d.type) {
+			issues.push({ severity: 'error', message: `Decorator "${label}" is missing type` });
+		}
+		if (!Array.isArray(d.target) || d.target.length === 0) {
+			issues.push({ severity: 'error', message: `Decorator "${label}" must target at least one document` });
+		}
+		if (!Array.isArray(d['applies-to']) || d['applies-to'].length === 0) {
+			issues.push({ severity: 'error', message: `Decorator "${label}" must apply to at least one element` });
+		}
+		if (!d.data || typeof d.data !== 'object' || Array.isArray(d.data) || Object.keys(d.data).length === 0) {
+			issues.push({ severity: 'error', message: `Decorator "${label}" data must be a non-empty object` });
+		}
+
+		// applies-to resolution — advisory only (spec doesn't enforce it).
+		if (elementIds.size > 0 && Array.isArray(d['applies-to'])) {
+			for (const target of d['applies-to']) {
+				if (target === GEMARA_ARCHITECTURE_SCOPE) continue;
+				if (!elementIds.has(target)) {
+					issues.push({
+						severity: 'warning',
+						message: `Decorator "${label}" applies-to "${target}", which is not an element in this document`,
+					});
+				}
+			}
+		}
+	}
 
 	return issues;
 }

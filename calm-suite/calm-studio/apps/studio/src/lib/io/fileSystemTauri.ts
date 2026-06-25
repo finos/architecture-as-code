@@ -51,6 +51,37 @@ export async function saveFileTauri(content: string, path: string): Promise<stri
 }
 
 /**
+ * Write a file as a sibling of `archPath` (same directory), used for sidecars
+ * (`*.decorators.json`, `*.calmstudio.json`). Replaces the basename of the
+ * architecture path with `siblingName`. Returns the sibling's path.
+ */
+export async function saveSiblingFileTauri(
+	archPath: string,
+	siblingName: string,
+	content: string,
+): Promise<string> {
+	const siblingPath = archPath.replace(/[^\\/]+$/, siblingName);
+	await writeTextFile(siblingPath, content);
+	return siblingPath;
+}
+
+/**
+ * Read a sibling file of `archPath` (same directory) by name, e.g. the
+ * `*.decorators.json` sidecar. Returns its text, or null if it doesn't exist.
+ */
+export async function readSiblingFileTauri(
+	archPath: string,
+	siblingName: string,
+): Promise<string | null> {
+	const siblingPath = archPath.replace(/[^\\/]+$/, siblingName);
+	try {
+		return await readTextFile(siblingPath);
+	} catch {
+		return null; // sibling absent — expected for files without that sidecar
+	}
+}
+
+/**
  * Save content to a new file via the native OS save dialog.
  * Returns the chosen path, or null if the user cancels.
  */

@@ -22,9 +22,13 @@
 		selectedNodeId?: string | null;
 		/** When set, scrolls the editor to the corresponding edge JSON block. */
 		selectedEdgeId?: string | null;
+		/** Read-only viewer (no editing) — used for the derived decorators document. */
+		readonly?: boolean;
+		/** Label for the active tab (defaults to "CALM JSON"). */
+		tabLabel?: string;
 	}
 
-	let { value, onchange, parseError, selectedNodeId, selectedEdgeId }: Props = $props();
+	let { value, onchange, parseError, selectedNodeId, selectedEdgeId, readonly = false, tabLabel = 'CALM JSON' }: Props = $props();
 
 	// Hold the CodeMirror EditorView reference to dispatch scroll/selection commands.
 	let editorView = $state<EditorView | undefined>(undefined);
@@ -34,6 +38,7 @@
 		linter(jsonParseLinter()),
 		lintGutter(),
 		EditorView.lineWrapping,
+		...(readonly ? [EditorView.editable.of(false)] : []),
 	]);
 
 	// When selectedNodeId changes, scroll the editor to that node's JSON block.
@@ -77,16 +82,18 @@
 	<!-- Tab bar -->
 	<div class="tab-bar">
 		<div class="tabs">
-			<button class="tab active" type="button">CALM JSON</button>
-			<button
-				class="tab disabled"
-				type="button"
-				disabled
-				title="Coming in Phase 5"
-				aria-disabled="true"
-			>
-				calmscript
-			</button>
+			<button class="tab active" type="button">{tabLabel}</button>
+			{#if !readonly}
+				<button
+					class="tab disabled"
+					type="button"
+					disabled
+					title="Coming in Phase 5"
+					aria-disabled="true"
+				>
+					calmscript
+				</button>
+			{/if}
 		</div>
 		<span class="status" class:error={!!parseError} aria-live="polite">
 			<span class="status-dot"></span>

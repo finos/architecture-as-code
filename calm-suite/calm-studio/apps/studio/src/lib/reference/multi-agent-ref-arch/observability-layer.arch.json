@@ -1,0 +1,137 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/observability-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "observability-layer",
+      "node-type": "system",
+      "name": "Observability Layer",
+      "description": "Telemetry collection, storage and analysis across the platform.",
+      "controls": {
+        "audit-logging": {
+          "description": "Capture tamper-evident audit logs of agent decisions and tool calls.",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/C30",
+              "config": {
+                "control-id": "C30",
+                "threats-mitigated": [
+                  "non-repudiation"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "observability-plane",
+      "node-type": "system",
+      "name": "Observability Plane",
+      "description": "Deployment boundary for telemetry infrastructure."
+    },
+    {
+      "unique-id": "telemetry-collector",
+      "node-type": "ai:observability",
+      "name": "Telemetry Collector",
+      "description": "Collects logs, traces, metrics and events from all components."
+    },
+    {
+      "unique-id": "observability-backend",
+      "node-type": "ai:observability",
+      "name": "Observability Backend",
+      "description": "Stores and indexes telemetry signals."
+    },
+    {
+      "unique-id": "observability-dashboard",
+      "node-type": "ai:observability",
+      "name": "Observability Dashboard",
+      "description": "Operator views over platform telemetry."
+    },
+    {
+      "unique-id": "anomaly-detection",
+      "node-type": "service",
+      "name": "Anomaly Detection",
+      "description": "Flags anomalous behaviour from telemetry."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "observability-layer-contains",
+      "description": "Observability Layer components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "observability-layer",
+          "nodes": [
+            "telemetry-collector",
+            "observability-backend",
+            "observability-dashboard",
+            "anomaly-detection"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ol-coll-to-backend",
+      "description": "Ship signals",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "telemetry-collector"
+          },
+          "destination": {
+            "node": "observability-backend"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "ol-backend-to-dash",
+      "description": "Query",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "observability-backend"
+          },
+          "destination": {
+            "node": "observability-dashboard"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "ol-backend-to-anom",
+      "description": "Analyze",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "observability-backend"
+          },
+          "destination": {
+            "node": "anomaly-detection"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "observability-layer-deployment",
+      "description": "Observability Layer deploys onto the Observability Plane.",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "observability-plane",
+          "nodes": [
+            "telemetry-collector",
+            "observability-backend",
+            "observability-dashboard",
+            "anomaly-detection"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "c4-level": "container"
+  }
+}

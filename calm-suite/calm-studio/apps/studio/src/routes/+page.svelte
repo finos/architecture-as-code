@@ -27,36 +27,42 @@
 	import {
 		isC4Mode,
 		getC4Level,
-		getC4DrillStack,
-		getCurrentDrillParentId,
-		enterC4Mode,
-		exitC4Mode,
-		setC4Level,
-		drillDown,
-		drillUpTo,
+		getC4Trail,
+		getCurrentFrame,
+		getActiveDocumentRef,
+		enterC4,
+		exitC4,
+		drillIntoDocument,
+		navigateUpTo,
 	} from '$lib/c4/c4State.svelte';
 	import {
-		filterNodesForLevel,
+		registerC4DemoSeries,
+		registerC4Document,
+		resolveC4Document,
+		documentHasNode,
+		clearC4Documents,
+	} from '$lib/c4/c4Documents.svelte';
+	import {
 		filterEdgesForVisibleNodes,
-		liftEdgesForLevel,
 		applyC4Styles,
-		hasDrillableChildren,
-		classifyNodeC4Level,
+		isDrillable,
+		isInteractiveKeyTarget,
 	} from '$lib/c4/c4Filter';
 	import type { C4Level } from '$lib/c4/c4Filter';
 	import { toggleTheme, isDark } from '$lib/stores/theme.svelte';
-	import { getModelJson, applyFromJson, applyFromCanvas, getModel, resetModel } from '$lib/stores/calmModel.svelte';
+	import { getModelJson, applyFromJson, applyFromCanvas, getModel, resetModel, mergeDecorators } from '$lib/stores/calmModel.svelte';
 	import { calmToFlow } from '$lib/stores/projection';
 	import { pushSnapshot, resetHistory, undo, redo } from '$lib/stores/history.svelte';
 	import { layoutCalm, type LayoutDirection } from '$lib/layout/elkLayout';
-	import { openFile, saveFile, saveFileAs } from '$lib/io/fileSystem';
+	import { openFile, saveFile, saveFileAs, saveSidecarAlongside, readSidecarAlongside } from '$lib/io/fileSystem';
 	import {
 		getFileName,
 		getFileHandle,
 		getIsDirty,
 		markDirty,
 		markClean,
-		resetFileState
+		resetFileState,
+		setFileName
 	} from '$lib/io/fileState.svelte';
 	import { isTauri } from '$lib/desktop/isTauri';
 	import { updateWindowTitle } from '$lib/desktop/titleBar';
@@ -67,9 +73,13 @@
 	import { checkForUpdates } from '$lib/desktop/updater';
 	import { registerFileOpenHandler } from '$lib/desktop/fileOpen';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
-	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsCalmscript, exportAsScalerToml } from '$lib/io/export';
-	import type { CalmArchitecture, CalmRelationship } from '@calmstudio/calm-core';
-	import { getReferencedNodeIds } from '@calmstudio/calm-core';
+	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsCalmscript, exportAsScalerToml, finalizeCalmForWrite, buildDecoratorSidecar, exportDesignAsZip } from '$lib/io/export';
+	import { decoratorSidecarNameFor } from '$lib/io/sidecar';
+	import { liftEmbeddedDecorators } from '$lib/io/decoratorMigration';
+	import { readDocumentName } from '$lib/io/documentName';
+	import { readLayout, type DiagramLayout } from '$lib/io/diagramLayout';
+	import type { CalmArchitecture, CalmRelationship, CalmDecorator } from '@calmstudio/calm-core';
+	import { GEMARA_ARCHITECTURE_SCOPE } from '@calmstudio/calm-core';
 	import { detectPacksFromArch } from '$lib/io/sidecar';
 	import {
 		getIssues,
@@ -84,12 +94,6 @@
 		runValidation,
 	} from '$lib/stores/validation.svelte';
 	import {
-		refreshGovernance,
-		updateSelectedNodeGovernance,
-		getArchitectureScore,
-		hasAINodes,
-	} from '$lib/stores/governance.svelte';
-	import {
 		getActiveFlowId,
 		setActiveFlowId,
 		getActiveFlowEdgeIds,
@@ -101,6 +105,34 @@
 	let edges = $state.raw<Edge[]>([]);
 
 	let canvas: CalmCanvas;
+
+	// ─── Inspector pane: fold-to-close + auto-fit width per tab ────────────────
+	type InspectorPaneApi = {
+		collapse: () => void;
+		expand: () => void;
+		resize: (size: number) => void;
+		getSize: () => number;
+		isCollapsed: () => boolean;
+		isExpanded: () => boolean;
+		getId: () => string;
+	};
+	let inspectorPane = $state<InspectorPaneApi | undefined>();
+	let inspectorCollapsed = $state(false);
+	let activeInspectorTab = $state<'properties' | 'governance'>('properties');
+	/** Remembered width (%) per tab — Governance needs more room than the Properties form. */
+	const inspectorTabSize = { properties: 16, governance: 27 };
+
+	// Size the inspector to the active tab, unless the user folded it shut.
+	$effect(() => {
+		const tab = activeInspectorTab;
+		if (!inspectorPane || inspectorCollapsed) return;
+		inspectorPane.resize(inspectorTabSize[tab]);
+	});
+
+	/** Remember a manual resize against the current tab (so switching back keeps it). */
+	function handleInspectorResize(size: number) {
+		if (!inspectorCollapsed && size > 0) inspectorTabSize[activeInspectorTab] = size;
+	}
 
 	// ─── Desktop: native title bar sync ───────────────────────────────────────
 
@@ -117,72 +149,87 @@
 	/** Saved viewport before entering C4 mode — restored on exit. */
 	let savedViewport: Viewport | null = null;
 
-	/** Position overrides for C4 views — computed by running ELK on the filtered subset. */
-	let c4PositionOverrides = $state.raw<Map<string, { x: number; y: number; width?: number; height?: number }>>(new Map());
+	// ─── C4 navigation (one unified drill trail; the doc registry resolves links) ─
+	/** Projection of the active LOADED document; empty when the root model is active. */
+	let c4DocNodes = $state.raw<Node[]>([]);
+	let c4DocEdges = $state.raw<Edge[]>([]);
+	/** Transient hint (drill couldn't resolve, unreachable level, etc.). */
+	let c4NavNotice = $state<string | null>(null);
+	/** True while a navigated document's layout is being computed (suppresses an empty flash). */
+	let c4DocLoading = $state(false);
+	/** Monotonic guard so a slow layout can't overwrite a newer navigation. */
+	let c4NavSeq = 0;
+	let c4NavNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+	/** True while a document is loading — gates C4 buttons so a click can't race the load. */
+	let importing = $state(false);
+	/** Shows the dismissible "detailed views available" hint after a series loads. */
+	let c4SeriesHint = $state(false);
+
+	/** Reset all C4 navigation state (load/new/workspace-switch). */
+	function resetC4Navigation() {
+		if (isC4Mode()) exitC4();
+		c4DocNodes = [];
+		c4DocEdges = [];
+		c4DocLoading = false;
+		c4SeriesHint = false;
+		setC4NavNotice(null);
+		// NB: the document registry is NOT cleared here — it accumulates across
+		// loads so links between session-opened files resolve. handleNew clears it.
+	}
 
 	/**
-	 * Derived C4 display nodes. When C4 mode is active, filters and styles nodes
-	 * for the current level and drill position. Returns raw nodes when not in C4 mode.
+	 * The document currently shown in the canvas — the editable model normally, or
+	 * the C4-drilled document when navigating. Drives the document-scoped decorator
+	 * panel so it re-scopes as the shown document changes.
+	 */
+	const shownArchitecture = $derived.by((): CalmArchitecture => {
+		if (isC4Mode()) {
+			const ref = getActiveDocumentRef();
+			if (ref) {
+				const entry = resolveC4Document(ref);
+				if (entry) return liveDocFor(ref, entry.doc);
+			}
+		}
+		return getModel();
+	});
+
+	/** The active document's full projection — the loaded linked doc, or the root model. */
+	function activeC4Nodes(): Node[] {
+		return getActiveDocumentRef() ? c4DocNodes : nodes;
+	}
+	function activeC4Edges(): Edge[] {
+		return getActiveDocumentRef() ? c4DocEdges : edges;
+	}
+
+	/** Show a transient navigation notice that auto-dismisses. */
+	function setC4NavNotice(message: string | null) {
+		if (c4NavNoticeTimer) {
+			clearTimeout(c4NavNoticeTimer);
+			c4NavNoticeTimer = null;
+		}
+		c4NavNotice = message;
+		if (message) {
+			c4NavNoticeTimer = setTimeout(() => {
+				c4NavNotice = null;
+				c4NavNoticeTimer = null;
+			}, 4500);
+		}
+	}
+
+	/**
+	 * Derived C4 display nodes — the active document's full projection, styled for
+	 * the current level. One file = one diagram; drilling jumps to a linked file.
 	 */
 	const c4DisplayNodes = $derived.by(() => {
 		if (!isC4Mode()) return nodes;
-		const level = getC4Level()!;
-		const drillParentId = getCurrentDrillParentId();
-		let filtered = filterNodesForLevel(nodes, level, drillParentId);
-		// Add faded peer nodes when drilled into a container
-		if (drillParentId) {
-			const parentNode = nodes.find((n) => n.id === drillParentId);
-			if (parentNode?.parentId) {
-				// Peers = siblings of the parent (same grandparent), minus the drilled parent
-				const peers = nodes.filter(
-					(n) => n.parentId === parentNode.parentId && n.id !== drillParentId
-				);
-				const fadedPeers = peers.map((n) => ({ ...n, data: { ...n.data, c4Peer: true } }));
-				filtered = [...filtered, ...fadedPeers];
-			} else {
-				// Parent is top-level — peers are other top-level nodes of same level
-				const peers = nodes.filter(
-					(n) =>
-						!n.parentId &&
-						n.id !== drillParentId &&
-						classifyNodeC4Level(String(n.data?.calmType ?? '')) === level
-				);
-				// Limit to a few peers for context
-				const fadedPeers = peers
-					.slice(0, 5)
-					.map((n) => ({ ...n, data: { ...n.data, c4Peer: true } }));
-				filtered = [...filtered, ...fadedPeers];
-			}
-		}
-		let styled = applyC4Styles(filtered, level);
-
-		// Apply compact C4 layout positions if available
-		if (c4PositionOverrides.size > 0) {
-			styled = styled.map((n) => {
-				const pos = c4PositionOverrides.get(n.id);
-				if (!pos) return n;
-				return {
-					...n,
-					position: { x: pos.x, y: pos.y },
-					...(pos.width !== undefined ? { width: pos.width, height: pos.height } : {}),
-				};
-			});
-		}
-
-		return styled;
+		return applyC4Styles(activeC4Nodes(), getC4Level() ?? 'context');
 	});
 
-	/**
-	 * Derived C4 display edges. When C4 mode is active, lifts edges to the
-	 * current abstraction level — hidden intermediary endpoints are mapped
-	 * to their nearest visible container ancestor via edge lifting.
-	 */
+	/** Derived C4 display edges — the active document's edges, filtered to visible nodes. */
 	const c4DisplayEdges = $derived.by(() => {
 		if (!isC4Mode()) return edges;
-		const nonPeerIds = new Set(
-			c4DisplayNodes.filter((n) => !n.data?.c4Peer).map((n) => n.id)
-		);
-		return liftEdgesForLevel(edges, nodes, nonPeerIds);
+		const visibleIds = new Set(c4DisplayNodes.map((n) => n.id));
+		return filterEdgesForVisibleNodes(activeC4Edges(), visibleIds);
 	});
 
 	// ─── Validation ──────────────────────────────────────────────────────────
@@ -270,83 +317,180 @@
 	 * Runs ELK layout on the C4-filtered CALM subset so nodes are positioned
 	 * compactly instead of retaining scattered "All" positions.
 	 */
-	async function layoutC4View() {
-		const level = getC4Level();
-		const drillParentId = getCurrentDrillParentId();
-		if (!level) return;
+	// ─── C4 navigation: one unified drill ─────────────────────────────────────
 
-		// Wait for derived nodes to settle
+	/** Live-region announcement of the current C4 location (a11y). */
+	let c4LiveMessage = $state('');
+	function announceActive() {
+		const f = getCurrentFrame();
+		c4LiveMessage = f ? `${f.level[0]!.toUpperCase()}${f.level.slice(1)} view: ${f.label}` : '';
+	}
+
+	/** A document's declared C4 level (metadata.c4-level), if valid. */
+	function readModelC4Level(meta: unknown): C4Level | undefined {
+		const obj = Array.isArray(meta)
+			? Object.assign({}, ...meta.filter((m) => m && typeof m === 'object'))
+			: meta && typeof meta === 'object'
+				? (meta as Record<string, unknown>)
+				: {};
+		const lvl = (obj as Record<string, unknown>)['c4-level'];
+		return lvl === 'context' || lvl === 'container' || lvl === 'component' ? lvl : undefined;
+	}
+
+	/**
+	 * Tag nodes that link to another document (a resolvable detailed-architecture)
+	 * so they show the drill affordance in both the editable and read-only views.
+	 */
+	function markDrillableNodes(list: Node[]): Node[] {
+		const resolves = (ref: string) => resolveC4Document(ref) !== undefined;
+		return list.map((n) => {
+			const drillable = isDrillable(n, resolves);
+			const existing = typeof n.class === 'string' ? n.class : '';
+			const classes = existing.split(' ').filter((c) => c && c !== 'c4-drillable');
+			if (drillable) classes.push('c4-drillable');
+			return {
+				...n,
+				class: classes.length ? classes.join(' ') : undefined,
+				data: { ...n.data, c4Drillable: drillable },
+			};
+		});
+	}
+
+	/**
+	 * Resolve the document to display for a ref. If the link targets the file
+	 * currently open for editing, use the live model so the drill reflects unsaved
+	 * edits — the registered snapshot is only as fresh as the last load/save.
+	 */
+	function liveDocFor(ref: string, snapshot: CalmArchitecture): CalmArchitecture {
+		return ref === getFileName() ? getModel() : snapshot;
+	}
+
+	/** Load a linked document into the read-only C4 view (with a stale-write guard). */
+	async function projectDocIntoC4View(doc: CalmArchitecture) {
+		const seq = ++c4NavSeq;
+		c4DocLoading = true;
+		const positionMap = await layoutCalm(doc, new Set(), 'DOWN');
+		if (seq !== c4NavSeq) return; // superseded by a newer navigation
+		const projected = calmToFlow(doc, positionMap);
+		c4DocNodes = markDrillableNodes(projected.nodes);
+		c4DocEdges = projected.edges;
+		c4DocLoading = false;
+		announceActive();
 		await tick();
+		if (seq === c4NavSeq) canvas?.fitViewport?.();
+	}
 
-		// Get the IDs of visible (non-peer) nodes
-		const visibleIds = new Set(
-			c4DisplayNodes
-				.filter((n) => !n.data?.c4Peer)
-				.map((n) => n.id)
-		);
-
-		// Build a sub-CALM architecture with just the visible nodes
+	/** Enter the read-only navigation rooted at the currently-loaded (editable) document. */
+	function enterC4ForCurrentDoc() {
+		savedViewport = canvas?.saveViewport?.() ?? null;
 		const model = getModel();
-		const subArch: CalmArchitecture = {
-			nodes: model.nodes.filter((n) => visibleIds.has(n['unique-id'])),
-			relationships: model.relationships.filter((r) =>
-				getReferencedNodeIds(r).every((id) => visibleIds.has(id))
-			),
-		};
-
-		if (subArch.nodes.length === 0) return;
-
-		const positions = await layoutCalm(subArch, new Set(), layoutDirection);
-		c4PositionOverrides = positions;
-
-		await tick();
-		canvas?.fitViewport();
+		enterC4(model.nodes?.[0]?.name ?? 'Architecture', readModelC4Level(model.metadata) ?? 'context');
+		announceActive();
 	}
 
-	// ─── C4 level change handler ─────────────────────────────────────────────
+	function exitC4AndRestore() {
+		exitC4();
+		c4DocNodes = [];
+		c4DocEdges = [];
+		c4DocLoading = false;
+		setC4NavNotice(null);
+		tick().then(() => {
+			if (savedViewport) {
+				canvas?.restoreViewport?.(savedViewport);
+				savedViewport = null;
+			}
+		});
+	}
 
-	function handleC4LevelChange(level: string | null) {
-		if (level === null) {
-			// Exit C4 mode — restore viewport, clear layout overrides
-			exitC4Mode();
-			c4PositionOverrides = new Map();
-			tick().then(() => {
-				if (savedViewport) {
-					canvas?.restoreViewport?.(savedViewport);
-					savedViewport = null;
-				}
-			});
-		} else {
-			if (!isC4Mode()) {
-				// Entering C4 mode — save viewport
-				savedViewport = canvas?.saveViewport?.() ?? null;
-			}
-			if (isC4Mode()) {
-				setC4Level(level as C4Level);
-			} else {
-				enterC4Mode(level as C4Level);
-			}
-			layoutC4View();
+	/** Drill a node into its linked document (details.detailed-architecture). */
+	function handleC4Drill(node: Node) {
+		if (importing || !isC4Mode()) return;
+		const ref = (node.data?.details as { 'detailed-architecture'?: string } | undefined)?.[
+			'detailed-architecture'
+		];
+		if (!ref) return; // not a link — nothing to drill
+		const target = resolveC4Document(ref);
+		if (!target) {
+			setC4NavNotice('That node links to a document that isn’t loaded in this session.');
+			return;
 		}
+		const nodeId = String(node.data?.calmId ?? node.id);
+		if (!documentHasNode(target.doc, nodeId)) {
+			console.warn(`[c4] linked document ${ref} has no node "${nodeId}" — identity continuity broken`);
+		}
+		const label = String(node.data?.label ?? nodeId);
+		const lvl = drillIntoDocument(ref, label, target.level);
+		if (lvl === null) {
+			setC4NavNotice(`“${label}” is already in the trail.`);
+			return;
+		}
+		setC4NavNotice(null);
+		c4SeriesHint = false;
+		projectDocIntoC4View(liveDocFor(ref, target.doc));
 	}
 
-	// ─── Drill-down handler ───────────────────────────────────────────────────
-
-	function handleC4DrillDown(node: Node) {
-		if (!isC4Mode()) return;
-		// Skip peer nodes (they are faded context-only nodes, not drillable)
-		if (node.data?.c4Peer) return;
-		if (!hasDrillableChildren(node.id, nodes)) return;
-		const label = String(node.data?.label ?? node.data?.calmId ?? node.id);
-		drillDown(node.id, label);
-		layoutC4View();
+	/** Editable-canvas double-click: if the node links out, enter navigation and follow it. */
+	function handleNodeDoubleClick(node: Node) {
+		if (importing) return;
+		const resolves = (r: string) => resolveC4Document(r) !== undefined;
+		if (!isDrillable(node, resolves)) return;
+		enterC4ForCurrentDoc();
+		handleC4Drill(node);
 	}
 
-	// ─── Breadcrumb navigate handler ─────────────────────────────────────────
+	/** Drill the selected node via keyboard (Enter/Space) — parity with double-click. */
+	function handleC4KeyDrill() {
+		if (c4SelectedNode) handleC4Drill(c4SelectedNode);
+	}
+
+	/**
+	 * Canvas-region keyboard: Enter/Space drills the selected C4 node — but NOT
+	 * when the key was aimed at a focused control (a breadcrumb button, an input),
+	 * so activating a breadcrumb doesn't also fire a drill in the opposite direction.
+	 */
+	function handleCanvasKeydown(e: KeyboardEvent) {
+		if (!isC4Mode() || !c4SelectedNode) return;
+		if (e.key !== 'Enter' && e.key !== ' ') return;
+		if (isInteractiveKeyTarget(e.target as HTMLElement | null)) return;
+		e.preventDefault();
+		handleC4KeyDrill();
+	}
 
 	function handleBreadcrumbNavigate(index: number) {
-		drillUpTo(index);
-		layoutC4View();
+		const frame = navigateUpTo(index);
+		// The root crumb is the editable document — returning to it exits navigation.
+		if (!frame || frame.ref === null) {
+			exitC4AndRestore();
+			return;
+		}
+		const target = resolveC4Document(frame.ref);
+		if (target) projectDocIntoC4View(liveDocFor(frame.ref, target.doc));
+	}
+
+	/**
+	 * Bridge from the read-only C4 view to editing: load the document currently in
+	 * view onto the editable canvas so the user can apply governance to its nodes.
+	 */
+	async function handleEditCurrentDoc() {
+		const ref = getActiveDocumentRef();
+		const target = ref ? resolveC4Document(ref) : undefined;
+		if (!target) return;
+		exitC4();
+		c4DocNodes = [];
+		c4DocEdges = [];
+		c4DocLoading = false;
+		pushSnapshot(nodes, edges);
+		applyFromJson(target.doc);
+		const positionMap = await layoutCalm(target.doc, new Set(), 'DOWN');
+		const projected = calmToFlow(target.doc, positionMap);
+		nodes = markDrillableNodes(projected.nodes);
+		edges = projected.edges;
+		// A layer sub-document, not the user's saved file — mark dirty so the unsaved
+		// indicator persists and a Save prompts for its own filename.
+		markDirty();
+		setC4NavNotice(`Editing ${target.title}. Apply governance from the inspector, or drill again.`);
+		await tick();
+		canvas?.fitViewport?.();
 	}
 
 	// ─── Import error state — set by importCalmFile on invalid JSON ──────────
@@ -362,6 +506,13 @@
 	 * the banner is informational only (v1).
 	 */
 	let extensionPackBanner = $state(false);
+
+	/**
+	 * Set after a browser save where decorators were written to a SEPARATE
+	 * download (no FSA sibling access). Drives a one-time notice telling the user
+	 * the sidecar won't auto-reload and to use Export → .zip to keep them together.
+	 */
+	let decoratorDownloadNotice = $state(false);
 
 	// ─── Template picker state ────────────────────────────────────────────────
 
@@ -388,11 +539,14 @@
 		// Apply as if it were a file import — reuse importCalmFile logic
 		await importCalmFile(JSON.stringify(arch));
 
-		// Template load doesn't bind to a file — mark clean but without filename
-		markClean();
-
-		// Initialize governance score for the loaded template
-		refreshGovernance();
+		// The multi-agent reference architecture is a linked C4 document series:
+		// register it so a node's detailed-architecture drills resolve.
+		if (templateId === 'multi-agent-ref-arch') {
+			registerC4DemoSeries();
+			c4SeriesHint = true; // invite the user to drill in
+		}
+		nodes = markDrillableNodes(nodes); // affordance for linked + composed-of nodes
+		// File binding (clean slate / restore metadata.name) is handled in importCalmFile.
 	}
 
 	function handlePalettePlace(type: string) {
@@ -401,7 +555,30 @@
 
 	// ─── Forward sync: model -> JSON string for code panel ───────────────────
 
-	const calmJson = $derived(getModelJson());
+	// The code viewer reflects the two-document split: the main panel shows the
+	// architecture WITHOUT decorators (as it's written to disk), and a separate
+	// read-only panel shows the decorators document — shown only when present.
+	const decoratorsForDoc = $derived(getModel().decorators ?? []);
+	const hasDecoratorsDoc = $derived(decoratorsForDoc.length > 0);
+	const decoratorsDocJson = $derived(
+		hasDecoratorsDoc ? JSON.stringify({ decorators: decoratorsForDoc }, null, 2) : '',
+	);
+	const mainDocJson = $derived.by(() => {
+		const raw = getModelJson();
+		try {
+			const parsed = JSON.parse(raw) as { decorators?: unknown };
+			delete parsed.decorators;
+			return JSON.stringify(parsed, null, 2);
+		} catch {
+			return raw;
+		}
+	});
+
+	// True when a decorator is bound at architecture scope — drives the thin
+	// frame around the whole diagram signifying a document-wide decorator.
+	const hasArchDecorator = $derived(
+		(getModel().decorators ?? []).some((d) => d['applies-to'].includes(GEMARA_ARCHITECTURE_SCOPE))
+	);
 
 	// ─── Selection state ─────────────────────────────────────────────────────
 
@@ -416,22 +593,19 @@
 		selectedEdgeId ? edges.find((e) => e.id === selectedEdgeId) ?? null : null
 	);
 
+	/** The selected node within the C4 view (for keyboard drill). */
+	const c4SelectedNode = $derived(
+		isC4Mode() && selectedNodeId
+			? c4DisplayNodes.find((n) => n.data?.calmId === selectedNodeId || n.id === selectedNodeId) ?? null
+			: null
+	);
+
+	/** In C4 mode, which level buttons are reachable in the current trail (others disabled). */
+
 	function handleSelectionChange(nodeId: string | null, edgeId: string | null) {
 		selectedNodeId = nodeId;
 		selectedEdgeId = edgeId;
 	}
-
-	// ─── Governance store wiring ──────────────────────────────────────────────
-
-	/**
-	 * Keep governance store updated when selection changes.
-	 * Uses $effect to track selectedNode reactively.
-	 */
-	$effect(() => {
-		const nodeType = selectedNode?.data?.calmType ? String(selectedNode.data.calmType) : null;
-		const nodeId = selectedNode?.data?.calmId ? String(selectedNode.data.calmId) : null;
-		updateSelectedNodeGovernance(nodeType, nodeId);
-	});
 
 	// ─── Validation panel navigation ──────────────────────────────────────────
 
@@ -476,6 +650,14 @@
 				const parsed = JSON.parse(newValue) as CalmArchitecture;
 				codeParseError = null;
 
+				// The main panel doesn't show decorators (they live in their own
+				// document/panel), so carry the current ones across the edit rather
+				// than letting applyFromJson drop them.
+				const keepDecorators = getModel().decorators;
+				if (keepDecorators && keepDecorators.length > 0) {
+					(parsed as CalmArchitecture).decorators = keepDecorators;
+				}
+
 				// Build position map from current nodes to preserve positions
 				const positionMap = new Map<string, { x: number; y: number }>();
 				for (const n of nodes) {
@@ -518,10 +700,9 @@
 	/**
 	 * Called by PropertiesPanel after a property mutation updates the model store.
 	 * Re-projects the canonical model back to Svelte Flow nodes/edges to keep
-	 * canvas and code panel in sync. Also refreshes governance score.
+	 * canvas and code panel in sync.
 	 */
 	function handlePropertyMutation() {
-		refreshGovernance();
 		const model = getModel();
 		const positionMap = new Map<string, { x: number; y: number; width?: number; height?: number }>();
 		const selectionMap = new Map<string, boolean>();
@@ -537,8 +718,9 @@
 		}
 
 		const projected = calmToFlow(model, positionMap);
-		// Preserve node selection state so SvelteFlow doesn't fire deselection
-		nodes = projected.nodes.map((n) =>
+		// Preserve node selection state so SvelteFlow doesn't fire deselection;
+		// re-mark drill affordances in case a details link was just authored.
+		nodes = markDrillableNodes(projected.nodes).map((n) =>
 			selectionMap.has(n.data?.calmId as string)
 				? { ...n, selected: true }
 				: n
@@ -612,7 +794,11 @@
 	 * On success: applies to model, runs ELK layout, projects to canvas, fits view.
 	 * On error: sets importError, canvas unchanged (no partial load).
 	 */
-	async function importCalmFile(content: string, _filename?: string) {
+	async function importCalmFile(
+		content: string,
+		_filename?: string,
+		handle?: FileSystemFileHandle | string | null,
+	) {
 		let parsed: CalmArchitecture;
 		try {
 			parsed = JSON.parse(content) as CalmArchitecture;
@@ -625,6 +811,12 @@
 			importError = 'Invalid CALM JSON: missing nodes array';
 			return;
 		}
+
+		// Loading a document resets any cross-document C4 navigation. handleTemplateLoad
+		// re-enables it for the reference series after this returns. `importing` gates
+		// the C4 buttons so a click during the async load can't race the reset.
+		importing = true;
+		resetC4Navigation();
 
 		// Clear any previous error and banner
 		importError = null;
@@ -644,31 +836,86 @@
 		// Push undo snapshot before mutation
 		pushSnapshot(nodes, edges);
 
+		// Migrate any legacy embedded decorators out of the document body and into
+		// the model's decorator set via the merge path, so decorators always arrive
+		// through one channel (embedded + sidecar, unioned). `applyFromJson` gets the
+		// decorator-free document; the C4 registry keeps the original (so a drilled
+		// doc still shows its own embedded decorators).
+		const { arch: parsedClean, decorators: embeddedDecorators } = liftEmbeddedDecorators(parsed);
+
 		// Apply to canonical model
-		applyFromJson(parsed);
+		applyFromJson(parsedClean);
+		if (embeddedDecorators.length > 0) mergeDecorators(embeddedDecorators);
 
-		// Auto-layout with no pinned nodes on fresh import
+		// Merge the standalone `*.decorators.json` sidecar when we have a file
+		// handle to read its sibling (desktop / FSA). Centralised here so every open
+		// path — file open, recent-files, path open — picks it up uniformly.
+		if (handle && _filename) await loadDecoratorSidecar(handle, _filename);
+
+		// File binding. Callers with a real filename (open / demo / hub) set name +
+		// handle themselves afterwards. For nameless loads (paste / template), start
+		// from a clean slate and restore any persisted document name from metadata,
+		// so the title survives content-only round trips, not just file opens.
+		if (!_filename) {
+			resetFileState();
+			const docName = readDocumentName(parsed);
+			if (docName) markClean(docName);
+		}
+
+		// Register this document in the session by its filename, so other open
+		// files whose nodes link to it (details.detailed-architecture) resolve.
+		if (_filename) registerC4Document(_filename, parsed);
+
+		// Auto-layout with no pinned nodes on fresh import, then restore any saved
+		// arrangement (metadata.calmstudio-layout) over the top — so a doc the user
+		// arranged in Studio reopens as they left it, while nodes without a saved
+		// position (e.g. authored elsewhere) keep their auto-layout placement.
 		const positionMap = await layoutCalm(parsed, new Set(), 'DOWN');
+		for (const [id, pos] of Object.entries(readLayout(parsed))) {
+			const existing = positionMap.get(id);
+			positionMap.set(id, existing ? { ...existing, x: pos.x, y: pos.y } : { x: pos.x, y: pos.y });
+		}
 
-		// Project to Svelte Flow
+		// Project to Svelte Flow — mark nodes drillable (links that resolve to a
+		// registered document).
 		const projected = calmToFlow(parsed, positionMap);
-		nodes = projected.nodes;
+		nodes = markDrillableNodes(projected.nodes);
 		edges = projected.edges;
 
 		// Fit view after DOM update
 		await tick();
 		canvas?.fitViewport();
-
-		// Initialize governance score for the loaded architecture
-		refreshGovernance();
+		importing = false;
 	}
 
 	// ─── File operations ──────────────────────────────────────────────────────
 
+	/**
+	 * Load the `*.decorators.json` sidecar that sits next to a just-opened
+	 * architecture and merge it into the model. Only resolves on desktop (Tauri
+	 * reads the sibling by path); in the browser a single-file open has no sibling
+	 * access (see readSidecarAlongside), so this is a no-op there — zip-open is the
+	 * browser round-trip path. Legacy embedded decorators are already in the model
+	 * (applyFromJson preserves them); this unions the sidecar on top.
+	 */
+	async function loadDecoratorSidecar(
+		handle: FileSystemFileHandle | string | null,
+		archName: string,
+	) {
+		try {
+			const text = await readSidecarAlongside(handle, decoratorSidecarNameFor(archName));
+			if (!text) return;
+			const parsed = JSON.parse(text) as { decorators?: CalmDecorator[] };
+			if (parsed.decorators?.length) mergeDecorators(parsed.decorators);
+		} catch (e) {
+			console.warn('Failed to load decorator sidecar:', e);
+		}
+	}
+
 	async function handleOpen() {
 		try {
 			const result = await openFile();
-			await importCalmFile(result.content, result.name);
+			await importCalmFile(result.content, result.name, result.handle);
 			// On success, importCalmFile clears importError; mark clean with new file info
 			markClean(result.name, result.handle);
 			// Desktop: add to recent files and refresh menu
@@ -688,11 +935,70 @@
 		markClean(demo.name + '.calm.json', null);
 	}
 
+	/** Current canvas arrangement as a node-id → {x,y} map, persisted on save. */
+	function layoutFromCanvas(): DiagramLayout {
+		const layout: DiagramLayout = {};
+		for (const n of nodes) {
+			layout[String(n.data?.calmId ?? n.id)] = {
+				x: Math.round(n.position.x),
+				y: Math.round(n.position.y),
+			};
+		}
+		return layout;
+	}
+
+	/** Re-register the active document under its (current) filename after a save. */
+	function registerActiveDocument() {
+		const name = getFileName();
+		if (name) registerC4Document(name, getModel());
+	}
+
+	/**
+	 * The display filename from a save result — Tauri path string, browser FSA
+	 * handle, or null (Blob download / cancel). Used to update the title bar so a
+	 * first Save of a fresh document shows the chosen name (not "Unsaved Document").
+	 */
+	function nameFromSaveResult(handle: FileSystemFileHandle | string | null): string | undefined {
+		if (typeof handle === 'string') return handle.split(/[\\/]/).pop() ?? undefined;
+		if (handle) return handle.name ?? undefined;
+		return undefined;
+	}
+
+	/**
+	 * Write the `*.decorators.json` sidecar next to a just-saved architecture.
+	 * Decorators are stripped from the arch file by `finalizeCalmForWrite`, so
+	 * this is where they're persisted. No-op when the document has none. Built
+	 * from the raw model JSON (pre-strip), with `target` stamped to the saved
+	 * filename. Failure is logged, not thrown — the arch file is already written.
+	 */
+	async function persistDecoratorSidecar(
+		modelJson: string,
+		handle: FileSystemFileHandle | string | null,
+		archName: string,
+	) {
+		const sidecar = buildDecoratorSidecar(modelJson, archName);
+		if (!sidecar) return;
+		try {
+			await saveSidecarAlongside(sidecar, handle, decoratorSidecarNameFor(archName));
+			// On desktop (Tauri) the sidecar is written in-place next to the arch and
+			// re-read on open. In the browser there's no sibling access, so it comes
+			// down as a SEPARATE download and won't be auto-loaded on reopen — surface
+			// that so the user isn't surprised and knows to use Export → .zip.
+			if (!isTauri()) decoratorDownloadNotice = true;
+		} catch (e) {
+			console.warn('Failed to write decorator sidecar:', e);
+		}
+	}
+
 	async function handleSave() {
 		try {
-			const json = getModelJson();
+			const modelJson = getModelJson();
+			const json = finalizeCalmForWrite(modelJson, getFileName(), layoutFromCanvas());
 			const handle = await saveFile(json, getFileHandle(), getFileName() ?? 'architecture.calm.json');
-			markClean(undefined, handle);
+			const savedName = nameFromSaveResult(handle) ?? getFileName() ?? 'architecture.calm.json';
+			await persistDecoratorSidecar(modelJson, handle, savedName);
+			markClean(savedName, handle);
+			registerActiveDocument();
 		} catch (e) {
 			// User cancelled or save failed — remain dirty
 		}
@@ -700,23 +1006,18 @@
 
 	async function handleSaveAs() {
 		try {
-			const json = getModelJson();
+			const modelJson = getModelJson();
+			const json = finalizeCalmForWrite(modelJson, getFileName(), layoutFromCanvas());
 			const handle = await saveFileAs(json, getFileName() ?? 'architecture.calm.json');
-			// saveFileAs returns:
-			// - string path (Tauri desktop)
-			// - FileSystemFileHandle (browser FSA)
-			// - null (Blob download fallback or user cancel)
-			if (typeof handle === 'string') {
-				// Tauri desktop: extract filename from path
-				const name = handle.split(/[\\/]/).pop() ?? getFileName() ?? undefined;
-				markClean(name, handle);
-			} else if (handle) {
-				// Browser FSA: use handle.name
-				markClean(handle.name ?? getFileName() ?? undefined, handle);
+			// saveFileAs returns a Tauri path, a browser FSA handle, or null (Blob/cancel).
+			const savedName = nameFromSaveResult(handle) ?? getFileName() ?? 'architecture.calm.json';
+			await persistDecoratorSidecar(modelJson, handle, savedName);
+			if (handle === null) {
+				markClean(); // Blob download — content "saved", no bound file
 			} else {
-				// Blob download — we can mark clean since content was "saved" (downloaded)
-				markClean();
+				markClean(savedName, handle);
 			}
+			registerActiveDocument();
 		} catch (e) {
 			// User cancelled or save failed — remain dirty
 		}
@@ -731,6 +1032,8 @@
 		resetHistory();
 		resetFileState();
 		clearValidation();
+		resetC4Navigation(); // don't leave a stale C4 trail on the empty canvas
+		clearC4Documents(); // a new workspace starts with no registered documents
 		nodes = [];
 		edges = [];
 	}
@@ -746,7 +1049,7 @@
 		try {
 			const content = await readTextFile(path);
 			const name = path.split(/[\\/]/).pop() ?? path;
-			await importCalmFile(content, name);
+			await importCalmFile(content, name, path);
 			markClean(name, path);
 			const recent = await addRecentFile(path);
 			await updateRecentFilesMenu(recent);
@@ -775,6 +1078,7 @@
 			undo: () => {
 				const snapshot = undo();
 				if (snapshot) {
+					applyFromJson(snapshot.model); // restore decorators/controls the flow doesn't hold
 					nodes = snapshot.nodes;
 					edges = snapshot.edges;
 				}
@@ -782,6 +1086,7 @@
 			redo: () => {
 				const snapshot = redo();
 				if (snapshot) {
+					applyFromJson(snapshot.model);
 					nodes = snapshot.nodes;
 					edges = snapshot.edges;
 				}
@@ -829,6 +1134,14 @@
 
 	function handleExportCalm() {
 		exportAsCalm(getModelJson());
+	}
+
+	/** Bundle the design (architecture + decorator/pack sidecars) into one .zip. */
+	function handleExportZip() {
+		// Use a bare basename for the in-archive filename — a renamed doc title can
+		// contain slashes, which are invalid as ZIP entry names.
+		const archName = (getFileName() ?? 'architecture.calm.json').split(/[\\/]/).pop() ?? 'architecture.calm.json';
+		exportDesignAsZip(getModelJson(), archName, getFileName(), layoutFromCanvas());
 	}
 
 	async function handleExportSvg() {
@@ -989,37 +1302,6 @@
 				return;
 			}
 
-			// C4 view shortcuts (1-4) — only when not editing text (Pitfall 6)
-			if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-				const tag = document.activeElement?.tagName;
-				if (
-					tag !== 'INPUT' &&
-					tag !== 'TEXTAREA' &&
-					!document.activeElement?.closest('[contenteditable]')
-				) {
-					if (e.key === '1') {
-						e.preventDefault();
-						handleC4LevelChange(null);
-						return;
-					}
-					if (e.key === '2') {
-						e.preventDefault();
-						handleC4LevelChange('context');
-						return;
-					}
-					if (e.key === '3') {
-						e.preventDefault();
-						handleC4LevelChange('container');
-						return;
-					}
-					if (e.key === '4') {
-						e.preventDefault();
-						handleC4LevelChange('component');
-						return;
-					}
-				}
-			}
-
 			const isMod = e.metaKey || e.ctrlKey;
 			if (!isMod) return;
 
@@ -1078,6 +1360,7 @@
 			onnew={handleNew}
 			onvalidate={handleValidate}
 			onexportcalm={handleExportCalm}
+			onexportzip={handleExportZip}
 			onexportsvg={handleExportSvg}
 			onexportpng={handleExportPng}
 			onexportcalmscript={handleExportCalmscript}
@@ -1085,11 +1368,8 @@
 			onloaddemo={handleLoadDemo}
 			ontemplates={() => (showTemplatePicker = true)}
 			filename={getFileName()}
+			onrename={(name) => setFileName(name)}
 			isDirty={getIsDirty()}
-			c4Level={getC4Level()}
-			onc4levelchange={handleC4LevelChange}
-			governanceScore={getArchitectureScore()}
-			showGovernanceBadge={hasAINodes()}
 			showScalerTomlExport={showScalerTomlExport}
 			flows={flows}
 			activeFlowId={activeFlowId}
@@ -1132,10 +1412,48 @@
 			</div>
 		{/if}
 
+		<!-- Browser save: decorators came down as a separate file that won't auto-reload -->
+		{#if decoratorDownloadNotice}
+			<div class="pack-banner" role="status">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+					<circle cx="12" cy="12" r="10" />
+					<line x1="12" y1="8" x2="12" y2="12" />
+					<line x1="12" y1="16" x2="12.01" y2="16" />
+				</svg>
+				<span class="pack-banner-message">Decorators were saved as a separate <code>.decorators.json</code> download. The browser can't re-read it on open — use Export → .zip to keep your architecture and decorators together.</span>
+				<button
+					type="button"
+					class="pack-banner-dismiss"
+					onclick={() => (decoratorDownloadNotice = false)}
+					aria-label="Dismiss decorator download notice"
+				>Dismiss</button>
+			</div>
+		{/if}
+
+		{#if c4SeriesHint}
+			<div class="pack-banner" role="status">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+					<rect x="3" y="3" width="13" height="13" rx="2" />
+					<path d="M8 21h10a2 2 0 0 0 2-2V9" />
+				</svg>
+				<span class="pack-banner-message">Detailed views available — double-click a layer node to drill into its linked document.</span>
+				<button
+					type="button"
+					class="pack-banner-dismiss"
+					onclick={() => (c4SeriesHint = false)}
+					aria-label="Dismiss detailed-views hint"
+				>Dismiss</button>
+			</div>
+		{/if}
+
+		<!-- a11y: announce the navigated document when it changes -->
+		<div class="sr-only" aria-live="polite">{c4LiveMessage}</div>
+
 		<!-- Main content: three-column canvas + bottom code panel + validation drawer -->
 		<PaneGroup direction="vertical" class="main-pane-group">
 			<!-- Top: Three-column layout (palette | canvas | properties) -->
 			<Pane defaultSize={60} minSize={30}>
+				<div class="canvas-row">
 				<PaneGroup direction="horizontal" style="height: 100%;">
 					<!-- Left: Node Palette (hidden in C4 mode) -->
 					{#if !isC4Mode()}
@@ -1148,21 +1466,31 @@
 
 					<!-- Center: Canvas area -->
 					<Pane defaultSize={70}>
+						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 						<div
 							class="canvas-pane"
 							class:c4-context={getC4Level() === 'context'}
 							class:c4-container={getC4Level() === 'container'}
 							class:c4-component={getC4Level() === 'component'}
+							class:has-arch-decorator={hasArchDecorator}
 							role="main"
+							onkeydown={handleCanvasKeydown}
 						>
 							<!-- C4 Breadcrumb navigation bar (visible only in C4 mode) -->
 							{#if isC4Mode()}
 								<C4Breadcrumb
 									level={getC4Level()!}
-									drillStack={getC4DrillStack()}
+									rootLabel={getC4Trail()[0]?.label ?? 'Context'}
+									drillStack={getC4Trail()
+										.slice(1)
+										.map((f, i) => ({ nodeId: String(i), label: f.label }))}
 									onnavigate={handleBreadcrumbNavigate}
 									levelBadge={getC4Level()!.charAt(0).toUpperCase() + getC4Level()!.slice(1)}
+									oneditdocument={getActiveDocumentRef() ? handleEditCurrentDoc : undefined}
 								/>
+							{/if}
+							{#if c4NavNotice}
+								<div class="c4-nav-notice" role="alert">{c4NavNotice}</div>
 							{/if}
 
 							<!-- Floating toolbar (layout controls + dark mode toggle) -->
@@ -1221,11 +1549,15 @@
 							</div>
 
 							<SvelteFlowProvider>
-								{#if isC4Mode() && c4DisplayNodes.length === 0}
-									<!-- Empty C4 view -->
+								{#if isC4Mode() && c4DocLoading}
+									<!-- Loading a navigated document -->
 									<div class="c4-empty-state">
-										<p>No {getC4Level()} level nodes found in this architecture.</p>
-										<p class="c4-empty-hint">Try a different C4 level, or add {getC4Level()} type nodes to your architecture.</p>
+										<p>Loading…</p>
+									</div>
+								{:else if isC4Mode() && c4DisplayNodes.length === 0}
+									<!-- Genuinely empty document (no node-type dead-ends in the unified model) -->
+									<div class="c4-empty-state">
+										<p>This document has no nodes to display.</p>
 									</div>
 								{:else if isC4Mode()}
 									<!-- C4 mode: pass derived display arrays (cannot bind: to derived) -->
@@ -1234,7 +1566,7 @@
 										nodes={c4DisplayNodes}
 										edges={c4DisplayEdges}
 										readonly={true}
-										ondblclicknode={handleC4DrillDown}
+										ondblclicknode={handleC4Drill}
 										onselectionchange={handleSelectionChange}
 									/>
 								{:else}
@@ -1245,6 +1577,7 @@
 										bind:edges
 										onplacenode={handlePalettePlace}
 										onselectionchange={handleSelectionChange}
+										ondblclicknode={handleNodeDoubleClick}
 										onfileimport={importCalmFile}
 										oncanvaschange={markDirty}
 									/>
@@ -1269,31 +1602,64 @@
 
 					<PaneResizer class="resizer resizer-vertical" />
 
-					<!-- Right: Properties panel -->
-					<Pane defaultSize={15} minSize={5}>
+					<!-- Right: Properties panel (foldable; auto-fits the active tab) -->
+					<Pane
+						bind:this={inspectorPane}
+						defaultSize={16}
+						minSize={15}
+						collapsible
+						collapsedSize={0}
+						onCollapse={() => (inspectorCollapsed = true)}
+						onExpand={() => (inspectorCollapsed = false)}
+						onResize={handleInspectorResize}
+					>
 						<PropertiesPanel
 							{selectedNode}
 							{selectedEdge}
+							documentArchitecture={shownArchitecture}
 							onBeforeFirstEdit={handleBeforeFirstEdit}
 							onmutate={handlePropertyMutation}
 							ontogglepin={handleTogglePin}
 							readonly={isC4Mode()}
+							onactivetab={(t) => (activeInspectorTab = t)}
+							oncollapse={() => inspectorPane?.collapse()}
 						/>
 					</Pane>
 				</PaneGroup>
+
+				{#if inspectorCollapsed}
+					<button
+						class="inspector-handle reopen"
+						onclick={() => inspectorPane?.expand()}
+						aria-label="Open properties panel"
+						title="Open panel"
+					>‹</button>
+				{/if}
+			</div>
 			</Pane>
 
 			<PaneResizer class="resizer resizer-horizontal" />
 
-			<!-- Middle: Code editor panel (full width) -->
+			<!-- Middle: Code editor — main CALM document, plus the decorators document
+			     side-by-side when the open document has any (read-only viewer). -->
 			<Pane defaultSize={25} minSize={10}>
-				<CodePanel
-					value={calmJson}
-					onchange={handleCodeChange}
-					parseError={codeParseError}
-					selectedNodeId={selectedNodeId}
-					selectedEdgeId={selectedEdgeId}
-				/>
+				<PaneGroup direction="horizontal" style="height: 100%;">
+					<Pane defaultSize={hasDecoratorsDoc ? 62 : 100} minSize={30}>
+						<CodePanel
+							value={mainDocJson}
+							onchange={handleCodeChange}
+							parseError={codeParseError}
+							selectedNodeId={selectedNodeId}
+							selectedEdgeId={selectedEdgeId}
+						/>
+					</Pane>
+					{#if hasDecoratorsDoc}
+						<PaneResizer class="resizer resizer-vertical" />
+						<Pane defaultSize={38} minSize={20}>
+							<CodePanel value={decoratorsDocJson} readonly tabLabel="Decorators (sidecar)" />
+						</Pane>
+					{/if}
+				</PaneGroup>
 			</Pane>
 
 			{#if isPanelOpen()}
@@ -1414,6 +1780,44 @@
 		background: #0b0f1a;
 	}
 
+	/* ─── Architecture-level decorator frame ────────────────────── */
+
+	/* A thin inset frame signifies a decorator bound to the whole document.
+	   Rendered as an overlay so it floats above the canvas without affecting
+	   layout or intercepting pointer events. */
+	.canvas-pane.has-arch-decorator::after {
+		content: '';
+		position: absolute;
+		inset: 6px;
+		border: 1.5px solid rgba(99, 102, 241, 0.55);
+		border-radius: 10px;
+		pointer-events: none;
+		z-index: 6;
+	}
+
+	.canvas-pane.has-arch-decorator::before {
+		content: '◆ architecture decorator';
+		position: absolute;
+		top: 10px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 7;
+		padding: 2px 9px;
+		font-family: var(--node-font, system-ui, sans-serif);
+		font-size: 10px;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		color: #6366f1;
+		background: var(--color-surface, #fff);
+		border: 1px solid rgba(99, 102, 241, 0.4);
+		border-radius: 999px;
+		pointer-events: none;
+	}
+
+	:global(.dark) .canvas-pane.has-arch-decorator::before {
+		background: #111827;
+	}
+
 	/* ─── C4 level background tints ─────────────────────────────── */
 
 	.canvas-pane.c4-context {
@@ -1442,6 +1846,71 @@
 
 	/* ─── C4 empty state ─────────────────────────────────────────── */
 
+	.c4-nav-notice {
+		position: absolute;
+		top: 36px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 5;
+		padding: 6px 12px;
+		font-size: 12px;
+		border-radius: 6px;
+		background: #fef3c7;
+		color: #92400e;
+		border: 1px solid #fcd34d;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	}
+	:global(.dark) .c4-nav-notice {
+		background: #422006;
+		color: #fde68a;
+		border-color: #854d0e;
+	}
+
+	/* Nodes that link to a detailed document get a drill affordance (a "nested
+	   document" corner glyph = there's another document behind this node). */
+	:global(.svelte-flow__node.c4-drillable) {
+		cursor: zoom-in;
+	}
+	:global(.svelte-flow__node.c4-drillable::after) {
+		content: '';
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 14px;
+		height: 14px;
+		border-radius: 3px;
+		background-color: #6366f1;
+		/* two offset rounded squares — a document nested behind the node */
+		-webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linejoin='round'><rect x='8' y='3' width='13' height='13' rx='2'/><path d='M16 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2'/></svg>") center / 12px no-repeat;
+		mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linejoin='round'><rect x='8' y='3' width='13' height='13' rx='2'/><path d='M16 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2'/></svg>") center / 12px no-repeat;
+		opacity: 0.85;
+		pointer-events: none;
+	}
+	:global(.svelte-flow__node.c4-drillable:hover) {
+		outline: 2px solid rgba(99, 102, 241, 0.5);
+		outline-offset: 1px;
+		border-radius: 6px;
+	}
+
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		:global(*) {
+			transition-duration: 0.01ms !important;
+			animation-duration: 0.01ms !important;
+		}
+	}
+
 	.c4-empty-state {
 		display: flex;
 		flex-direction: column;
@@ -1453,17 +1922,8 @@
 		gap: 4px;
 	}
 
-	.c4-empty-hint {
-		font-size: 13px;
-		color: #9ca3af;
-	}
-
 	:global(.dark) .c4-empty-state {
 		color: #9ca3af;
-	}
-
-	:global(.dark) .c4-empty-hint {
-		color: #6b7280;
 	}
 
 	/* ─── C4 node visual states ──────────────────────────────────── */
@@ -1632,6 +2092,44 @@
 	}
 
 	/* PaneResizer styling — thin draggable bars */
+	/* Canvas + inspector row — positioning context for the reopen handle. */
+	.canvas-row {
+		position: relative;
+		height: 100%;
+	}
+	/* Reopen tab on the right edge when the inspector is folded shut. */
+	.inspector-handle.reopen {
+		position: absolute;
+		top: 50%;
+		right: 0;
+		transform: translateY(-50%);
+		z-index: 30;
+		width: 18px;
+		height: 56px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		font-size: 14px;
+		line-height: 1;
+		background: var(--color-surface, #fff);
+		color: var(--color-text-secondary, #64748b);
+		border: 1px solid var(--color-border, #e2e8f0);
+		border-right: none;
+		border-radius: 6px 0 0 6px;
+		cursor: pointer;
+		box-shadow: -2px 0 8px rgba(0, 0, 0, 0.06);
+	}
+	.inspector-handle.reopen:hover {
+		color: var(--color-accent, #6366f1);
+		border-color: var(--color-accent, #6366f1);
+	}
+	:global(.dark) .inspector-handle.reopen {
+		background: #0f1320;
+		border-color: #334155;
+		color: #94a3b8;
+	}
+
 	:global(.resizer) {
 		background: transparent;
 		transition: background 0.15s ease;

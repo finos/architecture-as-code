@@ -33,7 +33,7 @@ vi.mock('$lib/io/scalerToml', () => ({
 }));
 
 // Import export functions AFTER mocking their dependency
-import { exportAsCalm, exportAsScalerToml } from '$lib/io/export';
+import { exportAsCalm, exportAsScalerToml, finalizeCalmForWrite, buildDecoratorSidecar, buildDesignZipEntries, exportDesignAsZip, designZipNameFor } from '$lib/io/export';
 import { downloadDataUrl } from '$lib/io/fileSystem';
 import { buildScalerToml } from '$lib/io/scalerToml';
 
@@ -78,6 +78,11 @@ function getFirstBlobContent(): string | null {
 	return blobRegistry.get('blob-1') ?? null;
 }
 
+/** Get the content of the Nth Blob created (1-based). Sidecars follow the main file. */
+function getBlobContent(n: number): string | null {
+	return blobRegistry.get(`blob-${n}`) ?? null;
+}
+
 // ─── Setup / teardown ─────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -90,6 +95,51 @@ afterEach(() => {
 	vi.runAllTimers(); // flush all pending setTimeout callbacks before teardown
 	vi.useRealTimers();
 	teardownBlobStubs();
+});
+
+// ─── finalizeCalmForWrite (shared by Save / Save As / Export) ────────────────
+
+describe('finalizeCalmForWrite', () => {
+	const SCHEMA_URL = 'https://calm.finos.org/release/1.2/meta/calm.json';
+
+	it('injects the canonical $schema when absent', () => {
+		const result = JSON.parse(finalizeCalmForWrite(JSON.stringify(createMinimalArch())));
+		expect(result['$schema']).toBe(SCHEMA_URL);
+	});
+
+	it('preserves an existing $schema untouched', () => {
+		const arch = { '$schema': 'https://example.com/custom/schema.json', ...createMinimalArch() };
+		const result = JSON.parse(finalizeCalmForWrite(JSON.stringify(arch)));
+		expect(result['$schema']).toBe('https://example.com/custom/schema.json');
+	});
+
+	it('strips _template scratch metadata', () => {
+		const arch = { ...createMinimalArch(), _template: { id: 'x', name: 'x' } };
+		const result = JSON.parse(finalizeCalmForWrite(JSON.stringify(arch)));
+		expect(result).not.toHaveProperty('_template');
+	});
+
+	it('strips embedded decorators (they belong in the sidecar)', () => {
+		const arch = {
+			...createMinimalArch(),
+			decorators: [
+				{ 'unique-id': 'd1', type: 'threat-model', target: ['architecture.json'], 'applies-to': ['api-service'], data: { x: 1 } },
+			],
+		};
+		const result = JSON.parse(finalizeCalmForWrite(JSON.stringify(arch)));
+		expect(result).not.toHaveProperty('decorators');
+		// the rest of the document is untouched
+		expect(result.nodes).toHaveLength(2);
+	});
+
+	it('does NOT add a governance decorator', () => {
+		const result = JSON.parse(finalizeCalmForWrite(JSON.stringify(createAIGovernanceArch())));
+		expect(result.decorators).toBeUndefined();
+	});
+
+	it('returns the input unchanged for malformed JSON', () => {
+		expect(finalizeCalmForWrite('not-json')).toBe('not-json');
+	});
 });
 
 // ─── exportAsCalm — _template metadata stripping ─────────────────────────────
@@ -134,57 +184,75 @@ describe('exportAsCalm — template stripping', () => {
 	});
 });
 
-// ─── exportAsCalm — AIGF decorator injection ──────────────────────────────────
+// ─── exportAsCalm — no governance overlay (legacy AIGF retired) ───────────────
 
-describe('exportAsCalm — AIGF decorator injection', () => {
-	it('does NOT add decorators for architecture with no AI nodes', () => {
-		exportAsCalm(JSON.stringify(createMinimalArch(), null, 2));
+describe('exportAsCalm — no governance overlay', () => {
+	it('does not inject a governance decorator for AI architectures', () => {
+		exportAsCalm(JSON.stringify(createAIGovernanceArch(), null, 2));
 		const result = JSON.parse(getFirstBlobContent()!);
 		expect(result.decorators).toBeUndefined();
 	});
 
-	it('injects AIGF governance decorator when AI nodes are present', () => {
-		exportAsCalm(JSON.stringify(createAIGovernanceArch(), null, 2));
-		const result = JSON.parse(getFirstBlobContent()!);
-		expect(result.decorators).toBeDefined();
-		expect(Array.isArray(result.decorators)).toBe(true);
-		expect(result.decorators).toHaveLength(1);
+	it('moves the author’s decorators out of the clean file into a sidecar', () => {
+		const arch = createAIGovernanceArch({
+			decorators: [
+				{ 'unique-id': 'threat-model-overlay', type: 'threat-model', target: [], 'applies-to': ['ai-llm'], data: { sev: 'high' } },
+			],
+		});
+		exportAsCalm(JSON.stringify(arch, null, 2), 'gov.calm.json');
+		// Clean arch file (blob-1) carries no decorators…
+		const main = JSON.parse(getFirstBlobContent()!);
+		expect(main.decorators).toBeUndefined();
+		// …they ride in the decorator sidecar (blob-2), target stamped to the arch file.
+		const sidecar = JSON.parse(getBlobContent(2)!);
+		expect(sidecar.decorators).toHaveLength(1);
+		expect(sidecar.decorators[0]['unique-id']).toBe('threat-model-overlay');
+		expect(sidecar.decorators[0].target).toEqual(['gov.calm.json']);
+		// the sidecar download is deferred via setTimeout — flush before asserting
+		vi.runAllTimers();
+		expect(downloadDataUrl).toHaveBeenCalledWith(expect.any(String), 'gov.calm.decorators.json');
 	});
 
-	it('decorator type is "aigf-governance"', () => {
-		exportAsCalm(JSON.stringify(createAIGovernanceArch(), null, 2));
-		const result = JSON.parse(getFirstBlobContent()!);
-		expect(result.decorators[0].type).toBe('aigf-governance');
+	it('writes no decorator sidecar when there are none', () => {
+		exportAsCalm(JSON.stringify(createMinimalArch(), null, 2), 'plain.calm.json');
+		vi.runAllTimers();
+		expect(downloadDataUrl).not.toHaveBeenCalledWith(expect.any(String), 'plain.calm.decorators.json');
+	});
+});
+
+// ─── buildDecoratorSidecar ────────────────────────────────────────────────────
+
+describe('buildDecoratorSidecar', () => {
+	it('returns null when the architecture has no decorators', () => {
+		expect(buildDecoratorSidecar(JSON.stringify(createMinimalArch()), 'a.json')).toBeNull();
 	});
 
-	it('decorator has unique-id "aigf-governance-overlay"', () => {
-		exportAsCalm(JSON.stringify(createAIGovernanceArch(), null, 2));
-		const result = JSON.parse(getFirstBlobContent()!);
-		expect(result.decorators[0]['unique-id']).toBe('aigf-governance-overlay');
+	it('returns null for malformed JSON', () => {
+		expect(buildDecoratorSidecar('not-json', 'a.json')).toBeNull();
 	});
 
-	it('decorator applies-to includes AI node IDs', () => {
-		exportAsCalm(JSON.stringify(createAIGovernanceArch(), null, 2));
-		const result = JSON.parse(getFirstBlobContent()!);
-		const appliesTo: string[] = result.decorators[0]['applies-to'];
-		expect(appliesTo).toContain('ai-llm');
-		expect(appliesTo).toContain('ai-agent');
-		expect(appliesTo).toContain('ai-orchestrator');
+	it('wraps decorators and stamps target to the arch filename', () => {
+		const arch = {
+			...createMinimalArch(),
+			decorators: [
+				{ 'unique-id': 'd1', type: 'gemara-link', target: ['architecture.json'], 'applies-to': ['api-service'], data: { k: 1 } },
+			],
+		};
+		const sidecar = JSON.parse(buildDecoratorSidecar(JSON.stringify(arch), 'payments.arch.json')!);
+		expect(sidecar.decorators[0].target).toEqual(['payments.arch.json']);
+		// placeholder 'architecture.json' replaced, not appended
+		expect(sidecar.decorators[0].target).not.toContain('architecture.json');
 	});
 
-	it('decorator data has governance-score between 0 and 100', () => {
-		exportAsCalm(JSON.stringify(createAIGovernanceArch(), null, 2));
-		const result = JSON.parse(getFirstBlobContent()!);
-		const score = result.decorators[0].data['governance-score'];
-		expect(typeof score).toBe('number');
-		expect(score).toBeGreaterThanOrEqual(0);
-		expect(score).toBeLessThanOrEqual(100);
-	});
-
-	it('decorator data includes FINOS AIGF framework reference', () => {
-		exportAsCalm(JSON.stringify(createAIGovernanceArch(), null, 2));
-		const result = JSON.parse(getFirstBlobContent()!);
-		expect(result.decorators[0].data.framework).toBe('FINOS AI Governance Framework');
+	it('preserves additional explicit (non-placeholder) targets', () => {
+		const arch = {
+			...createMinimalArch(),
+			decorators: [
+				{ 'unique-id': 'd1', type: 'gemara-link', target: ['other.arch.json'], 'applies-to': ['api-service'], data: { k: 1 } },
+			],
+		};
+		const sidecar = JSON.parse(buildDecoratorSidecar(JSON.stringify(arch), 'payments.arch.json')!);
+		expect(sidecar.decorators[0].target).toEqual(['payments.arch.json', 'other.arch.json']);
 	});
 });
 
@@ -231,6 +299,54 @@ describe('exportAsCalm — CALM field preservation', () => {
 	it('uses the provided filename in the download call', () => {
 		exportAsCalm(JSON.stringify(createMinimalArch(), null, 2), 'my-arch.calm.json');
 		expect(downloadDataUrl).toHaveBeenCalledWith(expect.any(String), 'my-arch.calm.json');
+	});
+});
+
+// ─── Design zip export ────────────────────────────────────────────────────────
+
+describe('buildDesignZipEntries', () => {
+	it('bundles the clean arch (no decorators) and the decorator sidecar', () => {
+		const arch = {
+			...createMinimalArch(),
+			decorators: [
+				{ 'unique-id': 'd1', type: 'threat-model', target: ['architecture.json'], 'applies-to': ['api-service'], data: { x: 1 } },
+			],
+		};
+		const entries = buildDesignZipEntries(JSON.stringify(arch), 'payments.arch.json');
+		const byName = Object.fromEntries(entries.map((e) => [e.name, e.content]));
+
+		// arch entry is decorator-free
+		expect(JSON.parse(byName['payments.arch.json']).decorators).toBeUndefined();
+		// decorator sidecar present, target stamped to the arch file
+		const sidecar = JSON.parse(byName['payments.arch.decorators.json']);
+		expect(sidecar.decorators[0].target).toEqual(['payments.arch.json']);
+	});
+
+	it('omits the decorator sidecar entry when there are none', () => {
+		const entries = buildDesignZipEntries(JSON.stringify(createMinimalArch()), 'plain.arch.json');
+		expect(entries.map((e) => e.name)).toEqual(['plain.arch.json']);
+	});
+
+	it('preserves layout in the arch entry when supplied', () => {
+		const entries = buildDesignZipEntries(JSON.stringify(createMinimalArch()), 'a.json', 'My Design', {
+			'api-service': { x: 10, y: 20 },
+		});
+		const arch = JSON.parse(entries[0].content);
+		expect(arch.metadata.name).toBe('My Design');
+		expect(arch.metadata['calmstudio-layout']['api-service']).toEqual({ x: 10, y: 20 });
+	});
+});
+
+describe('designZipNameFor', () => {
+	it('replaces the trailing .json with .zip', () => {
+		expect(designZipNameFor('payments.arch.json')).toBe('payments.arch.zip');
+	});
+});
+
+describe('exportDesignAsZip', () => {
+	it('triggers a .zip download', () => {
+		exportDesignAsZip(JSON.stringify(createMinimalArch()), 'payments.arch.json');
+		expect(downloadDataUrl).toHaveBeenCalledWith(expect.any(String), 'payments.arch.zip');
 	});
 });
 

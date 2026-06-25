@@ -47,6 +47,15 @@ export function classifyNodeC4Level(calmType: string): C4Level {
 	return 'component';
 }
 
+/**
+ * Whether a keyboard event target is (or sits inside) a focusable control —
+ * used to keep a canvas-region key handler from hijacking keys aimed at a
+ * breadcrumb button, input, etc.
+ */
+export function isInteractiveKeyTarget(el: HTMLElement | null): boolean {
+	return !!el?.closest('button, a, input, select, textarea');
+}
+
 // ─── External Detection ───────────────────────────────────────────────────────
 
 /**
@@ -241,6 +250,18 @@ export function getChildrenOf(parentId: string, nodes: Node[]): Node[] {
  */
 export function hasDrillableChildren(nodeId: string, nodes: Node[]): boolean {
 	return nodes.some((n) => n.parentId === nodeId);
+}
+
+/**
+ * Whether a node can be drilled: it links to another document via a resolvable
+ * `details.detailed-architecture`. Composed-of children render as visual
+ * containment within the one diagram — they are not a drill target.
+ */
+export function isDrillable(node: Node, resolves: (ref: string) => boolean): boolean {
+	const ref = (node.data?.details as { 'detailed-architecture'?: string } | undefined)?.[
+		'detailed-architecture'
+	];
+	return !!(ref && resolves(ref));
 }
 
 // ─── Style Injection ──────────────────────────────────────────────────────────

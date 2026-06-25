@@ -4,7 +4,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import TemplatePicker from '$lib/templates/TemplatePicker.svelte';
-import { initAllTemplates, getAllTemplates, getAllCategories } from '$lib/templates/registry';
+import {
+	initAllTemplates,
+	getAllTemplates,
+	getAllCategories,
+	getTemplatesByCategory,
+} from '$lib/templates/registry';
 
 // ─── Setup: register all templates once ────────────────────────────────────
 
@@ -80,14 +85,14 @@ describe('TemplatePicker', () => {
 
 	it('calls onselect with template id when a template card is clicked', async () => {
 		const onselect = vi.fn();
-		const allTemplates = getAllTemplates();
-		const firstTemplate = allTemplates[0];
+		// The picker opens on the first category tab — pick a template that's visible there.
+		const firstTemplate = getTemplatesByCategory(getAllCategories()[0]!)[0]!;
 
 		const { getByRole } = render(TemplatePicker, {
 			props: { onselect, oncancel: vi.fn() },
 		});
 
-		// Click the template card for the first template
+		// Click the template card for that template
 		const templateCard = getByRole('button', {
 			name: new RegExp(`load template.*${firstTemplate._template.name}`, 'i'),
 		});

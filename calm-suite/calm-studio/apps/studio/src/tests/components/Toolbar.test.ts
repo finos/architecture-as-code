@@ -4,8 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import Toolbar from '$lib/toolbar/Toolbar.svelte';
-import { applyFromJson, resetModel } from '$lib/stores/calmModel.svelte';
-import { refreshGovernance } from '$lib/stores/governance.svelte';
+import { resetModel } from '$lib/stores/calmModel.svelte';
 
 // ─── Fixtures: create required callback props ─────────────────────────────────
 
@@ -17,6 +16,7 @@ function makeToolbarProps(overrides?: Record<string, unknown>) {
 		onnew: vi.fn(),
 		onvalidate: vi.fn(),
 		onexportcalm: vi.fn(),
+		onexportzip: vi.fn(),
 		onexportsvg: vi.fn(),
 		onexportpng: vi.fn(),
 		onexportcalmscript: vi.fn(),
@@ -39,9 +39,9 @@ describe('Toolbar — core buttons rendered', () => {
 		expect(getByRole('button', { name: /open.*CALM JSON/i })).toBeTruthy();
 	});
 
-	it('renders Save button with accessible name (a11y)', () => {
+	it('renders the Save / Export dropdown with accessible name (a11y)', () => {
 		const { getByRole } = render(Toolbar, { props: makeToolbarProps() });
-		expect(getByRole('button', { name: /save diagram/i })).toBeTruthy();
+		expect(getByRole('button', { name: /save or export diagram/i })).toBeTruthy();
 	});
 
 	it('renders Validate button with accessible name (a11y)', () => {
@@ -63,17 +63,6 @@ describe('Toolbar — core buttons rendered', () => {
 		const { getByText } = render(Toolbar, { props: makeToolbarProps() });
 		expect(getByText('CalmStudio')).toBeTruthy();
 	});
-
-	it('renders C4 view selector buttons (All, Context, Container, Component)', () => {
-		const { getAllByRole } = render(Toolbar, { props: makeToolbarProps() });
-		// C4 buttons are plain buttons with no aria-label; find by role + text
-		const allBtns = getAllByRole('button');
-		const btnTexts = allBtns.map((b) => b.textContent?.trim());
-		expect(btnTexts).toContain('All');
-		expect(btnTexts).toContain('Context');
-		expect(btnTexts).toContain('Container');
-		expect(btnTexts).toContain('Component');
-	});
 });
 
 describe('Toolbar — button callbacks', () => {
@@ -91,11 +80,20 @@ describe('Toolbar — button callbacks', () => {
 		expect(onopen).toHaveBeenCalledOnce();
 	});
 
-	it('calls onsave when Save button is clicked', async () => {
+	it('calls onsave from the Save item in the Save / Export menu', async () => {
 		const onsave = vi.fn();
-		const { getByRole } = render(Toolbar, { props: makeToolbarProps({ onsave }) });
-		await fireEvent.click(getByRole('button', { name: /save diagram/i }));
+		const { getByRole, getByText } = render(Toolbar, { props: makeToolbarProps({ onsave }) });
+		await fireEvent.click(getByRole('button', { name: /save or export diagram/i }));
+		await fireEvent.click(getByText('Save'));
 		expect(onsave).toHaveBeenCalledOnce();
+	});
+
+	it('calls onsaveas from the "Save as..." item in the menu', async () => {
+		const onsaveas = vi.fn();
+		const { getByRole, getByText } = render(Toolbar, { props: makeToolbarProps({ onsaveas }) });
+		await fireEvent.click(getByRole('button', { name: /save or export diagram/i }));
+		await fireEvent.click(getByText('Save as...'));
+		expect(onsaveas).toHaveBeenCalledOnce();
 	});
 
 	it('calls onvalidate when Validate button is clicked', async () => {
@@ -115,40 +113,6 @@ describe('Toolbar — button callbacks', () => {
 	});
 });
 
-describe('Toolbar — governance badge', () => {
-	it('does NOT render governance badge when showGovernanceBadge=false', () => {
-		const { queryByRole } = render(Toolbar, {
-			props: makeToolbarProps({ showGovernanceBadge: false, governanceScore: 75 }),
-		});
-		// Governance badge has aria-label "AIGF governance score: ..."
-		expect(queryByRole('generic', { name: /AIGF governance score/i })).toBeNull();
-	});
-
-	it('renders governance badge when showGovernanceBadge=true and score is non-null', () => {
-		const { getByText } = render(Toolbar, {
-			props: makeToolbarProps({ showGovernanceBadge: true, governanceScore: 75 }),
-		});
-		// Score text visible in badge
-		expect(getByText('75%')).toBeTruthy();
-	});
-
-	it('governance badge has accessible label with score value (a11y)', () => {
-		const { container } = render(Toolbar, {
-			props: makeToolbarProps({ showGovernanceBadge: true, governanceScore: 50 }),
-		});
-		// The gov-badge div has aria-label "AIGF governance score: 50%"
-		const badge = container.querySelector('[aria-label*="AIGF governance score"]');
-		expect(badge).toBeTruthy();
-	});
-
-	it('shows correct score color class for high score (>80)', () => {
-		const { getByText } = render(Toolbar, {
-			props: makeToolbarProps({ showGovernanceBadge: true, governanceScore: 90 }),
-		});
-		expect(getByText('90%')).toBeTruthy();
-	});
-});
-
 describe('Toolbar — Scaler.toml export button', () => {
 	it('does NOT render Scaler.toml export button when showScalerTomlExport is false', async () => {
 		const { getByRole, queryByText } = render(Toolbar, {
@@ -156,7 +120,7 @@ describe('Toolbar — Scaler.toml export button', () => {
 		});
 		// Open export menu first
 		await fireEvent.click(getByRole('button', { name: /export diagram/i }));
-		expect(queryByText('Scaler.toml (OpenGRIS)')).toBeNull();
+		expect(queryByText('Scaler.toml')).toBeNull();
 	});
 
 	it('renders Scaler.toml export button when showScalerTomlExport is true', async () => {
@@ -165,7 +129,7 @@ describe('Toolbar — Scaler.toml export button', () => {
 		});
 		// Open export menu first
 		await fireEvent.click(getByRole('button', { name: /export diagram/i }));
-		expect(getByText('Scaler.toml (OpenGRIS)')).toBeTruthy();
+		expect(getByText('Scaler.toml')).toBeTruthy();
 	});
 
 	it('calls onexportscalertoml when Scaler.toml button is clicked', async () => {
@@ -174,30 +138,49 @@ describe('Toolbar — Scaler.toml export button', () => {
 			props: makeToolbarProps({ showScalerTomlExport: true, onexportscalertoml }),
 		});
 		await fireEvent.click(getByRole('button', { name: /export diagram/i }));
-		await fireEvent.click(getByText('Scaler.toml (OpenGRIS)'));
+		await fireEvent.click(getByText('Scaler.toml'));
 		expect(onexportscalertoml).toHaveBeenCalledOnce();
 	});
 });
 
 describe('Toolbar — filename display', () => {
-	it('shows "Untitled" when no filename is provided', () => {
-		const { getByText } = render(Toolbar, { props: makeToolbarProps() });
-		expect(getByText('Untitled')).toBeTruthy();
+	it('shows "Unsaved Document" placeholder when no filename is provided', () => {
+		const { getByPlaceholderText } = render(Toolbar, { props: makeToolbarProps() });
+		expect(getByPlaceholderText('Unsaved Document')).toBeTruthy();
 	});
 
-	it('shows filename when filename prop is provided', () => {
-		const { getByText } = render(Toolbar, {
+	it('shows filename as the editable title value when provided', () => {
+		const { getByDisplayValue } = render(Toolbar, {
 			props: makeToolbarProps({ filename: 'my-architecture.calm.json' }),
 		});
-		expect(getByText('my-architecture.calm.json')).toBeTruthy();
+		expect(getByDisplayValue('my-architecture.calm.json')).toBeTruthy();
+	});
+
+	it('editing the title fires onrename with the new name', async () => {
+		const onrename = vi.fn();
+		const { getByRole } = render(Toolbar, { props: makeToolbarProps({ onrename }) });
+		const input = getByRole('textbox', { name: /document name/i });
+		await fireEvent.input(input, { target: { value: 'renamed-arch' } });
+		await fireEvent.change(input);
+		expect(onrename).toHaveBeenCalledWith('renamed-arch');
 	});
 
 	it('shows dirty indicator when isDirty=true', () => {
 		const { container } = render(Toolbar, {
 			props: makeToolbarProps({ isDirty: true }),
 		});
-		// dirty-dot has aria-label "Unsaved changes"
-		const dirtyDot = container.querySelector('[aria-label="Unsaved changes"]');
+		// dirty indicator has aria-label describing the unsaved state
+		const dirtyDot = container.querySelector('[aria-label="Changes have been made since last save"]');
 		expect(dirtyDot).toBeTruthy();
+	});
+});
+
+describe('Toolbar — no C4 level selector (link-based navigation)', () => {
+	it('does not render Context/Container/Component level buttons', () => {
+		const { getAllByRole } = render(Toolbar, { props: makeToolbarProps() });
+		const texts = getAllByRole('button').map((b) => b.textContent?.trim());
+		expect(texts).not.toContain('Context');
+		expect(texts).not.toContain('Container');
+		expect(texts).not.toContain('Component');
 	});
 });

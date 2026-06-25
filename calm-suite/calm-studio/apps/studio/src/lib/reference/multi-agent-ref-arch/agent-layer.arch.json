@@ -1,0 +1,224 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/agent-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "agent-layer",
+      "node-type": "system",
+      "name": "Agent Layer",
+      "description": "Orchestrates task agents within a secure runtime, with state, memory and tools.",
+      "controls": {
+        "human-oversight": {
+          "description": "Require human approval for high-risk agent actions.",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/C3",
+              "config": {
+                "control-id": "C3",
+                "threats-mitigated": [
+                  "autonomous-harm"
+                ]
+              }
+            }
+          ]
+        },
+        "runtime-isolation": {
+          "description": "Execute agent code in a sandboxed, least-privilege runtime.",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/C14",
+              "config": {
+                "control-id": "C14",
+                "threats-mitigated": [
+                  "code-execution"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "agent-plane",
+      "node-type": "system",
+      "name": "Agent Runtime Plane",
+      "description": "Isolated runtime boundary for agent execution."
+    },
+    {
+      "unique-id": "agent-orchestrator",
+      "node-type": "ai:orchestrator",
+      "name": "Agent Orchestrator",
+      "description": "Decomposes goals and coordinates task agents (supervisor role)."
+    },
+    {
+      "unique-id": "agent-runtime",
+      "node-type": "service",
+      "name": "Agent Runtime",
+      "description": "Sandboxed execution environment with state and handoff management.",
+      "details": {
+        "detailed-architecture": "https://calm.finos.org/marefarch/agent-runtime.component.arch.json",
+        "required-pattern": "https://calm.finos.org/marefarch/agent-runtime.component.pattern.json"
+      }
+    },
+    {
+      "unique-id": "task-agent",
+      "node-type": "ai:agent",
+      "name": "Task Agent",
+      "description": "Representative task-scoped agent workload (instantiated per use case)."
+    },
+    {
+      "unique-id": "agent-state-store",
+      "node-type": "database",
+      "name": "Agent State Store",
+      "description": "Durable conversation and workflow state."
+    },
+    {
+      "unique-id": "short-term-memory",
+      "node-type": "ai:memory",
+      "name": "Short-Term Memory",
+      "description": "In-session working context for active runs."
+    },
+    {
+      "unique-id": "long-term-memory",
+      "node-type": "ai:memory",
+      "name": "Long-Term Memory",
+      "description": "Persisted summaries and personalization across sessions."
+    },
+    {
+      "unique-id": "agent-tools",
+      "node-type": "ai:tool",
+      "name": "Agent Tools",
+      "description": "Built-in tool surface (I/O, shell, web) available to agents."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "agent-layer-contains",
+      "description": "Agent Layer components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "agent-layer",
+          "nodes": [
+            "agent-orchestrator",
+            "agent-runtime",
+            "task-agent",
+            "agent-state-store",
+            "short-term-memory",
+            "long-term-memory",
+            "agent-tools"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "al-orch-to-agent",
+      "description": "Dispatch task",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-orchestrator"
+          },
+          "destination": {
+            "node": "task-agent"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "al-agent-to-runtime",
+      "description": "Execute in sandbox",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "task-agent"
+          },
+          "destination": {
+            "node": "agent-runtime"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "al-runtime-to-state",
+      "description": "Persist state",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-runtime"
+          },
+          "destination": {
+            "node": "agent-state-store"
+          }
+        }
+      },
+      "protocol": "JDBC"
+    },
+    {
+      "unique-id": "al-agent-to-stm",
+      "description": "Working context",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "task-agent"
+          },
+          "destination": {
+            "node": "short-term-memory"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "al-agent-to-ltm",
+      "description": "Recall/personalize",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "task-agent"
+          },
+          "destination": {
+            "node": "long-term-memory"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "al-agent-to-tools",
+      "description": "Invoke tool",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "task-agent"
+          },
+          "destination": {
+            "node": "agent-tools"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "agent-layer-deployment",
+      "description": "Agent Layer deploys onto the Agent Runtime Plane.",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "agent-plane",
+          "nodes": [
+            "agent-orchestrator",
+            "agent-runtime",
+            "task-agent",
+            "agent-state-store",
+            "short-term-memory",
+            "long-term-memory",
+            "agent-tools"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "c4-level": "container"
+  }
+}

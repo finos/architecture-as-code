@@ -1,0 +1,114 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/knowledge-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "knowledge-layer",
+      "node-type": "system",
+      "name": "Knowledge Layer",
+      "description": "Curated knowledge sources and retrieval indexes for grounding agents.",
+      "controls": {
+        "data-filtering": {
+          "description": "Scan and filter sensitive content before it is embedded into the knowledge layer.",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/CN01",
+              "config": {
+                "control-id": "CN01",
+                "threats-mitigated": [
+                  "data-leakage"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "data-plane",
+      "node-type": "system",
+      "name": "Data Plane",
+      "description": "Deployment boundary for stores and ingestion."
+    },
+    {
+      "unique-id": "ingestion-pipeline",
+      "node-type": "service",
+      "name": "Ingestion Pipeline",
+      "description": "Scans, filters and embeds source content before indexing."
+    },
+    {
+      "unique-id": "knowledge-base",
+      "node-type": "ai:knowledge-base",
+      "name": "Knowledge Base",
+      "description": "Authoritative source documents and records."
+    },
+    {
+      "unique-id": "vector-store",
+      "node-type": "ai:vector-store",
+      "name": "Vector Store",
+      "description": "Embedding index for semantic retrieval."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "knowledge-layer-contains",
+      "description": "Knowledge Layer components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "knowledge-layer",
+          "nodes": [
+            "ingestion-pipeline",
+            "knowledge-base",
+            "vector-store"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kl-ingest-to-kb",
+      "description": "Load source content",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ingestion-pipeline"
+          },
+          "destination": {
+            "node": "knowledge-base"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "kl-ingest-to-vec",
+      "description": "Write embeddings",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ingestion-pipeline"
+          },
+          "destination": {
+            "node": "vector-store"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "knowledge-layer-deployment",
+      "description": "Knowledge Layer deploys onto the Data Plane.",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "data-plane",
+          "nodes": [
+            "ingestion-pipeline",
+            "knowledge-base",
+            "vector-store"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "c4-level": "container"
+  }
+}

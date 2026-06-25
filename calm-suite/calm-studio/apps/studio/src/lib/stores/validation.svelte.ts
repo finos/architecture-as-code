@@ -16,8 +16,7 @@
  */
 
 import { getModel } from './calmModel.svelte';
-import { validateCalmArchitecture, type ValidationIssue } from '@calmstudio/calm-core';
-import { runAIGFRules } from '$lib/validation/aigf-rules';
+import { validateCalmArchitecture, validateDecorators, type ValidationIssue } from '@calmstudio/calm-core';
 
 // Re-export ValidationIssue for consumers that cannot resolve @calmstudio/calm-core via tsconfig
 export type { ValidationIssue };
@@ -36,9 +35,12 @@ let scrollToId = $state<string | null>(null);
  */
 export function runValidation(): void {
 	const model = getModel();
-	const structural = validateCalmArchitecture(model);
-	const aigf = runAIGFRules(model);
-	issues = [...structural, ...aigf];
+	issues = [
+		...validateCalmArchitecture(model),
+		// Decorators live in the standalone overlay, not the core schema, so they
+		// are validated separately and merged in.
+		...validateDecorators(model.decorators ?? [], model),
+	];
 	// Sort by severity: errors first, then warnings, then info
 	const severityOrder: Record<string, number> = { error: 0, warning: 1, info: 2 };
 	issues.sort((a, b) => (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2));

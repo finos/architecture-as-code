@@ -5,6 +5,8 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import type { Node, Edge } from '@xyflow/svelte';
 import { pushSnapshot, undo, redo, canUndo, canRedo, resetHistory } from '$lib/stores/history.svelte';
+import { applyFromJson, upsertDecorator, getModel, resetModel } from '$lib/stores/calmModel.svelte';
+import { buildGemaraDecorator } from '@calmstudio/calm-core';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -128,5 +130,37 @@ describe('history - canUndo/canRedo', () => {
 		nodes[0].data.label = 'mutated';
 		const snapshot = undo();
 		expect(snapshot!.nodes[0].data.label).toBe('n1');
+	});
+});
+
+describe('history - captures the CALM model (governance is undoable)', () => {
+	beforeEach(() => {
+		resetModel();
+		resetHistory();
+	});
+
+	test('a snapshot captures decorators, so undo restores them (the model the flow does not hold)', () => {
+		applyFromJson({
+			nodes: [{ 'unique-id': 'n1', 'node-type': 'system', name: 'N', description: '' }],
+			relationships: [],
+			decorators: [],
+		});
+		pushSnapshot([], noEdges); // S0 — clean
+		// a governance mutation (decorators live in the model, not the flow projection)
+		upsertDecorator(
+			buildGemaraDecorator({
+				artifact: 'guidance',
+				kind: 'catalog',
+				catalogRef: { namespace: 'finos-aigf', catalogId: 'finos-air', version: '0.2.0' },
+				appliesTo: ['n1'],
+			}),
+		);
+		pushSnapshot([], noEdges); // S1 — with the decorator (so undo can step back to S0)
+		expect((getModel().decorators ?? []).length).toBe(1);
+
+		const snap = undo();
+		expect(snap).not.toBeNull();
+		applyFromJson(snap!.model); // how +page applies an undo
+		expect(getModel().decorators ?? []).toHaveLength(0); // governance change undone
 	});
 });

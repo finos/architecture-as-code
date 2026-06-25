@@ -1,0 +1,141 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/agent-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "agent-layer",
+      "node-type": "system",
+      "name": "Agent Layer",
+      "description": "Loan-origination agent workforce."
+    },
+    {
+      "unique-id": "agent-orchestrator",
+      "node-type": "ai:orchestrator",
+      "name": "Workflow Orchestrator",
+      "description": "Drives the loan-origination workflow."
+    },
+    {
+      "unique-id": "document-intelligence-agent",
+      "node-type": "ai:agent",
+      "name": "Document Intelligence Agent",
+      "description": "Extracts data from submitted documents."
+    },
+    {
+      "unique-id": "fraud-detection-agent",
+      "node-type": "ai:agent",
+      "name": "Fraud Detection Agent",
+      "description": "Screens applications for fraud signals."
+    },
+    {
+      "unique-id": "credit-risk-agent",
+      "node-type": "ai:agent",
+      "name": "Credit Risk Assessment Agent",
+      "description": "Assesses applicant creditworthiness."
+    },
+    {
+      "unique-id": "compliance-review-agent",
+      "node-type": "ai:agent",
+      "name": "Compliance Review Agent",
+      "description": "Checks regulatory and policy compliance."
+    },
+    {
+      "unique-id": "decision-gate",
+      "node-type": "service",
+      "name": "Decision Gate",
+      "description": "Aggregates agent findings into an approval decision."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "al-loan-contains",
+      "description": "Loan agents.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "agent-layer",
+          "nodes": [
+            "agent-orchestrator",
+            "document-intelligence-agent",
+            "fraud-detection-agent",
+            "credit-risk-agent",
+            "compliance-review-agent",
+            "decision-gate"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "al-orch-doc",
+      "description": "Extract documents",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-orchestrator"
+          },
+          "destination": {
+            "node": "document-intelligence-agent"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "al-orch-fraud",
+      "description": "Screen fraud",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-orchestrator"
+          },
+          "destination": {
+            "node": "fraud-detection-agent"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "al-orch-credit",
+      "description": "Assess credit",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-orchestrator"
+          },
+          "destination": {
+            "node": "credit-risk-agent"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "al-orch-compliance",
+      "description": "Review compliance",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-orchestrator"
+          },
+          "destination": {
+            "node": "compliance-review-agent"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "al-orch-gate",
+      "description": "Decide",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-orchestrator"
+          },
+          "destination": {
+            "node": "decision-gate"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    }
+  ]
+}

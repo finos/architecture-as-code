@@ -87,3 +87,16 @@ export function resetFileState(): void {
 	fileHandle = null;
 	isDirty = false;
 }
+
+/**
+ * Rename the document from the editable title field. The next Save targets this
+ * name as a new file — the handle is cleared so Save prompts for the new location
+ * (you can't rename a file in place via the File System Access API) — and the doc
+ * is marked dirty so the rename is clearly unsaved.
+ */
+export function setFileName(name: string | null): void {
+	const trimmed = name?.trim() ?? '';
+	currentFileName = trimmed.length > 0 ? trimmed : null;
+	fileHandle = null;
+	isDirty = true;
+}

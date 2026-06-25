@@ -1,0 +1,137 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/llm-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "llm-layer",
+      "node-type": "system",
+      "name": "LLM Layer",
+      "description": "Governed access to language models through a gateway and registry.",
+      "controls": {
+        "output-validation": {
+          "description": "Validate and filter model outputs before they leave the gateway.",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/C13",
+              "config": {
+                "control-id": "C13",
+                "threats-mitigated": [
+                  "harmful-output"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "model-plane",
+      "node-type": "system",
+      "name": "Model Serving Plane",
+      "description": "Deployment boundary for model serving and gateways."
+    },
+    {
+      "unique-id": "llm-gateway",
+      "node-type": "ai:api-gateway",
+      "name": "LLM Gateway",
+      "description": "Routing, quota and safety enforcement for model calls."
+    },
+    {
+      "unique-id": "model-registry",
+      "node-type": "service",
+      "name": "Model Registry",
+      "description": "Approved models, versions and routing policy."
+    },
+    {
+      "unique-id": "model-serving",
+      "node-type": "ai:llm",
+      "name": "Model Serving",
+      "description": "Managed/self-hosted model serving endpoint(s)."
+    },
+    {
+      "unique-id": "llm-guardrails",
+      "node-type": "ai:guardrail",
+      "name": "LLM Guardrails",
+      "description": "Prompt and response filtering."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "llm-layer-contains",
+      "description": "LLM Layer components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "llm-layer",
+          "nodes": [
+            "llm-gateway",
+            "model-registry",
+            "model-serving",
+            "llm-guardrails"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "llm-gw-to-registry",
+      "description": "Resolve model",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "llm-gateway"
+          },
+          "destination": {
+            "node": "model-registry"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "llm-gw-to-serving",
+      "description": "Inference",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "llm-gateway"
+          },
+          "destination": {
+            "node": "model-serving"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "llm-gw-to-guard",
+      "description": "Filter prompt/response",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "llm-gateway"
+          },
+          "destination": {
+            "node": "llm-guardrails"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "llm-layer-deployment",
+      "description": "LLM Layer deploys onto the Model Serving Plane.",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "model-plane",
+          "nodes": [
+            "llm-gateway",
+            "model-registry",
+            "model-serving",
+            "llm-guardrails"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "c4-level": "container"
+  }
+}

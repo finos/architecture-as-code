@@ -1,0 +1,220 @@
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "metadata": {
+    "c4-level": "context"
+  },
+  "nodes": [
+    {
+      "unique-id": "multi-agent-system",
+      "node-type": "system",
+      "name": "Multi-Agent Reference Architecture",
+      "description": "AIGF-aligned reference architecture for governed multi-agent AI systems. Each layer links to a detailed, deployable elaboration."
+    },
+    {
+      "unique-id": "user-interaction-layer",
+      "node-type": "system",
+      "name": "User Interaction Layer",
+      "description": "Channels through which people interact with the multi-agent system.",
+      "details": {
+        "detailed-architecture": "https://calm.finos.org/marefarch/user-interaction-layer.arch.json",
+        "required-pattern": "https://calm.finos.org/marefarch/user-interaction-layer.pattern.json"
+      }
+    },
+    {
+      "unique-id": "agent-gateway-layer",
+      "node-type": "system",
+      "name": "Agent Gateway Layer",
+      "description": "Single entry point that authenticates, routes, and guards traffic into the agent layer.",
+      "details": {
+        "detailed-architecture": "https://calm.finos.org/marefarch/agent-gateway-layer.arch.json",
+        "required-pattern": "https://calm.finos.org/marefarch/agent-gateway-layer.pattern.json"
+      }
+    },
+    {
+      "unique-id": "agent-layer",
+      "node-type": "system",
+      "name": "Agent Layer",
+      "description": "Orchestrates task agents within a secure runtime, with state, memory and tools.",
+      "details": {
+        "detailed-architecture": "https://calm.finos.org/marefarch/agent-layer.arch.json",
+        "required-pattern": "https://calm.finos.org/marefarch/agent-layer.pattern.json"
+      }
+    },
+    {
+      "unique-id": "knowledge-layer",
+      "node-type": "system",
+      "name": "Knowledge Layer",
+      "description": "Curated knowledge sources and retrieval indexes for grounding agents.",
+      "details": {
+        "detailed-architecture": "https://calm.finos.org/marefarch/knowledge-layer.arch.json",
+        "required-pattern": "https://calm.finos.org/marefarch/knowledge-layer.pattern.json"
+      }
+    },
+    {
+      "unique-id": "llm-layer",
+      "node-type": "system",
+      "name": "LLM Layer",
+      "description": "Governed access to language models through a gateway and registry.",
+      "details": {
+        "detailed-architecture": "https://calm.finos.org/marefarch/llm-layer.arch.json",
+        "required-pattern": "https://calm.finos.org/marefarch/llm-layer.pattern.json"
+      }
+    },
+    {
+      "unique-id": "mcp-layer",
+      "node-type": "system",
+      "name": "MCP Layer",
+      "description": "Governed access to Model Context Protocol tool servers.",
+      "details": {
+        "detailed-architecture": "https://calm.finos.org/marefarch/mcp-layer.arch.json",
+        "required-pattern": "https://calm.finos.org/marefarch/mcp-layer.pattern.json"
+      }
+    },
+    {
+      "unique-id": "evaluation-layer",
+      "node-type": "system",
+      "name": "Evaluation Layer",
+      "description": "Continuous evaluation, human review and runtime protection of agent behaviour.",
+      "details": {
+        "detailed-architecture": "https://calm.finos.org/marefarch/evaluation-layer.arch.json",
+        "required-pattern": "https://calm.finos.org/marefarch/evaluation-layer.pattern.json"
+      }
+    },
+    {
+      "unique-id": "observability-layer",
+      "node-type": "system",
+      "name": "Observability Layer",
+      "description": "Telemetry collection, storage and analysis across the platform.",
+      "details": {
+        "detailed-architecture": "https://calm.finos.org/marefarch/observability-layer.arch.json",
+        "required-pattern": "https://calm.finos.org/marefarch/observability-layer.pattern.json"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "mas-contains",
+      "description": "The reference architecture is composed of eight layers.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "multi-agent-system",
+          "nodes": [
+            "user-interaction-layer",
+            "agent-gateway-layer",
+            "agent-layer",
+            "knowledge-layer",
+            "llm-layer",
+            "mcp-layer",
+            "evaluation-layer",
+            "observability-layer"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "flow-ui-gw",
+      "description": "User requests enter through the gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "user-interaction-layer"
+          },
+          "destination": {
+            "node": "agent-gateway-layer"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "flow-gw-agent",
+      "description": "Authenticated invocations reach the agents",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-gateway-layer"
+          },
+          "destination": {
+            "node": "agent-layer"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "flow-agent-knowledge",
+      "description": "Agents retrieve grounding knowledge",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-layer"
+          },
+          "destination": {
+            "node": "knowledge-layer"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "flow-agent-llm",
+      "description": "Agents call language models",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-layer"
+          },
+          "destination": {
+            "node": "llm-layer"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "flow-agent-mcp",
+      "description": "Agents call external tools via MCP",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-layer"
+          },
+          "destination": {
+            "node": "mcp-layer"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "flow-agent-eval",
+      "description": "Agent outputs are evaluated and reviewed",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-layer"
+          },
+          "destination": {
+            "node": "evaluation-layer"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "flow-eval-obs",
+      "description": "Evaluation signals are observed",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "evaluation-layer"
+          },
+          "destination": {
+            "node": "observability-layer"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    }
+  ]
+}

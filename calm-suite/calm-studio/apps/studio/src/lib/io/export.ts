@@ -20,60 +20,100 @@ import { toSvg, toPng } from 'html-to-image';
 import { getNodesBounds, getViewportForBounds } from '@xyflow/svelte';
 import type { Node } from '@xyflow/svelte';
 import { downloadDataUrl } from '$lib/io/fileSystem';
-import { detectPacksFromArch, buildSidecarData, sidecarNameFor } from '$lib/io/sidecar';
-import type { CalmArchitecture, CalmDecorator, CalmControls } from '@calmstudio/calm-core';
-import { isAINode, getAIGFForNodeType } from '@calmstudio/calm-core';
+import {
+	detectPacksFromArch,
+	buildSidecarData,
+	sidecarNameFor,
+	buildDecoratorSidecarData,
+	decoratorSidecarNameFor,
+} from '$lib/io/sidecar';
+import type { CalmArchitecture, CalmDecorator } from '@calmstudio/calm-core';
 import { buildScalerToml } from '$lib/io/scalerToml';
+import { writeDocumentName } from '$lib/io/documentName';
+import { writeLayout, type DiagramLayout } from '$lib/io/diagramLayout';
+import { buildZip, type ZipEntry } from '$lib/io/zip';
 
 const IMAGE_WIDTH = 1920;
 const IMAGE_HEIGHT = 1080;
 
-// ─── AIGF decorator generation ────────────────────────────────────────────────
+/** Canonical CALM 1.2 meta-schema URL written into exported documents. */
+export const CALM_SCHEMA_URL = 'https://calm.finos.org/release/1.2/meta/calm.json';
+
+// ─── Write finalization (shared by Save / Save As / Export) ───────────────────
 
 /**
- * Generate an AIGF governance decorator for the architecture.
- * Returns null if the architecture has no AI nodes.
+ * Finalize a CALM JSON string for writing to disk — applied by every CALM-JSON
+ * writer (Save, Save As, Export) so the file is canonical regardless of which
+ * action produced it.
  *
- * The decorator captures the governance score, assessed AI node IDs, and
- * regulatory metadata for downstream CalmGuard processing.
+ * - Strips Studio-internal `_template` scratch metadata (must never persist).
+ * - Strips `decorators` — they are written to the `*.decorators.json` sidecar
+ *   instead of being embedded (a decorator's required `target` references the
+ *   architecture from the outside, so it cannot live inside it). Use
+ *   `buildDecoratorSidecar` on the same source JSON to capture them.
+ * - Injects the canonical CALM 1.2 `$schema` when absent, so written files are
+ *   self-describing and version-pinned; an existing `$schema` is left untouched.
+ * - When `documentName` is supplied, persists it under `metadata.name` so the
+ *   document title survives content-only round trips (paste / templates / Hub),
+ *   not just the OS filename. Pass `undefined` to leave the name untouched.
+ * - When `layout` is supplied, persists the node-position map under
+ *   `metadata.calmstudio-layout` so the user's arrangement is restored on load.
+ *   Pass `undefined` to leave it untouched.
  *
- * @param arch      The CALM architecture to inspect
- * @param filename  Output filename (used as the decorator target)
+ * Both annotations live in `metadata` (the canonical free-form slot) and are
+ * ignored by non-Studio CALM consumers. Pure string→string; returns the input
+ * unchanged if the JSON is malformed.
  */
-function generateAIGFDecorator(arch: CalmArchitecture, filename: string): CalmDecorator | null {
-	const aiNodes = arch.nodes.filter((n) => isAINode(n['node-type']));
-	if (aiNodes.length === 0) return null;
-
-	const aiNodeIds = aiNodes.map((n) => n['unique-id']);
-
-	// Compute governance score standalone (same logic as governance store, no store dep)
-	let totalRecommended = 0;
-	let totalApplied = 0;
-	for (const node of aiNodes) {
-		const { mitigations } = getAIGFForNodeType(node['node-type']);
-		const controls = (node as { controls?: CalmControls }).controls ?? {};
-		totalRecommended += mitigations.length;
-		for (const mit of mitigations) {
-			if (controls[mit.calmControlKey] !== undefined) {
-				totalApplied++;
-			}
+export function finalizeCalmForWrite(
+	json: string,
+	documentName?: string | null,
+	layout?: DiagramLayout,
+): string {
+	try {
+		const parsed = JSON.parse(json) as CalmArchitecture & { _template?: unknown; $schema?: string };
+		if ('_template' in parsed) {
+			delete parsed._template;
 		}
+		if ('decorators' in parsed) {
+			delete (parsed as { decorators?: unknown }).decorators;
+		}
+		if (!parsed['$schema']) {
+			parsed['$schema'] = CALM_SCHEMA_URL;
+		}
+		if (documentName !== undefined || layout !== undefined) {
+			let meta: unknown = parsed.metadata;
+			if (documentName !== undefined) meta = writeDocumentName(meta, documentName);
+			if (layout !== undefined) meta = writeLayout(meta, layout);
+			if (meta === undefined) delete (parsed as { metadata?: unknown }).metadata;
+			else (parsed as { metadata?: unknown }).metadata = meta;
+		}
+		return JSON.stringify(parsed, null, 2);
+	} catch {
+		// Malformed JSON — return original; the caller's write still proceeds.
+		return json;
 	}
+}
 
-	const score = totalRecommended === 0 ? 100 : Math.round((totalApplied / totalRecommended) * 100);
-
-	return {
-		'unique-id': 'aigf-governance-overlay',
-		type: 'aigf-governance',
-		target: [filename || 'architecture.json'],
-		'applies-to': aiNodeIds,
-		data: {
-			framework: 'FINOS AI Governance Framework',
-			version: '2.0',
-			'governance-score': score,
-			'assessment-date': new Date().toISOString().split('T')[0],
-		},
-	};
+/**
+ * Build the `*.decorators.json` sidecar JSON for an architecture's decorators,
+ * stamping each decorator's `target` to the architecture filename so it points
+ * at the file it sits beside. Returns `null` when the architecture has no
+ * decorators (no sidecar is written in that case). Read from the SAME source
+ * JSON passed to `finalizeCalmForWrite` — that call strips `decorators`, this
+ * one captures them.
+ *
+ * @param json          Pretty-printed JSON string from getModelJson()
+ * @param archFileName  Filename the architecture is being saved as
+ */
+export function buildDecoratorSidecar(json: string, archFileName: string): string | null {
+	try {
+		const parsed = JSON.parse(json) as { decorators?: CalmDecorator[] };
+		const decorators = parsed.decorators ?? [];
+		if (decorators.length === 0) return null;
+		return JSON.stringify(buildDecoratorSidecarData(decorators, archFileName), null, 2);
+	} catch {
+		return null;
+	}
 }
 
 // ─── CALM JSON export ─────────────────────────────────────────────────────────
@@ -85,27 +125,19 @@ function generateAIGFDecorator(arch: CalmArchitecture, filename: string): CalmDe
  * a second download is triggered for the companion .calmstudio.json sidecar file.
  * Diagrams with only core CALM types do NOT get a sidecar.
  *
+ * NB: this is the "hand a clean CALM file to another tool" path, so it
+ * deliberately does NOT persist Studio's metadata annotations (document name,
+ * diagram layout) — `finalizeCalmForWrite` is called WITHOUT them. Save / Save As
+ * are the "preserve my work" path and pass both. Do not "fix" this by adding them
+ * here without intending Studio annotations to travel in consumer-facing exports.
+ *
  * @param json      Pretty-printed JSON string from getModelJson()
  * @param filename  Output filename (default: architecture.calm.json)
  */
 export function exportAsCalm(json: string, filename = 'architecture.calm.json'): void {
-	// Strip _template metadata and inject AIGF decorator if AI nodes present.
-	let cleanJson = json;
-	try {
-		const parsed = JSON.parse(json) as CalmArchitecture & { _template?: unknown };
-		// Strip template metadata
-		if ('_template' in parsed) {
-			delete parsed._template;
-		}
-		// Inject AIGF governance decorator if AI nodes exist
-		const decorator = generateAIGFDecorator(parsed, filename);
-		if (decorator !== null) {
-			parsed.decorators = [decorator];
-		}
-		cleanJson = JSON.stringify(parsed, null, 2);
-	} catch {
-		// Malformed JSON — fall through with original content; export will still work
-	}
+	// Apply the shared finalize pass (strip _template/decorators, inject $schema) —
+	// name/layout intentionally omitted (see the note above).
+	const cleanJson = finalizeCalmForWrite(json);
 
 	const blob = new Blob([cleanJson], { type: 'application/json' });
 	const url = URL.createObjectURL(blob);
@@ -113,6 +145,18 @@ export function exportAsCalm(json: string, filename = 'architecture.calm.json'):
 	// Note: URL.revokeObjectURL not needed for data: URLs, but is for blob: URLs.
 	// We use a blob: URL here so we revoke after the click microtask.
 	setTimeout(() => URL.revokeObjectURL(url), 0);
+
+	// Decorators were stripped from the clean file — emit them as a sidecar so
+	// they aren't silently lost. Built from the ORIGINAL json (pre-strip).
+	const decoratorSidecar = buildDecoratorSidecar(json, filename);
+	if (decoratorSidecar) {
+		const decBlob = new Blob([decoratorSidecar], { type: 'application/json' });
+		const decUrl = URL.createObjectURL(decBlob);
+		setTimeout(() => {
+			downloadDataUrl(decUrl, decoratorSidecarNameFor(filename));
+			setTimeout(() => URL.revokeObjectURL(decUrl), 0);
+		}, 100);
+	}
 
 	// Check if the architecture uses extension pack types — if so, export sidecar too.
 	try {
@@ -133,6 +177,75 @@ export function exportAsCalm(json: string, filename = 'architecture.calm.json'):
 	} catch {
 		// Ignore JSON parse errors — main file was already exported
 	}
+}
+
+// ─── Design zip export (arch + sidecars in one file) ─────────────────────────
+
+/** Derive the design-zip filename from the architecture filename. */
+export function designZipNameFor(archFileName: string): string {
+	const base = archFileName.endsWith('.json') ? archFileName.slice(0, -5) : archFileName;
+	return base + '.zip';
+}
+
+/**
+ * Export the whole design — the clean architecture plus its `*.decorators.json`
+ * and `*.calmstudio.json` sidecars — as a single `.zip`. This is the portable,
+ * browser-friendly way to keep the architecture and its decorator overlay
+ * together (a plain single-file Save splits them into siblings, which the
+ * browser can't re-read on open). Each member is individually consumable once
+ * unzipped, so the decorators' `target` file-path references stay valid.
+ *
+ * Layout and document name are preserved (like Save) so the design reopens as
+ * arranged — the zip is a faithful snapshot, not a stripped export.
+ *
+ * @param json          Pretty-printed JSON string from getModelJson()
+ * @param archFileName  Architecture filename to use inside the archive
+ * @param documentName  Persisted under metadata.name (omit to leave untouched)
+ * @param layout        Node-position map persisted under metadata.calmstudio-layout
+ */
+export function buildDesignZipEntries(
+	json: string,
+	archFileName = 'architecture.calm.json',
+	documentName?: string | null,
+	layout?: DiagramLayout,
+): ZipEntry[] {
+	const entries: ZipEntry[] = [
+		{ name: archFileName, content: finalizeCalmForWrite(json, documentName, layout) },
+	];
+
+	const decoratorSidecar = buildDecoratorSidecar(json, archFileName);
+	if (decoratorSidecar) {
+		entries.push({ name: decoratorSidecarNameFor(archFileName), content: decoratorSidecar });
+	}
+
+	try {
+		const arch = JSON.parse(entries[0].content) as CalmArchitecture;
+		const packIds = detectPacksFromArch(arch);
+		if (packIds.length > 0) {
+			entries.push({
+				name: sidecarNameFor(archFileName),
+				content: JSON.stringify(buildSidecarData(packIds), null, 2),
+			});
+		}
+	} catch {
+		// Ignore — the architecture entry is already queued.
+	}
+
+	return entries;
+}
+
+export function exportDesignAsZip(
+	json: string,
+	archFileName = 'architecture.calm.json',
+	documentName?: string | null,
+	layout?: DiagramLayout,
+): void {
+	const entries = buildDesignZipEntries(json, archFileName, documentName, layout);
+	const bytes = buildZip(entries);
+	const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/zip' });
+	const url = URL.createObjectURL(blob);
+	downloadDataUrl(url, designZipNameFor(archFileName));
+	setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 // ─── SVG export ───────────────────────────────────────────────────────────────

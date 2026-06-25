@@ -12,27 +12,38 @@
 		CalmRelationshipType,
 		CalmRelationshipVariant
 	} from '@calmstudio/calm-core';
-	import { updateEdgeProperty } from '$lib/stores/calmModel.svelte';
+	import { updateEdgeProperty, getModel } from '$lib/stores/calmModel.svelte';
 	import ControlsList from './ControlsList.svelte';
+	import GemaraSections from './GemaraSections.svelte';
 
+	/**
+	 * Build a nested relationship-type from an anchor (connects-source / container
+	 * / actor) and its full member set. Switching the variant of a multi-child
+	 * relationship must preserve ALL members, not just the edited edge's child.
+	 */
 	function buildRelationshipType(
 		variant: CalmRelationshipVariant,
-		source: string,
-		target: string,
+		anchor: string,
+		members: string[],
 	): CalmRelationshipType {
 		switch (variant) {
 			case 'connects':
+				// connects is strictly 1:1 — no multi-target shape exists, so
+				// converting a multi-child relationship reduces to its first member.
 				return {
-					connects: { source: { node: source }, destination: { node: target } },
+					connects: { source: { node: anchor }, destination: { node: members[0] } },
 				};
 			case 'composed-of':
-				return { 'composed-of': { container: source, nodes: [target] } };
+				return { 'composed-of': { container: anchor, nodes: members } };
 			case 'deployed-in':
-				return { 'deployed-in': { container: source, nodes: [target] } };
+				return { 'deployed-in': { container: anchor, nodes: members } };
 			case 'interacts':
-				return { interacts: { actor: source, nodes: [target] } };
+				return { interacts: { actor: anchor, nodes: members } };
 			case 'options':
-				return { options: [] };
+				// Unreachable: 'options' is not offered as an edge type (Studio has
+				// no decision-authoring UI; an options edge could only emit invalid
+				// CALM). Throw rather than emit a schema-invalid `{ options: [] }`.
+				throw new Error('options is not an authorable edge type');
 		}
 	}
 
@@ -48,12 +59,15 @@
 		onmutate?: () => void;
 	} = $props();
 
+	// 'options' is intentionally omitted: Studio has no decision-authoring UI, so
+	// an options edge could only produce schema-invalid CALM. Options relationships
+	// loaded from a file are preserved (calmModel.applyFromCanvas), just not
+	// authored on the canvas.
 	const RELATIONSHIP_TYPES: CalmRelationshipVariant[] = [
 		'connects',
 		'interacts',
 		'deployed-in',
 		'composed-of',
-		'options',
 	];
 
 	const PROTOCOL_TYPES = ['connects', 'interacts'];
@@ -101,6 +115,11 @@
 	);
 	const showProtocol: boolean = $derived(PROTOCOL_TYPES.includes(relType));
 
+	// Edits target the underlying relationship. A multi-child edge's id is
+	// `<relId>#<i>`, so resolve the real relationship id via calmRelId; otherwise
+	// the model lookup (keyed by relationship unique-id) would miss.
+	const relId: string = $derived((edge.data?.calmRelId as string | undefined) ?? edge.id);
+
 	let descTimer: ReturnType<typeof setTimeout>;
 	let protocolTimer: ReturnType<typeof setTimeout>;
 
@@ -111,15 +130,31 @@
 		}
 	}
 
+	/**
+	 * The relationship's anchor + full member set, read from the model (not just
+	 * this edge), so switching variant on a multi-child relationship keeps every
+	 * child. Falls back to this edge's endpoints for an un-aggregated/new edge.
+	 */
+	function currentAnchorMembers(): { anchor: string; members: string[] } {
+		const rt = getModel().relationships.find((r) => r['unique-id'] === relId)?.['relationship-type'];
+		if (rt) {
+			if ('connects' in rt) return { anchor: rt.connects.source.node, members: [rt.connects.destination.node] };
+			if ('composed-of' in rt) return { anchor: rt['composed-of'].container, members: rt['composed-of'].nodes };
+			if ('deployed-in' in rt) return { anchor: rt['deployed-in'].container, members: rt['deployed-in'].nodes };
+			if ('interacts' in rt) return { anchor: rt.interacts.actor, members: rt.interacts.nodes };
+		}
+		return { anchor: edge.source, members: [edge.target] };
+	}
+
 	function handleRelTypeChange(e: Event) {
 		const value = (e.target as HTMLSelectElement).value as CalmRelationshipVariant;
 		signalFirstEdit();
-		// CALM 1.2 nested form: build a fresh relationship-type object using the
-		// edge's current source/target endpoints. Switching variant preserves
-		// connectivity but reshapes the payload (e.g. connects.source.node →
-		// composed-of.container).
-		const nested = buildRelationshipType(value, edge.source, edge.target);
-		updateEdgeProperty(edge.id, 'relationship-type', nested);
+		// CALM 1.2 nested form: rebuild from the relationship's FULL membership so
+		// switching the type of a multi-child relationship doesn't drop its other
+		// children. (connects, being 1:1, reduces to the first member.)
+		const { anchor, members } = currentAnchorMembers();
+		const nested = buildRelationshipType(value, anchor, members);
+		updateEdgeProperty(relId, 'relationship-type', nested);
 		onmutate?.();
 	}
 
@@ -133,7 +168,7 @@
 		showCustomProtocol = false;
 		localProtocol = value;
 		signalFirstEdit();
-		updateEdgeProperty(edge.id, 'protocol', value);
+		updateEdgeProperty(relId, 'protocol', value);
 		onmutate?.();
 	}
 
@@ -143,7 +178,7 @@
 		signalFirstEdit();
 		clearTimeout(protocolTimer);
 		protocolTimer = setTimeout(() => {
-			updateEdgeProperty(edge.id, 'protocol', value);
+			updateEdgeProperty(relId, 'protocol', value);
 			onmutate?.();
 		}, 300);
 	}
@@ -154,7 +189,7 @@
 		signalFirstEdit();
 		clearTimeout(descTimer);
 		descTimer = setTimeout(() => {
-			updateEdgeProperty(edge.id, 'description', value);
+			updateEdgeProperty(relId, 'description', value);
 			onmutate?.();
 		}, 300);
 	}
@@ -179,7 +214,9 @@
 		<!-- unique-id: read-only -->
 		<div class="field">
 			<label class="field-label" for="edge-unique-id">Unique ID</label>
-			<div class="read-only-field" id="edge-unique-id" title={edge.id}>{edge.id}</div>
+			<!-- Show the relationship's id (relId), not the suffixed edge id, so a
+			     multi-child edge displays the relationship that edits actually target. -->
+			<div class="read-only-field" id="edge-unique-id" title={relId}>{relId}</div>
 		</div>
 
 		<!-- relationship-type dropdown -->
@@ -264,11 +301,13 @@
 		controls={edge.data?.controls}
 		onupdate={(newControls) => {
 			signalFirstEdit();
-			updateEdgeProperty(edge.id, 'controls', newControls);
+			updateEdgeProperty(relId, 'controls', newControls);
 			onmutate?.();
 		}}
 		readonly={!onmutate}
 	/>
+
+	<GemaraSections elementId={relId} {onmutate} />
 </div>
 
 <style>

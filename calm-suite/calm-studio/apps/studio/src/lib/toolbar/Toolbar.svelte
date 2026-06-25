@@ -21,6 +21,7 @@
 		onnew,
 		onvalidate,
 		onexportcalm,
+		onexportzip,
 		onexportsvg,
 		onexportpng,
 		onexportcalmscript,
@@ -29,10 +30,7 @@
 		ontemplates,
 		filename = null,
 		isDirty = false,
-		c4Level = null,
-		onc4levelchange,
-		governanceScore = null,
-		showGovernanceBadge = false,
+		onrename,
 		showScalerTomlExport = false,
 		flows = [],
 		activeFlowId = null,
@@ -44,6 +42,8 @@
 		onnew: () => void;
 		onvalidate: () => void;
 		onexportcalm: () => void;
+		/** Export the whole design (architecture + decorator/pack sidecars) as one .zip. */
+		onexportzip: () => void;
 		onexportsvg: () => void;
 		onexportpng: () => void;
 		onexportcalmscript: () => void;
@@ -52,14 +52,8 @@
 		ontemplates?: () => void;
 		filename?: string | null;
 		isDirty?: boolean;
-		/** Current C4 view level. null = "All" (show everything), or 'context' | 'container' | 'component'. */
-		c4Level?: string | null;
-		/** Called when user clicks a C4 level segment button. level is null for "All". */
-		onc4levelchange?: (level: string | null) => void;
-		/** Architecture governance score (0-100), or null if no AI nodes. */
-		governanceScore?: number | null;
-		/** When true, shows the governance score badge (hidden for non-AI architectures). */
-		showGovernanceBadge?: boolean;
+		/** Called when the user edits the document name in the title field. */
+		onrename?: (name: string) => void;
 		/** When true, shows the Scaler.toml export option (hidden when no OpenGRIS nodes). */
 		showScalerTomlExport?: boolean;
 		/** List of flows from the architecture, shown in dropdown when non-empty. */
@@ -70,13 +64,6 @@
 		onflowchange?: (id: string | null) => void;
 	} = $props();
 
-	const C4_SEGMENTS = [
-		{ key: null, label: 'All' },
-		{ key: 'context', label: 'Context' },
-		{ key: 'container', label: 'Container' },
-		{ key: 'component', label: 'Component' },
-	] as const;
-
 	const DEMOS = [
 		{ id: 'ecommerce', name: 'E-Commerce Storefront', path: '/demos/ecommerce.calm.json' },
 		{ id: 'aws-multi-tier', name: 'AWS Multi-Tier', path: '/demos/aws-multi-tier.calm.json' },
@@ -85,14 +72,6 @@
 
 	let showExportMenu = $state(false);
 	let showDemoMenu = $state(false);
-
-	/** Returns the color for a governance score percentage. */
-	function scoreColor(score: number | null): string {
-		if (score === null) return '#6b7280';
-		if (score > 80) return '#16a34a';
-		if (score >= 50) return '#d97706';
-		return '#dc2626';
-	}
 
 	function toggleExportMenu() {
 		showExportMenu = !showExportMenu;
@@ -126,22 +105,9 @@
 <svelte:window onclick={handleClickOutside} />
 
 <header class="toolbar" role="banner">
-	<!-- Left: App name + C4 view selector + Templates button -->
+	<!-- Left: App name + Templates button -->
 	<div class="toolbar-left">
 		<span class="app-name">CalmStudio</span>
-		<div class="c4-selector" role="group" aria-label="C4 view level">
-			{#each C4_SEGMENTS as seg}
-				<button
-					type="button"
-					class="c4-btn"
-					class:active={c4Level === seg.key}
-					onclick={() => onc4levelchange?.(seg.key)}
-					aria-pressed={c4Level === seg.key}
-				>
-					{seg.label}
-				</button>
-			{/each}
-		</div>
 
 		<!-- Templates button -->
 		{#if ontemplates}
@@ -162,34 +128,34 @@
 			</button>
 		{/if}
 
-		<!-- Governance score badge — hidden when no AI nodes in architecture -->
-		{#if showGovernanceBadge && governanceScore !== null}
-			<div
-				class="gov-badge"
-				style="color: {scoreColor(governanceScore)}; background: {scoreColor(governanceScore)}1a; border-color: {scoreColor(governanceScore)}40;"
-				aria-label="AIGF governance score: {governanceScore}%"
-				title="AIGF Governance Score"
-			>
-				<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-					<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-				</svg>
-				<span class="gov-score">{governanceScore}%</span>
-			</div>
-		{/if}
 	</div>
 
 	<!-- Center: Filename + dirty indicator + flow selector -->
 	<div class="toolbar-center">
-		{#if filename}
-			<span class="filename">{filename}</span>
-			{#if isDirty}
-				<span class="dirty-dot" aria-label="Unsaved changes" title="Unsaved changes">&#8226;</span>
-			{/if}
-		{:else}
-			<span class="filename no-file">Untitled</span>
-			{#if isDirty}
-				<span class="dirty-dot" aria-label="Unsaved changes" title="Unsaved changes">&#8226;</span>
-			{/if}
+		<input
+			class="filename"
+			class:no-file={!filename}
+			value={filename ?? ''}
+			placeholder="Unsaved Document"
+			size={Math.max((filename ?? 'Unsaved Document').length + 3, 16)}
+			aria-label="Document name"
+			title="Click to rename — used as the filename when you save"
+			spellcheck="false"
+			onchange={(e) => onrename?.(e.currentTarget.value)}
+			onkeydown={(e) => {
+				if (e.key === 'Enter') e.currentTarget.blur();
+				else if (e.key === 'Escape') { e.currentTarget.value = filename ?? ''; e.currentTarget.blur(); }
+			}}
+		/>
+		{#if isDirty}
+			<span
+				class="dirty-dot"
+				role="img"
+				aria-label="Changes have been made since last save"
+				title="Changes have been made since last save"
+			>
+				<svg width="9" height="9" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="currentColor" /></svg>
+			</span>
 		{/if}
 
 		<!-- Flow selector: shown only when architecture has flows -->
@@ -285,22 +251,6 @@
 			<span class="btn-label">Open</span>
 		</button>
 
-		<!-- Save -->
-		<button
-			type="button"
-			class="toolbar-btn"
-			onclick={onsave}
-			aria-label="Save diagram (Cmd+S)"
-			title="Save (Cmd+S)"
-		>
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-				<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-				<polyline points="17 21 17 13 7 13 7 21" />
-				<polyline points="7 3 7 8 15 8" />
-			</svg>
-			<span class="btn-label">Save</span>
-		</button>
-
 		<!-- Validate -->
 		<button
 			type="button"
@@ -322,31 +272,60 @@
 				type="button"
 				class="toolbar-btn export-toggle"
 				onclick={(e) => { e.stopPropagation(); toggleExportMenu(); }}
-				aria-label="Export diagram"
+				aria-label="Save or export diagram"
 				aria-expanded={showExportMenu}
 				aria-haspopup="menu"
-				title="Export"
+				title="Save / Export"
 			>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-					<polyline points="7 10 12 15 17 10" />
-					<line x1="12" y1="15" x2="12" y2="3" />
+					<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+					<polyline points="17 21 17 13 7 13 7 21" />
+					<polyline points="7 3 7 8 15 8" />
 				</svg>
-				<span class="btn-label">Export</span>
+				<span class="btn-label">Save / Export</span>
 				<svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
 					<polyline points="6 9 12 15 18 9" />
 				</svg>
 			</button>
 
 			{#if showExportMenu}
-				<div class="export-menu" role="menu" aria-label="Export options">
+				<div class="export-menu" role="menu" aria-label="Save and export options">
+					<div class="export-menu-label">JSON w/ CALM Suite Layout</div>
+					<button
+						type="button"
+						class="export-menu-item"
+						role="menuitem"
+						onclick={() => handleExportOption(onsave)}
+					>
+						<span>Save</span>
+						<span class="menu-shortcut">⌘S</span>
+					</button>
+					<button
+						type="button"
+						class="export-menu-item"
+						role="menuitem"
+						onclick={() => handleExportOption(onsaveas)}
+					>
+						<span>Save as...</span>
+						<span class="menu-shortcut">⇧⌘S</span>
+					</button>
+					<button
+						type="button"
+						class="export-menu-item"
+						role="menuitem"
+						onclick={() => handleExportOption(onexportzip)}
+					>
+						<span>.zip (design + decorators)</span>
+					</button>
+					<div class="export-menu-divider" role="separator"></div>
+					<div class="export-menu-label">Export without Layout</div>
 					<button
 						type="button"
 						class="export-menu-item"
 						role="menuitem"
 						onclick={() => handleExportOption(onexportcalm)}
 					>
-						CALM JSON (.calm.json)
+						.calm.json
 					</button>
 					<button
 						type="button"
@@ -354,7 +333,7 @@
 						role="menuitem"
 						onclick={() => handleExportOption(onexportcalmscript)}
 					>
-						calmscript (.calmscript)
+						.calmscript
 					</button>
 					<button
 						type="button"
@@ -362,7 +341,7 @@
 						role="menuitem"
 						onclick={() => handleExportOption(onexportsvg)}
 					>
-						SVG (.svg)
+						.svg
 					</button>
 					<button
 						type="button"
@@ -370,7 +349,7 @@
 						role="menuitem"
 						onclick={() => handleExportOption(onexportpng)}
 					>
-						PNG (.png)
+						.png
 					</button>
 					{#if showScalerTomlExport}
 						<button
@@ -379,7 +358,7 @@
 							role="menuitem"
 							onclick={() => handleExportOption(onexportscalertoml!)}
 						>
-							Scaler.toml (OpenGRIS)
+							Scaler.toml
 						</button>
 					{/if}
 				</div>
@@ -446,10 +425,28 @@
 		font-size: 12px;
 		font-family: var(--font-sans);
 		color: var(--color-text-primary);
-		max-width: 300px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		/* Auto-fit the field to its text where supported (Chrome/Edge); the `size`
+		   attribute is the cross-browser fallback. min-width fits the placeholder. */
+		field-sizing: content;
+		max-width: 320px;
+		min-width: 132px;
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: 4px;
+		padding: 2px 6px;
+		text-align: center;
+		cursor: text;
+	}
+	.filename:hover {
+		border-color: var(--color-border, #e2e8f0);
+	}
+	.filename:focus {
+		outline: none;
+		border-color: var(--color-accent, #6366f1);
+		background: var(--color-surface, #fff);
+	}
+	.filename::placeholder {
+		color: var(--color-text-secondary);
 	}
 
 	.filename.no-file {
@@ -459,16 +456,25 @@
 	:global(.dark) .filename {
 		color: #e2e8f0;
 	}
+	:global(.dark) .filename:hover {
+		border-color: #334155;
+	}
+	:global(.dark) .filename:focus {
+		background: #0f1320;
+		border-color: #6366f1;
+	}
 
 	:global(.dark) .filename.no-file {
 		color: #475569;
 	}
 
 	.dirty-dot {
-		font-size: 16px;
+		display: inline-flex;
+		align-items: center;
 		line-height: 1;
 		color: #f59e0b;
 		flex-shrink: 0;
+		cursor: default;
 	}
 
 	:global(.dark) .dirty-dot {
@@ -618,7 +624,7 @@
 		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-		min-width: 180px;
+		min-width: 232px;
 		padding: 4px;
 		z-index: 200;
 	}
@@ -630,7 +636,10 @@
 	}
 
 	.export-menu-item {
-		display: block;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
 		width: 100%;
 		padding: 7px 10px;
 		border: none;
@@ -656,26 +665,30 @@
 		background: #1e293b;
 	}
 
-	/* ─── Governance score badge ─────────────────────────────── */
-
-	.gov-badge {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		padding: 2px 8px;
-		height: 22px;
-		border-radius: 11px;
-		border: 1px solid;
+	.menu-shortcut {
 		font-size: 11px;
-		font-weight: 700;
-		font-family: var(--font-sans);
-		cursor: default;
-		white-space: nowrap;
-		user-select: none;
+		color: var(--color-text-tertiary, #94a3b8);
+		font-variant-numeric: tabular-nums;
+		flex-shrink: 0;
 	}
 
-	.gov-score {
-		font-variant-numeric: tabular-nums;
+	.export-menu-label {
+		padding: 6px 10px 2px;
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--color-text-tertiary, #94a3b8);
+	}
+
+	.export-menu-divider {
+		height: 1px;
+		margin: 4px 6px;
+		background: var(--color-border, #e2e8f0);
+	}
+
+	:global(.dark) .export-menu-divider {
+		background: #334155;
 	}
 
 	/* ─── Flow selector ─────────────────────────────────────── */
@@ -730,61 +743,4 @@
 		box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 	}
 
-	/* ─── C4 view level segmented control ────────────────────── */
-
-	.c4-selector {
-		display: flex;
-		gap: 0;
-		border: 1px solid var(--color-border, #e2e8f0);
-		border-radius: 6px;
-		overflow: hidden;
-	}
-
-	.c4-btn {
-		padding: 2px 10px;
-		height: 22px;
-		font-size: 11px;
-		font-family: var(--font-sans);
-		font-weight: 500;
-		border: none;
-		border-right: 1px solid var(--color-border, #e2e8f0);
-		background: transparent;
-		cursor: pointer;
-		color: var(--color-text-secondary);
-		transition: background 0.15s, color 0.15s;
-		white-space: nowrap;
-	}
-
-	.c4-btn:last-child {
-		border-right: none;
-	}
-
-	.c4-btn.active {
-		background: var(--color-accent, #3b82f6);
-		color: white;
-	}
-
-	.c4-btn:hover:not(.active) {
-		background: var(--color-surface-tertiary, #f1f5f9);
-		color: var(--color-text-primary);
-	}
-
-	:global(.dark) .c4-selector {
-		border-color: #334155;
-	}
-
-	:global(.dark) .c4-btn {
-		color: #94a3b8;
-		border-right-color: #334155;
-	}
-
-	:global(.dark) .c4-btn.active {
-		background: #60a5fa;
-		color: #0f172a;
-	}
-
-	:global(.dark) .c4-btn:hover:not(.active) {
-		background: #1e293b;
-		color: #e2e8f0;
-	}
 </style>

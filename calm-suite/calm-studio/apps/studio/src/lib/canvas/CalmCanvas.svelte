@@ -128,7 +128,7 @@
 		oncanvaschange?: () => void;
 		/** When true, disables dragging, connecting, delete keys, and all mutation handlers. Used for C4 navigation mode. */
 		readonly?: boolean;
-		/** Called when a node is double-clicked in readonly mode. Used for C4 drill-down navigation. */
+		/** Called when a node is double-clicked (either mode). Used for C4 drill navigation. */
 		ondblclicknode?: (node: Node) => void;
 	} = $props();
 
@@ -365,8 +365,10 @@
 		const edge = edges.find((e) => e.id === edgeId);
 		if (!edge) return;
 
+		// Containment is shown by nesting, not a line — hide the edge when it becomes
+		// a containment type (and show it again when it becomes a normal edge).
 		edges = edges.map((e) =>
-			e.id === edgeId ? { ...e, type: newType } : e
+			e.id === edgeId ? { ...e, type: newType, hidden: isContainmentType(newType) } : e
 		);
 
 		// If changing TO a containment type, establish containment
@@ -381,12 +383,14 @@
 
 	let edgeMenu = $state<{ x: number; y: number; edgeId: string } | null>(null);
 
+	// 'options' is intentionally omitted: it has no decision-authoring UI and an
+	// options edge could only emit schema-invalid CALM. Loaded options relationships
+	// are preserved (calmModel.applyFromCanvas), just not authored on the canvas.
 	const EDGE_TYPE_OPTIONS = [
 		{ value: 'connects', label: 'Connects' },
 		{ value: 'interacts', label: 'Interacts' },
 		{ value: 'deployed-in', label: 'Deployed In' },
 		{ value: 'composed-of', label: 'Composed Of' },
-		{ value: 'options', label: 'Options' },
 	];
 
 	function handleEdgeContextMenu(event: { event: MouseEvent; edge: Edge }) {
@@ -518,6 +522,23 @@
 		const edgeId = selectedEdges.length > 0 ? selectedEdges[0].id : null;
 		onselectionchange?.(nodeId, edgeId);
 	}
+
+	// ─── Double-click detection ───────────────────────────────────────────────
+	// @xyflow/svelte v1 has no onnodedblclick, so detect a double-click from two
+	// onnodeclick events on the same node within a short window.
+	let lastClickId = '';
+	let lastClickTime = 0;
+	function handleNodeClick({ node }: { node: Node }) {
+		const now = Date.now();
+		if (node.id === lastClickId && now - lastClickTime < 350) {
+			lastClickId = '';
+			lastClickTime = 0;
+			ondblclicknode?.(node);
+		} else {
+			lastClickId = node.id;
+			lastClickTime = now;
+		}
+	}
 </script>
 
 <!--
@@ -557,17 +578,14 @@
 		fitView
 		fitViewOptions={{ maxZoom: 1.2, padding: 0.2 }}
 		zoomOnScroll={true}
+		zoomOnDoubleClick={false}
 		panOnDrag={true}
 		panOnScroll={false}
 		onconnect={handleConnect}
 		onnodedragstop={handleNodeDragStop}
 		onedgecontextmenu={handleEdgeContextMenu}
 		onselectionchange={handleSelectionChange}
-		onnodedblclick={(e) => {
-			if (readonly && ondblclicknode) {
-				ondblclicknode(e.node);
-			}
-		}}
+		onnodeclick={handleNodeClick}
 	>
 		<Background variant={BackgroundVariant.Dots} gap={20} size={1} />
 		<EdgeMarkers />

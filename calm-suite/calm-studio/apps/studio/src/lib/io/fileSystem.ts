@@ -14,7 +14,13 @@
  */
 
 import { isTauri } from '$lib/desktop/isTauri';
-import { openFileTauri, saveFileTauri, saveFileAsTauri } from './fileSystemTauri';
+import {
+	openFileTauri,
+	saveFileTauri,
+	saveFileAsTauri,
+	saveSiblingFileTauri,
+	readSiblingFileTauri,
+} from './fileSystemTauri';
 
 export interface OpenFileResult {
 	content: string;
@@ -157,6 +163,45 @@ export async function saveFileAs(
 
 	// Fallback: Blob download
 	_blobDownload(content, filename);
+	return null;
+}
+
+/**
+ * Persist a sidecar file (e.g. `*.decorators.json`) next to a just-saved
+ * architecture file.
+ *
+ * - Desktop (Tauri, path handle): writes the sibling in the same directory.
+ * - Browser: the File System Access API gives a single-file save NO sibling
+ *   access, so the sidecar falls back to a Blob download. (Zip export is the
+ *   browser-friendly way to keep arch + sidecar together — see exportDesignAsZip.)
+ *
+ * `archHandle` is the value returned by `saveFile`/`saveFileAs` for the arch.
+ */
+export async function saveSidecarAlongside(
+	content: string,
+	archHandle: FileSystemFileHandle | string | null,
+	sidecarName: string,
+): Promise<void> {
+	if (isTauri() && typeof archHandle === 'string') {
+		await saveSiblingFileTauri(archHandle, sidecarName, content);
+		return;
+	}
+	// Browser (FSA handle or Blob fallback): no sibling write — download it.
+	_blobDownload(content, sidecarName);
+}
+
+/**
+ * Read a sidecar file (e.g. `*.decorators.json`) that sits next to an opened
+ * architecture file. Only possible on desktop (Tauri path handle); in the
+ * browser a single-file open has no sibling access, so this returns null.
+ */
+export async function readSidecarAlongside(
+	archHandle: FileSystemFileHandle | string | null,
+	sidecarName: string,
+): Promise<string | null> {
+	if (isTauri() && typeof archHandle === 'string') {
+		return readSiblingFileTauri(archHandle, sidecarName);
+	}
 	return null;
 }
 

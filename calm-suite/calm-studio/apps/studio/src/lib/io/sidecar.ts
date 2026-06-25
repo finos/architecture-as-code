@@ -5,10 +5,18 @@
 /**
  * Sidecar file utilities for CalmStudio.
  *
- * The sidecar file (*.calmstudio.json) stores extension pack metadata
- * alongside the main CALM architecture file. It is never embedded in the
- * CALM JSON itself — that remains a pure CALM artefact.
+ * Two kinds of sidecar live alongside the main CALM architecture file, and
+ * neither is ever embedded in the CALM JSON itself — that remains a pure CALM
+ * artefact:
+ *
+ *   - `*.calmstudio.json`  — extension-pack metadata (SidecarData).
+ *   - `*.decorators.json`  — the architecture's CALM 1.2 decorators
+ *     (DecoratorSidecar). Decorators are an external overlay per the spec:
+ *     their required `target` field references the architecture by file path,
+ *     so they cannot live inside the document they decorate.
  */
+
+import type { CalmDecorator } from '@calmstudio/calm-core';
 
 /** Data structure stored in a .calmstudio.json sidecar file */
 export interface SidecarData {
@@ -68,5 +76,64 @@ export function buildSidecarData(packIds: string[]): SidecarData {
 		packs: [...packIds],
 		version: '1.0',
 		packVersions,
+	};
+}
+
+// ─── Decorator sidecar (*.decorators.json) ──────────────────────────────────
+
+/** The generic placeholder `target` that gemara decorators carry before they
+ * know their owning document. Replaced with the real architecture filename
+ * when a decorator is written to its sidecar. */
+const PLACEHOLDER_TARGET = 'architecture.json';
+
+/** Data structure stored in a `.decorators.json` sidecar file. A Studio-owned
+ * container — the CALM 1.2 spec defines only a single decorator object
+ * (`decorators.json#/defs/decorator`), so each element validates individually
+ * while the `{ decorators: [...] }` wrapper is our own (mirrors how
+ * `.calmstudio.json` is a Studio-owned, non-CALM file). */
+export interface DecoratorSidecar {
+	decorators: CalmDecorator[];
+}
+
+/**
+ * Derives the decorator-sidecar filename from the diagram filename, replacing
+ * the trailing `.json` with `.decorators.json`.
+ *
+ * @example
+ * decoratorSidecarNameFor('architecture.json')    // 'architecture.decorators.json'
+ * decoratorSidecarNameFor('payments.arch.json')   // 'payments.arch.decorators.json'
+ */
+export function decoratorSidecarNameFor(diagramName: string): string {
+	if (diagramName.endsWith('.json')) {
+		return diagramName.slice(0, -5) + '.decorators.json';
+	}
+	return diagramName + '.decorators.json';
+}
+
+/**
+ * Stamp a decorator's `target` so it references the architecture file it is
+ * being saved next to. Drops the generic `architecture.json` placeholder and
+ * empty entries, then ensures the real filename is present (first). Any other
+ * explicit targets the decorator already carries (multi-target overlays) are
+ * preserved.
+ */
+export function stampDecoratorTarget(decorator: CalmDecorator, archFileName: string): CalmDecorator {
+	const cleaned = (decorator.target ?? []).filter(
+		(t) => t !== '' && t !== PLACEHOLDER_TARGET && t !== archFileName,
+	);
+	return { ...decorator, target: [archFileName, ...cleaned] };
+}
+
+/**
+ * Build the `.decorators.json` sidecar payload for an architecture's
+ * decorators, stamping each decorator's `target` to the architecture filename.
+ * Pure data shaping — callers serialize the result.
+ */
+export function buildDecoratorSidecarData(
+	decorators: CalmDecorator[],
+	archFileName: string,
+): DecoratorSidecar {
+	return {
+		decorators: decorators.map((d) => stampDecoratorTarget(d, archFileName)),
 	};
 }

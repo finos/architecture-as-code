@@ -1,0 +1,21 @@
+{
+  "https://calm.finos.org/marefarch/context.arch.json": "context.arch.json",
+  "https://calm.finos.org/marefarch/user-interaction-layer.pattern.json": "user-interaction-layer.pattern.json",
+  "https://calm.finos.org/marefarch/user-interaction-layer.arch.json": "user-interaction-layer.arch.json",
+  "https://calm.finos.org/marefarch/agent-gateway-layer.pattern.json": "agent-gateway-layer.pattern.json",
+  "https://calm.finos.org/marefarch/agent-gateway-layer.arch.json": "agent-gateway-layer.arch.json",
+  "https://calm.finos.org/marefarch/agent-layer.pattern.json": "agent-layer.pattern.json",
+  "https://calm.finos.org/marefarch/agent-layer.arch.json": "agent-layer.arch.json",
+  "https://calm.finos.org/marefarch/knowledge-layer.pattern.json": "knowledge-layer.pattern.json",
+  "https://calm.finos.org/marefarch/knowledge-layer.arch.json": "knowledge-layer.arch.json",
+  "https://calm.finos.org/marefarch/llm-layer.pattern.json": "llm-layer.pattern.json",
+  "https://calm.finos.org/marefarch/llm-layer.arch.json": "llm-layer.arch.json",
+  "https://calm.finos.org/marefarch/mcp-layer.pattern.json": "mcp-layer.pattern.json",
+  "https://calm.finos.org/marefarch/mcp-layer.arch.json": "mcp-layer.arch.json",
+  "https://calm.finos.org/marefarch/evaluation-layer.pattern.json": "evaluation-layer.pattern.json",
+  "https://calm.finos.org/marefarch/evaluation-layer.arch.json": "evaluation-layer.arch.json",
+  "https://calm.finos.org/marefarch/observability-layer.pattern.json": "observability-layer.pattern.json",
+  "https://calm.finos.org/marefarch/observability-layer.arch.json": "observability-layer.arch.json",
+  "https://calm.finos.org/marefarch/agent-runtime.component.pattern.json": "agent-runtime.component.pattern.json",
+  "https://calm.finos.org/marefarch/agent-runtime.component.arch.json": "agent-runtime.component.arch.json"
+}

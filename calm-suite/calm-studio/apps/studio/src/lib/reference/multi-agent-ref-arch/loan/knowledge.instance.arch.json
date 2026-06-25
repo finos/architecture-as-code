@@ -1,0 +1,82 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/knowledge-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "knowledge-layer",
+      "node-type": "system",
+      "name": "Knowledge Layer",
+      "description": "Loan-origination knowledge sources."
+    },
+    {
+      "unique-id": "ingestion-pipeline",
+      "node-type": "service",
+      "name": "Ingestion Pipeline",
+      "description": "Filters and embeds loan policy content."
+    },
+    {
+      "unique-id": "underwriting-policy",
+      "node-type": "ai:knowledge-base",
+      "name": "Underwriting & Product Policy",
+      "description": "Underwriting rules and product definitions."
+    },
+    {
+      "unique-id": "policy-vector-store",
+      "node-type": "ai:vector-store",
+      "name": "Policy Vector Store",
+      "description": "Embeddings of policy and compliance rules."
+    },
+    {
+      "unique-id": "loan-records",
+      "node-type": "database",
+      "name": "Loan Application Records",
+      "description": "Application and decision records."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "kl-loan-contains",
+      "description": "Loan knowledge components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "knowledge-layer",
+          "nodes": [
+            "ingestion-pipeline",
+            "underwriting-policy",
+            "policy-vector-store",
+            "loan-records"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kl-ingest-policy",
+      "description": "Load policy",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ingestion-pipeline"
+          },
+          "destination": {
+            "node": "underwriting-policy"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "kl-ingest-vec",
+      "description": "Write embeddings",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ingestion-pipeline"
+          },
+          "destination": {
+            "node": "policy-vector-store"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    }
+  ]
+}

@@ -16,6 +16,18 @@ export default defineConfig({
 			// allow root at apps/studio. Allow up to the repo root.
 			allow: [path.resolve('../../../..')],
 		},
+		proxy: {
+			// Dev-only proxy to the grc.store hub. The hub sends no CORS headers, so a
+			// direct browser fetch from the dev origin is blocked. The Gemara catalog
+			// store fetches same-origin `/grc-hub/*` (see .env.development's
+			// VITE_GRC_HUB_URL) and Vite forwards it server-side, sidestepping CORS.
+			// Defaults to the production hub; override with GRC_HUB_PROXY_TARGET.
+			'/grc-hub': {
+				target: process.env.GRC_HUB_PROXY_TARGET ?? 'https://hub.grc.store',
+				changeOrigin: true,
+				rewrite: (p) => p.replace(/^\/grc-hub/, ''),
+			},
+		},
 	},
 	resolve: {
 		alias: {

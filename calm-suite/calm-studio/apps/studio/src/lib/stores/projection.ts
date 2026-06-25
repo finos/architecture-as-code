@@ -15,9 +15,12 @@
  *   unique-id (`<base>#<i>`) so Svelte Flow stays 1-edge-per-row.
  *
  * flowToCalm: converts Svelte Flow nodes[] and edges[] back to
- * CalmArchitecture. Each Svelte Flow edge becomes exactly one
- * CalmRelationship; multi-child round-trips therefore split into
- * separate single-child rels (a documented, lossy-but-correct trade-off).
+ * CalmArchitecture. Edges are re-aggregated by their source relationship id
+ * (`data.calmRelId`), so a multi-child composed-of/deployed-in/interacts that
+ * expanded to N edges round-trips back to ONE relationship with its original
+ * unique-id (lossless). A user-drawn edge with no `calmRelId` becomes its own
+ * relationship. (`options` relationships have no edge form — they are preserved
+ * separately via `calmModel.applyFromCanvas`.)
  *
  * IMPORTANT: This file must NOT import from .svelte.ts files (not testable
  * in vitest without additional Svelte transform setup).
@@ -26,6 +29,7 @@
 import type { Node, Edge } from '@xyflow/svelte';
 import type {
 	CalmArchitecture,
+	CalmConnectsEndpoint,
 	CalmControls,
 	CalmInterface,
 	CalmNode,
@@ -42,10 +46,26 @@ const CONTAINMENT_VARIANTS: ReadonlySet<CalmRelationshipVariant> = new Set([
 ]);
 
 /**
+ * Loose shape of the `data` carried on a Svelte Flow edge by `calmToFlow`.
+ * Single source of truth for the edge-data contract on both projection sides.
+ */
+type EdgeData = {
+	calmRelId?: string;
+	calmVariant?: CalmRelationshipVariant;
+	protocol?: string;
+	description?: string;
+	controls?: CalmControls;
+	metadata?: Record<string, unknown> | Record<string, unknown>[];
+	/** connects-only: interface unique-ids on each endpoint (CALM `node-interface.interfaces`). */
+	sourceInterfaces?: string[];
+	destinationInterfaces?: string[];
+};
+
+/**
  * Discover the variant key actually present on a relationship-type object.
  * Returns null when the variant is malformed (no recognised key).
  */
-function variantOf(rt: CalmRelationshipType): CalmRelationshipVariant | null {
+export function variantOf(rt: CalmRelationshipType): CalmRelationshipVariant | null {
 	if ('connects' in rt) return 'connects';
 	if ('composed-of' in rt) return 'composed-of';
 	if ('interacts' in rt) return 'interacts';
@@ -98,25 +118,37 @@ function expandEdgePairs(
 }
 
 /**
- * Build a CALM 1.2 nested `relationship-type` from a flat (source, target,
- * variant) triple. Used when projecting Svelte Flow edges back to CALM.
+ * Build a CALM 1.2 nested `relationship-type` from an aggregated edge group:
+ * one `source` (container/actor/connects-source) and one or more `targets`.
+ * `connects` is strictly 1:1 (uses `targets[0]`) and restores endpoint
+ * interfaces; `composed-of`/`deployed-in`/`interacts` aggregate all `targets`
+ * into one `nodes[]`.
  */
 function buildRelationshipType(
 	variant: CalmRelationshipVariant,
-	source: string,
-	target: string
+	g: { source: string; targets: string[]; sourceInterfaces?: string[]; destinationInterfaces?: string[] }
 ): CalmRelationshipType {
 	switch (variant) {
-		case 'connects':
-			return { connects: { source: { node: source }, destination: { node: target } } };
+		case 'connects': {
+			const source: CalmConnectsEndpoint = { node: g.source };
+			if (g.sourceInterfaces?.length) source.interfaces = g.sourceInterfaces;
+			const destination: CalmConnectsEndpoint = { node: g.targets[0] };
+			if (g.destinationInterfaces?.length) destination.interfaces = g.destinationInterfaces;
+			return { connects: { source, destination } };
+		}
 		case 'composed-of':
-			return { 'composed-of': { container: source, nodes: [target] } };
+			return { 'composed-of': { container: g.source, nodes: g.targets } };
 		case 'deployed-in':
-			return { 'deployed-in': { container: source, nodes: [target] } };
+			return { 'deployed-in': { container: g.source, nodes: g.targets } };
 		case 'interacts':
-			return { interacts: { actor: source, nodes: [target] } };
+			return { interacts: { actor: g.source, nodes: g.targets } };
 		case 'options':
-			return { options: [] };
+			// Unreachable: `options` has no edge representation (expandEdgePairs
+			// returns []), so no edge group ever resolves to this variant. Throw
+			// loudly rather than emit a schema-invalid `{ options: [] }`.
+			throw new Error(
+				'buildRelationshipType: options relationships have no edge form; they are preserved via applyFromCanvas, not reconstructed from edges'
+			);
 	}
 }
 
@@ -180,7 +212,8 @@ export function calmToFlow(
 				customMetadata: cn.customMetadata ?? {},
 				controls: cn.controls,
 				'data-classification': cn['data-classification'],
-				metadata: cn.metadata
+				metadata: cn.metadata,
+				details: cn.details ? { ...cn.details } : undefined
 			}
 		};
 
@@ -207,22 +240,37 @@ export function calmToFlow(
 	// multi-child case (documented trade-off).
 	const edges: Edge[] = [];
 	for (const cr of arch.relationships) {
+		const crt = cr['relationship-type'];
+		// connects carries endpoint interfaces that must survive the round-trip.
+		const connectsIfaces =
+			'connects' in crt
+				? {
+						sourceInterfaces: crt.connects.source.interfaces,
+						destinationInterfaces: crt.connects.destination.interfaces
+					}
+				: {};
 		const pairs = expandEdgePairs(cr);
 		const multi = pairs.length > 1;
 		pairs.forEach((pair, i) => {
+			const data: EdgeData = {
+				calmRelId: cr['unique-id'],
+				calmVariant: pair.variant,
+				protocol: cr.protocol,
+				description: cr.description,
+				controls: cr.controls,
+				metadata: cr.metadata,
+				...connectsIfaces
+			};
 			edges.push({
 				id: multi ? `${cr['unique-id']}#${i}` : cr['unique-id'],
 				source: pair.source,
 				target: pair.target,
 				type: pair.variant,
-				data: {
-					calmRelId: cr['unique-id'],
-					calmVariant: pair.variant,
-					protocol: cr.protocol,
-					description: cr.description,
-					controls: cr.controls,
-					metadata: cr.metadata
-				}
+				// Containment is already shown by nesting the child inside the parent
+				// (parentId). Drawing a line as well makes for convoluted diagrams, so
+				// hide the edge — it stays in the data for a lossless round-trip.
+				hidden: CONTAINMENT_VARIANTS.has(pair.variant),
+				data
 			});
 		});
 	}
@@ -252,6 +300,7 @@ export function flowToCalm(nodes: Node[], edges: Edge[]): CalmArchitecture {
 			controls?: CalmControls;
 			'data-classification'?: string;
 			metadata?: Record<string, unknown>;
+			details?: { 'detailed-architecture'?: string; 'required-pattern'?: string };
 		};
 
 		const node: CalmNode = {
@@ -268,42 +317,62 @@ export function flowToCalm(nodes: Node[], edges: Edge[]): CalmArchitecture {
 		if (d.controls && Object.keys(d.controls).length > 0) node.controls = d.controls;
 		if (d['data-classification']) node['data-classification'] = d['data-classification'];
 		if (d.metadata && Object.keys(d.metadata).length > 0) node.metadata = d.metadata;
+		if (d.details && (d.details['detailed-architecture'] || d.details['required-pattern'])) {
+			node.details = { ...d.details };
+		}
 
 		return node;
 	});
 
-	const calmRelationships: CalmRelationship[] = edges.map((e: Edge) => {
-		const edgeData = (e.data ?? {}) as {
-			calmRelId?: string;
-			calmVariant?: CalmRelationshipVariant;
-			protocol?: string;
-			description?: string;
-			controls?: CalmControls;
-			metadata?: Record<string, unknown>;
-		};
+	// Group edges by their source relationship. `calmRelId` re-aggregates the
+	// edges of a multi-child relationship back into ONE relationship (restoring
+	// the original unique-id); a user-drawn edge has no calmRelId and falls back
+	// to its own id, becoming one relationship on its own. Map preserves insertion
+	// order, so groups emerge in original-relationship order.
+	const groups = new Map<string, Edge[]>();
+	for (const e of edges) {
+		const key = (e.data as EdgeData | undefined)?.calmRelId ?? e.id;
+		const existing = groups.get(key);
+		if (existing) existing.push(e);
+		else groups.set(key, [e]);
+	}
 
-		const variant =
-			edgeData.calmVariant ??
-			((e.type as CalmRelationshipVariant | undefined) ?? 'connects');
-		const sourceId = flowIdToCalmId.get(e.source) ?? e.source;
-		const targetId = flowIdToCalmId.get(e.target) ?? e.target;
+	const srcOf = (e: Edge) => flowIdToCalmId.get(e.source) ?? e.source;
+	const tgtOf = (e: Edge) => flowIdToCalmId.get(e.target) ?? e.target;
 
+	function buildRel(variant: CalmRelationshipVariant, id: string, group: Edge[]): CalmRelationship {
+		const first = group[0];
+		const d = (first.data ?? {}) as EdgeData;
 		const rel: CalmRelationship = {
-			'unique-id': e.id,
-			'relationship-type': buildRelationshipType(variant, sourceId, targetId)
+			'unique-id': id,
+			'relationship-type': buildRelationshipType(variant, {
+				source: srcOf(first),
+				targets: group.map(tgtOf),
+				sourceInterfaces: d.sourceInterfaces,
+				destinationInterfaces: d.destinationInterfaces
+			})
 		};
-
-		if (edgeData.protocol) rel.protocol = edgeData.protocol;
-		if (edgeData.description) rel.description = edgeData.description;
-		if (edgeData.controls && Object.keys(edgeData.controls).length > 0) {
-			rel.controls = edgeData.controls;
-		}
-		if (edgeData.metadata && Object.keys(edgeData.metadata).length > 0) {
-			rel.metadata = edgeData.metadata;
-		}
-
+		if (d.protocol) rel.protocol = d.protocol as CalmRelationship['protocol'];
+		if (d.description) rel.description = d.description;
+		if (d.controls && Object.keys(d.controls).length > 0) rel.controls = d.controls;
+		if (d.metadata && Object.keys(d.metadata).length > 0) rel.metadata = d.metadata;
 		return rel;
-	});
+	}
+
+	const calmRelationships: CalmRelationship[] = [];
+	for (const [relId, group] of groups) {
+		const d0 = (group[0].data ?? {}) as EdgeData;
+		const variant = d0.calmVariant ?? (group[0].type as CalmRelationshipVariant | undefined) ?? 'connects';
+
+		if (variant === 'connects') {
+			// connects is strictly 1:1 — never aggregate. A group is normally one
+			// edge; a >1 group is corrupt, so emit one rel per edge (no silent loss).
+			for (const e of group) calmRelationships.push(buildRel(variant, e.id, [e]));
+		} else {
+			// Multi-child variants aggregate to one rel keyed by the original id.
+			calmRelationships.push(buildRel(variant, relId, group));
+		}
+	}
 
 	return { nodes: calmNodes, relationships: calmRelationships };
 }

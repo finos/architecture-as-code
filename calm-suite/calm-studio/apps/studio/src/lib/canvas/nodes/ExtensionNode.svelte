@@ -3,6 +3,7 @@
 <script lang="ts">
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+	import DecoratorBadge from './DecoratorBadge.svelte';
 	import { resolvePackNode } from '@calmstudio/extensions';
 
 	let { id, data, selected }: NodeProps = $props();
@@ -43,6 +44,7 @@
 
 <div class="node" class:selected>
 	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+	<DecoratorBadge elementId={(data as Record<string, unknown>).calmId as string ?? id} />
 	{#if scaledIcon}
 		<span class="icon" style="color: {strokeColor};">
 			{@html scaledIcon}

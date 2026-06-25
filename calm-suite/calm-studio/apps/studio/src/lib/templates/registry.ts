@@ -16,6 +16,7 @@
  */
 
 import type { CalmArchitecture } from '@calmstudio/calm-core';
+import { readDocumentName, writeDocumentName } from '$lib/io/documentName';
 
 // ─── Template metadata type ───────────────────────────────────────────────────
 
@@ -62,8 +63,15 @@ export function loadTemplate(id: string): CalmArchitecture {
 		throw new Error(`[TemplateRegistry] No template registered with id: ${id}`);
 	}
 	// Spread then delete — returns clean CalmArchitecture without _template
-	const { _template: _stripped, ...arch } = t;
-	return arch as CalmArchitecture;
+	const { _template: stripped, ...rest } = t;
+	const arch = rest as CalmArchitecture;
+	// Stamp the template's display name as the document name (unless the template
+	// JSON already carries one), so a loaded template spawns in titled rather than
+	// "Unsaved Document". importCalmFile reads this back via metadata.name.
+	if (!readDocumentName(arch)) {
+		arch.metadata = writeDocumentName(arch.metadata, stripped.name) as CalmArchitecture['metadata'];
+	}
+	return arch;
 }
 
 /**
@@ -108,9 +116,30 @@ import opengrisLocalDev from './opengris-local-dev.json';
 import opengrisMarketRisk from './opengris-market-risk.json';
 import opengrisScientificResearch from './opengris-scientific-research.json';
 import opengrisMultiCloud from './opengris-multi-cloud.json';
+import multiAgentContext from '../reference/multi-agent-ref-arch/context.arch.json';
+
+// The Multi-Agent Reference Architecture flagship template is the Tier-1 context
+// document of the CALM document series in lib/reference/multi-agent-ref-arch/.
+// It carries no _template block (it's a pure CALM doc); the template metadata is
+// attached here so the reference series stays clean and CLI-valid.
+const multiAgentRefArchTemplate = {
+	_template: {
+		id: 'multi-agent-ref-arch',
+		name: 'Multi-Agent Reference Architecture',
+		description:
+			'AIGF-aligned multi-agent reference architecture — the 8-layer context view. Each layer links to a detailed, deployable elaboration (see lib/reference/multi-agent-ref-arch).',
+		category: 'finos',
+		tags: ['finos', 'ai', 'multi-agent', 'aigf', 'ccc', 'governance', 'reference'],
+		version: '1.0.0',
+		author: 'FINOS',
+		sourceRef: 'https://github.com/finos/ai-governance-framework',
+	},
+	...multiAgentContext,
+};
 
 /**
- * Register all 10 templates (6 FluxNova + 4 OpenGRIS).
+ * Register all bundled templates (6 FluxNova + 4 OpenGRIS + the FINOS
+ * Multi-Agent Reference Architecture — the canvas for AIGF + CCC governance).
  * Call once at module level in +page.svelte (alongside initAllPacks).
  */
 export function initAllTemplates(): void {
@@ -124,4 +153,5 @@ export function initAllTemplates(): void {
 	registerTemplate(opengrisMarketRisk as CalmTemplate);
 	registerTemplate(opengrisScientificResearch as CalmTemplate);
 	registerTemplate(opengrisMultiCloud as CalmTemplate);
+	registerTemplate(multiAgentRefArchTemplate as unknown as CalmTemplate);
 }

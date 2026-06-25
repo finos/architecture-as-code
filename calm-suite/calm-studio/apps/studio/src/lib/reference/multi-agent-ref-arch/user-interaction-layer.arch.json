@@ -1,0 +1,75 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/user-interaction-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "user-interaction-layer",
+      "node-type": "system",
+      "name": "User Interaction Layer",
+      "description": "Channels through which people interact with the multi-agent system."
+    },
+    {
+      "unique-id": "edge-plane",
+      "node-type": "system",
+      "name": "Edge Plane",
+      "description": "Public-facing deployment boundary (CDN/ingress)."
+    },
+    {
+      "unique-id": "web-app",
+      "node-type": "webclient",
+      "name": "Web Application",
+      "description": "Browser client for end users."
+    },
+    {
+      "unique-id": "experience-api",
+      "node-type": "service",
+      "name": "Experience API",
+      "description": "Backend-for-frontend that brokers user requests to the agent gateway."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "user-interaction-layer-contains",
+      "description": "User Interaction Layer components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "user-interaction-layer",
+          "nodes": [
+            "web-app",
+            "experience-api"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ui-web-to-api",
+      "description": "User actions",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-app"
+          },
+          "destination": {
+            "node": "experience-api"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "user-interaction-layer-deployment",
+      "description": "User Interaction Layer deploys onto the Edge Plane.",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "edge-plane",
+          "nodes": [
+            "web-app",
+            "experience-api"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "c4-level": "container"
+  }
+}

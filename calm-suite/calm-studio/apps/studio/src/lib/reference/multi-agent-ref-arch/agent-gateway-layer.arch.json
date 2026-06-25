@@ -1,0 +1,114 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/agent-gateway-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "agent-gateway-layer",
+      "node-type": "system",
+      "name": "Agent Gateway Layer",
+      "description": "Single entry point that authenticates, routes, and guards traffic into the agent layer.",
+      "controls": {
+        "request-guarding": {
+          "description": "Enforce authentication, rate limiting and content policy on all agent traffic.",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/C11",
+              "config": {
+                "control-id": "C11",
+                "threats-mitigated": [
+                  "unauthorized-access"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "control-plane",
+      "node-type": "system",
+      "name": "Control Plane",
+      "description": "Cluster boundary for gateways, registries and policy services."
+    },
+    {
+      "unique-id": "agent-gateway",
+      "node-type": "ai:api-gateway",
+      "name": "Agent Gateway",
+      "description": "Authenticated ingress and router for agent invocations."
+    },
+    {
+      "unique-id": "agent-registry",
+      "node-type": "service",
+      "name": "Agent Registry",
+      "description": "Catalogue of available agents and their capabilities."
+    },
+    {
+      "unique-id": "agent-guardrails",
+      "node-type": "ai:guardrail",
+      "name": "Agent Guardrails",
+      "description": "Input/output policy enforcement at the gateway."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "agent-gateway-layer-contains",
+      "description": "Agent Gateway Layer components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "agent-gateway-layer",
+          "nodes": [
+            "agent-gateway",
+            "agent-registry",
+            "agent-guardrails"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "agw-gw-to-registry",
+      "description": "Capability lookup",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-gateway"
+          },
+          "destination": {
+            "node": "agent-registry"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "agw-gw-to-guard",
+      "description": "Policy check",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-gateway"
+          },
+          "destination": {
+            "node": "agent-guardrails"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "agent-gateway-layer-deployment",
+      "description": "Agent Gateway Layer deploys onto the Control Plane.",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "control-plane",
+          "nodes": [
+            "agent-gateway",
+            "agent-registry",
+            "agent-guardrails"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "c4-level": "container"
+  }
+}

@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, it, expect } from 'vitest';
-import { validateCalmArchitecture, type ValidationIssue } from './validation.js';
-import type { CalmArchitecture, CalmRelationship } from './types.js';
+import { validateCalmArchitecture, validateDecorators, type ValidationIssue } from './validation.js';
+import type { CalmArchitecture, CalmDecorator, CalmRelationship } from './types.js';
 
 // Helper: make a minimal valid node
 function makeNode(id: string, name: string, description?: string) {
@@ -531,5 +531,61 @@ describe('validateCalmArchitecture', () => {
       (i) => i.severity === 'error' && i.relationshipId === 'co-empty'
     );
     expect(errors.length).toBeGreaterThan(0);
+  });
+});
+
+describe('validateDecorators', () => {
+  const arch: CalmArchitecture = {
+    nodes: [makeNode('vector-store', 'Vector Store')],
+    relationships: []
+  };
+  const dec = (over: Partial<CalmDecorator> = {}): CalmDecorator => ({
+    'unique-id': 'd1',
+    type: 'gemara-link',
+    target: ['arch.json'],
+    'applies-to': ['vector-store'],
+    data: { k: 1 },
+    ...over
+  });
+
+  it('passes a well-formed decorator that resolves', () => {
+    expect(validateDecorators([dec()], arch)).toHaveLength(0);
+  });
+
+  it('warns (not errors) when applies-to does not resolve', () => {
+    const issues = validateDecorators([dec({ 'applies-to': ['nope'] })], arch);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].severity).toBe('warning');
+    expect(issues[0].message).toMatch(/applies-to "nope"/);
+  });
+
+  it('skips the @architecture whole-document sentinel', () => {
+    expect(validateDecorators([dec({ 'applies-to': ['@architecture'] })], arch)).toHaveLength(0);
+  });
+
+  it('errors on empty target and empty applies-to', () => {
+    const issues = validateDecorators([dec({ target: [], 'applies-to': [] })], arch);
+    const errs = issues.filter((i) => i.severity === 'error');
+    expect(errs.some((i) => /must target at least one document/.test(i.message))).toBe(true);
+    expect(errs.some((i) => /must apply to at least one element/.test(i.message))).toBe(true);
+  });
+
+  it('errors on empty data object', () => {
+    const issues = validateDecorators([dec({ data: {} })], arch);
+    expect(issues.some((i) => i.severity === 'error' && /data must be a non-empty object/.test(i.message))).toBe(true);
+  });
+
+  it('errors on duplicate decorator unique-ids', () => {
+    const issues = validateDecorators([dec(), dec()], arch);
+    expect(issues.some((i) => i.severity === 'error' && /Duplicate decorator unique-id/.test(i.message))).toBe(true);
+  });
+
+  it('resolves applies-to against relationships and flows, not just nodes', () => {
+    const a = {
+      nodes: [makeNode('n1', 'N1')],
+      relationships: [makeRel('r1', 'n1', 'n1')],
+      flows: [{ 'unique-id': 'f1', name: 'Flow', description: 'd', transitions: [] }]
+    } as unknown as CalmArchitecture;
+    expect(validateDecorators([dec({ 'applies-to': ['r1', 'f1'] })], a)).toHaveLength(0);
   });
 });

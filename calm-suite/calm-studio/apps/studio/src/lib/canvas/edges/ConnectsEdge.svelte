@@ -10,6 +10,7 @@
 <script lang="ts">
 	import { BaseEdge, EdgeLabel, getSmoothStepPath, type EdgeProps } from '@xyflow/svelte';
 	import FlowOverlay from './FlowOverlay.svelte';
+	import DecoratorBadge from '../nodes/DecoratorBadge.svelte';
 	import type { CalmTransition } from '@calmstudio/calm-core';
 
 	let {
@@ -43,6 +44,7 @@
 
 	const flowTransition = $derived((data as Record<string, unknown>)?.flowTransition as CalmTransition | null | undefined);
 	const dimmed = $derived((data as Record<string, unknown>)?.dimmed === true);
+	const relId = $derived(((data as Record<string, unknown>)?.calmRelId as string | undefined) ?? id);
 </script>
 
 <g style={dimmed ? 'opacity: 0.3' : ''}>
@@ -60,6 +62,10 @@
 			</span>
 		</EdgeLabel>
 	{/if}
+
+	<EdgeLabel x={labelX} y={labelY - 16} class="nodrag nopan">
+		<DecoratorBadge elementId={relId} inline />
+	</EdgeLabel>
 </g>
 
 {#if flowTransition}

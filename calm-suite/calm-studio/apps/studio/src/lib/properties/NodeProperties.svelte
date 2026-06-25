@@ -16,6 +16,8 @@
 	import { updateNodeProperty } from '$lib/stores/calmModel.svelte';
 	import InterfaceList from './InterfaceList.svelte';
 	import ControlsList from './ControlsList.svelte';
+	import GemaraSections from './GemaraSections.svelte';
+	import DetailsLinkSection from './DetailsLinkSection.svelte';
 	import CustomMetadata from './CustomMetadata.svelte';
 
 	let {
@@ -243,6 +245,13 @@
 		}}
 		readonly={!onmutate}
 	/>
+
+	<GemaraSections elementId={String(node.data.calmId)} {onmutate} />
+
+	<!-- C4 detailed-architecture link authoring ({#key} remounts per selection) -->
+	{#key node.id}
+		<DetailsLinkSection {node} {onmutate} />
+	{/key}
 
 	<!-- Custom metadata section -->
 	<CustomMetadata nodeId={node.data?.calmId} metadata={node.data?.customMetadata ?? {}} {onmutate} />

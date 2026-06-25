@@ -29,6 +29,7 @@ import {
   getAllTemplates,
   loadTemplate,
 } from './registry.js';
+import { readDocumentName } from '$lib/io/documentName';
 
 initAllTemplates();
 
@@ -58,6 +59,10 @@ describe('bundled architectures conform to CALM 1.2', () => {
           );
         }
         expect(errors).toEqual([]);
+      });
+
+      it(`${t._template.id} spawns in with a document name`, () => {
+        expect(readDocumentName(loadTemplate(t._template.id))).toBeTruthy();
       });
     }
   });

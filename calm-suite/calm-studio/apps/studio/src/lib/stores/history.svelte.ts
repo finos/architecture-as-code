@@ -15,10 +15,15 @@
  */
 
 import type { Node, Edge } from '@xyflow/svelte';
+import type { CalmArchitecture } from '@calmstudio/calm-core';
+import { getModel } from './calmModel.svelte';
 
 export interface Snapshot {
 	nodes: Node[];
 	edges: Edge[];
+	/** The canonical CALM model at snapshot time — captures decorators/controls
+	 *  that the flow projection does NOT, so governance changes are undoable. */
+	model: CalmArchitecture;
 }
 
 // Module-level Svelte 5 rune state
@@ -26,8 +31,8 @@ let stack = $state<Snapshot[]>([]);
 let pointer = $state(-1);
 
 /**
- * Push a deep-cloned snapshot of the current nodes/edges onto the history stack.
- * Any future history (from prior undos) is dropped.
+ * Push a deep-cloned snapshot of the current nodes/edges AND the canonical model
+ * onto the history stack. Any future history (from prior undos) is dropped.
  * Call this BEFORE applying any mutation.
  */
 export function pushSnapshot(nodes: Node[], edges: Edge[]): void {
@@ -35,6 +40,7 @@ export function pushSnapshot(nodes: Node[], edges: Edge[]): void {
 	const snapshot: Snapshot = {
 		nodes: JSON.parse(JSON.stringify(nodes)),
 		edges: JSON.parse(JSON.stringify(edges)),
+		model: JSON.parse(JSON.stringify(getModel())),
 	};
 	// Drop future history (everything after the current pointer)
 	stack = stack.slice(0, pointer + 1);

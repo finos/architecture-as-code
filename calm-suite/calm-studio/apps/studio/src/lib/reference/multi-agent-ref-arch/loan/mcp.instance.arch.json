@@ -1,0 +1,151 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/mcp-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "mcp-layer",
+      "node-type": "system",
+      "name": "MCP Layer",
+      "description": "Loan-origination external integrations via MCP."
+    },
+    {
+      "unique-id": "mcp-gateway",
+      "node-type": "ai:api-gateway",
+      "name": "MCP Gateway",
+      "description": "Governs calls to external services."
+    },
+    {
+      "unique-id": "mcp-registry",
+      "node-type": "service",
+      "name": "MCP Server Registry",
+      "description": "Approved external integrations."
+    },
+    {
+      "unique-id": "mcp-guardrails",
+      "node-type": "ai:guardrail",
+      "name": "MCP Guardrails",
+      "description": "Tool authorization and argument validation for external calls."
+    },
+    {
+      "unique-id": "document-parser",
+      "node-type": "ai:mcp-server",
+      "name": "Document Parser MCP Server",
+      "description": "Self-hosted MCP server for OCR and document parsing."
+    },
+    {
+      "unique-id": "credit-bureau",
+      "node-type": "system",
+      "name": "Credit Bureau API",
+      "description": "External credit bureau (third-party SaaS — connect, not deploy)."
+    },
+    {
+      "unique-id": "kyc-service",
+      "node-type": "system",
+      "name": "KYC & Sanctions Screening",
+      "description": "External KYC/AML screening service."
+    },
+    {
+      "unique-id": "esignature-service",
+      "node-type": "system",
+      "name": "E-Signature Service",
+      "description": "External e-signature provider."
+    },
+    {
+      "unique-id": "disbursement-system",
+      "node-type": "system",
+      "name": "Disbursement System",
+      "description": "External payments/disbursement system."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "mcp-loan-contains",
+      "description": "Self-hosted MCP control plane and tool server.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "mcp-layer",
+          "nodes": [
+            "mcp-gateway",
+            "mcp-registry",
+            "mcp-guardrails",
+            "document-parser"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "mcp-gw-parser",
+      "description": "Parse documents",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-gateway"
+          },
+          "destination": {
+            "node": "document-parser"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "mcp-gw-credit",
+      "description": "Credit pull",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-gateway"
+          },
+          "destination": {
+            "node": "credit-bureau"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "mcp-gw-kyc",
+      "description": "KYC screen",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-gateway"
+          },
+          "destination": {
+            "node": "kyc-service"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "mcp-gw-esign",
+      "description": "Sign documents",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-gateway"
+          },
+          "destination": {
+            "node": "esignature-service"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "mcp-gw-disburse",
+      "description": "Disburse funds",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-gateway"
+          },
+          "destination": {
+            "node": "disbursement-system"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    }
+  ]
+}

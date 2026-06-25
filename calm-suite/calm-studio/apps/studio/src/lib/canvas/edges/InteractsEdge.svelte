@@ -9,7 +9,8 @@
   Flow overlays render as sibling group (outside the dimmed wrapper).
 -->
 <script lang="ts">
-	import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/svelte';
+	import { BaseEdge, EdgeLabel, getSmoothStepPath, type EdgeProps } from '@xyflow/svelte';
+	import DecoratorBadge from '../nodes/DecoratorBadge.svelte';
 	import FlowOverlay from './FlowOverlay.svelte';
 	import type { CalmTransition } from '@calmstudio/calm-core';
 
@@ -42,6 +43,7 @@
 
 	const flowTransition = $derived((data as Record<string, unknown>)?.flowTransition as CalmTransition | null | undefined);
 	const dimmed = $derived((data as Record<string, unknown>)?.dimmed === true);
+	const relId = $derived(((data as Record<string, unknown>)?.calmRelId as string | undefined) ?? id);
 </script>
 
 <g style={dimmed ? 'opacity: 0.3' : ''}>
@@ -51,6 +53,10 @@
 		markerEnd="url(#marker-arrow-filled)"
 		style={finalStyle}
 	/>
+
+	<EdgeLabel x={labelX} y={labelY - 16} class="nodrag nopan">
+		<DecoratorBadge elementId={relId} inline />
+	</EdgeLabel>
 </g>
 
 {#if flowTransition}

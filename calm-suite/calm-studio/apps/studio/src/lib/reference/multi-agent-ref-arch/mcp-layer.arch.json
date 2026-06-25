@@ -1,0 +1,137 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/mcp-layer.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "mcp-layer",
+      "node-type": "system",
+      "name": "MCP Layer",
+      "description": "Governed access to Model Context Protocol tool servers.",
+      "controls": {
+        "tool-authorization": {
+          "description": "Authorize every tool invocation and validate its arguments against allowed scopes.",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/C36",
+              "config": {
+                "control-id": "C36",
+                "threats-mitigated": [
+                  "tool-misuse"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "control-plane",
+      "node-type": "system",
+      "name": "Control Plane",
+      "description": "Cluster boundary for gateways, registries and policy services."
+    },
+    {
+      "unique-id": "mcp-gateway",
+      "node-type": "ai:api-gateway",
+      "name": "MCP Gateway",
+      "description": "Authenticated ingress and policy enforcement for MCP tool calls."
+    },
+    {
+      "unique-id": "mcp-registry",
+      "node-type": "service",
+      "name": "MCP Server Registry",
+      "description": "Catalogue of approved MCP servers and scopes."
+    },
+    {
+      "unique-id": "mcp-server",
+      "node-type": "ai:mcp-server",
+      "name": "MCP Server",
+      "description": "Representative self-hosted MCP tool server (externals are instantiated in Tier 3)."
+    },
+    {
+      "unique-id": "mcp-guardrails",
+      "node-type": "ai:guardrail",
+      "name": "MCP Guardrails",
+      "description": "Tool authorization and argument validation."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "mcp-layer-contains",
+      "description": "MCP Layer components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "mcp-layer",
+          "nodes": [
+            "mcp-gateway",
+            "mcp-registry",
+            "mcp-server",
+            "mcp-guardrails"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "mcp-gw-to-registry",
+      "description": "Resolve server",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-gateway"
+          },
+          "destination": {
+            "node": "mcp-registry"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "mcp-gw-to-server",
+      "description": "Invoke tool",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-gateway"
+          },
+          "destination": {
+            "node": "mcp-server"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "mcp-gw-to-guard",
+      "description": "Authorize tool call",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-gateway"
+          },
+          "destination": {
+            "node": "mcp-guardrails"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "mcp-layer-deployment",
+      "description": "MCP Layer deploys onto the Control Plane.",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "control-plane",
+          "nodes": [
+            "mcp-gateway",
+            "mcp-registry",
+            "mcp-server",
+            "mcp-guardrails"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "c4-level": "container"
+  }
+}

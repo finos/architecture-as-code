@@ -3,131 +3,108 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * c4State.svelte.ts — C4 view mode state store with Svelte 5 runes.
+ * c4State.svelte.ts — C4 navigation as a document trail.
  *
- * Tracks C4 mode activation, the current C4 level, and the drill-down navigation stack.
+ * One architecture file = one diagram (the Context of its system). A node can
+ * carry a `details.detailed-architecture` link to another document; drilling it
+ * jumps to that document. The `trail` is the path of documents you've followed;
+ * trail[0] is the root (the editable document, ref = null). There are no levels
+ * to switch and no within-document drilling — depth is simply how many links
+ * deep you are. A document's declared `metadata.c4-level` is an optional label.
  *
- * State model:
- *   - currentLevel: null = "All" mode (normal editing); C4Level = C4 navigation active
- *   - drillStack: navigation path for drill-down (e.g. [{nodeId:'sys-1', label:'Payment System'}])
- *
- * Pattern: module-level $state runes, same as history.svelte.ts, calmModel.svelte.ts.
- * No imports from .svelte files — only type imports from c4Filter.ts.
+ * Module-level $state runes; no imports from .svelte files.
  */
 
 import type { C4Level } from './c4Filter';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-/** A single entry in the drill-down navigation stack. */
-export type DrillEntry = {
-	nodeId: string;
-	label: string;
-};
+/** One document in the navigation trail. ref = null is the editable root document. */
+export type C4Frame = { ref: string | null; label: string; level: C4Level };
+
+const LEVELS: C4Level[] = ['context', 'container', 'component'];
+const levelForDepth = (depth: number): C4Level => LEVELS[Math.min(depth, LEVELS.length - 1)]!;
 
 // ─── Module-level state ───────────────────────────────────────────────────────
 
-/** Current C4 level. null means C4 mode is off (normal editing). */
-let currentLevel = $state<C4Level | null>(null);
+/** Whether C4 navigation (a read-only document view) is active. */
+let active = $state(false);
 
-/** Drill-down navigation stack. Empty = at the top level of the current C4 view. */
-let drillStack = $state<DrillEntry[]>([]);
+/** The document trail. trail[0] is the editable root; each entry is one link deeper. */
+let trail = $state<C4Frame[]>([]);
 
 // ─── Getters ─────────────────────────────────────────────────────────────────
 
-/**
- * Returns true when C4 mode is active (any level is selected).
- * False means the canvas is in normal "All" editing mode.
- */
+/** True when navigating a linked document (vs. editing the root document). */
 export function isC4Mode(): boolean {
-	return currentLevel !== null;
+	return active;
 }
 
-/**
- * Returns the current C4 level, or null if not in C4 mode.
- */
+/** The document trail (for the breadcrumb). */
+export function getC4Trail(): C4Frame[] {
+	return trail;
+}
+
+/** The current document's level (the top frame's), or null if not navigating. */
 export function getC4Level(): C4Level | null {
-	return currentLevel;
+	return active && trail.length > 0 ? trail[trail.length - 1]!.level : null;
+}
+
+/** The top frame, or null. */
+export function getCurrentFrame(): C4Frame | null {
+	return trail.length > 0 ? trail[trail.length - 1]! : null;
 }
 
 /**
- * Returns the current drill-down navigation stack.
- * Empty array = at root of the selected C4 level.
+ * The ref of the document currently in view (the top frame). `null` means the
+ * root document (the editable model itself).
  */
-export function getC4DrillStack(): DrillEntry[] {
-	return drillStack;
-}
-
-/**
- * Returns the nodeId of the current drill target, or null if at the root.
- * Used by filterNodesForLevel as the drillParentId argument.
- */
-export function getCurrentDrillParentId(): string | null {
-	if (drillStack.length === 0) return null;
-	return drillStack[drillStack.length - 1].nodeId;
+export function getActiveDocumentRef(): string | null {
+	return trail.length > 0 ? trail[trail.length - 1]!.ref : null;
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
-/**
- * Enter C4 view mode at the given level.
- * Clears any existing drill stack (fresh top-level view).
- */
-export function enterC4Mode(level: C4Level): void {
-	currentLevel = level;
-	drillStack = [];
+/** Enter navigation at the root (the editable document). */
+export function enterC4(rootLabel: string, rootLevel: C4Level = 'context'): void {
+	active = true;
+	trail = [{ ref: null, label: rootLabel, level: rootLevel }];
+}
+
+/** Exit navigation, back to editing the root document. */
+export function exitC4(): void {
+	active = false;
+	trail = [];
 }
 
 /**
- * Exit C4 view mode and return to normal "All" editing mode.
- * Clears both the level and the drill stack.
+ * Drill into a node's linked document (details.detailed-architecture). Prefers
+ * the document's declared level, else depth-derived. Returns the level, or
+ * **null if it would form a cycle** (that document is already in the trail).
  */
-export function exitC4Mode(): void {
-	currentLevel = null;
-	drillStack = [];
+export function drillIntoDocument(ref: string, label: string, level?: C4Level): C4Level | null {
+	if (trail.some((f) => f.ref === ref)) return null; // cycle
+	const lvl = level ?? levelForDepth(trail.length);
+	trail = [...trail, { ref, label, level: lvl }];
+	return lvl;
 }
 
 /**
- * Switch to a different C4 level while staying in C4 mode.
- * Clears the drill stack (the new level starts at its own root).
+ * Navigate up to the frame at `index` (inclusive). Returns the new top frame, or
+ * null. Valid range is [0, trail.length - 1]; a negative index is a no-op (use
+ * exitC4 to leave), a too-large index clamps to the current top.
  */
-export function setC4Level(level: C4Level): void {
-	currentLevel = level;
-	drillStack = [];
-}
-
-/**
- * Drill into a container node, adding it to the navigation stack.
- * Used when the user double-clicks a node to explore its internals.
- *
- * @param nodeId - The ID of the node being drilled into.
- * @param label - The display label for the breadcrumb (node name).
- */
-export function drillDown(nodeId: string, label: string): void {
-	drillStack = [...drillStack, { nodeId, label }];
-}
-
-/**
- * Navigate back to a specific point in the drill stack.
- *
- * The stack is sliced to [0, index) — clicking breadcrumb at index 0 shows
- * the node at that position's children, clicking "root" (before index 0)
- * clears to top level. Per Pitfall 5: drillUpTo(0) returns to root (empty stack).
- *
- * @param index - The index to truncate the stack to (exclusive).
- *   Pass 0 to return to the top-level C4 view (no drill parent).
- */
-export function drillUpTo(index: number): void {
-	drillStack = drillStack.slice(0, index);
+export function navigateUpTo(index: number): C4Frame | null {
+	if (index < 0) return null;
+	const clamped = Math.min(index, trail.length - 1);
+	trail = trail.slice(0, clamped + 1);
+	return trail[trail.length - 1] ?? null;
 }
 
 // ─── Test utilities ───────────────────────────────────────────────────────────
 
-/**
- * Reset C4 state to initial values.
- * Use in tests with beforeEach to ensure clean state between tests.
- */
+/** Reset C4 state to initial values (use in tests' beforeEach). */
 export function resetC4State(): void {
-	currentLevel = null;
-	drillStack = [];
+	active = false;
+	trail = [];
 }

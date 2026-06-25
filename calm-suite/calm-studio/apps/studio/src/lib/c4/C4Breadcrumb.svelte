@@ -21,24 +21,30 @@
 		drillStack = [],
 		onnavigate,
 		levelBadge,
+		rootLabel = 'All Systems',
+		oneditdocument,
 	}: {
 		/** Current C4 level: 'context' | 'container' | 'component' */
 		level: string;
 		/** Current drill-down path — each entry is { nodeId, label }. */
 		drillStack?: { nodeId: string; label: string }[];
-		/** Called when a breadcrumb segment is clicked. index=0 = root ("All Systems"). */
+		/** Called when a breadcrumb segment is clicked. index=0 = root. */
 		onnavigate?: (index: number) => void;
 		/** Badge label to display on the right (e.g. "Context", "Container", "Component"). */
 		levelBadge?: string;
+		/** Label for the root segment (within-doc: "All Systems"; doc trail: the context document). */
+		rootLabel?: string;
+		/** When set, shows an "Edit this layer" action that opens the current document for editing. */
+		oneditdocument?: () => void;
 	} = $props();
 
 	/**
 	 * All breadcrumb segments to render.
-	 * Index 0 = "All Systems" root. Subsequent entries from drillStack.
+	 * Index 0 = root. Subsequent entries from drillStack.
 	 * The last segment is the current location (not clickable).
 	 */
 	const segments = $derived([
-		{ label: 'All Systems', index: 0 },
+		{ label: rootLabel, index: 0 },
 		...drillStack.map((entry, i) => ({ label: entry.label, index: i + 1 })),
 	]);
 </script>
@@ -75,10 +81,26 @@
 		{/each}
 	</div>
 
-	<!-- Level badge pill -->
-	{#if levelBadge}
-		<span class="c4-level-badge" aria-label="C4 level: {levelBadge}">{levelBadge}</span>
-	{/if}
+	<div class="c4-right">
+		{#if oneditdocument}
+			<button
+				type="button"
+				class="edit-doc"
+				onclick={oneditdocument}
+				title="Open this document to edit and apply governance"
+			>
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+					<path d="M12 20h9" stroke-linecap="round" />
+					<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
+				Edit this layer
+			</button>
+		{/if}
+		<!-- Level badge pill -->
+		{#if levelBadge}
+			<span class="c4-level-badge" aria-label="C4 level: {levelBadge}">{levelBadge}</span>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -191,6 +213,30 @@
 
 	:global(.dark) .breadcrumb-current {
 		color: #e2e8f0;
+	}
+
+	/* ─── Right-side group (edit action + level badge) ───────────────── */
+
+	.c4-right {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.edit-doc {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 11px;
+		font-weight: 600;
+		padding: 3px 8px;
+		border-radius: 5px;
+		border: 1px solid var(--color-accent, #6366f1);
+		background: none;
+		color: var(--color-accent, #6366f1);
+		cursor: pointer;
+	}
+	.edit-doc:hover {
+		background: rgba(99, 102, 241, 0.1);
 	}
 
 	/* ─── Level badge pill ───────────────────────────────────────────── */

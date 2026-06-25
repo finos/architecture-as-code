@@ -1,0 +1,121 @@
+{
+  "$schema": "https://calm.finos.org/marefarch/agent-runtime.component.pattern.json",
+  "nodes": [
+    {
+      "unique-id": "agent-runtime",
+      "node-type": "service",
+      "name": "Agent Runtime",
+      "description": "Internals of the sandboxed agent runtime container."
+    },
+    {
+      "unique-id": "agent-plane",
+      "node-type": "system",
+      "name": "Agent Runtime Plane",
+      "description": "Isolated runtime boundary for agent execution."
+    },
+    {
+      "unique-id": "state-management",
+      "node-type": "service",
+      "name": "State Management",
+      "description": "Tracks conversation and workflow state for active runs."
+    },
+    {
+      "unique-id": "secure-execution",
+      "node-type": "service",
+      "name": "Secure Execution",
+      "description": "Sandboxes tool and code execution with least privilege."
+    },
+    {
+      "unique-id": "collaboration-handoff",
+      "node-type": "service",
+      "name": "Collaboration / Handoff",
+      "description": "Coordinates context handoff between collaborating agents."
+    },
+    {
+      "unique-id": "context-manager",
+      "node-type": "service",
+      "name": "In-Session Context Manager",
+      "description": "Assembles and trims the working context for each step."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "agent-runtime-contains",
+      "description": "Agent Runtime components.",
+      "relationship-type": {
+        "composed-of": {
+          "container": "agent-runtime",
+          "nodes": [
+            "state-management",
+            "secure-execution",
+            "collaboration-handoff",
+            "context-manager"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ar-ctx-to-state",
+      "description": "Read/write state",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "context-manager"
+          },
+          "destination": {
+            "node": "state-management"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "ar-exec-to-ctx",
+      "description": "Update context",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "secure-execution"
+          },
+          "destination": {
+            "node": "context-manager"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "ar-handoff-to-state",
+      "description": "Transfer state",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "collaboration-handoff"
+          },
+          "destination": {
+            "node": "state-management"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "agent-runtime-deployment",
+      "description": "Agent Runtime deploys onto the Agent Runtime Plane.",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "agent-plane",
+          "nodes": [
+            "state-management",
+            "secure-execution",
+            "collaboration-handoff",
+            "context-manager"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "c4-level": "component"
+  }
+}
