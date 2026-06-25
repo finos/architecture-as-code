@@ -24,12 +24,13 @@ const mockInput: AnalysisInput = {
   relationships: [
     {
       'unique-id': 'conn-api-db',
-      'relationship-type': 'connects' as const,
-      protocol: 'HTTP' as const,
-      connects: {
-        source: { node: 'api-service' },
-        destination: { node: 'main-db' },
+      'relationship-type': {
+        connects: {
+          source: { node: 'api-service' },
+          destination: { node: 'main-db' },
+        },
       },
+      protocol: 'HTTP' as const,
     },
   ],
   controls: {},

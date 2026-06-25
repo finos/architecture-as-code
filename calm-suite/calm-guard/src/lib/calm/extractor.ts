@@ -1,4 +1,5 @@
 import type { CalmDocument, CalmNode, CalmRelationship, CalmFlow, ControlDefinition, Protocol } from './types';
+import { getRelationshipVariant } from './types';
 
 /**
  * Structured input for agent analysis
@@ -41,9 +42,9 @@ export function extractAnalysisInput(calm: CalmDocument): AnalysisInput {
     return acc;
   }, {} as Record<string, number>);
 
-  // Count relationships by type
+  // Count relationships by type (derive the variant from the nested object)
   const relationshipTypeCounts = calm.relationships.reduce((acc, rel) => {
-    const relType = rel['relationship-type'];
+    const relType = getRelationshipVariant(rel);
     acc[relType] = (acc[relType] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -125,30 +126,22 @@ export function getNodeById(calm: CalmDocument, nodeId: string): CalmNode | unde
  */
 export function getNodeRelationships(calm: CalmDocument, nodeId: string): CalmRelationship[] {
   return calm.relationships.filter(rel => {
-    switch (rel['relationship-type']) {
-      case 'interacts':
-        return rel.interacts.actor === nodeId || rel.interacts.nodes.includes(nodeId);
-
-      case 'connects':
-        return rel.connects.source.node === nodeId || rel.connects.destination.node === nodeId;
-
-      case 'deployed-in':
-        return rel['deployed-in'].container === nodeId || rel['deployed-in'].nodes.includes(nodeId);
-
-      case 'composed-of':
-        return rel['composed-of'].container === nodeId || rel['composed-of'].nodes.includes(nodeId);
-
-      case 'options':
-        // Options relationship structure is undefined - skip for now
-        return false;
-
-      default: {
-        // TypeScript exhaustiveness check
-        const exhaustive: never = rel;
-        // This should never execute - all relationship types are handled above
-        throw new Error(`Unhandled relationship type: ${(exhaustive as CalmRelationship)['relationship-type']}`);
-      }
+    // Truthy guards narrow each optional variant payload to a defined value.
+    const rt = rel['relationship-type'];
+    if (rt.interacts) {
+      return rt.interacts.actor === nodeId || rt.interacts.nodes.includes(nodeId);
     }
+    if (rt.connects) {
+      return rt.connects.source.node === nodeId || rt.connects.destination.node === nodeId;
+    }
+    if (rt['deployed-in']) {
+      return rt['deployed-in'].container === nodeId || rt['deployed-in'].nodes.includes(nodeId);
+    }
+    if (rt['composed-of']) {
+      return rt['composed-of'].container === nodeId || rt['composed-of'].nodes.includes(nodeId);
+    }
+    // options — structure not modelled; skip
+    return false;
   });
 }
 

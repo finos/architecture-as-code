@@ -34,12 +34,13 @@ const docWithRelationships: CalmDocument = {
   relationships: [
     {
       'unique-id': 'conn-web-api',
-      'relationship-type': 'connects',
-      protocol: 'HTTPS',
-      connects: {
-        source: { node: 'web-client' },
-        destination: { node: 'api-gateway' },
+      'relationship-type': {
+        connects: {
+          source: { node: 'web-client' },
+          destination: { node: 'api-gateway' },
+        },
       },
+      protocol: 'HTTPS',
     },
   ],
 };

@@ -163,26 +163,28 @@
   "relationships": [
     {
       "unique-id": "customer-to-checkout",
-      "relationship-type": "interacts",
-      "description": "Customer enters payment information on checkout page",
-      "interacts": {
-        "actor": "customer",
-        "nodes": ["checkout-page"]
-      }
+      "relationship-type": {
+        "interacts": {
+          "actor": "customer",
+          "nodes": ["checkout-page"]
+        }
+      },
+      "description": "Customer enters payment information on checkout page"
     },
     {
       "unique-id": "checkout-to-payment-api",
-      "relationship-type": "connects",
-      "description": "Checkout page submits encrypted payment data to payment API",
-      "protocol": "HTTPS",
-      "connects": {
-        "source": {
-          "node": "checkout-page"
-        },
-        "destination": {
-          "node": "payment-api"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "checkout-page"
+          },
+          "destination": {
+            "node": "payment-api"
+          }
         }
       },
+      "description": "Checkout page submits encrypted payment data to payment API",
+      "protocol": "HTTPS",
       "controls": {
         "tls-enforcement": {
           "description": "Enforce TLS 1.2 minimum with strong cipher suites",
@@ -196,59 +198,63 @@
     },
     {
       "unique-id": "payment-api-to-tokenization",
-      "relationship-type": "connects",
-      "description": "Payment API requests card tokenization",
-      "protocol": "mTLS",
-      "connects": {
-        "source": {
-          "node": "payment-api"
-        },
-        "destination": {
-          "node": "tokenization-service"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "payment-api"
+          },
+          "destination": {
+            "node": "tokenization-service"
+          }
         }
-      }
+      },
+      "description": "Payment API requests card tokenization",
+      "protocol": "mTLS"
     },
     {
       "unique-id": "payment-api-to-fraud",
-      "relationship-type": "connects",
-      "description": "Payment API checks transaction for fraud indicators",
-      "protocol": "HTTPS",
-      "connects": {
-        "source": {
-          "node": "payment-api"
-        },
-        "destination": {
-          "node": "fraud-detection"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "payment-api"
+          },
+          "destination": {
+            "node": "fraud-detection"
+          }
         }
-      }
+      },
+      "description": "Payment API checks transaction for fraud indicators",
+      "protocol": "HTTPS"
     },
     {
       "unique-id": "payment-api-to-db",
-      "relationship-type": "connects",
-      "description": "Payment API persists transaction records",
-      "protocol": "JDBC",
-      "connects": {
-        "source": {
-          "node": "payment-api"
-        },
-        "destination": {
-          "node": "transaction-database"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "payment-api"
+          },
+          "destination": {
+            "node": "transaction-database"
+          }
         }
-      }
+      },
+      "description": "Payment API persists transaction records",
+      "protocol": "JDBC"
     },
     {
       "unique-id": "tokenization-to-card-network",
-      "relationship-type": "connects",
-      "description": "Tokenization service forwards authorization request to card network",
-      "protocol": "mTLS",
-      "connects": {
-        "source": {
-          "node": "tokenization-service"
-        },
-        "destination": {
-          "node": "card-network"
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "tokenization-service"
+          },
+          "destination": {
+            "node": "card-network"
+          }
         }
-      }
+      },
+      "description": "Tokenization service forwards authorization request to card network",
+      "protocol": "mTLS"
     }
   ],
   "flows": [

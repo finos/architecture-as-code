@@ -31,16 +31,23 @@ Source: `https://github.com/finos/architecture-as-code` (CALM release 1.2)
 ### Core Entities
 
 **Nodes** (required: unique-id, node-type, name, description):
-- `node-type` enum: `actor`, `ecosystem`, `system`, `service`, `database`, `network`, `ldap`, `webclient`, `data-asset`
+- `node-type`: any string. The 9 well-known values (`actor`, `ecosystem`, `system`, `service`, `database`, `network`, `ldap`, `webclient`, `data-asset`) get first-class UI, but canonical CALM allows any string (e.g. extension types like `aws:lambda`), so CALMGuard accepts any string for interoperability.
 - Optional: `interfaces[]`, `controls{}`, `metadata`, `details`
 
 **Relationships** (required: unique-id, relationship-type):
-- Types (mutually exclusive): `interacts`, `connects`, `deployed-in`, `composed-of`, `options`
-- `interacts`: `{ actor: string, nodes: string[] }`
-- `connects`: `{ source: { node, interfaces[] }, destination: { node, interfaces[] } }`
-- `deployed-in` / `composed-of`: `{ container: string, nodes: string[] }`
+- `relationship-type` is a **nested object** keyed by exactly one variant — NOT a string discriminant. The variant payload lives inside it; `protocol`/`controls`/`metadata`/`description` are siblings of `relationship-type` at the relationship level.
+- Canonical nested form:
+  ```json
+  { "unique-id": "r1", "relationship-type": { "connects": { "source": { "node": "a" }, "destination": { "node": "b" } } }, "protocol": "HTTPS" }
+  ```
+- Variants (exactly one present):
+  - `connects`: `{ source: { node, interfaces?[] }, destination: { node, interfaces?[] } }`
+  - `interacts`: `{ actor: string, nodes: string[] }`
+  - `deployed-in` / `composed-of`: `{ container: string, nodes: string[] }`
+  - `options`: loosely typed (CALMGuard treats as `unknown`)
 - `protocol` enum: `HTTP`, `HTTPS`, `FTP`, `SFTP`, `JDBC`, `WebSocket`, `SocketIO`, `LDAP`, `AMQP`, `TLS`, `mTLS`, `TCP`
-- Optional: `controls{}`, `metadata`, `description`
+- Optional (siblings): `controls{}`, `metadata`, `description`
+- NOTE: the legacy flat form (`"relationship-type": "connects"` + sibling `connects`) is **no longer accepted** — use the nested form so documents round-trip with the CLI, Hub, Visualizer, and Studio.
 
 **Controls** (pattern-keyed object `^[a-zA-Z0-9-]+$`):
 - Each control: `{ description (required), requirements: [{ requirement-url (required), config-url | config }] }`

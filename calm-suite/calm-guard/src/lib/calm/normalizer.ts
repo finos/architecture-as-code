@@ -160,71 +160,82 @@ function normalizeV10Node(rawNode: unknown, index: number): Record<string, unkno
   return node;
 }
 
-/**
- * Normalizes a raw CALM relationship from v1.0 format to v1.1-compatible shape.
- *
- * Transformations:
- * - `{ from, to, type: 'uses' }` -> `{ relationship-type: 'connects', connects: { source, destination } }`
- * - Generates `unique-id` as `rel-{index}` if not present
- *
- * @param rawRel - Raw v1.0 relationship object
- * @param index - Relationship index for generated IDs
- * @returns Normalized relationship compatible with v1.1 schema
- */
-function normalizeV10Relationship(rawRel: unknown, index: number): Record<string, unknown> {
-  if (!isPlainObject(rawRel)) {
-    return {
-      'unique-id': `rel-${index}`,
-      'relationship-type': 'connects',
-      connects: { source: { node: '' }, destination: { node: '' } },
-    };
-  }
+/** The variant keys recognised inside a canonical `relationship-type` object. */
+const RELATIONSHIP_VARIANT_KEYS = ['connects', 'interacts', 'deployed-in', 'composed-of', 'options'];
 
-  const rel: Record<string, unknown> = {};
-
-  // Assign unique-id
-  rel['unique-id'] = typeof rawRel['unique-id'] === 'string' ? rawRel['unique-id'] : `rel-${index}`;
-
-  // Determine relationship-type
-  const rawType = rawRel['type'];
-  let relType: string;
-  if (typeof rawType === 'string') {
-    relType = RELATIONSHIP_TYPE_MAP[rawType] ?? 'connects';
-  } else if (typeof rawRel['relationship-type'] === 'string') {
-    relType = rawRel['relationship-type'];
-  } else {
-    relType = 'connects';
-  }
-  rel['relationship-type'] = relType;
-
-  // Convert { from, to } to connects structure — but preserve existing connects if already normalized
-  if (relType === 'connects') {
-    if (isPlainObject(rawRel['connects'])) {
-      // Already normalized — preserve existing connects structure
-      rel['connects'] = rawRel['connects'];
-    } else {
-      const fromNode = typeof rawRel['from'] === 'string' ? rawRel['from'] : '';
-      const toNode = typeof rawRel['to'] === 'string' ? rawRel['to'] : '';
-      rel['connects'] = {
-        source: { node: fromNode },
-        destination: { node: toNode },
-      };
-    }
-  } else {
-    // Preserve other fields for non-connects types
-    for (const key of Object.keys(rawRel)) {
-      if (key !== 'type' && key !== 'from' && key !== 'to' && key !== 'unique-id') {
-        rel[key] = rawRel[key];
-      }
-    }
-  }
-
-  // Preserve optional fields
+/** Copy relationship-level sibling fields (never folded into the variant payload). */
+function copyOptionalRelationshipFields(
+  rel: Record<string, unknown>,
+  rawRel: Record<string, unknown>,
+): void {
   if (rawRel['description'] !== undefined) rel['description'] = rawRel['description'];
   if (rawRel['protocol'] !== undefined) rel['protocol'] = rawRel['protocol'];
   if (rawRel['controls'] !== undefined) rel['controls'] = rawRel['controls'];
   if (rawRel['metadata'] !== undefined) rel['metadata'] = rawRel['metadata'];
+}
 
+/**
+ * Normalizes a raw CALM relationship from v1.0 format to the canonical
+ * NESTED `relationship-type` shape.
+ *
+ * Transformations:
+ * - `{ from, to, type: 'uses' }` -> `{ 'relationship-type': { connects: { source, destination } } }`
+ * - Generates `unique-id` as `rel-{index}` if not present
+ * - An already-nested `relationship-type` object is preserved as-is (idempotent)
+ *
+ * @param rawRel - Raw v1.0 relationship object
+ * @param index - Relationship index for generated IDs
+ * @returns Normalized relationship in canonical nested form
+ */
+function normalizeV10Relationship(rawRel: unknown, index: number): Record<string, unknown> {
+  const emptyConnects = () => ({ connects: { source: { node: '' }, destination: { node: '' } } });
+
+  if (!isPlainObject(rawRel)) {
+    return { 'unique-id': `rel-${index}`, 'relationship-type': emptyConnects() };
+  }
+
+  const rel: Record<string, unknown> = {};
+  rel['unique-id'] = typeof rawRel['unique-id'] === 'string' ? rawRel['unique-id'] : `rel-${index}`;
+
+  // Already canonical (nested object) — preserve and pass through.
+  if (isPlainObject(rawRel['relationship-type'])) {
+    rel['relationship-type'] = rawRel['relationship-type'];
+    copyOptionalRelationshipFields(rel, rawRel);
+    return rel;
+  }
+
+  // Determine the variant: v1.0 used a top-level `type` (map uses/calls -> connects);
+  // tolerate a legacy flat string `relationship-type` too.
+  const rawType = rawRel['type'];
+  let variant: string;
+  if (typeof rawType === 'string') {
+    variant = RELATIONSHIP_TYPE_MAP[rawType] ?? 'connects';
+  } else if (typeof rawRel['relationship-type'] === 'string') {
+    variant = rawRel['relationship-type'];
+  } else {
+    variant = 'connects';
+  }
+
+  // Build the nested `relationship-type` object.
+  if (variant === 'connects') {
+    if (isPlainObject(rawRel['connects'])) {
+      rel['relationship-type'] = { connects: rawRel['connects'] };
+    } else {
+      const fromNode = typeof rawRel['from'] === 'string' ? rawRel['from'] : '';
+      const toNode = typeof rawRel['to'] === 'string' ? rawRel['to'] : '';
+      rel['relationship-type'] = {
+        connects: { source: { node: fromNode }, destination: { node: toNode } },
+      };
+    }
+  } else if (RELATIONSHIP_VARIANT_KEYS.includes(variant) && isPlainObject(rawRel[variant])) {
+    // A legacy flat sibling payload for the variant exists — nest it.
+    rel['relationship-type'] = { [variant]: rawRel[variant] };
+  } else {
+    // Unknown/empty variant — fall back to an empty connects so the doc stays parseable.
+    rel['relationship-type'] = emptyConnects();
+  }
+
+  copyOptionalRelationshipFields(rel, rawRel);
   return rel;
 }
 
