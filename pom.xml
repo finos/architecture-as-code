@@ -12,8 +12,8 @@
     <properties>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-        <quarkus.platform.version>3.34.2</quarkus.platform.version>
-        <jacoco.version>0.8.14</jacoco.version>
+        <quarkus.platform.version>3.34.7</quarkus.platform.version>
+        <jacoco.version>0.8.15</jacoco.version>
     </properties>
 
     <modules>
@@ -30,6 +30,13 @@
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkus.platform</groupId>
+                <artifactId>quarkus-mcp-server-bom</artifactId>
                 <version>${quarkus.platform.version}</version>
                 <type>pom</type>
                 <scope>import</scope>

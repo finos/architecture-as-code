@@ -1,0 +1,100 @@
+{
+    "comment": [
+        "Serialization registration for NitriteDB. NitriteDB persists documents into",
+        "the H2 MVStore via java.io.ObjectOutputStream (org.h2.mvstore.type.ObjectDataType).",
+        "GraalVM native-image requires every class in the serialized object graph to be",
+        "registered for serialization, otherwise writes fail with",
+        "'NitriteIOException: Error occurred while committing the database' and reads",
+        "fail with 'MVStoreException: Could not deserialize ...'.",
+        "This classic serialization-config.json is referenced explicitly from",
+        "native-image.properties via -H:SerializationConfigurationResources because the",
+        "unified reachability-metadata.json format is not auto-applied by Mandrel 25.",
+        "The class list is the full object-graph closure captured with the native-image",
+        "tracing agent while seeding and reading every CALM collection."
+    ],
+    "types": [
+        {
+            "name": "byte[]"
+        },
+        {
+            "name": "java.lang.Integer"
+        },
+        {
+            "name": "java.lang.Long"
+        },
+        {
+            "name": "java.lang.Number"
+        },
+        {
+            "name": "java.lang.String"
+        },
+        {
+            "name": "java.util.ArrayList"
+        },
+        {
+            "name": "java.time.LocalDate"
+        },
+        {
+            "name": "java.time.LocalDateTime"
+        },
+        {
+            "name": "java.time.LocalTime"
+        },
+        {
+            "name": "java.time.Ser"
+        },
+        {
+            "name": "java.util.CollSer"
+        },
+        {
+            "name": "java.util.HashMap"
+        },
+        {
+            "name": "java.util.HashSet"
+        },
+        {
+            "name": "java.util.LinkedHashMap"
+        },
+        {
+            "name": "java.util.concurrent.ConcurrentHashMap"
+        },
+        {
+            "name": "java.util.concurrent.ConcurrentHashMap$Segment"
+        },
+        {
+            "name": "java.util.concurrent.ConcurrentHashMap$Segment[]"
+        },
+        {
+            "name": "java.util.concurrent.locks.AbstractOwnableSynchronizer"
+        },
+        {
+            "name": "java.util.concurrent.locks.AbstractQueuedSynchronizer"
+        },
+        {
+            "name": "java.util.concurrent.locks.ReentrantLock"
+        },
+        {
+            "name": "java.util.concurrent.locks.ReentrantLock$NonfairSync"
+        },
+        {
+            "name": "java.util.concurrent.locks.ReentrantLock$Sync"
+        },
+        {
+            "name": "org.dizitart.no2.collection.NitriteDocument"
+        },
+        {
+            "name": "org.dizitart.no2.collection.NitriteId"
+        },
+        {
+            "name": "org.dizitart.no2.common.meta.Attributes"
+        },
+        {
+            "name": "org.dizitart.no2.common.tuples.Pair"
+        },
+        {
+            "name": "org.dizitart.no2.store.UserCredential"
+        }
+    ],
+    "lambdaCapturingTypes": [],
+    "proxies": []
+}

@@ -49,6 +49,10 @@ describe('options-parser', () => {
         expect(parseOptions({ 'render-interfaces': true }).renderInterfaces).toBe(true);
     });
 
+    it('render-interfaces: accepts related as a third mode', () => {
+        expect(parseOptions({ 'render-interfaces': 'related' }).renderInterfaces).toBe('related');
+    });
+
     it('passes through link-prefix', () => {
         const out = parseOptions({ 'link-prefix': '/docs/' });
         expect(out.linkPrefix).toBe('/docs/');
@@ -85,6 +89,14 @@ describe('options-parser', () => {
         expect(out.edges).toBe('seeded');
         expect(out.direction).toBe('in');
         expect(out.edgeLabels).toBe('none');
+    });
+
+    it('accepts edge-labels="unique-id"', () => {
+        const input: BlockArchOptions = {
+            'edge-labels': 'unique-id'
+        };
+        const out = parseOptions(input);
+        expect(out.edgeLabels).toBe('unique-id');
     });
 
     it('sets collapse-relationships to true when flag is present', () => {

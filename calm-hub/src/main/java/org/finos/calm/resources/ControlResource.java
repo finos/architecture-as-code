@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -27,7 +28,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * REST resource for managing controls within domains.
  */
-@Path("/calm/domains")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/domains")
 public class ControlResource {
 
     private final ControlStore store;
@@ -49,7 +51,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getControlsForDomain(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain) {
         try {
             return Response.ok(new ValueWrapper<>(store.getControlsForDomain(domain))).build();
@@ -70,12 +72,12 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlForDomain(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
         try {
             ControlDetail controlDetail = store.createControlRequirement(createControlRequirement, domain);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlDetail.getId())).entity(controlDetail).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlDetail.getId())).entity(controlDetail).build();
         } catch (DomainNotFoundException domainNotFoundException) {
             logger.error("Invalid domain [{}] when creating control", domain, domainNotFoundException);
             return invalidDomainResponse(domain);
@@ -92,7 +94,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementVersions(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId) {
         try {
@@ -116,7 +118,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("version")
@@ -147,7 +149,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createRequirementForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("version")
@@ -156,7 +158,7 @@ public class ControlResource {
             @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
         try {
             store.createRequirementForVersion(domain, controlId, version, createControlRequirement);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/requirement/versions/" + version)).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/requirement/versions/" + version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating requirement version", domain, e);
             return invalidDomainResponse(domain);
@@ -177,16 +179,16 @@ public class ControlResource {
     @Path("{domain}/controls/{controlId}/configurations")
     @Operation(
             summary = "Retrieve configurations for a control",
-            description = "Returns the list of configuration IDs for a given control"
+            description = "Returns the list of configurations (id, name, title) for a given control"
     )
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationsForControl(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getConfigurationsForControl(domain, controlId))).build();
+            return Response.ok(new ValueWrapper<>(store.getConfigurationDetailsForControl(domain, controlId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving configurations", domain, e);
             return invalidDomainResponse(domain);
@@ -207,13 +209,13 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlConfiguration(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
         try {
             int configurationId = store.createControlConfiguration(createControlConfiguration, domain, controlId);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configurationId)).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configurationId)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating configuration", domain, e);
             return invalidDomainResponse(domain);
@@ -233,7 +235,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationVersions(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("configId") int configId) {
@@ -261,7 +263,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("configId") int configId,
@@ -296,7 +298,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createConfigurationForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("configId") int configId,
@@ -306,7 +308,7 @@ public class ControlResource {
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
         try {
             store.createConfigurationForVersion(domain, controlId, configId, version, createControlConfiguration);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configId + "/versions/" + version)).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configId + "/versions/" + version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating configuration version", domain, e);
             return invalidDomainResponse(domain);

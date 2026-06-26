@@ -155,7 +155,7 @@ describe('DereferencingVisitor', () => {
         const canonical: CalmCoreCanonicalModel = core.toCanonicalSchema();
         expect(canonical.nodes.length).toBe(2);
         expect(canonical.nodes[0]['unique-id']).toBe('web-tier');
-        expect(canonical.nodes[0].details.nodes).toEqual([  {
+        expect(canonical.nodes[0].details!.nodes).toEqual([  {
             'unique-id': 'db-tier',
             'node-type': 'database',
             'name': 'Database Tier',
@@ -171,7 +171,7 @@ describe('DereferencingVisitor', () => {
             'metadata': undefined,
             'details': undefined
         }]);
-        expect(canonical.controls['user-auth'].requirements[0]).toEqual({
+        expect(canonical.controls!['user-auth'].requirements[0]).toEqual({
             'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/user-auth-requirement.json',
             'token-endpoint': 'https://auth.example.com/token',
         });

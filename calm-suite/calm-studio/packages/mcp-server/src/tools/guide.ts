@@ -80,17 +80,13 @@ const CALM_GUIDE = `
   "relationships": [
     {
       "unique-id": "browser-to-api",
-      "relationship-type": "connects",
-      "source": "user-browser",
-      "destination": "api-server",
+      "relationship-type": { "connects": { "source": { "node": "user-browser" }, "destination": { "node": "api-server" } } },
       "protocol": "HTTPS",
       "description": "User requests via HTTPS"
     },
     {
       "unique-id": "api-to-db",
-      "relationship-type": "connects",
-      "source": "api-server",
-      "destination": "postgres-db",
+      "relationship-type": { "connects": { "source": { "node": "api-server" }, "destination": { "node": "postgres-db" } } },
       "protocol": "TCP",
       "description": "API persists data to PostgreSQL"
     }
@@ -107,7 +103,7 @@ const CALM_GUIDE = `
 5. **Use render_diagram** to visualize — returns SVG with color-coded node types.
 6. **Use describe_architecture** to get a text summary of all nodes and relationships.
 7. Every node needs a globally unique \`unique-id\` (kebab-case recommended).
-8. Relationships reference nodes by their \`unique-id\` in \`source\` and \`destination\`.
+8. \`relationship-type\` is an **object** keyed by variant (\`connects\`, \`interacts\`, \`composed-of\`, \`deployed-in\`, \`options\`) — never a plain string. Each variant has its own nested structure (e.g. \`connects\` wraps \`source\`/\`destination\` as \`{ node, interfaces? }\` objects).
 `.trim();
 
 // ---------------------------------------------------------------------------

@@ -97,6 +97,17 @@ async function runSpectralValidations(
 
 
 /**
+ * Asserts that a schema directory was provided. Validating a pattern, a timeline,
+ * or an architecture against a pattern all require schema resolution, so a missing
+ * directory is a caller error rather than a recoverable condition.
+ */
+function assertSchemaDirectory(schemaDirectory: SchemaDirectory | undefined): asserts schemaDirectory is SchemaDirectory {
+    if (!schemaDirectory) {
+        throw new Error('A schema directory is required for schema validation');
+    }
+}
+
+/**
  * Validation - with simple input parameters and output validation outcomes.
  * @param architecture The architecture as a JS object, or undefined if not provided
  * @param patternOrSchema The pattern (or schema) as a JS object, or undefined if not provided
@@ -123,14 +134,17 @@ export async function validate(
                 throw new Error('You must provide a schema to validate the timeline against, or the timeline must reference it internally');
             }
             // It is acceptable, in fact desired, for `patternOrSchema` to be set, and be the CALM timeline schema.
+            assertSchemaDirectory(schemaDirectory);
             return await validateTimeline(timeline, patternOrSchema, schemaDirectory, debug);
         } else if (architecture && patternOrSchema) {
             // Note that patternOrSchema may be a CALM pattern, or might be the CALM core schema.
             // The caller is responsible for honoring the architecture's `$schema`, or using an explicitly provided pattern.
             // In either case, we validate the architecture against it.
+            assertSchemaDirectory(schemaDirectory);
             return await validateArchitectureAgainstPattern(architecture, patternOrSchema, schemaDirectory, debug);
         } else if (patternOrSchema) {
             // `patternOrSchema` should really be a CALM pattern in this case.
+            assertSchemaDirectory(schemaDirectory);
             return await validatePatternOnly(patternOrSchema, schemaDirectory, debug);
         } else if (architecture) {
             return await validateArchitectureOnly(architecture, schemaDirectory, debug);
@@ -164,7 +178,7 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
 
     const patternResolved = applyArchitectureOptionsToPattern(architecture, pattern, debug);
 
-    let jsonSchemaValidations = [];
+    let jsonSchemaValidations: ValidationOutput[] = [];
     let jsonSchemaValidator: JsonSchemaValidator;
     try {
         jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, patternResolved, debug);
@@ -232,16 +246,16 @@ async function validateArchitectureOnly(architecture: object, schemaDirectory: S
 
     const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture, 'architecture');
 
-    let jsonSchemaValidations = [];
+    let jsonSchemaValidations: ValidationOutput[] = [];
     let errors = spectralResultForArchitecture.errors;
     const warnings = spectralResultForArchitecture.warnings;
 
     const coreSchemaUrl = schemaDirectory ? findLatestCalmCoreSchemaUrl(schemaDirectory) : undefined;
-    if (!coreSchemaUrl) {
+    const coreSchema = (schemaDirectory && coreSchemaUrl) ? await schemaDirectory.getSchema(coreSchemaUrl) : undefined;
+    if (!schemaDirectory || !coreSchema) {
         logger.warn('No CALM core schema found in schema directory — skipping JSON schema validation');
     } else {
         logger.debug(`Validating architecture against CALM core schema: ${coreSchemaUrl}`);
-        const coreSchema = await schemaDirectory.getSchema(coreSchemaUrl);
         try {
             const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, coreSchema, debug);
             await jsonSchemaValidator.initialize();
@@ -313,7 +327,7 @@ async function validateTimeline(timeline: object, schema: object, schemaDirector
     const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, schema, debug);
     await jsonSchemaValidator.initialize();
 
-    let jsonSchemaValidations = [];
+    let jsonSchemaValidations: ValidationOutput[] = [];
 
     const schemaErrors = jsonSchemaValidator.validate(timeline);
     if (schemaErrors.length > 0) {
@@ -349,10 +363,15 @@ export function extractChoicesFromArchitecture(architecture: object): CalmChoice
         return [];
     }
 
-    return architecture['relationships']
-        .filter((rel: object) => rel['relationship-type'] && Object.prototype.hasOwnProperty.call(rel['relationship-type'], 'options'))
-        .map((rel: object) => rel['relationship-type']['options'][0])
-        .map((rel: object) => ({
+    // architecture is unvalidated CALM JSON traversed via nested property access,
+    // so a permissive index type is used here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const relationships = (architecture as Record<string, any>)['relationships'] as Record<string, any>[];
+
+    return relationships
+        .filter((rel) => rel['relationship-type'] && Object.prototype.hasOwnProperty.call(rel['relationship-type'], 'options'))
+        .map((rel) => rel['relationship-type']['options'][0])
+        .map((rel) => ({
             description: rel['description'],
             nodes: rel['nodes'] || [],
             relationships: rel['relationships'] || []
@@ -369,7 +388,7 @@ function getRuleNamesFromRuleset(ruleset: RulesetDefinition): string[] {
     return Object.keys((ruleset as { rules: Record<string, unknown> }).rules);
 }
 
-function prettifyJson(json) {
+function prettifyJson(json: unknown) {
     return JSON.stringify(json, null, 4);
 }
 

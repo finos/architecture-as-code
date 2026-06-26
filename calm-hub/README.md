@@ -2,17 +2,32 @@
 
 ## Quick Start - No Coding, Just Product
 
-You can run a version of Calm Hub locally, by using the `docker-compose` deploy configuration.
-Note, this currently depends on @jpgough-ms publishing a Docker image, which will be fixed in the next few weeks by producing a build from this mono-repo.
-The only supported architectures at this time are `amd64` and `arm64`.
+You can run a version of CALM Hub locally using the published Docker images.
+The provided `docker-compose` file exposes four profiles, one per published image variant:
+
+| Profile           | Image                                  | Architectures   | Storage             |
+| ----------------- | -------------------------------------- | --------------- | ------------------- |
+| `jvm` *(default)* | `finos/calm-hub:latest`                | `amd64`/`arm64` | MongoDB sidecar     |
+| `native`          | `finos/calm-hub:latest-native`         | `amd64`/`arm64` | MongoDB sidecar     |
+| `readonly-static` | `finos/calm-hub:latest-read-only-static` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
+| `readonly-native` | `finos/calm-hub:latest-read-only-native` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
 
 ```shell
 cd deploy
-docker-compose up
+
+# Default JVM image with MongoDB sidecar (uses .env COMPOSE_PROFILES=jvm)
+docker compose up
+
+# Or pick a specific variant
+docker compose --profile native up
+docker compose --profile readonly-static up
+docker compose --profile readonly-native up
 ```
 
-A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)  
+A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
+
+> **Note:** The `jvm` and `native` profiles start CALM Hub with the `no-auth` Quarkus profile for local convenience. The default profile is **secure** (see [Auth Profiles](#auth-profiles) below) and rejects all requests with 401 unless you explicitly select an auth profile. The `readonly-static` and `readonly-native` profiles use the `standalone` Quarkus profile (NitriteDB baked into the image) and reject all mutating HTTP verbs with 405.
 
 ## Working with the project
 
@@ -133,12 +148,36 @@ public class AdrStoreProducer {
 From the `calm-hub` directory
 
 1. `../mvnw package`
-2. `../mvnw quarkus:dev`
+2. `../mvnw quarkus:dev -Dquarkus.profile=no-auth`
+
+> **Note:** The default profile is secure and rejects all requests with 401. Pass `-Dquarkus.profile=no-auth` for local development without an IdP, or `-Dquarkus.profile=secure` / `-Dquarkus.profile=proxy-auth` for authenticated modes.
 
 
-### Secure profile
+### Auth Profiles
 
-There are two secure profiles, `secure` and `proxy-auth`.
+The default profile is **secure by default**: no authentication mechanism is wired, so all requests are rejected with 401. You must explicitly activate one of the following profiles:
+
+| Profile | How to activate | When to use |
+|---|---|---|
+| `no-auth` | `-Dquarkus.profile=no-auth` | Local development and testing — **not for production** |
+| `secure` | `-Dquarkus.profile=secure` | Production with JWT/OIDC (Keycloak or another IdP) |
+| `proxy-auth` | `-Dquarkus.profile=proxy-auth` | Production behind an authenticating reverse proxy |
+
+#### no-auth profile
+
+For local development and testing where you do not want to configure an IdP:
+
+```bash
+# MongoDB backend
+../mvnw quarkus:dev -Dquarkus.profile=no-auth
+
+# Standalone (NitriteDB) backend — no-auth is implicit, just use -Pstandalone
+../mvnw quarkus:dev -Pstandalone
+```
+
+> **Warning:** The `no-auth` profile disables all authentication. Never use it in a production or shared environment.
+
+There are two authenticated profiles, `secure` and `proxy-auth`.
 Using either will enable entitlements driven by the database.
 
 The two modes are slightly different:

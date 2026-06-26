@@ -1,7 +1,10 @@
+import { IFunctionResult } from '@stoplight/spectral-core';
+import { TimelineInput } from './timeline-types';
+
 /**
  * Checks that current-moment is the last moment when no valid-from values exist.
  */
-export function currentMomentMustBeLastWhenNoValidFrom(input) {
+export function currentMomentMustBeLastWhenNoValidFrom(input: TimelineInput | null | undefined): IFunctionResult[] {
     if (!input) {
         return [];
     }

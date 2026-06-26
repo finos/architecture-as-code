@@ -11,11 +11,13 @@ describe('MultiStrategyDocumentLoader', () => {
     it('calls initialise on each loader', async () => {
         const mockLoader1: DocumentLoader = {
             initialise: vi.fn().mockResolvedValue(undefined),
-            loadMissingDocument: vi.fn()
+            loadMissingDocument: vi.fn(),
+            resolvePath: vi.fn()
         };
         const mockLoader2: DocumentLoader = {
             initialise: vi.fn().mockResolvedValue(undefined),
-            loadMissingDocument: vi.fn()
+            loadMissingDocument: vi.fn(),
+            resolvePath: vi.fn()
         };
         const multi = new MultiStrategyDocumentLoader([mockLoader1, mockLoader2]);
         const schemaDir = {} as SchemaDirectory;
@@ -28,11 +30,13 @@ describe('MultiStrategyDocumentLoader', () => {
         const error = new Error('fail');
         const mockLoader1: DocumentLoader = {
             initialise: vi.fn(),
-            loadMissingDocument: vi.fn().mockRejectedValue(error)
+            loadMissingDocument: vi.fn().mockRejectedValue(error),
+            resolvePath: vi.fn()
         };
         const mockLoader2: DocumentLoader = {
             initialise: vi.fn(),
-            loadMissingDocument: vi.fn().mockResolvedValue({ foo: 'bar' })
+            loadMissingDocument: vi.fn().mockResolvedValue({ foo: 'bar' }),
+            resolvePath: vi.fn()
         };
         const multi = new MultiStrategyDocumentLoader([mockLoader1, mockLoader2]);
         const result = await multi.loadMissingDocument('id', 'schema');
@@ -104,11 +108,13 @@ describe('MultiStrategyDocumentLoader', () => {
         const error2 = new Error('fail2');
         const mockLoader1: DocumentLoader = {
             initialise: vi.fn(),
-            loadMissingDocument: vi.fn().mockRejectedValue(error1)
+            loadMissingDocument: vi.fn().mockRejectedValue(error1),
+            resolvePath: vi.fn()
         };
         const mockLoader2: DocumentLoader = {
             initialise: vi.fn(),
-            loadMissingDocument: vi.fn().mockRejectedValue(error2)
+            loadMissingDocument: vi.fn().mockRejectedValue(error2),
+            resolvePath: vi.fn()
         };
         const multi = new MultiStrategyDocumentLoader([mockLoader1, mockLoader2]);
         await expect(multi.loadMissingDocument('id', 'schema')).rejects.toThrow();

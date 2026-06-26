@@ -1,0 +1,5 @@
+{
+    "$schema": "https://calm.finos.org/qcon/controls/micro-segmentation.requirement.json",
+    "permit-ingress": true,
+    "permit-egress": false
+}

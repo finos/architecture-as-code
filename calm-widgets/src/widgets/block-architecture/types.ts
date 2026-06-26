@@ -3,7 +3,7 @@ export type Direction = 'both' | 'in' | 'out';
 export type IncludeContainers = 'none' | 'parents' | 'all';
 export type IncludeChildren = 'none' | 'direct' | 'all';
 export type Edges = 'connected' | 'seeded' | 'all' | 'none';
-export type EdgeLabels = 'description' | 'none';
+export type EdgeLabels = 'description' | 'unique-id' | 'none';
 export type LayoutEngine = 'dagre' | 'elk';
 
 /** -----------------------------
@@ -49,7 +49,7 @@ export interface BlockArchOptions {
     ['focus-controls']?: string;
     ['focus-interfaces']?: string;
     ['highlight-nodes']?: string;
-    ['render-interfaces']?: boolean;
+    ['render-interfaces']?: boolean | 'related';
     ['render-node-type-shapes']?: boolean;
     ['include-containers']?: IncludeContainers;
     ['include-children']?: IncludeChildren;
@@ -105,7 +105,7 @@ export type NormalizedOptions = {
     edges: Edges;
     nodeTypes?: string[];
     direction: Direction;
-    renderInterfaces: boolean;
+    renderInterfaces: boolean | 'related';
     renderNodeTypeShapes: boolean;
     edgeLabels: EdgeLabels;
     collapseRelationships: boolean;

@@ -14,23 +14,33 @@ This guide helps AI assistants work efficiently with the Advent of CALM educatio
 
 ```
 advent-of-calm/
-├── home.md              # Landing page content
+├── home.md              # Landing page content (copied into website/src/)
 ├── setup.md             # Tool installation and update instructions
 ├── day-1.md             # Day 1: Install CLI and setup
 ├── day-2.md             # Day 2: Create first architecture
 ├── ...
-├── day-24.md            # Day 24: (to be created)
-└── website/             # Astro static site
+├── day-24.md            # Day 24: Capstone "Congratulations" page
+└── website/             # Astro static site (own npm project, see below)
     ├── src/
     │   ├── content/days/     # Copied from parent (day-*.md, setup.md)
+    │   ├── content.config.ts # Defines the `days` content collection (glob loader)
+    │   ├── home.md           # Copied from parent (lands in src/, not content/days/)
     │   ├── pages/            # Astro pages
+    │   │   ├── index.astro   # Landing page
+    │   │   ├── setup.astro   # Setup page
+    │   │   └── day/[day].astro  # Dynamic day route (param = bare day number)
     │   ├── components/       # UI components
     │   ├── layouts/          # Page layouts
+    │   ├── utils/calendar.ts # Day titles + unlock logic (getDayTitle, etc.)
     │   └── styles/           # CSS
     ├── public/               # Static assets
+    ├── package-lock.json     # Website has its OWN lockfile (not a root workspace)
     ├── astro.config.mjs      # Astro configuration
     └── package.json          # Website dependencies
 ```
+
+**All 24 day files (Days 1-24) exist** — `day-N.md` is non-zero-padded, and
+`day-24.md` is the completed capstone page.
 
 ## Content Structure
 
@@ -56,7 +66,7 @@ advent-of-calm/
 
 ### Day Content Format
 
-Each `day-N.md` follows this structure:
+Most `day-N.md` files share this structure (these headings appear in the large majority of the 24 days):
 
 ```markdown
 # Day N: [Clear Task Title]
@@ -76,21 +86,24 @@ Detailed instructions with code examples
 ### 2. [Next Requirement]
 Step-by-step guidance
 
-## Testing Your Solution
-How to validate the work
+## Deliverables
+What the learner should produce. Many days title this
+`## Deliverables / Validation Criteria` and fold the "done" checklist in here.
 
-## Success Criteria
-Clear checklist of what "done" looks like
+## Tips
+Practical hints and gotchas
 
-## Troubleshooting
-Common issues and solutions
+## Resources
+Links to CALM docs and related material
 
-## Going Further (Optional)
-Advanced extensions for learners who want more
-
-## Reflection
-Questions to consolidate learning
+## Next Steps
+What the next day builds toward
 ```
+
+Individual days add their own topic-specific sections as needed (e.g. ADR
+sub-headings on Day 10, scenario sections in Week 4, occasional `## Reflection`
+or `## Common Pitfalls`). Treat the list above as the common spine, not a rigid
+template.
 
 ## Key Concepts
 
@@ -122,22 +135,29 @@ The curriculum uses a **running e-commerce example**:
 ## Website (Astro Static Site)
 
 ### Tech Stack
-- **Framework**: Astro 5+ (static site generator)
+- **Framework**: Astro 6+ (static site generator)
 - **Language**: TypeScript
 - **Content**: Markdown files copied from parent directory
 - **Styling**: CSS (custom)
+
+> **CRITICAL: `advent-of-calm/website` is NOT a root npm workspace.** It has its
+> own `package-lock.json` and is installed and built independently. You must run
+> `npm install` *inside* `website/` before any `npm run` command there — the
+> root `npm install` does not cover it.
 
 ### Key Commands
 
 ```bash
 cd website
+npm install              # Required first time (separate from root install)
 
 # Development
 npm run dev              # Start dev server (copies content first)
 npm start                # Alternative: start dev server
 
 # Build
-npm run build            # Copy content + Astro build
+npm run build            # copy:content + astro check + astro build
+                         # NOTE: `astro check` is a type-check gate and can fail the build
 npm run preview          # Preview production build
 
 # Content sync
@@ -147,7 +167,9 @@ npm run copy:content     # Manually copy markdown files
 ### Content Pipeline
 
 1. **Source**: Markdown files in `advent-of-calm/` (day-*.md, setup.md, home.md)
-2. **Copy**: `npm run copy:content` syncs to `website/src/content/days/`
+2. **Copy**: `npm run copy:content` syncs `day-*.md` and `setup.md` to
+   `website/src/content/days/`, but copies `home.md` to `website/src/` (NOT
+   `content/days/`)
 3. **Build**: Astro processes and generates static HTML
 4. **Deploy**: Static files in `website/dist/`
 
@@ -173,9 +195,8 @@ npm run copy:content     # Manually copy markdown files
 **Content Guidelines:**
 - Use conversational, encouraging tone
 - Provide clear "why" explanations (rationale)
-- Include both basic and "Going Further" content
-- Add troubleshooting for common issues
-- Link to CALM docs for deeper reading
+- Add Tips for common gotchas
+- Link to CALM docs for deeper reading (Resources)
 - Use realistic examples (the e-commerce architecture)
 
 ### Testing Content Changes
@@ -188,7 +209,7 @@ vim day-10.md
 cd website
 npm run dev
 
-# 3. Check http://localhost:4321/advent/days/day-10/
+# 3. Check http://localhost:4321/advent/day/10/  (route is /advent/day/<bare-number>/)
 
 # 4. When satisfied, commit
 cd ..
@@ -200,13 +221,12 @@ git commit -m "docs(advent): update day 10 ADR linking"
 
 **Checklist for new day content:**
 
-- [ ] Create `day-N.md` following standard format
-- [ ] Include Overview, Objectives, Requirements
+- [ ] Create `day-N.md` following the common structure
+- [ ] Include Overview, Objective and Rationale, Requirements
 - [ ] Add code examples with proper syntax highlighting
-- [ ] Write Testing and Success Criteria sections
-- [ ] Add Troubleshooting section
-- [ ] Include "Going Further" optional extensions
-- [ ] Add Reflection questions
+- [ ] Write Deliverables (and validation criteria) for what "done" looks like
+- [ ] Add Tips for common gotchas
+- [ ] Add Resources / Next Steps sections
 - [ ] Test in website (`npm run dev`)
 - [ ] Ensure builds without errors (`npm run build`)
 - [ ] Update `home.md` if week structure changes

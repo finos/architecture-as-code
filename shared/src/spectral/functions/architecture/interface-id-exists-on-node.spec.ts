@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { interfaceIdExistsOnNode } from './interface-id-exists-on-node';
 
 describe('interfaceIdExistsOnNode', () => {
@@ -9,7 +10,7 @@ describe('interfaceIdExistsOnNode', () => {
             }
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -21,7 +22,7 @@ describe('interfaceIdExistsOnNode', () => {
             }
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -34,7 +35,7 @@ describe('interfaceIdExistsOnNode', () => {
             path: ['/relationships/0/connects/destination']
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe('Invalid connects relationship - no node defined.');
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);
@@ -57,7 +58,7 @@ describe('interfaceIdExistsOnNode', () => {
             }
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -72,7 +73,7 @@ describe('interfaceIdExistsOnNode', () => {
             path: ['/relationships/0/connects/destination']
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`Node with unique-id ${input.node} has no interfaces defined, expected interfaces [${input.interfaces}].`);
     });
@@ -95,10 +96,78 @@ describe('interfaceIdExistsOnNode', () => {
             path: ['/relationships/0/connects/destination']
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`Referenced interface with ID '${input.interfaces[0]}' was not defined on the node with ID '${input.node}'.`);
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);
+    });
+
+    it('should return an empty array when a singular interface exists', () => {
+        const input = { node: 'node1', interface: 'intf1' };
+        const context = {
+            document: {
+                data: {
+                    nodes: [
+                        {
+                            'unique-id': 'node1',
+                            'interfaces': [
+                                {'unique-id': 'intf1'}
+                            ]
+                        }
+                    ]
+                }
+            }
+        };
+
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
+        expect(result).toEqual([]);
+    });
+
+    it('should return a message when a singular interface does not exist', () => {
+        const input = { node: 'node1', interface: 'intf2' };
+        const context = {
+            document: {
+                data: {
+                    nodes: [
+                        {
+                            'unique-id': 'node1',
+                            'interfaces': [
+                                {'unique-id': 'intf1'}
+                            ]
+                        }
+                    ]
+                }
+            },
+            path: ['/relationships/0/connects/destination']
+        };
+
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
+        expect(result.length).toBe(1);
+        expect(result[0].message).toBe(`Referenced interface with ID '${input.interface}' was not defined on the node with ID '${input.node}'.`);
+        expect(result[0].path).toEqual(['/relationships/0/connects/destination']);
+    });
+
+    it('should report a missing interface once when both singular and plural forms reference it', () => {
+        const input = { node: 'node1', interface: 'intf2', interfaces: ['intf2'] };
+        const context = {
+            document: {
+                data: {
+                    nodes: [
+                        {
+                            'unique-id': 'node1',
+                            'interfaces': [
+                                {'unique-id': 'intf1'}
+                            ]
+                        }
+                    ]
+                }
+            },
+            path: ['/relationships/0/connects/destination']
+        };
+
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
+        expect(result.length).toBe(1);
+        expect(result[0].message).toBe(`Referenced interface with ID 'intf2' was not defined on the node with ID '${input.node}'.`);
     });
 
     it('should return a message when one interface does not exist', () => {
@@ -119,7 +188,7 @@ describe('interfaceIdExistsOnNode', () => {
             path: ['/relationships/0/connects/destination']
         };
 
-        const result = interfaceIdExistsOnNode(input, null, context);
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`Referenced interface with ID '${input.interfaces[1]}' was not defined on the node with ID '${input.node}'.`);
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);

@@ -29,12 +29,12 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
             - name: Setup Node.js
               uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
               with:
-                  node-version: 24
+                  node-version-file: '.nvmrc'
                   cache: npm
                   cache-dependency-path: package-lock.json
 
@@ -53,12 +53,12 @@ jobs:
         needs: lint
         steps:
             - name: Checkout
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
             - name: Setup Node.js
               uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
               with:
-                  node-version: 24
+                  node-version-file: '.nvmrc'
                   cache: npm
                   cache-dependency-path: package-lock.json
 
@@ -76,12 +76,12 @@ jobs:
             NEXT_SKIP_VALIDATE: "1"
         steps:
             - name: Checkout
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
             - name: Setup Node.js
               uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
               with:
-                  node-version: 24
+                  node-version-file: '.nvmrc'
                   cache: npm
                   cache-dependency-path: package-lock.json
 

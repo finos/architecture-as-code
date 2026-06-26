@@ -25,6 +25,10 @@ npm run lint --workspace calm-plugins/vscode           # ESLint check
 npm run lint-fix --workspace calm-plugins/vscode       # Auto-fix linting issues
 npm run package --workspace calm-plugins/vscode        # Create .vsix package for distribution
 
+# Convenience scripts (run the build:shared prerequisite for you)
+npm run test:vscode                                    # build:shared + test the extension
+npm run package:vscode                                 # build:shared + package the extension
+
 # Testing Extension in VSCode
 # 1. Open the repository root in VSCode (File → Open Folder)
 # 2. Use the "calm-plugin: watch" task or run: npm run watch --workspace calm-plugins/vscode
@@ -63,15 +67,19 @@ src/
 │
 ├── core/                           # Framework-free business logic
 │   ├── ports/                      # Interfaces for dependency inversion
-│   ├── services/                   # Core services (refresh, selection, watch, navigation)
-│   ├── mediators/                  # Cross-cutting coordinators
+│   ├── services/                   # Core services (model, config, navigation, diagnostics, calm-schema-registry, logging)
+│   ├── mediators/                  # Cross-cutting coordinators (refresh, selection, watch, store-reaction)
 │   └── emitter.ts                 # Event system (framework-free)
 │
 ├── features/                       # Feature modules
 │   ├── tree-view/                 # Sidebar tree navigation
-│   │   └── view-model/           # MVVM presentation logic
+│   │   ├── tree-view-factory.ts  # Wires view + view-model
+│   │   ├── view/                 # VSCode-specific view (tree-view.ts, tree-item.ts)
+│   │   └── view-model/           # MVVM presentation logic (framework-free)
 │   ├── editor/                    # Editor integration (hover, CodeLens)
 │   └── preview/                   # Webview preview panel
+│       ├── webview/              # Webview internals (mermaid-renderer, pan-zoom-manager,
+│       │                         #   diagram-controls, panel.view)
 │       ├── docify-tab/           # Documentation generation
 │       ├── model-tab/            # Model data display
 │       └── template-tab/         # Template processing & live mode
@@ -94,6 +102,10 @@ src/
 
 **Store Location**: `src/application-store.ts`
 
+The store is created via the `createApplicationStore()` factory (using Zustand's
+`subscribeWithSelector` middleware), not a module-level `create()` singleton. The
+extension controller owns the instance and injects it where needed.
+
 ```typescript
 interface ApplicationStore {
     calmModel: CalmModel | null;
@@ -108,13 +120,17 @@ interface ApplicationStore {
 }
 ```
 
-**Usage**:
+**Usage** (illustrative — the real store is a per-instance object created by the factory):
 ```typescript
-import { useApplicationStore } from './application-store';
+import { createApplicationStore } from './application-store';
 
-// In ViewModels or components
-const model = useApplicationStore(state => state.calmModel);
-const setModel = useApplicationStore(state => state.setCalmModel);
+const store = createApplicationStore();
+
+// Read with a selector
+const model = store.getState().calmModel;
+
+// React to changes (subscribeWithSelector)
+store.subscribe(state => state.calmModel, model => { /* ... */ });
 ```
 
 ### MVVM Pattern
@@ -180,7 +196,9 @@ export class StoreReactionMediator {
 - **Purpose**: Sidebar navigation of CALM model structure
 - **Location**: `src/features/tree-view/`
 - **Key Files**:
-  - `tree-data-provider.ts` - VSCode TreeDataProvider
+  - `view/tree-view.ts` - VSCode TreeDataProvider implementation
+  - `view/tree-item.ts` - VSCode TreeItem wrapper
+  - `tree-view-factory.ts` - Wires the view and view-model together
   - `view-model/tree-view-model.ts` - Business logic (framework-free)
 
 #### Validation Service
@@ -213,7 +231,7 @@ export class StoreReactionMediator {
 
 ### Test Structure
 - `*.spec.ts` - Unit tests alongside source
-- `test-architectures/` - Sample CALM files for testing
+- `test_fixtures/` - Sample CALM files for testing (`architecture/`, `navigable-architecture/`)
 
 ### Running Tests
 ```bash
@@ -278,17 +296,21 @@ export function activate(context: vscode.ExtensionContext) {
 
 ### Adding State to Store
 
-1. Update `src/application-store.ts`:
+1. Update `src/application-store.ts` (add to the interface and the `createApplicationStore` factory):
 ```typescript
 interface ApplicationStore {
     myNewState: string;
     setMyNewState: (value: string) => void;
 }
 
-export const useApplicationStore = create<ApplicationStore>((set) => ({
-    myNewState: '',
-    setMyNewState: (value) => set({ myNewState: value }),
-}));
+export function createApplicationStore(): ApplicationStoreApi {
+    return createStore<ApplicationStore>()(
+        subscribeWithSelector((set) => ({
+            myNewState: '',
+            setMyNewState: (value) => set({ myNewState: value }),
+        }))
+    );
+}
 ```
 
 ### Creating a New ViewModel
@@ -344,14 +366,21 @@ npm run build --workspace calm-widgets
 npm run build --workspace shared
 ```
 
-## Bundled CALM Schemas
+## Bundled Assets
 
-The extension bundles CALM schemas from the `calm/` directory at the repository root. This allows validation to work without network access.
+The extension bundles CALM schemas, widgets, and template bundles into `dist/` at build
+time so validation, rendering, and templating work without network access or reaching into
+sibling workspaces at runtime.
 
 ### Build Process
-The `postbuild` script (`scripts/copy-calm-schemas.js`) copies schemas from:
-- `calm/release/*/meta/*.json` → `dist/calm/release/*/meta/`
-- `calm/draft/*/meta/*.json` → `dist/calm/draft/*/meta/`
+The `postbuild` step does two things:
+
+1. **`copyfiles`** copies CALM schemas from the repo root:
+   - `calm/release/**/meta/*` → `dist/calm/release/...`
+   - `calm/draft/**/meta/*` → `dist/calm/draft/...`
+2. **`scripts/copy-calm-assets.js`** copies the remaining runtime assets:
+   - widgets from `calm-widgets/dist/cli/widgets` (falls back to `calm-widgets/src/widgets`) → `dist/widgets/`
+   - template bundles from `shared/dist/template-bundles` → `dist/template-bundles/`
 
 Schemas are indexed by their `$id` field for lookup when validating documents.
 
@@ -402,7 +431,8 @@ When new CALM schema versions are released:
 
 ```bash
 # From repository root
-npm run package --workspace calm-plugins/vscode        # Creates .vsix file
+npm run package:vscode                                 # build:shared + creates .vsix file
+# (or, if dependencies are already built: npm run package --workspace calm-plugins/vscode)
 # Then publish to VS Code Marketplace via GitHub Actions
 ```
 

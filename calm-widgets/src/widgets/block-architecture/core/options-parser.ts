@@ -50,11 +50,12 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
 
     if (raw['highlight-nodes']) o.highlightNodes = csv(raw['highlight-nodes']);
     if (raw['node-types']) o.nodeTypes = csv(raw['node-types']);
-    if (raw['render-interfaces']) o.renderInterfaces = true;
+    if (raw['render-interfaces'] === 'related') o.renderInterfaces = 'related';
+    else if (raw['render-interfaces']) o.renderInterfaces = true;
     if (raw['render-node-type-shapes']) o.renderNodeTypeShapes = true;
     if (raw['collapse-relationships']) o.collapseRelationships = true;
 
-    o.edgeLabels = pickEnum(raw['edge-labels'], ['description', 'none'] as const, o.edgeLabels);
+    o.edgeLabels = pickEnum(raw['edge-labels'], ['description', 'unique-id', 'none'] as const, o.edgeLabels);
     o.direction = pickEnum(raw['direction'], ['both', 'in', 'out'] as const, o.direction);
     o.includeContainers = pickEnum(
         raw['include-containers'],

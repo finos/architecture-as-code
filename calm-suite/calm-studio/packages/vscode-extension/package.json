@@ -56,12 +56,12 @@
     "package": "vsce package --no-dependencies"
   },
   "dependencies": {
-    "@calmstudio/mcp": "file:../mcp-server"
+    "@calmstudio/mcp": "*"
   },
   "devDependencies": {
     "@types/vscode": "^1.99.0",
     "@vscode/vsce": "latest",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.1",
     "typescript": "^5.7.0",
     "vitest": "^4.1.0"
   }

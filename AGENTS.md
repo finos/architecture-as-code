@@ -30,71 +30,114 @@ architecture-as-code/
 ├── calm/                      # CALM specification (JSON schemas)
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
+├── calm-hub-ui/               # React frontend for CALM Hub
+├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
 ├── calm-ai/                   # AI agent tools & prompts
+├── calm-suite/                # Sub-monorepos (see below)
+│   ├── calm-studio/           #   SvelteKit visual CALM editor — nested npm-workspace monorepo
+│   └── calm-guard/            #   Next.js continuous-compliance platform (CALMGuard)
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
 ├── advent-of-calm/            # Educational content (24-day challenge)
-├── calm-hub-ui/               # React frontend for CALM Hub
-└── experimental/              # Experimental features
+├── experimental/              # Experimental features
+├── template-bundles/          # Reusable Handlebars template bundles
+├── conferences/               # Conference/workshop material
+├── brand/                     # Logo and brand assets
+└── scripts/                   # Repo maintenance scripts (e.g. lockfile validation)
 ```
+
+### `calm-suite/` — nested workspaces
+
+`calm-suite/` holds two products whose packages are wired directly into the **root** npm workspaces (run all npm commands from the repo root, never from inside these folders):
+
+- **`calm-studio/`** (`calmstudio-workspace`) — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo. Sub-packages and the app are root workspaces via `calm-suite/calm-studio/packages/*` and `calm-suite/calm-studio/apps/*`: `@calmstudio/calm-core`, `@calmstudio/calmscript`, `@calmstudio/extensions`, `@calmstudio/github-action`, `@calmstudio/mcp`, `@calmstudio/diagram` (web-component), `calmstudio` (vscode-extension), and `@calmstudio/studio` (app).
+- **`calm-guard/`** (`calmguard`) — a Next.js (App Router) continuous-compliance platform, plus its Docusaurus docs (`calmguard-docs`). Both are root workspaces.
 
 ## Technology Stack
 
 **TypeScript/Node.js** (npm workspaces):
-- CLI, models, widgets, shared, VSCode plugin, Hub UI
+- CLI, models, widgets, shared, VSCode plugin, Hub UI, calm-server, calm-ai, and the `calm-suite/` products (CalmStudio's 8 packages/app + CALMGuard)
 - Build: tsup (esbuild), vitest for testing
-- Package manager: npm workspaces
+- Package manager: npm workspaces (single root lockfile; see [Lockfile Regeneration](#lockfile-regeneration))
 
 **Java/Maven** (Maven reactor build):
 - Root pom.xml defines multi-module reactor
 - Modules: calm-hub (Java/Quarkus), cli, calm, docs, shared (POM modules)
-- calm-hub backend (Quarkus 3.29+)
+- calm-hub backend (Quarkus 3.34+)
 - MongoDB/NitriteDB storage
 - TestContainers for integration tests
 - Maven reactor allows building all modules from root: `./mvnw clean install`
 
 **Documentation**:
-- Docusaurus for main docs
+- Docusaurus for main docs (and for CALMGuard's `calmguard-docs`)
 - Astro for advent-of-calm website
 
 ## Node Version Requirements
 
-**CRITICAL — YOU MUST USE NODE 22**: This project targets **Node 22** as its CI baseline. All CI workflows run on Node 22, and lockfiles must be compatible with Node 22. **Do not use Node 25 or any other unsupported version — tests will fail silently or produce false results.**
-
-The `engines` field in `package.json` (`^22.14.0 || >=24.10.0`) also permits Node 24+ for local development, but **Node 22 is the canonical version** used to validate builds and tests.
+**Canonical Node version: 26.** All CI workflows run on Node 26 via `node-version-file: '.nvmrc'`
+(which pins `26.3.1`). The `engines` field (`>=26.0.0`) requires Node 26+, and `engine-strict`
+in `.npmrc` blocks installs on anything older. **Node 26 is the version used to validate builds
+and tests in CI.**
 
 **Before running any commands**, verify your Node version:
 ```bash
-node --version   # MUST show v22.x.x
+node --version   # MUST show v26.x.x
 ```
 
 If you are on the wrong version:
 ```bash
-# If using Homebrew:
-brew install node@22
-export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
-
 # If using nvm:
-nvm use   # reads .nvmrc → 22.14.0
+nvm use   # reads .nvmrc → 26.3.1
 ```
 
-### Known Node 25 Bug — localStorage
+### Node 26 — Web Storage API and localStorage
 
-Node 25 introduces a built-in `localStorage` global that is an **incomplete stub** (no `.clear()`, `.getItem()`, etc.). This shadows jsdom's full `localStorage` implementation during vitest runs, causing **false test failures** in any test that uses `localStorage` (e.g. `node-position-service.test.tsx`). These tests pass on Node 22 and in CI. **If you see `TypeError: localStorage.clear is not a function`, you are on the wrong Node version.**
+Node 25+ shipped the [Web Storage API](https://nodejs.org/api/globals.html) as a global, meaning
+`localStorage` and `sessionStorage` are now real globals in the Node runtime. Node 26 made this
+stricter: accessing `localStorage` without `--localstorage-file` **throws a `DOMException`** at
+runtime.
+
+In Vitest's jsdom environment, Node's global **shadows** jsdom's `localStorage`, breaking any test
+that calls methods like `.clear()` or `.getItem()`.
+
+**How calm-hub-ui handles this:**
+
+1. **Storage Dependency Injection** — `node-position-service.tsx`, `TimelineBar.tsx`, and
+   `viewportStore.ts` all accept an optional `Storage` parameter (defaulting to `localStorage` /
+   `sessionStorage`). Tests inject an explicit `createMemoryStorage()` fake from
+   `src/test-support/memory-storage.ts`.
+
+2. **`vi.stubGlobal` safety net** — `calm-hub-ui/vitest.setup.ts` stubs both `localStorage` and
+   `sessionStorage` with `createMemoryStorage()` instances for the entire test run, ensuring even
+   tests that don't inject explicitly see a working Storage, not Node's throwing global.
+
+If you add new tests that use `localStorage`/`sessionStorage`, follow this pattern:
+- In pure services/utilities: inject a `Storage` parameter with `= localStorage` default.
+- In React components: accept `storage?: Storage` as a prop, default to `localStorage`.
+- In tests: pass `createMemoryStorage()` explicitly, or rely on the global stub in `vitest.setup.ts`.
+
+⚠️ **Latent risk in calm-studio:** `calm-suite/calm-studio/apps/studio/src/lib/stores/theme.svelte.ts`
+uses `localStorage` in production code under a jsdom test environment. No test currently exercises
+this path, but the first jsdom test written against it on Node 26 will need the same stub pattern.
 
 ### Configuration Details
 
-- **`.nvmrc`** pins `22.14.0` — run `nvm use` to switch automatically
-- **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on Node versions outside the `engines` range (e.g. Node 18, 20, or 23)
-- **`@types/node`** is overridden to `^22.0.0` in root `package.json` to prevent transitive dependencies from pulling in a different major version
-- **Renovate** is configured with `allowedVersions: "<23.0.0"` for `@types/node`
+- **`.nvmrc`** pins `26.3.1` — run `nvm use` to switch automatically
+- **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on Node versions outside
+  the `engines` range
+- **`@types/node`** is overridden to `^26` in root `package.json` to prevent transitive dependencies
+  from pulling in a different major version
+- **Renovate** is configured with `allowedVersions: "<27.0.0"` for `@types/node`
 
 ### Lockfile Regeneration
 
-**CRITICAL**: npm has a known bug ([npm/cli#4828](https://github.com/npm/cli/issues/4828)) where running `npm install` with an existing `node_modules` directory prunes optional platform-specific dependencies (e.g. `@tailwindcss/oxide`, `@swc/core`, `@esbuild`) for platforms other than the current machine. This causes CI failures on Linux runners when the lockfile was regenerated on macOS.
+**CRITICAL**: npm has a known bug ([npm/cli#4828](https://github.com/npm/cli/issues/4828)) where
+running `npm install` with an existing `node_modules` directory prunes optional platform-specific
+dependencies (e.g. `@tailwindcss/oxide`, `@swc/core`, `@esbuild`) for platforms other than the
+current machine. This causes CI failures on Linux runners when the lockfile was regenerated on macOS.
 
 **Correct method** — always delete both `node_modules` and the lockfile:
 
@@ -102,26 +145,36 @@ Node 25 introduces a built-in `localStorage` global that is an **incomplete stub
 rm -rf node_modules package-lock.json && npm install
 ```
 
-**Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile` CI workflow checks that all expected platform variants are present in `package-lock.json`.
+**Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile`
+CI workflow checks that all expected platform variants are present in `package-lock.json`.
 
 ### Why this matters
 
-Running `npm install` or tests on a different Node major version (e.g. Node 25) causes:
-1. **Test failures from global API conflicts** — Node 25 exposes incomplete browser API stubs (`localStorage`) that shadow jsdom's implementations, causing tests to fail with cryptic errors that **do not reproduce in CI**
-2. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong Node ABI, breaking CI builds
-3. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow `@types/node@25` to be hoisted to root, masking usage of APIs unavailable in Node 22
-4. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing large spurious changes
+Running `npm install` or tests on a different Node major version causes:
+1. **Test failures from Web Storage conflicts** — Node 26's global `localStorage` shadows jsdom's
+   implementation, causing `DOMException` instead of working Storage methods
+2. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`)
+   resolve for the wrong Node ABI, breaking CI builds
+3. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow
+   an older `@types/node` to be hoisted to root, masking API differences
+4. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing
+   large spurious changes
 
 ## Quick Navigation
 
 ### Package-Specific Guides
 
 For detailed guidance on specific packages, see:
+- **[calm/AGENTS.md](calm/AGENTS.md)** - CALM JSON Meta Schema, schema change workflow, draft/release rules
 - **[cli/AGENTS.md](cli/AGENTS.md)** - CLI commands, build pipeline, Commander.js patterns
 - **[calm-hub/AGENTS.md](calm-hub/AGENTS.md)** - Java/Quarkus backend, storage modes, security
 - **[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md)** - React frontend, service patterns, component conventions
+- **[calm-server/AGENTS.md](calm-server/AGENTS.md)** - TypeScript CALM server
 - **[calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md)** - VSCode extension, MVVM architecture
 - **[calm-widgets/AGENTS.md](calm-widgets/AGENTS.md)** - Widget system, Handlebars templates, common pitfalls
+- **[shared/AGENTS.md](shared/AGENTS.md)** - Shared TypeScript utilities consumed across packages
+- **[calm-suite/calm-studio/AGENTS.md](calm-suite/calm-studio/AGENTS.md)** - CalmStudio visual editor, CALM 1.2 rules, nested workspaces
+- **[calm-suite/calm-guard/AGENTS.md](calm-suite/calm-guard/AGENTS.md)** - CALMGuard compliance platform, agents/skills
 - **[advent-of-calm/AGENTS.md](advent-of-calm/AGENTS.md)** - Educational content, day format, testing
 
 ### When to Use Package-Specific Guides

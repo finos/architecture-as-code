@@ -5,6 +5,7 @@ import {
     createTopLevelLayout,
     calculateChildBounds,
     sortContainersDeepestFirst,
+    sortNodesParentsBeforeChildren,
 } from './layoutUtils';
 import { identifyContainerNodes, parseNodes } from './nodeParser';
 import { extractFlowTransitions, parseRelationships } from './relationshipParser';
@@ -206,9 +207,9 @@ function combineNodes(
     nodesWithParents: Node[],
     systemNodes: Node[]
 ): Node[] {
-    return [
+    return sortNodesParentsBeforeChildren([
         ...topLevelSystemNodes,
         ...nodesWithoutParents.filter((n) => !systemNodes.includes(n)),
         ...nodesWithParents,
-    ];
+    ]);
 }

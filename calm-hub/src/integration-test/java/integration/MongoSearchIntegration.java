@@ -71,7 +71,7 @@ public class MongoSearchIntegration {
                         }
                         """)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/architectures")
+                .when().post("/api/calm/namespaces/finos/architectures")
                 .then()
                 .statusCode(201);
     }
@@ -124,7 +124,7 @@ public class MongoSearchIntegration {
                         }
                         """)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(201);
     }
@@ -148,13 +148,13 @@ public class MongoSearchIntegration {
         given()
                 .body("""
                         {
-                            "name": "Search Test Control",
-                            "description": "Control for search testing",
-                            "requirementJson": "{\\"type\\": \\"requirement\\"}"
+                            "$id": "http://localhost:8080/calm/domains/security/controls/search-test-control/requirement/versions/1.0.0",
+                            "type": "requirement",
+                            "description": "Search Test Control for search testing"
                         }
                         """)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/security/controls")
+                .when().post("/calm/domains/security/controls/search-test-control/requirement/versions/1.0.0")
                 .then()
                 .statusCode(201);
     }
@@ -168,7 +168,7 @@ public class MongoSearchIntegration {
                 .then()
                 .statusCode(200)
                 .body("controls", hasSize(1))
-                .body("controls[0].name", equalTo("Search Test Control"))
+                .body("controls[0].name", equalTo("search-test-control"))
                 .body("controls[0].namespace", equalTo("security"));
     }
 

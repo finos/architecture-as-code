@@ -208,7 +208,7 @@ describe('DocumentDetailSection', () => {
             expect(screen.getByRole('combobox', { name: 'Version' })).toBeInTheDocument();
         });
 
-        expect(mockFetchVersionsByCustomId).toHaveBeenCalledWith('test-ns', 'my-payment-standard');
+        expect(mockFetchVersionsByCustomId).toHaveBeenCalledWith('test-ns', 'my-payment-standard', 'Standards');
         expect(mockFetchStandardVersions).not.toHaveBeenCalled();
     });
 });

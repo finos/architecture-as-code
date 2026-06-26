@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { interfaceIdExists } from './interface-id-exists';
 
 describe('interfaceIdExists', () => {
@@ -9,7 +10,7 @@ describe('interfaceIdExists', () => {
             }
         };
 
-        const result = interfaceIdExists(input, null, context);
+        const result = interfaceIdExists(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -27,7 +28,7 @@ describe('interfaceIdExists', () => {
             }
         };
 
-        const result = interfaceIdExists(input, null, context);
+        const result = interfaceIdExists(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -46,7 +47,7 @@ describe('interfaceIdExists', () => {
             path: ['/relationships/0/connects/destination/interface']
         };
 
-        const result = interfaceIdExists(input, null, context);
+        const result = interfaceIdExists(input, null, asContext(context));
         expect(result.length).toBe(1);
         expect(result[0].message).toBe(`'${input}' does not refer to the unique-id of an existing interface.`);
         expect(result[0].path).toEqual(['/relationships/0/connects/destination/interface']);

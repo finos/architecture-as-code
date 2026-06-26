@@ -8,7 +8,7 @@ CALM Widgets is a TypeScript widget system built on Handlebars that provides reu
 
 ## Tech Stack
 
-- **Language**: TypeScript 5.x
+- **Language**: TypeScript (compiler provided by the monorepo root, not pinned in this package)
 - **Template Engine**: Handlebars
 - **Build Tool**: tsup (esbuild-based)
 - **Test Framework**: Vitest
@@ -37,11 +37,12 @@ calm-widgets/
 │   ├── widget-logger.ts            # Configurable logging for debugging
 │   ├── widgets/                    # Widget implementations
 │   │   ├── table/                  # Table widget
-│   │   │   ├── index.ts            # Logic & transformToViewModel
-│   │   │   ├── index.spec.ts       # Unit tests
-│   │   │   ├── table-template.html # Horizontal table template
-│   │   │   ├── table-vertical.html # Vertical table template
-│   │   │   └── row-template.html   # Row rendering (recursive)
+│   │   │   ├── index.ts             # Logic & transformToViewModel
+│   │   │   ├── index.spec.ts        # Unit tests
+│   │   │   ├── table-template.html  # Dispatcher (branches on isNested/isVertical)
+│   │   │   ├── table-horizontal.html # Horizontal table template
+│   │   │   ├── table-vertical.html  # Vertical table template
+│   │   │   └── row-template.html    # Row rendering (recursive)
 │   │   ├── list/                   # List widget
 │   │   ├── json-viewer/            # JSON display widget
 │   │   ├── flow-sequence/          # Mermaid sequence diagrams
@@ -63,26 +64,49 @@ calm-widgets/
 
 ### Widget Structure
 
-Each widget follows a consistent pattern:
+Each widget implements the `CalmWidget<TContext, TOptions, TViewModel>` interface
+(see `src/types.ts`):
 
 ```typescript
-export const MyWidget: WidgetDefinition = {
-    name: 'my-widget',
-    templatePath: path.join(__dirname, 'template.html'),
-    
-    // Transform raw data into view model
-    transformToViewModel(context: unknown, options: WidgetOptions): ViewModel {
+export const MyWidget: CalmWidget<MyContext, MyOptions, MyViewModel> = {
+    id: 'my-widget',                 // helper name used in templates
+    templatePartial: 'template.html', // main template file (relative to widget folder)
+    partials: ['row-template.html'], // optional extra partials to register
+
+    // Optional: register widget-scoped Handlebars helpers
+    registerHelpers: () => ({
+        myHelper: (value: unknown) => String(value),
+    }),
+
+    // Optional: transform raw context into the view model the template consumes
+    transformToViewModel: (context, options) => {
         // Process context, apply options, return structured data
-    }
+        return { /* view model */ };
+    },
+
+    // REQUIRED: type-guard validating the incoming context
+    validateContext: (context): context is MyContext => {
+        return typeof context === 'object' && context !== null;
+    },
 };
 ```
 
+Key points:
+- `id` is the Handlebars helper name (e.g. `{{my-widget ...}}`), not `name`.
+- `templatePartial` names the main template file (resolved against the widget
+  folder), not a `templatePath`.
+- `partials` lists any additional partial templates to register.
+- `validateContext` is **required** — it is a type-guard that gates rendering.
+- `registerHelpers` and `transformToViewModel` are optional. Widgets such as
+  `related-nodes` and `block-architecture` use `registerHelpers`/`partials`.
+
 ### Template System
 
-Widgets use Handlebars templates with HTML output:
-- Templates are HTML files in the widget directory
-- Templates can call other widgets via Handlebars helpers
-- Output is rendered into Markdown-compatible HTML
+Widgets use Handlebars templates rendered to HTML/Markdown:
+- Each widget folder holds its template(s) plus any partials.
+- Templates can call other widgets via Handlebars helpers.
+- Template extensions are mixed: `flow-sequence`, `related-nodes`, and
+  `block-architecture` use `.hbs`; `table`, `list`, and `json-viewer` use `.html`.
 
 ## Key Concepts
 
@@ -246,12 +270,18 @@ npm run build --workspace calm-widgets
 ## Adding a New Widget
 
 1. Create directory: `src/widgets/my-widget/`
-2. Create `index.ts` with `WidgetDefinition`
-3. Create template file(s): `template.html`
+2. Create `index.ts` exporting a `CalmWidget` (include the required `validateContext`)
+3. Create template file(s), e.g. `template.html` (or `.hbs`), plus any partials
 4. Create tests: `index.spec.ts`
 5. Export from `src/index.ts`
-6. Add test fixtures in `test-fixtures/my-widget/`
-7. Document in `README.md`
+6. **Register the widget** in `widget-engine.ts` `registerDefaultWidgets()` —
+   add `{ widget: MyWidget, folder: __dirname + '/widgets/my-widget' }`.
+   A widget is not usable until it is registered here.
+   **The registration list must stay in alphabetical order by widget id** (e.g. `block-architecture` before `table`).
+   Likewise, the helper registrations in `widget-helpers.ts` must stay alphabetical.
+   Both orderings are enforced by tests in `widget-engine.spec.ts` and `widget-helpers.spec.ts` — CI will fail if a new entry is added out of order.
+7. Add test fixtures in `test-fixtures/my-widget/`
+8. Document in `README.md`
 
 ## Useful Links
 

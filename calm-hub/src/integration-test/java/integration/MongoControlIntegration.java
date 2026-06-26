@@ -59,7 +59,7 @@ public class MongoControlIntegration {
     @Order(1)
     void end_to_end_get_controls_returns_empty_for_valid_domain() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -69,7 +69,7 @@ public class MongoControlIntegration {
     @Order(2)
     void end_to_end_get_controls_returns_404_for_invalid_domain() {
         given()
-                .when().get("/calm/domains/" + INVALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + INVALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(404);
     }
@@ -83,10 +83,10 @@ public class MongoControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/"))
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/"))
                 .body("name", equalTo("Access Control"))
                 .body("description", equalTo("Ensure proper access control mechanisms"));
     }
@@ -95,7 +95,7 @@ public class MongoControlIntegration {
     @Order(4)
     void end_to_end_get_controls_returns_created_control() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -112,7 +112,7 @@ public class MongoControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls")
+                .when().post("/api/calm/domains/" + INVALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(404);
     }
@@ -126,7 +126,7 @@ public class MongoControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(201)
                 .body("name", equalTo("Encryption"))
@@ -137,7 +137,7 @@ public class MongoControlIntegration {
     @Order(7)
     void end_to_end_get_controls_returns_both_controls() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2));
@@ -150,7 +150,7 @@ public class MongoControlIntegration {
     void end_to_end_get_requirement_versions_for_created_control() {
         // Control 1 was created with requirement JSON, so should have version 1.0.0
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -161,7 +161,7 @@ public class MongoControlIntegration {
     @Order(9)
     void end_to_end_get_requirement_at_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("requirement"));
@@ -171,7 +171,7 @@ public class MongoControlIntegration {
     @Order(10)
     void end_to_end_get_requirement_versions_returns_404_for_invalid_control() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions")
                 .then()
                 .statusCode(404);
     }
@@ -180,7 +180,7 @@ public class MongoControlIntegration {
     @Order(11)
     void end_to_end_get_requirement_version_returns_404_for_invalid_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/9.9.9")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/9.9.9")
                 .then()
                 .statusCode(404);
     }
@@ -189,7 +189,7 @@ public class MongoControlIntegration {
     @Order(12)
     void end_to_end_get_requirement_versions_returns_404_for_invalid_domain() {
         given()
-                .when().get("/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions")
+                .when().get("/api/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions")
                 .then()
                 .statusCode(404);
     }
@@ -200,7 +200,7 @@ public class MongoControlIntegration {
     @Order(13)
     void end_to_end_get_configurations_returns_empty_for_control_with_no_configurations() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -210,7 +210,7 @@ public class MongoControlIntegration {
     @Order(14)
     void end_to_end_get_configurations_returns_404_for_invalid_control() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
                 .then()
                 .statusCode(404);
     }
@@ -219,7 +219,7 @@ public class MongoControlIntegration {
     @Order(15)
     void end_to_end_get_configuration_returns_404_for_nonexistent_config() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999")
                 .then()
                 .statusCode(404);
     }
@@ -228,7 +228,7 @@ public class MongoControlIntegration {
     @Order(16)
     void end_to_end_get_configuration_versions_returns_404_for_nonexistent_config() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions")
                 .then()
                 .statusCode(404);
     }
@@ -237,7 +237,7 @@ public class MongoControlIntegration {
     @Order(17)
     void end_to_end_get_configuration_version_returns_404_for_nonexistent_config() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/1.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/1.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -264,18 +264,18 @@ public class MongoControlIntegration {
 
         // Now verify the configuration list includes the seeded config
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
-                .body("values[0]", equalTo(100));
+                .body("values[0].id", equalTo(100));
     }
 
     @Test
     @Order(19)
     void end_to_end_get_seeded_configuration_versions() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -286,7 +286,7 @@ public class MongoControlIntegration {
     @Order(20)
     void end_to_end_get_seeded_configuration_at_specific_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/1.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body("setting", equalTo("enabled"));
@@ -296,7 +296,7 @@ public class MongoControlIntegration {
     @Order(21)
     void end_to_end_get_configuration_at_invalid_version_returns_404() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/9.9.9")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/9.9.9")
                 .then()
                 .statusCode(404);
     }
@@ -309,17 +309,17 @@ public class MongoControlIntegration {
         given()
                 .body("{\"name\":\"Access Control\",\"description\":\"Ensure proper access control mechanisms\",\"requirementJson\":\"{\\\"type\\\": \\\"requirement-v2\\\"}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0"));
     }
 
     @Test
     @Order(23)
     void end_to_end_get_requirement_versions_returns_both_versions() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2))
@@ -330,7 +330,7 @@ public class MongoControlIntegration {
     @Order(24)
     void end_to_end_get_requirement_at_new_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("requirement-v2"));
@@ -342,7 +342,7 @@ public class MongoControlIntegration {
         given()
                 .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{\\\"type\\\": \\\"duplicate\\\"}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
                 .then()
                 .statusCode(409);
     }
@@ -353,7 +353,7 @@ public class MongoControlIntegration {
         given()
                 .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .when().post("/api/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -364,7 +364,7 @@ public class MongoControlIntegration {
         given()
                 .body("{\"name\":\"n\",\"description\":\"d\",\"requirementJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions/2.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions/2.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -379,10 +379,10 @@ public class MongoControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/"));
     }
 
     @Test
@@ -390,7 +390,7 @@ public class MongoControlIntegration {
     void end_to_end_get_configurations_returns_created_configuration() {
         // Should now have the seeded config (100) plus the API-created one
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2));
@@ -404,7 +404,7 @@ public class MongoControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/configurations")
+                .when().post("/api/calm/domains/" + INVALID_DOMAIN + "/controls/1/configurations")
                 .then()
                 .statusCode(404);
     }
@@ -417,7 +417,7 @@ public class MongoControlIntegration {
         given()
                 .body(objectMapper.writeValueAsString(request))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
                 .then()
                 .statusCode(404);
     }
@@ -430,17 +430,17 @@ public class MongoControlIntegration {
         given()
                 .body("{\"configurationJson\":\"{\\\"setting\\\": \\\"enabled-v2\\\"}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0"));
     }
 
     @Test
     @Order(33)
     void end_to_end_get_configuration_versions_returns_both() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2))
@@ -451,7 +451,7 @@ public class MongoControlIntegration {
     @Order(34)
     void end_to_end_get_configuration_at_new_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body("setting", equalTo("enabled-v2"));
@@ -463,7 +463,7 @@ public class MongoControlIntegration {
         given()
                 .body("{\"configurationJson\":\"{\\\"setting\\\": \\\"dup\\\"}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/1.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/1.0.0")
                 .then()
                 .statusCode(409);
     }
@@ -474,7 +474,7 @@ public class MongoControlIntegration {
         given()
                 .body("{\"configurationJson\":\"{}\"}")
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/2.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/2.0.0")
                 .then()
                 .statusCode(404);
     }
@@ -485,7 +485,7 @@ public class MongoControlIntegration {
     @Order(40)
     void end_to_end_list_controls_returns_wrapper_name_and_description_from_create() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values[0].id", equalTo(1))
@@ -501,17 +501,17 @@ public class MongoControlIntegration {
         given()
                 .body(versionBody)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0"));
+                .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/3.0.0"));
     }
 
     @Test
     @Order(42)
     void end_to_end_list_controls_reflects_updated_name_and_description_after_new_version() {
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values.find { it.id == 1 }.name", equalTo("Updated Access Control"))
@@ -527,20 +527,20 @@ public class MongoControlIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
                 .then()
                 .statusCode(201);
 
         // Stored content must be the inner requirementJson verbatim, not the envelope
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/4.0.0")
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("requirement-v4"));
 
         // Wrapper reflects the latest envelope name/description
         given()
-                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls")
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
                 .body("values.find { it.id == 1 }.name", equalTo("Final Access Control"))

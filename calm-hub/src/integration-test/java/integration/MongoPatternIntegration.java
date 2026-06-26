@@ -76,7 +76,7 @@ public class MongoPatternIntegration {
     @Order(1)
     void end_to_end_get_with_no_patterns() {
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -96,7 +96,7 @@ public class MongoPatternIntegration {
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/patterns/1"));
@@ -106,7 +106,7 @@ public class MongoPatternIntegration {
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/1/versions")
+                .when().get("/api/calm/namespaces/finos/patterns/1/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -117,7 +117,7 @@ public class MongoPatternIntegration {
     @Order(4)
     void end_to_end_verify_pattern() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/1/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/patterns/1/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(PATTERN));
@@ -129,7 +129,7 @@ public class MongoPatternIntegration {
     @Order(5)
     void end_to_end_list_patterns_returns_wrapper_name_and_description_from_create() {
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -145,17 +145,17 @@ public class MongoPatternIntegration {
         given()
                 .body(versionBody)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns/1/versions/2.0.0")
+                .when().post("/api/calm/namespaces/finos/patterns/1/versions/2.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/patterns/1/versions/2.0.0"));
+                .header("Location", containsString("/api/calm/namespaces/finos/patterns/1/versions/2.0.0"));
     }
 
     @Test
     @Order(7)
     void end_to_end_list_patterns_reflects_updated_name_and_description_after_new_version() {
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -172,20 +172,20 @@ public class MongoPatternIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns/1/versions/3.0.0")
+                .when().post("/api/calm/namespaces/finos/patterns/1/versions/3.0.0")
                 .then()
                 .statusCode(201);
 
         // Stored content must be the inner patternJson verbatim, not the envelope
         given()
-                .when().get("/calm/namespaces/finos/patterns/1/versions/3.0.0")
+                .when().get("/api/calm/namespaces/finos/patterns/1/versions/3.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(inner));
 
         // Wrapper reflects the latest envelope name/description
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("third-name"))
@@ -200,7 +200,7 @@ public class MongoPatternIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns/1/versions/9.0.0")
+                .when().post("/api/calm/namespaces/finos/patterns/1/versions/9.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));
@@ -214,7 +214,7 @@ public class MongoPatternIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().put("/calm/namespaces/finos/patterns/1/versions/1.0.0")
+                .when().put("/api/calm/namespaces/finos/patterns/1/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));

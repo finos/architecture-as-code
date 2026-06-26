@@ -5,6 +5,7 @@ import { RepeatedStrategy } from './repeated-strategy';
 import { TemplateEngine } from '../template-engine';
 import { TemplateEntry, OutputContext } from '../types';
 import { Logger } from '../../logger';
+import { createMockLogger } from '../../test/test-utils';
 
 vi.mock('fs');
 vi.mock('../front-matter', () => ({
@@ -28,12 +29,7 @@ describe('RepeatedStrategy', () => {
             compileTemplate: vi.fn()
         } as unknown as TemplateEngine;
 
-        mockLogger = {
-            info: vi.fn(),
-            warn: vi.fn(),
-            debug: vi.fn(),
-            error: vi.fn()
-        } as unknown as Logger;
+        mockLogger = createMockLogger();
 
         strategy = new RepeatedStrategy(mockEngine);
 
@@ -183,7 +179,7 @@ describe('RepeatedStrategy', () => {
             expect(mockCompiledTemplate).toHaveBeenCalledWith(
                 expect.objectContaining({
                     _root: context.data,
-                    _architecture: context.data.document,
+                    _architecture: (context.data as Record<string, unknown>).document,
                     'node-id': 'node-1'
                 })
             );

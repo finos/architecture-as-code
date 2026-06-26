@@ -1,8 +1,14 @@
 ---
 id: calm-hub
 title: CALM Hub
+sidebar_label: CALM Hub
 sidebar_position: 4
 ---
+
+
+:::tip CALM Hub documentation
+This page covers the **visual interface** of CALM Hub. For the technical reference see the [overview and runtimes](/calm-hub/), the [developer guide](/calm-hub/calm-hub-developer-guide), and the [MCP and API reference](/calm-hub/calm-hub-mcp-api).
+:::
 
 # CALM Hub
 
@@ -173,3 +179,9 @@ Selecting a control from a **Control Domain** (e.g. `security` or `ai-governance
 * **Readable Tab:** Parses complex JSON Schema rules into human-readable tables detailing parameter constraints, encryption requirements (e.g. approved TLS versions), and rotation periods.
 * **Raw JSON Tab:** Inspects the raw control requirement schema.
 * **Configurations & Versions:** Toggles between different policy revisions and environment-specific overrides.
+
+---
+
+## Access Control
+
+CALM Hub uses a hierarchical entitlement model to control who can read, write, and administer namespaces. See [CALM Hub Entitlements](./calm-hub-entitlements) for the full model, worked examples, and API usage.

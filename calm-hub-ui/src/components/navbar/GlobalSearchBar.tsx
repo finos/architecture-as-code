@@ -153,7 +153,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
             setResults(null);
 
             if (type === 'controls') {
-                navigate(`/${result.namespace}/controls/${result.id}/detail`);
+                navigate(`/${result.namespace}/controls/${result.name}/detail`);
                 return;
             }
 
@@ -289,7 +289,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     ref={inputRef}
                     type="text"
                     placeholder="Search CALM Hub..."
-                    className="bg-transparent border-none outline-none text-sm text-base-content placeholder:text-base-content/40 w-48 lg:w-64"
+                    className="bg-transparent border-none outline-none text-sm text-base-content placeholder:text-base-content/40 w-28 sm:w-48 lg:w-64"
                     value={query}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
@@ -313,7 +313,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
             </div>
             {showDropdown && (
                 <div
-                    className="absolute right-0 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-lg shadow-lg z-50"
+                    className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-lg shadow-lg z-50"
                     role="listbox"
                 >
                     {renderGroupedResults()}

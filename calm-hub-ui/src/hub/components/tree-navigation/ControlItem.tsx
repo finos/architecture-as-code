@@ -11,7 +11,7 @@ export function ControlItem({ control, isSelected, onControlClick }: ControlItem
     return (
         <li>
             <a className={isSelected ? 'active' : ''} onClick={() => onControlClick(control)}>
-                {control.name}
+                {control.title ?? control.name}
             </a>
         </li>
     );

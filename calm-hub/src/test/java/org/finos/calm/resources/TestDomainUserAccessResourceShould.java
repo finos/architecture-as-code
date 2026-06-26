@@ -1,19 +1,23 @@
 package org.finos.calm.resources;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
+import org.finos.calm.store.DomainStore;
 import org.finos.calm.store.UserAccessStore;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @TestSecurity(authorizationEnabled = false)
@@ -23,16 +27,48 @@ public class TestDomainUserAccessResourceShould {
     @InjectMock
     UserAccessStore mockUserAccessStore;
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    @InjectMock
+    DomainStore mockDomainStore;
+
+    @BeforeEach
+    void defaultDomainExists() {
+        lenient().when(mockDomainStore.domainExists(anyString())).thenReturn(true);
+    }
 
     @Test
-    void return_201_created_with_location_header_when_domain_user_access_is_created() throws Exception {
-        UserAccess userAccess = new UserAccess();
-        userAccess.setDomain("payments");
-        userAccess.setPermission(UserAccess.Permission.write);
-        userAccess.setUsername("test_user");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
+    void return_400_when_invalid_domain_format_provided_on_create_user_access() {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .when()
+                .post("/api/calm/domains/invalid_domain/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString(DOMAIN_MESSAGE));
+    }
 
+    @Test
+    void return_400_when_invalid_domain_format_provided_on_get_user_access() {
+        given()
+                .when()
+                .get("/api/calm/domains/invalid_domain/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString(DOMAIN_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_invalid_domain_format_provided_on_get_user_access_by_id() {
+        given()
+                .when()
+                .get("/api/calm/domains/invalid_domain/user-access/1")
+                .then()
+                .statusCode(400)
+                .body(containsString(DOMAIN_MESSAGE));
+    }
+
+    @Test
+    void return_201_created_with_location_header_when_domain_user_access_is_created() {
         UserAccess created = new UserAccess();
         created.setDomain("payments");
         created.setPermission(UserAccess.Permission.write);
@@ -42,53 +78,28 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .header("Content-Type", "application/json")
-                .body(requestBody)
+                .body("{\"username\":\"test_user\",\"permission\":\"write\"}")
                 .when()
-                .post("/calm/domains/payments/user-access")
+                .post("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/domains/payments/user-access/201"));
+                .header("Location", containsString("/api/calm/domains/payments/user-access/201"));
 
         verify(mockUserAccessStore, times(1)).createUserAccessForDomain(any(UserAccess.class));
     }
 
     @Test
-    void return_400_when_creating_user_access_with_mismatched_domain() throws Exception {
-        UserAccess userAccess = new UserAccess();
-        userAccess.setDomain("other");
-        userAccess.setPermission(UserAccess.Permission.write);
-        userAccess.setUsername("test_user");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
-        given()
-                .header("Content-Type", "application/json")
-                .body(requestBody)
-                .when()
-                .post("/calm/domains/payments/user-access")
-                .then()
-                .statusCode(400)
-                .body(containsString("Bad Request"));
-
-        verify(mockUserAccessStore, times(0)).createUserAccessForDomain(any(UserAccess.class));
-    }
-
-    @Test
-    void return_500_when_store_returns_domain_that_causes_uri_syntax_error() throws Exception {
+    void return_500_when_store_returns_domain_that_causes_uri_syntax_error() {
         UserAccess invalid = new UserAccess();
         invalid.setDomain("payments invalid");
         invalid.setUserAccessId(1);
         when(mockUserAccessStore.createUserAccessForDomain(any(UserAccess.class))).thenReturn(invalid);
 
-        UserAccess userAccess = new UserAccess();
-        userAccess.setDomain("payments");
-        userAccess.setPermission(UserAccess.Permission.write);
-        userAccess.setUsername("test_user");
-
         given()
                 .header("Content-Type", "application/json")
-                .body(OBJECT_MAPPER.writeValueAsString(userAccess))
+                .body("{\"username\":\"test_user\",\"permission\":\"write\"}")
                 .when()
-                .post("/calm/domains/payments/user-access")
+                .post("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(500)
                 .body(containsString("System Malfunction"));
@@ -97,21 +108,15 @@ public class TestDomainUserAccessResourceShould {
     }
 
     @Test
-    void return_500_when_internal_error_occurs_during_domain_user_access_creation() throws Exception {
+    void return_500_when_internal_error_occurs_during_domain_user_access_creation() {
         when(mockUserAccessStore.createUserAccessForDomain(any(UserAccess.class)))
                 .thenThrow(new RuntimeException("Unexpected error"));
 
-        UserAccess userAccess = new UserAccess();
-        userAccess.setDomain("payments");
-        userAccess.setPermission(UserAccess.Permission.write);
-        userAccess.setUsername("test_user");
-        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
-
         given()
                 .header("Content-Type", "application/json")
-                .body(requestBody)
+                .body("{\"username\":\"test_user\",\"permission\":\"write\"}")
                 .when()
-                .post("/calm/domains/payments/user-access")
+                .post("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(500);
 
@@ -134,7 +139,7 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access")
+                .get("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(200)
                 .body(containsString("test_user1"))
@@ -144,16 +149,15 @@ public class TestDomainUserAccessResourceShould {
     }
 
     @Test
-    void return_404_when_no_user_access_found_for_domain() throws Exception {
-        when(mockUserAccessStore.getUserAccessForDomain("payments"))
-                .thenThrow(new UserAccessNotFoundException());
+    void return_200_with_empty_list_when_domain_has_no_grants() {
+        when(mockUserAccessStore.getUserAccessForDomain("payments")).thenReturn(Collections.emptyList());
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access")
+                .get("/api/calm/domains/payments/user-access")
                 .then()
-                .statusCode(404)
-                .body(containsString("No access permissions found"));
+                .statusCode(200)
+                .body(containsString("[]"));
 
         verify(mockUserAccessStore, times(1)).getUserAccessForDomain("payments");
     }
@@ -165,7 +169,7 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access")
+                .get("/api/calm/domains/payments/user-access")
                 .then()
                 .statusCode(500);
 
@@ -182,7 +186,7 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access/201")
+                .get("/api/calm/domains/payments/user-access/201")
                 .then()
                 .statusCode(200)
                 .body(containsString("test_user"));
@@ -197,11 +201,139 @@ public class TestDomainUserAccessResourceShould {
 
         given()
                 .when()
-                .get("/calm/domains/payments/user-access/999")
+                .get("/api/calm/domains/payments/user-access/999")
                 .then()
                 .statusCode(404)
                 .body(containsString("No access permissions found"));
 
         verify(mockUserAccessStore, times(1)).getUserAccessForDomainAndId("payments", 999);
+    }
+
+    @Test
+    void return_204_when_domain_user_access_is_deleted() throws Exception {
+        doNothing().when(mockUserAccessStore).deleteUserAccessForDomain("payments", 201);
+
+        given()
+                .when()
+                .delete("/api/calm/domains/payments/user-access/201")
+                .then()
+                .statusCode(204);
+
+        verify(mockUserAccessStore, times(1)).deleteUserAccessForDomain("payments", 201);
+    }
+
+    @Test
+    void return_404_when_deleting_domain_user_access_that_does_not_exist() throws Exception {
+        doThrow(new UserAccessNotFoundException())
+                .when(mockUserAccessStore).deleteUserAccessForDomain("payments", 999);
+
+        given()
+                .when()
+                .delete("/api/calm/domains/payments/user-access/999")
+                .then()
+                .statusCode(404)
+                .body(containsString("No access permissions found"));
+
+        verify(mockUserAccessStore, times(1)).deleteUserAccessForDomain("payments", 999);
+    }
+
+    @Test
+    void return_400_when_invalid_domain_format_provided_on_delete_user_access() {
+        given()
+                .when()
+                .delete("/api/calm/domains/invalid_domain/user-access/1")
+                .then()
+                .statusCode(400)
+                .body(containsString(DOMAIN_MESSAGE));
+    }
+
+    @Test
+    void return_404_when_domain_does_not_exist_on_create_user_access() {
+        when(mockDomainStore.domainExists("unknown")).thenReturn(false);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"test_user\",\"permission\":\"write\"}")
+                .when()
+                .post("/api/calm/domains/unknown/user-access")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid domain provided: unknown"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForDomain(any());
+    }
+
+    @Test
+    void return_404_when_domain_does_not_exist_on_get_user_access() {
+        when(mockDomainStore.domainExists("unknown")).thenReturn(false);
+
+        given()
+                .when()
+                .get("/api/calm/domains/unknown/user-access")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid domain provided: unknown"));
+
+        verify(mockUserAccessStore, never()).getUserAccessForDomain(any());
+    }
+
+    @Test
+    void return_404_when_domain_does_not_exist_on_get_user_access_by_id() throws Exception {
+        when(mockDomainStore.domainExists("unknown")).thenReturn(false);
+
+        given()
+                .when()
+                .get("/api/calm/domains/unknown/user-access/1")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid domain provided: unknown"));
+
+        verify(mockUserAccessStore, never()).getUserAccessForDomainAndId(any(), any());
+    }
+
+    @Test
+    void return_400_when_wildcard_admin_grant_attempted_on_domain() {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"permission\":\"admin\"}")
+                .when()
+                .post("/api/calm/domains/payments/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Wildcard username is not permitted for admin"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForDomain(any());
+    }
+
+    @Test
+    void return_201_when_wildcard_read_grant_is_created_on_domain() {
+        UserAccess created = new UserAccess();
+        created.setDomain("payments");
+        created.setPermission(UserAccess.Permission.read);
+        created.setUsername("*");
+        created.setUserAccessId(202);
+        when(mockUserAccessStore.createUserAccessForDomain(any(UserAccess.class))).thenReturn(created);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"permission\":\"read\"}")
+                .when()
+                .post("/api/calm/domains/payments/user-access")
+                .then()
+                .statusCode(201);
+    }
+
+    @Test
+    void return_404_when_domain_does_not_exist_on_delete_user_access() throws Exception {
+        when(mockDomainStore.domainExists("unknown")).thenReturn(false);
+
+        given()
+                .when()
+                .delete("/api/calm/domains/unknown/user-access/1")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid domain provided: unknown"));
+
+        verify(mockUserAccessStore, never()).deleteUserAccessForDomain(any(), any());
     }
 }

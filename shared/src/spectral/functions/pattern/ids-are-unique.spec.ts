@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import idsAreUnique from './ids-are-unique';
 
 describe('idsAreUnique', () => {
@@ -10,7 +11,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -40,7 +41,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -61,7 +62,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: node1, path: /properties/nodes/prefixItems/1/properties/unique-id/const');
     });
@@ -83,7 +84,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: rel1, path: /properties/relationships/prefixItems/1/properties/unique-id/const');
     });
@@ -112,7 +113,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: intf1, path: /properties/nodes/prefixItems/1/properties/interfaces/prefixItems/0/properties/unique-id/const');
     });
@@ -142,7 +143,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: node1, path: /properties/relationships/prefixItems/0/properties/unique-id/const');
     });

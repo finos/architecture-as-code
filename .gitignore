@@ -31,7 +31,9 @@ docs/contributing.md
 **/.vscode**/
 /.vscode/settings.json
 
-node_modules/
+# No trailing slash: also ignores a `node_modules` symlink (git stores symlinks
+# as files, so a trailing-slash pattern would not match them) — see issue #2707
+node_modules
 **/dist/
 **/.vscode-test/
 **/out/
@@ -73,3 +75,8 @@ next-env.d.ts
 # Playwright
 playwright-report/
 test-results/
+
+# QCon demo generated artifacts (output of `calm template`)
+conferences/qcon/scenario*/infrastructure/
+conferences/qcon/scenario*/generated/
+conferences/qcon/scenario*/generated-*/

@@ -1,0 +1,9 @@
+{
+    "$schema": "https://calm.finos.org/qcon/controls/mcp-guardrail.requirement.json",
+    "denied-symbols": [
+        "VOD",
+        "GME",
+        "AMC"
+    ],
+    "enforcement-point": "mcp-server"
+}

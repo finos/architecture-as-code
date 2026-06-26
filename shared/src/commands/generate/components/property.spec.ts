@@ -103,6 +103,34 @@ describe('getPropertyValue', () => {
         }))
             .toBe('[[ BOOLEAN_KEY_NAME ]]');
     });
+
+    it('prefers const over type when both are present', () => {
+        expect(getPropertyValue('key-name', {
+            'const': 'fixed',
+            'type': 'string'
+        }))
+            .toBe('fixed');
+    });
+
+    it('prefers default over type when const is absent', () => {
+        expect(getPropertyValue('key-name', {
+            'default': 'fallback',
+            'type': 'string'
+        }))
+            .toBe('fallback');
+    });
+
+    it('returns an empty array for the interfaces property', () => {
+        expect(getPropertyValue('interfaces', {
+            'type': 'array'
+        }))
+            .toEqual([]);
+    });
+
+    it('returns undefined when no const, default, type or $ref is defined', () => {
+        expect(getPropertyValue('key-name', {}))
+            .toBeUndefined();
+    });
 });
 
 describe('getEnumPlaceholder', () => {

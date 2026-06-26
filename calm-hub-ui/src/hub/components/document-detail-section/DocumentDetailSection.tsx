@@ -30,7 +30,7 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
         let cancelled = false;
         let fetchPromise: Promise<string[]>;
         if (isSlug(data.id)) {
-            fetchPromise = calmService.fetchVersionsByCustomId(data.name, data.id);
+            fetchPromise = calmService.fetchVersionsByCustomId(data.name, data.id, data.calmType);
         } else if (data.calmType === 'Standards') {
             fetchPromise = calmService.fetchStandardVersions(data.name, data.id);
         } else if (data.calmType === 'Flows') {
@@ -70,6 +70,7 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
                     namespace={data.name}
                     id={data.id}
                     version={data.version}
+                    typeSegment={calmTypeToUrlSegment(data.calmType)}
                     versions={versions}
                     onVersionChange={handleVersionChange}
                 />

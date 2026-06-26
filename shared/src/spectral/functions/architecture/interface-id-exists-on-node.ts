@@ -1,11 +1,32 @@
 import { JSONPath } from 'jsonpath-plus';
 import { difference } from 'lodash';
+import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
+
+interface ConnectsRelationship {
+    node?: string;
+    interfaces?: string[];
+    interface?: string;
+}
 
 /**
  * Checks that the input value exists as an interface with matching unique ID defined under a node in the document.
+ *
+ * Interfaces may be referenced either as an array (`interfaces`) or as a single string (`interface`); both forms
+ * are validated against the referenced node so that neither can reference an interface that does not exist.
  */
-export function interfaceIdExistsOnNode(input, _, context) {
-    if (!input || !input.interfaces) {
+export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | undefined, _: unknown, context: RulesetFunctionContext): IFunctionResult[] {
+    if (!input) {
+        return [];
+    }
+
+    // all of these must be present on the referenced node; dedupe so the same
+    // interface referenced via both the array and string forms is reported once
+    const desiredInterfaces = [...new Set([
+        ...(Array.isArray(input.interfaces) ? input.interfaces : []),
+        ...(typeof input.interface === 'string' ? [input.interface] : [])
+    ])];
+
+    if (desiredInterfaces.length === 0) {
         return [];
     }
 
@@ -17,14 +38,11 @@ export function interfaceIdExistsOnNode(input, _, context) {
     }
 
     const nodeId = input.node;
-    const nodeMatch: object[] = JSONPath({ path: `$.nodes[?(@['unique-id'] == '${nodeId}')]`, json: context.document.data });
+    const nodeMatch: object[] = JSONPath({ path: `$.nodes[?(@['unique-id'] == '${nodeId}')]`, json: context.document.data as object });
     if (!nodeMatch || nodeMatch.length === 0) {
         // other rule will report undefined node
         return [];
     }
-
-    // all of these must be present on the referenced node
-    const desiredInterfaces = input.interfaces;
 
     const node = nodeMatch[0];
 
@@ -41,7 +59,7 @@ export function interfaceIdExistsOnNode(input, _, context) {
     if (missingInterfaces.length === 0) {
         return [];
     }
-    const results = [];
+    const results: IFunctionResult[] = [];
 
     for (const missing of missingInterfaces) {
         results.push({

@@ -12,5 +12,6 @@ export default defineConfig({
     globals: true,
     reporters: [['verbose', { summary: false }]],
     include: ['src/__tests__/**/*.test.ts'],
+    setupFiles: ['./vitest.setup.ts'],
   },
 });

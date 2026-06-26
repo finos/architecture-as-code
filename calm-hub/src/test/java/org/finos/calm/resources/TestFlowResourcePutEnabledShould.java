@@ -39,7 +39,7 @@ public class TestFlowResourcePutEnabledShould {
                 .header("Content-Type", "application/json")
                 .body(envelopeBody)
                 .when()
-                .put("/calm/namespaces/test/flows/20/versions/invalid-version")
+                .put("/api/calm/namespaces/test/flows/20/versions/invalid-version")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -75,16 +75,16 @@ public class TestFlowResourcePutEnabledShould {
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
-                    .put("/calm/namespaces/test/flows/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/namespaces/test/flows/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/flows/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
-                    .put("/calm/namespaces/test/flows/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }

@@ -1,6 +1,6 @@
 package org.finos.calm.domain;
 
-import org.finos.calm.domain.frontcontroller.ChangeType;
+import org.finos.calm.domain.mapping.ChangeType;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

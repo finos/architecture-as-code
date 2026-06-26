@@ -16,7 +16,7 @@ export abstract class AbstractOutputStrategy implements OutputStrategy {
     }
 
     protected resolvePath(data: Record<string, unknown>, dotPath: string): unknown {
-        return dotPath.split('.').reduce((obj, key) => (obj as Record<string, unknown>)?.[key], data);
+        return dotPath.split('.').reduce<unknown>((obj, key) => (obj as Record<string, unknown>)?.[key], data);
     }
 
     protected writeFile(outputPath: string, content: string, logger: Logger, logPrefix: string): void {

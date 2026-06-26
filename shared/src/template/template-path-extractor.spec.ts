@@ -161,7 +161,7 @@ describe('TemplatePathExtractor', () => {
     it('filters nodes by node-type', () => {
         const result = TemplatePathExtractor.convertFromDotNotation(architectureDocument, "architecture.nodes[node-type=='system']");
         expect(Array.isArray(result)).toBe(true);
-        const resultArray = result as JsonFragment[];
+        const resultArray = result as Record<string, unknown>[];
         expect(resultArray.length).toBe(1);
         expect(resultArray[0]['unique-id']).toBe('account-system');
     });
@@ -178,7 +178,7 @@ describe('TemplatePathExtractor', () => {
             "architecture.nodes['account-system'].details.nodes[node-type=='service']"
         );
         expect(Array.isArray(result)).toBe(true);
-        const resultArray = result as JsonFragment[];
+        const resultArray = result as Record<string, unknown>[];
         expect(resultArray.length).toBe(1);
         expect(resultArray[0]['name']).toBe('Account Service');
     });
@@ -189,7 +189,7 @@ describe('TemplatePathExtractor', () => {
             "architecture.nodes['user-interface'].interfaces"
         );
         expect(Array.isArray(result)).toBe(true);
-        const resultArray = result as JsonFragment[];
+        const resultArray = result as Record<string, unknown>[];
         expect(resultArray[0]['url']).toBe('https://account.example.com');
     });
 
@@ -199,7 +199,7 @@ describe('TemplatePathExtractor', () => {
             "architecture.nodes['account-system'].details.nodes['account-db'].interfaces[definition-url=='https://calm.finos.org/interface/container-port.json']"
         );
         expect(Array.isArray(result)).toBe(true);
-        const resultArray = result as JsonFragment[];
+        const resultArray = result as Record<string, unknown>[];
         expect(resultArray[0]['port']).toBe(5432);
     });
 
@@ -237,7 +237,7 @@ describe('TemplatePathExtractor', () => {
             { sort: 'name' }
         );
         expect(Array.isArray(result)).toBe(true);
-        const resultArray = result as JsonFragment[];
+        const resultArray = result as Record<string, unknown>[];
         expect(resultArray[0]['name']).toBe('Account Database');
         expect(resultArray[1]['name']).toBe('Account Service');
     });
@@ -259,7 +259,7 @@ describe('TemplatePathExtractor', () => {
             { filter: { name: 'Account Database' } }
         );
         expect(Array.isArray(result)).toBe(true);
-        const resultArray = result as JsonFragment[];
+        const resultArray = result as Record<string, unknown>[];
         expect(resultArray.length).toBe(1);
         expect(resultArray[0]['unique-id']).toBe('account-db');
     });

@@ -7,12 +7,12 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.UserAction;
-import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.function.Predicate;
+import java.util.ArrayList;
+import java.util.List;
 
 
 @ApplicationScoped
@@ -85,6 +85,12 @@ public class CalmHubPermissionChecker {
                 || hasDomainAccess(identity, domain, UserAction.WRITE);
     }
 
+    @PermissionChecker(CalmHubScopes.DOMAIN_ADMIN)
+    public boolean allowDomainAdmin(SecurityIdentity identity, String domain) {
+        return isAuthDisabled()
+                || hasDomainAccess(identity, domain, UserAction.ADMIN);
+    }
+
     @PermissionChecker(CalmHubScopes.GLOBAL_ADMIN)
     public boolean hasGlobalAdmin(SecurityIdentity identity) {
         if (!authEnabled) {
@@ -94,53 +100,93 @@ public class CalmHubPermissionChecker {
         }
         String username = identity.getPrincipal().getName();
         logger.debug("Checking global admin access for user [{}]", username);
-        try {
-            boolean granted =
-                    userAccessStore.getUserAccessForUsername(username)
-                            .stream()
-                            .anyMatch(grant -> GLOBAL_ACCESS.equals(grant.getNamespace())
-                                    && permissionSufficient(grant, UserAction.ADMIN));
-
-            if (granted) {
-                logger.info("User [{}] AUTHORIZED for GLOBAL admin privileges", username);
-            } else {
-                logger.warn("User [{}] DENIED for GLOBAL admin privileges", username);
-            }
-            return granted;
-        } catch (UserAccessNotFoundException e) {
-            logger.debug("No access grants found for user [{}]", username);
-            return false;
+        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+        boolean granted = isGlobalAdminFromGrants(username, grants);
+        if (granted) {
+            logger.debug("User [{}] AUTHORIZED for GLOBAL admin privileges", username);
+        } else {
+            logger.debug("User [{}] DENIED for GLOBAL admin privileges", username);
         }
+        return granted;
     }
 
     private boolean hasNamespaceAccess(SecurityIdentity identity, String namespace, UserAction action) {
-        return hasAccess(identity, "namespace", namespace, action,
-                grant -> namespace != null && namespace.equals(grant.getNamespace()));
+        if (namespace == null) return false;
+        String username = identity.getPrincipal().getName();
+        logger.debug("Checking namespace access for user [{}] on namespace [{}] action=[{}]", username, namespace, action);
+
+        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+
+        if (isGlobalAdminFromGrants(username, grants)) {
+            logger.debug("User [{}] AUTHORIZED for [{}] in namespace [{}] via GLOBAL admin grant", username, action, namespace);
+            return true;
+        }
+
+        List<String> ancestors = ancestorChain(namespace);
+        boolean result = action == UserAction.READ
+                ? allAncestorsHaveGrant(ancestors, grants, action)
+                : anyAncestorHasGrant(ancestors, grants, action);
+
+        if (result) {
+            logger.debug("User [{}] AUTHORIZED for [{}] in namespace [{}]", username, action, namespace);
+        } else {
+            logger.debug("User [{}] DENIED for [{}] in namespace [{}]", username, action, namespace);
+        }
+        return result;
+    }
+
+    private boolean isGlobalAdminFromGrants(String username, List<UserAccess> grants) {
+        return grants.stream()
+                .anyMatch(g -> username.equals(g.getUsername())
+                        && GLOBAL_ACCESS.equals(g.getNamespace())
+                        && permissionSufficient(g, UserAction.ADMIN));
+    }
+
+    private boolean allAncestorsHaveGrant(List<String> ancestors, List<UserAccess> grants, UserAction action) {
+        return ancestors.stream().allMatch(level ->
+                grants.stream().anyMatch(g -> level.equals(g.getNamespace()) && permissionSufficient(g, action)));
+    }
+
+    private boolean anyAncestorHasGrant(List<String> ancestors, List<UserAccess> grants, UserAction action) {
+        return ancestors.stream().anyMatch(level ->
+                grants.stream().anyMatch(g -> level.equals(g.getNamespace()) && permissionSufficient(g, action)));
+    }
+
+    static List<String> ancestorChain(String namespace) {
+        String[] parts = namespace.split("\\.");
+        List<String> chain = new ArrayList<>(parts.length);
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (!sb.isEmpty()) sb.append('.');
+            sb.append(part);
+            chain.add(sb.toString());
+        }
+        return chain;
     }
 
     private boolean hasDomainAccess(SecurityIdentity identity, String domain, UserAction action) {
-        return hasAccess(identity, "domain", domain, action,
-                grant -> domain != null && domain.equals(grant.getDomain()));
-    }
-
-    private boolean hasAccess(SecurityIdentity identity, String scopeType, String scopeValue,
-                              UserAction action, Predicate<UserAccess> grantMatcher) {
+        if (domain == null) return false;
         String username = identity.getPrincipal().getName();
-        logger.debug("Checking {} access for user [{}] on {} [{}] action=[{}]",
-                scopeType, username, scopeType, scopeValue, action);
-        try {
-            boolean result = userAccessStore.getUserAccessForUsername(username).stream()
-                    .anyMatch(grant -> grantMatcher.test(grant) && permissionSufficient(grant, action));
-            if (result) {
-                logger.info("User [{}] AUTHORIZED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
-            } else {
-                logger.warn("User [{}] DENIED for [{}] in {} [{}]", username, action, scopeType, scopeValue);
-            }
-            return result;
-        } catch (UserAccessNotFoundException e) {
-            logger.debug("No access grants found for user [{}]", username);
-            return false;
+        logger.debug("Checking domain access for user [{}] on domain [{}] action=[{}]", username, domain, action);
+
+        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+
+        if (isGlobalAdminFromGrants(username, grants)) {
+            logger.debug("User [{}] AUTHORIZED for [{}] in domain [{}] via GLOBAL admin grant", username, action, domain);
+            return true;
         }
+
+        boolean result = grants.stream().anyMatch(g ->
+                domain.equals(g.getDomain())
+                        && permissionSufficient(g, action)
+                        && !(action == UserAction.ADMIN && "*".equals(g.getUsername())));
+
+        if (result) {
+            logger.debug("User [{}] AUTHORIZED for [{}] in domain [{}]", username, action, domain);
+        } else {
+            logger.debug("User [{}] DENIED for [{}] in domain [{}]", username, action, domain);
+        }
+        return result;
     }
 
     private boolean permissionSufficient(UserAccess grant, UserAction action) {

@@ -56,7 +56,7 @@ public class TestAdrResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/adrs")
+                .get("/api/calm/namespaces/invalid/adrs")
                 .then()
                 .statusCode(404);
 
@@ -72,7 +72,7 @@ public class TestAdrResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/adrs")
+                .get("/api/calm/namespaces/finos/adrs")
                 .then()
                 .statusCode(200)
                 .body("values[0].title", equalTo("First ADR"))
@@ -89,7 +89,7 @@ public class TestAdrResourceShould {
         return Stream.of(
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404, nullValue()),
                 Arguments.of("invalid", new AdrParseException(), 500, nullValue()),
-                Arguments.of("valid", null, 201, containsString("/calm/namespaces/valid/adrs/12/revisions/1"))
+                Arguments.of("valid", null, 201, containsString("/api/calm/namespaces/valid/adrs/12/revisions/1"))
         );
     }
 
@@ -109,7 +109,7 @@ public class TestAdrResourceShould {
                 .header("Content-Type", "application/json")
                 .body(adr)
                 .when()
-                .post("/calm/namespaces/" + namespace +"/adrs")
+                .post("/api/calm/namespaces/" + namespace +"/adrs")
                 .then()
                 .statusCode(expectedStatusCode)
                 .header("Location", locationHeader);
@@ -167,7 +167,7 @@ public class TestAdrResourceShould {
                 .header("Content-Type", "application/json")
                 .body(adrJson)
                 .when()
-                .post("/calm/namespaces/" + namespace +"/adrs/1")
+                .post("/api/calm/namespaces/" + namespace +"/adrs/1")
                 .then()
                 .statusCode(expectedStatusCode);
 
@@ -206,14 +206,14 @@ public class TestAdrResourceShould {
             String expectedBody = "{\"values\":[1,2]}";
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12/revisions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12/revisions")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -260,7 +260,7 @@ public class TestAdrResourceShould {
         if (expectedStatusCode == 200) {
             AdrMeta actualAdrMeta = given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
                     .then()
                     .statusCode(expectedStatusCode)
                     .extract()
@@ -271,7 +271,7 @@ public class TestAdrResourceShould {
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -298,7 +298,7 @@ public class TestAdrResourceShould {
         if (expectedStatusCode == 200) {
             AdrMeta actualAdrMeta = given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12")
                     .then()
                     .statusCode(expectedStatusCode)
                     .extract()
@@ -308,7 +308,7 @@ public class TestAdrResourceShould {
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -356,7 +356,7 @@ public class TestAdrResourceShould {
                 .header("Content-Type", "application/json")
                 .body(adrJson)
                 .when()
-                .post("/calm/namespaces/" + namespace +"/adrs/1/status/proposed")
+                .post("/api/calm/namespaces/" + namespace +"/adrs/1/status/proposed")
                 .then()
                 .statusCode(expectedStatusCode);
 

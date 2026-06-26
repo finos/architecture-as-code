@@ -10,6 +10,7 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -26,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import io.quarkus.arc.lookup.LookupIfProperty;
+import org.finos.calm.store.util.VersionKeySelector;
 
 /**
  * MongoDB-backed implementation of {@link ControlStore}.
@@ -89,10 +91,13 @@ public class MongoControlStore implements ControlStore {
 
         List<ControlDetail> result = new ArrayList<>();
         for (Document control : controls) {
+            Document requirement = (Document) control.get("requirement");
+            String title = titleFromRequirementDoc(requirement);
             result.add(new ControlDetail(
                     control.getInteger("controlId"),
                     control.getString("name"),
-                    control.getString("description")
+                    control.getString("description"),
+                    title
             ));
         }
         return result;
@@ -175,6 +180,26 @@ public class MongoControlStore implements ControlStore {
     }
 
     @Override
+    public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
+        Document controlDoc = findControl(domain, controlId);
+        List<Document> configurations = controlDoc.getList("configurations", Document.class);
+        if (configurations == null) {
+            return List.of();
+        }
+
+        List<ControlConfigDetail> details = new ArrayList<>();
+        for (Document config : configurations) {
+            Document versions = (Document) config.get("versions");
+            String title = titleFromVersionsDoc(versions);
+            details.add(new ControlConfigDetail(
+                    config.getInteger("configurationId"),
+                    config.getString("name"),
+                    title));
+        }
+        return details;
+    }
+
+    @Override
     public List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
         Document configDoc = findConfiguration(domain, controlId, configurationId);
         Document versions = (Document) configDoc.get("versions");
@@ -246,6 +271,9 @@ public class MongoControlStore implements ControlStore {
 
         Document configDoc = new Document("configurationId", configurationId)
                 .append("versions", new Document("1-0-0", Document.parse(request.getConfigurationJson())));
+        if (request.getName() != null) {
+            configDoc.append("name", request.getName());
+        }
 
         Document filter = new Document("domain", domain)
                 .append("controls.controlId", controlId);
@@ -336,6 +364,22 @@ public class MongoControlStore implements ControlStore {
         }
 
         throw new ControlConfigurationNotFoundException();
+    }
+
+    private String titleFromRequirementDoc(Document requirement) {
+        if (requirement == null || requirement.isEmpty()) return null;
+        String latestKey = VersionKeySelector.latestVersionKey(requirement.keySet());
+        if (latestKey == null) return null;
+        Document versionDoc = (Document) requirement.get(latestKey);
+        return versionDoc != null ? versionDoc.getString("title") : null;
+    }
+
+    private String titleFromVersionsDoc(Document versions) {
+        if (versions == null || versions.isEmpty()) return null;
+        String latestKey = VersionKeySelector.latestVersionKey(versions.keySet());
+        if (latestKey == null) return null;
+        Document versionDoc = (Document) versions.get(latestKey);
+        return versionDoc != null ? versionDoc.getString("title") : null;
     }
 
     private void validateDomain(String domain) throws DomainNotFoundException {

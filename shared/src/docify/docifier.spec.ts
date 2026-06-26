@@ -1,12 +1,27 @@
 import { Docifier } from './docifier';
 import { TemplateProcessor } from '../template/template-processor';
-import { Mock } from 'vitest';
 import * as urlMapping from '../template/url-mapping';
+import * as browserLaunch from './diagram-rendering/browser-launch';
+import * as diagramProcessor from './diagram-rendering/markdown-diagram-processor';
+import { MermaidBrowserRenderer } from './diagram-rendering/mermaid-browser-renderer';
+import { BrowserLaunchError, BrowserOverrideError } from './diagram-rendering/errors';
+import type { Browser } from 'playwright-core';
+import { createMockLogger } from '../test/test-utils';
 
 vi.mock('../template/template-processor');
 vi.mock('../template/url-mapping');
+vi.mock('./diagram-rendering/browser-launch');
+vi.mock('./diagram-rendering/mermaid-browser-renderer');
+vi.mock('./diagram-rendering/markdown-diagram-processor');
 
-const MockedTemplateProcessor: Mock = vi.mocked(TemplateProcessor);
+const mockLogger = createMockLogger();
+
+vi.mock('../logger', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../logger')>();
+    return { ...actual, initLogger: vi.fn(() => mockLogger) };
+});
+
+const MockedTemplateProcessor = vi.mocked(TemplateProcessor);
 
 describe('Docifier', () => {
     const inputPath = 'some/input/path';
@@ -206,6 +221,167 @@ describe('Docifier', () => {
                 false,
                 urlMappingPath
             );
+        });
+    });
+
+    describe('export diagrams', () => {
+        beforeEach(() => {
+            MockedTemplateProcessor.mockImplementation(function () { return {
+                processTemplate: vi.fn().mockResolvedValue(undefined),
+            }; });
+        });
+
+        it('does not attempt diagram export when exportDiagrams is not set', async () => {
+            const docifier = new Docifier('WEBSITE', inputPath, outputPath);
+            await docifier.docify();
+
+            expect(browserLaunch.launchBrowser).not.toHaveBeenCalled();
+        });
+
+        it('warns and skips the export pass when no browser can be launched', async () => {
+            vi.mocked(browserLaunch.launchBrowser).mockRejectedValue(new BrowserLaunchError('No browser found.'));
+
+            const docifier = new Docifier('WEBSITE', inputPath, outputPath, undefined, 'bundle', undefined, false, false, 'svg');
+
+            await expect(docifier.docify()).resolves.toBeUndefined();
+            expect(MermaidBrowserRenderer).not.toHaveBeenCalled();
+            expect(mockLogger.warn).toHaveBeenCalledWith('⚠️ No browser found.');
+        });
+
+        it('propagates BrowserOverrideError from an invalid --browser-path', async () => {
+            const overrideError = new BrowserOverrideError('--browser-path \'/bad/path\' does not exist or is not a file.');
+            vi.mocked(browserLaunch.launchBrowser).mockRejectedValue(overrideError);
+
+            const docifier = new Docifier('WEBSITE', inputPath, outputPath, undefined, 'bundle', undefined, false, false, 'svg', '/bad/path');
+
+            await expect(docifier.docify()).rejects.toThrow(overrideError);
+        });
+
+        it('renders diagrams and logs the summary on success', async () => {
+            vi.mocked(browserLaunch.launchBrowser).mockResolvedValue({
+                browser: {} as unknown as Browser,
+                displayName: 'Google Chrome'
+            });
+
+            const startMock = vi.fn().mockResolvedValue(undefined);
+            const disposeMock = vi.fn().mockResolvedValue(undefined);
+            vi.mocked(MermaidBrowserRenderer).mockImplementation(function () { return {
+                start: startMock,
+                render: vi.fn(),
+                dispose: disposeMock,
+            } as unknown as MermaidBrowserRenderer; });
+
+            const summary = { filesScanned: 1, diagramsFound: 1, diagramsRendered: 1, diagramsFailed: 0, failures: [] };
+            vi.mocked(diagramProcessor.processDiagramsInDirectory).mockResolvedValue(summary);
+            vi.mocked(diagramProcessor.formatDiagramSummary).mockReturnValue('✅ Exported 1/1 diagrams to SVG via Google Chrome in 0.1s.');
+
+            const docifier = new Docifier('WEBSITE', inputPath, outputPath, undefined, 'bundle', undefined, false, false, 'svg');
+            await docifier.docify();
+
+            expect(startMock).toHaveBeenCalled();
+            expect(diagramProcessor.processDiagramsInDirectory).toHaveBeenCalledWith(outputPath, expect.any(Object), mockLogger);
+            expect(mockLogger.info).toHaveBeenCalledWith('✅ Exported 1/1 diagrams to SVG via Google Chrome in 0.1s.');
+            expect(disposeMock).toHaveBeenCalled();
+        });
+
+        it('passes renderTimeoutMs through to the MermaidBrowserRenderer when provided', async () => {
+            vi.mocked(browserLaunch.launchBrowser).mockResolvedValue({
+                browser: {} as unknown as Browser,
+                displayName: 'Google Chrome'
+            });
+
+            const startMock = vi.fn().mockResolvedValue(undefined);
+            const disposeMock = vi.fn().mockResolvedValue(undefined);
+            vi.mocked(MermaidBrowserRenderer).mockImplementation(function () { return {
+                start: startMock,
+                render: vi.fn(),
+                dispose: disposeMock,
+            } as unknown as MermaidBrowserRenderer; });
+
+            const summary = { filesScanned: 1, diagramsFound: 1, diagramsRendered: 1, diagramsFailed: 0, failures: [] };
+            vi.mocked(diagramProcessor.processDiagramsInDirectory).mockResolvedValue(summary);
+            vi.mocked(diagramProcessor.formatDiagramSummary).mockReturnValue('✅ Exported 1/1 diagrams to SVG via Google Chrome in 0.1s.');
+
+            const docifier = new Docifier('WEBSITE', inputPath, outputPath, undefined, 'bundle', undefined, false, false, 'svg', undefined, 30000);
+            await docifier.docify();
+
+            expect(MermaidBrowserRenderer).toHaveBeenCalledWith(expect.objectContaining({ renderTimeoutMs: 30000 }));
+        });
+
+        it('processes a single file when --output points at a .md file rather than a directory', async () => {
+            vi.mocked(browserLaunch.launchBrowser).mockResolvedValue({
+                browser: {} as unknown as Browser,
+                displayName: 'Google Chrome'
+            });
+
+            const startMock = vi.fn().mockResolvedValue(undefined);
+            const disposeMock = vi.fn().mockResolvedValue(undefined);
+            vi.mocked(MermaidBrowserRenderer).mockImplementation(function () { return {
+                start: startMock,
+                render: vi.fn(),
+                dispose: disposeMock,
+            } as unknown as MermaidBrowserRenderer; });
+
+            const summary = { filesScanned: 1, diagramsFound: 1, diagramsRendered: 1, diagramsFailed: 0, failures: [] };
+            vi.mocked(diagramProcessor.processDiagramsInFile).mockResolvedValue(summary);
+            vi.mocked(diagramProcessor.formatDiagramSummary).mockReturnValue('✅ Exported 1/1 diagrams to SVG via Google Chrome in 0.1s.');
+
+            const fileOutputPath = 'some/output/path/basic-structures_svg.md';
+            const docifier = new Docifier('USER_PROVIDED', inputPath, fileOutputPath, undefined, 'template', 'some/template.hbs', false, false, 'svg');
+            await docifier.docify();
+
+            expect(diagramProcessor.processDiagramsInFile).toHaveBeenCalledWith(fileOutputPath, expect.any(Object), mockLogger);
+            expect(diagramProcessor.processDiagramsInDirectory).not.toHaveBeenCalled();
+            expect(mockLogger.info).toHaveBeenCalledWith('✅ Exported 1/1 diagrams to SVG via Google Chrome in 0.1s.');
+            expect(disposeMock).toHaveBeenCalled();
+        });
+
+        it('processes a directory when --output has a dot in its name but is not a .md/.mdx file', async () => {
+            vi.mocked(browserLaunch.launchBrowser).mockResolvedValue({
+                browser: {} as unknown as Browser,
+                displayName: 'Google Chrome'
+            });
+
+            const startMock = vi.fn().mockResolvedValue(undefined);
+            const disposeMock = vi.fn().mockResolvedValue(undefined);
+            vi.mocked(MermaidBrowserRenderer).mockImplementation(function () { return {
+                start: startMock,
+                render: vi.fn(),
+                dispose: disposeMock,
+            } as unknown as MermaidBrowserRenderer; });
+
+            const summary = { filesScanned: 1, diagramsFound: 1, diagramsRendered: 1, diagramsFailed: 0, failures: [] };
+            vi.mocked(diagramProcessor.processDiagramsInDirectory).mockResolvedValue(summary);
+            vi.mocked(diagramProcessor.formatDiagramSummary).mockReturnValue('✅ Exported 1/1 diagrams to SVG via Google Chrome in 0.1s.');
+
+            const dirOutputPath = 'some/output/docs/v1.2';
+            const docifier = new Docifier('WEBSITE', inputPath, dirOutputPath, undefined, 'bundle', undefined, false, false, 'svg');
+            await docifier.docify();
+
+            expect(diagramProcessor.processDiagramsInDirectory).toHaveBeenCalledWith(dirOutputPath, expect.any(Object), mockLogger);
+            expect(diagramProcessor.processDiagramsInFile).not.toHaveBeenCalled();
+        });
+
+        it('warns and disposes the renderer when the markdown processing pass throws', async () => {
+            vi.mocked(browserLaunch.launchBrowser).mockResolvedValue({
+                browser: {} as unknown as Browser,
+                displayName: 'Google Chrome'
+            });
+
+            const disposeMock = vi.fn().mockResolvedValue(undefined);
+            vi.mocked(MermaidBrowserRenderer).mockImplementation(function () { return {
+                start: vi.fn().mockResolvedValue(undefined),
+                render: vi.fn(),
+                dispose: disposeMock,
+            } as unknown as MermaidBrowserRenderer; });
+
+            vi.mocked(diagramProcessor.processDiagramsInDirectory).mockRejectedValue(new Error('disk full'));
+
+            const docifier = new Docifier('WEBSITE', inputPath, outputPath, undefined, 'bundle', undefined, false, false, 'png');
+            await expect(docifier.docify()).resolves.toBeUndefined();
+
+            expect(mockLogger.warn).toHaveBeenCalledWith('⚠️ Diagram export failed: disk full. Markdown output is unchanged.');
+            expect(disposeMock).toHaveBeenCalled();
         });
     });
 });

@@ -5,11 +5,11 @@ import { Data } from '../../../model/calm.js';
 import type { ReactFlowVisualizerProps } from '../../contracts/contracts.js';
 import { DropzoneOptions } from 'react-dropzone';
 
-const mockFetchDecoratorValues = vi.fn().mockResolvedValue([]);
+const mockFetchDeploymentDecoratorsForArchitecture = vi.fn().mockResolvedValue([]);
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(function () { return {
-        fetchDecoratorValues: (...args: unknown[]) => mockFetchDecoratorValues(...args),
+        fetchDeploymentDecoratorsForArchitecture: (...args: unknown[]) => mockFetchDeploymentDecoratorsForArchitecture(...args),
     }; }),
 }));
 
@@ -132,37 +132,18 @@ describe('Drawer', () => {
 
 describe('Drawer — decorator fetching', () => {
     beforeEach(() => {
-        mockFetchDecoratorValues.mockReset();
-        mockFetchDecoratorValues.mockResolvedValue([]);
+        mockFetchDeploymentDecoratorsForArchitecture.mockReset();
+        mockFetchDeploymentDecoratorsForArchitecture.mockResolvedValue([]);
     });
 
-    it('fetches decorator values using friendly URL when architecture data has a slug ID', async () => {
+    it('delegates decorator fetching to the shared service method with namespace, id and version', async () => {
         render(<Drawer data={architectureData} />);
 
         await waitFor(() => {
-            expect(mockFetchDecoratorValues).toHaveBeenCalledWith(
+            expect(mockFetchDeploymentDecoratorsForArchitecture).toHaveBeenCalledWith(
                 'my-namespace',
-                '/calm/namespaces/my-namespace/my-arch/versions/1-0-0',
-                'deployment'
-            );
-        });
-    });
-
-    it('fetches decorator values using numeric URL when architecture data has a numeric ID', async () => {
-        const numericArchData: Data = {
-            name: 'my-namespace',
-            calmType: 'Architectures',
-            id: '42',
-            version: '1.0.0',
-            data: { nodes: [], relationships: [] },
-        };
-        render(<Drawer data={numericArchData} />);
-
-        await waitFor(() => {
-            expect(mockFetchDecoratorValues).toHaveBeenCalledWith(
-                'my-namespace',
-                '/calm/namespaces/my-namespace/architectures/42/versions/1-0-0',
-                'deployment'
+                'my-arch',
+                '1.0.0'
             );
         });
     });
@@ -170,17 +151,15 @@ describe('Drawer — decorator fetching', () => {
     it('does not fetch decorator values when decorators prop is provided', async () => {
         render(<Drawer data={architectureData} decorators={[]} />);
 
-        await waitFor(() => {
-            expect(mockFetchDecoratorValues).not.toHaveBeenCalled();
-        });
+        await new Promise((r) => setTimeout(r, 50));
+        expect(mockFetchDeploymentDecoratorsForArchitecture).not.toHaveBeenCalled();
     });
 
     it('does not fetch decorator values for pattern data', async () => {
         render(<Drawer data={patternData} />);
 
-        await waitFor(() => {
-            expect(mockFetchDecoratorValues).not.toHaveBeenCalled();
-        });
+        await new Promise((r) => setTimeout(r, 50));
+        expect(mockFetchDeploymentDecoratorsForArchitecture).not.toHaveBeenCalled();
     });
 
     it('passes fetched decorators to MetadataPanel', async () => {
@@ -188,7 +167,7 @@ describe('Drawer — decorator fetching', () => {
             schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
             uniqueId: 'dec-1',
             type: 'deployment',
-            target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+            target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
             appliesTo: ['node-a'],
             data: {
                 status: 'completed',
@@ -196,7 +175,7 @@ describe('Drawer — decorator fetching', () => {
                 'end-time': '2024-01-01T10:05:00Z',
             },
         }];
-        mockFetchDecoratorValues.mockResolvedValue(decorators);
+        mockFetchDeploymentDecoratorsForArchitecture.mockResolvedValue(decorators);
 
         render(<Drawer data={architectureData} />);
 
@@ -210,7 +189,7 @@ describe('Drawer — decorator fetching', () => {
             schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
             uniqueId: 'dec-ext',
             type: 'deployment',
-            target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+            target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
             appliesTo: ['node-a'],
             data: {
                 status: 'failed',
@@ -224,6 +203,6 @@ describe('Drawer — decorator fetching', () => {
         await waitFor(() => {
             expect(screen.getByTestId('metadata-panel')).toHaveTextContent('decorators:1');
         });
-        expect(mockFetchDecoratorValues).not.toHaveBeenCalled();
+        expect(mockFetchDeploymentDecoratorsForArchitecture).not.toHaveBeenCalled();
     });
 });

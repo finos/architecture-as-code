@@ -1,3 +1,4 @@
+import { SchemaDirectory } from '../schema-directory';
 import { fs, vol } from 'memfs';
 import { FileSystemDocumentLoader } from './file-system-document-loader';
 import { DocumentLoadError } from './document-loader';
@@ -30,7 +31,7 @@ const exampleSchema = {
 };
 
 describe('file-system-document-loader', () => {
-    let fileSystemDocumentLoader;
+    let fileSystemDocumentLoader: FileSystemDocumentLoader;
     beforeEach(() => {
         process.chdir('/');
         vol.fromJSON({
@@ -45,7 +46,7 @@ describe('file-system-document-loader', () => {
 
 
     it('loads a single schema into schema directory', async () => {
-        await fileSystemDocumentLoader.initialise(mocks.schemaDirectory);
+        await fileSystemDocumentLoader.initialise(mocks.schemaDirectory as unknown as SchemaDirectory);
         expect(mocks.schemaDirectory.storeDocument).toHaveBeenCalledWith(exampleSchema['$id'], 'schema', exampleSchema);
     });
 

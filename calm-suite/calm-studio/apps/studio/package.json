@@ -14,8 +14,8 @@
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
-    "@calmstudio/calm-core": "file:../../packages/calm-core",
-    "@calmstudio/extensions": "file:../../packages/extensions",
+    "@calmstudio/calm-core": "*",
+    "@calmstudio/extensions": "*",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lint": "^6.9.5",
     "@codemirror/state": "^6.5.4",

@@ -1,3 +1,4 @@
+import { asContext } from '../spectral-test-helpers';
 import { idsAreUnique } from './ids-are-unique';
 
 describe('idsAreUnique', () => {
@@ -10,7 +11,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -27,7 +28,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result).toEqual([]);
     });
 
@@ -45,7 +46,7 @@ describe('idsAreUnique', () => {
             }
         };
 
-        const result = idsAreUnique(input, null, context);
+        const result = idsAreUnique(input, null, asContext(context));
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: node1, path: /moments/2/unique-id');
     });

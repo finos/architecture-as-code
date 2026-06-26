@@ -10,13 +10,13 @@ Built for the DTCC/FINOS Innovate.DTCC AI Hackathon (Feb 23-27, 2026).
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| Framework | Next.js 14+ (App Router) | `src/app/` routing, API routes for SSE |
+| Framework | Next.js 15 (App Router, Turbopack) | `src/app/` routing, API routes for SSE |
 | Package Manager | npm (workspaces) | CalmGuard is a workspace of the monorepo root. Run `npm` commands from the repo root or use `--workspace=calmguard`. The docs sub-package is `calmguard-docs`. |
 | Language | TypeScript (strict mode) | No `any` types. Use Zod for runtime validation |
 | LLM SDK | Vercel AI SDK (`ai`) | `generateObject` with Zod schemas for all agent outputs |
-| Default LLM | Google Gemini | `@ai-sdk/google`. Multi-provider: also supports Anthropic, OpenAI, Ollama, Grok |
+| Default LLM | Google Gemini | `@ai-sdk/google`. Multi-provider: also supports Anthropic, OpenAI, xAI/Grok |
 | UI | shadcn/ui + Tailwind CSS | Dark theme (slate palette). Components in `src/components/ui/` |
-| Visualization | React Flow | Architecture graphs. Custom nodes per CALM node-type |
+| Visualization | React Flow (`@xyflow/react`) | Architecture graphs. Custom nodes per CALM node-type |
 | Charts | Recharts | Compliance gauges, heat maps |
 | State | Zustand | Single store in `src/store/analysis-store.ts` |
 | Validation | Zod | Schema validation for CALM parsing AND agent outputs |
@@ -24,9 +24,9 @@ Built for the DTCC/FINOS Innovate.DTCC AI Hackathon (Feb 23-27, 2026).
 | Skills | Markdown files in `skills/` | Compliance knowledge injected into agent prompts |
 | Deployment | Vercel | Zero-config Next.js deployment |
 
-## CALM Schema Reference (v1.1)
+## CALM Schema Reference (v1.2)
 
-Source: `https://github.com/finos/architecture-as-code` (CALM release 1.1)
+Source: `https://github.com/finos/architecture-as-code` (CALM release 1.2)
 
 ### Core Entities
 
@@ -59,7 +59,7 @@ Source: `https://github.com/finos/architecture-as-code` (CALM release 1.1)
 ### Agent Pattern
 Each agent in `src/lib/agents/` follows this pattern:
 1. Loads config from YAML definition in `agents/`
-2. Loads skills from `skills/*.md` via skill loader
+2. Loads skills from the skills markdown files (`skills/*.md`) via the skill loader (`src/lib/skills/loader.ts`)
 3. Calls Vercel AI SDK `generateObject` with Zod output schema
 4. Emits typed `AgentEvent`s via SSE event emitter
 5. Returns structured result matching its Zod schema
@@ -70,10 +70,34 @@ Each agent in `src/lib/agents/` follows this pattern:
 - Client connects via `EventSource` hook in `src/hooks/use-agent-stream.ts`
 - Events flow: Agent → EventEmitter → SSE Route → EventSource → Zustand Store → React Components
 
+### Agents
+Seven agents (YAML in `agents/`, implementations in `src/lib/agents/`):
+- **orchestrator** — coordinates the run and aggregates results
+- **architecture-analyzer** — parses and analyzes the CALM model
+- **compliance-mapper** — maps controls to frameworks (SOX, PCI-DSS, NIST-CSF, ...)
+- **pipeline-generator** — generates CI/CD pipeline configs
+- **cloud-infra-generator** — generates IaC / cloud infrastructure config
+- **risk-scorer** — produces aggregate risk assessment
+- **calm-remediator** — proposes CALM model remediations (merged via `remediation-merge.ts`)
+
 ### Orchestration
-- Phase 1: Architecture Analyzer + Compliance Mapper + Pipeline Generator run in parallel (`Promise.all`)
-- Phase 2: Risk Scorer runs sequentially on aggregated Phase 1 results
+- Phase 1 (parallel, `Promise.allSettled` for graceful degradation): Architecture Analyzer + Compliance Mapper + Pipeline Generator + Cloud Infra Generator
+- Phase 2 (sequential): Risk Scorer runs on aggregated Phase 1 results
+- The CALM Remediator runs as a separate remediation flow
 - All events stream to dashboard in real-time
+
+### GitHub / GitOps Integration
+- `src/lib/github/` plus API routes under `src/app/api/github/` (`fetch-calm`, `create-pr`, `status`)
+- Fetches CALM models directly from GitHub repos, and opens pull requests with remediated CALM
+- Surfaced in the UI via `gitops-card.tsx`
+
+### Learning Subsystem
+- `src/lib/learning/` stores and replays learned compliance patterns/insights, injected into agent runs (the orchestrator pre-checks the learning store)
+- Exposed via the `dashboard/learning` and `dashboard/squad` routes
+
+### CALM CLI Validation
+- Uses the `@finos/calm-cli` dependency via `src/lib/calm/cli-validator.ts`
+- Exposed through the `src/app/api/calm/validate` route to validate CALM input against the official schema
 
 ## File Organization
 
@@ -83,12 +107,14 @@ src/
     api/                        # Backend API routes (SSE streaming, CALM parsing)
     dashboard/                  # Dashboard pages
   lib/                          # Core business logic (framework-agnostic)
-    calm/                       # CALM parsing, types, validation
     agents/                     # Agent implementations, orchestrator, registry
     ai/                         # AI SDK provider setup, streaming utilities
-    skills/                     # SKILL.md loader
-    compliance/                 # Framework definitions, control mapping, scoring
-    pipeline/                   # GitHub Actions, security scanning, IaC generation
+    api/                        # Shared API helpers
+    calm/                       # CALM parsing, types, validation, CLI validator
+    github/                     # GitHub/GitOps integration (fetch CALM, create PR, status)
+    learning/                   # Learning subsystem (compliance pattern store)
+    report/                     # Report generation
+    skills/                     # Skill loader (markdown files live in top-level skills/)
   components/
     ui/                         # shadcn/ui base components (do not modify)
     dashboard/                  # Dashboard-specific components
@@ -96,7 +122,7 @@ src/
   hooks/                        # React hooks (SSE, CALM parser, compliance)
   store/                        # Zustand store
 agents/                         # YAML agent definitions (AOF-inspired)
-skills/                         # SKILL.md compliance knowledge files
+skills/                         # Compliance knowledge markdown files (e.g. SOX.md, PCI-DSS.md, NIST-CSF.md)
 examples/                       # Demo CALM architecture JSON files
 ```
 
@@ -161,11 +187,11 @@ OPENAI_API_KEY=                 # OpenAI (optional)
 
 ## Important References
 
-- CALM Schema 1.1: https://github.com/finos/architecture-as-code/tree/main/calm/release/1.1
+- CALM Schema 1.2: https://github.com/finos/architecture-as-code/tree/main/calm/release/1.2
 - CALM CLI: https://github.com/finos/architecture-as-code/tree/main/cli
 - CALM AI module: https://github.com/finos/architecture-as-code/tree/main/calm-ai
 - Vercel AI SDK: https://sdk.vercel.ai/docs
-- React Flow: https://reactflow.dev
+- React Flow (`@xyflow/react`): https://reactflow.dev
 - shadcn/ui: https://ui.shadcn.com
 
 ## Git Workflow
