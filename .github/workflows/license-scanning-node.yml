@@ -14,6 +14,7 @@ on:
 
 jobs:
     scan:
+        if: github.repository == 'finos/architecture-as-code'
         runs-on: ubuntu-latest
         strategy:
             matrix:
