@@ -152,8 +152,12 @@ describe('ControlService', () => {
     // fetchConfigurationsForControl
     // ──────────────────────────────────────────────────
     describe('fetchConfigurationsForControl', () => {
-        it('should call the correct endpoint and return config IDs', async () => {
-            const expected = [10, 20, 30];
+        it('should call the correct endpoint and return config details', async () => {
+            const expected = [
+                { id: 10, name: 'config-a', title: 'Config A' },
+                { id: 20, name: 'config-b', title: null },
+                { id: 30 },
+            ];
             mock.onGet(`/api/calm/domains/${domain}/controls/${controlId}/configurations`).reply(200, { values: expected });
 
             const result = await controlService.fetchConfigurationsForControl(domain, controlId);

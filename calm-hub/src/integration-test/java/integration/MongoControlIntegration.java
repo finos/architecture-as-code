@@ -268,7 +268,7 @@ public class MongoControlIntegration {
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
-                .body("values[0]", equalTo(100));
+                .body("values[0].id", equalTo(100));
     }
 
     @Test

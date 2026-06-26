@@ -465,13 +465,14 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             }
 
             if (uiType === 'Controls') {
-                const controlId = Number(params.id);
+                const controlSlug = params.id;
                 const domain = params.namespace;
                 controlService.fetchControlsForDomain(domain)
                     .then((controls) => {
                         setDomainControls(controls);
                         setSelectedDomain(domain);
-                        const match = controls.find((c) => c.id === controlId);
+                        const match = controls.find((c) => c.name === controlSlug)
+                            ?? controls.find((c) => c.id === Number(controlSlug));
                         if (match) {
                             setSelectedControlId(match.id);
                             onControlLoadRef.current({
@@ -479,6 +480,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                                 controlId: match.id,
                                 controlName: match.name,
                                 controlDescription: match.description,
+                                controlTitle: match.title,
                             });
                         }
                     })
@@ -558,6 +560,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             controlId: control.id,
             controlName: control.name,
             controlDescription: control.description,
+            controlTitle: control.title,
         });
     };
 

@@ -289,12 +289,46 @@ describe('TreeNavigation', () => {
         });
     });
 
-    it('loads data based on deeplink route - control', async () => {
+    it('loads data based on deeplink route - control (slug match)', async () => {
         vi.mocked(ControlService).mockImplementation(function () {
             controlServiceInstance = {
                 fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
                 fetchControlsForDomain: vi.fn().mockResolvedValue([
-                    { id: 401, name: 'Test Control', description: 'A control' },
+                    { id: 401, name: 'test-control', description: 'A control', title: 'Test Control Title' },
+                ]),
+            };
+            return controlServiceInstance as unknown as InstanceType<typeof ControlService>;
+        });
+
+        vi.mocked(useParams).mockReturnValue({
+            namespace: 'test-domain',
+            type: 'controls',
+            id: 'test-control',
+            version: 'detail',
+        });
+
+        render(<MemoryRouter initialEntries={["/"]}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
+
+        await waitFor(() => {
+            expect(controlServiceInstance?.fetchControlsForDomain).toHaveBeenCalledWith('test-domain');
+            expect(mockProps.onControlLoad).toHaveBeenCalledWith({
+                domain: 'test-domain',
+                controlId: 401,
+                controlName: 'test-control',
+                controlDescription: 'A control',
+                controlTitle: 'Test Control Title',
+            });
+        });
+    });
+
+    it('loads data based on deeplink route - control (numeric id fallback)', async () => {
+        vi.mocked(ControlService).mockImplementation(function () {
+            controlServiceInstance = {
+                fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
+                fetchControlsForDomain: vi.fn().mockResolvedValue([
+                    { id: 401, name: 'test-control', description: 'A control', title: 'Test Control Title' },
                 ]),
             };
             return controlServiceInstance as unknown as InstanceType<typeof ControlService>;
@@ -312,12 +346,12 @@ describe('TreeNavigation', () => {
         </MemoryRouter>);
 
         await waitFor(() => {
-            expect(controlServiceInstance?.fetchControlsForDomain).toHaveBeenCalledWith('test-domain');
             expect(mockProps.onControlLoad).toHaveBeenCalledWith({
                 domain: 'test-domain',
                 controlId: 401,
-                controlName: 'Test Control',
+                controlName: 'test-control',
                 controlDescription: 'A control',
+                controlTitle: 'Test Control Title',
             });
         });
     });
