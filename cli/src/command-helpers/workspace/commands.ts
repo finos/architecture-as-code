@@ -329,7 +329,7 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const client = new CalmHubClient({ calmHubUrl, debug: !!process.env.CALM_DEBUG });
+                const client = new CalmHubClient({ calmHubUrl });
                 await pushWorkspaceToHub(bundlePath, client);
             } catch (err) {
                 logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));

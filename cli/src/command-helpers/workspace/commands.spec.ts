@@ -414,7 +414,6 @@ describe('setupWorkspaceCommands', () => {
             await program.parseAsync(['node', 'test', 'workspace', 'push']);
             expect(mocks.CalmHubClient).toHaveBeenCalledWith({
                 calmHubUrl: 'https://calmhub.example.com',
-                debug: expect.any(Boolean),
             });
             expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
                 '/fake/bundle',
@@ -426,7 +425,6 @@ describe('setupWorkspaceCommands', () => {
             await program.parseAsync(['node', 'test', 'workspace', 'push', '--calm-hub-url', 'https://override.example.com']);
             expect(mocks.CalmHubClient).toHaveBeenCalledWith({
                 calmHubUrl: 'https://override.example.com',
-                debug: expect.any(Boolean),
             });
         });
 

@@ -2,15 +2,11 @@ import path from 'path';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { loadManifest, saveManifest } from './bundle';
-import { CalmHubClient, HubClientError } from '@finos/calm-shared/src/hub/calm-hub-client';
-import { CalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
+import { CalmHubClient } from '@finos/calm-shared/src/hub/calm-hub-client';
+import { DocumentMetadata, extractDocumentMetadata } from '@finos/calm-shared/src/hub/document-id-utils';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 
 const logger: Logger = initLogger(false, 'workspace');
-
-function minifyJson(obj: object): string {
-    return JSON.stringify(obj);
-}
 
 export async function pushWorkspaceToHub(bundlePath: string, client: CalmHubClient): Promise<void> {
     const manifest = await loadManifest(bundlePath);
@@ -22,12 +18,6 @@ export async function pushWorkspaceToHub(bundlePath: string, client: CalmHubClie
     }
 
     for (const [id, entry] of entries) {
-        if (!entry.namespace) {
-            logger.warn(`Skipping '${id}': no namespace set. Use --namespace when adding files, or re-add with 'calm workspace add --namespace <ns>'`);
-            continue;
-        }
-
-        const namespace = entry.namespace;
         const filePath = path.isAbsolute(entry.path) ? entry.path : path.join(bundlePath, entry.path);
 
         if (!existsSync(filePath)) {
@@ -35,47 +25,55 @@ export async function pushWorkspaceToHub(bundlePath: string, client: CalmHubClie
             continue;
         }
 
-        let localJson: object;
+        let raw: string;
         try {
-            const raw = await readFile(filePath, 'utf8');
-            localJson = JSON.parse(raw);
+            raw = await readFile(filePath, 'utf8');
         } catch (e) {
-            logger.warn(`Failed to parse JSON for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
+            logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
             continue;
         }
 
-        let remoteJson: object | null = null;
+        // The mapping API addresses resources by (namespace, type, mappingId, version),
+        // all encoded in the document's $id. Documents without a well-formed mapping $id
+        // (or whose type has no ResourceType, e.g. flow/adr) cannot be pushed and are skipped.
+        let metadata: DocumentMetadata;
         try {
-            remoteJson = await client.getResource(namespace, id);
-        } catch (e: unknown) {
-            if (e instanceof HubClientError && e.status === 404) {
-                remoteJson = null;
-            } else {
-                logger.error(`Failed to fetch '${id}' from CalmHub: ${e instanceof Error ? e.message : String(e)}`);
-                continue;
-            }
+            metadata = extractDocumentMetadata(raw);
+        } catch (e) {
+            logger.warn(
+                `Skipping '${id}': not mappable to CalmHub. Documents must have a '$id' of the form ` +
+                '$BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION ' +
+                `(${e instanceof Error ? e.message : String(e)})`
+            );
+            continue;
         }
 
-        if (remoteJson === null) {
-            try {
-                const calmHubId = await client.createResource(namespace, id, entry.type as CalmDocumentType, localJson);
-                manifest[id] = { ...entry, calmHubId };
-                await saveManifest(bundlePath, manifest);
-                logger.info(`Created '${id}' -> ${calmHubId}`);
-            } catch (e) {
-                logger.error(`Failed to create '${id}': ${e instanceof Error ? e.message : String(e)}`);
-            }
-        } else if (minifyJson(localJson) !== minifyJson(remoteJson)) {
-            try {
-                const calmHubId = await client.updateResource(namespace, id, localJson);
-                manifest[id] = { ...entry, calmHubId };
-                await saveManifest(bundlePath, manifest);
-                logger.info(`Updated '${id}' -> ${calmHubId}`);
-            } catch (e) {
-                logger.error(`Failed to update '${id}': ${e instanceof Error ? e.message : String(e)}`);
-            }
-        } else {
-            logger.info(`No changes for '${id}' - skipping`);
+        const { namespace, type: resourceType, mapping: mappingId, version } = metadata;
+        if (!namespace) {
+            logger.warn(`Skipping '${id}': document $id has no namespace.`);
+            continue;
+        }
+
+        let existingVersions: string[];
+        try {
+            existingVersions = await client.getMappedResourceVersions(namespace, mappingId, resourceType);
+        } catch (e) {
+            logger.error(`Failed to fetch existing versions for '${id}' from CalmHub: ${e instanceof Error ? e.message : String(e)}`);
+            continue;
+        }
+
+        if (existingVersions.includes(version)) {
+            logger.info(`No changes for '${id}' - version ${version} already exists, skipping`);
+            continue;
+        }
+
+        try {
+            const calmHubId = await client.createMappedResourceVersion(metadata, raw);
+            manifest[id] = { ...entry, calmHubId };
+            await saveManifest(bundlePath, manifest);
+            logger.info(`Pushed '${id}' version ${version} -> ${calmHubId}`);
+        } catch (e) {
+            logger.error(`Failed to push '${id}': ${e instanceof Error ? e.message : String(e)}`);
         }
     }
 }
