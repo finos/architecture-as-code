@@ -16,7 +16,9 @@ const mocks = vi.hoisted(() => {
         createNewDocument: vi.fn(async () => '/fake/repo/com.example-architecture-my-arch.json'),
         getTemplatesForType: vi.fn(async () => ['empty']),
         pushWorkspaceToHub: vi.fn(async () => { }),
-        updateWorkspaceRefs: vi.fn(async () => []),
+        detectChangedResources: vi.fn(async () => []),
+        bumpWorkspace: vi.fn(async () => ({ bumped: [], refUpdates: [] })),
+        loadWorkspaceConfig: vi.fn(async () => ({ push: { onExisting: 'skip' }, bump: { defaultIncrement: 'MINOR' } })),
         findWorkspaceManifestPath: vi.fn(() => '/fake/bundle'),
         findGitRoot: vi.fn(() => '/fake/repo'),
         loadManifest: vi.fn(async () => ({})),
@@ -63,8 +65,13 @@ vi.mock('./push', () => ({
     pushWorkspaceToHub: mocks.pushWorkspaceToHub,
 }));
 
-vi.mock('./update-refs', () => ({
-    updateWorkspaceRefs: mocks.updateWorkspaceRefs,
+vi.mock('./bump', () => ({
+    detectChangedResources: mocks.detectChangedResources,
+    bumpWorkspace: mocks.bumpWorkspace,
+}));
+
+vi.mock('./config', () => ({
+    loadWorkspaceConfig: mocks.loadWorkspaceConfig,
 }));
 
 vi.mock('../../workspace-resolver', () => ({
@@ -417,7 +424,37 @@ describe('setupWorkspaceCommands', () => {
             });
             expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
                 '/fake/bundle',
-                expect.objectContaining({ isMockClient: true })
+                expect.objectContaining({ isMockClient: true }),
+                { onExisting: 'skip' }
+            );
+        });
+
+        it('passes onExisting: fail from --fail-on-existing', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'push', '--fail-on-existing']);
+            expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { onExisting: 'fail' }
+            );
+        });
+
+        it('passes onExisting from the central workspace config', async () => {
+            mocks.loadWorkspaceConfig.mockResolvedValueOnce({ push: { onExisting: 'fail' }, bump: { defaultIncrement: 'MINOR' } } as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'push']);
+            expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { onExisting: 'fail' }
+            );
+        });
+
+        it('passes onExisting undefined when no git root / config is found', async () => {
+            mocks.findGitRoot.mockReturnValueOnce(null as unknown as string);
+            await program.parseAsync(['node', 'test', 'workspace', 'push']);
+            expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { onExisting: undefined }
             );
         });
 
@@ -447,54 +484,87 @@ describe('setupWorkspaceCommands', () => {
         });
     });
 
-    describe('workspace update-refs', () => {
-        it('calls updateWorkspaceRefs with the bundle path', async () => {
-            mocks.updateWorkspaceRefs.mockResolvedValueOnce([]);
-            await program.parseAsync(['node', 'test', 'workspace', 'update-refs']);
-            expect(mocks.updateWorkspaceRefs).toHaveBeenCalledWith('/fake/bundle', { dryRun: undefined });
+    describe('workspace check', () => {
+        it('reports up to date and does not exit when nothing changed', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(mocks.detectChangedResources).toHaveBeenCalledWith('/fake/bundle', expect.objectContaining({ isMockClient: true }));
+            expect(exitSpy).not.toHaveBeenCalled();
         });
 
-        it('passes dryRun: true when --dry-run is provided', async () => {
-            mocks.updateWorkspaceRefs.mockResolvedValueOnce([]);
-            await program.parseAsync(['node', 'test', 'workspace', 'update-refs', '--dry-run']);
-            expect(mocks.updateWorkspaceRefs).toHaveBeenCalledWith('/fake/bundle', { dryRun: true });
-        });
-
-        it('logs "no references needed" when there are no changes', async () => {
-            mocks.updateWorkspaceRefs.mockResolvedValueOnce([
-                { docId: 'doc-a', filePath: '/fake/bundle/files/doc-a.json', changeCount: 0 },
+        it('exits 1 when changed documents need bumping', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/x', metadata: {}, currentVersion: '1.0.0', latestHubVersion: '1.0.0' },
             ] as never);
-            await program.parseAsync(['node', 'test', 'workspace', 'update-refs']);
-            // No error thrown — success path
-            expect(mocks.updateWorkspaceRefs).toHaveBeenCalled();
-        });
-
-        it('logs dry-run summary when changes exist and --dry-run is set', async () => {
-            mocks.updateWorkspaceRefs.mockResolvedValueOnce([
-                { docId: 'doc-a', filePath: '/fake/bundle/files/doc-a.json', changeCount: 3 },
-            ] as never);
-            await program.parseAsync(['node', 'test', 'workspace', 'update-refs', '--dry-run']);
-            expect(mocks.updateWorkspaceRefs).toHaveBeenCalledWith('/fake/bundle', { dryRun: true });
-        });
-
-        it('logs updated summary when changes exist without --dry-run', async () => {
-            mocks.updateWorkspaceRefs.mockResolvedValueOnce([
-                { docId: 'doc-a', filePath: '/fake/bundle/files/doc-a.json', changeCount: 2 },
-            ] as never);
-            await program.parseAsync(['node', 'test', 'workspace', 'update-refs']);
-            expect(mocks.updateWorkspaceRefs).toHaveBeenCalledWith('/fake/bundle', { dryRun: undefined });
-        });
-
-        it('exits when no workspace bundle is found', async () => {
-            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null as unknown as string);
-            await expect(program.parseAsync(['node', 'test', 'workspace', 'update-refs'])).rejects.toThrow();
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
 
-        it('exits on updateWorkspaceRefs error', async () => {
-            mocks.updateWorkspaceRefs.mockRejectedValueOnce(new Error('update failed'));
-            await expect(program.parseAsync(['node', 'test', 'workspace', 'update-refs'])).rejects.toThrow();
+        it('exits on detectChangedResources error', async () => {
+            mocks.detectChangedResources.mockRejectedValueOnce(new Error('boom'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
     });
+
+    describe('workspace bump', () => {
+        it('uses the config default increment (MINOR) when no flag is given', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { increment: 'MINOR' }
+            );
+        });
+
+        it('--major overrides the config default', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--major']);
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { increment: 'MAJOR' }
+            );
+        });
+
+        it('defaults to MINOR when no git root / config is found', async () => {
+            mocks.findGitRoot.mockReturnValueOnce(null as unknown as string);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { increment: 'MINOR' }
+            );
+        });
+
+        it('logs a summary of bumped documents and reference updates', async () => {
+            mocks.bumpWorkspace.mockResolvedValueOnce({
+                bumped: [{ id: 'doc-a', filePath: '/x', fromVersion: '1.0.0', toVersion: '1.1.0' }],
+                refUpdates: [{ docId: 'doc-b', filePath: '/y', changeCount: 2 }],
+            } as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.bumpWorkspace).toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('--patch overrides the config default', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--patch']);
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { increment: 'PATCH' }
+            );
+        });
+
+        it('exits when --major and --patch are combined', async () => {
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'bump', '--major', '--patch'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits on bumpWorkspace error', async () => {
+            mocks.bumpWorkspace.mockRejectedValueOnce(new Error('bump failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'bump'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
 });

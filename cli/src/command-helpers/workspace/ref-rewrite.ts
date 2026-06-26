@@ -1,12 +1,17 @@
 import path from 'path';
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest, REFERENCE_PROPERTIES, WorkspaceManifest } from './bundle';
+import { REFERENCE_PROPERTIES, WorkspaceManifest } from './bundle';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 
 const logger: Logger = initLogger(false, 'workspace');
 
-type RefRule = {
+/**
+ * A rewrite rule for a single tracked document. References pointing at this document — by bare id,
+ * by any versioned CalmHub path, or by full URL — are repointed to `targetPath` (the document's
+ * current `$id`).
+ */
+export type RefRule = {
     bareId: string;
     targetPath: string;
     basePath: string | null;
@@ -19,7 +24,7 @@ export type RefUpdateResult = {
 };
 
 /**
- * Strip `/versions/<version>` suffix from a CalmHub path.
+ * Strip the `/versions/<version>` suffix from a CalmHub path.
  * Returns the base path, or null if the input has no version segment.
  */
 export function stripVersionSuffix(ref: string): string | null {
@@ -27,26 +32,14 @@ export function stripVersionSuffix(ref: string): string | null {
     return m ? m[1] : null;
 }
 
-export function buildRefRules(manifest: WorkspaceManifest): RefRule[] {
-    return Object.entries(manifest)
-        .filter(([, entry]) => !!entry.calmHubId)
-        .map(([id, entry]) => ({
-            bareId: id,
-            targetPath: entry.calmHubId!,
-            basePath: stripVersionSuffix(entry.calmHubId!),
-        }));
-}
-
 /**
  * Decide what a single ref string should be replaced with.
  * Returns the replacement string, or null if no change is needed.
  *
- * Handles three forms:
- *  1. Bare ID (e.g. "workshop-pattern") matching a manifest key
- *  2. CalmHub path with a stale version (e.g. /calm/namespaces/ns/doc/versions/1.0.0)
- *  3. Full CalmHub URL with a stale version (same but prefixed with https://host)
- *
- * Fragment identifiers (#/...) are preserved in the output.
+ * Handles three forms, preserving any `#/...` fragment:
+ *  1. Bare ID (e.g. "workshop-pattern") matching a rule's bareId
+ *  2. CalmHub path with a different version (e.g. /calm/namespaces/ns/type/doc/versions/1.0.0)
+ *  3. Full CalmHub URL with a different version (same but prefixed with https://host)
  */
 export function resolveNewRef(ref: string, rules: RefRule[]): string | null {
     const fragmentIdx = ref.indexOf('#');
@@ -115,7 +108,10 @@ function replaceRefValue(
     return value;
 }
 
-function replaceRefsInObject(
+/**
+ * Recursively walk a JSON value, rewriting only the values of REFERENCE_PROPERTIES keys.
+ */
+export function replaceRefsInObject(
     obj: unknown,
     rules: RefRule[],
     replacements: Array<{ oldRef: string; newRef: string }>
@@ -137,23 +133,56 @@ function replaceRefsInObject(
     return obj;
 }
 
-export async function updateWorkspaceRefs(
-    bundlePath: string,
-    options?: { dryRun?: boolean }
-): Promise<RefUpdateResult[]> {
-    const manifest = await loadManifest(bundlePath);
-    const rules = buildRefRules(manifest);
+function resolveFilePath(bundlePath: string, entryPath: string): string {
+    return path.isAbsolute(entryPath) ? entryPath : path.join(bundlePath, entryPath);
+}
 
-    if (rules.length === 0) {
-        logger.warn('No documents with CalmHub IDs found. Run `calm workspace push` first.');
-        return [];
+/**
+ * Build rewrite rules from the *current on-disk* `$id` of every tracked document. Any reference to
+ * a tracked document (bare id, stale versioned path, or full URL) is mapped to that document's
+ * current `$id`. Documents without a usable `$id` are skipped as targets (they can still contain
+ * references that get rewritten).
+ */
+export async function buildRefRulesFromDiskIds(
+    manifest: WorkspaceManifest,
+    bundlePath: string
+): Promise<RefRule[]> {
+    const rules: RefRule[] = [];
+    for (const [id, entry] of Object.entries(manifest)) {
+        const filePath = resolveFilePath(bundlePath, entry.path);
+        if (!existsSync(filePath)) continue;
+        try {
+            const raw = await readFile(filePath, 'utf8');
+            const json = JSON.parse(raw);
+            const documentId = json?.['$id'];
+            if (typeof documentId !== 'string' || !documentId.trim()) continue;
+            rules.push({
+                bareId: id,
+                targetPath: documentId,
+                basePath: stripVersionSuffix(documentId),
+            });
+        } catch {
+            // unreadable / invalid JSON — cannot be a rule target
+            continue;
+        }
     }
+    return rules;
+}
 
+/**
+ * Rewrite references across all tracked documents according to the given rules, writing back any
+ * file that changed. Idempotent: a second run finds references already at their target and is a
+ * no-op.
+ */
+export async function syncReferences(
+    bundlePath: string,
+    manifest: WorkspaceManifest,
+    rules: RefRule[]
+): Promise<RefUpdateResult[]> {
     const results: RefUpdateResult[] = [];
 
     for (const [id, entry] of Object.entries(manifest)) {
-        const filePath = path.isAbsolute(entry.path) ? entry.path : path.join(bundlePath, entry.path);
-
+        const filePath = resolveFilePath(bundlePath, entry.path);
         if (!existsSync(filePath)) {
             logger.warn(`File not found for '${id}': ${filePath}`);
             continue;
@@ -161,8 +190,7 @@ export async function updateWorkspaceRefs(
 
         let json: unknown;
         try {
-            const raw = await readFile(filePath, 'utf8');
-            json = JSON.parse(raw);
+            json = JSON.parse(await readFile(filePath, 'utf8'));
         } catch (e) {
             logger.warn(`Could not parse '${id}': ${e instanceof Error ? e.message : String(e)}`);
             continue;
@@ -176,9 +204,7 @@ export async function updateWorkspaceRefs(
             for (const r of replacements) {
                 logger.info(`  ${r.oldRef} -> ${r.newRef}`);
             }
-            if (!options?.dryRun) {
-                await writeFile(filePath, JSON.stringify(updated, null, 2), 'utf8');
-            }
+            await writeFile(filePath, JSON.stringify(updated, null, 2), 'utf8');
         }
 
         results.push({ docId: id, filePath, changeCount: replacements.length });

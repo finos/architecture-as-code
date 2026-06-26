@@ -7,12 +7,13 @@ import { removeDocumentFromManifest } from './rm';
 import { populateWorkspaceBundle } from './populate';
 import { createNewDocument, getTemplatesForType } from './new';
 import { pushWorkspaceToHub } from './push';
-import { updateWorkspaceRefs } from './update-refs';
+import { detectChangedResources, bumpWorkspace } from './bump';
+import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 import { select, input } from '@inquirer/prompts';
 import { CALM_DOCUMENT_TYPES_LIST } from '@finos/calm-shared/src/document-loader/document-loader';
-import { CalmHubClient } from '@finos/calm-shared/src/hub/calm-hub-client';
+import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { loadCliConfig } from '../../cli-config';
 
 const logger: Logger = initLogger(false, 'workspace');
@@ -312,7 +313,34 @@ export function setupWorkspaceCommands(program: Command) {
 
     workspaceCmd
         .command('push')
-        .description('Push all files in the current workspace manifest to CalmHub, creating or updating resources as needed')
+        .description('Push all files in the current workspace manifest to CalmHub. Does not auto-bump; pushes the version each document declares.')
+        .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
+        .option('--fail-on-existing', 'Fail if a version already exists in CalmHub (overrides the workspace config; strict merge-time mode)')
+        .action(async (options: { calmHubUrl?: string; failOnExisting?: boolean }) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                const calmHubUrl = await resolveCalmHubUrl(options.calmHubUrl);
+
+                const gitRoot = findGitRoot(process.cwd());
+                const workspaceConfig = gitRoot ? await loadWorkspaceConfig(gitRoot) : undefined;
+                const onExisting = options.failOnExisting ? 'fail' : workspaceConfig?.push.onExisting;
+
+                const client = new CalmHubClient({ calmHubUrl });
+                await pushWorkspaceToHub(bundlePath, client, { onExisting });
+            } catch (err) {
+                logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('check')
+        .description('Check whether any tracked documents have changed on disk relative to CalmHub and need a version bump. Exits non-zero if so (CI/PR gate).')
         .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
         .action(async (options: { calmHubUrl?: string }) => {
             try {
@@ -322,26 +350,33 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const config = await loadCliConfig();
-                const calmHubUrl = options.calmHubUrl ?? config?.calmHubUrl;
-                if (!calmHubUrl) {
-                    logger.error('No CalmHub URL configured. Use --calm-hub-url or set calmHubUrl in ~/.calm.json');
-                    process.exit(1);
+                const calmHubUrl = await resolveCalmHubUrl(options.calmHubUrl);
+                const client = new CalmHubClient({ calmHubUrl });
+                const changed = await detectChangedResources(bundlePath, client);
+
+                if (changed.length === 0) {
+                    logger.info('Workspace is up to date - no documents need bumping.');
+                    return;
                 }
 
-                const client = new CalmHubClient({ calmHubUrl });
-                await pushWorkspaceToHub(bundlePath, client);
+                logger.error(`${changed.length} document(s) changed on disk but not bumped:`);
+                for (const c of changed) {
+                    logger.error(`  ${c.id} (current version ${c.currentVersion}). Run \`calm workspace bump\`.`);
+                }
+                process.exit(1);
             } catch (err) {
-                logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to check workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
 
     workspaceCmd
-        .command('update-refs')
-        .description('Update references in tracked documents to use current CalmHub IDs. Replaces bare document IDs and stale versioned paths/URLs with the latest CalmHub location for each document.')
-        .option('--dry-run', 'Preview changes without writing files')
-        .action(async (options: { dryRun?: boolean }) => {
+        .command('bump')
+        .description('Bump the version of any tracked document changed on disk relative to CalmHub, and update all references to point at the new version.')
+        .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
+        .option('--major', 'Apply a major version bump')
+        .option('--patch', 'Apply a patch version bump')
+        .action(async (options: { calmHubUrl?: string; major?: boolean; patch?: boolean }) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
                 if (!bundlePath) {
@@ -349,22 +384,52 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const results = await updateWorkspaceRefs(bundlePath, { dryRun: options.dryRun });
-                const totalChanges = results.reduce((sum, r) => sum + r.changeCount, 0);
-                const changedFiles = results.filter(r => r.changeCount > 0).length;
+                if (options.major && options.patch) {
+                    logger.error('Cannot use --major and --patch together.');
+                    process.exit(1);
+                }
 
-                if (totalChanges === 0) {
-                    logger.info('No references needed updating.');
-                } else if (options.dryRun) {
-                    logger.info(`Dry run: ${totalChanges} reference(s) across ${changedFiles} file(s) would be updated.`);
+                const calmHubUrl = await resolveCalmHubUrl(options.calmHubUrl);
+
+                const gitRoot = findGitRoot(process.cwd());
+                const workspaceConfig = gitRoot ? await loadWorkspaceConfig(gitRoot) : undefined;
+                const flagIncrement: ResourceChangeType | undefined =
+                    options.major ? 'MAJOR' : options.patch ? 'PATCH' : undefined;
+                const increment: ResourceChangeType = flagIncrement ?? workspaceConfig?.bump.defaultIncrement ?? 'MINOR';
+
+                const client = new CalmHubClient({ calmHubUrl });
+                const result = await bumpWorkspace(bundlePath, client, { increment });
+
+                if (result.bumped.length === 0) {
+                    logger.info('No documents needed bumping.');
                 } else {
-                    logger.info(`Updated ${totalChanges} reference(s) across ${changedFiles} file(s).`);
+                    logger.info(`Bumped ${result.bumped.length} document(s):`);
+                    for (const b of result.bumped) {
+                        logger.info(`  ${b.id}: ${b.fromVersion} -> ${b.toVersion}`);
+                    }
+                    const refChanges = result.refUpdates.reduce((sum, r) => sum + r.changeCount, 0);
+                    if (refChanges > 0) {
+                        logger.info(`Updated ${refChanges} reference(s) across the workspace to match.`);
+                    }
                 }
             } catch (err) {
-                logger.error('Failed to update refs: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to bump workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
+}
+
+/**
+ * Resolve the CalmHub URL from the CLI option or `~/.calm.json`, exiting the process if neither is set.
+ */
+async function resolveCalmHubUrl(optionUrl?: string): Promise<string> {
+    const config = await loadCliConfig();
+    const calmHubUrl = optionUrl ?? config?.calmHubUrl;
+    if (!calmHubUrl) {
+        logger.error('No CalmHub URL configured. Use --calm-hub-url or set calmHubUrl in ~/.calm.json');
+        process.exit(1);
+    }
+    return calmHubUrl;
 }
 
 async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: string[]): Promise<string> {

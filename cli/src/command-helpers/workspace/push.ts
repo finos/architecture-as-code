@@ -5,10 +5,25 @@ import { loadManifest, saveManifest } from './bundle';
 import { CalmHubClient } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { DocumentMetadata, extractDocumentMetadata } from '@finos/calm-shared/src/hub/document-id-utils';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
+import { OnExisting } from './config';
 
 const logger: Logger = initLogger(false, 'workspace');
 
-export async function pushWorkspaceToHub(bundlePath: string, client: CalmHubClient): Promise<void> {
+export interface PushOptions {
+    /**
+     * What to do when the version a document declares already exists in CalmHub.
+     *  - `skip` (default): log and move on (idempotent local pushes)
+     *  - `fail`: report the conflict and fail the push once all entries are processed (merge-time CI)
+     */
+    onExisting?: OnExisting;
+}
+
+export async function pushWorkspaceToHub(
+    bundlePath: string,
+    client: CalmHubClient,
+    options: PushOptions = {}
+): Promise<void> {
+    const onExisting: OnExisting = options.onExisting ?? 'skip';
     const manifest = await loadManifest(bundlePath);
     const entries = Object.entries(manifest);
 
@@ -16,6 +31,8 @@ export async function pushWorkspaceToHub(bundlePath: string, client: CalmHubClie
         logger.warn('No files in workspace manifest to push.');
         return;
     }
+
+    const conflicts: string[] = [];
 
     for (const [id, entry] of entries) {
         const filePath = path.isAbsolute(entry.path) ? entry.path : path.join(bundlePath, entry.path);
@@ -63,7 +80,12 @@ export async function pushWorkspaceToHub(bundlePath: string, client: CalmHubClie
         }
 
         if (existingVersions.includes(version)) {
-            logger.info(`No changes for '${id}' - version ${version} already exists, skipping`);
+            if (onExisting === 'fail') {
+                logger.error(`'${id}' version ${version} already exists in CalmHub.`);
+                conflicts.push(`${id}@${version}`);
+            } else {
+                logger.info(`No changes for '${id}' - version ${version} already exists, skipping`);
+            }
             continue;
         }
 
@@ -75,5 +97,12 @@ export async function pushWorkspaceToHub(bundlePath: string, client: CalmHubClie
         } catch (e) {
             logger.error(`Failed to push '${id}': ${e instanceof Error ? e.message : String(e)}`);
         }
+    }
+
+    if (conflicts.length > 0) {
+        throw new Error(
+            `Push failed: ${conflicts.length} version(s) already exist in CalmHub (${conflicts.join(', ')}). ` +
+            'Run `calm workspace bump` to create new versions for changed documents.'
+        );
     }
 }

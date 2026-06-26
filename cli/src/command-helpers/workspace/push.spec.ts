@@ -212,4 +212,55 @@ describe('pushWorkspaceToHub', () => {
             JSON.stringify(docB)
         );
     });
+
+    describe('onExisting: fail (strict merge-time push)', () => {
+        it('throws when a version already exists', async () => {
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0']),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client, { onExisting: 'fail' })).rejects.toThrow();
+            expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
+        });
+
+        it('still creates new versions and reports all conflicts before failing', async () => {
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
+            await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docB));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+                'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+            });
+            // doc-a already exists (1.0.0), doc-b is new
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn(async (_ns: string, mappingId: string) =>
+                    mappingId === 'doc-a' ? ['1.0.0'] : []),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-b')),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client, { onExisting: 'fail' })).rejects.toThrow(/doc-a@1\.0\.0/);
+            expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
+            expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'doc-b' }),
+                JSON.stringify(docB)
+            );
+        });
+
+        it('succeeds when all versions are new', async () => {
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue([]),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a')),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client, { onExisting: 'fail' })).resolves.not.toThrow();
+            expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
+        });
+    });
 });
