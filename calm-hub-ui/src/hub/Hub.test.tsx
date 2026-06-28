@@ -108,15 +108,11 @@ vi.mock('../service/counts-service', () => ({
 }));
 
 vi.mock('./components/json-renderer/JsonRenderer', () => ({
-    JsonRenderer: ({ json }: { json: unknown }) => (
-        <div data-testid="json-renderer">{json ? 'JSON' : ''}</div>
-    ),
+    JsonRenderer: ({ json }: { json: unknown }) => <div data-testid="json-renderer">{json ? 'JSON' : ''}</div>,
 }));
 
 vi.mock('./components/adr-renderer/AdrRenderer', () => ({
-    AdrRenderer: ({ adrDetails }: { adrDetails: { id?: string } }) => (
-        <div data-testid="adr-renderer">ADR: {adrDetails?.id}</div>
-    ),
+    AdrRenderer: ({ adrDetails }: { adrDetails: { id?: string } }) => <div data-testid="adr-renderer">ADR: {adrDetails?.id}</div>,
 }));
 
 vi.mock('./components/control-detail-section/ControlDetailSection', () => ({
@@ -136,13 +132,7 @@ vi.mock('../components/navbar/Navbar', () => ({
 }));
 
 vi.mock('./components/diagram-section/DiagramSection', () => ({
-    DiagramSection: ({
-        data,
-        onItemSelect,
-    }: {
-        data: { id?: string };
-        onItemSelect?: (item: { data: unknown }) => void;
-    }) => (
+    DiagramSection: ({ data, onItemSelect }: { data: { id?: string }; onItemSelect?: (item: { data: unknown }) => void }) => (
         <div data-testid="diagram-section">
             Diagram: {data?.id}
             {/* Lets tests simulate a node/edge tap on the graph so Hub's node-detail
@@ -439,21 +429,64 @@ describe('Hub', () => {
             expect(await screen.findByTestId('namespace-page')).toHaveTextContent('Namespace: finos (1)');
         });
 
-        it('shows an in-place control load on a domain page and keeps it across a no-nav re-render', () => {
+        it('opens a control detail panel beside the domain grid and keeps both across a no-nav re-render', () => {
             renderAt('/domain/security');
-            // Before selecting a control, the domain page (control list) shows.
+            // Before selecting a control, the domain page (card grid) shows.
             expect(screen.getByTestId('domain-page')).toBeInTheDocument();
 
-            // Selecting a control loads it in place (no navigation) — control detail shows.
+            // Selecting a control opens its panel in place (no navigation): the
+            // control detail shows AND the card grid stays, so closing the panel
+            // returns to the grid rather than navigating "back" out of the domain.
             loadControl();
             expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
-            expect(screen.queryByTestId('domain-page')).not.toBeInTheDocument();
+            expect(screen.getByTestId('domain-page')).toBeInTheDocument();
 
             // A re-render that does NOT navigate (e.g. collapsing the sidebar) must not
             // clear the in-place control — location.key is unchanged.
             fireEvent.click(screen.getByLabelText('Collapse sidebar'));
             expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
-            expect(screen.queryByTestId('domain-page')).not.toBeInTheDocument();
+            expect(screen.getByTestId('domain-page')).toBeInTheDocument();
+        });
+
+        it('closes the control panel back to the grid without navigating', () => {
+            renderAt('/domain/security');
+            loadControl();
+            expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+
+            // Closing the panel clears the in-place control; the grid remains.
+            fireEvent.click(screen.getByLabelText('Close control details'));
+            expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
+            expect(screen.getByTestId('domain-page')).toBeInTheDocument();
+        });
+
+        it('on the detail route, keeps the domain grid behind the panel and closes back to the grid', () => {
+            // A control reached via the detail route (deep-link / mobile drill-down,
+            // which navigates to /:domain/controls/:id/detail) must not blank the
+            // content pane behind the panel, and closing must land on the grid.
+            renderWithNav('/test-domain/controls/1/detail', []);
+            loadControl(); // domain: 'test-domain'
+            expect(screen.getByTestId('domain-page')).toHaveTextContent('Domain: test-domain');
+            expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+
+            // Close from a detail route navigates to /domain/test-domain → grid, no panel.
+            fireEvent.click(screen.getByLabelText('Close control details'));
+            expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
+            expect(screen.getByTestId('domain-page')).toHaveTextContent('Domain: test-domain');
+        });
+
+        it('renders the control panel as a full-screen takeover on mobile', () => {
+            const restore = mockMobileViewport(true);
+            try {
+                renderAt('/domain/security');
+                loadControl();
+                const closeBtn = screen.getByLabelText('Close control details');
+                expect(closeBtn).toBeInTheDocument();
+                // On mobile the panel is wrapped in a full-screen takeover dialog
+                // (desktop renders it inline, with no enclosing dialog).
+                expect(closeBtn.closest('[role="dialog"]')).not.toBeNull();
+            } finally {
+                restore();
+            }
         });
 
         it('returns to the domain control list when re-navigating to the already-active domain (B2)', () => {
