@@ -11,10 +11,15 @@ vi.mock('../../../service/control-service.js', () => ({
     }); }),
 }));
 
-const renderPage = (controlCount = 2, onControlLoad = vi.fn()) =>
+const renderPage = (controlCount = 2, onControlLoad = vi.fn(), selectedControlId?: number) =>
     render(
         <MemoryRouter>
-            <DomainPage domain="security" controlCount={controlCount} onControlLoad={onControlLoad} />
+            <DomainPage
+                domain="security"
+                controlCount={controlCount}
+                onControlLoad={onControlLoad}
+                selectedControlId={selectedControlId}
+            />
         </MemoryRouter>
     );
 
@@ -45,6 +50,14 @@ describe('DomainPage', () => {
         renderPage();
         expect(await screen.findByText('Encryption')).toBeInTheDocument();
         expect(screen.getByText('Access Control')).toBeInTheDocument();
+    });
+
+    it('marks the selected control card as active', async () => {
+        renderPage(2, vi.fn(), 5);
+        const selected = await screen.findByText('Encryption');
+        expect(selected).toHaveAttribute('aria-pressed', 'true');
+        // The other card is not selected.
+        expect(screen.getByText('Access Control')).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('loads a control via onControlLoad when a control is clicked', async () => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { useLocation, useMatch } from 'react-router-dom';
+import { useLocation, useMatch, useNavigate } from 'react-router-dom';
 import { IoChevronForwardOutline, IoCompassOutline } from 'react-icons/io5';
 import { ExploreRail } from './components/explore-rail/ExploreRail.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
@@ -16,7 +16,7 @@ import { CountsService } from '../service/counts-service.js';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { DocumentDetailSection } from './components/document-detail-section/DocumentDetailSection.js';
-import { ControlDetailSection } from './components/control-detail-section/ControlDetailSection.js';
+import { ControlPanel } from './components/control-detail-section/ControlPanel.js';
 import { InterfaceDetailSection } from './components/interface-detail-section/InterfaceDetailSection.js';
 import { DiagramSection } from './components/diagram-section/DiagramSection.js';
 import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
@@ -43,6 +43,7 @@ export default function Hub() {
     // is reused across `/`, `/namespace/:ns`, `/domain/:domain` and the detail
     // route, so the URL — not residual state — decides what renders.
     const { key: locationKey } = useLocation();
+    const navigate = useNavigate();
     const namespaceMatch = useMatch('/namespace/:ns');
     const domainMatch = useMatch('/domain/:domain');
     const detailMatch = useMatch('/:namespace/:type/:id/:version');
@@ -64,7 +65,10 @@ export default function Hub() {
             // unknown (loading)" from "known zero" — an absent namespace after the
             // fetch settles is genuinely zero, not still loading.
             .finally(() => setNamespaceCountsLoaded(true));
-        countsService.fetchDomainCounts().then(setDomainCounts).catch(() => setDomainCounts([]));
+        countsService
+            .fetchDomainCounts()
+            .then(setDomainCounts)
+            .catch(() => setDomainCounts([]));
     }, [countsService]);
 
     useEffect(() => {
@@ -146,6 +150,19 @@ export default function Hub() {
         setSelectedItem(null);
     }, []);
 
+    // Closes the control detail panel. On the detail route (a control reached via a
+    // deep-link or the mobile drill-down, which navigates to /:domain/controls/:id/
+    // detail) navigate to the domain grid so closing lands on the cards, not a blank
+    // detail route. For an in-place selection on /domain/:domain the grid is already
+    // the backdrop, so just clear the control.
+    const handleControlClose = useCallback(() => {
+        if (isDetailRoute && controlData) {
+            navigate(`/domain/${encodeURIComponent(controlData.domain)}`);
+        } else {
+            setControlData(undefined);
+        }
+    }, [isDetailRoute, controlData, navigate]);
+
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
 
     // Mobile node bottom-sheet prev/next steppers (Frame G). The ordered node list
@@ -174,12 +191,9 @@ export default function Hub() {
         [diagramNodes]
     );
 
-    const onPrevNode =
-        selectedNodeIndex > 0 ? () => stepToNode(selectedNodeIndex - 1) : undefined;
+    const onPrevNode = selectedNodeIndex > 0 ? () => stepToNode(selectedNodeIndex - 1) : undefined;
     const onNextNode =
-        selectedNodeIndex >= 0 && selectedNodeIndex < diagramNodes.length - 1
-            ? () => stepToNode(selectedNodeIndex + 1)
-            : undefined;
+        selectedNodeIndex >= 0 && selectedNodeIndex < diagramNodes.length - 1 ? () => stepToNode(selectedNodeIndex + 1) : undefined;
 
     // The active namespace's full per-type counts, passed straight to NamespacePage
     // so its type tabs show counts without a second fetch. `undefined` while the
@@ -206,11 +220,17 @@ export default function Hub() {
         () => domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0,
         [domainCounts, activeDomain]
     );
+    // Count for the grid shown behind a selected control's panel — the control's own
+    // domain, which may differ from the route's activeDomain when reached via the
+    // detail route (deep-link / mobile drill-down).
+    const controlDomain = controlData?.domain;
+    const controlDomainCount = useMemo(
+        () => domainCounts.find((c) => c.domain === controlDomain)?.controlCount ?? 0,
+        [domainCounts, controlDomain]
+    );
 
     const detailContent = interfaceData ? (
         <InterfaceDetailSection interfaceData={interfaceData} />
-    ) : controlData ? (
-        <ControlDetailSection controlData={controlData} />
     ) : adrData ? (
         <AdrRenderer adrDetails={adrData} />
     ) : isDiagramView ? (
@@ -220,24 +240,36 @@ export default function Hub() {
     );
 
     // Route decides the content pane. A loaded resource (including an in-place
-    // control/interface selected from the domain/namespace page) takes precedence
-    // over the route-driven page so its detail view shows. With nothing loaded and
-    // no namespace/domain route (i.e. `/`), the first-run landing fills what was
-    // the ~75% blank canvas (redesign problem #7).
-    const content =
-        isDetailRoute || controlData || interfaceData || adrData || data ? (
-            detailContent
-        ) : activeNamespace ? (
-            <NamespacePage namespace={activeNamespace} counts={activeNamespaceCounts} />
-        ) : activeDomain ? (
-            <DomainPage domain={activeDomain} controlCount={domainControlCount} onControlLoad={handleControlLoad} />
-        ) : (
-            <FirstRunLanding
-                namespaceCounts={namespaceCounts}
-                domainCounts={domainCounts}
-                countsLoaded={namespaceCountsLoaded}
-            />
-        );
+    // interface selected from the namespace page) takes precedence over the
+    // route-driven page so its detail view shows. A selected control is the
+    // exception: it keeps its domain's card grid as the backdrop and opens the
+    // ControlPanel beside it (below) rather than replacing the pane — this holds
+    // whether the control was selected in-place on /domain/:domain OR reached via
+    // the detail route (deep-link / mobile drill-down), so the grid is never blank
+    // behind the panel and closing returns to it. With nothing loaded and no
+    // namespace/domain route (i.e. `/`), the first-run landing fills what was the
+    // ~75% blank canvas (redesign problem #7).
+    const content = controlData ? (
+        <DomainPage
+            domain={controlData.domain}
+            controlCount={controlDomainCount}
+            onControlLoad={handleControlLoad}
+            selectedControlId={controlData.controlId}
+        />
+    ) : isDetailRoute || interfaceData || adrData || data ? (
+        detailContent
+    ) : activeNamespace ? (
+        <NamespacePage namespace={activeNamespace} counts={activeNamespaceCounts} />
+    ) : activeDomain ? (
+        <DomainPage
+            domain={activeDomain}
+            controlCount={domainControlCount}
+            onControlLoad={handleControlLoad}
+            selectedControlId={controlData?.controlId}
+        />
+    ) : (
+        <FirstRunLanding namespaceCounts={namespaceCounts} domainCounts={domainCounts} countsLoaded={namespaceCountsLoaded} />
+    );
 
     return (
         <div className="flex flex-col h-screen overflow-hidden">
@@ -303,20 +335,32 @@ export default function Hub() {
                     <div className="flex-1 overflow-auto min-w-0">{content}</div>
                 </div>
 
-                {selectedItem && isDiagramView && (
-                    isMobile ? (
+                {selectedItem &&
+                    isDiagramView &&
+                    (isMobile ? (
                         // Mobile: bottom-sheet that keeps the diagram peeking above
                         // (Frame G), replacing the old full-screen takeover.
-                        <NodeSheet
-                            selectedData={selectedItem.data}
-                            closeSheet={closeSidebar}
-                            onPrev={onPrevNode}
-                            onNext={onNextNode}
-                        />
+                        <NodeSheet selectedData={selectedItem.data} closeSheet={closeSidebar} onPrev={onPrevNode} onNext={onNextNode} />
                     ) : (
                         <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />
-                    )
-                )}
+                    ))}
+
+                {/* Selected control opens a detail panel beside the domain card grid
+                    — the control-domain counterpart of the diagram's node Sidebar.
+                    Desktop: inline right column. Mobile: full-screen takeover. The
+                    grid stays mounted, so closing returns to it (not "back"). */}
+                {controlData &&
+                    (isMobile ? (
+                        <div
+                            className="fixed inset-0 z-40 bg-base-100 animate-slide-in-right flex flex-col"
+                            role="dialog"
+                            aria-modal="true"
+                        >
+                            <ControlPanel controlData={controlData} onClose={handleControlClose} />
+                        </div>
+                    ) : (
+                        <ControlPanel controlData={controlData} onClose={handleControlClose} />
+                    ))}
             </div>
         </div>
     );
