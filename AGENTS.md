@@ -53,7 +53,7 @@ architecture-as-code/
 
 `calm-suite/` holds two products whose packages are wired directly into the **root** npm workspaces (run all npm commands from the repo root, never from inside these folders):
 
-- **`calm-studio/`** (`calmstudio-workspace`) — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo. Sub-packages and the app are root workspaces via `calm-suite/calm-studio/packages/*` and `calm-suite/calm-studio/apps/*`: `@calmstudio/calm-core`, `@calmstudio/calmscript`, `@calmstudio/extensions`, `@calmstudio/github-action`, `@calmstudio/mcp`, `@calmstudio/diagram` (web-component), `calmstudio` (vscode-extension), and `@calmstudio/studio` (app).
+- **`calm-studio/`** (`calmstudio-workspace`) — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo. Sub-packages and the app are root workspaces via `calm-studio/packages/*` and `calm-studio/apps/*`: `@calmstudio/calm-core`, `@calmstudio/calmscript`, `@calmstudio/extensions`, `@calmstudio/github-action`, `@calmstudio/mcp`, `@calmstudio/diagram` (web-component), `calmstudio` (vscode-extension), and `@calmstudio/studio` (app).
 - **`calm-guard/`** (`calmguard`) — a Next.js (App Router) continuous-compliance platform, plus its Docusaurus docs (`calmguard-docs`). Both are root workspaces.
 
 ## Technology Stack
@@ -173,8 +173,8 @@ For detailed guidance on specific packages, see:
 - **[calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md)** - VSCode extension, MVVM architecture
 - **[calm-widgets/AGENTS.md](calm-widgets/AGENTS.md)** - Widget system, Handlebars templates, common pitfalls
 - **[shared/AGENTS.md](shared/AGENTS.md)** - Shared TypeScript utilities consumed across packages
-- **[calm-suite/calm-studio/AGENTS.md](calm-suite/calm-studio/AGENTS.md)** - CalmStudio visual editor, CALM 1.2 rules, nested workspaces
-- **[calm-suite/calm-guard/AGENTS.md](calm-suite/calm-guard/AGENTS.md)** - CALMGuard compliance platform, agents/skills
+- **[calm-studio/AGENTS.md](calm-studio/AGENTS.md)** - CalmStudio visual editor, CALM 1.2 rules, nested workspaces
+- **[calm-guard/AGENTS.md](calm-guard/AGENTS.md)** - CALMGuard compliance platform, agents/skills
 - **[advent-of-calm/AGENTS.md](advent-of-calm/AGENTS.md)** - Educational content, day format, testing
 
 ### When to Use Package-Specific Guides
