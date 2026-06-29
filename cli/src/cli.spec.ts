@@ -798,6 +798,31 @@ describe('CLI Commands', () => {
             }));
         });
 
+        it('passes --fail-if-modified through to the architecture handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'architecture',
+                'arch.json',
+                '--calm-hub-url', 'http://hub',
+                '--fail-if-modified',
+            ]);
+
+            expect(hubCommandsModule.runPushArchitecture).toHaveBeenCalledWith(expect.objectContaining({
+                failIfModified: true,
+            }));
+        });
+
+        it('defaults --fail-if-modified to false when not provided', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'architecture',
+                'arch.json',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushArchitecture).toHaveBeenCalledWith(expect.objectContaining({
+                failIfModified: false,
+            }));
+        });
+
         it('passes --format pretty through to the handler', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'hub', 'push', 'architecture',
@@ -1099,6 +1124,18 @@ describe('CLI Commands', () => {
             expect(hubCommandsModule.runPushControlRequirement).toHaveBeenCalledWith(expect.objectContaining({
                 file: 'req.json',
                 changeType: 'PATCH',
+            }));
+        });
+
+        it('passes --fail-if-modified through to the handler', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'control-requirement', 'req.json',
+                '--calm-hub-url', 'http://hub',
+                '--fail-if-modified',
+            ]);
+
+            expect(hubCommandsModule.runPushControlRequirement).toHaveBeenCalledWith(expect.objectContaining({
+                failIfModified: true,
             }));
         });
     });

@@ -466,6 +466,9 @@ Example:
         .choices(['patch', 'minor', 'major'])
         .default('patch');
 
+    const hubFailIfModifiedOption = new Option('--fail-if-modified', 'Strict mode: do not auto-bump. Skip if the document is unchanged from the latest published version; fail if it has changed. A brand-new mapping is still created at 1.0.0.')
+        .default(false);
+
     const hubCmd = new Command('hub').description('Interact with CALM Hub');
 
     // hub push
@@ -479,6 +482,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (architectureFile, options) => {
             const pushOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
@@ -486,7 +490,8 @@ Example:
                 description: options.description,
                 file: architectureFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushArchitecture(pushOptions);
         });
@@ -499,6 +504,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (patternFile, options) => {
             const pushPatternOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
@@ -507,6 +513,7 @@ Example:
                 file: patternFile,
                 format: options.format,
                 changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushPattern(pushPatternOptions);
         });
@@ -519,6 +526,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (standardFile, options) => {
             const pushStandardOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
@@ -527,6 +535,7 @@ Example:
                 file: standardFile,
                 format: options.format,
                 changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushStandard(pushStandardOptions);
         });
@@ -537,12 +546,14 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (requirementFile, options) => {
             const pushOptions: PushControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 file: requirementFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushControlRequirement(pushOptions);
         });
@@ -553,12 +564,14 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (configFile, options) => {
             const pushOptions: PushControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 file: configFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushControlConfiguration(pushOptions);
         });
