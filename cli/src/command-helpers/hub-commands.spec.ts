@@ -342,8 +342,15 @@ describe('hub-commands', () => {
             it('skips (does not create a new version) when content is unchanged from the latest published version', async () => {
                 const { mockClient } = await getSharedMocks();
                 vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
-                // Latest published version is byte-identical to the local document (key order ignored).
-                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue(JSON.parse(pushDoc('my-arch')));
+                // The stored document is the local doc as Hub normalises it on the way in: $id at the
+                // latest version and a defaulted empty description. The local file (pushDoc) has no
+                // description and is only compared after the same normalisation, so this must match.
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({
+                    $id: 'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.0.0',
+                    title: 'my-arch',
+                    description: '',
+                    nodes: []
+                });
 
                 await runPushArchitecture({
                     calmHubOptions: { calmHubUrl: 'http://hub' },
@@ -356,6 +363,48 @@ describe('hub-commands', () => {
                 expect(fs.writeFile).not.toHaveBeenCalled();
                 expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
                     expect.objectContaining({ status: 'skipped', version: '1.0.0' })
+                );
+            });
+
+            it('does not flag a version-only difference (auto-bumped elsewhere) as modified', async () => {
+                const { mockClient } = await getSharedMocks();
+                // Hub has moved on to 1.1.0; the local file still declares 1.0.0 but the architecture
+                // content is identical. Normalising to the latest version must make these compare equal.
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0']);
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({
+                    $id: 'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.1.0',
+                    title: 'my-arch',
+                    description: '',
+                    nodes: []
+                });
+
+                await runPushArchitecture({
+                    calmHubOptions: { calmHubUrl: 'http://hub' },
+                    file: 'arch.json',
+                    failIfModified: true
+                });
+
+                expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-arch', '1.1.0', 'architectures');
+                expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'skipped', version: '1.1.0' })
+                );
+            });
+
+            it('fails clearly when Hub returns an empty body for the latest version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue(undefined as unknown as object);
+
+                await expect(runPushArchitecture({
+                    calmHubOptions: { calmHubUrl: 'http://hub' },
+                    file: 'arch.json',
+                    failIfModified: true
+                })).rejects.toThrow('process.exit');
+
+                expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    0, expect.stringContaining('Could not read the latest published version'), expect.any(String), 'json'
                 );
             });
 
@@ -1186,6 +1235,52 @@ describe('hub-commands', () => {
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalledWith(409, 'Version already exists', expect.any(String), 'json');
         });
+
+        describe('--fail-if-modified', () => {
+            it('creates 1.0.0 for a brand-new requirement even with the flag set', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+                vi.mocked(mockClient.getControlRequirementVersions).mockResolvedValue([]);
+                vi.mocked(mockClient.createControlRequirementVersion).mockResolvedValue(reqId('1.0.0'));
+
+                await runPushControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', failIfModified: true });
+
+                expect(mockClient.getControlRequirementVersion).not.toHaveBeenCalled();
+                expect(mockClient.createControlRequirementVersion).toHaveBeenCalledWith('security', 'access-control', '1.0.0', expect.any(String));
+            });
+
+            it('skips when the requirement is unchanged from the latest published version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+                vi.mocked(mockClient.getControlRequirementVersions).mockResolvedValue(['1.0.0']);
+                // Stored doc normalised to its latest version (only the $id version differs from disk).
+                vi.mocked(mockClient.getControlRequirementVersion).mockResolvedValue({ $id: reqId('1.0.0'), nodes: [] });
+
+                await runPushControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', failIfModified: true });
+
+                expect(mockClient.getControlRequirementVersion).toHaveBeenCalledWith('security', 'access-control', '1.0.0');
+                expect(mockClient.createControlRequirementVersion).not.toHaveBeenCalled();
+                expect(fs.writeFile).not.toHaveBeenCalled();
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'skipped', version: '1.0.0' })
+                );
+            });
+
+            it('fails when the requirement has changed relative to the latest published version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue(controlReqDoc() as unknown as Uint8Array);
+                vi.mocked(mockClient.getControlRequirementVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getControlRequirementVersion).mockResolvedValue({ $id: reqId('1.0.0'), nodes: [{ 'unique-id': 'changed' }] });
+
+                await expect(runPushControlRequirement({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'req.json', failIfModified: true }))
+                    .rejects.toThrow('process.exit');
+
+                expect(mockClient.createControlRequirementVersion).not.toHaveBeenCalled();
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    0, expect.stringContaining('has changed relative to the latest published version'), expect.any(String), 'json'
+                );
+            });
+        });
     });
 
     // ── runPushControlConfiguration ────────────────────────────────────────────
@@ -1239,6 +1334,38 @@ describe('hub-commands', () => {
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0, expect.stringContaining('describes a control requirement, but a control configuration was expected'), expect.any(String), 'json'
             );
+        });
+
+        describe('--fail-if-modified', () => {
+            it('skips when the configuration is unchanged from the latest published version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue(controlConfigDoc() as unknown as Uint8Array);
+                vi.mocked(mockClient.getControlConfigurationVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getControlConfigurationVersion).mockResolvedValue({ $id: cfgId('1.0.0'), nodes: [] });
+
+                await runPushControlConfiguration({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'config.json', failIfModified: true });
+
+                expect(mockClient.getControlConfigurationVersion).toHaveBeenCalledWith('security', 'access-control', 'prod', '1.0.0');
+                expect(mockClient.createControlConfigurationVersion).not.toHaveBeenCalled();
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'skipped', configName: 'prod', version: '1.0.0' })
+                );
+            });
+
+            it('fails when the configuration has changed relative to the latest published version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue(controlConfigDoc() as unknown as Uint8Array);
+                vi.mocked(mockClient.getControlConfigurationVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getControlConfigurationVersion).mockResolvedValue({ $id: cfgId('1.0.0'), nodes: [{ 'unique-id': 'changed' }] });
+
+                await expect(runPushControlConfiguration({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'config.json', failIfModified: true }))
+                    .rejects.toThrow('process.exit');
+
+                expect(mockClient.createControlConfigurationVersion).not.toHaveBeenCalled();
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    0, expect.stringContaining('has changed relative to the latest published version'), expect.any(String), 'json'
+                );
+            });
         });
     });
 

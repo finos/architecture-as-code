@@ -543,12 +543,14 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (requirementFile, options) => {
             const pushOptions: PushControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 file: requirementFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushControlRequirement(pushOptions);
         });
@@ -559,12 +561,14 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (configFile, options) => {
             const pushOptions: PushControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 file: configFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushControlConfiguration(pushOptions);
         });
