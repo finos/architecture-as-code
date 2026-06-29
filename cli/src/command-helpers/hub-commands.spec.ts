@@ -16,6 +16,8 @@ vi.mock('@finos/calm-shared', async () => {
     const documentIdUtils = await vi.importActual<Record<string, unknown>>('@finos/calm-shared/dist/hub/document-id-utils');
     // Real (pure) semver helpers used by pushDocument's version-bump path.
     const semver = await vi.importActual('@finos/calm-shared/dist/hub/semver');
+    // Real (pure) canonical-equality helper used by pushDocument's fail-if-modified path.
+    const canonical = await vi.importActual('@finos/calm-shared/dist/hub/canonical');
     const mockClient = {
         createNamespace: vi.fn(),
         listNamespaces: vi.fn(),
@@ -41,6 +43,7 @@ vi.mock('@finos/calm-shared', async () => {
         ...documentIdUtils,
         extractDocumentMetadata: vi.fn(documentIdUtils['extractDocumentMetadata'] as (...args: unknown[]) => unknown),
         ...semver,
+        ...canonical,
         CalmHubClient: vi.fn(function () { return mockClient; }),
         HubClientError: class HubClientError extends Error {
             constructor(public status: number, public error: string, public request: string) {
@@ -311,6 +314,74 @@ describe('hub-commands', () => {
                 0, expect.stringContaining('namespace and mapping'), expect.any(String), 'json'
             );
         });
+
+        describe('--fail-if-modified', () => {
+            it('creates 1.0.0 for a brand-new mapping even with the flag set', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue([]);
+                vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
+                    'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.0.0'
+                );
+
+                await runPushArchitecture({
+                    calmHubOptions: { calmHubUrl: 'http://hub' },
+                    file: 'arch.json',
+                    failIfModified: true
+                });
+
+                expect(mockClient.getMappedResourceByVersion).not.toHaveBeenCalled();
+                expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                    expect.objectContaining({ version: '1.0.0' }),
+                    expect.any(String)
+                );
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'created', version: '1.0.0' })
+                );
+            });
+
+            it('skips (does not create a new version) when content is unchanged from the latest published version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+                // Latest published version is byte-identical to the local document (key order ignored).
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue(JSON.parse(pushDoc('my-arch')));
+
+                await runPushArchitecture({
+                    calmHubOptions: { calmHubUrl: 'http://hub' },
+                    file: 'arch.json',
+                    failIfModified: true
+                });
+
+                expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-arch', '1.0.0', 'architectures');
+                expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+                expect(fs.writeFile).not.toHaveBeenCalled();
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'skipped', version: '1.0.0' })
+                );
+            });
+
+            it('fails when the document has changed relative to the latest published version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+                // Latest published version differs from the local document.
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({
+                    $id: 'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.0.0',
+                    title: 'my-arch',
+                    nodes: [{ 'unique-id': 'added-on-disk' }]
+                });
+
+                await expect(runPushArchitecture({
+                    calmHubOptions: { calmHubUrl: 'http://hub' },
+                    file: 'arch.json',
+                    failIfModified: true
+                })).rejects.toThrow('process.exit');
+
+                expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+                expect(fs.writeFile).not.toHaveBeenCalled();
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    0, expect.stringContaining('has changed relative to the latest published version'), expect.any(String), 'json'
+                );
+            });
+        });
     });
 
     // ── runPullArchitecture ────────────────────────────────────────────────
@@ -517,7 +588,7 @@ describe('hub-commands', () => {
     describe('printPushResult', () => {
         it('calls printTableSuccess with correct columns when format is pretty', async () => {
             printPushResult(
-                { mapping: 'my-arch', version: '1.0.0', namespace: 'finos', location: 'http://hub' },
+                { status: 'created', mapping: 'my-arch', version: '1.0.0', namespace: 'finos', location: 'http://hub' },
                 'pretty'
             );
 
@@ -533,8 +604,20 @@ describe('hub-commands', () => {
             expect(hubOutput.printJsonSuccess).not.toHaveBeenCalled();
         });
 
+        it('shows an Unchanged status for a skipped push', async () => {
+            printPushResult(
+                { status: 'skipped', mapping: 'my-arch', version: '1.0.0', namespace: 'finos', location: 'http://hub' },
+                'pretty'
+            );
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ STATUS: 'Unchanged', MAPPING: 'my-arch', VERSION: '1.0.0', LOCATION: 'http://hub' }],
+                expect.anything()
+            );
+        });
+
         it('calls printJsonSuccess when format is json', async () => {
-            const result = { mapping: 'my-arch', version: '1.0.0', namespace: 'finos', location: '/loc' };
+            const result = { status: 'created' as const, mapping: 'my-arch', version: '1.0.0', namespace: 'finos', location: '/loc' };
             printPushResult(result, 'json');
 
             expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(result);

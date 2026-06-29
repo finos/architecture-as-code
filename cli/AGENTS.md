@@ -59,6 +59,7 @@ npm run copy-ai-tools         # Copy AI agent files from ../calm-ai/
 9. **hub** - Command **group** for interacting with CALM Hub. Subcommands:
    - `hub push <resource> <file>` / `hub pull <resource>` / `hub list <resources>` / `hub create <resource>`
    - Resources span architectures, patterns, standards, control-requirements, control-configurations, namespaces, and domains (which subcommands exist varies per verb).
+   - `hub push architecture|pattern|standard` auto-bumps by default (creates a new version off the latest). The `--fail-if-modified` flag switches to a strict, non-bumping mode: a brand-new mapping is still created at `1.0.0`, an unchanged document is skipped, and a document that differs from the latest published version fails the push. Content comparison uses `canonicalEqual` from `@finos/calm-shared` (key-order-insensitive).
 
 ### Important Directories
 ```
