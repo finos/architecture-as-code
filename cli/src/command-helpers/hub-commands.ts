@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -58,13 +58,29 @@ export interface PushOptions {
     version?: string;
     format?: string;
     changeType?: ResourceChangeType;
+    /**
+     * Strict mode. When set, push does not auto-bump: if the mapping already exists, the local
+     * document is compared to the latest published version. Unchanged content is skipped; changed
+     * content fails the push (so a merge introduces only the versions it claims). A brand-new
+     * mapping is still created at 1.0.0.
+     */
+    failIfModified?: boolean;
 }
 
+/** Whether a push created a new version or skipped because the content was unchanged. */
+export type PushAction = 'created' | 'skipped';
+
 export interface PushResult {
+    status: PushAction;
     version: string;
     mapping: string;
     namespace: string;
     location: string;
+}
+
+export interface PushDocumentResult {
+    action: PushAction;
+    metadata: DocumentMetadata;
 }
 
 /**
@@ -74,8 +90,9 @@ export interface PushResult {
  */
 export function printPushResult(result: PushResult, format: OutputFormat): void {
     if (format === 'pretty') {
+        const statusLabel = result.status === 'created' ? 'Created' : 'Unchanged';
         printTableSuccess(
-            [{ STATUS: 'Created', MAPPING: result.mapping, VERSION: result.version, LOCATION: result.location }],
+            [{ STATUS: statusLabel, MAPPING: result.mapping, VERSION: result.version, LOCATION: result.location }],
             [
                 { key: 'STATUS', header: 'STATUS' },
                 { key: 'MAPPING', header: 'MAPPING' },
@@ -156,6 +173,30 @@ export function handleMetadataParsing(fileContent: string, requestedCommand: str
 }
 
 /**
+ * Compare a (already normalised) local document against what CALM Hub has published, for the
+ * `--fail-if-modified` strict-push paths.
+ *
+ * `localNormalised` must be the local file already rewritten the way Hub would store it at the
+ * version being compared (via `updateDocumentMetadata` / `updateControlDocumentMetadata`), so that
+ * version-only or default-field (e.g. `description`) differences are not seen as content changes.
+ *
+ * Throws a `HubCommandError` when `published` is missing/empty (e.g. a 200 with an empty body),
+ * rather than letting that masquerade as a content change.
+ *
+ * @returns `true` when the documents are equal, `false` when the local document has changed.
+ */
+function isUnchangedFromPublished(localNormalised: string, published: unknown, mapping: string, requestLabel: string): boolean {
+    if (!published || typeof published !== 'object' || Object.keys(published).length === 0) {
+        throw new HubCommandError(
+            0,
+            `Could not read the latest published version of '${mapping}' from CALM Hub to compare against (empty response).`,
+            requestLabel
+        );
+    }
+    return canonicalEqual(JSON.parse(localNormalised), published);
+}
+
+/**
  * Handles the actual push stage of the operation i.e. the integration with CalmHub.
  * Checks whether it already exists to determine whether to create a new mapping or update an existing one.
  * @param client The CalmHub client.
@@ -177,7 +218,7 @@ export async function pushDocument(
     fileContent: string, 
     resourceType: ResourceType,
     changeType: ResourceChangeType,
-    options: PushOptions): Promise<DocumentMetadata> {
+    options: PushOptions): Promise<PushDocumentResult> {
 
     // allow changing of name/description if not already set.
     const name = options.name ?? metadata.name;
@@ -197,6 +238,28 @@ export async function pushDocument(
         // Sort defensively so the highest version is last, regardless of the order Hub returns them in.
         const sortedVersions = sortSemVer(mappedResourceVersions);
         const latestVersion = sortedVersions[sortedVersions.length - 1];
+
+        if (options.failIfModified) {
+            // Strict mode: don't auto-bump. Compare the local document to the latest published
+            // version — skip when unchanged, fail when it differs.
+            const latest = await client.getMappedResourceByVersion(namespace, mapping, latestVersion, resourceType);
+            // Normalise the local document to how Hub would have stored it at the latest version
+            // (same $id/version, and default fields such as description applied) so a version-only
+            // or absent-description difference is not mistaken for a content change.
+            const localAtLatest = updateDocumentMetadata(fileContent, { ...newDocumentMetadata, version: latestVersion });
+            const requestLabel = `push ${resourceType} ${options.file}`;
+            if (isUnchangedFromPublished(localAtLatest, latest, mapping, requestLabel)) {
+                newDocumentMetadata.version = latestVersion;
+                return { action: 'skipped', metadata: newDocumentMetadata };
+            }
+            throw new HubCommandError(
+                0,
+                `Document '${mapping}' has changed relative to the latest published version (${latestVersion}) in CALM Hub. ` +
+                'Re-run without --fail-if-modified (optionally with --change-type) to publish a new version.',
+                requestLabel
+            );
+        }
+
         const newVersion = computeSemVerBump(latestVersion, changeType);
         newDocumentMetadata.version = newVersion;
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
@@ -206,7 +269,7 @@ export async function pushDocument(
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }
-    return newDocumentMetadata;
+    return { action: 'created', metadata: newDocumentMetadata };
 }
 
 /**
@@ -237,20 +300,24 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
     const namespace = metadata.namespace;
     const mapping = metadata.mapping;
 
-    let documentMetadata: DocumentMetadata;
     try {
-        documentMetadata = await pushDocument(
-            client, 
-            namespace, 
-            mapping, 
-            metadata, 
-            fileContent, 
-            resourceType, 
-            options.changeType ?? 'PATCH', 
+        const { action, metadata: documentMetadata } = await pushDocument(
+            client,
+            namespace,
+            mapping,
+            metadata,
+            fileContent,
+            resourceType,
+            options.changeType ?? 'PATCH',
             options);
-        const newDocument = updateDocumentMetadata(fileContent, documentMetadata);
-        await writeFile(options.file, newDocument, 'utf-8');
+        // Only rewrite the on-disk document when a new version was actually created; an unchanged
+        // document is left exactly as it is.
+        if (action === 'created') {
+            const newDocument = updateDocumentMetadata(fileContent, documentMetadata);
+            await writeFile(options.file, newDocument, 'utf-8');
+        }
         const result: PushResult = {
+            status: action,
             mapping,
             version: documentMetadata.version!,
             namespace,
@@ -603,9 +670,12 @@ export interface PushControlOptions {
     file: string;
     format?: string;
     changeType?: ResourceChangeType;
+    /** See {@link PushOptions.failIfModified}. */
+    failIfModified?: boolean;
 }
 
 export interface ControlPushResult {
+    status: PushAction;
     domain: string;
     controlName: string;
     configName?: string;
@@ -619,7 +689,7 @@ export interface ControlPushResult {
 function printControlPushResult(result: ControlPushResult, format: OutputFormat): void {
     if (format === 'pretty') {
         const row: Record<string, string> = {
-            STATUS: 'Created',
+            STATUS: result.status === 'created' ? 'Created' : 'Unchanged',
             DOMAIN: result.domain,
             CONTROL: result.controlName
         };
@@ -677,6 +747,35 @@ async function orchestrateControlPush(options: PushControlOptions, kind: Control
             ? await client.getControlConfigurationVersions(metadata.domain, metadata.controlName, metadata.configName!)
             : await client.getControlRequirementVersions(metadata.domain, metadata.controlName);
 
+        const controlLabel = metadata.configName ? `${metadata.controlName}/${metadata.configName}` : metadata.controlName;
+
+        if (options.failIfModified && existingVersions.length > 0) {
+            // Strict mode: don't auto-bump. Compare the local document to the latest published
+            // version — skip when unchanged, fail when it differs.
+            const latestVersion = sortSemVer(existingVersions)[existingVersions.length - 1];
+            const latest = kind === 'configuration'
+                ? await client.getControlConfigurationVersion(metadata.domain, metadata.controlName, metadata.configName!, latestVersion)
+                : await client.getControlRequirementVersion(metadata.domain, metadata.controlName, latestVersion);
+            const localAtLatest = updateControlDocumentMetadata(fileContent, { ...metadata, version: latestVersion });
+            if (isUnchangedFromPublished(localAtLatest, latest, controlLabel, requestedCommand)) {
+                printControlPushResult({
+                    status: 'skipped',
+                    domain: metadata.domain,
+                    controlName: metadata.controlName,
+                    configName: metadata.configName,
+                    version: latestVersion,
+                    location: constructControlDocumentId({ ...metadata, version: latestVersion })
+                }, format);
+                return;
+            }
+            throw new HubCommandError(
+                0,
+                `Control ${kind} '${controlLabel}' has changed relative to the latest published version (${latestVersion}) in CALM Hub. ` +
+                'Re-run without --fail-if-modified (optionally with --change-type) to publish a new version.',
+                requestedCommand
+            );
+        }
+
         let newVersion = '1.0.0';
         if (existingVersions.length > 0) {
             const sorted = sortSemVer(existingVersions);
@@ -693,6 +792,7 @@ async function orchestrateControlPush(options: PushControlOptions, kind: Control
         await writeFile(options.file, fileContent, 'utf-8');
 
         printControlPushResult({
+            status: 'created',
             domain: metadata.domain,
             controlName: metadata.controlName,
             configName: metadata.configName,
