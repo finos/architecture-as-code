@@ -29,6 +29,14 @@ const mocks = vi.hoisted(() => {
         select: vi.fn(async () => 'architecture'),
         input: vi.fn(async () => 'prompted-name'),
         readFile: vi.fn(async () => JSON.stringify({ title: 'My Architecture' })),
+        writeFile: vi.fn(async () => { }),
+        promptForDocumentId: vi.fn(async () => ({
+            id: 'https://calmhub.example.com/calm/namespaces/ns/architectures/my-arch/versions/1.0.0',
+            namespace: 'ns',
+            slug: 'my-arch',
+        })),
+        isConformantDocumentId: vi.fn(() => true),
+        namespaceFromDocumentId: vi.fn(() => 'ns'),
     };
 });
 
@@ -82,9 +90,18 @@ vi.mock('@finos/calm-shared/src/hub/calm-hub-client', () => ({
     CalmHubClient: mocks.CalmHubClient,
 }));
 
+vi.mock('./document-id-prompt', () => ({
+    promptForDocumentId: mocks.promptForDocumentId,
+}));
+
+vi.mock('@finos/calm-shared/src/hub/document-id-utils', () => ({
+    isConformantDocumentId: mocks.isConformantDocumentId,
+    namespaceFromDocumentId: mocks.namespaceFromDocumentId,
+}));
+
 vi.mock('fs/promises', async (importOriginal) => {
     const actual = await importOriginal<typeof import('fs/promises')>();
-    return { ...actual, readFile: mocks.readFile };
+    return { ...actual, readFile: mocks.readFile, writeFile: mocks.writeFile };
 });
 
 vi.mock('@inquirer/prompts', () => ({
@@ -141,19 +158,45 @@ describe('setupWorkspaceCommands', () => {
         });
     });
 
+    const CONFORMANT_ID = 'https://calmhub.example.com/calm/namespaces/ns/architectures/my-arch/versions/1.0.0';
+
     describe('workspace add', () => {
-        it('should call addFileToBundle using title from file as id', async () => {
-            // readFile mock returns JSON with title 'My Architecture'; select mock returns 'architecture'
+        it('builds a $id when the file has none, writes it back, and adds with the derived namespace', async () => {
+            // readFile mock returns JSON with title 'My Architecture' and no $id.
             await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
+            expect(mocks.promptForDocumentId).toHaveBeenCalled();
+            expect(mocks.writeFile).toHaveBeenCalled();
             expect(mocks.addFileToBundle).toHaveBeenCalledWith(
                 '/fake/bundle',
                 expect.stringContaining('test.json'),
-                expect.objectContaining({ id: 'My Architecture', type: 'architecture' })
+                expect.objectContaining({ id: 'My Architecture', type: 'architecture', namespace: 'ns' })
             );
         });
 
-        it('should prompt for name when file has no title field', async () => {
-            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: 'no-title' }));
+        it('leaves a conformant $id untouched and adds with the namespace derived from it', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Architecture' }));
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
+            expect(mocks.promptForDocumentId).not.toHaveBeenCalled();
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('test.json'),
+                expect.objectContaining({ id: 'My Architecture', type: 'architecture', namespace: 'ns' })
+            );
+        });
+
+        it('rebuilds a non-conformant $id, writes it back, then fails without adding', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: 'not-conformant', title: 'My Architecture' }));
+            mocks.isConformantDocumentId.mockReturnValueOnce(false);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json'])).rejects.toThrow();
+            expect(mocks.promptForDocumentId).toHaveBeenCalled();
+            expect(mocks.writeFile).toHaveBeenCalled();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('should prompt for a manifest name when the file has no title field', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID }));
             await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
             expect(mocks.input).toHaveBeenCalled();
             expect(mocks.addFileToBundle).toHaveBeenCalledWith(
@@ -374,20 +417,27 @@ describe('setupWorkspaceCommands', () => {
     });
 
     describe('workspace new', () => {
-        it('creates a document and registers it with its namespace', async () => {
-            await program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'com.example', 'my-arch']);
-            expect(mocks.createNewDocument).toHaveBeenCalledWith('com.example', 'my-arch', 'architecture', 'empty');
+        it('builds the $id interactively and registers the document under the mapping slug', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'my-arch']);
+            expect(mocks.promptForDocumentId).toHaveBeenCalled();
+            expect(mocks.createNewDocument).toHaveBeenCalledWith(
+                'https://calmhub.example.com/calm/namespaces/ns/architectures/my-arch/versions/1.0.0',
+                'my-arch',
+                'architecture',
+                'my-arch',
+                'empty'
+            );
             expect(mocks.addFileToBundle).toHaveBeenCalledWith(
                 '/fake/bundle',
                 '/fake/repo/com.example-architecture-my-arch.json',
-                { type: 'architecture', namespace: 'com.example' }
+                { id: 'my-arch', type: 'architecture', namespace: 'ns' }
             );
         });
 
         it('exits when no workspace bundle is found', async () => {
             mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
             await expect(
-                program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'com.example', 'my-arch'])
+                program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'my-arch'])
             ).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
@@ -395,7 +445,7 @@ describe('setupWorkspaceCommands', () => {
         it('exits on createNewDocument error', async () => {
             mocks.createNewDocument.mockRejectedValueOnce(new Error('create failed'));
             await expect(
-                program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'com.example', 'my-arch'])
+                program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'my-arch'])
             ).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });

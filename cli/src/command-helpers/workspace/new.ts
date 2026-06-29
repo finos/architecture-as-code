@@ -22,20 +22,20 @@ export async function getTemplatesForType(type: string): Promise<string[]> {
 
 /**
  * Create a new CALM document in the current working directory and return its file path.
- * Renders the given Handlebars template with `id` and `name` variables.
+ * Renders the given Handlebars template with `id` (the document `$id`) and `name` variables.
  *
- * @param namespace The namespace for the document (e.g. "com.example")
- * @param name The name of the document (e.g. "my-service")
+ * @param documentId The CalmHub `$id` for the document
+ * @param name The human-readable title of the document
  * @param type The CALM document type (e.g. "architecture", "pattern")
+ * @param slug A short, filename-safe slug for the document (e.g. the mapping id)
  * @param templateName The template to use (e.g. "empty", "with-structure"); defaults to "empty"
  * @returns The absolute path to the newly created file
  */
-export async function createNewDocument(namespace: string, name: string, type: string, templateName = 'empty'): Promise<string> {
-    const id = `${name}`;
+export async function createNewDocument(documentId: string, name: string, type: string, slug: string, templateName = 'empty'): Promise<string> {
     const templatePath = path.join(TEMPLATES_DIR, type, `${templateName}.hbs`);
     const source = await readFile(templatePath, 'utf8');
-    const content = Handlebars.compile(source)({ id, name });
-    const filename = `${id}.${type}.json`;
+    const content = Handlebars.compile(source)({ id: documentId, name });
+    const filename = `${slug}.${type}.json`;
     const filePath = path.join(process.cwd(), filename);
     await writeFile(filePath, content, 'utf8');
     return filePath;

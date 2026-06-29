@@ -1,10 +1,11 @@
 import { Argument, Command } from 'commander';
 import path from 'path';
-import { readFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
 import { addFileToBundle, loadManifest, printBundleTree } from './bundle';
 import { removeDocumentFromManifest } from './rm';
 import { createNewDocument, getTemplatesForType } from './new';
+import { promptForDocumentId } from './document-id-prompt';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
 import { loadWorkspaceConfig } from './config';
@@ -13,6 +14,7 @@ import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 import { select, input } from '@inquirer/prompts';
 import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
 import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
+import { isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared/src/hub/document-id-utils';
 import { loadCliConfig } from '../../cli-config';
 
 const logger: Logger = initLogger(false, 'workspace');
@@ -67,28 +69,57 @@ export function setupWorkspaceCommands(program: Command) {
                     logger.error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
                     process.exit(1);
                 }
-                const namespace = await enforceOptionPresenceByPrompt(options.namespace, 'Enter a namespace for this document:');
+
+                // Parse the file once; we manage its $id only when it is valid JSON.
+                let fileJson: Record<string, unknown> | undefined;
+                try {
+                    fileJson = JSON.parse(await readFile(srcPath, 'utf8'));
+                } catch (_) {
+                    fileJson = undefined;
+                }
+
+                const baseUrlDefault = (await loadCliConfig())?.calmHubUrl;
+                const existingId = fileJson && typeof fileJson['$id'] === 'string' ? (fileJson['$id'] as string) : undefined;
+                let builtNamespace: string | undefined;
+                let effectiveId = existingId;
+
+                if (fileJson) {
+                    if (!existingId) {
+                        // No $id present: build one interactively and write it into the file.
+                        const built = await promptForDocumentId({ baseUrlDefault });
+                        fileJson['$id'] = built.id;
+                        await writeFile(srcPath, JSON.stringify(fileJson, null, 2), 'utf8');
+                        logger.info(`Set document $id to ${built.id}`);
+                        builtNamespace = built.namespace;
+                        effectiveId = built.id;
+                    } else if (!isConformantDocumentId(existingId)) {
+                        // Non-conformant $id: rebuild it, write it back, then fail so the change is surfaced.
+                        logger.error(`Document $id '${existingId}' is not a conformant CalmHub id.`);
+                        const built = await promptForDocumentId({ baseUrlDefault });
+                        fileJson['$id'] = built.id;
+                        await writeFile(srcPath, JSON.stringify(fileJson, null, 2), 'utf8');
+                        logger.error(`Rewrote $id to ${built.id}. Review the change and re-run \`calm workspace add\`.`);
+                        process.exit(1);
+                    }
+                }
+
+                const namespace = options.namespace
+                    ?? builtNamespace
+                    ?? (effectiveId ? namespaceFromDocumentId(effectiveId) : undefined);
 
                 let id = options.id;
+                if (!id && fileJson && typeof fileJson['title'] === 'string' && (fileJson['title'] as string).trim()) {
+                    id = (fileJson['title'] as string).trim();
+                }
                 if (!id) {
-                    try {
-                        const parsed = JSON.parse(await readFile(srcPath, 'utf8'));
-                        if (parsed && typeof parsed.title === 'string' && parsed.title.trim()) {
-                            id = parsed.title.trim();
-                        }
-                    } catch (_) {
-                        // file unreadable or not JSON; fall through to prompt
-                    }
-                    if (!id) {
-                        id = await input({ message: 'Enter a name for this document:' });
-                    }
+                    id = await input({ message: 'Enter a name for this document:' });
                 }
 
                 const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
                     id,
                     copy: options.copy,
                     type,
-                    namespace: namespace.trim()
+                    namespace: namespace?.trim()
                 });
 
                 if (options.copy) {
@@ -266,13 +297,12 @@ export function setupWorkspaceCommands(program: Command) {
 
     workspaceCmd
         .command('new')
-        .description('Add a new document based on a template and track it in the current workspace.')
+        .description('Add a new document based on a template and track it in the current workspace. The CalmHub $id is built interactively.')
         .addArgument(new Argument('[type]', 'The type of document to create.')
             .choices(CALM_DOCUMENT_TYPES_LIST))
-        .argument('[namespace]', 'The namespace for your new document')
-        .argument('[name]', 'The name for your new document')
+        .argument('[name]', 'The title for your new document')
         .argument('[template]', 'The template for your new document')
-        .action(async (type, namespace, name, template) => {
+        .action(async (type, name, template) => {
             try {
                 type = await enforceOptionPresenceByPrompt(type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
                 if (!isValidCalmDocumentType(type)) {
@@ -280,8 +310,11 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
                 const templates = await getTemplatesForType(type);
-                namespace = await enforceOptionPresenceByPrompt(namespace, 'Enter the namespace for your new document:');
-                name = await enforceOptionPresenceByPrompt(name, `Enter the name for your new ${type} document:`);
+
+                const baseUrlDefault = (await loadCliConfig())?.calmHubUrl;
+                const documentId = await promptForDocumentId({ baseUrlDefault });
+
+                name = await enforceOptionPresenceByPrompt(name, `Enter the title for your new ${type} document:`);
                 if (!template) {
                     template = templates.length > 1
                         ? await enforceOptionPresenceByPrompt(undefined, 'Select a template:', templates)
@@ -294,10 +327,10 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const filePath = await createNewDocument(namespace, name, type, template);
-                await addFileToBundle(bundlePath, filePath, { type, namespace });
+                const filePath = await createNewDocument(documentId.id, name, type, documentId.slug, template);
+                await addFileToBundle(bundlePath, filePath, { id: documentId.slug, type, namespace: documentId.namespace });
 
-                logger.info(`Created ${filePath}`);
+                logger.info(`Created ${filePath} (id: ${documentId.id})`);
             } catch (err) {
                 logger.error('Failed to create document: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);

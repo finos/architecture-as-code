@@ -36,25 +36,28 @@ describe('createNewDocument', () => {
         }
     });
 
-    it('creates a file and returns its path', async () => {
-        const filePath = await createNewDocument('com.example', 'my-service', 'architecture');
+    const DOCUMENT_ID = 'https://h/calm/namespaces/ns/architectures/my-service/versions/1.0.0';
+
+    it('creates a file named by the slug and returns its path', async () => {
+        const filePath = await createNewDocument(DOCUMENT_ID, 'My Service', 'architecture', 'my-service');
         createdFiles.push(filePath);
 
         expect(existsSync(filePath)).toBe(true);
         expect(path.basename(filePath)).toBe('my-service.architecture.json');
     });
 
-    it('renders the template with name and id', async () => {
-        const filePath = await createNewDocument('com.example', 'my-arch', 'architecture', 'empty');
+    it('renders the template with the document $id and title', async () => {
+        const filePath = await createNewDocument(DOCUMENT_ID, 'My Arch', 'architecture', 'my-arch', 'empty');
         createdFiles.push(filePath);
 
-        const content = readFileSync(filePath, 'utf8');
-        expect(content.length).toBeGreaterThan(0);
+        const parsed = JSON.parse(readFileSync(filePath, 'utf8'));
+        expect(parsed.$id).toBe(DOCUMENT_ID);
+        expect(parsed.title).toBe('My Arch');
     });
 
     it('creates files for different types', async () => {
         for (const type of ['architecture', 'pattern']) {
-            const filePath = await createNewDocument('com.example', `test-${type}`, type);
+            const filePath = await createNewDocument(DOCUMENT_ID, `Test ${type}`, type, `test-${type}`);
             createdFiles.push(filePath);
             expect(existsSync(filePath)).toBe(true);
             expect(filePath).toContain(`.${type}.json`);

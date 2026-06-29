@@ -78,6 +78,8 @@ export {
 } from './hub/calm-hub-client.js';
 export {
     constructDocumentId,
+    isConformantDocumentId,
+    namespaceFromDocumentId,
     extractDocumentMetadata,
     updateDocumentMetadata,
     type DocumentMetadata,

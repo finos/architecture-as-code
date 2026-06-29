@@ -594,7 +594,7 @@ calm workspace init my-system
 
 #### `calm workspace add <file>`
 
-Register a CALM document with the active workspace. By default the file is referenced at its current location on disk (no copying). Prompts interactively for document type and name if they cannot be determined automatically.
+Register a CALM document with the active workspace. By default the file is referenced at its current location on disk (no copying). Prompts interactively for document type and (manifest) name if they cannot be determined automatically.
 
 ```
 calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] [--copy]
@@ -602,43 +602,55 @@ calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] 
 
 | Option | Description |
 |--------|-------------|
-| `--id <id>` | Explicit document ID. Overrides all automatic resolution. |
+| `--id <id>` | Explicit manifest registration id. Overrides automatic resolution. |
 | `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `architecture`, `pattern`, `schema`, `interface`, `timeline`. |
-| `--namespace <namespace>` | CalmHub namespace to associate with this file (used by `push`). |
+| `--namespace <namespace>` | CalmHub namespace to record in the manifest. If omitted, it is derived from the document `$id`. |
 | `--copy` | Copy the file into the bundle's `files/` directory instead of referencing it in place. |
 
-**Name resolution** (when `--id` is not given):
-1. The `title` field from the JSON file, if present.
-2. Interactive prompt.
+**Document `$id` handling.** `add` inspects the file's CalmHub `$id`:
+- **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
+- **Conformant `$id`** → left untouched; the manifest namespace is derived from it.
+- **Non-conformant `$id`** → you are prompted to rebuild it, the corrected `$id` is written back, and the command **fails** (non-zero exit) so the change is surfaced before you re-run `add`.
+
+**Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file, else an interactive prompt.
 
 ```shell
-# Interactive — prompts for type and name
+# Interactive — prompts for type, builds the $id if needed, then the manifest name
 calm workspace add ./architectures/payment-service.json
 
-# Fully specified
-calm workspace add ./architectures/payment-service.json \
-  --type architecture \
-  --namespace com.example \
-  --copy
+# Reference an already-conformant document without copying
+calm workspace add ./architectures/payment-service.json --type architecture
 ```
 
-#### `calm workspace new [type] [namespace] [name]`
+#### `calm workspace new [type] [name] [template]`
 
-Create a new stub CALM document in the current directory, then register it with the active workspace. Any argument not provided on the command line is requested interactively.
+Create a new stub CALM document in the current directory, then register it with the active workspace. The document's CalmHub `$id` is **always built interactively**. Any other argument not provided on the command line is requested interactively.
 
 ```
-calm workspace new [type] [namespace] [name]
+calm workspace new [type] [name] [template]
 ```
 
-The created file is named `<namespace>-<type>-<name>.json` and contains a minimal document with `$id` and `version` fields. The namespace is stored in the manifest so the document can be pushed to CalmHub without extra flags.
+The created file is named `<slug>.<type>.json` (where `<slug>` is the mapping id, or the control/config name) and contains a minimal document whose `$id` is the one you built and whose `title` is the name you provide. The namespace (for namespace resources) is stored in the manifest so the document can be pushed to CalmHub without extra flags.
 
 ```shell
 # Fully interactive
 calm workspace new
 
-# Partially specified
-calm workspace new architecture com.example payment-gateway
+# Provide the type and title up front; still prompts for the $id components
+calm workspace new architecture "Payment Gateway"
 ```
+
+#### Building a CalmHub `$id` interactively
+
+When `new` (always) or `add` (when needed) builds a `$id`, it asks for the resource scope and then each component, defaulting the **version to `1.0.0`** and the **base URL to your configured CalmHub URL** (`calmHubUrl` in `~/.calm.json`). The result is one of:
+
+```
+namespace resource:    $BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING/versions/$VERSION
+control requirement:   $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/requirement/versions/$VERSION
+control configuration: $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/configurations/$CONFIG/versions/$VERSION
+```
+
+where `$TYPE` is one of `patterns`, `architectures`, `standards`, `interfaces`.
 
 #### `calm workspace push`
 
@@ -790,13 +802,12 @@ Below is an end-to-end example: creating a workspace, adding documents, pulling 
 # 1. Initialise a workspace in the current git repo
 calm workspace init payments
 
-# 2. Create a new architecture stub — prompts for type/namespace/name if omitted
-calm workspace new architecture com.example payment-gateway
+# 2. Create a new architecture stub — builds the $id interactively, prompts for title
+calm workspace new architecture "Payment Gateway"
 
-# 3. After editing payment-gateway.json, add an existing pattern you depend on
-calm workspace add ./patterns/microservice-pattern.json \
-  --type pattern \
-  --namespace com.example
+# 3. After editing the stub, add an existing pattern you depend on
+#    (prompts to build a $id if the file doesn't already have a conformant one)
+calm workspace add ./patterns/microservice-pattern.json --type pattern
 
 # 4. Inspect the resulting dependency graph
 calm workspace tree
