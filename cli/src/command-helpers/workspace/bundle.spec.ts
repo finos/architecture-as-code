@@ -4,7 +4,6 @@ import {
     saveManifest,
     determineDocumentId,
     addFileToBundle,
-    addObjectToBundle,
     buildDependencyGraph,
     printBundleTree,
     extractReferenceValue,
@@ -236,60 +235,6 @@ describe('bundle', () => {
         it('should create files directory when copying', async () => {
             expect(existsSync(filesPath)).toBe(false);
             await addFileToBundle(bundlePath, srcFile, { copy: true });
-            expect(existsSync(filesPath)).toBe(true);
-        });
-    });
-
-    describe('addObjectToBundle', () => {
-        it('should add object with $id property', async () => {
-            const obj = { '$id': 'object-id', data: 'test' };
-            const result = await addObjectToBundle(bundlePath, obj);
-
-            expect(result.id).toBe('object-id');
-            expect(existsSync(result.destPath)).toBe(true);
-
-            const content = JSON.parse(await readFile(result.destPath, 'utf8'));
-            expect(content).toEqual(obj);
-
-            const manifest = await loadManifest(bundlePath);
-            expect(manifest['object-id'].path).toBe(result.rel);
-            expect(manifest['object-id'].type).toBe('unknown');
-        });
-
-        it('should store provided type in manifest', async () => {
-            const obj = { '$id': 'typed-obj' };
-            await addObjectToBundle(bundlePath, obj, undefined, 'schema');
-
-            const manifest = await loadManifest(bundlePath);
-            expect(manifest['typed-obj'].type).toBe('schema');
-        });
-
-        it('should use explicit id over $id property', async () => {
-            const obj = { '$id': 'object-id', data: 'test' };
-            const result = await addObjectToBundle(bundlePath, obj, 'explicit-id');
-
-            expect(result.id).toBe('explicit-id');
-        });
-
-        it('should throw when no id can be determined', async () => {
-            const obj = { data: 'no id' };
-            await expect(addObjectToBundle(bundlePath, obj)).rejects.toThrow(
-                'Cannot add object to bundle: no explicit id provided and object has no $id property.'
-            );
-        });
-
-        it('should sanitize id for filename', async () => {
-            const obj = { '$id': 'https://example.com/schema.json', data: 'test' };
-            const result = await addObjectToBundle(bundlePath, obj);
-
-            // Should not contain URL characters
-            expect(result.destPath).not.toContain('://');
-            expect(result.destPath).toMatch(/\.json$/);
-        });
-
-        it('should create files directory', async () => {
-            expect(existsSync(filesPath)).toBe(false);
-            await addObjectToBundle(bundlePath, { '$id': 'test' });
             expect(existsSync(filesPath)).toBe(true);
         });
     });

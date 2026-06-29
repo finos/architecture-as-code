@@ -188,47 +188,6 @@ export async function addFileToBundle(
 }
 
 /**
- * Add an in-memory JSON object into the workspace bundle and register it in the manifest.
- * The object will be saved as JSON under 'files/<sanitised-id>.json'.
- * @param bundlePath Absolute path to the bundle directory
- * @param obj The object to serialize and store
- * @param explicitId Optional explicit id to use for the object
- */
-export async function addObjectToBundle(
-    bundlePath: string,
-    obj: object,
-    explicitId?: string,
-    type?: WorkspaceDocumentType,
-    namespace?: string
-): Promise<{ id: string; destPath: string; rel: string }> {
-    // We will determine id using the same logic but since we don't have a source file,
-    // prefer explicitId, then $id property on the object, then fallback to a generated name.
-    let id = explicitId && explicitId.trim() ? explicitId.trim() : undefined;
-    const objRecord = obj as Record<string, unknown>;
-    if (!id && objRecord && typeof objRecord['$id'] === 'string' && (objRecord['$id'] as string).trim()) {
-        id = (objRecord['$id'] as string).trim();
-    }
-    if (!id) {
-        throw new Error('Cannot add object to bundle: no explicit id provided and object has no $id property.');
-    }
-
-    // sanitise id for filename
-    const filename = id.replace(/[^a-zA-Z0-9-_.]/g, '-').replace(/^-+|-+$/g, '') + '.json';
-    const filesDir = path.join(bundlePath, FILES_DIRNAME);
-    await mkdir(filesDir, { recursive: true });
-    const destPath = path.join(filesDir, filename);
-    const rel = path.relative(bundlePath, destPath);
-
-    await writeFile(destPath, JSON.stringify(obj, null, 2), 'utf8');
-
-    const manifest = await loadManifest(bundlePath);
-    manifest[id] = { path: rel, type: type ?? 'unknown', ...(namespace ? { namespace } : {}) };
-    await saveManifest(bundlePath, manifest);
-
-    return { id, destPath, rel };
-}
-
-/**
  * Build a dependency graph for the bundle where edges point from a document id to other document ids it references.
  * Only references that resolve to ids present in the bundle manifest are included as edges.
  */
