@@ -5,7 +5,6 @@ import { promptUserForOptions, loadChoicesFromInput } from './command-helpers/ge
 import path from 'path';
 import { findWorkspaceManifestPath } from './workspace-resolver';
 import { setupWorkspaceCommands } from './command-helpers/workspace/commands';
-import { loadManifest } from './command-helpers/workspace/bundle';
 import * as cliConfig from './cli-config';
 import { select } from '@inquirer/prompts';
 import {
@@ -864,33 +863,17 @@ export async function parseDocumentLoaderConfig(
     }
 
 
-    // If a CALM workspace bundle is present in the repository, prefer it for resolving documents
+    // If a CALM workspace bundle is present in the repository, prefer it for resolving documents.
+    // The WorkspaceDocumentLoader (added first by buildDocumentLoader when workspaceBundlePath is
+    // set) resolves any reference to a tracked document — bare id, $id, versioned path, or full
+    // URL — to the local working copy, overriding CalmHub.
     try {
         const workspaceBundle = findWorkspaceManifestPath(process.cwd());
         if (workspaceBundle) {
             logger.info('Using workspace bundle for document resolution: ' + workspaceBundle);
-            // Load the bundle manifest and construct a URL->local file map from it
-            try {
-                const manifest = await loadManifest(workspaceBundle);
-                const bundleMap = new Map<string, string>();
-                for (const [id, entry] of Object.entries(manifest)) {
-                    // manifest entries are relative to bundlePath
-                    bundleMap.set(id, path.resolve(workspaceBundle, entry.path));
-                }
-
-                // Merge with any provided urlToLocalMap, allowing bundle entries to override
-                const combined = new Map<string, string>(urlToLocalMap ?? []);
-                for (const [k, v] of bundleMap.entries()) {
-                    combined.set(k, v);
-                }
-
-                docLoaderOpts.urlToLocalMap = combined;
-
-                // Ensure basePath is set so MappedDocumentLoader can resolve relative mappings if needed
-                docLoaderOpts.basePath = docLoaderOpts.basePath ?? workspaceBundle;
-            } catch (err) {
-                logger.debug('Failed to load workspace bundle manifest: ' + (err instanceof Error ? err.message : String(err)));
-            }
+            docLoaderOpts.workspaceBundlePath = workspaceBundle;
+            // Fall back to the bundle as the base path so relative references still resolve.
+            docLoaderOpts.basePath = docLoaderOpts.basePath ?? workspaceBundle;
         }
     } catch (err) {
         logger.debug('Error while checking for workspace bundle: ' + (err instanceof Error ? err.message : String(err)));

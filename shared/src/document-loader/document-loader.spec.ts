@@ -19,6 +19,10 @@ const mocks = vi.hoisted(() => {
         directDocLoader: vi.fn(function () { return {
             initialise: vi.fn(),
             loadMissingDocument: vi.fn()
+        }; }),
+        workspaceDocLoader: vi.fn(function () { return {
+            initialise: vi.fn(),
+            loadMissingDocument: vi.fn()
         }; })
     };
 });
@@ -48,6 +52,12 @@ vi.mock('./direct-url-document-loader', () => {
     };
 });
 
+vi.mock('./workspace-document-loader', () => {
+    return {
+        WorkspaceDocumentLoader: mocks.workspaceDocLoader
+    };
+});
+
 describe('DocumentLoader', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -63,6 +73,21 @@ describe('DocumentLoader', () => {
         buildDocumentLoader(docLoaderOpts);
 
         expect(mocks.fsDocLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], false, process.cwd());
+    });
+
+    it('should not create a WorkspaceDocumentLoader when workspaceBundlePath is absent', () => {
+        buildDocumentLoader({ schemaDirectoryPath: 'schemas' });
+        expect(mocks.workspaceDocLoader).not.toHaveBeenCalled();
+    });
+
+    it('should create a WorkspaceDocumentLoader when workspaceBundlePath is provided', () => {
+        const docLoaderOpts: DocumentLoaderOptions = {
+            workspaceBundlePath: '/repo/.calm-workspace/bundles/default'
+        };
+
+        buildDocumentLoader(docLoaderOpts);
+
+        expect(mocks.workspaceDocLoader).toHaveBeenCalledWith('/repo/.calm-workspace/bundles/default', false);
     });
 
     it('should create a CalmHubDocumentLoader when calmHubUrl is defined in loader options', () => {

@@ -1516,6 +1516,29 @@ describe('parseDocumentLoaderConfig', () => {
         expect(options.calmHubUrl).toEqual('calmhub');
     });
 
+    it('sets workspaceBundlePath when a workspace bundle is found in the repo', async () => {
+        const resolverModule = await import('./workspace-resolver');
+        const spy = vi.spyOn(resolverModule, 'findWorkspaceManifestPath')
+            .mockReturnValue('/repo/.calm-workspace/bundles/default');
+        try {
+            const options = await parseDocLoaderConfigForTest({});
+            expect(options.workspaceBundlePath).toBe('/repo/.calm-workspace/bundles/default');
+        } finally {
+            spy.mockRestore();
+        }
+    });
+
+    it('leaves workspaceBundlePath unset when no workspace bundle is found', async () => {
+        const resolverModule = await import('./workspace-resolver');
+        const spy = vi.spyOn(resolverModule, 'findWorkspaceManifestPath').mockReturnValue(null);
+        try {
+            const options = await parseDocLoaderConfigForTest({});
+            expect(options.workspaceBundlePath).toBeUndefined();
+        } finally {
+            spy.mockRestore();
+        }
+    });
+
     it('should override calmhub url in file when provided', async () => {
         cliConfigModule = await import('./cli-config');
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ calmHubUrl: 'calmhub-file' });
