@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => {
         pushWorkspaceToHub: vi.fn(async () => { }),
         detectChangedResources: vi.fn(async () => []),
         bumpWorkspace: vi.fn(async () => ({ bumped: [], refUpdates: [] })),
-        loadWorkspaceConfig: vi.fn(async () => ({ push: { onExisting: 'skip' }, bump: { defaultIncrement: 'MINOR' } })),
+        loadWorkspaceConfig: vi.fn(async () => ({ push: { failIfModified: false }, bump: { defaultIncrement: 'MINOR' } })),
         findWorkspaceManifestPath: vi.fn(() => '/fake/bundle'),
         findGitRoot: vi.fn(() => '/fake/repo'),
         loadManifest: vi.fn(async () => ({})),
@@ -425,36 +425,36 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
                 '/fake/bundle',
                 expect.objectContaining({ isMockClient: true }),
-                { onExisting: 'skip' }
+                { failIfModified: false }
             );
         });
 
-        it('passes onExisting: fail from --fail-on-existing', async () => {
-            await program.parseAsync(['node', 'test', 'workspace', 'push', '--fail-on-existing']);
+        it('passes failIfModified: true from --fail-if-modified', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'push', '--fail-if-modified']);
             expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
                 '/fake/bundle',
                 expect.objectContaining({ isMockClient: true }),
-                { onExisting: 'fail' }
+                { failIfModified: true }
             );
         });
 
-        it('passes onExisting from the central workspace config', async () => {
-            mocks.loadWorkspaceConfig.mockResolvedValueOnce({ push: { onExisting: 'fail' }, bump: { defaultIncrement: 'MINOR' } } as never);
+        it('passes failIfModified from the central workspace config', async () => {
+            mocks.loadWorkspaceConfig.mockResolvedValueOnce({ push: { failIfModified: true }, bump: { defaultIncrement: 'MINOR' } } as never);
             await program.parseAsync(['node', 'test', 'workspace', 'push']);
             expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
                 '/fake/bundle',
                 expect.objectContaining({ isMockClient: true }),
-                { onExisting: 'fail' }
+                { failIfModified: true }
             );
         });
 
-        it('passes onExisting undefined when no git root / config is found', async () => {
+        it('passes failIfModified: false when no git root / config is found', async () => {
             mocks.findGitRoot.mockReturnValueOnce(null as unknown as string);
             await program.parseAsync(['node', 'test', 'workspace', 'push']);
             expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
                 '/fake/bundle',
                 expect.objectContaining({ isMockClient: true }),
-                { onExisting: undefined }
+                { failIfModified: false }
             );
         });
 

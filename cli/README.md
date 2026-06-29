@@ -660,24 +660,25 @@ calm workspace populate --verbose
 Push every document in the workspace manifest to a CalmHub instance. Each document's identity — namespace, type, mapping id and **version** — comes from its `$id` (of the form `$BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION`). Push **does not auto-bump**: it creates exactly the version each document declares. Documents without a well-formed mapping `$id` (or whose type has no CalmHub resource type) are skipped with a warning.
 
 ```
-calm workspace push [--calm-hub-url <url>] [--fail-on-existing]
+calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--calm-hub-url <url>` | CalmHub base URL. If omitted, falls back to `calmHubUrl` in `~/.calm.json`. |
-| `--fail-on-existing` | Fail the push if a version already exists in CalmHub. Overrides `push.onExisting` in the workspace config. |
+| `--fail-if-modified` | Fail the push if a document that already exists in CalmHub at its declared version has changed on disk. Overrides `push.failIfModified` in the workspace config. |
 
 For each tracked document, push looks up the existing versions in CalmHub:
 - **Version does not exist** → creates it.
-- **Version already exists** → behaviour depends on `push.onExisting` (default `skip`):
-  - `skip` — logs and moves on (idempotent; good for local re-runs).
-  - `fail` — reports the conflict and fails the push (strict; good for merge-time CI). Use `bump` first to create a new version.
+- **Version already exists, content unchanged** → skips it (idempotent; good for local re-runs).
+- **Version already exists, content changed on disk** → behaviour depends on `push.failIfModified` (default `false`):
+  - `false` — logs and skips.
+  - `true` — reports the conflict and fails the push (strict; good for merge-time CI). Run `bump` first to create a new version.
 
 ```shell
 calm workspace push                              # URL from ~/.calm.json
 calm workspace push --calm-hub-url https://calmhub.example.com
-calm workspace push --fail-on-existing           # strict merge-time mode
+calm workspace push --fail-if-modified           # strict merge-time mode
 ```
 
 #### `calm workspace check`
@@ -714,17 +715,17 @@ Central, committed configuration that applies to every workspace in the reposito
 
 ```json
 {
-  "push": { "onExisting": "skip" },
+  "push": { "failIfModified": false },
   "bump": { "defaultIncrement": "MINOR" }
 }
 ```
 
 | Field | Values | Default | Meaning |
 |-------|--------|---------|---------|
-| `push.onExisting` | `skip` \| `fail` | `skip` | What `push` does when a version already exists. Set `fail` for strict merge-time pushes. |
+| `push.failIfModified` | `true` \| `false` | `false` | When `true`, `push` fails if a document already published at its declared version has changed on disk. Set `true` for strict merge-time pushes. |
 | `bump.defaultIncrement` | `MAJOR` \| `MINOR` \| `PATCH` | `MINOR` | Default increment for `bump` when no flag is given. |
 
-A typical CI workflow: `calm workspace check` gates PRs (contributors run `calm workspace bump` to record an intentional version bump), and merge-time runs `calm workspace push` with `push.onExisting: "fail"` so a merge introduces exactly the new versions it claims.
+A typical CI workflow: `calm workspace check` gates PRs (contributors run `calm workspace bump` to record an intentional version bump), and merge-time runs `calm workspace push` with `push.failIfModified: true` so a merge introduces exactly the new versions it claims.
 
 #### `calm workspace tree`
 

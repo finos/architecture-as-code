@@ -5,17 +5,19 @@ import { loadManifest, saveManifest } from './bundle';
 import { CalmHubClient } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { DocumentMetadata, extractDocumentMetadata } from '@finos/calm-shared/src/hub/document-id-utils';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
-import { OnExisting } from './config';
+import { canonicalEqual } from './bump';
 
 const logger: Logger = initLogger(false, 'workspace');
 
 export interface PushOptions {
     /**
      * What to do when the version a document declares already exists in CalmHub.
-     *  - `skip` (default): log and move on (idempotent local pushes)
-     *  - `fail`: report the conflict and fail the push once all entries are processed (merge-time CI)
+     *  - `false` (default): skip it (idempotent local pushes).
+     *  - `true`: if the on-disk content *differs* from the published version, report the conflict
+     *    and fail the push once all entries are processed (strict merge-time CI). An existing
+     *    version whose content is unchanged is still skipped.
      */
-    onExisting?: OnExisting;
+    failIfModified?: boolean;
 }
 
 export async function pushWorkspaceToHub(
@@ -23,7 +25,7 @@ export async function pushWorkspaceToHub(
     client: CalmHubClient,
     options: PushOptions = {}
 ): Promise<void> {
-    const onExisting: OnExisting = options.onExisting ?? 'skip';
+    const failIfModified = options.failIfModified ?? false;
     const manifest = await loadManifest(bundlePath);
     const entries = Object.entries(manifest);
 
@@ -80,11 +82,26 @@ export async function pushWorkspaceToHub(
         }
 
         if (existingVersions.includes(version)) {
-            if (onExisting === 'fail') {
-                logger.error(`'${id}' version ${version} already exists in CalmHub.`);
-                conflicts.push(`${id}@${version}`);
-            } else {
+            if (!failIfModified) {
                 logger.info(`No changes for '${id}' - version ${version} already exists, skipping`);
+                continue;
+            }
+
+            // Strict mode: an existing version is only a conflict if the on-disk content differs
+            // from what is already published. Unchanged content is still skipped.
+            let remote: object;
+            try {
+                remote = await client.getMappedResourceByVersion(namespace, mappingId, version, resourceType);
+            } catch (e) {
+                logger.error(`Failed to fetch '${id}' @ ${version} from CalmHub to compare: ${e instanceof Error ? e.message : String(e)}`);
+                continue;
+            }
+
+            if (canonicalEqual(JSON.parse(raw), remote)) {
+                logger.info(`No changes for '${id}' - version ${version} already exists and is unchanged, skipping`);
+            } else {
+                logger.error(`'${id}' version ${version} already exists in CalmHub but differs on disk. Bump it before pushing.`);
+                conflicts.push(`${id}@${version}`);
             }
             continue;
         }
@@ -101,8 +118,8 @@ export async function pushWorkspaceToHub(
 
     if (conflicts.length > 0) {
         throw new Error(
-            `Push failed: ${conflicts.length} version(s) already exist in CalmHub (${conflicts.join(', ')}). ` +
-            'Run `calm workspace bump` to create new versions for changed documents.'
+            `Push failed: ${conflicts.length} modified document(s) already exist in CalmHub at their declared ` +
+            `version (${conflicts.join(', ')}). Run \`calm workspace bump\` to create new versions for them.`
         );
     }
 }

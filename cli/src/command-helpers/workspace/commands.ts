@@ -315,8 +315,8 @@ export function setupWorkspaceCommands(program: Command) {
         .command('push')
         .description('Push all files in the current workspace manifest to CalmHub. Does not auto-bump; pushes the version each document declares.')
         .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
-        .option('--fail-on-existing', 'Fail if a version already exists in CalmHub (overrides the workspace config; strict merge-time mode)')
-        .action(async (options: { calmHubUrl?: string; failOnExisting?: boolean }) => {
+        .option('--fail-if-modified', 'Fail if a modified document already exists in CalmHub at its declared version (overrides the workspace config; strict merge-time mode)')
+        .action(async (options: { calmHubUrl?: string; failIfModified?: boolean }) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
                 if (!bundlePath) {
@@ -328,10 +328,10 @@ export function setupWorkspaceCommands(program: Command) {
 
                 const gitRoot = findGitRoot(process.cwd());
                 const workspaceConfig = gitRoot ? await loadWorkspaceConfig(gitRoot) : undefined;
-                const onExisting = options.failOnExisting ? 'fail' : workspaceConfig?.push.onExisting;
+                const failIfModified = options.failIfModified ?? workspaceConfig?.push.failIfModified ?? false;
 
                 const client = new CalmHubClient({ calmHubUrl });
-                await pushWorkspaceToHub(bundlePath, client, { onExisting });
+                await pushWorkspaceToHub(bundlePath, client, { failIfModified });
             } catch (err) {
                 logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);

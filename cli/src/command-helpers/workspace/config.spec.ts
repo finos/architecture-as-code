@@ -40,21 +40,21 @@ describe('workspace config', () => {
 
     it('honours valid values from the config file', async () => {
         await writeConfig(JSON.stringify({
-            push: { onExisting: 'fail' },
+            push: { failIfModified: true },
             bump: { defaultIncrement: 'PATCH' },
         }));
         const config = await loadWorkspaceConfig(gitRoot);
-        expect(config.push.onExisting).toBe('fail');
+        expect(config.push.failIfModified).toBe(true);
         expect(config.bump.defaultIncrement).toBe('PATCH');
     });
 
     it('falls back to defaults for individually missing or invalid fields', async () => {
         await writeConfig(JSON.stringify({
-            push: { onExisting: 'nonsense' },
+            push: { failIfModified: 'nonsense' },
             bump: {},
         }));
         const config = await loadWorkspaceConfig(gitRoot);
-        expect(config.push.onExisting).toBe('skip');
+        expect(config.push.failIfModified).toBe(false);
         expect(config.bump.defaultIncrement).toBe('MINOR');
     });
 });

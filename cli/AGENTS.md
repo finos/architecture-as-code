@@ -60,10 +60,10 @@ npm run copy-ai-tools         # Copy AI agent files from ../calm-ai/
    - `hub push <resource> <file>` / `hub pull <resource>` / `hub list <resources>` / `hub create <resource>`
    - Resources span architectures, patterns, standards, control-requirements, control-configurations, namespaces, and domains (which subcommands exist varies per verb).
 10. **workspace** - Command **group** for a local, git-rooted bundle of CALM documents (`.calm-workspace/`). Subcommands include `init`, `add`, `new`, `populate`, `tree`, `list`, `show`, `switch`, `clean`, and the CalmHub sync trio:
-    - `workspace push` — pushes the exact version each document's `$id` declares (no auto-bump). `--fail-on-existing` (or `push.onExisting: "fail"` in `.calm-workspace/config.json`) fails on an existing version, for strict merge-time CI.
+    - `workspace push` — pushes the exact version each document's `$id` declares (no auto-bump). An existing version with unchanged content is skipped; `--fail-if-modified` (or `push.failIfModified: true` in `.calm-workspace/config.json`) fails when a document already published at its declared version has changed on disk, for strict merge-time CI.
     - `workspace check` — CI/PR gate: exits non-zero if any tracked document changed on disk relative to CalmHub but wasn't version-bumped.
     - `workspace bump` — bumps changed documents (default MINOR; `--major`/`--patch`; or `bump.defaultIncrement` in config) and repoints all references to the new `$id`s. Idempotent: re-bumping an already-bumped doc is a no-op until it's pushed.
-    - Central config `.calm-workspace/config.json` holds `push.onExisting` (`skip`|`fail`) and `bump.defaultIncrement` (`MAJOR`|`MINOR`|`PATCH`).
+    - Central config `.calm-workspace/config.json` holds `push.failIfModified` (`true`|`false`) and `bump.defaultIncrement` (`MAJOR`|`MINOR`|`PATCH`).
 
 ### Important Directories
 ```

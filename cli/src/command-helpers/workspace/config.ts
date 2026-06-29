@@ -4,20 +4,19 @@ import { existsSync } from 'fs';
 import type { ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 
 /**
- * What push should do when the version it is about to create already exists in CalmHub.
- *  - `skip`: log and move on (idempotent; good for local dev and re-runnable pushes)
- *  - `fail`: treat it as an error and fail the push (strict; good for merge-time CI)
- */
-export type OnExisting = 'skip' | 'fail';
-
-/**
  * Central, repo-level workspace configuration. Committed at
  * `<gitRoot>/.calm-workspace/config.json` so it applies to every workspace in the repo and is
  * visible to CI.
  */
 export interface WorkspaceConfig {
     push: {
-        onExisting: OnExisting;
+        /**
+         * How push handles a version that already exists in CalmHub:
+         *  - `false` (default): a version that already exists is skipped (idempotent local pushes).
+         *  - `true`: a version that already exists but whose on-disk content has *changed* fails the
+         *    push (strict merge-time CI). An existing version that is unchanged is still skipped.
+         */
+        failIfModified: boolean;
     };
     bump: {
         defaultIncrement: ResourceChangeType;
@@ -25,11 +24,10 @@ export interface WorkspaceConfig {
 }
 
 export const DEFAULT_WORKSPACE_CONFIG: WorkspaceConfig = {
-    push: { onExisting: 'skip' },
+    push: { failIfModified: false },
     bump: { defaultIncrement: 'MINOR' },
 };
 
-const VALID_ON_EXISTING: OnExisting[] = ['skip', 'fail'];
 const VALID_INCREMENTS: ResourceChangeType[] = ['MAJOR', 'MINOR', 'PATCH'];
 
 /**
@@ -55,14 +53,14 @@ export async function loadWorkspaceConfig(gitRoot: string): Promise<WorkspaceCon
         const raw = await readFile(configPath, 'utf8');
         const parsed = JSON.parse(raw) as Partial<WorkspaceConfig>;
 
-        const onExisting = parsed?.push?.onExisting;
+        const failIfModified = parsed?.push?.failIfModified;
         const defaultIncrement = parsed?.bump?.defaultIncrement;
 
         return {
             push: {
-                onExisting: VALID_ON_EXISTING.includes(onExisting as OnExisting)
-                    ? (onExisting as OnExisting)
-                    : DEFAULT_WORKSPACE_CONFIG.push.onExisting,
+                failIfModified: typeof failIfModified === 'boolean'
+                    ? failIfModified
+                    : DEFAULT_WORKSPACE_CONFIG.push.failIfModified,
             },
             bump: {
                 defaultIncrement: VALID_INCREMENTS.includes(defaultIncrement as ResourceChangeType)
