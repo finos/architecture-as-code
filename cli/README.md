@@ -555,7 +555,8 @@ To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fash
 {
   "calmHubUrl": "http://calmhub.com",
   "authPluginPath": "~/plugins/auth-plugin.js"
-}```
+}
+```
 
 ## CALM Workspace
 
@@ -624,8 +625,6 @@ calm workspace add ./architectures/payment-service.json \
 #### `calm workspace new [type] [namespace] [name]`
 
 Create a new stub CALM document in the current directory, then register it with the active workspace. Any argument not provided on the command line is requested interactively.
-
-TODO: instantiate a starter document from a simple template.
 
 ```
 calm workspace new [type] [namespace] [name]
