@@ -2,7 +2,7 @@ import { Argument, Command } from 'commander';
 import path from 'path';
 import { readFile } from 'fs/promises';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
-import { addFileToBundle, loadManifest, printBundleTree, WorkspaceDocumentType } from './bundle';
+import { addFileToBundle, loadManifest, printBundleTree } from './bundle';
 import { removeDocumentFromManifest } from './rm';
 import { createNewDocument, getTemplatesForType } from './new';
 import { pushWorkspaceToHub } from './push';
@@ -11,7 +11,7 @@ import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 import { select, input } from '@inquirer/prompts';
-import { CALM_DOCUMENT_TYPES_LIST } from '@finos/calm-shared/src/document-loader/document-loader';
+import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
 import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { loadCliConfig } from '../../cli-config';
 
@@ -63,6 +63,10 @@ export function setupWorkspaceCommands(program: Command) {
                 const srcPath = path.resolve(file);
 
                 const type = await enforceOptionPresenceByPrompt(options.type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
+                if (!isValidCalmDocumentType(type)) {
+                    logger.error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
+                    process.exit(1);
+                }
                 const namespace = await enforceOptionPresenceByPrompt(options.namespace, 'Enter a namespace for this document:');
 
                 let id = options.id;
@@ -83,7 +87,7 @@ export function setupWorkspaceCommands(program: Command) {
                 const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
                     id,
                     copy: options.copy,
-                    type: type as WorkspaceDocumentType | undefined,
+                    type,
                     namespace: namespace.trim()
                 });
 
@@ -271,6 +275,10 @@ export function setupWorkspaceCommands(program: Command) {
         .action(async (type, namespace, name, template) => {
             try {
                 type = await enforceOptionPresenceByPrompt(type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
+                if (!isValidCalmDocumentType(type)) {
+                    logger.error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
+                    process.exit(1);
+                }
                 const templates = await getTemplatesForType(type);
                 namespace = await enforceOptionPresenceByPrompt(namespace, 'Enter the namespace for your new document:');
                 name = await enforceOptionPresenceByPrompt(name, `Enter the name for your new ${type} document:`);
@@ -287,7 +295,7 @@ export function setupWorkspaceCommands(program: Command) {
                 }
 
                 const filePath = await createNewDocument(namespace, name, type, template);
-                await addFileToBundle(bundlePath, filePath, { type: type as WorkspaceDocumentType, namespace });
+                await addFileToBundle(bundlePath, filePath, { type, namespace });
 
                 logger.info(`Created ${filePath}`);
             } catch (err) {

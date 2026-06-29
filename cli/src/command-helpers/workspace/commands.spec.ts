@@ -188,6 +188,14 @@ describe('setupWorkspaceCommands', () => {
             ).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
+
+        it('should exit on an invalid --type without adding to the bundle', async () => {
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json', '--type', 'not-a-type', '--id', 'test'])
+            ).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
     });
 
     describe('workspace tree', () => {

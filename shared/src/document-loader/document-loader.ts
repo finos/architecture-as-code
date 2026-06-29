@@ -7,8 +7,12 @@ import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
 import { MappedDocumentLoader } from './mapped-document-loader';
 import { AuthPlugin } from '..';
 
-export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline' | 'interface' | 'flow' | 'adr';
-export const CALM_DOCUMENT_TYPES_LIST: string[] = ['pattern', 'architecture', 'interface', 'flow', 'control', 'schema', 'timeline', 'adr'];
+export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline' | 'interface' | 'flow' | 'adr' | 'control';
+export const CALM_DOCUMENT_TYPES_LIST: CalmDocumentType[] = ['pattern', 'architecture', 'interface', 'flow', 'control', 'schema', 'timeline', 'adr'];
+
+export function isValidCalmDocumentType(input: string): input is CalmDocumentType {
+    return (CALM_DOCUMENT_TYPES_LIST as string[]).includes(input);
+}
 
 export const CALM_HUB_PROTOS = ['http:', 'https:', 'calm:'];
 

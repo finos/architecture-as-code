@@ -1,6 +1,6 @@
 import { AuthPlugin } from '../auth/auth-plugin';
 import { CALM_META_SCHEMA_DIRECTORY } from '../consts';
-import { assertJsonObject, buildDocumentLoader, DocumentLoaderOptions, DocumentLoadError } from './document-loader';
+import { assertJsonObject, buildDocumentLoader, CALM_DOCUMENT_TYPES_LIST, DocumentLoaderOptions, DocumentLoadError, isValidCalmDocumentType } from './document-loader';
 
 const mocks = vi.hoisted(() => {
     return {
@@ -193,4 +193,17 @@ describe('assertJsonObject', () => {
         expect((thrown as DocumentLoadError).recoverable).toBe(false);
         expect((thrown as DocumentLoadError).message).toBe(`Expected a JSON object from calm:/foo but received: ${kind}`);
     });
+});
+
+describe('isValidCalmDocumentType', () => {
+    it.each(CALM_DOCUMENT_TYPES_LIST)('returns true for the valid document type %s', (type) => {
+        expect(isValidCalmDocumentType(type)).toBe(true);
+    });
+
+    it.each(['unknown', 'architectures', 'Pattern', '', 'foo'])(
+        'returns false for the invalid document type %s',
+        (type) => {
+            expect(isValidCalmDocumentType(type)).toBe(false);
+        }
+    );
 });
