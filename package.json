@@ -16,10 +16,10 @@
         "docs",
         "calm-hub-ui",
         "calm-plugins/vscode",
-        "calm-suite/calm-guard",
-        "calm-suite/calm-guard/docs",
-        "calm-suite/calm-studio/packages/*",
-        "calm-suite/calm-studio/apps/*"
+        "calm-guard",
+        "calm-guard/docs",
+        "calm-studio/packages/*",
+        "calm-studio/apps/*"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
