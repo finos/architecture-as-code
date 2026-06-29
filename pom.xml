@@ -18,6 +18,7 @@
 
     <modules>
         <module>calm-hub</module>
+        <module>calm-models</module>
         <module>cli</module>
         <module>calm</module>
         <module>docs</module>

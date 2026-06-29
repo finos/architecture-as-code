@@ -1,0 +1,125 @@
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "payment-service",
+      "node-type": "service",
+      "name": "Payment Service",
+      "description": "Handles payment processing",
+      "details": {
+        "detailed-architecture": "https://example.com/architectures/payment-detail.json",
+        "required-pattern": "https://example.com/patterns/microservice.json"
+      },
+      "interfaces": [
+        {
+          "unique-id": "rest-api",
+          "port": 8443,
+          "transport": "HTTPS"
+        }
+      ],
+      "controls": {
+        "encryption": {
+          "description": "Enforce TLS",
+          "requirements": [
+            {
+              "requirement-url": "https://example.com/requirements/tls",
+              "config": {
+                "tls-version": "1.3"
+              }
+            }
+          ]
+        }
+      },
+      "metadata": {
+        "team": "payments",
+        "tier": 1
+      },
+      "deployment-config": {
+        "region": "eu-west-1",
+        "replicas": 3
+      }
+    },
+    {
+      "unique-id": "payment-db",
+      "node-type": "database",
+      "name": "Payment DB",
+      "description": "Stores payment records"
+    },
+    {
+      "unique-id": "customer",
+      "node-type": "actor",
+      "name": "Customer",
+      "description": "End user making payments"
+    },
+    {
+      "unique-id": "k8s",
+      "node-type": "system",
+      "name": "Kubernetes Cluster",
+      "description": "Container platform"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "rel-connects",
+      "description": "Service writes to DB",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "payment-service", "interfaces": ["rest-api"] },
+          "destination": { "node": "payment-db" }
+        }
+      },
+      "protocol": "JDBC",
+      "sla": {
+        "max-latency-ms": 50,
+        "availability": "99.9%"
+      }
+    },
+    {
+      "unique-id": "rel-interacts",
+      "description": "Customer uses service",
+      "relationship-type": {
+        "interacts": {
+          "actor": "customer",
+          "nodes": ["payment-service"]
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "rel-deployed-in",
+      "description": "Services run in k8s",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "k8s",
+          "nodes": ["payment-service", "payment-db"]
+        }
+      }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "flow-payment",
+      "name": "Process Payment",
+      "description": "Payment processing flow",
+      "requirement-url": "https://example.com/requirements/payment-flow",
+      "transitions": [
+        {
+          "relationship-unique-id": "rel-interacts",
+          "sequence-number": 1,
+          "description": "Customer submits payment",
+          "direction": "source-to-destination"
+        },
+        {
+          "relationship-unique-id": "rel-connects",
+          "sequence-number": 2,
+          "description": "Service persists to DB",
+          "direction": "source-to-destination"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "domain": "payments",
+    "owner": "payments-team"
+  }
+}

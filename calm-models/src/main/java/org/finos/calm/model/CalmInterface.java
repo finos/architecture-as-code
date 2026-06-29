@@ -1,0 +1,39 @@
+package org.finos.calm.model;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+public final class CalmInterface {
+    private final String uniqueId;
+    private final JsonNode rawJson;
+    private final ObjectMapper mapper;
+
+    CalmInterface(String uniqueId, JsonNode rawJson, ObjectMapper mapper) {
+        this.uniqueId = uniqueId;
+        this.rawJson = rawJson;
+        this.mapper = mapper;
+    }
+
+    static CalmInterface from(JsonNode json, ObjectMapper mapper) {
+        return new CalmInterface(json.path("unique-id").asText(), json, mapper);
+    }
+
+    public String uniqueId() { return uniqueId; }
+
+    public <T> T parseAs(Class<T> type) {
+        try {
+            if (!rawJson.isObject()) {
+                throw new CalmExtensionParseException(
+                    "Cannot parse non-object interface JSON as " + type.getSimpleName(), null);
+            }
+            ObjectNode stripped = ((ObjectNode) rawJson.deepCopy()).without("unique-id");
+            return mapper.treeToValue(stripped, type);
+        } catch (CalmExtensionParseException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CalmExtensionParseException(
+                "Failed to parse interface as " + type.getSimpleName(), e);
+        }
+    }
+}
