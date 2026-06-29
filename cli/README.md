@@ -641,20 +641,6 @@ calm workspace new
 calm workspace new architecture com.example payment-gateway
 ```
 
-#### `calm workspace populate`
-
-Scan every document currently in the workspace for external references (`$ref`, `$schema`, `requirement-url`, `config-url`) and fetch any HTTP(S) URLs that are not already tracked, adding them to the bundle.
-
-```
-calm workspace populate [--verbose]
-```
-
-Useful after adding an architecture that references remote patterns or schemas you also want available locally.
-
-```shell
-calm workspace populate --verbose
-```
-
 #### `calm workspace push`
 
 Push every document in the workspace manifest to a CalmHub instance. Each document's identity — namespace, type, mapping id and **version** — comes from its `$id` (of the form `$BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION`). Push **does not auto-bump**: it creates exactly the version each document declares. Documents without a well-formed mapping `$id` (or whose type has no CalmHub resource type) are skipped with a warning.
@@ -813,13 +799,10 @@ calm workspace add ./patterns/microservice-pattern.json \
   --type pattern \
   --namespace com.example
 
-# 4. Fetch all remote schemas and patterns referenced inside tracked documents
-calm workspace populate
-
-# 5. Inspect the resulting dependency graph
+# 4. Inspect the resulting dependency graph
 calm workspace tree
 
-# 6. Push everything to CalmHub (namespace comes from each file's manifest entry)
+# 5. Push everything to CalmHub (namespace comes from each file's manifest entry)
 calm workspace push --calm-hub-url https://calmhub.example.com
 ```
 

@@ -4,7 +4,6 @@ import { readFile } from 'fs/promises';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
 import { addFileToBundle, loadManifest, printBundleTree, WorkspaceDocumentType } from './bundle';
 import { removeDocumentFromManifest } from './rm';
-import { populateWorkspaceBundle } from './populate';
 import { createNewDocument, getTemplatesForType } from './new';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
@@ -95,20 +94,6 @@ export function setupWorkspaceCommands(program: Command) {
                 }
             } catch (err) {
                 logger.error('Failed to add file to workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
-                process.exit(1);
-            }
-        });
-
-    workspaceCmd
-        .command('populate')
-        .description('Look at currently-tracked documents and add referenced files to the current workspace.')
-        .option('--verbose', 'Show verbose logging from document loaders')
-        .action(async (options: { verbose?: boolean }) => {
-            try {
-                await populateWorkspaceBundle(undefined, { debug: options.verbose ?? false });
-                logger.info('Populate complete');
-            } catch (err) {
-                logger.error('Failed to populate references: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });

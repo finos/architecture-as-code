@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Command } from 'commander';
 import { setupWorkspaceCommands } from './commands';
 
@@ -12,7 +12,6 @@ const mocks = vi.hoisted(() => {
         cleanAllWorkspaces: vi.fn(async () => { }),
         addFileToBundle: vi.fn(async () => ({ id: 'test-doc', destPath: '/fake/bundle/files/test.json', rel: 'files/test.json' })),
         printBundleTree: vi.fn(async () => { }),
-        populateWorkspaceBundle: vi.fn(async () => { }),
         createNewDocument: vi.fn(async () => '/fake/repo/com.example-architecture-my-arch.json'),
         getTemplatesForType: vi.fn(async () => ['empty']),
         pushWorkspaceToHub: vi.fn(async () => { }),
@@ -50,10 +49,6 @@ vi.mock('./bundle', () => ({
 
 vi.mock('./rm', () => ({
     removeDocumentFromManifest: mocks.removeDocumentFromManifest,
-}));
-
-vi.mock('./populate', () => ({
-    populateWorkspaceBundle: mocks.populateWorkspaceBundle,
 }));
 
 vi.mock('./new', () => ({
@@ -191,24 +186,6 @@ describe('setupWorkspaceCommands', () => {
             await expect(
                 program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json', '--type', 'architecture', '--id', 'test'])
             ).rejects.toThrow();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-        });
-    });
-
-    describe('workspace populate', () => {
-        it('should call populateWorkspaceBundle', async () => {
-            await program.parseAsync(['node', 'test', 'workspace', 'populate']);
-            expect(mocks.populateWorkspaceBundle).toHaveBeenCalledWith(undefined, { debug: false });
-        });
-
-        it('should pass verbose option', async () => {
-            await program.parseAsync(['node', 'test', 'workspace', 'populate', '--verbose']);
-            expect(mocks.populateWorkspaceBundle).toHaveBeenCalledWith(undefined, { debug: true });
-        });
-
-        it('should exit on error', async () => {
-            mocks.populateWorkspaceBundle.mockRejectedValueOnce(new Error('populate failed'));
-            await expect(program.parseAsync(['node', 'test', 'workspace', 'populate'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
     });
