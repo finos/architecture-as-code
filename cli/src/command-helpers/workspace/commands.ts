@@ -1,4 +1,4 @@
-import { Argument, Command } from 'commander';
+import { Argument, Command, Option } from 'commander';
 import path from 'path';
 import { readFile, writeFile } from 'fs/promises';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
@@ -52,7 +52,7 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('<file>', 'Path to the file to add to the bundle')
         .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
         .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
-        .option('--type <type>', 'Document type: architecture, pattern, schema, interface, timeline (defaults to unknown)')
+        .addOption(new Option('--type <type>', 'Document type').choices(CALM_DOCUMENT_TYPES_LIST))
         .option('--namespace <namespace>', 'CalmHub namespace to associate with this file')
         .action(async (file: string, options: { id?: string; copy?: boolean; type?: string; namespace?: string }) => {
             try {

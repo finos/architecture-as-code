@@ -236,7 +236,6 @@ describe('setupWorkspaceCommands', () => {
             await expect(
                 program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json', '--type', 'not-a-type', '--id', 'test'])
             ).rejects.toThrow();
-            expect(exitSpy).toHaveBeenCalledWith(1);
             expect(mocks.addFileToBundle).not.toHaveBeenCalled();
         });
     });
