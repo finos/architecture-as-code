@@ -3,6 +3,49 @@ import type { Logger } from '@finos/calm-shared';
 import { Router, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isHttpUrl(value: string): boolean {
+    return /^https?:\/\//i.test(value.trim());
+}
+
+function isAllowedPatternRef(ref: string): boolean {
+    const trimmed = ref.trim();
+    return trimmed.startsWith('#') || isHttpUrl(trimmed);
+}
+
+export function findDisallowedPatternRef(value: unknown): string | undefined {
+    if (Array.isArray(value)) {
+        for (const item of value) {
+            const disallowed = findDisallowedPatternRef(item);
+            if (disallowed !== undefined) {
+                return disallowed;
+            }
+        }
+        return undefined;
+    }
+    
+    if (isJsonObject(value)) {
+        for (const [key, val] of Object.entries(value)) {
+            if (key === '$ref' && typeof val === 'string' && !isAllowedPatternRef(val)) {
+                return val;
+            }
+            const disallowed = findDisallowedPatternRef(val);
+            if (disallowed !== undefined) {
+                return disallowed;
+            }
+        }
+    }
+    
+    return undefined;
+}
+
+function hasNonArrayRelationships(architecture: Record<string, unknown>): boolean {
+    return 'relationships' in architecture && !Array.isArray(architecture['relationships']);
+}
+
 export class ValidationRouter {
     private schemaDirectory: SchemaDirectory;
     private logger: Logger;
@@ -53,9 +96,24 @@ export class ValidationRouter {
             return res.status(400).type('json').send(new ErrorResponse('Invalid JSON format for architecture'));
         }
 
-        const schema = architecture['$schema'];
+        if (!isJsonObject(architecture)) {
+            this.logger.error('Architecture is not a JSON object');
+            return res.status(400).type('json').send(new ErrorResponse('The architecture must be a JSON object'));
+        }
+
+        if (hasNonArrayRelationships(architecture)) {
+            this.logger.error('The "relationships" field in the architecture is not an array');
+            return res.status(400).type('json').send(new ErrorResponse('The "relationships" field in the architecture must be an array'));
+        }
+
+        const schema = architecture['$schema'] as string | undefined;
         if (!schema) {
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
+        }
+
+        if (!isHttpUrl(schema)) {
+            this.logger.error(`The "$schema" field is not an http(s) URL: ${schema}`);
+            return res.status(400).type('json').send(new ErrorResponse('The "$schema" field must be an absolute http(s) URL'));
         }
 
         try {
@@ -96,6 +154,16 @@ export class ValidationRouter {
             return res.status(400).type('json').send(new ErrorResponse('Invalid JSON format for architecture'));
         }
 
+        if(!isJsonObject(architecture)) {
+            this.logger.error('Architecture is not a JSON object');
+            return res.status(400).type('json').send(new ErrorResponse('The architecture must be a JSON object'));
+        }
+
+        if (hasNonArrayRelationships(architecture)) {
+            this.logger.error('The "relationships" field in the architecture is not an array');
+            return res.status(400).type('json').send(new ErrorResponse('The "relationships" field in the architecture must be an array'));
+        }
+
         let pattern;
         try {
             pattern = JSON.parse(req.body.pattern);
@@ -104,12 +172,17 @@ export class ValidationRouter {
             return res.status(400).type('json').send(new ErrorResponse('Invalid JSON format for pattern'));
         }
 
-        const schema = architecture['$schema'];
+        if(!isJsonObject(pattern)) {
+            this.logger.error('Pattern is not a JSON object');
+            return res.status(400).type('json').send(new ErrorResponse('The pattern must be a JSON object'));
+        }
+
+        const schema = architecture['$schema'] as string | undefined;
         if (!schema) {
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
         }
-        
-        const patternId = pattern['$id'];
+
+        const patternId = pattern['$id'] as string | undefined;
         if (!patternId) {
             return res.status(400).type('json').send(new ErrorResponse('The "$id" field is missing from the provided pattern'));
         }
@@ -119,6 +192,14 @@ export class ValidationRouter {
             return res.status(400).type('json').send(new ErrorResponse(`The "$schema" field (${schema}) in the architecture does not match the "$id" field (${patternId}) in the pattern`));
         }
 
+        const disallowedRef = findDisallowedPatternRef(pattern);
+        if (disallowedRef !== undefined) {
+            this.logger.error(`Pattern contains a disallowed $ref: ${disallowedRef}`);
+            return res.status(400).type('json').send(new ErrorResponse(
+                `The provided pattern contains a "$ref" to a non-permitted location: "${disallowedRef}". `
+                + 'Only local fragment references (e.g. "#/defs/...") and absolute http(s) URLs to approved hosts are allowed.'
+            ));
+        }
         try {
             await this.ensureSchemasLoaded();
         } catch (error) {

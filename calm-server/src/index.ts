@@ -17,6 +17,7 @@ const VERBOSE_OPTION = '-v, --verbose';
 const CALMHUB_URL_OPTION = '-c, --calm-hub-url <url>';
 const RATE_LIMIT_WINDOW_OPTION = '--rate-limit-window <ms>';
 const RATE_LIMIT_MAX_OPTION = '--rate-limit-max <requests>';
+const ALLOWED_REMOTE_HOSTS_OPTION = '--allowed-remote-hosts <hosts>';
 
 interface ParseDocumentLoaderOptions {
     verbose?: boolean;
@@ -24,6 +25,16 @@ interface ParseDocumentLoaderOptions {
     schemaDirectory?: string;
     rateLimitWindow?: number;
     rateLimitMax?: number;
+    allowedRemoteHosts?: string;
+}
+
+function parseAllowedRemoteHosts(optionValue?: string): string[] | undefined {
+    const raw = optionValue ?? process.env.CALM_ALLOWED_REMOTE_HOSTS;
+    if (!raw) {
+        return undefined;
+    }
+    const hosts = raw.split(',').map(host => host.trim()).filter(Boolean);
+    return hosts.length > 0 ? hosts : undefined;
 }
 
 async function parseDocumentLoaderConfig(
@@ -36,6 +47,7 @@ async function parseDocumentLoaderConfig(
         schemaDirectoryPath: options.schemaDirectory,
         urlToLocalMap: urlToLocalMap,
         basePath: basePath,
+        allowedRemoteHosts: parseAllowedRemoteHosts(options.allowedRemoteHosts),
         debug: !!options.verbose
     };
 
@@ -59,6 +71,7 @@ program
     .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
     .option(RATE_LIMIT_WINDOW_OPTION, 'Rate limit window in milliseconds (default: 900000 = 15 minutes)', '900000')
     .option(RATE_LIMIT_MAX_OPTION, 'Max requests per IP within the rate limit window (default: 100)', '100')
+    .option(ALLOWED_REMOTE_HOSTS_OPTION, 'Comma-separated list of trusted remtote hosts allowed for $ref resolution in user-supplied patterns (default: calm.finos.org). Can also be set via the CALM_ALLOWED_REMOTE_HOSTS environment variable.')
     .action(async (options) => {
         try {
             const debug = !!options.verbose;
