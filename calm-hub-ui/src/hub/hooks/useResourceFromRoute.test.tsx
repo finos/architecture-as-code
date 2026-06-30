@@ -101,6 +101,23 @@ describe('useResourceFromRoute', () => {
                 controlId: 5,
                 controlName: 'Encryption',
                 controlDescription: 'desc',
+                controlTitle: undefined,
+            });
+        });
+    });
+
+    it('loads a control by name slug (search deep-link) and passes the title', async () => {
+        fetchControlsForDomain.mockResolvedValue([
+            { id: 5, name: 'encryption-at-rest', description: 'desc', title: 'Encryption at rest' },
+        ]);
+        renderAt('/security/controls/encryption-at-rest/detail');
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith({
+                domain: 'security',
+                controlId: 5,
+                controlName: 'encryption-at-rest',
+                controlDescription: 'desc',
+                controlTitle: 'Encryption at rest',
             });
         });
     });

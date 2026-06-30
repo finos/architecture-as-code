@@ -92,10 +92,11 @@ export function DomainPage({ domain, controlCount, onControlLoad }: DomainPagePr
                                             controlId: control.id,
                                             controlName: control.name,
                                             controlDescription: control.description,
+                                            controlTitle: control.title,
                                         })
                                     }
                                 >
-                                    {control.name}
+                                    {control.title ?? control.name}
                                 </button>
                             </li>
                         ))}

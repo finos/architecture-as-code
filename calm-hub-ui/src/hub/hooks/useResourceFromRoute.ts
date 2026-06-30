@@ -84,13 +84,16 @@ export function useResourceFromRoute({
             controlService
                 .fetchControlsForDomain(namespace)
                 .then((controls) => {
-                    const match = controls.find((c) => c.id === Number(params.id));
+                    // Controls are deep-linked both by numeric id (mobile drill-down) and by
+                    // name slug (global/Explorer search -> /controls/<name>/detail), so match either.
+                    const match = controls.find((c) => String(c.id) === params.id || c.name === params.id);
                     if (match) {
                         onControlLoadRef.current({
                             domain: namespace,
                             controlId: match.id,
                             controlName: match.name,
                             controlDescription: match.description,
+                            controlTitle: match.title,
                         });
                     }
                 })

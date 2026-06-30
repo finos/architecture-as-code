@@ -141,7 +141,7 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
             controlService
                 .fetchControlsForDomain(domain)
                 .then((controls: ControlDetail[]) =>
-                    setLeafItems(controls.map((c) => ({ id: c.id.toString(), name: c.name })))
+                    setLeafItems(controls.map((c) => ({ id: c.id.toString(), name: c.title ?? c.name })))
                 )
                 .catch(() => setLeafItems([]))
                 .finally(() => setLoading(false));

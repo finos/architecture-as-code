@@ -48,6 +48,9 @@ export default function Hub() {
 
     const countsService = useMemo(() => new CountsService(), []);
 
+    // Runs once: countsService is memoised and Hub is the top-level page, so this effect
+    // never re-fires and there is no in-flight fetch to cancel on a dependency change. (Unlike
+    // useNamespaceItems, whose fetch effect re-runs per namespace and so needs a cancel guard.)
     useEffect(() => {
         countsService.fetchNamespaceCounts().then(setNamespaceCounts).catch(() => setNamespaceCounts([]));
         countsService.fetchDomainCounts().then(setDomainCounts).catch(() => setDomainCounts([]));
