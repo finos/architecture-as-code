@@ -87,6 +87,7 @@ export {
     type ControlDocumentKind
 } from './hub/document-id-utils.js';
 export { computeSemVerBump, compareSemVer, sortSemVer } from './hub/semver.js';
+export { canonicalEqual, canonicalize } from './hub/canonical.js';
 export {
     enrichWithDocumentPositions,
     parseDocumentWithPositions,
