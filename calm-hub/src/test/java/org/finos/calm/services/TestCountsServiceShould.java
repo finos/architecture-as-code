@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -266,5 +267,69 @@ class TestCountsServiceShould {
         List<DomainControlCount> result = service.getDomainCounts(Optional.of(Set.of()));
 
         assertThat(result, hasSize(0));
+    }
+
+    @Test
+    void cache_namespace_counts_within_ttl_so_stores_are_read_once() throws Exception {
+        when(mockNamespaceStore.getNamespaces())
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "FINOS namespace")));
+        when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE))
+                .thenReturn(List.of(new NamespaceArchitectureSummary("a1", "desc", 1)));
+        when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.getAdrsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
+
+        service.getNamespaceCounts(ALL_ACCESS);
+        List<NamespaceCounts> second = service.getNamespaceCounts(ALL_ACCESS);
+
+        assertThat(second.get(0).getArchitectures(), is(1));
+        // The second call within the TTL is served from the per-namespace cache.
+        verify(mockArchitectureStore, times(1)).getArchitecturesForNamespace(NAMESPACE);
+    }
+
+    @Test
+    void cache_domain_control_counts_within_ttl_so_control_store_is_read_once() throws Exception {
+        when(mockDomainStore.getDomains()).thenReturn(List.of(DOMAIN));
+        when(mockControlStore.getControlsForDomain(DOMAIN))
+                .thenReturn(List.of(new ControlDetail(1, "Access Control", "Controls access")));
+
+        service.getDomainCounts(ALL_ACCESS);
+        List<DomainControlCount> second = service.getDomainCounts(ALL_ACCESS);
+
+        assertThat(second.get(0).getControlCount(), is(1));
+        verify(mockControlStore, times(1)).getControlsForDomain(DOMAIN);
+    }
+
+    @Test
+    void count_type_as_zero_when_a_store_throws_at_runtime() throws Exception {
+        when(mockNamespaceStore.getNamespaces())
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "FINOS namespace")));
+        when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE))
+                .thenThrow(new RuntimeException("store unavailable"));
+        when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.getAdrsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
+
+        List<NamespaceCounts> result = service.getNamespaceCounts(ALL_ACCESS);
+
+        // A store-level failure is counted as zero rather than 500-ing the whole endpoint.
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getArchitectures(), is(0));
+    }
+
+    @Test
+    void count_domain_as_zero_when_control_store_throws_at_runtime() throws Exception {
+        when(mockDomainStore.getDomains()).thenReturn(List.of(DOMAIN));
+        when(mockControlStore.getControlsForDomain(DOMAIN))
+                .thenThrow(new RuntimeException("db locked"));
+
+        List<DomainControlCount> result = service.getDomainCounts(ALL_ACCESS);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getControlCount(), is(0));
     }
 }

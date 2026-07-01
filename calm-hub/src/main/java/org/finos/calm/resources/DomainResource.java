@@ -82,18 +82,9 @@ public class DomainResource {
         return Response.ok(new ValueWrapper<>(countsService.getDomainCounts(resolveReadableDomains()))).build();
     }
 
-    /**
-     * Resolves the caller's readable domains the same way {@code SearchResource} resolves
-     * readable namespaces: {@link Optional#empty()} (no filtering, see everything) when auth
-     * is disabled or the {@link UserAccessValidator} is not resolvable (no-auth / standalone
-     * profile); otherwise the validator's DOMAIN_READ-sufficient set (which is itself empty
-     * for global-admin and public-read, meaning everything).
-     */
     private Optional<Set<String>> resolveReadableDomains() {
-        if (!authEnabled || !userAccessValidatorInstance.isResolvable()) {
-            return Optional.empty();
-        }
-        return userAccessValidatorInstance.get().getReadableDomains(identity.getPrincipal().getName());
+        return ReadableScope.resolve(authEnabled, userAccessValidatorInstance, identity,
+                UserAccessValidator::getReadableDomains);
     }
 
     @POST

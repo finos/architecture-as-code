@@ -82,18 +82,9 @@ public class NamespaceResource {
         return new ValueWrapper<>(countsService.getNamespaceCounts(resolveReadableNamespaces()));
     }
 
-    /**
-     * Resolves the caller's readable namespaces the same way {@code SearchResource} does:
-     * {@link Optional#empty()} (no filtering, see everything) when auth is disabled or the
-     * {@link UserAccessValidator} is not resolvable (no-auth / standalone profile);
-     * otherwise the validator's READ-sufficient set (which is itself empty for global-admin
-     * and public-read, meaning everything).
-     */
     private Optional<Set<String>> resolveReadableNamespaces() {
-        if (!authEnabled || !userAccessValidatorInstance.isResolvable()) {
-            return Optional.empty();
-        }
-        return userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName());
+        return ReadableScope.resolve(authEnabled, userAccessValidatorInstance, identity,
+                UserAccessValidator::getReadableNamespaces);
     }
 
     @POST
