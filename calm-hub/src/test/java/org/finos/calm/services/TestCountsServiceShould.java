@@ -274,7 +274,7 @@ class TestCountsServiceShould {
         when(mockNamespaceStore.getNamespaces())
                 .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "FINOS namespace")));
         when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE))
-                .thenReturn(List.of(new NamespaceArchitectureSummary("a1", "desc", 1)));
+                .thenReturn(List.of(new NamespaceArchitectureSummary("a1", "desc", 1, 1)));
         when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
