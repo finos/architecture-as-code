@@ -72,10 +72,32 @@ describe('WorkspaceDocumentLoader', () => {
             expect(loader.resolvePath(otherVersion)).toBe('/ws/files/workshop-pattern.json');
         });
 
-        it('resolves a full URL whose path matches a host-less $id', () => {
+        it('does not resolve a full URL to a host-less $id (cross-host false positive)', () => {
+            // A host-less $id should not match a ref from an arbitrary host — the ref may
+            // point to a completely different service on the same CalmHub path.
             const loader = new WorkspaceDocumentLoader(BUNDLE);
             const url = 'https://any-host.example.com/calm/namespaces/ws/standards/security/versions/3.0.0';
-            expect(loader.resolvePath(url)).toBe('/ws/files/security-standard.json');
+            expect(loader.resolvePath(url)).toBeUndefined();
+        });
+
+        it('resolves a full URL to a full-URL $id when origins match', () => {
+            const loader = new WorkspaceDocumentLoader(BUNDLE);
+            // Same host as PATTERN_ID (hub.example.com), different version
+            const otherVersion = 'https://hub.example.com/calm/namespaces/ws/patterns/workshop/versions/2.0.0';
+            expect(loader.resolvePath(otherVersion)).toBe('/ws/files/workshop-pattern.json');
+        });
+
+        it('does not resolve a full URL to a full-URL $id when origins differ', () => {
+            const loader = new WorkspaceDocumentLoader(BUNDLE);
+            const differentHost = 'https://other.example.com/calm/namespaces/ws/patterns/workshop/versions/1.0.0';
+            expect(loader.resolvePath(differentHost)).toBeUndefined();
+        });
+
+        it('resolves an unversioned path ref that equals the $id base path', () => {
+            // A $ref with no /versions/<v> segment should still resolve locally.
+            const loader = new WorkspaceDocumentLoader(BUNDLE);
+            const unversioned = '/calm/namespaces/ws/standards/security';
+            expect(loader.resolvePath(unversioned)).toBe('/ws/files/security-standard.json');
         });
 
         it('ignores a #/... fragment when matching', () => {

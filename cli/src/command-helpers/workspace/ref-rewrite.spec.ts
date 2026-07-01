@@ -59,6 +59,36 @@ describe('ref-rewrite pure functions', () => {
             expect(resolveNewRef('https://other-host.example.com/calm/namespaces/com.example/architectures/a/versions/1.0.0', pathRules))
                 .toBe('https://other-host.example.com/calm/namespaces/com.example/architectures/a/versions/1.1.0');
         });
+
+        it('repoints a full-URL ref when both rule and ref use full URLs with the same origin', () => {
+            // $id is a full URL — should match same-host refs and update only the version.
+            const fullUrlRules: RefRule[] = [{
+                bareId: 'doc-a',
+                targetPath: idAt('a', '1.1.0'),
+                basePath: stripVersionSuffix(idAt('a', '1.1.0')),
+            }];
+            expect(resolveNewRef(idAt('a', '1.0.0'), fullUrlRules)).toBe(idAt('a', '1.1.0'));
+        });
+
+        it('does not repoint a full-URL ref when the origin differs from the full-URL rule', () => {
+            const fullUrlRules: RefRule[] = [{
+                bareId: 'doc-a',
+                targetPath: idAt('a', '1.1.0'),
+                basePath: stripVersionSuffix(idAt('a', '1.1.0')),
+            }];
+            const differentHost = 'https://other.example.com/calm/namespaces/com.example/architectures/a/versions/1.0.0';
+            expect(resolveNewRef(differentHost, fullUrlRules)).toBeNull();
+        });
+
+        it('repoints an unversioned bare-path ref to the target', () => {
+            const pathRules: RefRule[] = [{
+                bareId: 'doc-a',
+                targetPath: '/calm/namespaces/com.example/architectures/a/versions/1.1.0',
+                basePath: '/calm/namespaces/com.example/architectures/a',
+            }];
+            expect(resolveNewRef('/calm/namespaces/com.example/architectures/a', pathRules))
+                .toBe('/calm/namespaces/com.example/architectures/a/versions/1.1.0');
+        });
     });
 });
 

@@ -55,19 +55,43 @@ export function resolveNewRef(ref: string, rules: RefRule[]): string | null {
         if (baseRef === rule.targetPath) return null;
 
         if (rule.basePath) {
-            // Path form with a different version
+            // Path form: versioned (different version) or unversioned (bare base path)
             const stripped = stripVersionSuffix(baseRef);
             if (stripped !== null && stripped === rule.basePath) {
                 return rule.targetPath + fragment;
             }
+            if (stripped === null && baseRef === rule.basePath) {
+                return rule.targetPath + fragment;
+            }
 
-            // Full URL form — keep the same origin, replace only the path
+            // Full URL form — keep the same origin, replace only the path.
             if (baseRef.startsWith('http://') || baseRef.startsWith('https://')) {
                 try {
                     const url = new URL(baseRef);
                     const pathBase = stripVersionSuffix(url.pathname);
-                    if (pathBase !== null && pathBase === rule.basePath) {
-                        url.pathname = rule.targetPath;
+                    let pathMatches = false;
+                    let targetPathname: string;
+
+                    if (rule.basePath && (rule.basePath.startsWith('http://') || rule.basePath.startsWith('https://'))) {
+                        // rule.$id is a full URL — require same origin and compare pathnames
+                        const ruleBase = new URL(rule.basePath);
+                        pathMatches = url.origin === ruleBase.origin &&
+                            ((pathBase !== null && pathBase === ruleBase.pathname) ||
+                             url.pathname === ruleBase.pathname);
+                        targetPathname = rule.targetPath.startsWith('http://') || rule.targetPath.startsWith('https://')
+                            ? new URL(rule.targetPath).pathname
+                            : rule.targetPath;
+                    } else if (rule.basePath) {
+                        // rule.$id is a bare path — match on path alone, preserve caller's origin
+                        pathMatches = (pathBase !== null && pathBase === rule.basePath) ||
+                                      url.pathname === rule.basePath;
+                        targetPathname = rule.targetPath;
+                    } else {
+                        return null;
+                    }
+
+                    if (pathMatches) {
+                        url.pathname = targetPathname;
                         const replacement = url.toString() + fragment;
                         return replacement !== ref ? replacement : null;
                     }

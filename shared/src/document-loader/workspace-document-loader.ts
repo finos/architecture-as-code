@@ -120,15 +120,24 @@ export class WorkspaceDocumentLoader implements DocumentLoader {
             if (rule.docId && baseRef === rule.docId) return rule.localPath;
 
             if (rule.basePath) {
-                // Same CalmHub path at a different version
+                // Same CalmHub path at a different version (or exact unversioned base path)
                 const stripped = stripVersionSuffix(baseRef);
                 if (stripped !== null && stripped === rule.basePath) return rule.localPath;
+                if (stripped === null && baseRef === rule.basePath) return rule.localPath;
 
-                // Full URL form — compare only the path portion
+                // Full URL form — only match when the rule's $id is also a full URL with the
+                // same origin; a host-less $id must not match refs from an arbitrary host.
                 if (baseRef.startsWith('http://') || baseRef.startsWith('https://')) {
                     try {
-                        const pathBase = stripVersionSuffix(new URL(baseRef).pathname);
-                        if (pathBase !== null && pathBase === rule.basePath) return rule.localPath;
+                        const ref = new URL(baseRef);
+                        if (rule.basePath.startsWith('http://') || rule.basePath.startsWith('https://')) {
+                            const ruleBase = new URL(rule.basePath);
+                            const pathBase = stripVersionSuffix(ref.pathname);
+                            const matches = ref.origin === ruleBase.origin &&
+                                ((pathBase !== null && pathBase === ruleBase.pathname) ||
+                                 ref.pathname === ruleBase.pathname);
+                            if (matches) return rule.localPath;
+                        }
                     } catch {
                         // not a valid URL — ignore
                     }
