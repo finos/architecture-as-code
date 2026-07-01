@@ -12,6 +12,15 @@ import type { CalmDocumentType } from '@finos/calm-shared/src/document-loader/do
 export const REFERENCE_PROPERTIES = ['$ref', '$schema', 'requirement-url', 'config-url'] as const;
 
 /**
+ * Resolve a manifest entry's stored path to an absolute filesystem path.
+ * Entries added by reference store their path as absolute; entries added with --copy
+ * store a relative path within the bundle directory.
+ */
+export function resolveFilePath(bundlePath: string, entryPath: string): string {
+    return path.isAbsolute(entryPath) ? entryPath : path.join(bundlePath, entryPath);
+}
+
+/**
  * Extract a reference URL from a value that may be either:
  * 1. A direct string value (e.g., "https://example.com/schema.json")
  * 2. A JSON Schema const object (e.g., { "const": "https://example.com/schema.json" })
@@ -195,7 +204,7 @@ export async function buildDependencyGraph(bundlePath: string): Promise<Dependen
     const manifest = await loadManifest(bundlePath);
     const idToPath: Record<string, string> = {};
     for (const [id, entry] of Object.entries(manifest)) {
-        idToPath[id] = path.join(bundlePath, entry.path);
+        idToPath[id] = resolveFilePath(bundlePath, entry.path);
     }
 
     const edges: Record<string, string[]> = {};

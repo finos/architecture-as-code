@@ -5,7 +5,7 @@ import { setupWorkspaceCommands } from './commands';
 const mocks = vi.hoisted(() => {
     return {
         ensureWorkspaceBundle: vi.fn(async () => '/fake/bundle'),
-        getActiveWorkspace: vi.fn(async () => 'default'),
+        getActiveWorkspace: vi.fn<() => Promise<string | null>>(async () => 'default'),
         listWorkspaces: vi.fn(async () => ['default', 'other']),
         setActiveWorkspace: vi.fn(async () => { }),
         cleanWorkspaceBundle: vi.fn(async () => { }),
@@ -18,8 +18,8 @@ const mocks = vi.hoisted(() => {
         detectChangedResources: vi.fn(async () => []),
         bumpWorkspace: vi.fn(async () => ({ bumped: [], refUpdates: [] })),
         loadWorkspaceConfig: vi.fn(async () => ({ push: { failIfModified: false }, bump: { defaultIncrement: 'MINOR' } })),
-        findWorkspaceManifestPath: vi.fn(() => '/fake/bundle'),
-        findGitRoot: vi.fn(() => '/fake/repo'),
+        findWorkspaceManifestPath: vi.fn<() => string | null>(() => '/fake/bundle'),
+        findGitRoot: vi.fn<() => string | null>(() => '/fake/repo'),
         loadManifest: vi.fn(async () => ({})),
         removeDocumentFromManifest: vi.fn(async () => true),
         loadCliConfig: vi.fn(async () => ({ calmHubUrl: 'https://calmhub.example.com' })),
@@ -483,7 +483,7 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('passes failIfModified: false when no git root / config is found', async () => {
-            mocks.findGitRoot.mockReturnValueOnce(null as unknown as string);
+            mocks.findGitRoot.mockReturnValueOnce(null);
             await program.parseAsync(['node', 'test', 'workspace', 'push']);
             expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
                 '/fake/bundle',
@@ -500,7 +500,7 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('exits when no workspace bundle is found', async () => {
-            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null as unknown as string);
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
             await expect(program.parseAsync(['node', 'test', 'workspace', 'push'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
@@ -561,7 +561,7 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('defaults to MINOR when no git root / config is found', async () => {
-            mocks.findGitRoot.mockReturnValueOnce(null as unknown as string);
+            mocks.findGitRoot.mockReturnValueOnce(null);
             await program.parseAsync(['node', 'test', 'workspace', 'bump']);
             expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
                 '/fake/bundle',

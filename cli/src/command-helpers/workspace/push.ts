@@ -1,7 +1,6 @@
-import path from 'path';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest, saveManifest } from './bundle';
+import { loadManifest, saveManifest, resolveFilePath } from './bundle';
 import { CalmHubClient } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { DocumentMetadata, extractDocumentMetadata } from '@finos/calm-shared/src/hub/document-id-utils';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
@@ -37,7 +36,7 @@ export async function pushWorkspaceToHub(
     const conflicts: string[] = [];
 
     for (const [id, entry] of entries) {
-        const filePath = path.isAbsolute(entry.path) ? entry.path : path.join(bundlePath, entry.path);
+        const filePath = resolveFilePath(bundlePath, entry.path);
 
         if (!existsSync(filePath)) {
             logger.warn(`File not found for id '${id}': ${filePath}`);

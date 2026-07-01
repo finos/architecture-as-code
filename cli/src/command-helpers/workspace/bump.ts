@@ -1,7 +1,6 @@
-import path from 'path';
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest } from './bundle';
+import { loadManifest, resolveFilePath } from './bundle';
 import { buildRefRulesFromDiskIds, syncReferences, RefUpdateResult } from './ref-rewrite';
 import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 import {
@@ -29,10 +28,6 @@ export interface ChangedResource {
 export interface BumpResult {
     bumped: Array<{ id: string; filePath: string; fromVersion: string; toVersion: string }>;
     refUpdates: RefUpdateResult[];
-}
-
-function resolveFilePath(bundlePath: string, entryPath: string): string {
-    return path.isAbsolute(entryPath) ? entryPath : path.join(bundlePath, entryPath);
 }
 
 /**

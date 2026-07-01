@@ -470,5 +470,20 @@ describe('bundle', () => {
 
             expect(graph.edges['parent']).toContain('child');
         });
+
+        it('should resolve absolute paths stored by the default add-by-reference workflow', async () => {
+            const absPath = path.join(filesPath, 'abs-doc.json');
+            await writeFile(absPath, JSON.stringify({ '$id': 'abs-doc' }));
+            // Default `add` (by reference) stores an absolute path in the manifest.
+            await saveManifest(bundlePath, {
+                'abs-doc': { path: absPath, type: 'architecture' }
+            });
+
+            const graph = await buildDependencyGraph(bundlePath);
+
+            expect(graph.nodes).toContain('abs-doc');
+            expect(graph.idToPath['abs-doc']).toBe(absPath);
+            expect(graph.edges['abs-doc']).toEqual([]);
+        });
     });
 });

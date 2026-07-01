@@ -1,7 +1,6 @@
-import path from 'path';
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { REFERENCE_PROPERTIES, WorkspaceManifest } from './bundle';
+import { REFERENCE_PROPERTIES, WorkspaceManifest, resolveFilePath } from './bundle';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 
 const logger: Logger = initLogger(false, 'workspace');
@@ -131,10 +130,6 @@ export function replaceRefsInObject(
         return result;
     }
     return obj;
-}
-
-function resolveFilePath(bundlePath: string, entryPath: string): string {
-    return path.isAbsolute(entryPath) ? entryPath : path.join(bundlePath, entryPath);
 }
 
 /**
