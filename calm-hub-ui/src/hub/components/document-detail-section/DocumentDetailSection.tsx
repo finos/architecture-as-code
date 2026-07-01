@@ -70,6 +70,7 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
                     namespace={data.name}
                     id={data.id}
                     version={data.version}
+                    typeSegment={calmTypeToUrlSegment(data.calmType)}
                     versions={versions}
                     onVersionChange={handleVersionChange}
                 />

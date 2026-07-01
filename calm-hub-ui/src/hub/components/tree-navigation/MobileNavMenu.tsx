@@ -114,13 +114,15 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
             controlService
                 .fetchControlsForDomain(namespace)
                 .then((controls) => {
-                    const match = controls.find((c) => c.id === Number(params.id));
+                    const match = controls.find((c) => c.name === params.id)
+                        ?? controls.find((c) => c.id === Number(params.id));
                     if (match) {
                         onControlLoadRef.current({
                             domain: namespace,
                             controlId: match.id,
                             controlName: match.name,
                             controlDescription: match.description,
+                            controlTitle: match.title,
                         });
                     }
                 })
@@ -190,7 +192,7 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
             controlService
                 .fetchControlsForDomain(domain)
                 .then((controls: ControlDetail[]) =>
-                    setLeafItems(controls.map((c) => ({ id: c.id.toString(), name: c.name })))
+                    setLeafItems(controls.map((c) => ({ id: c.name, name: c.title ?? c.name })))
                 )
                 .catch(() => setLeafItems([]))
                 .finally(() => setLoading(false));

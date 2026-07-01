@@ -18,9 +18,9 @@ interface StoredViewport {
 }
 
 /** The saved viewport, but only when it belongs to the given diagram key. */
-export function readViewportForKey(key: string): Viewport | undefined {
+export function readViewportForKey(key: string, storage: Storage = sessionStorage): Viewport | undefined {
     try {
-        const raw = sessionStorage.getItem(STORAGE_KEY);
+        const raw = storage.getItem(STORAGE_KEY);
         if (!raw) return undefined;
         const stored = JSON.parse(raw) as StoredViewport;
         return stored.key === key ? stored.viewport : undefined;
@@ -30,9 +30,9 @@ export function readViewportForKey(key: string): Viewport | undefined {
 }
 
 /** Save the viewport for a diagram key, replacing any previous diagram's. */
-export function saveViewportForKey(key: string, viewport: Viewport): void {
+export function saveViewportForKey(key: string, viewport: Viewport, storage: Storage = sessionStorage): void {
     try {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ key, viewport }));
+        storage.setItem(STORAGE_KEY, JSON.stringify({ key, viewport }));
     } catch {
         /* ignore unavailable storage */
     }

@@ -140,8 +140,16 @@ export function Sparkline({
                 )}
             </div>
 
-            {/* Centre: sparkline track with dots + labels */}
-            <div className="relative flex-1" style={{ height: 60 }}>
+            {/* Centre: sparkline track with dots + labels. overflow-hidden clips
+                long labels at the track edge so they can never paint over the
+                statically-positioned expand button (#2728). The height must fully
+                contain the dot + label + date stack, otherwise the same clip would
+                cut off the date row beneath each dot. */}
+            <div
+                data-testid="timeline-sparkline-track"
+                className="relative flex-1"
+                style={{ height: 72, overflow: 'hidden' }}
+            >
                 {/* Inner track wrapper inset 10px each side so dot percentages map directly */}
                 <div className="absolute" style={{ left: 10, right: 10, top: 0, bottom: 0 }}>
                     <div
@@ -206,6 +214,12 @@ export function Sparkline({
                                         fontWeight: isActive ? 600 : 500,
                                         color: isActive ? colors.ink[900] : colors.ink[700],
                                         textAlign: 'center',
+                                        // Bound + truncate long names so the strip stays
+                                        // readable; the title tooltip shows the full name (#2728).
+                                        maxWidth: 120,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
                                     }}
                                     title={moment.label}
                                 >

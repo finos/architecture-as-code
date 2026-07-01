@@ -51,15 +51,15 @@ A guided introduction to the Common Architecture Language Model — what it is, 
 | 9 | Part 2 divider — Building Blocks | — |
 | 10–14 | Building blocks (nodes ×2, relationships ×2, interfaces) | 8 min |
 | 15 | Part 3 divider — Governance | — |
-| 16–23 | Governance (controls ×2, customizations, decorators, patterns ×3, disambiguation) | 10 min |
-| 24 | Part 4 divider — Process & Evolution | — |
-| 25–27 | Process & evolution (flows ×2, timelines) | 5 min |
-| 28 | Part 5 divider — Tooling | — |
-| 29–35 | Tooling (CLI, VSCode ×2, Hub ×2, widgets, AI tools) | 6 min |
-| 36 | Part 6 divider — CALM in Practice | — |
-| 37–38 | CALM in practice (deployments, gating) | 5 min |
-| 39 | Part 7 divider — Putting It Together | — |
-| 40–42 | Trading system example (architecture, what's modelled, workflow) | 4 min |
-| 43 | Getting Involved (open source, Slack, community) | 1 min |
-| 44 | Workshop (Beginner / Intermediate / Practitioner) | 1 min |
-| 45 | Close | — |
+| 16–24 | Governance (controls ×2, custom properties, standards, decorators, patterns ×3, disambiguation) | 10 min |
+| 25 | Part 4 divider — Process & Evolution | — |
+| 26–28 | Process & evolution (flows ×2, timelines) | 5 min |
+| 29 | Part 5 divider — Tooling | — |
+| 30–36 | Tooling (CLI, VSCode ×2, Hub ×2, widgets, AI tools) | 6 min |
+| 37 | Part 6 divider — CALM in Practice | — |
+| 38–39 | CALM in practice (deployments, gating) | 5 min |
+| 40 | Part 7 divider — Putting It Together | — |
+| 41–43 | Trading system example (architecture, what's modelled, workflow) | 4 min |
+| 44 | Getting Involved (open source, Slack, community) | 1 min |
+| 45 | Workshop (Beginner / Intermediate / Practitioner / Advanced) | 1 min |
+| 46 | Close | — |

@@ -169,7 +169,7 @@ export function ExplorerSearch({
             setResults(null);
 
             if (type === 'controls') {
-                navigate(`/${result.namespace}/controls/${result.id}/detail`);
+                navigate(`/${result.namespace}/controls/${result.name}/detail`);
                 return;
             }
 

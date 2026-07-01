@@ -121,11 +121,26 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
+/* Ensure code text is readable when projected.
+   Inline font sizes on prose override this; code blocks carry no inline size,
+   so this is the only lever for them. */
+.revealContainer :global(.reveal pre code) {
+  font-size: 1.65rem;
+  line-height: 1.5;
+}
+
 /* Two-column layout helper used in some slides.
-   Increased gap from 1.2rem → 2.5rem for clear visual column separation. */
+   Increased gap from 1.2rem → 2.5rem for clear visual column separation.
+   min-width: 0 on children prevents grid cells from overflowing their 1fr
+   allocation when a <pre> or long word forces min-width: auto (the default),
+   which would squeeze the opposite column off-screen. */
 .revealContainer :global(.two-col) {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2.5rem;
   align-items: start;
+}
+
+.revealContainer :global(.two-col > *) {
+  min-width: 0;
 }
