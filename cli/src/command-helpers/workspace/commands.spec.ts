@@ -185,14 +185,14 @@ describe('setupWorkspaceCommands', () => {
             );
         });
 
-        it('rebuilds a non-conformant $id, writes it back, then fails without adding', async () => {
+        it('warns about a non-conformant $id but still adds the file to the bundle', async () => {
             mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: 'not-conformant', title: 'My Architecture' }));
             mocks.isConformantDocumentId.mockReturnValueOnce(false);
-            await expect(program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json'])).rejects.toThrow();
-            expect(mocks.promptForDocumentId).toHaveBeenCalled();
-            expect(mocks.writeFile).toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
+            expect(mocks.promptForDocumentId).not.toHaveBeenCalled();
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalled();
         });
 
         it('should prompt for a manifest name when the file has no title field', async () => {
@@ -433,12 +433,13 @@ describe('setupWorkspaceCommands', () => {
             );
         });
 
-        it('exits when no workspace bundle is found', async () => {
+        it('exits when no workspace bundle is found, before prompting', async () => {
             mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
             await expect(
                 program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'my-arch'])
             ).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.promptForDocumentId).not.toHaveBeenCalled();
         });
 
         it('exits on createNewDocument error', async () => {

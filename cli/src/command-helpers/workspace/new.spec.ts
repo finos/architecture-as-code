@@ -63,4 +63,24 @@ describe('createNewDocument', () => {
             expect(filePath).toContain(`.${type}.json`);
         }
     });
+
+    it('throws if the output file already exists', async () => {
+        const filePath = await createNewDocument(DOCUMENT_ID, 'My Arch', 'architecture', 'duplicate-guard');
+        createdFiles.push(filePath);
+        await expect(
+            createNewDocument(DOCUMENT_ID, 'My Arch', 'architecture', 'duplicate-guard')
+        ).rejects.toThrow('already exists');
+    });
+
+    it('throws for a slug containing a path separator', async () => {
+        await expect(
+            createNewDocument(DOCUMENT_ID, 'Bad', 'architecture', '../escape')
+        ).rejects.toThrow('Invalid slug');
+    });
+
+    it('throws for a slug containing a Windows path separator', async () => {
+        await expect(
+            createNewDocument(DOCUMENT_ID, 'Bad', 'architecture', 'sub\\dir')
+        ).rejects.toThrow('Invalid slug');
+    });
 });

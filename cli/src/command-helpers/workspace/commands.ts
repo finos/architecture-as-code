@@ -93,13 +93,9 @@ export function setupWorkspaceCommands(program: Command) {
                         builtNamespace = built.namespace;
                         effectiveId = built.id;
                     } else if (!isConformantDocumentId(existingId)) {
-                        // Non-conformant $id: rebuild it, write it back, then fail so the change is surfaced.
-                        logger.error(`Document $id '${existingId}' is not a conformant CalmHub id.`);
-                        const built = await promptForDocumentId({ baseUrlDefault });
-                        fileJson['$id'] = built.id;
-                        await writeFile(srcPath, JSON.stringify(fileJson, null, 2), 'utf8');
-                        logger.error(`Rewrote $id to ${built.id}. Review the change and re-run \`calm workspace add\`.`);
-                        process.exit(1);
+                        // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
+                        // Silently rewriting would be data loss for types that don't use CalmHub URLs (flow, adr, timeline, etc.).
+                        logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
                     }
                 }
 
@@ -304,6 +300,12 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('[template]', 'The template for your new document')
         .action(async (type, name, template) => {
             try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
                 type = await enforceOptionPresenceByPrompt(type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
                 if (!isValidCalmDocumentType(type)) {
                     logger.error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
@@ -319,12 +321,6 @@ export function setupWorkspaceCommands(program: Command) {
                     template = templates.length > 1
                         ? await enforceOptionPresenceByPrompt(undefined, 'Select a template:', templates)
                         : (templates[0] ?? 'empty');
-                }
-
-                const bundlePath = findWorkspaceManifestPath(process.cwd());
-                if (!bundlePath) {
-                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
-                    process.exit(1);
                 }
 
                 const filePath = await createNewDocument(documentId.id, name, type, documentId.slug, template);

@@ -1,5 +1,6 @@
 import path from 'path';
 import { readdir, readFile, writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import Handlebars from 'handlebars';
 
 const TEMPLATES_DIR = path.resolve(__dirname, 'templates');
@@ -32,11 +33,20 @@ export async function getTemplatesForType(type: string): Promise<string[]> {
  * @returns The absolute path to the newly created file
  */
 export async function createNewDocument(documentId: string, name: string, type: string, slug: string, templateName = 'empty'): Promise<string> {
+    if (/[/\\]|\.\./.test(slug)) {
+        throw new Error(`Invalid slug '${slug}': must not contain path separators or '..'.`);
+    }
+
     const templatePath = path.join(TEMPLATES_DIR, type, `${templateName}.hbs`);
     const source = await readFile(templatePath, 'utf8');
     const content = Handlebars.compile(source)({ id: documentId, name });
     const filename = `${slug}.${type}.json`;
     const filePath = path.join(process.cwd(), filename);
+
+    if (existsSync(filePath)) {
+        throw new Error(`File already exists: ${filePath}. Choose a different slug or remove the existing file first.`);
+    }
+
     await writeFile(filePath, content, 'utf8');
     return filePath;
 }
