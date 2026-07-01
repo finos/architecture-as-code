@@ -5,6 +5,19 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.48.0] - 2026-07-01
+
+## [1.48.0](https://github.com/finos/architecture-as-code/compare/cli-v1.47.1...cli-v1.48.0) (2026-07-01)
+
+### feat
+
+* **cli:** add --fail-if-modified to hub push ([](https://github.com/finos/architecture-as-code/commit/cd731431fd9955674f87989b6c4ec312b8c04c83))
+* **cli:** add --fail-if-modified to hub push (#2760) ([](https://github.com/finos/architecture-as-code/commit/7d45299bd701f5399984cb38ffd2775a95abe334)), closes [#2760](https://github.com/finos/architecture-as-code/issues/2760)
+
+### fix
+
+* **cli:** correct hub push --fail-if-modified comparison and extend to control docs ([](https://github.com/finos/architecture-as-code/commit/9a2805a68f0af13088bca0e355013403f2cfa823))
+
 ## [1.47.1] - 2026-06-29
 
 ## [1.47.1](https://github.com/finos/architecture-as-code/compare/cli-v1.47.0...cli-v1.47.1) (2026-06-29)
