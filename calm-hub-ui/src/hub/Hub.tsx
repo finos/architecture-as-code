@@ -68,23 +68,20 @@ export default function Hub() {
         });
     }, []);
 
-    // Navigating to a non-detail route clears any loaded resource so namespace /
-    // domain pages (and the empty landing) don't show a stale detail panel. Keyed
-    // on react-router's location.key (which changes on every navigation, including
-    // re-selecting the already-active rail row) rather than pathname: an in-place
-    // control / interface load does not navigate, so its key is unchanged and the
-    // detail is preserved, while any navigation clears stale detail state. Runs in
-    // a layout effect so the clear happens before paint, avoiding a one-frame flash
-    // of the stale panel.
+    // Every navigation clears any loaded resource so the incoming route decides what
+    // renders — including navigating *to* a detail route, where a stale in-place control
+    // would otherwise flash before the new fetch resolves (detailContent evaluates
+    // controlData first). Keyed on react-router's location.key, which changes on every
+    // navigation but NOT on an in-place control/interface load (that sets state without
+    // navigating), so those loads are preserved. Runs in a layout effect so the clear
+    // happens before paint, avoiding a one-frame flash of the stale panel.
     useLayoutEffect(() => {
-        if (!isDetailRoute) {
-            setData(undefined);
-            setAdrData(undefined);
-            setControlData(undefined);
-            setInterfaceData(undefined);
-            setSelectedItem(null);
-        }
-    }, [locationKey, isDetailRoute]);
+        setData(undefined);
+        setAdrData(undefined);
+        setControlData(undefined);
+        setInterfaceData(undefined);
+        setSelectedItem(null);
+    }, [locationKey]);
 
     const handleDataLoad = useCallback((loaded: Data) => {
         setData(loaded);
@@ -172,7 +169,11 @@ export default function Hub() {
         ) : activeDomain ? (
             <DomainPage domain={activeDomain} controlCount={domainControlCount} onControlLoad={handleControlLoad} />
         ) : (
-            detailContent
+            // Dedicated landing arm: nothing loaded and no browse route active. Kept separate
+            // from detailContent so it never renders DocumentDetailSection with undefined data.
+            <div className="flex-1 flex items-center justify-center text-[14px] text-base-content/50">
+                Select a namespace or control domain from the Explore rail to begin.
+            </div>
         );
 
     return (

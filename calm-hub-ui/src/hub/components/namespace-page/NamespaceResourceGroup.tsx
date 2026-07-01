@@ -28,8 +28,17 @@ export function NamespaceResourceGroup({ type, namespace, items }: NamespaceReso
     if (items.length === 0) return null;
 
     const openItem = async (id: string) => {
-        const path = await resolveResourceDetailPath(id, type, namespace, calmService, adrService);
-        if (path) navigate(path);
+        try {
+            const path = await resolveResourceDetailPath(id, type, namespace, calmService, adrService);
+            if (path) {
+                navigate(path);
+            } else {
+                // No published version to route to. arg is %s to avoid format-string injection from `id`.
+                console.warn('No openable version for %s; nothing to navigate to', id);
+            }
+        } catch (err) {
+            console.error('Failed to open %s', id, err);
+        }
     };
 
     return (

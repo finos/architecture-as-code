@@ -15,6 +15,8 @@ function App() {
             <Router>
                 <Routes>
                     <Route path="/" element={<Hub />} />
+                    {/* The standalone /visualizer page was removed; redirect old links to the hub. */}
+                    <Route path="/visualizer" element={<Navigate to="/" replace />} />
                     <Route path="/namespace/:ns" element={<Hub />} />
                     <Route path="/domain/:domain" element={<Hub />} />
                     <Route path="/:namespace/:type/:id/:version" element={<Hub />} />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { IoChevronBackOutline, IoChevronForwardOutline, IoCompassOutline, IoCloseOutline } from 'react-icons/io5';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CalmService } from '../../../service/calm-service.js';
@@ -75,16 +75,15 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
     const adrService = useMemo(() => new AdrService(), []);
 
     const [view, setView] = useState<View>({ level: 'root' });
-    const [namespaces, setNamespaces] = useState<string[]>([]);
-    const [domains, setDomains] = useState<string[]>([]);
     const [leafItems, setLeafItems] = useState<LeafItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [searching, setSearching] = useState(false);
 
-    useEffect(() => {
-        calmService.fetchNamespaces().then(setNamespaces).catch(() => setNamespaces([]));
-        controlService.fetchDomains().then(setDomains).catch(() => setDomains([]));
-    }, [calmService, controlService]);
+    // Derive the namespace/domain lists from the counts Hub already fetched, rather than
+    // re-fetching them here. Avoids two redundant requests and keeps the row labels in the
+    // same snapshot as the count badges.
+    const namespaces = useMemo(() => namespaceCounts.map((c) => c.namespace), [namespaceCounts]);
+    const domains = useMemo(() => domainCounts.map((c) => c.domain), [domainCounts]);
 
     const namespaceTotal = useCallback(
         (ns: string) => namespaceCounts.find((c) => c.namespace === ns)?.total,

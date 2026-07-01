@@ -62,7 +62,9 @@ export function useNamespaceItems(namespace: string): { groups: NamespaceItemGro
                     items: interfaces.map((i) => ({ id: i.id.toString(), name: i.name })),
                 },
             ]);
-            setLoading(false);
+        }).finally(() => {
+            // Runs even if a summaryToItem mapping throws, so the spinner can never hang.
+            if (!cancelled) setLoading(false);
         });
 
         return () => {

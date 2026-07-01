@@ -16,7 +16,7 @@ interface ExploreRailProps {
     onCollapse?: () => void;
 }
 
-type RailRouteParams = { ns?: string; domain?: string };
+type RailRouteParams = { ns?: string; domain?: string; namespace?: string };
 
 /**
  * One-level browse rail replacing the desktop Explore tree: searchable
@@ -29,7 +29,10 @@ type RailRouteParams = { ns?: string; domain?: string };
  * re-fetching them itself.
  */
 export function ExploreRail({ namespaceCounts, domainCounts, onCollapse }: ExploreRailProps) {
-    const { ns: activeNamespace, domain: activeDomain } = useParams<RailRouteParams>();
+    // `ns` comes from /namespace/:ns; on the detail route /:namespace/:type/:id/:version the
+    // param is `namespace`. Fall back to it so the rail keeps its highlight during a detail session.
+    const { ns, domain: activeDomain, namespace } = useParams<RailRouteParams>();
+    const activeNamespace = ns ?? namespace;
 
     const [filter, setFilter] = useState('');
 
