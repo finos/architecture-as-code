@@ -205,11 +205,23 @@ export function calmToFlow(
 	// in `data.calm` so flowToCalm can reconstruct the nested form losslessly
 	// for the common 1:1 case and as separate single-child rels for the
 	// multi-child case (documented trade-off).
+	//
+	// Composed-of / deployed-in edges where the target is nested under the source
+	// via Svelte Flow's parentId are SUPPRESSED here. The parent-child containment
+	// already represents the relationship visually; rendering a redundant diamond
+	// arrow on top is what calm-hub-ui drops (relationshipParser.ts:170-172) and
+	// what the calm-studio viz revamp aligns with. Cross-hierarchy composed-of /
+	// deployed-in (rare; target is NOT a direct child) still get an edge so the
+	// relationship stays visible.
 	const edges: Edge[] = [];
 	for (const cr of arch.relationships) {
 		const pairs = expandEdgePairs(cr);
 		const multi = pairs.length > 1;
 		pairs.forEach((pair, i) => {
+			const isContainment = CONTAINMENT_VARIANTS.has(pair.variant);
+			const targetNestedUnderSource =
+				isContainment && childToParent.get(pair.target) === pair.source;
+			if (targetNestedUnderSource) return; // suppress redundant edge
 			edges.push({
 				id: multi ? `${cr['unique-id']}#${i}` : cr['unique-id'],
 				source: pair.source,

@@ -4,11 +4,15 @@
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
 	import { resolvePackNode } from '@calmstudio/extensions';
+	import NodeFrame from '$lib/viz/nodes/NodeFrame.svelte';
+	import type { Badge, Severity } from '@calmstudio/calm-core';
 
 	let { id, data, selected }: NodeProps = $props();
 
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
+	const badges = $derived(((data as Record<string, unknown>).badges as Badge[]) ?? []);
+	const severity = $derived(((data as Record<string, unknown>).severity as Severity) ?? 'unknown');
 	const calmType = $derived((data as Record<string, unknown>).calmType as string ?? '');
 	const meta = $derived(resolvePackNode(calmType));
 
@@ -41,26 +45,28 @@
 	{/each}
 {/if}
 
-<div class="node" class:selected>
-	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
-	{#if scaledIcon}
-		<span class="icon" style="color: {strokeColor};">
-			{@html scaledIcon}
-		</span>
-	{:else}
-		<svg class="icon-fallback" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 2" aria-hidden="true">
-			<rect x="3" y="3" width="18" height="18" rx="3"/>
-		</svg>
-	{/if}
-	<span class="label">{label}</span>
-	{#if dataClassification}
-		<span
-			class="data-classification-badge"
-			style={getClassificationStyle(dataClassification)}
-			title="Data classification: {dataClassification}"
-		>{dataClassification}</span>
-	{/if}
-</div>
+<NodeFrame {badges} {severity}>
+	<div class="node" class:selected>
+		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+		{#if scaledIcon}
+			<span class="icon" style="color: {strokeColor};">
+				{@html scaledIcon}
+			</span>
+		{:else}
+			<svg class="icon-fallback" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 2" aria-hidden="true">
+				<rect x="3" y="3" width="18" height="18" rx="3"/>
+			</svg>
+		{/if}
+		<span class="label">{label}</span>
+		{#if dataClassification}
+			<span
+				class="data-classification-badge"
+				style={getClassificationStyle(dataClassification)}
+				title="Data classification: {dataClassification}"
+			>{dataClassification}</span>
+		{/if}
+	</div>
+</NodeFrame>
 
 <style>
 	.node {

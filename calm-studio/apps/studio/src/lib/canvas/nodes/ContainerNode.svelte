@@ -3,11 +3,15 @@
 <script lang="ts">
 	import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+	import NodeFrame from '$lib/viz/nodes/NodeFrame.svelte';
+	import type { Badge, Severity } from '@calmstudio/calm-core';
 	let { id, data, selected }: NodeProps = $props();
 
 	let collapsed = $state(data.collapsed ?? false);
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
+	const badges = $derived(((data as Record<string, unknown>).badges as Badge[]) ?? []);
+	const severity = $derived(((data as Record<string, unknown>).severity as Severity) ?? 'unknown');
 
 	function toggleCollapse() {
 		collapsed = !collapsed;
@@ -35,32 +39,34 @@
 	{/each}
 {/if}
 
-{#if collapsed}
-	<div class="container collapsed" class:selected>
-		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
-		<div class="collapsed-row">
-			<div class="dot"></div>
-			<span class="label">{data.label ?? data.calmId}</span>
-			<button class="toggle" onclick={toggleCollapse} title="Expand" aria-label="Expand container">
-				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
-			</button>
-		</div>
-	</div>
-{:else}
-	<div class="container expanded" class:selected>
-		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
-		<div class="header">
-			<div class="header-left">
+<NodeFrame {badges} {severity}>
+	{#if collapsed}
+		<div class="container collapsed" class:selected>
+			<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+			<div class="collapsed-row">
 				<div class="dot"></div>
 				<span class="label">{data.label ?? data.calmId}</span>
+				<button class="toggle" onclick={toggleCollapse} title="Expand" aria-label="Expand container">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+				</button>
 			</div>
-			<button class="toggle" onclick={toggleCollapse} title="Collapse" aria-label="Collapse container">
-				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
-			</button>
 		</div>
-		<div class="body"></div>
-	</div>
-{/if}
+	{:else}
+		<div class="container expanded" class:selected>
+			<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+			<div class="header">
+				<div class="header-left">
+					<div class="dot"></div>
+					<span class="label">{data.label ?? data.calmId}</span>
+				</div>
+				<button class="toggle" onclick={toggleCollapse} title="Collapse" aria-label="Collapse container">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
+				</button>
+			</div>
+			<div class="body"></div>
+		</div>
+	{/if}
+</NodeFrame>
 
 <style>
 	.container {

@@ -28,6 +28,7 @@
 		SvelteFlow,
 		Background,
 		BackgroundVariant,
+		MiniMap,
 		useSvelteFlow,
 		type Node,
 		type Edge,
@@ -571,6 +572,23 @@
 	>
 		<Background variant={BackgroundVariant.Dots} gap={20} size={1} />
 		<EdgeMarkers />
+		<MiniMap
+			pannable
+			zoomable
+			nodeColor={(n) => {
+				const sev = (n.data as Record<string, unknown> | undefined)?.severity as string | undefined;
+				switch (sev) {
+					case 'critical': return '#f43f5e';
+					case 'high': return '#f97316';
+					case 'medium': return '#f59e0b';
+					case 'low': return '#06b6d4';
+					default: return '#4b5563';
+				}
+			}}
+			maskColor="rgba(10, 12, 16, 0.55)"
+			position="bottom-right"
+			style="background: rgba(15, 17, 22, 0.7); backdrop-filter: blur(10px); border: 1px solid rgb(31 36 46); border-radius: 6px;"
+		/>
 	</SvelteFlow>
 
 	<!-- Floating search panel — shown when Cmd+F is pressed -->

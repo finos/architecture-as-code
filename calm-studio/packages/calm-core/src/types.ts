@@ -80,6 +80,12 @@ export interface CalmDecorator {
   type: string;
   target: string[];
   'applies-to': string[];
+  /**
+   * Decorator-specific properties.
+   *
+   * By convention, severity metadata is nested here as `severity?: 'low' | 'medium' | 'high' | 'critical' | 'unknown'`
+   * for badge-rendering and visualization priority.
+   */
   data: Record<string, unknown>;
 }
 

@@ -4,7 +4,7 @@
 <script lang="ts">
 	import { initAllPacks } from '@calmstudio/extensions';
 	import { type Node, type Edge, SvelteFlowProvider, type Viewport } from '@xyflow/svelte';
-	import { tick, onMount } from 'svelte';
+	import { tick, onMount, untrack } from 'svelte';
 	import { PaneGroup, Pane, PaneResizer } from 'paneforge';
 
 	// Register all extension packs at module load time — before any component renders.
@@ -47,6 +47,12 @@
 	import { toggleTheme, isDark } from '$lib/stores/theme.svelte';
 	import { getModelJson, applyFromJson, applyFromCanvas, getModel, resetModel } from '$lib/stores/calmModel.svelte';
 	import { calmToFlow } from '$lib/stores/projection';
+	import { decorateFromArch, collectThreatBadges } from '$lib/viz/integration/decorateFlowNodes';
+	import OverlayToggle from '$lib/viz/overlay/OverlayToggle.svelte';
+	import ThreatPanel from '$lib/viz/overlay/ThreatPanel.svelte';
+	import { createOverlayStore } from '$lib/viz/overlay/overlayStore.svelte';
+	import DetailDrawer from '$lib/viz/drawer/DetailDrawer.svelte';
+	import type { Badge, CalmNode as CalmNodeT } from '@calmstudio/calm-core';
 	import { pushSnapshot, resetHistory, undo, redo } from '$lib/stores/history.svelte';
 	import { layoutCalm, type LayoutDirection } from '$lib/layout/elkLayout';
 	import { openFile, saveFile, saveFileAs } from '$lib/io/fileSystem';
@@ -101,6 +107,52 @@
 	let edges = $state.raw<Edge[]>([]);
 
 	let canvas: CalmCanvas;
+
+	// ─── viz: overlay state + threat extraction ───────────────────────────────
+	const overlay = createOverlayStore();
+	let threatBadges = $state<Badge[]>([]);
+
+	/**
+	 * React to overlay mode flips by re-decorating the current canvas nodes —
+	 * injects (overlay='threat') or strips (overlay='default') `data.severity`
+	 * without recomputing positions or edges. Cheap, pure replacement.
+	 *
+	 * The `untrack` wrapper is load-bearing: reading and reassigning `nodes`
+	 * inside the effect would create a self-referential dependency on
+	 * `$state.raw` and tip Svelte into `effect_update_depth_exceeded`,
+	 * wedging the canvas on any document with nodes (PR #2731 review).
+	 */
+	$effect(() => {
+		const mode = overlay.mode; // the only dependency
+		untrack(() => {
+			if (nodes.length > 0) {
+				nodes = decorateFromArch(nodes, getModel(), { overlayMode: mode });
+			}
+		});
+	});
+
+	/** Keep the threat-panel list in sync with the loaded architecture. */
+	$effect(() => {
+		nodes; // dependency — recompute when canvas nodes change
+		try {
+			threatBadges = collectThreatBadges(getModel());
+		} catch {
+			threatBadges = [];
+		}
+	});
+
+	/**
+	 * Selected CalmNode for the viz DetailDrawer. Resolved from the canonical
+	 * model whenever the selection or model changes; falls back to null when no
+	 * node is selected or the id can't be found.
+	 */
+	const selectedCalmNode = $derived.by<CalmNodeT | null>(() => {
+		if (!selectedNodeId) return null;
+		const sel = nodes.find((n) => n.id === selectedNodeId);
+		const calmId = (sel?.data?.calmId as string | undefined) ?? selectedNodeId;
+		const model = getModel();
+		return (model.nodes?.find((n) => n['unique-id'] === calmId) as CalmNodeT | undefined) ?? null;
+	});
 
 	// ─── Desktop: native title bar sync ───────────────────────────────────────
 
@@ -492,6 +544,7 @@
 				if (applied) {
 					// Project back to Svelte Flow format, preserving positions and selection
 					const projected = calmToFlow(parsed, positionMap);
+					projected.nodes = decorateFromArch(projected.nodes, parsed, { overlayMode: overlay.mode });
 					const selectionMap = new Map<string, boolean>();
 					for (const n of nodes) {
 						if (n.selected && n.data?.calmId) selectionMap.set(n.data.calmId as string, true);
@@ -537,6 +590,7 @@
 		}
 
 		const projected = calmToFlow(model, positionMap);
+		projected.nodes = decorateFromArch(projected.nodes, model, { overlayMode: overlay.mode });
 		// Preserve node selection state so SvelteFlow doesn't fire deselection
 		nodes = projected.nodes.map((n) =>
 			selectionMap.has(n.data?.calmId as string)
@@ -652,6 +706,7 @@
 
 		// Project to Svelte Flow
 		const projected = calmToFlow(parsed, positionMap);
+		projected.nodes = decorateFromArch(projected.nodes, parsed, { overlayMode: overlay.mode });
 		nodes = projected.nodes;
 		edges = projected.edges;
 
@@ -965,6 +1020,7 @@
 
 		// Project via calmToFlow with combined position map
 		const projected = calmToFlow(model, finalPositions);
+		projected.nodes = decorateFromArch(projected.nodes, model, { overlayMode: overlay.mode });
 
 		// Preserve pinned flag on projected nodes
 		const pinnedMap = new Map(nodes.map((n) => [n.id, n.data?.pinned ?? false]));
@@ -1167,6 +1223,9 @@
 
 							<!-- Floating toolbar (layout controls + dark mode toggle) -->
 							<div class="canvas-toolbar">
+								<!-- Threat overlay toggle (spike viz) -->
+								<OverlayToggle {overlay} threatCount={threatBadges.length} />
+
 								<!-- Auto-layout controls -->
 								<div class="layout-group" role="group" aria-label="Auto-layout controls">
 									<!-- Direction dropdown -->
@@ -1248,6 +1307,18 @@
 										onfileimport={importCalmFile}
 										oncanvaschange={markDirty}
 									/>
+								{/if}
+
+								<!-- Detail drawer (spike viz) — selection-driven, takes precedence -->
+								{#if selectedCalmNode}
+									<DetailDrawer
+										arch={getModel()}
+										selectedNode={selectedCalmNode}
+										onclose={() => (selectedNodeId = null)}
+									/>
+								{:else if overlay.mode === 'threat' && threatBadges.length > 0}
+									<!-- Threat panel (spike viz) — overlay-driven, no-selection -->
+									<ThreatPanel threats={threatBadges} />
 								{/if}
 
 								<!-- Empty canvas start-from-template prompt -->

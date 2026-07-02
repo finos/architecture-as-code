@@ -3,10 +3,14 @@
 <script lang="ts">
 	import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+	import NodeFrame from '$lib/viz/nodes/NodeFrame.svelte';
+	import type { Badge, Severity } from '@calmstudio/calm-core';
 	let { id, data, selected }: NodeProps = $props();
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
 	const dataClassification = $derived((data as Record<string, unknown>)['data-classification'] as string | undefined);
+	const badges = $derived(((data as Record<string, unknown>).badges as Badge[]) ?? []);
+	const severity = $derived(((data as Record<string, unknown>).severity as Severity) ?? 'unknown');
 
 	/** Returns badge style for a data-classification value */
 	function getClassificationStyle(dc: string): string {
@@ -31,20 +35,22 @@
 	{/each}
 {/if}
 
-<div class="node" class:selected>
-	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
-	<span class="label">{data.label ?? data.calmId}</span>
-	{#if data.calmType}
-		<span class="badge">{data.calmType}</span>
-	{/if}
-	{#if dataClassification}
-		<span
-			class="data-classification-badge"
-			style={getClassificationStyle(dataClassification)}
-			title="Data classification: {dataClassification}"
-		>{dataClassification}</span>
-	{/if}
-</div>
+<NodeFrame {badges} {severity}>
+	<div class="node" class:selected>
+		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
+		<span class="label">{data.label ?? data.calmId}</span>
+		{#if data.calmType}
+			<span class="badge">{data.calmType}</span>
+		{/if}
+		{#if dataClassification}
+			<span
+				class="data-classification-badge"
+				style={getClassificationStyle(dataClassification)}
+				title="Data classification: {dataClassification}"
+			>{dataClassification}</span>
+		{/if}
+	</div>
+</NodeFrame>
 
 <style>
 	.node {
