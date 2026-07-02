@@ -168,6 +168,86 @@ describe('bump', () => {
             expect((await read('b.json')).nodes[0].$ref).toBe(idAt('a', '1.1.0') + '#/n');
         });
 
+        it('cascade-bumps a dependent doc whose reference was rewritten', async () => {
+            // A changes → A bumped → B's ref to A rewritten → B cascade-bumped
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            const bDoc = { $id: idAt('b', '1.0.0'), title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] };
+            await write('b.json', bDoc);
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'], b: ['1.0.0'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' }, 'b@1.0.0': bDoc },
+            });
+
+            const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect(result.bumped).toHaveLength(2);
+            expect(result.bumped).toEqual(expect.arrayContaining([
+                expect.objectContaining({ id: 'a', fromVersion: '1.0.0', toVersion: '1.1.0' }),
+                expect.objectContaining({ id: 'b', fromVersion: '1.0.0', toVersion: '1.1.0' }),
+            ]));
+            expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
+            expect((await read('b.json')).$id).toBe(idAt('b', '1.1.0'));
+            expect((await read('b.json')).nodes[0].$ref).toBe(idAt('a', '1.1.0'));
+        });
+
+        it('cascades through a three-level chain in one call', async () => {
+            // A → B → C: changing A should cascade-bump B and C
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            const bDoc = { $id: idAt('b', '1.0.0'), title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] };
+            const cDoc = { $id: idAt('c', '1.0.0'), title: 'C', nodes: [{ $ref: idAt('b', '1.0.0') }] };
+            await write('b.json', bDoc);
+            await write('c.json', cDoc);
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+                'c': { path: 'files/c.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'], b: ['1.0.0'], c: ['1.0.0'] },
+                remote: {
+                    'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' },
+                    'b@1.0.0': bDoc,
+                    'c@1.0.0': cDoc,
+                },
+            });
+
+            const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect(result.bumped).toHaveLength(3);
+            expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
+            expect((await read('b.json')).$id).toBe(idAt('b', '1.1.0'));
+            expect((await read('c.json')).$id).toBe(idAt('c', '1.1.0'));
+            expect((await read('b.json')).nodes[0].$ref).toBe(idAt('a', '1.1.0'));
+            expect((await read('c.json')).nodes[0].$ref).toBe(idAt('b', '1.1.0'));
+        });
+
+        it('does not cascade-bump a dependent with a non-CalmHub $id', async () => {
+            // If B has a non-conformant $id, its version can't be bumped — warn and move on
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await write('b.json', { $id: 'bare-id', title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] });
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' } },
+            });
+
+            const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            // Only A is bumped; B's ref is still rewritten even though its version isn't bumped
+            expect(result.bumped).toEqual([
+                expect.objectContaining({ id: 'a', toVersion: '1.1.0' }),
+            ]);
+            expect((await read('b.json')).nodes[0].$ref).toBe(idAt('a', '1.1.0'));
+            expect((await read('b.json')).$id).toBe('bare-id');
+        });
+
         it('only bumps once across edit -> bump -> edit -> bump', async () => {
             await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edit-1' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });

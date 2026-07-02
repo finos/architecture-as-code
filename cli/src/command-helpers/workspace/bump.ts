@@ -110,7 +110,8 @@ export async function detectChangedResources(
 
 /**
  * Bump every changed document by one increment relative to CalmHub's latest version, then
- * synchronise references so all tracked documents point at the bumped `$id`s.
+ * cascade: any document whose references were rewritten is itself dirty and gets bumped too,
+ * triggering another sync pass. Repeats until the workspace reaches a stable state.
  *
  * Idempotent: once a document is bumped (its on-disk version is now ahead of CalmHub) a subsequent
  * bump leaves it untouched until the bumped version is pushed.
@@ -123,19 +124,65 @@ export async function bumpWorkspace(
     const changed = await detectChangedResources(bundlePath, client);
 
     const bumped: BumpResult['bumped'] = [];
+    const bumpedIds = new Set<string>();
+
     for (const c of changed) {
         const toVersion = computeSemVerBump(c.latestHubVersion, options.increment);
         const raw = await readFile(c.filePath, 'utf8');
         const updated = updateDocumentMetadata(raw, { ...c.metadata, version: toVersion });
         await writeFile(c.filePath, updated, 'utf8');
         bumped.push({ id: c.id, filePath: c.filePath, fromVersion: c.currentVersion, toVersion });
+        bumpedIds.add(c.id);
         logger.info(`Bumped '${c.id}' ${c.currentVersion} -> ${toVersion}`);
     }
 
-    // Re-scan all tracked docs and repoint every reference to each doc's current on-disk $id.
-    const manifest = await loadManifest(bundlePath);
-    const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
-    const refUpdates = await syncReferences(bundlePath, manifest, rules);
+    // Cascade: sync refs, then bump any document that was modified by the sync but not yet bumped.
+    // Repeat until nothing new gets changed (fixed-point). Terminates because each iteration adds
+    // at least one id to bumpedIds and the workspace is finite.
+    const allRefUpdates: RefUpdateResult[] = [];
+    const MAX_CASCADE_DEPTH = 50;
 
-    return { bumped, refUpdates };
+    for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
+        const manifest = await loadManifest(bundlePath);
+        const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
+        const refUpdates = await syncReferences(bundlePath, manifest, rules);
+        allRefUpdates.push(...refUpdates);
+
+        const cascadeCandidates = refUpdates.filter(r => r.changeCount > 0 && !bumpedIds.has(r.docId));
+        if (cascadeCandidates.length === 0) break;
+
+        for (const candidate of cascadeCandidates) {
+            const entry = manifest[candidate.docId];
+            if (!entry) continue;
+
+            const filePath = resolveFilePath(bundlePath, entry.path);
+            let raw: string;
+            try {
+                raw = await readFile(filePath, 'utf8');
+            } catch (e) {
+                logger.warn(`Cannot cascade-bump '${candidate.docId}': ${e instanceof Error ? e.message : String(e)}`);
+                bumpedIds.add(candidate.docId);
+                continue;
+            }
+
+            let metadata: DocumentMetadata;
+            try {
+                metadata = extractDocumentMetadata(raw);
+            } catch {
+                // Non-CalmHub $id (flow, adr, timeline, etc.) — ref was updated but version cannot be bumped.
+                logger.warn(`Cascade: '${candidate.docId}' had references rewritten but its $id is not a CalmHub URL; version not bumped.`);
+                bumpedIds.add(candidate.docId);
+                continue;
+            }
+
+            const toVersion = computeSemVerBump(metadata.version, options.increment);
+            const updated = updateDocumentMetadata(raw, { ...metadata, version: toVersion });
+            await writeFile(filePath, updated, 'utf8');
+            bumped.push({ id: candidate.docId, filePath, fromVersion: metadata.version, toVersion });
+            bumpedIds.add(candidate.docId);
+            logger.info(`Cascade-bumped '${candidate.docId}' ${metadata.version} -> ${toVersion}`);
+        }
+    }
+
+    return { bumped, refUpdates: allRefUpdates };
 }
