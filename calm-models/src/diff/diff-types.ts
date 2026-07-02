@@ -1,4 +1,6 @@
 import type {
+    CalmControlDetailSchema,
+    CalmControlsSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '../types/index.js';
@@ -50,9 +52,23 @@ export interface UndiffableDiffItems {
     relationships: unknown[];
 }
 
-interface AdrDiffItem {
+export type ChangeType = 'added' | 'removed' | 'unchanged';
+
+export interface StringDiffItem {
     content: string;
-    changeType: 'added' | 'removed' | 'unchanged';
+    changeType: ChangeType;
+}
+
+type AdrDiffItem = StringDiffItem;
+
+interface ControlItemDetailsDiffItem {
+    content: CalmControlDetailSchema,
+    changeType: ChangeType 
+}
+
+export interface ControlItemDiffResult {
+    descriptionDiff: StringDiffItem[];
+    requirementsDiff: ControlItemDetailsDiffItem[]
 }
 
 export interface NodesAndRelationshipsDiffResult {
@@ -80,6 +96,16 @@ export interface AdrDiffResult {
 }
 
 /**
- * Represents the result of diffing two CALM architecture instances: includes nodes, relationships and ADRs. TODO: incorporate controls, flows and metadata.
+ * Represents the result of diffing two CALM Controls schema objects.
  */
-export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult;
+export interface ControlDiffResult {
+    controlItemsAdded: CalmControlsSchema,
+    controlItemsRemoved: CalmControlsSchema,
+    controlItemsUnchanged: CalmControlsSchema,
+    controlItemsModified: { [controlId: string]: ControlItemDiffResult },
+}
+
+/**
+ * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, ADRs and controls. TODO: incorporate flows and metadata.
+ */
+export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult;

@@ -24,6 +24,7 @@ export {
 export type {
     AdrDiffResult,
     ArchitectureDiffResult,
+    ControlDiffResult,
     NodeChange,
     NodesAndRelationshipsDiffResult,
     RelationshipChange,
