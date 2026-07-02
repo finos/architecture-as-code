@@ -113,18 +113,25 @@ public class TestMongoStandardStoreShould {
         standardDetailMap.put("standardId", 55);
         standardDetailMap.put("name", "Test Standard");
         standardDetailMap.put("description", "Test Description");
+        standardDetailMap.put("versions", new Document("1-0-0", new Document()).append("2-0-0", new Document()));
 
         Document doc = new Document(standardDetailMap);
+        // Second standard without a versions sub-document exercises the null-guard → 0.
+        Document docNoVersions = new Document("standardId", 56)
+                .append("name", "No Versions")
+                .append("description", "");
 
         when(documentMock.getList("standards", Document.class))
-                .thenReturn(List.of(doc));
+                .thenReturn(List.of(doc, docNoVersions));
 
         List<NamespaceStandardSummary> standards = mongoStandardStore.getStandardsForNamespace("finos");
 
-        assertThat(standards.size(), is(1));
+        assertThat(standards.size(), is(2));
         assertThat(standards.getFirst().getName(), is("Test Standard"));
         assertThat(standards.getFirst().getDescription(), is("Test Description"));
         assertThat(standards.getFirst().getId(), is(55));
+        assertThat(standards.getFirst().getVersionCount(), is(2));
+        assertThat(standards.get(1).getVersionCount(), is(0));
 
         verify(namespaceStore).namespaceExists("finos");
     }

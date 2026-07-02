@@ -87,10 +87,14 @@ public class NitriteStandardStore implements StandardStore {
         List<NamespaceStandardSummary> namespaceStandardSummary = new ArrayList<>();
 
         for (Document standard : standards) {
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Document versions = standard.get(VERSIONS_FIELD, Document.class);
+            int versionCount = versions == null ? 0 : versions.getFields().size();
             NamespaceStandardSummary summary = new NamespaceStandardSummary(
                     standard.get(NAME_FIELD, String.class),
                     standard.get(DESCRIPTION_FIELD, String.class),
-                    standard.get(STANDARD_ID_FIELD, Integer.class)
+                    standard.get(STANDARD_ID_FIELD, Integer.class),
+                    versionCount
             );
             namespaceStandardSummary.add(summary);
         }

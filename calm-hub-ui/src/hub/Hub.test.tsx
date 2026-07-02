@@ -69,9 +69,9 @@ vi.mock('./components/tree-navigation/MobileNavMenu', () => ({
 }));
 
 vi.mock('./components/namespace-page/NamespacePage', () => ({
-    NamespacePage: ({ namespace, total }: { namespace: string; total: number }) => (
+    NamespacePage: ({ namespace, counts }: { namespace: string; counts?: { total: number } }) => (
         <div data-testid="namespace-page">
-            Namespace: {namespace} ({total})
+            Namespace: {namespace} ({counts?.total ?? 'loading'})
         </div>
     ),
 }));
@@ -81,6 +81,15 @@ vi.mock('./components/domain-page/DomainPage', () => ({
         <div data-testid="domain-page">
             Domain: {domain} ({controlCount})
         </div>
+    ),
+}));
+
+// Mocked at the seam: the real landing fires a bounded CalmService fetch on mount,
+// which is exercised in its own spec. Here we only need to confirm Hub renders it
+// on the empty `/` route.
+vi.mock('./components/first-run-landing/FirstRunLanding', () => ({
+    FirstRunLanding: ({ namespaceCounts }: { namespaceCounts: { namespace: string }[] }) => (
+        <div data-testid="first-run-landing">Landing ({namespaceCounts.length})</div>
     ),
 }));
 
@@ -294,10 +303,12 @@ describe('Hub', () => {
             expect(await screen.findByTestId('domain-page')).toHaveTextContent('Domain: security (3)');
         });
 
-        it('does not render NamespacePage on the empty landing route', () => {
+        it('renders the first-run landing (not a namespace/domain page) on the empty / route', async () => {
             renderAt('/');
             expect(screen.queryByTestId('namespace-page')).not.toBeInTheDocument();
             expect(screen.queryByTestId('domain-page')).not.toBeInTheDocument();
+            // Landing receives the namespace counts Hub fetched (one in the mock).
+            expect(await screen.findByTestId('first-run-landing')).toHaveTextContent('Landing (1)');
         });
     });
 

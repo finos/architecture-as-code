@@ -91,17 +91,17 @@ class TestCountsServiceShould {
                 .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "FINOS namespace")));
         when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE))
                 .thenReturn(List.of(
-                        new NamespaceArchitectureSummary("a1", "desc", 1),
-                        new NamespaceArchitectureSummary("a2", "desc", 2)));
+                        new NamespaceArchitectureSummary("a1", "desc", 1, 0),
+                        new NamespaceArchitectureSummary("a2", "desc", 2, 0)));
         when(mockPatternStore.getPatternsForNamespace(NAMESPACE))
-                .thenReturn(List.of(new NamespacePatternSummary("p1", "desc", 1)));
+                .thenReturn(List.of(new NamespacePatternSummary("p1", "desc", 1, 0)));
         when(mockFlowStore.getFlowsForNamespace(NAMESPACE))
                 .thenReturn(List.of(
-                        new NamespaceFlowSummary("f1", "desc", 1),
-                        new NamespaceFlowSummary("f2", "desc", 2),
-                        new NamespaceFlowSummary("f3", "desc", 3)));
+                        new NamespaceFlowSummary("f1", "desc", 1, 0),
+                        new NamespaceFlowSummary("f2", "desc", 2, 0),
+                        new NamespaceFlowSummary("f3", "desc", 3, 0)));
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE))
-                .thenReturn(List.of(new NamespaceStandardSummary("s1", "desc", 1)));
+                .thenReturn(List.of(new NamespaceStandardSummary("s1", "desc", 1, 0)));
         when(mockAdrStore.getAdrsForNamespace(NAMESPACE))
                 .thenReturn(List.of(
                         new NamespaceAdrSummary("adr1", "draft", 1),
@@ -181,7 +181,7 @@ class TestCountsServiceShould {
                 new NamespaceInfo("finos", "FINOS"),
                 new NamespaceInfo("custom", "custom")));
         lenient().when(mockArchitectureStore.getArchitecturesForNamespace("finos"))
-                .thenReturn(List.of(new NamespaceArchitectureSummary("a1", "desc", 1)));
+                .thenReturn(List.of(new NamespaceArchitectureSummary("a1", "desc", 1, 0)));
 
         List<NamespaceCounts> result = service.getNamespaceCounts(ALL_ACCESS);
 
@@ -199,7 +199,7 @@ class TestCountsServiceShould {
                 new NamespaceInfo("custom", "custom"),
                 new NamespaceInfo("secret", "secret")));
         lenient().when(mockArchitectureStore.getArchitecturesForNamespace("finos"))
-                .thenReturn(List.of(new NamespaceArchitectureSummary("a1", "desc", 1)));
+                .thenReturn(List.of(new NamespaceArchitectureSummary("a1", "desc", 1, 0)));
 
         List<NamespaceCounts> result = service.getNamespaceCounts(Optional.of(Set.of("finos", "custom")));
 
@@ -274,7 +274,7 @@ class TestCountsServiceShould {
         when(mockNamespaceStore.getNamespaces())
                 .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "FINOS namespace")));
         when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE))
-                .thenReturn(List.of(new NamespaceArchitectureSummary("a1", "desc", 1)));
+                .thenReturn(List.of(new NamespaceArchitectureSummary("a1", "desc", 1, 1)));
         when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());

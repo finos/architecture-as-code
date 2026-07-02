@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { IoChevronDownOutline, IoTimeOutline } from 'react-icons/io5';
+import { IoChevronDownOutline } from 'react-icons/io5';
 import type { DiffResult } from '@finos/calm-models/diff';
 import { colors } from '../../../../theme/colors.js';
 import { MomentCards } from './MomentCards.js';
 import { InlineDiffSummary } from './InlineDiffSummary.js';
 import { Sparkline } from './Sparkline.js';
+import { TimelineHeader } from './TimelineHeader.js';
 import { VersionDetail } from './VersionDetail.js';
 import type { VersionChange } from './perVersionChanges.js';
 
@@ -217,11 +218,13 @@ export function TimelineBar({
                         className="flex items-center"
                         style={{ padding: '14px 22px 10px', gap: 10 }}
                     >
-                        <IoTimeOutline size={14} style={{ color: colors.ink[500], strokeWidth: 2 }} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: colors.ink[900] }}>
-                            Timeline
+                        <TimelineHeader currentVersion={currentVersion} />
+                        <span
+                            className="truncate min-w-0"
+                            style={{ fontSize: 12, color: colors.ink[500] }}
+                        >
+                            {headerSubLabel}
                         </span>
-                        <span style={{ fontSize: 12, color: colors.ink[500] }}>{headerSubLabel}</span>
                         <button
                             type="button"
                             className="ml-auto flex items-center justify-center bg-transparent border-0 p-0 cursor-pointer"

@@ -5,6 +5,7 @@ import { ExploreRail } from './components/explore-rail/ExploreRail.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { NamespacePage } from './components/namespace-page/NamespacePage.js';
 import { DomainPage } from './components/domain-page/DomainPage.js';
+import { FirstRunLanding } from './components/first-run-landing/FirstRunLanding.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { Data, Adr } from '../model/calm.js';
@@ -32,6 +33,7 @@ export default function Hub() {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     const [namespaceCounts, setNamespaceCounts] = useState<NamespaceCounts[]>([]);
+    const [namespaceCountsLoaded, setNamespaceCountsLoaded] = useState(false);
     const [domainCounts, setDomainCounts] = useState<DomainControlCount[]>([]);
     const isMobile = useIsMobile();
 
@@ -52,7 +54,14 @@ export default function Hub() {
     // never re-fires and there is no in-flight fetch to cancel on a dependency change. (Unlike
     // useNamespaceItems, whose fetch effect re-runs per namespace and so needs a cancel guard.)
     useEffect(() => {
-        countsService.fetchNamespaceCounts().then(setNamespaceCounts).catch(() => setNamespaceCounts([]));
+        countsService
+            .fetchNamespaceCounts()
+            .then(setNamespaceCounts)
+            .catch(() => setNamespaceCounts([]))
+            // Mark loaded on success or failure so consumers can tell "counts
+            // unknown (loading)" from "known zero" — an absent namespace after the
+            // fetch settles is genuinely zero, not still loading.
+            .finally(() => setNamespaceCountsLoaded(true));
         countsService.fetchDomainCounts().then(setDomainCounts).catch(() => setDomainCounts([]));
     }, [countsService]);
 
@@ -137,10 +146,27 @@ export default function Hub() {
 
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
 
-    const namespaceTotal = useMemo(
-        () => namespaceCounts.find((c) => c.namespace === activeNamespace)?.total ?? 0,
-        [namespaceCounts, activeNamespace]
-    );
+    // The active namespace's full per-type counts, passed straight to NamespacePage
+    // so its type tabs show counts without a second fetch. `undefined` while the
+    // counts fetch is in flight — distinct from a known all-zero record — so the
+    // page can render tabs resting (not dimmed) and defer the first-non-empty
+    // default until counts resolve. Once loaded, a namespace absent from the list
+    // is a genuine all-zero (e.g. an unknown namespace), not still loading.
+    const activeNamespaceCounts = useMemo<NamespaceCounts | undefined>(() => {
+        if (!namespaceCountsLoaded) return undefined;
+        return (
+            namespaceCounts.find((c) => c.namespace === activeNamespace) ?? {
+                namespace: activeNamespace ?? '',
+                architectures: 0,
+                patterns: 0,
+                flows: 0,
+                standards: 0,
+                adrs: 0,
+                interfaces: 0,
+                total: 0,
+            }
+        );
+    }, [namespaceCounts, namespaceCountsLoaded, activeNamespace]);
     const domainControlCount = useMemo(
         () => domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0,
         [domainCounts, activeDomain]
@@ -160,20 +186,22 @@ export default function Hub() {
 
     // Route decides the content pane. A loaded resource (including an in-place
     // control/interface selected from the domain/namespace page) takes precedence
-    // over the route-driven page so its detail view shows.
+    // over the route-driven page so its detail view shows. With nothing loaded and
+    // no namespace/domain route (i.e. `/`), the first-run landing fills what was
+    // the ~75% blank canvas (redesign problem #7).
     const content =
         isDetailRoute || controlData || interfaceData || adrData || data ? (
             detailContent
         ) : activeNamespace ? (
-            <NamespacePage namespace={activeNamespace} total={namespaceTotal} />
+            <NamespacePage namespace={activeNamespace} counts={activeNamespaceCounts} />
         ) : activeDomain ? (
             <DomainPage domain={activeDomain} controlCount={domainControlCount} onControlLoad={handleControlLoad} />
         ) : (
-            // Dedicated landing arm: nothing loaded and no browse route active. Kept separate
-            // from detailContent so it never renders DocumentDetailSection with undefined data.
-            <div className="flex-1 flex items-center justify-center text-[14px] text-base-content/50">
-                Select a namespace or control domain from the Explore rail to begin.
-            </div>
+            <FirstRunLanding
+                namespaceCounts={namespaceCounts}
+                domainCounts={domainCounts}
+                countsLoaded={namespaceCountsLoaded}
+            />
         );
 
     return (

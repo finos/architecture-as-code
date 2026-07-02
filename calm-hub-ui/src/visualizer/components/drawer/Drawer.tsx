@@ -6,6 +6,7 @@ import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
 import { CalmService } from '../../../service/calm-service.js';
+import { DropzoneEmptyState } from './DropzoneEmptyState.js';
 import type { DrawerProps, Flow, Control, Decorator } from '../../contracts/contracts.js';
 
 /**
@@ -31,6 +32,9 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
+    // Set when a dropped/browsed file can't be read as JSON, so the empty state
+    // can surface the failure instead of throwing an unhandled rejection.
+    const [dropError, setDropError] = useState<string | undefined>(undefined);
     const [decoratorsState, setDecoratorsState] = useState<Decorator[]>([]);
     // Default to collapsed as per user request
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
@@ -38,14 +42,30 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
     const [metadataPanelHeight, setMetadataPanelHeight] = useState(250);
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
-        if (acceptedFiles[0]) {
+        if (!acceptedFiles[0]) return;
+        try {
             const fileText = await acceptedFiles[0].text();
             const parsed = JSON.parse(fileText);
+            setDropError(undefined);
             setFileInstance(parsed);
+        } catch {
+            // Non-JSON or malformed file: surface the failure rather than
+            // accepting it and throwing an unhandled rejection downstream.
+            setDropError(
+                "Couldn't read that file — expected CALM JSON (architecture / pattern)."
+            );
         }
     }, []);
 
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+    // Clear any prior error as soon as a new drag begins, so a fresh attempt
+    // starts from a clean slate.
+    const onDragEnter = useCallback(() => setDropError(undefined), []);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        onDragEnter,
+        accept: { 'application/json': ['.json'] },
+    });
 
     // Identifies the diagram (ignoring version) so its viewport can be remembered
     // across version/moment switches and refreshes. A dropped file has no identity.
@@ -245,16 +265,7 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
                     )}
                 </>
             ) : (
-                <div className="flex justify-center items-center h-full w-full">
-                    {isDragActive ? (
-                        <p>Drop your file here ...</p>
-                    ) : (
-                        <p>
-                            {'Drag and drop your file here or '}
-                            <span className="border-b border-dotted border-black pb-1">Browse</span>
-                        </p>
-                    )}
-                </div>
+                <DropzoneEmptyState isDragActive={isDragActive} error={dropError} />
             )}
         </div>
     );
