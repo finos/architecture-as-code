@@ -9,7 +9,9 @@ import {
     ControlDocumentMetadata,
     constructControlDocumentId,
     extractControlMetadata,
-    updateControlDocumentMetadata
+    updateControlDocumentMetadata,
+    isConformantDocumentId,
+    namespaceFromDocumentId
 } from './document-id-utils';
 
 const DOCUMENT_ID = 'https://example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0';
@@ -316,6 +318,42 @@ describe('Document ID Utils', () => {
                     version: '2.0.0'
                 })).toThrow(/Failed to parse control document metadata/);
             });
+        });
+    });
+
+    describe('isConformantDocumentId', () => {
+        it.each([
+            ['https://example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0'],
+            ['https://example.com/calm/namespaces/finos/patterns/p/versions/2.3.4'],
+            ['https://example.com/calm/domains/security/controls/access-control/requirement/versions/1.0.0'],
+            ['https://example.com/calm/domains/security/controls/access-control/configurations/prod/versions/1.0.0'],
+        ])('returns true for the conformant id %s', (id) => {
+            expect(isConformantDocumentId(id)).toBe(true);
+        });
+
+        it.each([
+            ['my-arch'],
+            [''],
+            ['https://example.com/my-arch'],
+            ['https://example.com/calm/namespaces/finos/architectures/my-arch'],
+            ['https://example.com/calm/domains/security/controls/access-control/versions/1.0.0'],
+            ['https://example.com/calm/namespaces/finos/notatype/my-arch/versions/1.0.0'],
+        ])('returns false for the non-conformant id %s', (id) => {
+            expect(isConformantDocumentId(id)).toBe(false);
+        });
+    });
+
+    describe('namespaceFromDocumentId', () => {
+        it('returns the namespace for a namespace-resource id', () => {
+            expect(namespaceFromDocumentId('https://example.com/calm/namespaces/finos/architectures/a/versions/1.0.0')).toBe('finos');
+        });
+
+        it('returns undefined for a control document id', () => {
+            expect(namespaceFromDocumentId('https://example.com/calm/domains/security/controls/ac/requirement/versions/1.0.0')).toBeUndefined();
+        });
+
+        it('returns undefined for a non-conformant id', () => {
+            expect(namespaceFromDocumentId('my-arch')).toBeUndefined();
         });
     });
 });

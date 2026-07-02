@@ -14,6 +14,8 @@ let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
 let diffModule: typeof import('./command-helpers/diff');
 let hubCommandsModule: typeof import('./command-helpers/hub-commands');
+let _fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
+let documentLoaderModule: typeof import('../../shared/src/document-loader/document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
 let cliConfigModule: typeof import('./cli-config');
 
@@ -30,6 +32,8 @@ describe('CLI Commands', () => {
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
         diffModule = await import('./command-helpers/diff');
+        _fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
+        documentLoaderModule = await import('../../shared/src/document-loader/document-loader');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -50,6 +54,16 @@ describe('CLI Commands', () => {
             resolvePath: vi.fn().mockReturnValue(undefined)
         };
         vi.spyOn(calmShared, 'buildDocumentLoader').mockReturnValue(mockDocLoader);
+
+        // Mock buildDocumentLoader to return a mock DocumentLoader.
+        // The generate command now uses buildDocumentLoader() which creates a
+        // MultiStrategyDocumentLoader internally. We mock it to return a simple
+        // loader whose loadMissingDocument resolves with an empty object.
+        vi.spyOn(documentLoaderModule, 'buildDocumentLoader').mockReturnValue({
+            initialise: vi.fn().mockResolvedValue(undefined),
+            loadMissingDocument: vi.fn().mockResolvedValue({}),
+            resolvePath: vi.fn().mockReturnValue(undefined),
+        });
 
         const cliModule = await import('./cli');
         setupCLI = cliModule.setupCLI;
@@ -1500,6 +1514,29 @@ describe('parseDocumentLoaderConfig', () => {
             calmHubUrl: 'calmhub'
         });
         expect(options.calmHubUrl).toEqual('calmhub');
+    });
+
+    it('sets workspaceBundlePath when a workspace bundle is found in the repo', async () => {
+        const resolverModule = await import('./workspace-resolver');
+        const spy = vi.spyOn(resolverModule, 'findWorkspaceManifestPath')
+            .mockReturnValue('/repo/.calm-workspace/bundles/default');
+        try {
+            const options = await parseDocLoaderConfigForTest({});
+            expect(options.workspaceBundlePath).toBe('/repo/.calm-workspace/bundles/default');
+        } finally {
+            spy.mockRestore();
+        }
+    });
+
+    it('leaves workspaceBundlePath unset when no workspace bundle is found', async () => {
+        const resolverModule = await import('./workspace-resolver');
+        const spy = vi.spyOn(resolverModule, 'findWorkspaceManifestPath').mockReturnValue(null);
+        try {
+            const options = await parseDocLoaderConfigForTest({});
+            expect(options.workspaceBundlePath).toBeUndefined();
+        } finally {
+            spy.mockRestore();
+        }
     });
 
     it('should override calmhub url in file when provided', async () => {

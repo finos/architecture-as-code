@@ -1,0 +1,473 @@
+import { Argument, Command, Option } from 'commander';
+import path from 'path';
+import { readFile, writeFile } from 'fs/promises';
+import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
+import { addFileToBundle, loadManifest, printBundleTree } from './bundle';
+import { removeDocumentFromManifest } from './rm';
+import { createNewDocument, getTemplatesForType } from './new';
+import { promptForDocumentId } from './document-id-prompt';
+import { pushWorkspaceToHub } from './push';
+import { detectChangedResources, bumpWorkspace } from './bump';
+import { loadWorkspaceConfig } from './config';
+import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver';
+import { initLogger, Logger } from '@finos/calm-shared/src/logger';
+import { select, input } from '@inquirer/prompts';
+import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
+import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
+import { isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared/src/hub/document-id-utils';
+import { loadCliConfig } from '../../cli-config';
+
+const logger: Logger = initLogger(false, 'workspace');
+
+/**
+ * Sets up the 'workspace' command and its subcommands in the CLI.
+ * @param program The Commander.js top-level program.
+ */
+export function setupWorkspaceCommands(program: Command) {
+    const workspaceCmd = program.command('workspace').description('Manage CALM workspace bundle and development helpers');
+
+    workspaceCmd
+        .command('init')
+        .description('Initialize or update CALM workspace in a repository')
+        .argument('<name>', 'The name of the workspace to create or update')
+        .option('--dir <path>', 'Directory in which to create the workspace (defaults to git root)')
+        .action(async (name: string, options: { dir?: string }) => {
+            const workspaceName: string = name as string;
+            const targetDir = options.dir ? path.resolve(options.dir) : (findGitRoot(process.cwd()) ?? process.cwd());
+
+            try {
+                const created = await ensureWorkspaceBundle(targetDir, workspaceName);
+                logger.info(`Workspace '${workspaceName}' created/updated at ${path.dirname(created)}`);
+                logger.info(`Bundle directory ensured at ${created}`);
+            } catch (err) {
+                logger.error('Failed to create workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    // Add a file to the current workspace bundle
+    workspaceCmd
+        .command('add')
+        .description('Add a file to the current CALM workspace bundle. By default, this creates a reference to the file at its current location.')
+        .argument('<file>', 'Path to the file to add to the bundle')
+        .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
+        .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
+        .addOption(new Option('--type <type>', 'Document type').choices(CALM_DOCUMENT_TYPES_LIST))
+        .option('--namespace <namespace>', 'CalmHub namespace to associate with this file')
+        .action(async (file: string, options: { id?: string; copy?: boolean; type?: string; namespace?: string }) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                const srcPath = path.resolve(file);
+
+                const type = await enforceOptionPresenceByPrompt(options.type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
+                if (!isValidCalmDocumentType(type)) {
+                    logger.error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
+                    process.exit(1);
+                }
+
+                // Parse the file once; we manage its $id only when it is valid JSON.
+                let fileJson: Record<string, unknown> | undefined;
+                try {
+                    fileJson = JSON.parse(await readFile(srcPath, 'utf8'));
+                } catch (_) {
+                    fileJson = undefined;
+                }
+
+                const baseUrlDefault = (await loadCliConfig())?.calmHubUrl;
+                const existingId = fileJson && typeof fileJson['$id'] === 'string' ? (fileJson['$id'] as string) : undefined;
+                let builtNamespace: string | undefined;
+                let effectiveId = existingId;
+
+                if (fileJson) {
+                    if (!existingId) {
+                        // No $id present: build one interactively and write it into the file.
+                        const built = await promptForDocumentId({ baseUrlDefault });
+                        fileJson['$id'] = built.id;
+                        await writeFile(srcPath, JSON.stringify(fileJson, null, 2), 'utf8');
+                        logger.info(`Set document $id to ${built.id}`);
+                        builtNamespace = built.namespace;
+                        effectiveId = built.id;
+                    } else if (!isConformantDocumentId(existingId)) {
+                        // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
+                        // Silently rewriting would be data loss for types that don't use CalmHub URLs (flow, adr, timeline, etc.).
+                        logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
+                    }
+                }
+
+                const namespace = options.namespace
+                    ?? builtNamespace
+                    ?? (effectiveId ? namespaceFromDocumentId(effectiveId) : undefined);
+
+                let id = options.id;
+                if (!id && fileJson && typeof fileJson['title'] === 'string' && (fileJson['title'] as string).trim()) {
+                    id = (fileJson['title'] as string).trim();
+                }
+                if (!id) {
+                    id = await input({ message: 'Enter a name for this document:' });
+                }
+
+                const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
+                    id,
+                    copy: options.copy,
+                    type,
+                    namespace: namespace?.trim()
+                });
+
+                if (options.copy) {
+                    logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${resolvedId})`);
+                } else {
+                    logger.info(`Added reference to ${finalDestPath} (id: ${resolvedId})`);
+                }
+            } catch (err) {
+                logger.error('Failed to add file to workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('tree')
+        .description('Print dependency tree of files in the current workspace bundle')
+        .action(async () => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found.');
+                    process.exit(1);
+                }
+                await printBundleTree(bundlePath);
+            } catch (err) {
+                logger.error('Failed to print tree: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('list')
+        .description('List all available workspaces')
+        .action(async () => {
+            try {
+                const gitRoot = findGitRoot(process.cwd());
+                if (!gitRoot) {
+                    logger.error('No git repository found. Please run this command from within a git repository.');
+                    process.exit(1);
+                }
+                const workspaces = await listWorkspaces(gitRoot);
+                const activeWorkspace = await getActiveWorkspace(gitRoot);
+                if (workspaces.length === 0) {
+                    logger.warn('No workspaces found.');
+                    return;
+                }
+                logger.info('Available workspaces:');
+                for (const ws of workspaces) {
+                    if (ws === activeWorkspace) {
+                        logger.info(`* ${ws}`);
+                    } else {
+                        logger.info(`  ${ws}`);
+                    }
+                }
+            } catch (err) {
+                logger.error('Failed to list workspaces: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('show')
+        .description('Show the active workspace')
+        .action(async () => {
+            try {
+                const gitRoot = findGitRoot(process.cwd());
+                if (!gitRoot) {
+                    logger.error('No git repository found. Please run this command from within a git repository.');
+                    process.exit(1);
+                }
+                const activeWorkspace = await getActiveWorkspace(gitRoot);
+                if (!activeWorkspace) {
+                    logger.info('No active workspace.');
+                    return;
+                }
+                logger.info(activeWorkspace);
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (bundlePath) {
+                    const manifest = await loadManifest(bundlePath);
+                    const keys = Object.keys(manifest);
+                    if (keys.length > 0) {
+                        logger.info('Documents in workspace bundle:');
+                        for (const key of keys) {
+                            const entry = manifest[key];
+                            logger.info(`- ${key} (${entry.type}${entry.namespace ? `, namespace: ${entry.namespace}` : ''}${entry.calmHubId ? `, CalmHub ID: ${entry.calmHubId}` : ''})`);
+                        }
+                    } else {
+                        logger.info('No documents currently tracked in workspace bundle.');
+                    }
+                }
+            } catch (err) {
+                logger.error('Failed to get active workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+    
+    workspaceCmd
+        .command('rm')
+        .description('Remove a document from the active workspace')
+        .argument('[id]', 'The ID of the document to remove')
+        .action(async (id: string) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+                const manifest = await loadManifest(bundlePath);
+                const docIds = Object.keys(manifest);
+                if (docIds.length === 0) {
+                    logger.info('No documents currently tracked in workspace bundle.');
+                    return;
+                }
+                id = await enforceOptionPresenceByPrompt(id, 'Select a document to remove:', docIds);
+                await removeDocumentFromManifest(bundlePath, id);
+            } catch (err) {
+                logger.error('Failed to remove document: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('switch')
+        .description('Switch the active workspace')
+        .argument('<name>', 'The name of the workspace to switch to')
+        .action(async (name: string) => {
+            try {
+                const gitRoot = findGitRoot(process.cwd());
+                if (!gitRoot) {
+                    logger.error('No git repository found. Please run this command from within a git repository.');
+                    process.exit(1);
+                }
+                const workspaces = await listWorkspaces(gitRoot);
+                if (!workspaces.includes(name)) {
+                    logger.error(`Workspace '${name}' not found.`);
+                    process.exit(1);
+                }
+                await setActiveWorkspace(gitRoot, name);
+                logger.info(`Switched to workspace '${name}'.`);
+            } catch (err) {
+                logger.error('Failed to switch workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('clean')
+        .description('Clean the active workspace bundle (use --all to clean all workspaces)')
+        .option('--all', 'Clean all workspaces and reset workspace.json')
+        .action(async (options: { all?: boolean }) => {
+            try {
+                const gitRoot = findGitRoot(process.cwd());
+                if (!gitRoot) {
+                    logger.error('No git repository found. Please run this command from within a git repository.');
+                    process.exit(1);
+                }
+
+                if (options.all) {
+                    await cleanAllWorkspaces(gitRoot);
+                    logger.info('All workspaces cleaned.');
+                } else {
+                    const activeWorkspace = await getActiveWorkspace(gitRoot);
+                    if (!activeWorkspace) {
+                        logger.error('No active workspace. Use --all to clean all workspaces.');
+                        process.exit(1);
+                    }
+                    await cleanWorkspaceBundle(gitRoot, activeWorkspace);
+                    logger.info(`Workspace '${activeWorkspace}' cleaned.`);
+                }
+            } catch (err) {
+                logger.error('Failed to clean workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('new')
+        .description('Add a new document based on a template and track it in the current workspace. The CalmHub $id is built interactively.')
+        .addArgument(new Argument('[type]', 'The type of document to create.')
+            .choices(CALM_DOCUMENT_TYPES_LIST))
+        .argument('[name]', 'The title for your new document')
+        .argument('[template]', 'The template for your new document')
+        .action(async (type, name, template) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                type = await enforceOptionPresenceByPrompt(type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
+                if (!isValidCalmDocumentType(type)) {
+                    logger.error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
+                    process.exit(1);
+                }
+                const templates = await getTemplatesForType(type);
+
+                const baseUrlDefault = (await loadCliConfig())?.calmHubUrl;
+                const documentId = await promptForDocumentId({ baseUrlDefault });
+
+                name = await enforceOptionPresenceByPrompt(name, `Enter the title for your new ${type} document:`);
+                if (!template) {
+                    template = templates.length > 1
+                        ? await enforceOptionPresenceByPrompt(undefined, 'Select a template:', templates)
+                        : (templates[0] ?? 'empty');
+                }
+
+                const filePath = await createNewDocument(documentId.id, name, type, documentId.slug, template);
+                await addFileToBundle(bundlePath, filePath, { id: documentId.slug, type, namespace: documentId.namespace });
+
+                logger.info(`Created ${filePath} (id: ${documentId.id})`);
+            } catch (err) {
+                logger.error('Failed to create document: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('push')
+        .description('Push all files in the current workspace manifest to CalmHub. Does not auto-bump; pushes the version each document declares.')
+        .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
+        .option('--fail-if-modified', 'Fail if a modified document already exists in CalmHub at its declared version (overrides the workspace config; strict merge-time mode)')
+        .action(async (options: { calmHubUrl?: string; failIfModified?: boolean }) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                const calmHubUrl = await resolveCalmHubUrl(options.calmHubUrl);
+
+                const gitRoot = findGitRoot(process.cwd());
+                const workspaceConfig = gitRoot ? await loadWorkspaceConfig(gitRoot) : undefined;
+                const failIfModified = options.failIfModified ?? workspaceConfig?.push.failIfModified ?? false;
+
+                const client = new CalmHubClient({ calmHubUrl });
+                await pushWorkspaceToHub(bundlePath, client, { failIfModified });
+            } catch (err) {
+                logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('check')
+        .description('Check whether any tracked documents have changed on disk relative to CalmHub and need a version bump. Exits non-zero if so (CI/PR gate).')
+        .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
+        .action(async (options: { calmHubUrl?: string }) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                const calmHubUrl = await resolveCalmHubUrl(options.calmHubUrl);
+                const client = new CalmHubClient({ calmHubUrl });
+                const changed = await detectChangedResources(bundlePath, client);
+
+                if (changed.length === 0) {
+                    logger.info('Workspace is up to date - no documents need bumping.');
+                    return;
+                }
+
+                logger.error(`${changed.length} document(s) changed on disk but not bumped:`);
+                for (const c of changed) {
+                    logger.error(`  ${c.id} (current version ${c.currentVersion}). Run \`calm workspace bump\`.`);
+                }
+                process.exit(1);
+            } catch (err) {
+                logger.error('Failed to check workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('bump')
+        .description('Bump the version of any tracked document changed on disk relative to CalmHub, and update all references to point at the new version.')
+        .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
+        .option('--major', 'Apply a major version bump')
+        .option('--patch', 'Apply a patch version bump')
+        .action(async (options: { calmHubUrl?: string; major?: boolean; patch?: boolean }) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                if (options.major && options.patch) {
+                    logger.error('Cannot use --major and --patch together.');
+                    process.exit(1);
+                }
+
+                const calmHubUrl = await resolveCalmHubUrl(options.calmHubUrl);
+
+                const gitRoot = findGitRoot(process.cwd());
+                const workspaceConfig = gitRoot ? await loadWorkspaceConfig(gitRoot) : undefined;
+                const flagIncrement: ResourceChangeType | undefined =
+                    options.major ? 'MAJOR' : options.patch ? 'PATCH' : undefined;
+                const increment: ResourceChangeType = flagIncrement ?? workspaceConfig?.bump.defaultIncrement ?? 'MINOR';
+
+                const client = new CalmHubClient({ calmHubUrl });
+                const result = await bumpWorkspace(bundlePath, client, { increment });
+
+                if (result.bumped.length === 0) {
+                    logger.info('No documents needed bumping.');
+                } else {
+                    logger.info(`Bumped ${result.bumped.length} document(s):`);
+                    for (const b of result.bumped) {
+                        const suffix = b.triggeredBy ? ` (depends on ${b.triggeredBy})` : '';
+                        logger.info(`  ${b.id}: ${b.fromVersion} -> ${b.toVersion}${suffix}`);
+                    }
+                    const refChanges = result.refUpdates.reduce((sum, r) => sum + r.changeCount, 0);
+                    if (refChanges > 0) {
+                        logger.info(`Updated ${refChanges} reference(s) across the workspace to match.`);
+                    }
+                }
+            } catch (err) {
+                logger.error('Failed to bump workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+}
+
+/**
+ * Resolve the CalmHub URL from the CLI option or `~/.calm.json`, exiting the process if neither is set.
+ */
+async function resolveCalmHubUrl(optionUrl?: string): Promise<string> {
+    const config = await loadCliConfig();
+    const calmHubUrl = optionUrl ?? config?.calmHubUrl;
+    if (!calmHubUrl) {
+        logger.error('No CalmHub URL configured. Use --calm-hub-url or set calmHubUrl in ~/.calm.json');
+        process.exit(1);
+    }
+    return calmHubUrl;
+}
+
+async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: string[]): Promise<string> {
+    if (cliInput) {
+        // if it was selected already, just use that
+        return cliInput;
+    }
+    if (choices) {
+        return await select({
+            message: prompt,
+            choices: choices.map((p: string) => ({ name: p, value: p }))
+        });
+    }
+    return await input({
+        message: prompt
+    });
+};
+

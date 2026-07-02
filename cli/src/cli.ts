@@ -2,8 +2,10 @@ import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, DiagramExportFormat, initLogger
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions, loadChoicesFromInput } from './command-helpers/generate-options';
-import * as cliConfig from './cli-config';
 import path from 'path';
+import { findWorkspaceManifestPath } from './workspace-resolver';
+import { setupWorkspaceCommands } from './command-helpers/workspace/commands';
+import * as cliConfig from './cli-config';
 import { select } from '@inquirer/prompts';
 import {
     CreateNamespaceOptions,
@@ -816,6 +818,8 @@ Example:
 
     program.addCommand(hubCmd);
 
+    // Dev commands
+    setupWorkspaceCommands(program);
 }
 
 interface ParseDocumentLoaderOptions {
@@ -856,6 +860,23 @@ export async function parseDocumentLoaderConfig(
         } catch (err) {
             logger.error('Failed to load auth plugin: ' + (err instanceof Error ? err.message : String(err)));
         }
+    }
+
+
+    // If a CALM workspace bundle is present in the repository, prefer it for resolving documents.
+    // The WorkspaceDocumentLoader (added first by buildDocumentLoader when workspaceBundlePath is
+    // set) resolves any reference to a tracked document — bare id, $id, versioned path, or full
+    // URL — to the local working copy, overriding CalmHub.
+    try {
+        const workspaceBundle = findWorkspaceManifestPath(process.cwd());
+        if (workspaceBundle) {
+            logger.info('Using workspace bundle for document resolution: ' + workspaceBundle);
+            docLoaderOpts.workspaceBundlePath = workspaceBundle;
+            // Fall back to the bundle as the base path so relative references still resolve.
+            docLoaderOpts.basePath = docLoaderOpts.basePath ?? workspaceBundle;
+        }
+    } catch (err) {
+        logger.debug('Error while checking for workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
     }
 
     if (userConfig && userConfig.allowedRemoteHosts && !options.allowedRemoteHosts) {
