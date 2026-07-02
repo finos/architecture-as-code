@@ -55,6 +55,7 @@ export * from './test/file-comparison.js';
 export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
 export { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from './document-loader/document-loader';
 export { FileSystemDocumentLoader } from './document-loader/file-system-document-loader';
+export { WorkspaceDocumentLoader } from './document-loader/workspace-document-loader';
 export * from './document-loader/loading-helpers.js';
 export {
     hasArchitectureExtension,
@@ -77,6 +78,8 @@ export {
 } from './hub/calm-hub-client.js';
 export {
     constructDocumentId,
+    isConformantDocumentId,
+    namespaceFromDocumentId,
     extractDocumentMetadata,
     updateDocumentMetadata,
     type DocumentMetadata,

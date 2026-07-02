@@ -132,5 +132,8 @@
       }
     }
   ],
-  "$schema": "calm://calm.finos.org/calm/namespaces/workshop/patterns/1/versions/1.0.0"
+  "$schema": "calm://calm.finos.org/calm/namespaces/workshop/patterns/1/versions/1.0.0",
+  "$id": "http://localhost:8080/calm/namespaces/workshop/architectures/test-arch/versions/1.0.2",
+  "title": "TEST ARCHITECTURE",
+  "description": "Desscriptio nrhere"
 }
