@@ -8,6 +8,12 @@ import { type TypeInUI } from '../tree-navigation/navigation-loaders.js';
 export interface NamespaceItem {
     id: string;
     name: string;
+    /** One-line summary shown on the card body (clamped to 2 lines). */
+    description?: string;
+    /** Human-readable slug identifier, shown as mono meta when present. */
+    customId?: string;
+    /** Stored-version count for the version-map types; drives the "N versions" scent. */
+    versionCount?: number;
 }
 
 export interface NamespaceItemGroup {
@@ -18,6 +24,9 @@ export interface NamespaceItemGroup {
 const summaryToItem = (s: ResourceSummary): NamespaceItem => ({
     id: s.customId ?? s.id.toString(),
     name: s.name,
+    description: s.description,
+    customId: s.customId,
+    versionCount: s.versionCount,
 });
 
 /**
@@ -59,7 +68,11 @@ export function useNamespaceItems(namespace: string): { groups: NamespaceItemGro
                 },
                 {
                     type: 'Interfaces',
-                    items: interfaces.map((i) => ({ id: i.id.toString(), name: i.name })),
+                    items: interfaces.map((i) => ({
+                        id: i.id.toString(),
+                        name: i.name,
+                        description: i.description,
+                    })),
                 },
             ]);
         }).finally(() => {

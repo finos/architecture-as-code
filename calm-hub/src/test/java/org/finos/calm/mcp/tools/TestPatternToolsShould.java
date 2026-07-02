@@ -53,7 +53,7 @@ class TestPatternToolsShould {
     @Test
     void return_patterns_when_namespace_has_entries() throws NamespaceNotFoundException {
         when(patternStore.getPatternsForNamespace("workshop"))
-                .thenReturn(List.of(new NamespacePatternSummary("Conference Pattern", "A conference signup pattern", 1)));
+                .thenReturn(List.of(new NamespacePatternSummary("Conference Pattern", "A conference signup pattern", 1, 0)));
 
         ToolResponse result = patternTools.listPatterns("workshop");
 

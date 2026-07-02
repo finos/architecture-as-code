@@ -59,8 +59,8 @@ vi.mock('../../../service/adr-service/adr-service.js', () => ({
 
 // Counts are owned by Hub and passed in as props; the menu no longer fetches them.
 const namespaceCounts = [
-    { namespace: 'finos', total: 4 },
-    { namespace: 'traderx', total: 9 },
+    { namespace: 'finos', architectures: 4, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 4 },
+    { namespace: 'traderx', architectures: 2, patterns: 0, flows: 4, standards: 0, adrs: 0, interfaces: 3, total: 9 },
 ] as NamespaceCounts[];
 const domainCounts: DomainControlCount[] = [{ domain: 'security', controlCount: 7 }];
 
@@ -114,6 +114,22 @@ describe('MobileNavMenu', () => {
         const badgeText = badges.map((b) => b.textContent);
         expect(badgeText).toContain('4');
         expect(badgeText).toContain('9');
+    });
+
+    it('shows per-type count badges at the resource-type level, dimming zeros', async () => {
+        renderMenu();
+        fireEvent.click(screen.getByText('Namespaces'));
+        fireEvent.click(await screen.findByText('traderx'));
+        expect(await screen.findByText('Architectures')).toBeInTheDocument();
+
+        // traderx: architectures 2, flows 4, interfaces 3, and three zeros.
+        const badges = screen.getAllByTestId('count-badge');
+        const texts = badges.map((b) => b.textContent);
+        expect(texts).toEqual(['2', '0', '4', '0', '0', '3']);
+
+        // Zero-count badges are dimmed (faint bg), matching the desktop type tabs.
+        const zeroBadge = badges.find((b) => b.textContent === '0')!;
+        expect(zeroBadge).toHaveStyle({ backgroundColor: '#F4F6F9' });
     });
 
     it('shows a count badge on each control-domain row', async () => {

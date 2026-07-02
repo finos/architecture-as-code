@@ -69,9 +69,9 @@ vi.mock('./components/tree-navigation/MobileNavMenu', () => ({
 }));
 
 vi.mock('./components/namespace-page/NamespacePage', () => ({
-    NamespacePage: ({ namespace, total }: { namespace: string; total: number }) => (
+    NamespacePage: ({ namespace, counts }: { namespace: string; counts?: { total: number } }) => (
         <div data-testid="namespace-page">
-            Namespace: {namespace} ({total})
+            Namespace: {namespace} ({counts?.total ?? 'loading'})
         </div>
     ),
 }));

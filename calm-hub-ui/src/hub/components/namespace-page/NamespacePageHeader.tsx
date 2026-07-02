@@ -4,8 +4,12 @@ import { colors } from '../../../theme/colors.js';
 
 interface NamespacePageHeaderProps {
     namespace: string;
-    /** Total artefact count for the right-aligned mono meta. */
-    total: number;
+    /**
+     * Total artefact count for the right-aligned mono meta, or `undefined` while the
+     * counts are still loading — in which case the meta is omitted rather than
+     * flashing a premature "0 artefacts".
+     */
+    total?: number;
 }
 
 /**
@@ -36,12 +40,14 @@ export function NamespacePageHeader({ namespace, total }: NamespacePageHeaderPro
                 <h1 className="flex-1 min-w-0 truncate text-[27px] font-bold" style={{ color: colors.redesign.ink }}>
                     {namespace}
                 </h1>
-                <span
-                    className="font-mono-jb text-[13px] whitespace-nowrap"
-                    style={{ color: colors.redesign.mutedAlt }}
-                >
-                    {total} {total === 1 ? 'artefact' : 'artefacts'}
-                </span>
+                {total !== undefined && (
+                    <span
+                        className="font-mono-jb text-[13px] whitespace-nowrap"
+                        style={{ color: colors.redesign.mutedAlt }}
+                    >
+                        {total} {total === 1 ? 'artefact' : 'artefacts'}
+                    </span>
+                )}
             </div>
         </div>
     );

@@ -90,7 +90,10 @@ public class NitritePatternStore implements PatternStore {
                     if (patternId != null) {
                         if (name == null) name = "Pattern " + patternId;
                         if (description == null) description = "";
-                        patternSummaries.add(new NamespacePatternSummary(name, description, patternId));
+                        // Count versions from the already-in-memory sub-document (O(1), no extra query).
+                        Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
+                        int versionCount = versions == null ? 0 : versions.getFields().size();
+                        patternSummaries.add(new NamespacePatternSummary(name, description, patternId, versionCount));
                     }
                 }
             }
