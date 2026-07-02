@@ -142,6 +142,9 @@ export async function bumpWorkspace(
     const allRefUpdates: RefUpdateResult[] = [];
     const MAX_CASCADE_DEPTH = 50;
 
+    // Track which IDs were bumped in the previous pass so each cascade log can name its trigger.
+    let prevPassBumped = new Set<string>(bumpedIds);
+
     for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
         const manifest = await loadManifest(bundlePath);
         const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
@@ -150,6 +153,9 @@ export async function bumpWorkspace(
 
         const cascadeCandidates = refUpdates.filter(r => r.changeCount > 0 && !bumpedIds.has(r.docId));
         if (cascadeCandidates.length === 0) break;
+
+        const thisPassBumped = new Set<string>();
+        const triggerLabel = [...prevPassBumped].join(', ');
 
         for (const candidate of cascadeCandidates) {
             const entry = manifest[candidate.docId];
@@ -170,7 +176,7 @@ export async function bumpWorkspace(
                 metadata = extractDocumentMetadata(raw);
             } catch {
                 // Non-CalmHub $id (flow, adr, timeline, etc.) — ref was updated but version cannot be bumped.
-                logger.warn(`Cascade: '${candidate.docId}' had references rewritten but its $id is not a CalmHub URL; version not bumped.`);
+                logger.warn(`'${candidate.docId}' references ${triggerLabel} (updated) but its $id is not a CalmHub URL; version not bumped.`);
                 bumpedIds.add(candidate.docId);
                 continue;
             }
@@ -180,8 +186,11 @@ export async function bumpWorkspace(
             await writeFile(filePath, updated, 'utf8');
             bumped.push({ id: candidate.docId, filePath, fromVersion: metadata.version, toVersion });
             bumpedIds.add(candidate.docId);
-            logger.info(`Cascade-bumped '${candidate.docId}' ${metadata.version} -> ${toVersion}`);
+            thisPassBumped.add(candidate.docId);
+            logger.info(`Bumped '${candidate.docId}' ${metadata.version} -> ${toVersion} (depends on ${triggerLabel})`);
         }
+
+        prevPassBumped = thisPassBumped;
     }
 
     return { bumped, refUpdates: allRefUpdates };
