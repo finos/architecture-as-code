@@ -1,19 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { IoShieldCheckmarkOutline } from 'react-icons/io5';
+import { IoShieldCheckmarkOutline, IoEyeOutline, IoCodeOutline } from 'react-icons/io5';
 import { ControlConfigDetail, ControlData } from '../../../model/control.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { ReadableJsonView } from './ReadableJsonView.js';
 import { ControlService } from '../../../service/control-service.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 
-type ViewMode = 'readable' | 'raw';
+export type ViewMode = 'readable' | 'raw';
 type ControlPanel = 'requirement' | 'configuration';
 
 interface ControlDetailSectionProps {
     controlData: ControlData;
+    /**
+     * When provided, the readable/raw view is controlled by the parent (the
+     * ControlPanel renders a single toggle in its title bar, like the diagram node
+     * Sidebar) and the per-panel breadcrumb toggles are hidden. When omitted, the
+     * section manages its own per-panel toggles (standalone use).
+     */
+    viewMode?: ViewMode;
 }
 
-export function ControlDetailSection({ controlData }: ControlDetailSectionProps) {
+export function ControlDetailSection({ controlData, viewMode }: ControlDetailSectionProps) {
     const controlService = useMemo(() => new ControlService(), []);
     const isMobile = useIsMobile();
 
@@ -104,21 +111,30 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
     // ── Shared builders (used by both the desktop stacked layout and the
     //    mobile tabbed layout) so role/name selectors stay identical. ─────────
 
+    // Readable / Raw toggle as icon buttons, matching the diagram node Sidebar's
+    // Details/JSON switch (eye = readable, code = raw) — the text labels read
+    // cramped in the control panel. Accessible names stay "Readable" / "Raw JSON".
     const viewToggle = (mode: ViewMode, setMode: (m: ViewMode) => void) => (
-        <div role="tablist" className="tabs tabs-boxed tabs-xs bg-base-100">
+        <div role="tablist" className="inline-flex rounded-lg bg-base-300 p-0.5">
             <button
                 role="tab"
-                className={`tab ${mode === 'readable' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
+                aria-label="Readable"
+                aria-selected={mode === 'readable'}
+                title="Readable"
+                className={`p-1.5 rounded-md transition-colors ${mode === 'readable' ? 'bg-primary text-primary-content' : 'text-base-content/50 hover:text-base-content'}`}
                 onClick={() => setMode('readable')}
             >
-                Readable
+                <IoEyeOutline size={14} />
             </button>
             <button
                 role="tab"
-                className={`tab ${mode === 'raw' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
+                aria-label="Raw JSON"
+                aria-selected={mode === 'raw'}
+                title="Raw JSON"
+                className={`p-1.5 rounded-md transition-colors ${mode === 'raw' ? 'bg-primary text-primary-content' : 'text-base-content/50 hover:text-base-content'}`}
                 onClick={() => setMode('raw')}
             >
-                Raw JSON
+                <IoCodeOutline size={14} />
             </button>
         </div>
     );
@@ -156,13 +172,13 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
         </button>
     ));
 
-    const requirementContent = reqViewMode === 'readable' ? (
+    const requirementContent = (viewMode ?? reqViewMode) === 'readable' ? (
         <ReadableJsonView json={requirementJson} />
     ) : (
         <JsonRenderer json={requirementJson} />
     );
 
-    const configurationContent = cfgViewMode === 'readable' ? (
+    const configurationContent = (viewMode ?? cfgViewMode) === 'readable' ? (
         <ReadableJsonView json={configJson} />
     ) : (
         <JsonRenderer json={configJson} />
@@ -217,7 +233,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                             <h2 className="text-xs font-semibold text-base-content/70 truncate">
                                 Requirement{selectedReqVersion ? ` / ${selectedReqVersion}` : ''}
                             </h2>
-                            {viewToggle(reqViewMode, setReqViewMode)}
+                            {viewMode === undefined && viewToggle(reqViewMode, setReqViewMode)}
                         </div>
                         {requirementVersions.length > 1 && (
                             <div className="bg-base-200 px-4 pb-2 border-b border-base-300 overflow-x-auto">
@@ -239,7 +255,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                                 {selectedCfgLabel ? ` / ${selectedCfgLabel}` : ''}
                                 {selectedConfigVersion ? ` / ${selectedConfigVersion}` : ''}
                             </h2>
-                            {viewToggle(cfgViewMode, setCfgViewMode)}
+                            {viewMode === undefined && viewToggle(cfgViewMode, setCfgViewMode)}
                         </div>
                         <div className="bg-base-200 px-4 pb-2 border-b border-base-300 overflow-x-auto">
                             <div className="flex items-center gap-2 w-max">
@@ -285,7 +301,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                         )}
                     </h2>
                     {/* Readable / Raw toggle */}
-                    {viewToggle(reqViewMode, setReqViewMode)}
+                    {viewMode === undefined && viewToggle(reqViewMode, setReqViewMode)}
                 </div>
 
                 {/* Requirement version tabs */}
@@ -327,7 +343,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                         )}
                     </h2>
                     {/* Readable / Raw toggle */}
-                    {viewToggle(cfgViewMode, setCfgViewMode)}
+                    {viewMode === undefined && viewToggle(cfgViewMode, setCfgViewMode)}
                 </div>
 
                 {/* Configuration breadcrumb navigation */}

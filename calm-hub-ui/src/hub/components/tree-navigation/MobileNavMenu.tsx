@@ -93,6 +93,31 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
         (d: string) => domainCounts.find((c) => c.domain === d)?.controlCount,
         [domainCounts]
     );
+    // Per-type count for a namespace's resource-type drill-down level, mirroring
+    // the desktop namespace page's segmented type tabs.
+    const typeCount = useCallback(
+        (namespace: string, type: TypeInUI): number | undefined => {
+            const c = namespaceCounts.find((nc) => nc.namespace === namespace);
+            if (!c) return undefined;
+            switch (type) {
+                case 'Architectures':
+                    return c.architectures;
+                case 'Patterns':
+                    return c.patterns;
+                case 'Flows':
+                    return c.flows;
+                case 'Standards':
+                    return c.standards;
+                case 'ADRs':
+                    return c.adrs;
+                case 'Interfaces':
+                    return c.interfaces;
+                default:
+                    return undefined;
+            }
+        },
+        [namespaceCounts]
+    );
 
     const openType = useCallback(
         (namespace: string, type: TypeInUI) => {
@@ -213,6 +238,8 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
         isLeaf: boolean;
         onClick: () => void;
         count?: number;
+        /** Dim a zero count (empty, not broken) — mirrors the desktop type tabs. */
+        dimmed?: boolean;
         active?: boolean;
     }
 
@@ -233,12 +260,17 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
                     onClick: () => setView({ level: 'types', namespace: ns }),
                 }));
             case 'types':
-                return RESOURCE_TYPES.map((t) => ({
-                    key: t,
-                    label: t,
-                    isLeaf: false,
-                    onClick: () => openType(view.namespace, t),
-                }));
+                return RESOURCE_TYPES.map((t) => {
+                    const count = typeCount(view.namespace, t);
+                    return {
+                        key: t,
+                        label: t,
+                        isLeaf: false,
+                        count,
+                        dimmed: count === 0,
+                        onClick: () => openType(view.namespace, t),
+                    };
+                });
             case 'resources':
                 return leafItems.map((item) => ({
                     key: item.id,
@@ -318,7 +350,9 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
                                     >
                                         {row.label}
                                     </span>
-                                    {row.count !== undefined && <CountBadge count={row.count} active={row.active} />}
+                                    {row.count !== undefined && (
+                                        <CountBadge count={row.count} active={row.active} dimmed={row.dimmed} />
+                                    )}
                                     {!row.isLeaf && (
                                         <IoChevronForwardOutline className="text-base-content/40 shrink-0" size={18} />
                                     )}

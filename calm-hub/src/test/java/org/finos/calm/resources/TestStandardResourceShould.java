@@ -47,8 +47,8 @@ public class TestStandardResourceShould {
 
     @BeforeEach
     void beforeEach() {
-        nistStandardSummary = new NamespaceStandardSummary("nist", "NIST Standard",1);
-        finosStandardSummary = new NamespaceStandardSummary("finos", "FINOS Standard", 2);
+        nistStandardSummary = new NamespaceStandardSummary("nist", "NIST Standard", 1, 3);
+        finosStandardSummary = new NamespaceStandardSummary("finos", "FINOS Standard", 2, 1);
     }
 
     @Test
@@ -87,8 +87,10 @@ public class TestStandardResourceShould {
                 .statusCode(200)
                 .body("values[0].name", equalTo("nist"))
                 .body("values[0].description", equalTo("NIST Standard"))
+                .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("finos"))
-                .body("values[1].description", equalTo("FINOS Standard"));
+                .body("values[1].description", equalTo("FINOS Standard"))
+                .body("values[1].versionCount", equalTo(1));
 
         verify(mockStandardStore).getStandardsForNamespace("valid");
     }

@@ -180,6 +180,21 @@ describe('DiagramSection', () => {
             expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
         });
 
+        it('paints the active view tab with the redesign brand blue, not the old accent (#8)', () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            // Default active tab is Diagram — the one blue active system is the
+            // interaction token (--color-interaction → #2563EB), so the filled pill
+            // must carry the token-backed brand-blue class (not bg-accent).
+            const activeTab = screen.getByRole('tab', { name: /diagram/i });
+            expect(activeTab).toHaveClass('!bg-[var(--color-interaction)]');
+            expect(activeTab.className).not.toContain('bg-accent');
+        });
+
         it('renders Deployments tab only for architectures, not patterns', () => {
             const { rerender } = render(
                 <MemoryRouter>
@@ -316,6 +331,75 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
             await user.click(screen.getByRole('tab', { name: /json/i }));
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
+        });
+    });
+
+    describe('mobile view pill (#11)', () => {
+        function mockMobileViewport() {
+            const original = window.matchMedia;
+            window.matchMedia = ((query: string) => ({
+                matches: query.includes('max-width: 1023px'),
+                media: query,
+                onchange: null,
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                addListener: () => {},
+                removeListener: () => {},
+                dispatchEvent: () => false,
+            })) as unknown as typeof window.matchMedia;
+            return () => {
+                window.matchMedia = original;
+            };
+        }
+
+        it('renders a labelled "View" pill (not a bare icon) as the menu trigger on mobile', () => {
+            const restore = mockMobileViewport();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            const trigger = screen.getByRole('button', { name: /view options/i });
+            // The trigger now carries a visible "View" label, replacing the bare eye.
+            expect(trigger).toHaveTextContent('View');
+            restore();
+        });
+
+        it('opens the full-screen view menu when the pill is clicked', async () => {
+            const restore = mockMobileViewport();
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByRole('button', { name: /view options/i }));
+            // Opening reveals the view-mode list (Diagram / JSON / Deployments rows).
+            expect(screen.getByRole('button', { name: /close view options/i })).toBeInTheDocument();
+            restore();
+        });
+
+        // Desktop boundary guard: the pill is gated by render-path (the desktop
+        // return ships `tabs`, never `viewMenu`), not by an `isMobile` conditional
+        // in the JSX. Locking it here means a future refactor that hoists `viewMenu`
+        // into the desktop return regresses with a red test, not green ones. No
+        // matchMedia mock — the default reports desktop.
+        it('shows the view-mode tabs and NOT the "View" pill on desktop', () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            // Desktop ships the inline view-mode tabs...
+            expect(screen.getByRole('tab', { name: /diagram/i })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: /json/i })).toBeInTheDocument();
+            // ...and never the mobile "View options" pill (a button, distinct from
+            // the role="tab" view-mode buttons).
+            expect(screen.queryByRole('button', { name: /view options/i })).not.toBeInTheDocument();
+            expect(screen.queryByText('View')).not.toBeInTheDocument();
         });
     });
 

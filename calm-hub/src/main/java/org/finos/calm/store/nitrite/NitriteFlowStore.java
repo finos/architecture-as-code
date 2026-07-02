@@ -88,7 +88,10 @@ public class NitriteFlowStore implements FlowStore {
             String description = flow.get(DESCRIPTION_FIELD, String.class);
             if (name == null) name = "Flow " + flowId;
             if (description == null) description = "";
-            flowSummaries.add(new NamespaceFlowSummary(name, description, flowId));
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Document versions = flow.get(VERSIONS_FIELD, Document.class);
+            int versionCount = versions == null ? 0 : versions.getFields().size();
+            flowSummaries.add(new NamespaceFlowSummary(name, description, flowId, versionCount));
         }
 
         return flowSummaries;
