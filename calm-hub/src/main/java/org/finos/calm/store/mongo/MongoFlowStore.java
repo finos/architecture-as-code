@@ -78,7 +78,10 @@ public class MongoFlowStore implements FlowStore {
             String description = flow.getString("description");
             if (name == null) name = "Flow " + flowId;
             if (description == null) description = "";
-            flowSummaries.add(new NamespaceFlowSummary(name, description, flowId));
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Document versions = (Document) flow.get("versions");
+            int versionCount = versions == null ? 0 : versions.keySet().size();
+            flowSummaries.add(new NamespaceFlowSummary(name, description, flowId, versionCount));
         }
 
         return flowSummaries;

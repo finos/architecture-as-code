@@ -91,8 +91,11 @@ public class MongoArchitectureStore implements ArchitectureStore {
             String description = architectureDoc.getString("description");
             if (name == null) name = "Architecture " + archId;
             if (description == null) description = "";
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Document versions = (Document) architectureDoc.get("versions");
+            int versionCount = versions == null ? 0 : versions.keySet().size();
             NamespaceArchitectureSummary summary = new NamespaceArchitectureSummary(
-                    name, description, archId
+                    name, description, archId, versionCount
             );
             architectureSummaries.add(summary);
         }

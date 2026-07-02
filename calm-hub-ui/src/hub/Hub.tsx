@@ -32,6 +32,7 @@ export default function Hub() {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     const [namespaceCounts, setNamespaceCounts] = useState<NamespaceCounts[]>([]);
+    const [namespaceCountsLoaded, setNamespaceCountsLoaded] = useState(false);
     const [domainCounts, setDomainCounts] = useState<DomainControlCount[]>([]);
     const isMobile = useIsMobile();
 
@@ -52,7 +53,14 @@ export default function Hub() {
     // never re-fires and there is no in-flight fetch to cancel on a dependency change. (Unlike
     // useNamespaceItems, whose fetch effect re-runs per namespace and so needs a cancel guard.)
     useEffect(() => {
-        countsService.fetchNamespaceCounts().then(setNamespaceCounts).catch(() => setNamespaceCounts([]));
+        countsService
+            .fetchNamespaceCounts()
+            .then(setNamespaceCounts)
+            .catch(() => setNamespaceCounts([]))
+            // Mark loaded on success or failure so consumers can tell "counts
+            // unknown (loading)" from "known zero" — an absent namespace after the
+            // fetch settles is genuinely zero, not still loading.
+            .finally(() => setNamespaceCountsLoaded(true));
         countsService.fetchDomainCounts().then(setDomainCounts).catch(() => setDomainCounts([]));
     }, [countsService]);
 
@@ -137,10 +145,27 @@ export default function Hub() {
 
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
 
-    const namespaceTotal = useMemo(
-        () => namespaceCounts.find((c) => c.namespace === activeNamespace)?.total ?? 0,
-        [namespaceCounts, activeNamespace]
-    );
+    // The active namespace's full per-type counts, passed straight to NamespacePage
+    // so its type tabs show counts without a second fetch. `undefined` while the
+    // counts fetch is in flight — distinct from a known all-zero record — so the
+    // page can render tabs resting (not dimmed) and defer the first-non-empty
+    // default until counts resolve. Once loaded, a namespace absent from the list
+    // is a genuine all-zero (e.g. an unknown namespace), not still loading.
+    const activeNamespaceCounts = useMemo<NamespaceCounts | undefined>(() => {
+        if (!namespaceCountsLoaded) return undefined;
+        return (
+            namespaceCounts.find((c) => c.namespace === activeNamespace) ?? {
+                namespace: activeNamespace ?? '',
+                architectures: 0,
+                patterns: 0,
+                flows: 0,
+                standards: 0,
+                adrs: 0,
+                interfaces: 0,
+                total: 0,
+            }
+        );
+    }, [namespaceCounts, namespaceCountsLoaded, activeNamespace]);
     const domainControlCount = useMemo(
         () => domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0,
         [domainCounts, activeDomain]
@@ -165,7 +190,7 @@ export default function Hub() {
         isDetailRoute || controlData || interfaceData || adrData || data ? (
             detailContent
         ) : activeNamespace ? (
-            <NamespacePage namespace={activeNamespace} total={namespaceTotal} />
+            <NamespacePage namespace={activeNamespace} counts={activeNamespaceCounts} />
         ) : activeDomain ? (
             <DomainPage domain={activeDomain} controlCount={domainControlCount} onControlLoad={handleControlLoad} />
         ) : (

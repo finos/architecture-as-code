@@ -80,8 +80,11 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             String description = architecture.get(DESCRIPTION_FIELD, String.class);
             if (name == null) name = "Architecture " + archId;
             if (description == null) description = "";
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Document versions = architecture.get(VERSIONS_FIELD, Document.class);
+            int versionCount = versions == null ? 0 : versions.getFields().size();
             NamespaceArchitectureSummary summary = new NamespaceArchitectureSummary(
-                    name, description, archId
+                    name, description, archId, versionCount
             );
             architectureSummaries.add(summary);
         }

@@ -59,7 +59,7 @@ class TestStandardToolsShould {
     void return_standards_when_namespace_has_entries() throws NamespaceNotFoundException {
         when(standardStore.getStandardsForNamespace("finos"))
                 .thenReturn(List.of(
-                        new NamespaceStandardSummary("Security Controls", "Defines security requirements", 1)
+                        new NamespaceStandardSummary("Security Controls", "Defines security requirements", 1, 0)
                 ));
 
         ToolResponse result = standardTools.listStandards("finos");
@@ -317,7 +317,7 @@ class TestStandardToolsShould {
         created.setId(1);
         created.setVersion("1.1.0");
         when(standardStore.getStandardsForNamespace("finos"))
-                .thenReturn(List.of(new NamespaceStandardSummary("My Standard", "A description", 1)));
+                .thenReturn(List.of(new NamespaceStandardSummary("My Standard", "A description", 1, 0)));
         when(standardStore.createStandardForVersion(any(CreateStandardRequest.class), eq("finos"), eq(1), eq("1.1.0")))
                 .thenReturn(created);
 
@@ -330,7 +330,7 @@ class TestStandardToolsShould {
     @Test
     void return_error_when_version_already_exists() throws Exception {
         when(standardStore.getStandardsForNamespace("finos"))
-                .thenReturn(List.of(new NamespaceStandardSummary("My Standard", "A description", 1)));
+                .thenReturn(List.of(new NamespaceStandardSummary("My Standard", "A description", 1, 0)));
         when(standardStore.createStandardForVersion(any(), anyString(), anyInt(), anyString()))
                 .thenThrow(new StandardVersionExistsException());
 
@@ -355,7 +355,7 @@ class TestStandardToolsShould {
     void return_error_when_standard_not_in_summary_does_not_overwrite_metadata() throws Exception {
         // The summary lookup should fail fast; the store's createStandardForVersion must NOT be called
         when(standardStore.getStandardsForNamespace("finos"))
-                .thenReturn(List.of(new NamespaceStandardSummary("Other Standard", "other desc", 2)));
+                .thenReturn(List.of(new NamespaceStandardSummary("Other Standard", "other desc", 2, 0)));
 
         ToolResponse result = standardTools.createStandardVersion("finos", 99, "1.1.0", "{}");
 
@@ -433,7 +433,7 @@ class TestStandardToolsShould {
     @Test
     void create_standard_version_preserves_existing_name_and_description() throws Exception {
         when(standardStore.getStandardsForNamespace("finos"))
-                .thenReturn(List.of(new NamespaceStandardSummary("Original Name", "Original Desc", 1)));
+                .thenReturn(List.of(new NamespaceStandardSummary("Original Name", "Original Desc", 1, 0)));
         Standard created = new Standard(new CreateStandardRequest("Original Name", "Original Desc", "{}"));
         created.setId(1);
         created.setVersion("1.1.0");
