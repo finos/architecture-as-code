@@ -8,7 +8,7 @@ This file lists the maintainers of this repository.
 |----------------|------|--------------|-------|
 | @Adwoa-Konadu-Appiah | *please add name* | *please add organization* | *please add email* |
 | @Budlee | *please add name* | *please add organization* | *please add email* |
-| @LeighFinegold | LeighF | *please add organization* | *please add email* |
+| @LeighFinegold | LeighF | Morgan Stanley | leigh_finegold@hotmail.co.uk |
 | @Thels | *please add name* | *please add organization* | *please add email* |
 | @YoofiTT96 | Joseph Yoofi Brown-Pobee | turntabl | yoofi.brownpobee@outlook.com |
 | @aamanrebello | *please add name* | *please add organization* | *please add email* |
