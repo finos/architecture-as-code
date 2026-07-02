@@ -1,21 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { IoChevronBackOutline, IoChevronForwardOutline, IoCompassOutline, IoCloseOutline } from 'react-icons/io5';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
 import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
-import { Data, Adr, ResourceSummary, isSlug } from '../../../model/calm.js';
+import { ResourceSummary } from '../../../model/calm.js';
 import { pickLatestVersion } from '../../../model/version.js';
-import { ControlData, ControlDetail } from '../../../model/control.js';
-import { InterfaceData } from '../../../model/interface.js';
+import { ControlDetail } from '../../../model/control.js';
+import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
+import { colors } from '../../../theme/colors.js';
+import { redesignTokens } from '../../../theme/redesign-tokens.js';
+import { CountBadge } from '../explore-rail/CountBadge.js';
 import {
-    type TypeInUrl,
     type TypeInUI,
-    mapTypeInUrlToTypeInUI,
     mapTypeInUIToTypeInUrl,
-    loadResource,
-    loadResourceForId,
     fetchVersionsForResource,
 } from './navigation-loaders.js';
 import { ExplorerSearch } from '../../../components/navbar/ExplorerSearch.js';
@@ -23,19 +22,21 @@ import { ExplorerSearch } from '../../../components/navbar/ExplorerSearch.js';
 const RESOURCE_TYPES: TypeInUI[] = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
 
 interface MobileNavMenuProps {
-    onDataLoad: (data: Data) => void;
-    onAdrLoad: (adr: Adr) => void;
-    onControlLoad: (control: ControlData) => void;
-    onInterfaceLoad: (iface: InterfaceData) => void;
+    /** Per-namespace counts, fetched once by {@link Hub} and passed down. */
+    namespaceCounts: NamespaceCounts[];
+    /** Per-domain control counts, fetched once by {@link Hub} and passed down. */
+    domainCounts: DomainControlCount[];
     /** Dismiss the menu (e.g. after a resource is chosen). */
     onClose: () => void;
 }
 
 type HubParams = {
+    /** From the item-detail route `/:namespace/...`. */
     namespace: string;
-    type: TypeInUrl;
-    id: string;
-    version: string;
+    /** From the namespace browse route `/namespace/:ns`. */
+    ns: string;
+    /** From the domain route `/domain/:domain`. */
+    domain: string;
 };
 
 /** A single level in the drill-down stack. */
@@ -55,10 +56,16 @@ interface LeafItem {
 /**
  * Mobile navigation as an iOS-style drill-down: each tap pushes the next level
  * as a flat list rather than expanding an inline tree. Leaf taps navigate to the
- * resource URL; the deep-link effect (below) loads whatever the URL points at,
- * mirroring the desktop {@link TreeNavigation} loading behaviour.
+ * resource URL; deep-link loading is owned by {@link Hub}'s `useResourceFromRoute`
+ * (a single shared owner), so this panel only drives navigation and its own
+ * drill-down list state.
+ *
+ * Phase 1 adds a mono count badge per namespace/domain row and a brand-tint
+ * active treatment for the row matching the current URL. Counts are owned by
+ * {@link Hub} (fetched once and shared) and passed in as props rather than
+ * re-fetched here.
  */
-export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfaceLoad, onClose }: MobileNavMenuProps) {
+export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: MobileNavMenuProps) {
     const navigate = useNavigate();
     const params = useParams<HubParams>();
 
@@ -67,84 +74,25 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
     const interfaceService = useMemo(() => new InterfaceService(), []);
     const adrService = useMemo(() => new AdrService(), []);
 
-    const onControlLoadRef = useRef(onControlLoad);
-    onControlLoadRef.current = onControlLoad;
-    const onInterfaceLoadRef = useRef(onInterfaceLoad);
-    onInterfaceLoadRef.current = onInterfaceLoad;
-
     const [view, setView] = useState<View>({ level: 'root' });
-    const [namespaces, setNamespaces] = useState<string[]>([]);
-    const [domains, setDomains] = useState<string[]>([]);
     const [leafItems, setLeafItems] = useState<LeafItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [searching, setSearching] = useState(false);
 
-    useEffect(() => {
-        calmService.fetchNamespaces().then(setNamespaces).catch(() => setNamespaces([]));
-        controlService.fetchDomains().then(setDomains).catch(() => setDomains([]));
-    }, [calmService, controlService]);
+    // Derive the namespace/domain lists from the counts Hub already fetched, rather than
+    // re-fetching them here. Avoids two redundant requests and keeps the row labels in the
+    // same snapshot as the count badges.
+    const namespaces = useMemo(() => namespaceCounts.map((c) => c.namespace), [namespaceCounts]);
+    const domains = useMemo(() => domainCounts.map((c) => c.domain), [domainCounts]);
 
-    // Deep-link / external navigation loading. Kept here (not just in the desktop
-    // tree) so direct URLs and the global search still load on mobile, where the
-    // tree is not rendered.
-    useEffect(() => {
-        if (!(params.namespace && params.type && params.id && params.version)) return;
-        const uiType = mapTypeInUrlToTypeInUI(params.type);
-        const namespace = params.namespace;
-
-        if (uiType === 'Interfaces') {
-            interfaceService
-                .fetchInterfacesForNamespace(namespace)
-                .then((interfaces) => {
-                    const match = interfaces.find((i) => i.id === Number(params.id));
-                    if (match) {
-                        onInterfaceLoadRef.current({
-                            namespace,
-                            interfaceId: match.id,
-                            interfaceName: match.name,
-                            interfaceDescription: match.description,
-                        });
-                    }
-                })
-                .catch(() => undefined);
-            return;
-        }
-
-        if (uiType === 'Controls') {
-            controlService
-                .fetchControlsForDomain(namespace)
-                .then((controls) => {
-                    const match = controls.find((c) => c.name === params.id)
-                        ?? controls.find((c) => c.id === Number(params.id));
-                    if (match) {
-                        onControlLoadRef.current({
-                            domain: namespace,
-                            controlId: match.id,
-                            controlName: match.name,
-                            controlDescription: match.description,
-                            controlTitle: match.title,
-                        });
-                    }
-                })
-                .catch(() => undefined);
-            return;
-        }
-
-        if (isSlug(params.id)) {
-            loadResourceForId(params.version, uiType, namespace, params.id, calmService, onDataLoad);
-        } else {
-            loadResource({
-                version: params.version,
-                type: uiType,
-                namespace,
-                resourceID: params.id,
-                calmService,
-                onDataLoad,
-                onAdrLoad,
-                adrService,
-            });
-        }
-    }, [params, calmService, adrService, interfaceService, controlService, onDataLoad, onAdrLoad]);
+    const namespaceTotal = useCallback(
+        (ns: string) => namespaceCounts.find((c) => c.namespace === ns)?.total,
+        [namespaceCounts]
+    );
+    const domainControlCount = useCallback(
+        (d: string) => domainCounts.find((c) => c.domain === d)?.controlCount,
+        [domainCounts]
+    );
 
     const openType = useCallback(
         (namespace: string, type: TypeInUI) => {
@@ -192,7 +140,7 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
             controlService
                 .fetchControlsForDomain(domain)
                 .then((controls: ControlDetail[]) =>
-                    setLeafItems(controls.map((c) => ({ id: c.name, name: c.title ?? c.name })))
+                    setLeafItems(controls.map((c) => ({ id: c.id.toString(), name: c.title ?? c.name })))
                 )
                 .catch(() => setLeafItems([]))
                 .finally(() => setLoading(false));
@@ -259,7 +207,16 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
                     ? 'Control Domains'
                     : view.domain;
 
-    const rows: { key: string; label: string; isLeaf: boolean; onClick: () => void }[] = (() => {
+    interface Row {
+        key: string;
+        label: string;
+        isLeaf: boolean;
+        onClick: () => void;
+        count?: number;
+        active?: boolean;
+    }
+
+    const rows: Row[] = (() => {
         switch (view.level) {
             case 'root':
                 return [
@@ -271,6 +228,8 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
                     key: ns,
                     label: ns,
                     isLeaf: false,
+                    count: namespaceTotal(ns),
+                    active: ns === params.ns || ns === params.namespace,
                     onClick: () => setView({ level: 'types', namespace: ns }),
                 }));
             case 'types':
@@ -292,6 +251,8 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
                     key: d,
                     label: d,
                     isLeaf: false,
+                    count: domainControlCount(d),
+                    active: d === params.domain,
                     onClick: () => openDomain(d),
                 }));
             case 'controls':
@@ -341,9 +302,23 @@ export function MobileNavMenu({ onDataLoad, onAdrLoad, onControlLoad, onInterfac
                             <li key={row.key}>
                                 <button
                                     className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200"
+                                    style={
+                                        row.active
+                                            ? {
+                                                  backgroundColor: colors.redesign.tintBg,
+                                                  boxShadow: redesignTokens.shadow.railAccent,
+                                              }
+                                            : undefined
+                                    }
                                     onClick={row.onClick}
                                 >
-                                    <span className="flex-1 min-w-0 truncate">{row.label}</span>
+                                    <span
+                                        className={`flex-1 min-w-0 truncate ${row.active ? 'font-semibold' : ''}`}
+                                        style={row.active ? { color: colors.redesign.activeText } : undefined}
+                                    >
+                                        {row.label}
+                                    </span>
+                                    {row.count !== undefined && <CountBadge count={row.count} active={row.active} />}
                                     {!row.isLeaf && (
                                         <IoChevronForwardOutline className="text-base-content/40 shrink-0" size={18} />
                                     )}

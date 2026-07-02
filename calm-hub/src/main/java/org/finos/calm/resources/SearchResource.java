@@ -78,10 +78,8 @@ public class SearchResource {
     }
 
     private Optional<Set<String>> resolveReadableNamespaces() {
-        if (!authEnabled || !userAccessValidatorInstance.isResolvable()) {
-            return Optional.empty();
-        }
-        return userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName());
+        return ReadableScope.resolve(authEnabled, userAccessValidatorInstance, identity,
+                UserAccessValidator::getReadableNamespaces);
     }
 
     /**

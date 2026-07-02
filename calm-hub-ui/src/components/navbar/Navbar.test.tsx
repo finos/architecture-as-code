@@ -41,11 +41,11 @@ describe('Navbar menu button', () => {
         expect(overlay).toHaveAttribute('aria-hidden', 'false');
     });
 
-    it('shows Hub and Visualizer links in the open menu', async () => {
+    it('shows the Hub link in the open menu', async () => {
         renderNavbar(makeState({}));
         await userEvent.click(screen.getByRole('button', { name: /open menu/i }));
         expect(screen.getByRole('link', { name: /^hub$/i })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /^visualizer$/i })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /^visualizer$/i })).not.toBeInTheDocument();
     });
 
     it('closes the overlay when the hamburger is clicked again', async () => {

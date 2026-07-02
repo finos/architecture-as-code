@@ -5,8 +5,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.exception.NamespaceParentNotFoundException;
+import org.finos.calm.domain.namespaces.NamespaceCounts;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubPermissionChecker;
+import org.finos.calm.services.CountsService;
 import org.finos.calm.services.NamespaceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,9 @@ public class TestNamespaceResourceShould {
 
     @InjectMock
     NamespaceService namespaceService;
+
+    @InjectMock
+    CountsService mockCountsService;
 
     @InjectMock
     CalmHubPermissionChecker mockPermissionChecker;
@@ -70,6 +75,43 @@ public class TestNamespaceResourceShould {
                 .body(equalTo("{\"values\":[{\"name\":\"finos\",\"description\":\"FINOS namespace\"},{\"name\":\"custom\",\"description\":\"custom ns\"}]}"));
 
         verify(namespaceService, times(1)).getNamespaces();
+    }
+
+    @Test
+    void return_empty_wrapper_when_no_namespace_counts() {
+        when(mockCountsService.getNamespaceCounts(any())).thenReturn(new ArrayList<>());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/counts")
+                .then()
+                .statusCode(200)
+                .body(equalTo("{\"values\":[]}"));
+
+        verify(mockCountsService, times(1)).getNamespaceCounts(any());
+    }
+
+    @Test
+    void return_namespace_counts_with_total() {
+        when(mockCountsService.getNamespaceCounts(any())).thenReturn(Arrays.asList(
+                new NamespaceCounts("finos", 2, 1, 3, 1, 2, 1)
+        ));
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/counts")
+                .then()
+                .statusCode(200)
+                .body("values[0].namespace", equalTo("finos"))
+                .body("values[0].architectures", equalTo(2))
+                .body("values[0].patterns", equalTo(1))
+                .body("values[0].flows", equalTo(3))
+                .body("values[0].standards", equalTo(1))
+                .body("values[0].adrs", equalTo(2))
+                .body("values[0].interfaces", equalTo(1))
+                .body("values[0].total", equalTo(10));
+
+        verify(mockCountsService, times(1)).getNamespaceCounts(any());
     }
 
     @Test
