@@ -14,7 +14,7 @@ This file lists the maintainers of this repository.
 | @aamanrebello | *please add name* | *please add organization* | *please add email* |
 | @aidanm3341 | Aidan McPhelim | Morgan Stanley | aidan.mcphelim@morganstanley.com |
 | @dc-ms | *please add name* | *please add organization* | *please add email* |
-| @eddie-knight | Eddie Knight | *please add organization* | *please add email* |
+| @eddie-knight | Eddie Knight | Revanite Incorporated | knight@linux.com |
 | @gjs-opsflo | Gourav J. Shah | OpsFlow.Sh | gjs@opsflow.sh |
 | @grahampacker-ms | Graham Packer | *please add organization* | *please add email* |
 | @jimthompson5802 | Jim Thompson | Freddie Mac | jimthompson5802@gmail.com |
