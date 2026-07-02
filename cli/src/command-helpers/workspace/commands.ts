@@ -427,7 +427,8 @@ export function setupWorkspaceCommands(program: Command) {
                 } else {
                     logger.info(`Bumped ${result.bumped.length} document(s):`);
                     for (const b of result.bumped) {
-                        logger.info(`  ${b.id}: ${b.fromVersion} -> ${b.toVersion}`);
+                        const suffix = b.triggeredBy ? ` (depends on ${b.triggeredBy})` : '';
+                        logger.info(`  ${b.id}: ${b.fromVersion} -> ${b.toVersion}${suffix}`);
                     }
                     const refChanges = result.refUpdates.reduce((sum, r) => sum + r.changeCount, 0);
                     if (refChanges > 0) {

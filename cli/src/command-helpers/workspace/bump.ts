@@ -26,7 +26,7 @@ export interface ChangedResource {
 }
 
 export interface BumpResult {
-    bumped: Array<{ id: string; filePath: string; fromVersion: string; toVersion: string }>;
+    bumped: Array<{ id: string; filePath: string; fromVersion: string; toVersion: string; triggeredBy?: string }>;
     refUpdates: RefUpdateResult[];
 }
 
@@ -184,7 +184,7 @@ export async function bumpWorkspace(
             const toVersion = computeSemVerBump(metadata.version, options.increment);
             const updated = updateDocumentMetadata(raw, { ...metadata, version: toVersion });
             await writeFile(filePath, updated, 'utf8');
-            bumped.push({ id: candidate.docId, filePath, fromVersion: metadata.version, toVersion });
+            bumped.push({ id: candidate.docId, filePath, fromVersion: metadata.version, toVersion, triggeredBy: triggerLabel });
             bumpedIds.add(candidate.docId);
             thisPassBumped.add(candidate.docId);
             logger.info(`Bumped '${candidate.docId}' ${metadata.version} -> ${toVersion} (depends on ${triggerLabel})`);
