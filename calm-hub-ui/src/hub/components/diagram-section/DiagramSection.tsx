@@ -26,6 +26,7 @@ import {
 import { computeChanges, type VersionChange } from './timeline/perVersionChanges.js';
 import { fetchVersionData, fetchVersionList } from './compare/compareData.js';
 import { CalmService } from '../../../service/calm-service.js';
+import { colors } from '../../../theme/colors.js';
 import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
 
 interface DiagramSectionProps {
@@ -311,7 +312,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             <button
                 role="tab"
                 aria-label="Diagram"
-                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'diagram' ? 'tab-active !bg-accent !text-white' : ''}`}
+                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'diagram' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
                 onClick={() => setActiveTab('diagram')}
             >
                 <IoEyeOutline />
@@ -320,7 +321,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             <button
                 role="tab"
                 aria-label="JSON"
-                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'json' ? 'tab-active !bg-accent !text-white' : ''}`}
+                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'json' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
                 onClick={() => setActiveTab('json')}
             >
                 <IoCodeOutline />
@@ -330,7 +331,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                 <button
                     role="tab"
                     aria-label="Deployments"
-                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
+                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'deployments' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
                     onClick={() => setActiveTab('deployments')}
                 >
                     <IoRocketOutline />
@@ -345,7 +346,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     // shows the active view icon.
     const breadcrumb = (
         <h2 className="px-4 py-3 text-sm font-medium flex flex-wrap items-center gap-x-1 border-b border-base-200 text-base-content">
-            <Icon className="text-accent shrink-0" />
+            <Icon className="text-[var(--color-interaction)] shrink-0" />
             {data.name}
             {typeLabel && (
                 <>
@@ -371,12 +372,12 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                     onSelect?.();
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 ${
-                    active ? 'bg-base-200 text-accent font-semibold' : 'text-base-content'
+                    active ? 'bg-base-200 text-[var(--color-interaction)] font-semibold' : 'text-base-content'
                 }`}
             >
-                <span className={active ? 'text-accent' : 'text-base-content/60'}>{icon}</span>
+                <span className={active ? 'text-[var(--color-interaction)]' : 'text-base-content/60'}>{icon}</span>
                 <span className="flex-1 min-w-0 truncate">{label}</span>
-                {active && <IoCheckmarkOutline size={18} className="text-accent shrink-0" />}
+                {active && <IoCheckmarkOutline size={18} className="text-[var(--color-interaction)] shrink-0" />}
             </button>
         );
     };
@@ -394,12 +395,20 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
 
     const viewMenu = (
         <>
+            {/* Labelled "◉ View" pill (redesign problem #11): replaces the bare,
+                unlabeled eye with an icon + visible "View" label, brand-tinted per
+                Frame F. The open/close behaviour and navbar-slot portal are unchanged. */}
             <button
                 aria-label="View options"
-                className="btn btn-ghost btn-circle text-primary"
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold"
+                style={{
+                    backgroundColor: colors.redesign.tintBg,
+                    color: colors.redesign.activeText,
+                }}
                 onClick={() => setShowViewMenu(true)}
             >
                 {activeViewIcon}
+                <span>View</span>
             </button>
             {showViewMenu && (
                 <div className="fixed inset-0 z-40 bg-base-100 flex flex-col animate-slide-in-right" role="dialog" aria-modal="true">
@@ -496,7 +505,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
             <div className={`w-full h-full py-4 pl-2 ${hasDetailsPanel ? 'pr-2' : 'pr-4'}`}>
                 <div className="h-full bg-base-100 rounded-box overflow-hidden flex flex-col shadow-xl">
                     <SectionHeader
-                        icon={<Icon className="text-accent" />}
+                        icon={<Icon className="text-[var(--color-interaction)]" />}
                         namespace={data.name}
                         id={data.id}
                         version={data.version}

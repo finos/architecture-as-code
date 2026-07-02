@@ -5,6 +5,10 @@ import { AdminPage } from './AdminPage.js';
 import { UserAccessContext } from './context/UserAccessContext.js';
 import { CurrentUserAccessState } from './hooks/useCurrentUserAccess.js';
 import { UserAccess } from '../model/user-access.js';
+import { colors } from '../theme/colors.js';
+
+// The redesign blue, as jsdom serialises it from inline style.
+const REDESIGN_BLUE_RGB = 'rgb(37, 99, 235)';
 
 const globalAdminGrant: UserAccess = { userAccessId: 1, username: 'alice', permission: 'admin', namespace: 'GLOBAL' };
 const nsAdminGrant: UserAccess = { userAccessId: 2, username: 'bob', permission: 'admin', namespace: 'finos' };
@@ -84,6 +88,34 @@ describe('AdminPage (layout)', () => {
     it('renders the domains panel when at that sub-route', () => {
         renderLayout(adminState, '/admin/domains');
         expect(screen.getByText('Domains panel')).toBeInTheDocument();
+    });
+});
+
+describe('AdminPage (active-state consistency, problem #8)', () => {
+    let restore: (() => void) | undefined;
+    afterEach(() => restore?.());
+
+    it('uses the redesign blue (not navy/neutral) on the active desktop sidebar link', () => {
+        renderLayout(adminState, '/admin/namespaces');
+        const activeLink = screen.getByRole('link', { name: /namespaces/i });
+        expect(activeLink).toHaveStyle({ color: REDESIGN_BLUE_RGB });
+        // Guard against regressing to the global navy brand or a neutral pill.
+        expect(colors.redesign.primary).toBe('#2563EB');
+        expect(activeLink).not.toHaveClass('menu-active');
+    });
+
+    it('does not apply the active blue to a resting desktop sidebar link', () => {
+        renderLayout(adminState, '/admin/namespaces');
+        const restingLink = screen.getByRole('link', { name: /entitlements/i });
+        expect(restingLink).not.toHaveStyle({ color: REDESIGN_BLUE_RGB });
+    });
+
+    it('uses the redesign blue on the active mobile tab', () => {
+        restore = mockMobileViewport(true);
+        renderLayout(adminState, '/admin/namespaces');
+        const activeTab = screen.getByRole('link', { name: /namespaces/i });
+        expect(activeTab).toHaveStyle({ color: REDESIGN_BLUE_RGB });
+        expect(activeTab).toHaveStyle({ borderBottomColor: REDESIGN_BLUE_RGB });
     });
 });
 

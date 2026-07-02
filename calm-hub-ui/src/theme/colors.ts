@@ -168,6 +168,8 @@ export const colors = {
         surfaceAlt: '#FCFCFD', // rail bg, minimap field
         // Resting count-badge bg / text
         badgeBg: '#EEF2F7',
+        // Faint count-badge bg for a zero-count (dimmed) tab
+        badgeBgFaint: '#F4F6F9',
         // Selected-rail accent (inset left bar)
         railAccentShadow: 'inset 3px 0 0 #2563EB',
     },

@@ -110,8 +110,10 @@ public class TestMongoFlowStoreShould {
         Document documentMock = Mockito.mock(Document.class);
         when(findIterable.first()).thenReturn(documentMock);
 
-        Document doc1 = new Document("flowId", 1001).append("name", "Flow One").append("description", "First flow");
-        Document doc2 = new Document("flowId", 1002).append("name", "Flow Two").append("description", "Second flow");
+        Document doc1 = new Document("flowId", 1001).append("name", "Flow One").append("description", "First flow")
+                .append("versions", new Document("1-0-0", new Document()).append("2-0-0", new Document()));
+        Document doc2 = new Document("flowId", 1002).append("name", "Flow Two").append("description", "Second flow")
+                .append("versions", new Document("1-0-0", new Document()));
 
         when(documentMock.getList("flows", Document.class))
                 .thenReturn(Arrays.asList(doc1, doc2));
@@ -122,9 +124,11 @@ public class TestMongoFlowStoreShould {
         assertThat(flows.get(0).getName(), is("Flow One"));
         assertThat(flows.get(0).getDescription(), is("First flow"));
         assertThat(flows.get(0).getId(), is(1001));
+        assertThat(flows.get(0).getVersionCount(), is(2));
         assertThat(flows.get(1).getName(), is("Flow Two"));
         assertThat(flows.get(1).getDescription(), is("Second flow"));
         assertThat(flows.get(1).getId(), is(1002));
+        assertThat(flows.get(1).getVersionCount(), is(1));
         verify(namespaceStore).namespaceExists(NAMESPACE);
     }
 
@@ -149,6 +153,8 @@ public class TestMongoFlowStoreShould {
         assertThat(flows.get(0).getName(), is("Flow 77"));
         assertThat(flows.get(0).getDescription(), is(""));
         assertThat(flows.get(0).getId(), is(77));
+        // Legacy document carries no versions sub-document → count guards to 0.
+        assertThat(flows.get(0).getVersionCount(), is(0));
     }
 
     private FindIterable<Document> setupInvalidFlow() {

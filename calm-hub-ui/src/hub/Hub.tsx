@@ -5,6 +5,7 @@ import { ExploreRail } from './components/explore-rail/ExploreRail.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { NamespacePage } from './components/namespace-page/NamespacePage.js';
 import { DomainPage } from './components/domain-page/DomainPage.js';
+import { FirstRunLanding } from './components/first-run-landing/FirstRunLanding.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { Data, Adr } from '../model/calm.js';
@@ -19,7 +20,9 @@ import { ControlDetailSection } from './components/control-detail-section/Contro
 import { InterfaceDetailSection } from './components/interface-detail-section/InterfaceDetailSection.js';
 import { DiagramSection } from './components/diagram-section/DiagramSection.js';
 import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
+import { NodeSheet } from '../visualizer/components/sidebar/NodeSheet.js';
 import type { SelectedItem } from '../visualizer/contracts/contracts.js';
+import type { CalmNodeSchema } from '@finos/calm-models/types';
 import { authStore } from '../service/utils/auth-store.js';
 import './Hub.css';
 
@@ -32,6 +35,7 @@ export default function Hub() {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     const [namespaceCounts, setNamespaceCounts] = useState<NamespaceCounts[]>([]);
+    const [namespaceCountsLoaded, setNamespaceCountsLoaded] = useState(false);
     const [domainCounts, setDomainCounts] = useState<DomainControlCount[]>([]);
     const isMobile = useIsMobile();
 
@@ -52,7 +56,14 @@ export default function Hub() {
     // never re-fires and there is no in-flight fetch to cancel on a dependency change. (Unlike
     // useNamespaceItems, whose fetch effect re-runs per namespace and so needs a cancel guard.)
     useEffect(() => {
-        countsService.fetchNamespaceCounts().then(setNamespaceCounts).catch(() => setNamespaceCounts([]));
+        countsService
+            .fetchNamespaceCounts()
+            .then(setNamespaceCounts)
+            .catch(() => setNamespaceCounts([]))
+            // Mark loaded on success or failure so consumers can tell "counts
+            // unknown (loading)" from "known zero" — an absent namespace after the
+            // fetch settles is genuinely zero, not still loading.
+            .finally(() => setNamespaceCountsLoaded(true));
         countsService.fetchDomainCounts().then(setDomainCounts).catch(() => setDomainCounts([]));
     }, [countsService]);
 
@@ -137,10 +148,60 @@ export default function Hub() {
 
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
 
-    const namespaceTotal = useMemo(
-        () => namespaceCounts.find((c) => c.namespace === activeNamespace)?.total ?? 0,
-        [namespaceCounts, activeNamespace]
+    // Mobile node bottom-sheet prev/next steppers (Frame G). The ordered node list
+    // is already in Hub — it's exactly what the Drawer renders (`data.data.nodes`)
+    // — so steppers need no new prop threading and never touch the desktop drawer.
+    // Architecture-only (its `nodes` is a flat array; patterns nest them under
+    // `properties.nodes` and degrade to no steppers) and node-only (a selected edge
+    // has no place in the node list, so the neighbours resolve to undefined).
+    const diagramNodes = useMemo<CalmNodeSchema[]>(() => {
+        const nodes = (data?.data as { nodes?: unknown } | undefined)?.nodes;
+        return Array.isArray(nodes) ? (nodes as CalmNodeSchema[]) : [];
+    }, [data]);
+
+    const selectedNodeIndex = useMemo(() => {
+        const selected = selectedItem?.data;
+        if (!selected || !('node-type' in selected)) return -1;
+        const id = selected['unique-id'];
+        return diagramNodes.findIndex((n) => n['unique-id'] === id);
+    }, [selectedItem, diagramNodes]);
+
+    const stepToNode = useCallback(
+        (index: number) => {
+            const node = diagramNodes[index];
+            if (node) setSelectedItem({ data: node });
+        },
+        [diagramNodes]
     );
+
+    const onPrevNode =
+        selectedNodeIndex > 0 ? () => stepToNode(selectedNodeIndex - 1) : undefined;
+    const onNextNode =
+        selectedNodeIndex >= 0 && selectedNodeIndex < diagramNodes.length - 1
+            ? () => stepToNode(selectedNodeIndex + 1)
+            : undefined;
+
+    // The active namespace's full per-type counts, passed straight to NamespacePage
+    // so its type tabs show counts without a second fetch. `undefined` while the
+    // counts fetch is in flight — distinct from a known all-zero record — so the
+    // page can render tabs resting (not dimmed) and defer the first-non-empty
+    // default until counts resolve. Once loaded, a namespace absent from the list
+    // is a genuine all-zero (e.g. an unknown namespace), not still loading.
+    const activeNamespaceCounts = useMemo<NamespaceCounts | undefined>(() => {
+        if (!namespaceCountsLoaded) return undefined;
+        return (
+            namespaceCounts.find((c) => c.namespace === activeNamespace) ?? {
+                namespace: activeNamespace ?? '',
+                architectures: 0,
+                patterns: 0,
+                flows: 0,
+                standards: 0,
+                adrs: 0,
+                interfaces: 0,
+                total: 0,
+            }
+        );
+    }, [namespaceCounts, namespaceCountsLoaded, activeNamespace]);
     const domainControlCount = useMemo(
         () => domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0,
         [domainCounts, activeDomain]
@@ -160,20 +221,22 @@ export default function Hub() {
 
     // Route decides the content pane. A loaded resource (including an in-place
     // control/interface selected from the domain/namespace page) takes precedence
-    // over the route-driven page so its detail view shows.
+    // over the route-driven page so its detail view shows. With nothing loaded and
+    // no namespace/domain route (i.e. `/`), the first-run landing fills what was
+    // the ~75% blank canvas (redesign problem #7).
     const content =
         isDetailRoute || controlData || interfaceData || adrData || data ? (
             detailContent
         ) : activeNamespace ? (
-            <NamespacePage namespace={activeNamespace} total={namespaceTotal} />
+            <NamespacePage namespace={activeNamespace} counts={activeNamespaceCounts} />
         ) : activeDomain ? (
             <DomainPage domain={activeDomain} controlCount={domainControlCount} onControlLoad={handleControlLoad} />
         ) : (
-            // Dedicated landing arm: nothing loaded and no browse route active. Kept separate
-            // from detailContent so it never renders DocumentDetailSection with undefined data.
-            <div className="flex-1 flex items-center justify-center text-[14px] text-base-content/50">
-                Select a namespace or control domain from the Explore rail to begin.
-            </div>
+            <FirstRunLanding
+                namespaceCounts={namespaceCounts}
+                domainCounts={domainCounts}
+                countsLoaded={namespaceCountsLoaded}
+            />
         );
 
     return (
@@ -242,13 +305,14 @@ export default function Hub() {
 
                 {selectedItem && isDiagramView && (
                     isMobile ? (
-                        <div
-                            className="fixed inset-0 z-40 bg-base-100 animate-slide-in-right"
-                            role="dialog"
-                            aria-modal="true"
-                        >
-                            <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />
-                        </div>
+                        // Mobile: bottom-sheet that keeps the diagram peeking above
+                        // (Frame G), replacing the old full-screen takeover.
+                        <NodeSheet
+                            selectedData={selectedItem.data}
+                            closeSheet={closeSidebar}
+                            onPrev={onPrevNode}
+                            onNext={onNextNode}
+                        />
                     ) : (
                         <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />
                     )

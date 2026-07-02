@@ -55,7 +55,7 @@ class TestArchitectureToolsShould {
     void return_architectures_when_namespace_has_entries() throws NamespaceNotFoundException {
         when(architectureStore.getArchitecturesForNamespace("workshop"))
                 .thenReturn(List.of(
-                        new NamespaceArchitectureSummary("Conference Signup", "A conference signup architecture", 1)
+                        new NamespaceArchitectureSummary("Conference Signup", "A conference signup architecture", 1, 0)
                 ));
 
         ToolResponse result = architectureTools.listArchitectures("workshop");
@@ -316,7 +316,7 @@ class TestArchitectureToolsShould {
     void create_architecture_version_successfully() throws Exception {
         architectureTools.allowPutOperations = false;
         when(architectureStore.getArchitecturesForNamespace("workshop"))
-                .thenReturn(List.of(new NamespaceArchitectureSummary("Existing Name", "Existing description", 1)));
+                .thenReturn(List.of(new NamespaceArchitectureSummary("Existing Name", "Existing description", 1, 0)));
 
         ToolResponse result = architectureTools.createArchitectureVersion("workshop", 1, "1.1.0", "{\"nodes\":[]}");
 
@@ -329,7 +329,7 @@ class TestArchitectureToolsShould {
     @Test
     void create_architecture_version_preserves_existing_name_and_description() throws Exception {
         when(architectureStore.getArchitecturesForNamespace("workshop"))
-                .thenReturn(List.of(new NamespaceArchitectureSummary("Conference Signup", "A signup flow", 1)));
+                .thenReturn(List.of(new NamespaceArchitectureSummary("Conference Signup", "A signup flow", 1, 0)));
         ArgumentCaptor<Architecture> captor = ArgumentCaptor.forClass(Architecture.class);
 
         architectureTools.createArchitectureVersion("workshop", 1, "2.0.0", "{\"nodes\":[]}");
@@ -419,7 +419,7 @@ class TestArchitectureToolsShould {
                 .setVersion("1.1.0")
                 .build();
         when(architectureStore.getArchitecturesForNamespace("workshop"))
-                .thenReturn(List.of(new NamespaceArchitectureSummary("Existing Name", "Existing description", 1)));
+                .thenReturn(List.of(new NamespaceArchitectureSummary("Existing Name", "Existing description", 1, 0)));
         when(architectureStore.updateArchitectureForVersion(any())).thenReturn(arch);
 
         ToolResponse result = architectureTools.updateArchitecture(
@@ -434,7 +434,7 @@ class TestArchitectureToolsShould {
     @Test
     void preserve_existing_name_and_description_when_not_supplied_on_update() throws Exception {
         when(architectureStore.getArchitecturesForNamespace("workshop"))
-                .thenReturn(List.of(new NamespaceArchitectureSummary("MCP Test Arch", "Original description", 7)));
+                .thenReturn(List.of(new NamespaceArchitectureSummary("MCP Test Arch", "Original description", 7, 0)));
         when(architectureStore.updateArchitectureForVersion(any()))
                 .thenAnswer(inv -> inv.getArgument(0));
 

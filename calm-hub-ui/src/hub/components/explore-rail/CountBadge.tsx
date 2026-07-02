@@ -4,16 +4,25 @@ interface CountBadgeProps {
     count: number;
     /** When the badge sits on an active surface it fills blue with white text. */
     active?: boolean;
+    /**
+     * Dimmed (faint bg + disabled text) for a zero-count surface — e.g. an empty
+     * type tab that stays visible but reads as "empty, not broken". Ignored when
+     * `active` is set. Defaults off so existing rail rows are unchanged.
+     */
+    dimmed?: boolean;
 }
 
 /**
- * Mono pill showing an integer. Grey resting; filled-blue on an active surface.
- * Used by rail rows (and, in later phases, the segmented type tabs).
+ * Mono pill showing an integer. Grey resting; filled-blue on an active surface;
+ * dimmed (faint) for a zero-count surface. Used by rail rows and the segmented
+ * type tabs.
  */
-export function CountBadge({ count, active = false }: CountBadgeProps) {
+export function CountBadge({ count, active = false, dimmed = false }: CountBadgeProps) {
     const style = active
         ? { backgroundColor: colors.redesign.primary, color: '#ffffff' }
-        : { backgroundColor: colors.redesign.badgeBg, color: colors.redesign.mutedAlt };
+        : dimmed
+          ? { backgroundColor: colors.redesign.badgeBgFaint, color: colors.redesign.disabled }
+          : { backgroundColor: colors.redesign.badgeBg, color: colors.redesign.mutedAlt };
 
     return (
         <span

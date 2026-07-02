@@ -140,11 +140,13 @@ public class TestNitriteArchitectureStoreShould {
         Document doc1 = Document.createDocument()
                 .put("architectureId", 1001)
                 .put("name", "Arch One")
-                .put("description", "First architecture");
+                .put("description", "First architecture")
+                .put("versions", Document.createDocument().put("1-0-0", "{}").put("2-0-0", "{}"));
         Document doc2 = Document.createDocument()
                 .put("architectureId", 1002)
                 .put("name", "Arch Two")
-                .put("description", "Second architecture");
+                .put("description", "Second architecture")
+                .put("versions", Document.createDocument().put("1-0-0", "{}"));
         List<Document> architectures = Arrays.asList(doc1, doc2);
 
         Document namespaceDoc = Document.createDocument()
@@ -163,9 +165,11 @@ public class TestNitriteArchitectureStoreShould {
         assertThat(result.get(0).getId(), is(1001));
         assertThat(result.get(0).getName(), is("Arch One"));
         assertThat(result.get(0).getDescription(), is("First architecture"));
+        assertThat(result.get(0).getVersionCount(), is(2));
         assertThat(result.get(1).getId(), is(1002));
         assertThat(result.get(1).getName(), is("Arch Two"));
         assertThat(result.get(1).getDescription(), is("Second architecture"));
+        assertThat(result.get(1).getVersionCount(), is(1));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
@@ -191,6 +195,8 @@ public class TestNitriteArchitectureStoreShould {
         assertThat(result.get(0).getId(), is(42));
         assertThat(result.get(0).getName(), is("Architecture 42"));
         assertThat(result.get(0).getDescription(), is(""));
+        // Legacy document carries no versions sub-document → count guards to 0.
+        assertThat(result.get(0).getVersionCount(), is(0));
     }
 
     @Test

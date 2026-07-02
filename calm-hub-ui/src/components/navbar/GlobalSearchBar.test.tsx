@@ -29,6 +29,21 @@ const mockResults: GroupedSearchResults = {
     adrs: [],
 };
 
+// Two architectures sharing a name but living in different namespaces — the
+// ambiguous-duplicate case the namespace chip must disambiguate (problem #9).
+const duplicateNameResults: GroupedSearchResults = {
+    architectures: [
+        { namespace: 'finos', id: 1, name: 'TraderX Architecture', description: 'in finos' },
+        { namespace: 'traderx', id: 2, name: 'TraderX Architecture', description: 'in traderx' },
+    ],
+    patterns: [],
+    flows: [],
+    standards: [],
+    interfaces: [],
+    controls: [],
+    adrs: [],
+};
+
 function createMockSearchService(searchFn: (q: string) => Promise<GroupedSearchResults>) {
     return { search: searchFn } as unknown as SearchService;
 }
@@ -98,6 +113,52 @@ describe('GlobalSearchBar', () => {
         expect(screen.getByText('Test Pattern')).toBeInTheDocument();
         expect(screen.getByText('Architectures')).toBeInTheDocument();
         expect(screen.getByText('Patterns')).toBeInTheDocument();
+    });
+
+    it('renders a namespace chip on each result row', async () => {
+        const searchFn = vi.fn().mockResolvedValue(mockResults);
+        const service = createMockSearchService(searchFn);
+        renderSearchBar(service);
+
+        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'test' } });
+        });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+
+        const chips = screen.getAllByTestId('result-namespace-chip');
+        expect(chips).toHaveLength(2); // one per result (arch + pattern)
+        expect(chips.every((c) => c.textContent === 'finos')).toBe(true);
+
+        // The name must shrink-truncate (min-w-0 + truncate) so a long name never
+        // pushes the namespace chip off the row — the #9 disambiguation depends on
+        // the chip staying visible.
+        const name = screen.getByText('Test Architecture');
+        expect(name).toHaveClass('truncate');
+        expect(name).toHaveClass('min-w-0');
+    });
+
+    it('disambiguates duplicate names via the namespace chip', async () => {
+        const searchFn = vi.fn().mockResolvedValue(duplicateNameResults);
+        const service = createMockSearchService(searchFn);
+        renderSearchBar(service);
+
+        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'traderx' } });
+        });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+
+        // Both rows show the same name...
+        expect(screen.getAllByText('TraderX Architecture')).toHaveLength(2);
+        // ...but distinct namespace chips tell them apart.
+        const chips = screen.getAllByTestId('result-namespace-chip');
+        const chipText = chips.map((c) => c.textContent).sort();
+        expect(chipText).toEqual(['finos', 'traderx']);
     });
 
     it('shows no results message when search returns empty', async () => {
