@@ -1,0 +1,24 @@
+# CalmHub + MongoDB for the CLI/CalmHub smoke tests.
+# no-auth is used for local/CI smoke testing only — never in production.
+services:
+  mongodb:
+    image: mongo:8
+    networks:
+      - smoke-net
+
+  calmhub:
+    image: calm-hub:smoke
+    depends_on:
+      - mongodb
+    ports:
+      - "8080:8080"
+    environment:
+      - QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongodb:27017
+      - CALM_AUTH_ENABLED=false
+      - QUARKUS_OIDC_TENANT_ENABLED=false
+    networks:
+      - smoke-net
+
+networks:
+  smoke-net:
+    driver: bridge
