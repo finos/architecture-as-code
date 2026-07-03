@@ -26,7 +26,11 @@ export default async function setup(): Promise<() => Promise<void>> {
     try {
         await waitForHub(SMOKE_HUB_URL);
     } catch (err) {
-        compose(['logs']);
+        try {
+            compose(['logs']);
+        } catch {
+            // Best-effort diagnostics; never let a logs failure skip teardown.
+        }
         compose(['down', '-v']);
         throw err;
     }
