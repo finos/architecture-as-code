@@ -5,6 +5,33 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.47.1] - 2026-06-29
+
+## [1.47.1](https://github.com/finos/architecture-as-code/compare/cli-v1.47.0...cli-v1.47.1) (2026-06-29)
+
+### chore
+
+* **calm-hub:** curate read-only seed data for hosted CALM Hub demo ([](https://github.com/finos/architecture-as-code/commit/97a35028bac72b61b495167f1b8528b67e0106d8))
+* **calm-hub:** curate read-only seed data for hosted CALM Hub demo ([](https://github.com/finos/architecture-as-code/commit/ac11adda9be0e35fd253ae7290d1d16b9608412a))
+* **calm-suite:** A3 — git mv calm-suite/* to repo root ([](https://github.com/finos/architecture-as-code/commit/9ae062f800b684ae709c5b807ca4f888181cd247)), closes [#2649](https://github.com/finos/architecture-as-code/issues/2649) [#2600](https://github.com/finos/architecture-as-code/issues/2600) [#3](https://github.com/finos/architecture-as-code/issues/3) [#2661](https://github.com/finos/architecture-as-code/issues/2661) [#2664](https://github.com/finos/architecture-as-code/issues/2664)
+* **calm-suite:** A3 — promote calm-studio + calm-guard to top-level workspaces ([](https://github.com/finos/architecture-as-code/commit/fdae497f7a8c7f728af5a293b68ef5321fb338ea))
+* **calm-suite:** A3 — update path-bearing config after calm-suite/* move ([](https://github.com/finos/architecture-as-code/commit/2ca0ca7ad0ffb4103f91f5eac4e0669a498031df)), closes [#2649](https://github.com/finos/architecture-as-code/issues/2649) [#2600](https://github.com/finos/architecture-as-code/issues/2600)
+* **calm-suite:** A3 review fix — vite.config fs.allow depth + AGENTS.md path corrections ([](https://github.com/finos/architecture-as-code/commit/747c20488311a2f38c18e17d672686e57951b454))
+* **deps:** regenerate lockfile after A3 calm-suite/* → root move (rebased onto Node 26 main) ([](https://github.com/finos/architecture-as-code/commit/f220d2de5eb82fd0d9c993a708dfa28ea08dfde2)), closes [#2673](https://github.com/finos/architecture-as-code/issues/2673)
+
+### ci
+
+* guard CVE/license scanning workflows to canonical repo (#2753) ([](https://github.com/finos/architecture-as-code/commit/9393ebb0f0ac18e8d73430ccbe7bf47feaf9142e)), closes [#2753](https://github.com/finos/architecture-as-code/issues/2753)
+
+### fix
+
+* **calm-hub-ui:** always show pinned version URL in resource share bar (#2748) ([](https://github.com/finos/architecture-as-code/commit/a70ad32bea262ec99525c7ed5b7d94b825b4e111)), closes [#2748](https://github.com/finos/architecture-as-code/issues/2748) [#2746](https://github.com/finos/architecture-as-code/issues/2746)
+* **calm-hub-ui:** render childless system nodes as regular nodes (#2749) ([](https://github.com/finos/architecture-as-code/commit/c4f983ccc4dc96bf5fc7cea3b40c615592164e80)), closes [#2749](https://github.com/finos/architecture-as-code/issues/2749)
+* **calm-hub-ui:** render object property values as JSON in node sidebar (#2747) ([](https://github.com/finos/architecture-as-code/commit/c44120a1928b8895498061da875b1909516881b8)), closes [#2747](https://github.com/finos/architecture-as-code/issues/2747)
+* **calm-hub:** display control/config titles and use slug-based URLs (#2751) ([](https://github.com/finos/architecture-as-code/commit/6ce86540193c4ad0b941b638087818b5d4ff06d3)), closes [#2751](https://github.com/finos/architecture-as-code/issues/2751)
+* **calm-hub:** repair seed script and readonly smoke test for curated hub ([](https://github.com/finos/architecture-as-code/commit/37d3c59344ba56a7718d97cc9c5ead38f167515f))
+* **calm-hub:** seed patternStoreCounter and flowStoreCounter at max seeded id to prevent first-push duplicate (#2750) ([](https://github.com/finos/architecture-as-code/commit/3861a6fef50c461a3f191a668b6f329617f6e20e)), closes [#2750](https://github.com/finos/architecture-as-code/issues/2750) [#2678](https://github.com/finos/architecture-as-code/issues/2678)
+
 ## [1.47.0] - 2026-06-24
 
 ## [1.47.0](https://github.com/finos/architecture-as-code/compare/cli-v1.46.0...cli-v1.47.0) (2026-06-24)

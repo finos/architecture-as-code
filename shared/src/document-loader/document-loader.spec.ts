@@ -1,6 +1,6 @@
 import { AuthPlugin } from '../auth/auth-plugin';
 import { CALM_META_SCHEMA_DIRECTORY } from '../consts';
-import { assertJsonObject, buildDocumentLoader, DocumentLoaderOptions, DocumentLoadError } from './document-loader';
+import { assertJsonObject, buildDocumentLoader, CALM_DOCUMENT_TYPES_LIST, DocumentLoaderOptions, DocumentLoadError, isValidCalmDocumentType } from './document-loader';
 
 const mocks = vi.hoisted(() => {
     return {
@@ -17,6 +17,10 @@ const mocks = vi.hoisted(() => {
             loadMissingDocument: vi.fn()
         }; }),
         directDocLoader: vi.fn(function () { return {
+            initialise: vi.fn(),
+            loadMissingDocument: vi.fn()
+        }; }),
+        workspaceDocLoader: vi.fn(function () { return {
             initialise: vi.fn(),
             loadMissingDocument: vi.fn()
         }; })
@@ -48,6 +52,12 @@ vi.mock('./direct-url-document-loader', () => {
     };
 });
 
+vi.mock('./workspace-document-loader', () => {
+    return {
+        WorkspaceDocumentLoader: mocks.workspaceDocLoader
+    };
+});
+
 describe('DocumentLoader', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -63,6 +73,21 @@ describe('DocumentLoader', () => {
         buildDocumentLoader(docLoaderOpts);
 
         expect(mocks.fsDocLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], false, process.cwd());
+    });
+
+    it('should not create a WorkspaceDocumentLoader when workspaceBundlePath is absent', () => {
+        buildDocumentLoader({ schemaDirectoryPath: 'schemas' });
+        expect(mocks.workspaceDocLoader).not.toHaveBeenCalled();
+    });
+
+    it('should create a WorkspaceDocumentLoader when workspaceBundlePath is provided', () => {
+        const docLoaderOpts: DocumentLoaderOptions = {
+            workspaceBundlePath: '/repo/.calm-workspace/bundles/default'
+        };
+
+        buildDocumentLoader(docLoaderOpts);
+
+        expect(mocks.workspaceDocLoader).toHaveBeenCalledWith('/repo/.calm-workspace/bundles/default', false);
     });
 
     it('should create a CalmHubDocumentLoader when calmHubUrl is defined in loader options', () => {
@@ -193,4 +218,17 @@ describe('assertJsonObject', () => {
         expect((thrown as DocumentLoadError).recoverable).toBe(false);
         expect((thrown as DocumentLoadError).message).toBe(`Expected a JSON object from calm:/foo but received: ${kind}`);
     });
+});
+
+describe('isValidCalmDocumentType', () => {
+    it.each(CALM_DOCUMENT_TYPES_LIST)('returns true for the valid document type %s', (type) => {
+        expect(isValidCalmDocumentType(type)).toBe(true);
+    });
+
+    it.each(['unknown', 'architectures', 'Pattern', '', 'foo'])(
+        'returns false for the invalid document type %s',
+        (type) => {
+            expect(isValidCalmDocumentType(type)).toBe(false);
+        }
+    );
 });

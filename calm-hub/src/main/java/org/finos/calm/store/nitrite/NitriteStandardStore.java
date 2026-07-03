@@ -15,9 +15,10 @@ import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
-import org.finos.calm.domain.standards.NamespaceStandardSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.StandardStore;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
+import org.finos.calm.store.util.VersionKeySelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ public class NitriteStandardStore implements StandardStore {
 
 
     @Override
-    public List<NamespaceStandardSummary> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceResourceSummary> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving standards", namespace);
             throw new NamespaceNotFoundException();
@@ -84,13 +85,17 @@ public class NitriteStandardStore implements StandardStore {
             return List.of();
         }
 
-        List<NamespaceStandardSummary> namespaceStandardSummary = new ArrayList<>();
+        List<NamespaceResourceSummary> namespaceStandardSummary = new ArrayList<>();
 
         for (Document standard : standards) {
-            NamespaceStandardSummary summary = new NamespaceStandardSummary(
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Object rawVersions = standard.get(VERSIONS_FIELD);
+            int versionCount = VersionKeySelector.versionCount(rawVersions instanceof Document d ? d.getFields() : null);
+            NamespaceResourceSummary summary = new NamespaceResourceSummary(
                     standard.get(NAME_FIELD, String.class),
                     standard.get(DESCRIPTION_FIELD, String.class),
-                    standard.get(STANDARD_ID_FIELD, Integer.class)
+                    standard.get(STANDARD_ID_FIELD, Integer.class),
+                    versionCount
             );
             namespaceStandardSummary.add(summary);
         }

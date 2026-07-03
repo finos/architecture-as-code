@@ -11,7 +11,7 @@ import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
-import org.finos.calm.domain.flow.NamespaceFlowSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,7 +76,7 @@ public class TestNitriteFlowStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceFlowSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(empty()));
@@ -96,7 +96,7 @@ public class TestNitriteFlowStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceFlowSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(empty()));
@@ -108,8 +108,10 @@ public class TestNitriteFlowStoreShould {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
         
-        Document flow1 = Document.createDocument().put("flowId", 1001).put("name", "Flow One").put("description", "First");
-        Document flow2 = Document.createDocument().put("flowId", 1002).put("name", "Flow Two").put("description", "Second");
+        Document flow1 = Document.createDocument().put("flowId", 1001).put("name", "Flow One").put("description", "First")
+                .put("versions", Document.createDocument().put("1-0-0", "{}").put("2-0-0", "{}"));
+        Document flow2 = Document.createDocument().put("flowId", 1002).put("name", "Flow Two").put("description", "Second")
+                .put("versions", Document.createDocument().put("1-0-0", "{}"));
         List<Document> flows = Arrays.asList(flow1, flow2);
         
         Document namespaceDoc = Document.createDocument()
@@ -121,16 +123,18 @@ public class TestNitriteFlowStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceFlowSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, hasSize(2));
         assertThat(result.get(0).getId(), is(1001));
         assertThat(result.get(0).getName(), is("Flow One"));
         assertThat(result.get(0).getDescription(), is("First"));
+        assertThat(result.get(0).getVersionCount(), is(2));
         assertThat(result.get(1).getId(), is(1002));
         assertThat(result.get(1).getName(), is("Flow Two"));
         assertThat(result.get(1).getDescription(), is("Second"));
+        assertThat(result.get(1).getVersionCount(), is(1));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
@@ -149,12 +153,14 @@ public class TestNitriteFlowStoreShould {
         when(cursor.firstOrNull()).thenReturn(namespaceDoc);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
-        List<NamespaceFlowSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         assertThat(result, hasSize(1));
         assertThat(result.get(0).getId(), is(77));
         assertThat(result.get(0).getName(), is("Flow 77"));
         assertThat(result.get(0).getDescription(), is(""));
+        // Legacy document carries no versions sub-document → count guards to 0.
+        assertThat(result.get(0).getVersionCount(), is(0));
     }
 
     @Test

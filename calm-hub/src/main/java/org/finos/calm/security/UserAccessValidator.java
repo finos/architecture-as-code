@@ -87,6 +87,50 @@ public class UserAccessValidator {
                 .collect(Collectors.toSet()));
     }
 
+    /**
+     * Returns the set of domains the given user can read, or {@link Optional#empty()}
+     * when the user can read all domains without restriction.
+     *
+     * <p>{@code Optional.empty()} (read everything) is returned when:
+     * <ul>
+     *   <li>{@code calm.auth.allow-public-read=true} — every domain is publicly readable</li>
+     *   <li>the user holds a {@code GLOBAL admin} grant</li>
+     * </ul>
+     *
+     * <p>Otherwise a domain is included only if it has a READ-sufficient grant (own or
+     * {@code *}). Domains are flat — there is no ancestor chain — so this mirrors the
+     * READ rule enforced by {@link CalmHubPermissionChecker#canReadByDomain}, including
+     * that {@code *}-username grants count for READ. An empty {@code Optional.of(Set.of())}
+     * is returned when the user has no grants at all.
+     *
+     * @param username the username to check access for
+     * @return {@link Optional#empty()} if the user can read all domains; otherwise
+     *         an {@code Optional} containing the specific (possibly empty) set of readable domains
+     */
+    public Optional<Set<String>> getReadableDomains(String username) {
+        if (allowPublicRead) {
+            logger.debug("calm.auth.allow-public-read is true — all domains readable for counts");
+            return Optional.empty();
+        }
+
+        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+
+        if (isGlobalAdmin(grants)) {
+            logger.debug("User [{}] has GLOBAL admin grant — all domains readable for counts", username);
+            return Optional.empty();
+        }
+
+        if (grants.isEmpty()) {
+            logger.debug("No access grants found for user [{}]", username);
+            return Optional.of(Set.of());
+        }
+
+        return Optional.of(grants.stream()
+                .filter(g -> g.getDomain() != null && isReadSufficient(g))
+                .map(UserAccess::getDomain)
+                .collect(Collectors.toSet()));
+    }
+
     private boolean isGlobalAdmin(List<UserAccess> grants) {
         return grants.stream().anyMatch(g ->
                 GLOBAL_ACCESS.equals(g.getNamespace())

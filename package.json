@@ -16,10 +16,10 @@
         "docs",
         "calm-hub-ui",
         "calm-plugins/vscode",
-        "calm-suite/calm-guard",
-        "calm-suite/calm-guard/docs",
-        "calm-suite/calm-studio/packages/*",
-        "calm-suite/calm-studio/apps/*"
+        "calm-guard",
+        "calm-guard/docs",
+        "calm-studio/packages/*",
+        "calm-studio/apps/*"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
@@ -71,6 +71,7 @@
         "fetch-mock": "^12.5.2",
         "globals": "^16.0.0",
         "husky": "^9.1.7",
+        "jsdom": "^26.0.0",
         "link": "^2.1.1",
         "memfs": "^4.17.0",
         "msw": "^2.7.3",
@@ -97,11 +98,11 @@
         "systeminformation": "^5.31.6",
         "tmp": "^0.2.7",
         "@semantic-release/npm": {
-            "npm": "11.17.0"
+            "npm": "11.18.0"
         },
-        "cookie": ">=0.7.0",
-        "follow-redirects": ">=1.16.0",
-        "hono": ">=4.12.14",
+        "cookie": "^1.1.1",
+        "follow-redirects": "^1.16.0",
+        "hono": "^4.12.14",
         "serialize-javascript": "^7.0.5",
         "undici": "^7.25.0",
         "uuid": "^11.1.1",

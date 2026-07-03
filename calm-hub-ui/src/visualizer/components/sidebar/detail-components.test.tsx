@@ -44,6 +44,29 @@ describe('PropertiesSection', () => {
         expect(screen.getByText('My Field')).toBeInTheDocument();
         expect(screen.getByText('my-value')).toBeInTheDocument();
     });
+
+    it('renders nested object values as pretty-printed JSON, not [object Object]', () => {
+        render(
+            <PropertiesSection properties={[['config', { retries: 3, egg: 'beans' }]]} />
+        );
+
+        expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
+        expect(screen.getByText(/"egg": "beans"/)).toBeInTheDocument();
+    });
+
+    it('renders array values as JSON, not [object Object]', () => {
+        render(
+            <PropertiesSection properties={[['tags', ['alpha', 'beta']]]} />
+        );
+
+        expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
+        expect(screen.getByText(/"alpha"/)).toBeInTheDocument();
+    });
+
+    it('renders null values as the string null', () => {
+        render(<PropertiesSection properties={[['optional', null]]} />);
+        expect(screen.getByText('null')).toBeInTheDocument();
+    });
 });
 
 describe('ControlsSection', () => {
@@ -144,6 +167,19 @@ describe('InterfacesSection', () => {
     it('generates fallback id when unique-id is missing', () => {
         render(<InterfacesSection interfaces={[{ host: 'example.com' }]} />);
         expect(screen.getByText('interface-0')).toBeInTheDocument();
+    });
+
+    it('renders nested object interface field as pretty-printed JSON, not [object Object]', () => {
+        // Reproduces issue #2745: rate-limit interface with a properties object
+        render(
+            <InterfacesSection interfaces={[
+                { 'unique-id': 'rate-limit', properties: { key: 'IP', calls: 100, egg: 'beans' } },
+            ]} />
+        );
+
+        expect(screen.getByText('rate-limit')).toBeInTheDocument();
+        expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
+        expect(screen.getByText(/"egg": "beans"/)).toBeInTheDocument();
     });
 });
 

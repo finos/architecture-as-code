@@ -1,6 +1,6 @@
 import { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../authService.js';
-import { ControlDetail } from '../model/control.js';
+import { ControlConfigDetail, ControlDetail } from '../model/control.js';
 import { apiClient } from './utils/api-client.js';
 
 export class ControlService {
@@ -69,7 +69,7 @@ export class ControlService {
             });
     }
 
-    public async fetchConfigurationsForControl(domain: string, controlId: number): Promise<number[]> {
+    public async fetchConfigurationsForControl(domain: string, controlId: number): Promise<ControlConfigDetail[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations`, { headers })

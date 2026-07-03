@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { IoShieldCheckmarkOutline } from 'react-icons/io5';
-import { ControlData } from '../../../model/control.js';
+import { ControlConfigDetail, ControlData } from '../../../model/control.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { ReadableJsonView } from './ReadableJsonView.js';
 import { ControlService } from '../../../service/control-service.js';
@@ -23,7 +23,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
     const [requirementJson, setRequirementJson] = useState<object | undefined>();
 
     // Configuration state
-    const [configIds, setConfigIds] = useState<number[]>([]);
+    const [configs, setConfigs] = useState<ControlConfigDetail[]>([]);
     const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
     const [configVersions, setConfigVersions] = useState<string[]>([]);
     const [selectedConfigVersion, setSelectedConfigVersion] = useState<string>('');
@@ -53,7 +53,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
         setRequirementVersions([]);
         setSelectedReqVersion('');
         setRequirementJson(undefined);
-        setConfigIds([]);
+        setConfigs([]);
         setSelectedConfigId(null);
         setConfigVersions([]);
         setSelectedConfigVersion('');
@@ -67,7 +67,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
         controlService.fetchConfigurationsForControl(
             controlData.domain,
             controlData.controlId,
-        ).then(setConfigIds);
+        ).then(setConfigs);
     }, [controlService, controlData.domain, controlData.controlId]);
 
     // Auto-select first requirement version when versions load
@@ -134,14 +134,14 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
         </button>
     ));
 
-    const configIdButtons = configIds.map((cid) => (
+    const configIdButtons = configs.map((cfg) => (
         <button
-            key={cid}
+            key={cfg.id}
             role="tab"
-            className={`tab gap-1 rounded-lg ${selectedConfigId === cid ? 'tab-active !bg-primary !text-primary-content' : ''}`}
-            onClick={() => handleConfigClick(cid)}
+            className={`tab gap-1 rounded-lg ${selectedConfigId === cfg.id ? 'tab-active !bg-primary !text-primary-content' : ''}`}
+            onClick={() => handleConfigClick(cfg.id)}
         >
-            Config {cid}
+            {cfg.title ?? cfg.name ?? `Config ${cfg.id}`}
         </button>
     ));
 
@@ -168,10 +168,16 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
         <JsonRenderer json={configJson} />
     );
 
+    const controlLabel = controlData.controlTitle ?? controlData.controlName;
+    const selectedCfg = configs.find((c) => c.id === selectedConfigId);
+    const selectedCfgLabel = selectedCfg
+        ? (selectedCfg.title ?? selectedCfg.name ?? `Config ${selectedCfg.id}`)
+        : selectedConfigId !== null ? `Config ${selectedConfigId}` : null;
+
     // ── Mobile: a single full-bleed pane with Requirement / Configuration
     //    tabs, stacked headers, and horizontally scrollable version pickers. ──
     if (isMobile) {
-        const showConfig = configIds.length > 0;
+        const showConfig = configs.length > 0;
         const panel = activePanel === 'configuration' && showConfig ? 'configuration' : 'requirement';
 
         return (
@@ -180,7 +186,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                 <div className="bg-base-200 px-4 py-3 border-b border-base-300">
                     <h2 className="text-base font-bold flex items-center gap-2 text-primary min-w-0">
                         <IoShieldCheckmarkOutline className="text-primary shrink-0" />
-                        <span className="truncate">{controlData.controlName}</span>
+                        <span className="truncate">{controlLabel}</span>
                     </h2>
                 </div>
 
@@ -230,7 +236,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                         <div className="bg-base-200 px-4 py-2 border-b border-base-300 flex items-center justify-between gap-2">
                             <h2 className="text-xs font-semibold text-base-content/70 truncate">
                                 Configurations
-                                {selectedConfigId !== null ? ` / ${selectedConfigId}` : ''}
+                                {selectedCfgLabel ? ` / ${selectedCfgLabel}` : ''}
                                 {selectedConfigVersion ? ` / ${selectedConfigVersion}` : ''}
                             </h2>
                             {viewToggle(cfgViewMode, setCfgViewMode)}
@@ -268,7 +274,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                 <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
                     <h2 className="text-sm font-bold flex items-center gap-2 text-primary">
                         <IoShieldCheckmarkOutline className="text-primary" />
-                        <span>{controlData.controlName}</span>
+                        <span>{controlLabel}</span>
                         <span className="text-gray-400">/</span>
                         <span>Requirement</span>
                         {selectedReqVersion && (
@@ -298,19 +304,19 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
             </div>
 
             {/* Bottom section: Configurations (only shown if any exist) */}
-            {configIds.length > 0 && (
+            {configs.length > 0 && (
                 <div className="flex-1 min-h-0 bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
                 {/* Configuration breadcrumb header */}
                 <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
                     <h2 className="text-sm font-bold flex items-center gap-2">
                         <IoShieldCheckmarkOutline className="text-accent" />
-                        <span>{controlData.controlName}</span>
+                        <span>{controlLabel}</span>
                         <span className="text-gray-400">/</span>
                         <span>Configurations</span>
-                        {selectedConfigId !== null && (
+                        {selectedCfgLabel && (
                             <>
                                 <span className="text-gray-400">/</span>
-                                <span>{selectedConfigId}</span>
+                                <span>{selectedCfgLabel}</span>
                             </>
                         )}
                         {selectedConfigVersion && (

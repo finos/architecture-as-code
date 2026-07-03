@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useNavigate, useParams } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 import { MobileNavMenu } from './MobileNavMenu.js';
+import type { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -56,11 +57,16 @@ vi.mock('../../../service/adr-service/adr-service.js', () => ({
     }); }),
 }));
 
+// Counts are owned by Hub and passed in as props; the menu no longer fetches them.
+const namespaceCounts = [
+    { namespace: 'finos', architectures: 4, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 4 },
+    { namespace: 'traderx', architectures: 2, patterns: 0, flows: 4, standards: 0, adrs: 0, interfaces: 3, total: 9 },
+] as NamespaceCounts[];
+const domainCounts: DomainControlCount[] = [{ domain: 'security', controlCount: 7 }];
+
 const props = {
-    onDataLoad: vi.fn(),
-    onAdrLoad: vi.fn(),
-    onControlLoad: vi.fn(),
-    onInterfaceLoad: vi.fn(),
+    namespaceCounts,
+    domainCounts,
     onClose: vi.fn(),
 };
 
@@ -99,6 +105,51 @@ describe('MobileNavMenu', () => {
         expect(screen.getByRole('heading', { name: 'traderx' })).toBeInTheDocument();
     });
 
+    it('shows a mono count badge on each namespace row', async () => {
+        renderMenu();
+        fireEvent.click(screen.getByText('Namespaces'));
+        expect(await screen.findByText('traderx')).toBeInTheDocument();
+
+        const badges = await screen.findAllByTestId('count-badge');
+        const badgeText = badges.map((b) => b.textContent);
+        expect(badgeText).toContain('4');
+        expect(badgeText).toContain('9');
+    });
+
+    it('shows per-type count badges at the resource-type level, dimming zeros', async () => {
+        renderMenu();
+        fireEvent.click(screen.getByText('Namespaces'));
+        fireEvent.click(await screen.findByText('traderx'));
+        expect(await screen.findByText('Architectures')).toBeInTheDocument();
+
+        // traderx: architectures 2, flows 4, interfaces 3, and three zeros.
+        const badges = screen.getAllByTestId('count-badge');
+        const texts = badges.map((b) => b.textContent);
+        expect(texts).toEqual(['2', '0', '4', '0', '0', '3']);
+
+        // Zero-count badges are dimmed (faint bg), matching the desktop type tabs.
+        const zeroBadge = badges.find((b) => b.textContent === '0')!;
+        expect(zeroBadge).toHaveStyle({ backgroundColor: '#F4F6F9' });
+    });
+
+    it('shows a count badge on each control-domain row', async () => {
+        renderMenu();
+        fireEvent.click(screen.getByText('Control Domains'));
+        expect(await screen.findByText('security')).toBeInTheDocument();
+
+        const badge = await screen.findByTestId('count-badge');
+        expect(badge).toHaveTextContent('7');
+    });
+
+    it('applies the active tint to the namespace row matching the URL', async () => {
+        (useParams as Mock).mockReturnValue({ ns: 'traderx' });
+        renderMenu();
+        fireEvent.click(screen.getByText('Namespaces'));
+
+        const activeRow = (await screen.findByText('traderx')).closest('button')!;
+        expect(activeRow).toHaveStyle({ backgroundColor: '#EEF4FF' });
+    });
+
     it('navigates to a resource and closes when a leaf is selected', async () => {
         const navigate = vi.fn();
         (useNavigate as Mock).mockReturnValue(navigate);
@@ -132,18 +183,5 @@ describe('MobileNavMenu', () => {
         // Back to the namespaces list
         expect(await screen.findByText('traderx')).toBeInTheDocument();
         expect(screen.queryByText('Architectures')).not.toBeInTheDocument();
-    });
-
-    it('loads a resource from a deep-link via URL params', async () => {
-        (useParams as Mock).mockReturnValue({
-            namespace: 'traderx',
-            type: 'architectures',
-            id: '1',
-            version: '1.0.0',
-        });
-        renderMenu();
-        await waitFor(() => {
-            expect(props.onDataLoad).toHaveBeenCalled();
-        });
     });
 });

@@ -31,7 +31,7 @@ describe('parseCALMData', () => {
         expect(result.nodes[1].id).toBe('node-2');
     });
 
-    it('creates system nodes for system type', () => {
+    it('renders a childless system node as a regular node', () => {
         const data: CalmArchitectureSchema = {
             nodes: [
                 { 'unique-id': 'system-1', name: 'My System', 'node-type': 'system' },
@@ -39,8 +39,28 @@ describe('parseCALMData', () => {
         };
         const result = parseCALMData(data);
         expect(result.nodes).toHaveLength(1);
-        expect(result.nodes[0].type).toBe('group');
+        expect(result.nodes[0].type).toBe('custom');
         expect(result.nodes[0].data['node-type']).toBe('system');
+    });
+
+    it('renders a system node that contains children as a group node', () => {
+        const data: CalmArchitectureSchema = {
+            nodes: [
+                { 'unique-id': 'system-1', name: 'My System', 'node-type': 'system' },
+                { 'unique-id': 'child-1', name: 'Child Service', 'node-type': 'service' },
+            ],
+            relationships: [
+                {
+                    'unique-id': 'rel-1',
+                    'relationship-type': {
+                        'composed-of': { container: 'system-1', nodes: ['child-1'] },
+                    },
+                },
+            ],
+        };
+        const result = parseCALMData(data);
+        const systemNode = result.nodes.find((n) => n.id === 'system-1');
+        expect(systemNode?.type).toBe('group');
     });
 
     it('creates edges from connects relationships', () => {

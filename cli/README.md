@@ -556,3 +556,285 @@ To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fash
   "calmHubUrl": "http://calmhub.com",
   "authPluginPath": "~/plugins/auth-plugin.js"
 }
+```
+
+## CALM Workspace
+
+The `calm workspace` commands give you a local development environment for working with a set of CALM documents. A workspace tracks which documents you care about, keeps copies (or references) of those files in a single bundle directory, and can sync them to a CalmHub instance.
+
+### Concepts
+
+**Workspace** — a named collection of CALM documents living inside a git repository. Metadata lives under `.calm-workspace/` at the repository root; the active workspace is recorded in `.calm-workspace/workspace.json`.
+
+**Bundle** — the on-disk directory for a workspace (`<repo-root>/.calm-workspace/bundles/<name>/`). It contains:
+- `workspace-manifest.json` — an index of every tracked document, keyed by document ID, with each entry recording its file path, document type, and (optionally) its CalmHub namespace.
+- `files/` — documents copied into the bundle (when `--copy` is used). Referenced documents are stored at their original location.
+
+**Document ID** — the key used to identify a document within a workspace. Resolved in order: `--id` flag → `title` field in the JSON → user prompt.
+
+### Commands
+
+#### `calm workspace init <name>`
+
+Create or update a workspace. Creates the bundle directory and sets it as the active workspace.
+
+```
+calm workspace init <name> [--dir <path>]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--dir <path>` | Directory in which to create the workspace. Defaults to the repository root (detected via git). |
+
+```shell
+calm workspace init my-system
+# Workspace 'my-system' created/updated at .calm-workspace
+# Bundle directory ensured at .calm-workspace/bundles/my-system
+```
+
+#### `calm workspace add <file>`
+
+Register a CALM document with the active workspace. By default the file is referenced at its current location on disk (no copying). Prompts interactively for document type and (manifest) name if they cannot be determined automatically.
+
+```
+calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] [--copy]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--id <id>` | Explicit manifest registration id. Overrides automatic resolution. |
+| `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `architecture`, `pattern`, `schema`, `interface`, `timeline`. |
+| `--namespace <namespace>` | CalmHub namespace to record in the manifest. If omitted, it is derived from the document `$id`. |
+| `--copy` | Copy the file into the bundle's `files/` directory instead of referencing it in place. |
+
+**Document `$id` handling.** `add` inspects the file's CalmHub `$id`:
+- **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
+- **Conformant `$id`** → left untouched; the manifest namespace is derived from it.
+- **Non-conformant `$id`** → you are prompted to rebuild it, the corrected `$id` is written back, and the command **fails** (non-zero exit) so the change is surfaced before you re-run `add`.
+
+**Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file, else an interactive prompt.
+
+```shell
+# Interactive — prompts for type, builds the $id if needed, then the manifest name
+calm workspace add ./architectures/payment-service.json
+
+# Reference an already-conformant document without copying
+calm workspace add ./architectures/payment-service.json --type architecture
+```
+
+#### `calm workspace new [type] [name] [template]`
+
+Create a new stub CALM document in the current directory, then register it with the active workspace. The document's CalmHub `$id` is **always built interactively**. Any other argument not provided on the command line is requested interactively.
+
+```
+calm workspace new [type] [name] [template]
+```
+
+The created file is named `<slug>.<type>.json` (where `<slug>` is the mapping id, or the control/config name) and contains a minimal document whose `$id` is the one you built and whose `title` is the name you provide. The namespace (for namespace resources) is stored in the manifest so the document can be pushed to CalmHub without extra flags.
+
+```shell
+# Fully interactive
+calm workspace new
+
+# Provide the type and title up front; still prompts for the $id components
+calm workspace new architecture "Payment Gateway"
+```
+
+#### Building a CalmHub `$id` interactively
+
+When `new` (always) or `add` (when needed) builds a `$id`, it asks for the resource scope and then each component, defaulting the **version to `1.0.0`** and the **base URL to your configured CalmHub URL** (`calmHubUrl` in `~/.calm.json`). The result is one of:
+
+```
+namespace resource:    $BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING/versions/$VERSION
+control requirement:   $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/requirement/versions/$VERSION
+control configuration: $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/configurations/$CONFIG/versions/$VERSION
+```
+
+where `$TYPE` is one of `patterns`, `architectures`, `standards`, `interfaces`.
+
+#### `calm workspace push`
+
+Push every document in the workspace manifest to a CalmHub instance. Each document's identity — namespace, type, mapping id and **version** — comes from its `$id` (of the form `$BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION`). Push **does not auto-bump**: it creates exactly the version each document declares. Documents without a well-formed mapping `$id` (or whose type has no CalmHub resource type) are skipped with a warning.
+
+```
+calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--calm-hub-url <url>` | CalmHub base URL. If omitted, falls back to `calmHubUrl` in `~/.calm.json`. |
+| `--fail-if-modified` | Fail the push if a document that already exists in CalmHub at its declared version has changed on disk. Overrides `push.failIfModified` in the workspace config. |
+
+For each tracked document, push looks up the existing versions in CalmHub:
+- **Version does not exist** → creates it.
+- **Version already exists, content unchanged** → skips it (idempotent; good for local re-runs).
+- **Version already exists, content changed on disk** → behaviour depends on `push.failIfModified` (default `false`):
+  - `false` — logs and skips.
+  - `true` — reports the conflict and fails the push (strict; good for merge-time CI). Run `bump` first to create a new version.
+
+```shell
+calm workspace push                              # URL from ~/.calm.json
+calm workspace push --calm-hub-url https://calmhub.example.com
+calm workspace push --fail-if-modified           # strict merge-time mode
+```
+
+#### `calm workspace check`
+
+Check whether any tracked document has changed on disk relative to CalmHub but has **not** been version-bumped. Intended as a CI/PR gate — it **exits non-zero** when a bump is required, so a PR cannot merge with unversioned changes.
+
+```
+calm workspace check [--calm-hub-url <url>]
+```
+
+A document is flagged when its on-disk `$id` version still matches a version in CalmHub but its content differs. Brand-new documents (not yet in CalmHub) and already-bumped documents (whose version is ahead of CalmHub) are not flagged.
+
+#### `calm workspace bump`
+
+Bump the version of every document that has changed on disk relative to CalmHub, and update every reference to those documents across the workspace so everything stays in sync.
+
+```
+calm workspace bump [--calm-hub-url <url>] [--major | --patch]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--calm-hub-url <url>` | CalmHub base URL. If omitted, falls back to `calmHubUrl` in `~/.calm.json`. |
+| `--major` | Apply a major bump (e.g. `1.2.3` → `2.0.0`). |
+| `--patch` | Apply a patch bump (e.g. `1.2.3` → `1.2.4`). |
+
+By default a **minor** bump is applied (override the default via `bump.defaultIncrement` in the workspace config, or per-run with `--major`/`--patch`). For each changed document the new version is computed relative to CalmHub's latest version, the file's `$id` is rewritten, and any `$ref` / `$schema` / `requirement-url` / `config-url` in **all** tracked documents that pointed at the old version is repointed to the new one (fragments preserved).
+
+Bump is **idempotent**: editing → bumping → editing again → bumping again only moves the version by a single increment, because once a document's on-disk version is ahead of CalmHub it is left alone until that version is pushed.
+
+#### Workspace config — `.calm-workspace/config.json`
+
+Central, committed configuration that applies to every workspace in the repository (visible to CI):
+
+```json
+{
+  "push": { "failIfModified": false },
+  "bump": { "defaultIncrement": "MINOR" }
+}
+```
+
+| Field | Values | Default | Meaning |
+|-------|--------|---------|---------|
+| `push.failIfModified` | `true` \| `false` | `false` | When `true`, `push` fails if a document already published at its declared version has changed on disk. Set `true` for strict merge-time pushes. |
+| `bump.defaultIncrement` | `MAJOR` \| `MINOR` \| `PATCH` | `MINOR` | Default increment for `bump` when no flag is given. |
+
+A typical CI workflow: `calm workspace check` gates PRs (contributors run `calm workspace bump` to record an intentional version bump), and merge-time runs `calm workspace push` with `push.failIfModified: true` so a merge introduces exactly the new versions it claims.
+
+#### `calm workspace tree`
+
+Print the dependency tree of documents in the active workspace, showing how documents reference one another.
+
+```
+calm workspace tree
+```
+
+```
+payment-service (architecture)
+├── payment-pattern (pattern)
+│   └── https://calm.finos.org/draft/2025-03/meta/core.json (schema)
+└── https://calm.finos.org/draft/2025-03/meta/interface.json (schema)
+```
+
+#### `calm workspace list`
+
+List all workspaces in the current repository. The active workspace is marked with `*`.
+
+```
+calm workspace list
+```
+
+```
+* my-system
+  legacy-platform
+  experimental
+```
+
+#### `calm workspace show`
+
+Print the name of the currently active workspace.
+
+```
+calm workspace show
+```
+
+#### `calm workspace switch <name>`
+
+Switch the active workspace.
+
+```
+calm workspace switch <name>
+```
+
+```shell
+calm workspace switch legacy-platform
+# Switched to workspace 'legacy-platform'.
+```
+
+#### `calm workspace clean`
+
+Remove downloaded files from a workspace bundle and reset its manifest. The bundle directory itself is preserved.
+
+```
+calm workspace clean [--all]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--all` | Clean all workspaces and reset `workspace.json`. |
+
+```shell
+# Clean the active workspace
+calm workspace clean
+
+# Clean everything
+calm workspace clean --all
+```
+
+### Example workflow
+
+Below is an end-to-end example: creating a workspace, adding documents, pulling in dependencies, and syncing to CalmHub.
+
+```shell
+# 1. Initialise a workspace in the current git repo
+calm workspace init payments
+
+# 2. Create a new architecture stub — builds the $id interactively, prompts for title
+calm workspace new architecture "Payment Gateway"
+
+# 3. After editing the stub, add an existing pattern you depend on
+#    (prompts to build a $id if the file doesn't already have a conformant one)
+calm workspace add ./patterns/microservice-pattern.json --type pattern
+
+# 4. Inspect the resulting dependency graph
+calm workspace tree
+
+# 5. Push everything to CalmHub (namespace comes from each file's manifest entry)
+calm workspace push --calm-hub-url https://calmhub.example.com
+```
+
+If you work across multiple concerns in the same repo, you can maintain separate workspaces:
+
+```shell
+calm workspace init platform
+calm workspace switch platform
+calm workspace add ./platform/infra.json --type architecture --namespace com.example
+calm workspace push
+
+calm workspace switch payments   # back to the original
+```
+
+### CalmHub integration
+
+To avoid passing `--calm-hub-url` every time, add the URL to `~/.calm.json`:
+
+```json
+{
+  "calmHubUrl": "https://calmhub.example.com"
+}
+```
+
+For `push` to work, each document must have a namespace recorded in the manifest. This is set automatically by `new`. For files added with `add`, pass `--namespace <ns>` at add time. Any file without a namespace is skipped during push with a message explaining how to fix it.
