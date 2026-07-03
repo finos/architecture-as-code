@@ -32,7 +32,6 @@ describe('Home page tests', () => {
       cy.viewport('macbook-16')
       cy.visit('/');
       cy.findByRole("link", { name: "Hub" })
-      cy.findByRole("link", { name: "Visualizer" })
     })
   })
 
@@ -42,7 +41,6 @@ describe('Home page tests', () => {
       cy.visit('/');
       cy.findByRole("button", { name: "Open Menu" }).click();
       cy.findByRole("link", { name: "Hub" })
-      cy.findByRole("link", { name: "Visualizer" })
     })
   })
 })

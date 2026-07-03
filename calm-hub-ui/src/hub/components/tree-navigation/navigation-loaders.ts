@@ -1,6 +1,7 @@
 import { CalmService } from '../../../service/calm-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr, isSlug } from '../../../model/calm.js';
+import { pickLatestVersion } from '../../../model/version.js';
 
 export type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs' | 'standards' | 'interfaces' | 'controls';
 export type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs' | 'Standards' | 'Interfaces' | 'Controls';
@@ -69,6 +70,35 @@ export function loadResourceForId(
     if (isSlug(resourceID)) {
         calmService.fetchResourceByCustomId(namespace, resourceID, version, type).then(onDataLoad);
     }
+}
+
+/**
+ * Resolves the item-detail route path for a resource at its latest version.
+ *
+ * Interfaces use the `/detail` pseudo-version (no version history). For everything
+ * else the latest version is resolved via {@link fetchVersionsForResource}.
+ * Returns `null` when no version can be found (so callers can skip navigation).
+ * Shared by the mobile drill-down and the namespace browse page so both compute
+ * the link the same way rather than hardcoding a version.
+ */
+export async function resolveResourceDetailPath(
+    resourceID: string,
+    type: TypeInUI,
+    namespace: string,
+    calmService: CalmService,
+    adrService: AdrService,
+): Promise<string | null> {
+    if (type === 'Interfaces') {
+        return `/${namespace}/interfaces/${resourceID}/detail`;
+    }
+    const versions = await fetchVersionsForResource(resourceID, type, namespace, calmService, adrService);
+    const latest = pickLatestVersion(versions);
+    if (!latest) {
+        // arg1 is %s to prevent format string injection from `resourceID`.
+        console.warn('No versions found for resource %s; nothing to navigate to', resourceID);
+        return null;
+    }
+    return `/${namespace}/${mapTypeInUIToTypeInUrl(type)}/${resourceID}/${latest}`;
 }
 
 export async function fetchVersionsForResource(

@@ -13,7 +13,7 @@ import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
-import org.finos.calm.domain.standards.NamespaceStandardSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.StandardStore;
 import org.slf4j.Logger;
@@ -49,7 +49,7 @@ public class StandardTools {
         if (err.isPresent()) return err.get();
 
         try {
-            List<NamespaceStandardSummary> standards = standardStore.getStandardsForNamespace(namespace);
+            List<NamespaceResourceSummary> standards = standardStore.getStandardsForNamespace(namespace);
             List<McpResponseFormatter.ResourceSummary> summaries = standards.stream()
                     .map(s -> new McpResponseFormatter.ResourceSummary(s.getId(), s.getName(), s.getDescription()))
                     .toList();
@@ -156,11 +156,11 @@ public class StandardTools {
         if (err.isPresent()) return err.get();
 
         try {
-            List<NamespaceStandardSummary> standards = standardStore.getStandardsForNamespace(namespace);
+            List<NamespaceResourceSummary> standards = standardStore.getStandardsForNamespace(namespace);
             String existingName = null;
             String existingDescription = null;
             boolean standardFound = false;
-            for (NamespaceStandardSummary s : standards) {
+            for (NamespaceResourceSummary s : standards) {
                 if (Objects.equals(s.getId(), standardId)) {
                     existingName = s.getName();
                     existingDescription = s.getDescription();

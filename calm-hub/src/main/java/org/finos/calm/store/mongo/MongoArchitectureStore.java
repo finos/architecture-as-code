@@ -10,9 +10,10 @@ import com.mongodb.client.model.Updates;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
+import org.finos.calm.store.util.VersionKeySelector;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Architecture;
-import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -70,7 +71,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
     }
 
     @Override
-    public List<NamespaceArchitectureSummary> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -83,7 +84,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
         }
 
         List<Document> architectures = namespaceDocument.getList("architectures", Document.class);
-        List<NamespaceArchitectureSummary> architectureSummaries = new ArrayList<>();
+        List<NamespaceResourceSummary> architectureSummaries = new ArrayList<>();
 
         for (Document architectureDoc : architectures) {
             Integer archId = architectureDoc.getInteger("architectureId");
@@ -91,8 +92,11 @@ public class MongoArchitectureStore implements ArchitectureStore {
             String description = architectureDoc.getString("description");
             if (name == null) name = "Architecture " + archId;
             if (description == null) description = "";
-            NamespaceArchitectureSummary summary = new NamespaceArchitectureSummary(
-                    name, description, archId
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Object rawVersions = architectureDoc.get("versions");
+            int versionCount = VersionKeySelector.versionCount(rawVersions instanceof Document d ? d.keySet() : null);
+            NamespaceResourceSummary summary = new NamespaceResourceSummary(
+                    name, description, archId, versionCount
             );
             architectureSummaries.add(summary);
         }

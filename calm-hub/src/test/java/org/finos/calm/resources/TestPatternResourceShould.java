@@ -10,7 +10,7 @@ import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
-import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PatternStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,9 +64,9 @@ public class TestPatternResourceShould {
 
     @Test
     void return_list_of_pattern_summaries_when_valid_namespace_provided_on_get_patterns() throws NamespaceNotFoundException {
-        List<NamespacePatternSummary> summaries = Arrays.asList(
-                new NamespacePatternSummary("Pattern One", "First", 12345),
-                new NamespacePatternSummary("Pattern Two", "Second", 54321)
+        List<NamespaceResourceSummary> summaries = Arrays.asList(
+                new NamespaceResourceSummary("Pattern One", "First", 12345, 3),
+                new NamespaceResourceSummary("Pattern Two", "Second", 54321, 1)
         );
         when(mockPatternStore.getPatternsForNamespace(anyString())).thenReturn(summaries);
 
@@ -78,9 +78,11 @@ public class TestPatternResourceShould {
                 .body("values[0].name", equalTo("Pattern One"))
                 .body("values[0].description", equalTo("First"))
                 .body("values[0].id", equalTo(12345))
+                .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Pattern Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321));
+                .body("values[1].id", equalTo(54321))
+                .body("values[1].versionCount", equalTo(1));
 
         verify(mockPatternStore, times(1)).getPatternsForNamespace("finos");
     }

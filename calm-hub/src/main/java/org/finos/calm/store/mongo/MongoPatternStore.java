@@ -12,12 +12,13 @@ import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Pattern;
+import org.finos.calm.store.util.VersionKeySelector;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
-import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,7 @@ public class MongoPatternStore implements PatternStore {
     }
 
     @Override
-    public List<NamespacePatternSummary> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
         if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -70,7 +71,7 @@ public class MongoPatternStore implements PatternStore {
         }
 
         List<Document> patterns = namespaceDocument.getList("patterns", Document.class);
-        List<NamespacePatternSummary> patternSummaries = new ArrayList<>();
+        List<NamespaceResourceSummary> patternSummaries = new ArrayList<>();
 
         for (Document pattern : patterns) {
             Integer patternId = pattern.getInteger("patternId");
@@ -78,7 +79,10 @@ public class MongoPatternStore implements PatternStore {
             String description = pattern.getString("description");
             if (name == null) name = "Pattern " + patternId;
             if (description == null) description = "";
-            patternSummaries.add(new NamespacePatternSummary(name, description, patternId));
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Object rawVersions = pattern.get("versions");
+            int versionCount = VersionKeySelector.versionCount(rawVersions instanceof Document d ? d.keySet() : null);
+            patternSummaries.add(new NamespaceResourceSummary(name, description, patternId, versionCount));
         }
 
         return patternSummaries;

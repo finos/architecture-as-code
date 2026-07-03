@@ -26,6 +26,12 @@ export interface ResourceSummary {
     name: string;
     description: string;
     customId?: string;
+    /**
+     * Number of stored versions, present for the version-map resource types
+     * (architectures, patterns, flows, standards). Absent for resources that don't
+     * carry a version map.
+     */
+    versionCount?: number;
 }
 
 /**
