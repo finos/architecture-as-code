@@ -47,11 +47,15 @@ describe('useCatalogueHighlights', () => {
         const { result } = renderHook(() => useCatalogueHighlights(namespaceCounts, service));
         await waitFor(() => expect(result.current.loading).toBe(false));
 
-        // Only the first two namespaces WITH content (a, c) are probed, for BOTH types.
-        expect(arch).toHaveBeenCalledTimes(2);
-        expect(pattern).toHaveBeenCalledTimes(2);
+        // The first two namespaces WITH content (a, c) are probed, and only for the
+        // type each actually has: 'a' has architectures, 'c' has patterns — the
+        // zero-count type is skipped rather than fetched and discarded.
+        expect(arch).toHaveBeenCalledTimes(1);
+        expect(pattern).toHaveBeenCalledTimes(1);
         expect(arch).toHaveBeenCalledWith('a');
         expect(pattern).toHaveBeenCalledWith('c');
+        expect(arch).not.toHaveBeenCalledWith('c');
+        expect(pattern).not.toHaveBeenCalledWith('a');
         expect(arch).not.toHaveBeenCalledWith('b');
         expect(arch).not.toHaveBeenCalledWith('d');
     });

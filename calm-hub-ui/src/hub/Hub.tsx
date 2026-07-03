@@ -215,9 +215,11 @@ export default function Hub() {
             <FirstRunLanding
                 namespaceCounts={namespaceCounts}
                 domainCounts={domainCounts}
-                // Both must settle: the tiles include a Controls total from domainCounts,
-                // so gating on namespace counts alone would flash a 0 for Controls.
-                countsLoaded={namespaceCountsLoaded && domainCountsLoaded}
+                // Ready only once both fetches have settled AND the namespace fetch
+                // didn't fail: the tiles include a Controls total from domainCounts (so
+                // namespace-only gating would flash a 0 for Controls), and a failed
+                // namespace fetch is unknown, not zero — hold the placeholder in both cases.
+                countsLoaded={namespaceCountsLoaded && domainCountsLoaded && !namespaceCountsFailed}
             />
         );
 

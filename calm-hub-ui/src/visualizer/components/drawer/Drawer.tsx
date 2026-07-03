@@ -7,6 +7,7 @@ import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { DropzoneEmptyState } from './DropzoneEmptyState.js';
+import { colors } from '../../../theme/colors.js';
 import type { DrawerProps, Flow, Control, Decorator } from '../../contracts/contracts.js';
 
 /**
@@ -61,17 +62,13 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
     // starts from a clean slate.
     const onDragEnter = useCallback(() => setDropError(undefined), []);
 
-    // A file rejected by `accept` (wrong type) never reaches onDrop's acceptedFiles,
-    // so surface it here rather than failing silently.
-    const onDropRejected = useCallback(() => {
-        setDropError('That file type isn’t supported — drop a CALM JSON file (architecture / pattern).');
-    }, []);
-
+    // No `accept` filter: CALM JSON is often saved with a non-.json extension
+    // (.calm, .txt, none), and an extension/MIME filter would reject those before
+    // onDrop ever runs. onDrop parses the file and surfaces a clear dropError on
+    // anything that isn't valid JSON, so validation lives there, not in the filter.
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         onDragEnter,
-        onDropRejected,
-        accept: { 'application/json': ['.json'] },
     });
 
     // Identifies the diagram (ignoring version) so its viewport can be remembered
@@ -224,6 +221,21 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
             {!hasContent && <input {...getInputProps()} />}
             {hasContent ? (
                 <>
+                    {/* A bad drop over already-loaded content still needs feedback: the
+                        empty state (which normally shows dropError) isn't mounted here. */}
+                    {dropError && (
+                        <div
+                            role="alert"
+                            className="shrink-0 mx-3 mt-2 px-3 py-2 rounded-md text-[12px]"
+                            style={{
+                                color: colors.status.error,
+                                border: `1px solid ${colors.status.error}`,
+                                backgroundColor: colors.redesign.surface,
+                            }}
+                        >
+                            {dropError}
+                        </div>
+                    )}
                     <div
                         style={{
                             flex: 1,

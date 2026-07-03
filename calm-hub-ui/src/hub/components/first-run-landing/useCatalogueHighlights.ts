@@ -60,13 +60,14 @@ export function useCatalogueHighlights(
 
     // The namespaces to probe: those with at least one architecture or pattern,
     // capped. Memoised on a stable key so a fresh array identity each render
-    // doesn't re-trigger the fetch.
+    // doesn't re-trigger the fetch. The key encodes which of the two types each
+    // namespace actually has, so the effect can skip fetching a type with 0 count.
     const targetKey = useMemo(
         () =>
             namespaceCounts
                 .filter((c) => c.architectures > 0 || c.patterns > 0)
                 .slice(0, MAX_NAMESPACES)
-                .map((c) => c.namespace)
+                .map((c) => `${c.namespace}|${c.architectures > 0 ? 1 : 0}|${c.patterns > 0 ? 1 : 0}`)
                 .join(','),
         [namespaceCounts]
     );
@@ -75,7 +76,12 @@ export function useCatalogueHighlights(
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const targets = targetKey ? targetKey.split(',') : [];
+        const targets = targetKey
+            ? targetKey.split(',').map((entry) => {
+                  const [namespace, hasArch, hasPattern] = entry.split('|');
+                  return { namespace, hasArchitectures: hasArch === '1', hasPatterns: hasPattern === '1' };
+              })
+            : [];
         if (targets.length === 0) {
             setHighlights([]);
             setLoading(false);
@@ -85,17 +91,23 @@ export function useCatalogueHighlights(
         let cancelled = false;
         setLoading(true);
 
+        const empty = Promise.resolve([] as CatalogueHighlight[]);
         Promise.all(
-            targets.map((namespace) =>
+            targets.map(({ namespace, hasArchitectures, hasPatterns }) =>
                 Promise.all([
-                    service
-                        .fetchArchitectureSummaries(namespace)
-                        .then((summaries) => toHighlights(summaries, namespace, 'Architectures'))
-                        .catch(() => [] as CatalogueHighlight[]),
-                    service
-                        .fetchPatternSummaries(namespace)
-                        .then((summaries) => toHighlights(summaries, namespace, 'Patterns'))
-                        .catch(() => [] as CatalogueHighlight[]),
+                    // Only fetch a type the namespace actually has — skip the wasted request otherwise.
+                    hasArchitectures
+                        ? service
+                              .fetchArchitectureSummaries(namespace)
+                              .then((summaries) => toHighlights(summaries, namespace, 'Architectures'))
+                              .catch(() => [] as CatalogueHighlight[])
+                        : empty,
+                    hasPatterns
+                        ? service
+                              .fetchPatternSummaries(namespace)
+                              .then((summaries) => toHighlights(summaries, namespace, 'Patterns'))
+                              .catch(() => [] as CatalogueHighlight[])
+                        : empty,
                 ]).then(([architectures, patterns]) => [...architectures, ...patterns])
             )
         ).then((perNamespace) => {

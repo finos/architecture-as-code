@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import { TypeBadge } from './TypeBadge.js';
@@ -17,35 +18,64 @@ interface ItemCardProps {
      */
     versionCount?: number;
     /**
-     * Activates the card (opens the item's detail route). The card cannot be a
-     * static router `<Link>`: the detail route needs the item's latest version,
-     * which is only resolvable via a per-item fetch — so navigation is resolved on
-     * click by the parent rather than precomputed, to avoid an N+1 on render.
+     * Overrides the footer mono chip (e.g. a namespace on the landing highlights).
+     * When unset the footer falls back to the "N versions" scent or {@link customId}.
      */
-    onActivate: () => void;
+    meta?: string;
+    /** Thumbnail header height in px (default 96; landing highlights use a shorter one). */
+    thumbnailHeight?: number;
+    /** `data-testid` for the activation element (default `item-card`). */
+    testId?: string;
+    /**
+     * When set, the whole card is a router {@link Link} to this path — used by cards
+     * that navigate to a static route (e.g. a namespace page). When unset the card is
+     * a `<button>` calling {@link onActivate} (the detail route needs a per-item version
+     * fetch resolved on click, so it can't be a static Link).
+     */
+    href?: string;
+    /** Click handler for the button form; required when {@link href} is not set. */
+    onActivate?: () => void;
 }
 
 /**
- * A browse card for a single namespace item: a type-tinted striped thumbnail
- * header, the item name, a 2-line-clamped description and a footer with its
- * {@link TypeBadge}. The name is a `<button>` whose stretched `::after` makes the
- * whole card the activation target for the item's detail route.
- *
- * The footer meta shows the "N versions" scent when the item carries a version
- * count (the version-map types); otherwise it falls back to the mono customId.
+ * A browse card for a single resource: a type-tinted striped thumbnail header, the
+ * item name, an optional 2-line-clamped description and a footer {@link TypeBadge}
+ * plus a mono meta chip. The name is the activation target — a `<button>` (default)
+ * or a router {@link Link} when {@link href} is given — whose stretched `::after`
+ * makes the whole card clickable while keeping its accessible name to just the name.
  */
-export function ItemCard({ name, description, type, customId, versionCount, onActivate }: ItemCardProps) {
+export function ItemCard({
+    name,
+    description,
+    type,
+    customId,
+    versionCount,
+    meta,
+    thumbnailHeight = 96,
+    testId = 'item-card',
+    href,
+    onActivate,
+}: ItemCardProps) {
     const { accent, tint } = getResourceTypeColors(type);
     // Striped header derived from the type's own tokens (tint + accent at low
     // alpha) rather than hardcoded mockup hexes, so it tracks the palette.
     const stripes = `repeating-linear-gradient(135deg, ${tint}, ${tint} 7px, ${accent}20 7px, ${accent}20 14px)`;
 
-    // A `<button>` can't legally wrap the card's block content (it takes phrasing
-    // content only). So the card is a positioned `<article>` holding the visual
-    // content, and a single `<button>` whose `::after` (`after:absolute
-    // after:inset-0`) stretches over the whole card to keep the full-card click
-    // target. The button's text is just the item name, so its accessible name is
-    // the name (not name + description + badge + customId).
+    // A `<button>`/`<a>` can't legally wrap the card's block content (phrasing content
+    // only). So the card is a positioned `<article>` and the activation element's
+    // `::after` (`after:absolute after:inset-0`) stretches over the whole card to keep
+    // the full-card click target, while its accessible name stays just the item name.
+    const activationClass =
+        "block w-full text-left text-[14px] font-semibold truncate rounded-[2px] no-underline after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interaction)]";
+
+    // Footer chip: an explicit meta override, else the "N versions" scent, else the customId.
+    const chip =
+        meta !== undefined
+            ? meta
+            : versionCount !== undefined
+              ? `${versionCount} ${versionCount === 1 ? 'version' : 'versions'}`
+              : customId;
+
     return (
         <article
             className="group relative rounded-[12px] overflow-hidden bg-base-100 hover:-translate-y-0.5 hover:shadow-md"
@@ -55,17 +85,23 @@ export function ItemCard({ name, description, type, customId, versionCount, onAc
                 transition: redesignTokens.transition,
             }}
         >
-            <div style={{ height: 96, background: stripes }} />
+            <div style={{ height: thumbnailHeight, background: stripes }} />
             <div className="p-[14px]">
-                <button
-                    type="button"
-                    data-testid="item-card"
-                    onClick={onActivate}
-                    className="block w-full text-left text-[14px] font-semibold truncate rounded-[2px] after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interaction)]"
-                    style={{ color: colors.redesign.ink }}
-                >
-                    {name}
-                </button>
+                {href ? (
+                    <Link to={href} data-testid={testId} className={activationClass} style={{ color: colors.redesign.ink }}>
+                        {name}
+                    </Link>
+                ) : (
+                    <button
+                        type="button"
+                        data-testid={testId}
+                        onClick={onActivate}
+                        className={activationClass}
+                        style={{ color: colors.redesign.ink }}
+                    >
+                        {name}
+                    </button>
+                )}
                 {description && (
                     <p
                         className="text-[12px] leading-[1.45] mt-[5px] mb-[11px] line-clamp-2"
@@ -74,29 +110,17 @@ export function ItemCard({ name, description, type, customId, versionCount, onAc
                         {description}
                     </p>
                 )}
-                {/* No stacking context here: the button's transparent stretched
-                    `::after` overlays the footer so a click anywhere on the card
-                    (including over the badge/customId) activates it. */}
+                {/* No stacking context here: the transparent stretched `::after` overlays
+                    the footer so a click anywhere on the card activates it. */}
                 <div className={`flex items-center gap-2 ${description ? '' : 'mt-[11px]'}`}>
                     <TypeBadge type={type} />
-                    {/* "N versions" scent for the version-map types; otherwise the
-                        customId. A genuine 0 still reads as "0 versions". */}
-                    {versionCount !== undefined ? (
+                    {chip !== undefined && (
                         <span
                             className="font-mono-jb text-[10.5px] ml-auto truncate"
                             style={{ color: colors.redesign.mutedAlt }}
                         >
-                            {versionCount} {versionCount === 1 ? 'version' : 'versions'}
+                            {chip}
                         </span>
-                    ) : (
-                        customId && (
-                            <span
-                                className="font-mono-jb text-[10.5px] ml-auto truncate"
-                                style={{ color: colors.redesign.mutedAlt }}
-                            >
-                                {customId}
-                            </span>
-                        )
                     )}
                 </div>
             </div>
