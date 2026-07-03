@@ -371,7 +371,7 @@ The `--exit-code` flag makes the command exit non-zero when any change (includin
 
 #### Diffing a CALM timeline
 
-Pass `--timeline` instead of `-a`/`-b` to diff the moments of a [CALM timeline](#calm-timeline) (see below for generating one). With no `--from`/`--to`, every adjacent pair of moments is diffed in turn:
+Pass `--timeline` instead of `-a`/`-b` to diff the moments of a [CALM timeline](#synthesising-a-calm-timeline) (see below for generating one). With no `--from`/`--to`, every adjacent pair of moments is diffed in turn:
 
 ```shell
 % calm diff --timeline ./calm-timeline.json --format summary
