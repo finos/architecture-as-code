@@ -61,9 +61,16 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
     // starts from a clean slate.
     const onDragEnter = useCallback(() => setDropError(undefined), []);
 
+    // A file rejected by `accept` (wrong type) never reaches onDrop's acceptedFiles,
+    // so surface it here rather than failing silently.
+    const onDropRejected = useCallback(() => {
+        setDropError('That file type isn’t supported — drop a CALM JSON file (architecture / pattern).');
+    }, []);
+
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         onDragEnter,
+        onDropRejected,
         accept: { 'application/json': ['.json'] },
     });
 

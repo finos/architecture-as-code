@@ -38,6 +38,7 @@ export default function Hub() {
     // zero, so consumers must render them as unknown rather than a misleading 0.
     const [namespaceCountsFailed, setNamespaceCountsFailed] = useState(false);
     const [domainCounts, setDomainCounts] = useState<DomainControlCount[]>([]);
+    const [domainCountsLoaded, setDomainCountsLoaded] = useState(false);
     const isMobile = useIsMobile();
 
     // Route-first content selection (redesign problem #4): the same <Hub/> element
@@ -71,7 +72,11 @@ export default function Hub() {
             // unknown (loading)" from "known zero" — an absent namespace after a
             // successful fetch is genuinely zero, not still loading.
             .finally(() => setNamespaceCountsLoaded(true));
-        countsService.fetchDomainCounts().then(setDomainCounts).catch(() => setDomainCounts([]));
+        countsService
+            .fetchDomainCounts()
+            .then(setDomainCounts)
+            .catch(() => setDomainCounts([]))
+            .finally(() => setDomainCountsLoaded(true));
     }, [countsService]);
 
     useEffect(() => {
@@ -210,7 +215,9 @@ export default function Hub() {
             <FirstRunLanding
                 namespaceCounts={namespaceCounts}
                 domainCounts={domainCounts}
-                countsLoaded={namespaceCountsLoaded}
+                // Both must settle: the tiles include a Controls total from domainCounts,
+                // so gating on namespace counts alone would flash a 0 for Controls.
+                countsLoaded={namespaceCountsLoaded && domainCountsLoaded}
             />
         );
 
