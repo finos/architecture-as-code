@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
@@ -96,7 +96,7 @@ describe('ArchitectureGraph', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
             expect(miniMapProps.current?.maskStrokeColor).toBe('#2563EB');
             expect(miniMapProps.current?.maskStrokeWidth).toBe(1.5);
-            // Light (~25%) mask via the existing `${color}AA` alpha-suffix pattern.
+            // Light (~25%) mask via the `${color}40` alpha-suffix pattern.
             expect(String(miniMapProps.current?.maskColor)).toMatch(/^#F8FAFC40$/i);
         });
 
@@ -125,6 +125,13 @@ describe('ArchitectureGraph', () => {
     });
 
     describe('mobile', () => {
+        // Restore the real matchMedia after each mobile test so the "mobile" viewport
+        // doesn't leak into later tests (in this or other files).
+        const originalMatchMedia = window.matchMedia;
+        afterEach(() => {
+            window.matchMedia = originalMatchMedia;
+        });
+
         function mockMobileViewport() {
             window.matchMedia = (query: string) =>
                 ({

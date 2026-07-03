@@ -38,7 +38,7 @@ export function TimelineHeader({ currentVersion, children }: TimelineHeaderProps
             </span>
             <span
                 data-testid="timeline-version-pill"
-                className="font-mono-jb rounded-full"
+                className="font-mono-jb rounded-full ml-auto"
                 style={{
                     backgroundColor: colors.redesign.tintBg,
                     color: colors.redesign.primary,
