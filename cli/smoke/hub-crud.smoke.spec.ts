@@ -56,6 +56,7 @@ describe('Flow 1: hub push/pull/list', () => {
 
     test('list architectures shows the mapping', async () => {
         const { stdout } = await cli.run(['hub', 'list', 'architectures', '--namespace', NS, '-c', SMOKE_HUB_URL]);
+        expect(await api.listMappings(NS, TYPE)).toContain(MAPPING);
         expect(stdout).toContain(MAPPING);
     });
 
@@ -75,6 +76,8 @@ describe('Flow 1: hub push/pull/list', () => {
         const versions = await api.listVersions(NS, TYPE, MAPPING);
         expect(versions).toContain('1.0.0');
         expect(versions).toContain('1.0.1');
+        const bumped = await api.getDocument(NS, TYPE, MAPPING, '1.0.1');
+        expect((bumped.nodes as { description: string }[])[0].description).toBe('changed');
     });
 
     test('--fail-if-modified skips an unchanged doc without creating a version', async () => {
