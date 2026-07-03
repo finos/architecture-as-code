@@ -32,10 +32,14 @@ export function NodeSheet({ selectedData, closeSheet, onPrev, onNext }: NodeShee
     const isNode = isCALMNode(selectedData);
 
     return (
-        <div className="fixed inset-0 z-40" role="dialog" aria-modal="true" data-testid="node-sheet">
-            {/* Transparent backdrop: the diagram shows through (peek) and a tap dismisses. */}
+        <div className="fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Details" data-testid="node-sheet">
+            {/* Transparent backdrop: the diagram shows through (peek) and a tap dismisses.
+                Kept out of the tab order (tabIndex -1) — it's a redundant, unfocusable
+                dismiss target; the close button below is the keyboard-reachable one. */}
             <button
-                aria-label="Close node details"
+                type="button"
+                aria-label="Close by tapping outside"
+                tabIndex={-1}
                 className="absolute inset-0 w-full h-full cursor-default"
                 onClick={closeSheet}
             />
@@ -78,7 +82,8 @@ export function NodeSheet({ selectedData, closeSheet, onPrev, onNext }: NodeShee
                         </>
                     )}
                     <button
-                        aria-label="close-sidebar"
+                        type="button"
+                        aria-label="Close details"
                         onClick={closeSheet}
                         className="btn btn-ghost btn-xs btn-circle"
                     >

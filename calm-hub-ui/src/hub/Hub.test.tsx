@@ -570,7 +570,7 @@ describe('Hub', () => {
             fireEvent.click(screen.getByTestId('select-node'));
             expect(screen.getByTestId('node-sheet')).toBeInTheDocument();
 
-            fireEvent.click(screen.getByRole('button', { name: /close-sidebar/i }));
+            fireEvent.click(screen.getByRole('button', { name: /close details/i }));
             expect(screen.queryByTestId('node-sheet')).not.toBeInTheDocument();
 
             restore();

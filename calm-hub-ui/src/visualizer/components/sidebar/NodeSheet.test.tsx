@@ -39,14 +39,14 @@ describe('NodeSheet', () => {
     it('closes via the close button', () => {
         const closeSheet = vi.fn();
         render(<NodeSheet selectedData={nodeData} closeSheet={closeSheet} />);
-        fireEvent.click(screen.getByRole('button', { name: /close-sidebar/i }));
+        fireEvent.click(screen.getByRole('button', { name: /close details/i }));
         expect(closeSheet).toHaveBeenCalledTimes(1);
     });
 
     it('closes when the backdrop is tapped (diagram peeks above)', () => {
         const closeSheet = vi.fn();
         render(<NodeSheet selectedData={nodeData} closeSheet={closeSheet} />);
-        fireEvent.click(screen.getByRole('button', { name: /close node details/i }));
+        fireEvent.click(screen.getByRole('button', { name: /close by tapping outside/i }));
         expect(closeSheet).toHaveBeenCalledTimes(1);
     });
 
