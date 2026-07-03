@@ -102,6 +102,7 @@ describe('Flow 3: workspace check -> bump -> push', () => {
         expect(readJson(aFile).$id).toBe(aId('1.1.0'));
         // B's reference to A must now point at A@1.1.0.
         expect(JSON.stringify(readJson(bFile))).toContain(aId('1.1.0'));
+        expect(readJson(bFile).$id).toBe(bId('1.1.0'));
     });
 
     test('workspace push publishes the bumped versions and check is clean again', async () => {
