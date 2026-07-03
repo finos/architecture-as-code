@@ -5,10 +5,7 @@ import { colors } from '../../../../theme/colors.js';
 interface TimelineHeaderProps {
     /** The version currently shown in the main area — surfaced as the mono pill. */
     currentVersion: string;
-    /**
-     * Trailing controls (NEW pill, expand/collapse chevron). Rendered after the
-     * version pill, pushed to the right by the flex row.
-     */
+    /** Trailing controls (NEW pill, expand/collapse chevron), rendered after the version pill. */
     children?: ReactNode;
 }
 
@@ -17,8 +14,9 @@ interface TimelineHeaderProps {
  *
  * Names the strip's purpose — "Browse versions" with an explanatory line — so it
  * no longer reads as an inert "Timeline" slider (redesign problem #4), and shows
- * the current version as a right-aligned mono pill. The explanatory copy makes it
- * obvious that clicking a moment re-renders both the Diagram and JSON views.
+ * the current version as a mono pill (inline after the label, gap-separated). The
+ * explanatory copy makes it obvious that clicking a moment re-renders both the
+ * Diagram and JSON views.
  */
 export function TimelineHeader({ currentVersion, children }: TimelineHeaderProps) {
     return (
@@ -38,7 +36,7 @@ export function TimelineHeader({ currentVersion, children }: TimelineHeaderProps
             </span>
             <span
                 data-testid="timeline-version-pill"
-                className="font-mono-jb rounded-full ml-auto"
+                className="font-mono-jb rounded-full"
                 style={{
                     backgroundColor: colors.redesign.tintBg,
                     color: colors.redesign.primary,

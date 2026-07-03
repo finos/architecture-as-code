@@ -162,7 +162,7 @@ export function Sparkline({
                     <div className="absolute" style={{ left: 10, right: 10, top: 0, bottom: 0 }}>
                         <div
                             className="absolute"
-                            style={{ left: 0, right: 0, top: 18, height: 2, backgroundColor: colors.ink[200] }}
+                            style={{ left: 0, right: 0, top: 15, height: 2, backgroundColor: colors.ink[200] }}
                         />
                         {progressRight > progressLeft && (
                             <div
@@ -171,7 +171,7 @@ export function Sparkline({
                                 style={{
                                     left: `${progressLeft}%`,
                                     width: `${progressRight - progressLeft}%`,
-                                    top: 18,
+                                    top: 15,
                                     height: 2,
                                     backgroundColor: colors.redesign.primary,
                                 }}
