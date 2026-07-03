@@ -27,7 +27,8 @@ export function buildContainerForest(
     nodes: CalmNodeCanonicalModel[],
     parentOf: Map<string, string>,
     containerIdsToRender: Set<string>,
-    renderInterfaces: boolean
+    renderInterfaces: boolean,
+    activeInterfaceIds?: Set<string>
 ): { containers: VMContainer[]; attachments: VMAttach[]; looseNodes: VMLeafNode[] } {
     const byId = new Map(nodes.map(n => [n['unique-id'], n] as const));
     const attachments: VMAttach[] = [];
@@ -54,12 +55,12 @@ export function buildContainerForest(
         if (pid && containerIdsToRender.has(pid)) {
             const cont = vmContainers.get(pid);
             if (cont) {
-                const { node: leafNode, attachments: nodeAttachments } = nodeFactory.createLeafNode(n, renderInterfaces);
+                const { node: leafNode, attachments: nodeAttachments } = nodeFactory.createLeafNode(n, renderInterfaces, activeInterfaceIds);
                 cont.nodes.push(leafNode);
                 attachments.push(...nodeAttachments);
             }
         } else {
-            const { node: leafNode, attachments: nodeAttachments } = nodeFactory.createLeafNode(n, renderInterfaces);
+            const { node: leafNode, attachments: nodeAttachments } = nodeFactory.createLeafNode(n, renderInterfaces, activeInterfaceIds);
             looseNodes.push(leafNode);
             attachments.push(...nodeAttachments);
         }

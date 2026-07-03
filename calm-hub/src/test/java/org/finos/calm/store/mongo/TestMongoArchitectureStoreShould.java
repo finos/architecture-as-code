@@ -18,7 +18,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Architecture;
-import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -117,26 +117,30 @@ public class TestMongoArchitectureStoreShould {
         archDetailMap1.put("architectureId", 1001);
         archDetailMap1.put("name", "Arch One");
         archDetailMap1.put("description", "First architecture");
+        archDetailMap1.put("versions", new Document("1-0-0", new Document()).append("2-0-0", new Document()));
         Document doc1 = new Document(archDetailMap1);
 
         Map<String, Object> archDetailMap2 = new HashMap<>();
         archDetailMap2.put("architectureId", 1002);
         archDetailMap2.put("name", "Arch Two");
         archDetailMap2.put("description", "Second architecture");
+        archDetailMap2.put("versions", new Document("1-0-0", new Document()));
         Document doc2 = new Document(archDetailMap2);
 
         when(documentMock.getList("architectures", Document.class))
                 .thenReturn(Arrays.asList(doc1, doc2));
 
-        List<NamespaceArchitectureSummary> architectures = mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> architectures = mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         assertThat(architectures.size(), is(2));
         assertThat(architectures.get(0).getName(), is("Arch One"));
         assertThat(architectures.get(0).getDescription(), is("First architecture"));
         assertThat(architectures.get(0).getId(), is(1001));
+        assertThat(architectures.get(0).getVersionCount(), is(2));
         assertThat(architectures.get(1).getName(), is("Arch Two"));
         assertThat(architectures.get(1).getDescription(), is("Second architecture"));
         assertThat(architectures.get(1).getId(), is(1002));
+        assertThat(architectures.get(1).getVersionCount(), is(1));
         verify(namespaceStore).namespaceExists(NAMESPACE);
     }
 
@@ -155,12 +159,14 @@ public class TestMongoArchitectureStoreShould {
         when(documentMock.getList("architectures", Document.class))
                 .thenReturn(List.of(legacyDoc));
 
-        List<NamespaceArchitectureSummary> architectures = mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> architectures = mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         assertThat(architectures.size(), is(1));
         assertThat(architectures.get(0).getName(), is("Architecture 42"));
         assertThat(architectures.get(0).getDescription(), is(""));
         assertThat(architectures.get(0).getId(), is(42));
+        // Legacy document carries no versions sub-document → count guards to 0.
+        assertThat(architectures.get(0).getVersionCount(), is(0));
     }
 
     private FindIterable<Document> setupInvalidArchitecture() {

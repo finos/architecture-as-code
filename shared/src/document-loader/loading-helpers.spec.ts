@@ -2,11 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resolveSchemaRef, loadArchitectureAndPattern, loadArchitecture, loadPattern, loadPatternFromDocumentIfPresent } from './loading-helpers';
 import { DocumentLoader } from './document-loader';
 import { SchemaDirectory } from '../schema-directory';
-import { Logger } from '../logger';
+import { createMockLogger } from '../test/test-utils';
 
 describe('resolveSchemaRef', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mockLogger: any = { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+    const mockLogger = createMockLogger();
 
     beforeEach(() => {
         vi.resetAllMocks();
@@ -66,7 +65,7 @@ describe('resolveSchemaRef', () => {
 });
 
 describe('loading helpers', () => {
-    const mockLogger = { debug: vi.fn(), warn: vi.fn(), error: vi.fn(), log: vi.fn(), info: vi.fn() } as unknown as Logger;
+    const mockLogger = createMockLogger();
     const mockDocLoader = {
         loadMissingDocument: vi.fn(),
         initialise: vi.fn(),

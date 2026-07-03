@@ -1,0 +1,104 @@
+{
+  "nodes": [
+    {
+      "unique-id": "payment-service",
+      "node-type": "service",
+      "name": "Payment Service",
+      "description": "Processes customer payments",
+      "interfaces": [
+        {
+          "unique-id": "payment-api",
+          "protocol": "HTTPS",
+          "port": 8080,
+          "path": "/api/v1/payments"
+        },
+        {
+          "unique-id": "audit-log-iface",
+          "protocol": "AMQP",
+          "port": 5672,
+          "path": "/audit"
+        }
+      ]
+    },
+    {
+      "unique-id": "fraud-service",
+      "node-type": "service",
+      "name": "Fraud Detection Service",
+      "description": "Analyses transactions for fraudulent activity",
+      "interfaces": [
+        {
+          "unique-id": "fraud-check-api",
+          "protocol": "HTTPS",
+          "port": 9090,
+          "path": "/api/v1/check"
+        },
+        {
+          "unique-id": "risk-model-iface",
+          "protocol": "gRPC",
+          "port": 50051,
+          "path": "/risk"
+        },
+        {
+          "unique-id": "score-db-iface",
+          "protocol": "JDBC",
+          "port": 5432,
+          "path": "/scores"
+        }
+      ]
+    },
+    {
+      "unique-id": "notification-service",
+      "node-type": "service",
+      "name": "Notification Service",
+      "description": "Sends alerts and confirmations to customers",
+      "interfaces": [
+        {
+          "unique-id": "email-iface",
+          "protocol": "SMTP",
+          "port": 587,
+          "path": "/email"
+        },
+        {
+          "unique-id": "sms-iface",
+          "protocol": "HTTPS",
+          "port": 443,
+          "path": "/sms"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "payment-to-fraud",
+      "description": "Payment Service calls Fraud Detection before authorising a transaction",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "payment-service",
+            "interfaces": ["payment-api"]
+          },
+          "destination": {
+            "node": "fraud-service",
+            "interfaces": ["fraud-check-api"]
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "payment-to-notification",
+      "description": "Payment Service triggers notifications on transaction events",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "payment-service",
+            "interfaces": ["payment-api"]
+          },
+          "destination": {
+            "node": "notification-service",
+            "interfaces": ["email-iface"]
+          }
+        }
+      }
+    }
+  ]
+}

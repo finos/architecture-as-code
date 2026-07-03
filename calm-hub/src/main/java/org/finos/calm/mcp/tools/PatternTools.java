@@ -13,7 +13,7 @@ import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
-import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
@@ -52,7 +52,7 @@ public class PatternTools {
         if (err.isPresent()) return err.get();
 
         try {
-            List<NamespacePatternSummary> patterns = patternStore.getPatternsForNamespace(namespace);
+            List<NamespaceResourceSummary> patterns = patternStore.getPatternsForNamespace(namespace);
             List<McpResponseFormatter.ResourceSummary> summaries = patterns.stream()
                     .map(p -> new McpResponseFormatter.ResourceSummary(p.getId(), p.getName(), p.getDescription()))
                     .toList();

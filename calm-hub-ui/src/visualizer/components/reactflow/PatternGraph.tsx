@@ -23,6 +23,8 @@ import { parsePatternData } from './utils/patternTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
 import { applyStoredPositions } from '../../services/node-position-service.js';
+import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useNodeSearch } from './node-search-context.js';
 import { DecisionSelectorPanel } from './DecisionSelectorPanel.js';
 import {
     extractDecisionPoints,
@@ -55,8 +57,8 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
 
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [typeFilter, setTypeFilter] = useState('');
+    const { searchTerm, setSearchTerm, typeFilter, setTypeFilter, availableNodeTypes, setAvailableNodeTypes, external: externalSearch } =
+        useNodeSearch();
     const [decisionSelections, setDecisionSelections] = useState<DecisionSelections>(new Map());
 
     // Refs hold the structural node/edge data from parsing.
@@ -65,8 +67,8 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
     const sourceNodesRef = useRef<Node[]>([]);
     const sourceEdgesRef = useRef<Edge[]>([]);
 
-    const [availableNodeTypes, setAvailableNodeTypes] = useState<string[]>([]);
     const [decisionPoints, setDecisionPoints] = useState<ReturnType<typeof extractDecisionPoints>>([]);
+    const isMobile = useIsMobile();
 
     const {
         onNodesChange,
@@ -93,7 +95,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
         setDecisionPoints(extractDecisionPoints(parsedNodes));
-    }, [patternData, setNodes, setEdges, viewportKey]);
+    }, [patternData, setNodes, setEdges, setAvailableNodeTypes, viewportKey]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';
@@ -192,21 +194,25 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                 style={{ background: THEME.colors.background }}
             >
                 <Background color={THEME.colors.border} gap={16} />
-                <Controls
-                    style={{
-                        background: THEME.colors.card,
-                        border: `1px solid ${THEME.colors.border}`,
-                        borderRadius: '8px',
-                    }}
-                />
-                <MiniMap
-                    style={{
-                        background: THEME.colors.backgroundSecondary,
-                        border: `1px solid ${THEME.colors.border}`,
-                    }}
-                    nodeColor={THEME.colors.accent}
-                    maskColor={`${THEME.colors.background}cc`}
-                />
+                {!isMobile && (
+                    <Controls
+                        style={{
+                            background: THEME.colors.card,
+                            border: `1px solid ${THEME.colors.border}`,
+                            borderRadius: '8px',
+                        }}
+                    />
+                )}
+                {!isMobile && (
+                    <MiniMap
+                        style={{
+                            background: THEME.colors.backgroundSecondary,
+                            border: `1px solid ${THEME.colors.border}`,
+                        }}
+                        nodeColor={THEME.colors.accent}
+                        maskColor={`${THEME.colors.background}cc`}
+                    />
+                )}
                 <Panel position="top-left">
                     <DecisionSelectorPanel
                         decisionPoints={decisionPoints}
@@ -215,6 +221,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                         onReset={handleDecisionReset}
                     />
                 </Panel>
+                {!externalSearch && (
                 <Panel position="top-right">
                     <SearchBar
                         searchTerm={searchTerm}
@@ -224,6 +231,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                         nodeTypes={availableNodeTypes}
                     />
                 </Panel>
+                )}
             </ReactFlow>
         </div>
     );

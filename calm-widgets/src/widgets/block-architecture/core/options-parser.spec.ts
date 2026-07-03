@@ -49,6 +49,10 @@ describe('options-parser', () => {
         expect(parseOptions({ 'render-interfaces': true }).renderInterfaces).toBe(true);
     });
 
+    it('render-interfaces: accepts related as a third mode', () => {
+        expect(parseOptions({ 'render-interfaces': 'related' }).renderInterfaces).toBe('related');
+    });
+
     it('passes through link-prefix', () => {
         const out = parseOptions({ 'link-prefix': '/docs/' });
         expect(out.linkPrefix).toBe('/docs/');

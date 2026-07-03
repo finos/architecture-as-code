@@ -1,4 +1,15 @@
 .logo {
-    max-width: unset;
+    /* Allow the logo to shrink within the navbar instead of forcing the bar
+       wider than the viewport on narrow screens. */
+    max-width: 100%;
     height: inherit;
+}
+
+/* Respect device safe areas (notch / rounded corners) and never let the bar
+   exceed the viewport width. */
+.navbar {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+    max-width: 100vw;
 }

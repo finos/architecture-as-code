@@ -105,9 +105,9 @@ public class MappingControllerService {
      */
     public Response updateVersionedResource(ResourceType resourceType, String namespace, String type,
                                             String name, int numericId, String version,
-                                            String storedBody) throws URISyntaxException {
+                                            String title, String description, String storedBody) throws URISyntaxException {
         try {
-            updateVersionedResourceInStore(resourceType, namespace, numericId, version, storedBody);
+            updateVersionedResourceInStore(resourceType, namespace, numericId, version, title, description, storedBody);
             URI location = new URI("/calm/namespaces/" + namespace + "/" + type
                     + "/" + name + "/versions/" + version);
             return Response.created(location).build();
@@ -222,8 +222,8 @@ public class MappingControllerService {
                 + "/controls/" + controlName + "/requirement/versions/" + version;
         String actualId;
         try {
-            actualId = documentParser.extractIdFromJson(requestBody);
-        } catch (Exception e) {
+            actualId = documentParser.extractIdFromJsonStrict(requestBody);
+        } catch (JsonProcessingException e) {
             return invalidJsonResponse("Cannot parse request body as JSON");
         }
         if (actualId == null || actualId.isBlank()) {
@@ -288,8 +288,8 @@ public class MappingControllerService {
                 + "/controls/" + controlName + "/configurations/" + configName + "/versions/" + version;
         String actualId;
         try {
-            actualId = documentParser.extractIdFromJson(requestBody);
-        } catch (Exception e) {
+            actualId = documentParser.extractIdFromJsonStrict(requestBody);
+        } catch (JsonProcessingException e) {
             return invalidJsonResponse("Cannot parse request body as JSON");
         }
         if (actualId == null || actualId.isBlank()) {
@@ -491,8 +491,14 @@ public class MappingControllerService {
                                 + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
             }
             String newVersion = versionSpec.version();
+            String title = documentParser.extractStringField(json, "title");
+            if (title.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("'title' is required in the document body").build();
+            }
+            String description = documentParser.extractStringField(json, "description");
             createVersionedResourceInStore(mapping.getResourceType(), namespace,
-                    mapping.getNumericId(), newVersion, json);
+                    mapping.getNumericId(), newVersion, json, title, description);
 
             URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name + "/versions/" + newVersion);
             return Response.created(location).build();
@@ -557,7 +563,7 @@ public class MappingControllerService {
      * Creates a new version of an existing resource in the type-specific store.
      */
     private void createVersionedResourceInStore(ResourceType type, String namespace, int numericId,
-                                                 String version, String json) throws Exception {
+                                                 String version, String json, String title, String description) throws Exception {
         // Strip the verified $id before storage (re-derived on read; Mongo rejects a top-level $id).
         json = documentParser.stripId(json);
         switch (type) {
@@ -567,6 +573,8 @@ public class MappingControllerService {
                         .setId(numericId)
                         .setVersion(version)
                         .setPattern(json)
+                        .setName(title)
+                        .setDescription(description)
                         .build();
                 patternStore.createPatternForVersion(pattern);
             }
@@ -576,6 +584,8 @@ public class MappingControllerService {
                         .setId(numericId)
                         .setVersion(version)
                         .setArchitecture(json)
+                        .setName(title)
+                        .setDescription(description)
                         .build();
                 architectureStore.createArchitectureForVersion(arch);
             }
@@ -585,15 +595,17 @@ public class MappingControllerService {
                         .setId(numericId)
                         .setVersion(version)
                         .setFlow(json)
+                        .setName(title)
+                        .setDescription(description)
                         .build();
                 flowStore.createFlowForVersion(flow);
             }
             case STANDARD -> {
-                CreateStandardRequest req = new CreateStandardRequest("", "", json);
+                CreateStandardRequest req = new CreateStandardRequest(title, description, json);
                 standardStore.createStandardForVersion(req, namespace, numericId, version);
             }
             case INTERFACE -> {
-                CreateInterfaceRequest req = new CreateInterfaceRequest("", "", json);
+                CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
                 interfaceStore.createInterfaceForVersion(req, namespace, numericId, version);
             }
         }
@@ -605,7 +617,7 @@ public class MappingControllerService {
      * and {@link ResourceType#FLOW} only.
      */
     private void updateVersionedResourceInStore(ResourceType type, String namespace, int numericId,
-                                                String version, String json) throws Exception {
+                                                String version, String json, String title, String description) throws Exception {
         switch (type) {
             case PATTERN -> {
                 Pattern pattern = new Pattern.PatternBuilder()
@@ -613,6 +625,8 @@ public class MappingControllerService {
                         .setId(numericId)
                         .setVersion(version)
                         .setPattern(json)
+                        .setName(title)
+                        .setDescription(description)
                         .build();
                 patternStore.updatePatternForVersion(pattern);
             }
@@ -622,6 +636,8 @@ public class MappingControllerService {
                         .setId(numericId)
                         .setVersion(version)
                         .setArchitecture(json)
+                        .setName(title)
+                        .setDescription(description)
                         .build();
                 architectureStore.updateArchitectureForVersion(arch);
             }
@@ -631,6 +647,8 @@ public class MappingControllerService {
                         .setId(numericId)
                         .setVersion(version)
                         .setFlow(json)
+                        .setName(title)
+                        .setDescription(description)
                         .build();
                 flowStore.updateFlowForVersion(flow);
             }

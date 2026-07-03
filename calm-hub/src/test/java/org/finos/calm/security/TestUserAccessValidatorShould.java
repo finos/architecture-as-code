@@ -182,4 +182,70 @@ class TestUserAccessValidatorShould {
         // org.ab.cd has no grant in the combined list → excluded
         assertEquals(Optional.of(Set.of("org", "org.ab")), validator.getReadableNamespaces("mark"));
     }
+
+    // --- getReadableDomains: bypass cases (Optional.empty() means "all domains") ---
+
+    @Test
+    void return_empty_optional_for_domains_when_allow_public_read_is_true() {
+        validator.allowPublicRead = true;
+
+        assertEquals(Optional.empty(), validator.getReadableDomains("alice"));
+    }
+
+    @Test
+    void return_empty_optional_for_domains_for_global_admin_user() {
+        when(mockUserAccessStore.getGrantsForUser("admin")).thenReturn(List.of(
+                grant("admin", UserAccess.Permission.admin, CalmHubPermissionChecker.GLOBAL_ACCESS)
+        ));
+
+        assertEquals(Optional.empty(), validator.getReadableDomains("admin"));
+    }
+
+    // --- getReadableDomains: no grants → present empty set, distinct from bypass ---
+
+    @Test
+    void return_present_empty_set_for_domains_when_user_has_no_grants() {
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+
+        Optional<Set<String>> result = validator.getReadableDomains("alice");
+        assertTrue(result.isPresent());
+        assertTrue(result.get().isEmpty());
+    }
+
+    // --- getReadableDomains: subset and source filtering ---
+
+    @Test
+    void return_domains_covered_by_read_sufficient_grants() {
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(
+                domainGrant("alice", UserAccess.Permission.read, "security"),
+                domainGrant("alice", UserAccess.Permission.write, "payments")
+        ));
+
+        assertEquals(Optional.of(Set.of("security", "payments")), validator.getReadableDomains("alice"));
+    }
+
+    @Test
+    void return_domain_covered_by_wildcard_grant() {
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(
+                domainGrant("*", UserAccess.Permission.read, "security")
+        ));
+
+        assertEquals(Optional.of(Set.of("security")), validator.getReadableDomains("alice"));
+    }
+
+    @Test
+    void exclude_namespace_grants_from_domain_results() {
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(
+                grant("alice", UserAccess.Permission.read, "finos"),
+                domainGrant("alice", UserAccess.Permission.read, "security")
+        ));
+
+        // The namespace grant has a null domain — only the domain grant appears.
+        assertEquals(Optional.of(Set.of("security")), validator.getReadableDomains("alice"));
+    }
+
+    private UserAccess domainGrant(String username, UserAccess.Permission permission, String domain) {
+        return new UserAccess.UserAccessBuilder()
+                .setUsername(username).setPermission(permission).setDomain(domain).build();
+    }
 }

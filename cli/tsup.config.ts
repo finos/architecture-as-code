@@ -7,7 +7,7 @@ export default defineConfig({
     format: ['cjs'],
     sourcemap: false,
     clean: true,
-    external: ['canvas', 'fsevents', '@apidevtools/json-schema-ref-parser', /node_modules/, 'ts-node'],
+    external: ['canvas', 'fsevents', '@apidevtools/json-schema-ref-parser', /node_modules/, 'ts-node', 'playwright-core', 'mermaid', '@mermaid-js/layout-elk'],
     noExternal: ['@finos/calm-shared', '@finos/calm-widgets','@finos/calm-models', /tsup/],
     bundle: true,
     splitting: false,

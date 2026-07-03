@@ -15,21 +15,25 @@ import org.slf4j.LoggerFactory;
 import java.util.Set;
 
 /**
- * When {@code calm.readonly=true} this filter intercepts every request on the
- * {@code /calm/*} path and rejects any mutating HTTP method (POST, PUT, DELETE,
- * PATCH) with {@code 405 Method Not Allowed}.  Read-only methods (GET, HEAD,
- * OPTIONS) are passed through unchanged.
+ * When {@code calm.readonly=true} this filter rejects any mutating HTTP method
+ * (POST, PUT, DELETE, PATCH) on <em>every</em> path with {@code 405 Method Not
+ * Allowed}.  Read-only methods (GET, HEAD, OPTIONS) are passed through unchanged.
+ *
+ * <p>The path is intentionally not checked.  Every mutating JAX-RS resource in
+ * CALM Hub lives under {@code /calm/*} or {@code /api/calm/*}, so checking the
+ * method alone is both sufficient today and future-proof: adding a new API
+ * surface no longer requires a matching filter update (as was the case when
+ * {@code /api/calm} was introduced alongside the original {@code /calm} prefix).
  *
  * <p>This filter runs at priority 0 (before {@link AccessControlFilter} at
  * priority 1) so read-only violations are rejected before auth checks.
  *
  * <p>{@code @PreMatching} makes the filter run before JAX-RS resource matching.
  * Without it, {@code ContainerRequestFilter} runs after the router has tried to
- * locate a resource, so an unmatched mutating verb (e.g. {@code DELETE
- * /calm/namespaces/finos} when no DELETE handler exists) would return 404
- * before this filter could see the request.  Pre-matching guarantees every
- * inbound {@code /calm/*} request is intercepted and returns 405 in read-only
- * mode regardless of whether a backing resource method exists.
+ * locate a resource, so an unmatched mutating verb would return 404 before this
+ * filter could see the request.  Pre-matching guarantees every inbound request
+ * is intercepted and returns 405 in read-only mode regardless of whether a
+ * backing resource method exists.
  */
 @ApplicationScoped
 @Provider
@@ -40,7 +44,6 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
     private static final Logger LOG = LoggerFactory.getLogger(ReadOnlyRequestFilter.class);
 
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "DELETE", "PATCH");
-    private static final String CALM_PATH_PREFIX = "/calm/";
     private static final String ALLOW_HEADER = "Allow";
     private static final String ALLOWED_METHODS = "GET, HEAD, OPTIONS";
 
@@ -65,16 +68,9 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
             return;
         }
 
-        // UriInfo#getPath() in RESTEasy may or may not include a leading slash;
-        // normalise so the prefix check is reliable in all deployments.
-        String rawPath = requestContext.getUriInfo().getPath();
-        String path = rawPath.startsWith("/") ? rawPath : "/" + rawPath;
-        if (!path.startsWith(CALM_PATH_PREFIX) && !path.equals("/calm")) {
-            return;
-        }
-
         String method = requestContext.getMethod();
         if (MUTATING_METHODS.contains(method)) {
+            String path = requestContext.getUriInfo().getPath();
             LOG.warn("Read-only mode: rejected {} {}", method, path);
             requestContext.abortWith(
                     Response.status(Response.Status.METHOD_NOT_ALLOWED)

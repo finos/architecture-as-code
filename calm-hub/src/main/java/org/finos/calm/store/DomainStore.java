@@ -25,4 +25,12 @@ public interface DomainStore {
      * @throws DomainAlreadyExistsException if a domain with the same name already exists
      */
     Domain createDomain(String name) throws DomainAlreadyExistsException;
+
+    /**
+     * Checks whether a domain with the given name exists.
+     *
+     * @param name the domain name to check
+     * @return true if the domain exists, false otherwise
+     */
+    boolean domainExists(String name);
 }

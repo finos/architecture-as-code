@@ -1,0 +1,37 @@
+name: Validate Mongo Seed Counters
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+      - 'release*'
+    paths:
+      - 'calm-hub/mongo/init-mongo.js'
+      - 'scripts/validate-mongo-seed-counters.js'
+  push:
+    branches:
+      - 'main'
+      - 'release*'
+    paths:
+      - 'calm-hub/mongo/init-mongo.js'
+      - 'scripts/validate-mongo-seed-counters.js'
+
+jobs:
+  validate-mongo-seed-counters:
+    name: Validate Mongo Seed Counters
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Validate Mongo seed counters against seeded entity ids
+        run: node scripts/validate-mongo-seed-counters.js

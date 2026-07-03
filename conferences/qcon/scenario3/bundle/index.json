@@ -1,0 +1,60 @@
+{
+  "name": "Trades Demo Infrastructure Bundle with Governance Validation",
+  "transformer": "governance-transformer",
+  "templates": [
+    {
+      "template": "deployer.hbs",
+      "from": "document",
+      "output": "deployer.sh",
+      "output-type": "single"
+    },
+    {
+      "template": "trades-deployment.yaml",
+      "from": "document",
+      "output": "kubernetes/trades-deployment.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "trades-service.yaml",
+      "from": "document",
+      "output": "kubernetes/trades-service.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "mcp-deployment.yaml",
+      "from": "document",
+      "output": "kubernetes/mcp-deployment.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "mcp-service.yaml",
+      "from": "document",
+      "output": "kubernetes/mcp-service.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "denied-symbols-configmap.yaml",
+      "from": "document",
+      "output": "kubernetes/denied-symbols-configmap.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "network-policy.yaml",
+      "from": "document",
+      "output": "kubernetes/network-policy.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "default-deny.yaml",
+      "from": "document",
+      "output": "kubernetes/default-deny.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "kustomization.yaml",
+      "from": "document",
+      "output": "kubernetes/kustomization.yaml",
+      "output-type": "single"
+    }
+  ]
+}

@@ -1,7 +1,10 @@
 package org.finos.calm.domain.adr;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.util.Objects;
 
+@RegisterForReflection
 public class NamespaceAdrSummary {
     private String title;
     private String status;

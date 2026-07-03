@@ -65,6 +65,23 @@
     border-right: none;
 }
 
+/* Stack the two comparison graphs vertically on narrow viewports so each one
+ * has enough room to be legible instead of being squeezed side by side. */
+@media (width <= 1023px) {
+    .architectures-container {
+        flex-direction: column;
+    }
+
+    .architecture-panel {
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .architecture-panel:last-child {
+        border-bottom: none;
+    }
+}
+
 .architecture-header {
     padding: 12px 16px;
     background: #f9fafb;

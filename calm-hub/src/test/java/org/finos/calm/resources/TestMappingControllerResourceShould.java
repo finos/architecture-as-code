@@ -1283,6 +1283,14 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void return_400_when_requirement_path_post_body_is_invalid_json() {
+        given().header("Content-Type", "application/json")
+                .body("{invalid-json")
+                .when().post("/calm/domains/security/controls/access-control/requirement/versions/1.0.0")
+                .then().statusCode(400).body(containsString("Cannot parse request body as JSON"));
+    }
+
+    @Test
     void return_409_when_requirement_version_already_exists() throws Exception {
         ControlDetail existing = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(existing));
@@ -1318,6 +1326,14 @@ public class TestMappingControllerResourceShould {
                 .body("   ")
                 .when().post("/calm/domains/security/controls/access-control/configurations/my-cfg/versions/1.0.0")
                 .then().statusCode(400);
+    }
+
+    @Test
+    void return_400_when_config_path_post_body_is_invalid_json() {
+        given().header("Content-Type", "application/json")
+                .body("{invalid-json")
+                .when().post("/calm/domains/security/controls/access-control/configurations/my-cfg/versions/1.0.0")
+                .then().statusCode(400).body(containsString("Cannot parse request body as JSON"));
     }
 
     @Test

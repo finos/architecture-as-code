@@ -324,6 +324,13 @@ describe('Widgets E2E - Handlebars Integration', () => {
             expectToBeSameIgnoringLineEndings(result, expected);
         });
 
+        it('renders only related interfaces when render-interfaces=related', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'render-interfaces-related');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
         it('filters architecture based on control matching by ID and properties', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-controls');
             const compiled = handlebars.compile(template);

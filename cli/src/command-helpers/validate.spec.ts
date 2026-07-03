@@ -247,6 +247,21 @@ describe('runValidate', () => {
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
     });
 
+    it('should exit 1 when neither architecture, pattern, nor timeline is resolved', async () => {
+        await runValidate({
+            architecturePath: undefined,
+            patternPath: undefined,
+            timelinePath: undefined,
+            metaSchemaPath: 'schemas',
+            verbose: false,
+            outputFormat: 'json',
+            outputPath: '',
+            strict: false,
+        });
+
+        expect(mocks.processExit).toHaveBeenCalledWith(1);
+    });
+
     it('should call process.exit(1) when an error occurs', async () => {
         const options: ValidateOptions = {
             architecturePath: 'arch.json',

@@ -11,7 +11,7 @@ import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
-import org.finos.calm.domain.standards.NamespaceStandardSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -75,7 +75,7 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
 
         // Act
-        List<NamespaceStandardSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -97,7 +97,7 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceStandardSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -119,7 +119,7 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceStandardSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -135,7 +135,10 @@ public class TestNitriteStandardStoreShould {
         fullStandard.put("standardId", 2);
         fullStandard.put("name", "Test Name");
         fullStandard.put("description", "Test Description");
+        fullStandard.put("versions", Document.createDocument().put("1-0-0", "{}").put("2-0-0", "{}"));
 
+        // standardDoc1 carries no versions sub-document → count guards to 0;
+        // standardDoc2 carries two versions → count is 2.
         Document standardDoc1 = Document.createDocument("standardId", 1);
         Document standardDoc2 = Document.createDocument(fullStandard);
         List<Document> standards = Arrays.asList(standardDoc1, standardDoc2);
@@ -149,15 +152,17 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceStandardSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
         assertThat(result.size(), is(2));
         assertThat(result.getFirst().getId(), is(1));
+        assertThat(result.getFirst().getVersionCount(), is(0));
         assertThat(result.get(1).getId(), is(2));
         assertThat(result.get(1).getDescription(), is("Test Description"));
         assertThat(result.get(1).getName(), is("Test Name"));
+        assertThat(result.get(1).getVersionCount(), is(2));
     }
 
     @Test

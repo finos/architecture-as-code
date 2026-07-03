@@ -4,6 +4,13 @@ import { registerGlobalTemplateHelpers } from './widget-helpers';
 describe('Widget Helpers', () => {
     const helpers = registerGlobalTemplateHelpers();
 
+    // Alphabetical order makes helpers easier to find and reduces merge conflicts
+    // when multiple contributors add helpers simultaneously.
+    it('helpers are defined in alphabetical order', () => {
+        const keys = Object.keys(helpers);
+        expect(keys).toEqual([...keys].sort());
+    });
+
     describe('eq helper', () => {
         it('returns true for equal values', () => {
             expect(helpers.eq(5, 5)).toBe(true);

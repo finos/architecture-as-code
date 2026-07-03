@@ -5,6 +5,7 @@ import { SearchService } from '../../service/search-service.js';
 import { CalmService } from '../../service/calm-service.js';
 import { AdrService } from '../../service/adr-service/adr-service.js';
 import { GroupedSearchResults, SearchResult } from '../../model/search.js';
+import { colors } from '../../theme/colors.js';
 
 interface FlatResult {
     type: string;
@@ -153,7 +154,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
             setResults(null);
 
             if (type === 'controls') {
-                navigate(`/${result.namespace}/controls/${result.id}/detail`);
+                navigate(`/${result.namespace}/controls/${result.name}/detail`);
                 return;
             }
 
@@ -253,7 +254,10 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
 
         return groups.map(([type, items]) => (
             <div key={type}>
-                <div className="px-3 py-1 text-xs font-semibold text-base-content/50 uppercase tracking-wide bg-base-200">
+                <div
+                    className="px-3 py-1 font-mono-jb text-[10px] uppercase tracking-[0.1em]"
+                    style={{ color: colors.redesign.faintAlt, backgroundColor: colors.redesign.surface }}
+                >
                     {TYPE_LABELS[type] ?? type}
                 </div>
                 {(items as SearchResult[]).map((item) => {
@@ -268,9 +272,33 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                             role="option"
                             aria-selected={currentIndex === selectedIndex}
                         >
-                            <div className="font-medium text-base-content">{item.name}</div>
+                            {/* Name + a right-aligned mono namespace chip so duplicate
+                                names across namespaces (problem #9) are distinguishable.
+                                No version chip: SearchResult carries no version and
+                                resolving it per result would be an N+1 — deferred. */}
+                            <div className="flex items-center gap-2">
+                                <span
+                                    className="font-medium truncate min-w-0"
+                                    style={{ color: colors.redesign.ink }}
+                                >
+                                    {item.name}
+                                </span>
+                                <span
+                                    data-testid="result-namespace-chip"
+                                    className="ml-auto shrink-0 font-mono-jb text-[10px] rounded-[6px] px-1.5 py-0.5"
+                                    style={{
+                                        backgroundColor: colors.redesign.badgeBg,
+                                        color: colors.redesign.mutedAlt,
+                                    }}
+                                >
+                                    {item.namespace}
+                                </span>
+                            </div>
                             {item.description && (
-                                <div className="text-xs text-base-content/60 truncate">
+                                <div
+                                    className="text-xs truncate mt-0.5"
+                                    style={{ color: colors.redesign.mutedAlt }}
+                                >
                                     {item.description}
                                 </div>
                             )}
@@ -289,7 +317,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     ref={inputRef}
                     type="text"
                     placeholder="Search CALM Hub..."
-                    className="bg-transparent border-none outline-none text-sm text-base-content placeholder:text-base-content/40 w-48 lg:w-64"
+                    className="bg-transparent border-none outline-none text-sm text-base-content placeholder:text-base-content/40 w-28 sm:w-48 lg:w-64"
                     value={query}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
@@ -313,7 +341,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
             </div>
             {showDropdown && (
                 <div
-                    className="absolute right-0 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-lg shadow-lg z-50"
+                    className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-lg shadow-lg z-50"
                     role="listbox"
                 >
                     {renderGroupedResults()}

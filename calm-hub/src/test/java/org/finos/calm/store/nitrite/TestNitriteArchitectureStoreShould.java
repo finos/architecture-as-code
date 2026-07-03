@@ -7,7 +7,7 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Architecture;
-import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -84,7 +84,7 @@ public class TestNitriteArchitectureStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.isEmpty(), is(true));
@@ -105,7 +105,7 @@ public class TestNitriteArchitectureStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.isEmpty(), is(true));
@@ -125,7 +125,7 @@ public class TestNitriteArchitectureStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.isEmpty(), is(true));
@@ -140,11 +140,13 @@ public class TestNitriteArchitectureStoreShould {
         Document doc1 = Document.createDocument()
                 .put("architectureId", 1001)
                 .put("name", "Arch One")
-                .put("description", "First architecture");
+                .put("description", "First architecture")
+                .put("versions", Document.createDocument().put("1-0-0", "{}").put("2-0-0", "{}"));
         Document doc2 = Document.createDocument()
                 .put("architectureId", 1002)
                 .put("name", "Arch Two")
-                .put("description", "Second architecture");
+                .put("description", "Second architecture")
+                .put("versions", Document.createDocument().put("1-0-0", "{}"));
         List<Document> architectures = Arrays.asList(doc1, doc2);
 
         Document namespaceDoc = Document.createDocument()
@@ -156,16 +158,18 @@ public class TestNitriteArchitectureStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.size(), is(2));
         assertThat(result.get(0).getId(), is(1001));
         assertThat(result.get(0).getName(), is("Arch One"));
         assertThat(result.get(0).getDescription(), is("First architecture"));
+        assertThat(result.get(0).getVersionCount(), is(2));
         assertThat(result.get(1).getId(), is(1002));
         assertThat(result.get(1).getName(), is("Arch Two"));
         assertThat(result.get(1).getDescription(), is("Second architecture"));
+        assertThat(result.get(1).getVersionCount(), is(1));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
@@ -185,12 +189,14 @@ public class TestNitriteArchitectureStoreShould {
         when(cursor.firstOrNull()).thenReturn(namespaceDoc);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
-        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceResourceSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         assertThat(result.size(), is(1));
         assertThat(result.get(0).getId(), is(42));
         assertThat(result.get(0).getName(), is("Architecture 42"));
         assertThat(result.get(0).getDescription(), is(""));
+        // Legacy document carries no versions sub-document → count guards to 0.
+        assertThat(result.get(0).getVersionCount(), is(0));
     }
 
     @Test

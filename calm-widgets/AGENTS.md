@@ -277,6 +277,9 @@ npm run build --workspace calm-widgets
 6. **Register the widget** in `widget-engine.ts` `registerDefaultWidgets()` —
    add `{ widget: MyWidget, folder: __dirname + '/widgets/my-widget' }`.
    A widget is not usable until it is registered here.
+   **The registration list must stay in alphabetical order by widget id** (e.g. `block-architecture` before `table`).
+   Likewise, the helper registrations in `widget-helpers.ts` must stay alphabetical.
+   Both orderings are enforced by tests in `widget-engine.spec.ts` and `widget-helpers.spec.ts` — CI will fail if a new entry is added out of order.
 7. Add test fixtures in `test-fixtures/my-widget/`
 8. Document in `README.md`
 

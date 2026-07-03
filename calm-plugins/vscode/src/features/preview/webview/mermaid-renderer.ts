@@ -221,6 +221,14 @@ export default class MermaidRenderer {
         svgElement.style.width = '100%'
         svgElement.style.height = '100%'
 
+        // svg-pan-zoom strips the SVG's viewBox on initialization. Stash Mermaid's own
+        // layout-computed viewBox - which already accounts for every label, edge label
+        // and subgraph - so the export pipeline can restore it later.
+        const viewBox = svgElement.getAttribute('viewBox')
+        if (viewBox) {
+            svgElement.setAttribute('data-original-viewbox', viewBox)
+        }
+
         // Create and initialize pan/zoom manager
         const panZoomManager = new PanZoomManager()
         panZoomManager.initialize(svgElement, options)

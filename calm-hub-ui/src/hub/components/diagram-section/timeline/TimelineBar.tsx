@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { IoChevronDownOutline, IoTimeOutline } from 'react-icons/io5';
+import { IoChevronDownOutline } from 'react-icons/io5';
 import type { DiffResult } from '@finos/calm-models/diff';
 import { colors } from '../../../../theme/colors.js';
 import { MomentCards } from './MomentCards.js';
 import { InlineDiffSummary } from './InlineDiffSummary.js';
 import { Sparkline } from './Sparkline.js';
+import { TimelineHeader } from './TimelineHeader.js';
 import { VersionDetail } from './VersionDetail.js';
 import type { VersionChange } from './perVersionChanges.js';
 
@@ -29,17 +30,17 @@ const EXPANDED_STORAGE_KEY = 'calmHub.timelineExpanded';
 /** Whether the user has interacted with the timeline at least once (drives the NEW pill). */
 const SEEN_STORAGE_KEY = 'calmHub.timelineSeen';
 
-function readExpanded(): boolean {
+function readExpanded(storage: Storage): boolean {
     try {
-        return localStorage.getItem(EXPANDED_STORAGE_KEY) === 'true';
+        return storage.getItem(EXPANDED_STORAGE_KEY) === 'true';
     } catch {
         return false;
     }
 }
 
-function readSeen(): boolean {
+function readSeen(storage: Storage): boolean {
     try {
-        return localStorage.getItem(SEEN_STORAGE_KEY) === '1';
+        return storage.getItem(SEEN_STORAGE_KEY) === '1';
     } catch {
         return false;
     }
@@ -79,6 +80,15 @@ interface TimelineBarProps {
      * exists. Provided by DiagramSection so this component stays service-free.
      */
     loadChangesForVersion?: (prevVersion: string, currVersion: string) => Promise<VersionChange[]>;
+    /**
+     * Force the initial expand state and skip the persisted preference. Used by
+     * the mobile bottom-sheet, which always wants the bar opened to the cards
+     * view (and shouldn't leak that into the desktop inline bar's saved state).
+     */
+    initialExpanded?: boolean;
+    /** Storage instance for persisting expand/seen state. Defaults to localStorage.
+     *  Inject a fake in tests. */
+    storage?: Storage;
 }
 
 /**
@@ -103,30 +113,35 @@ export function TimelineBar({
     onNavigate,
     onCompare,
     loadChangesForVersion,
+    initialExpanded,
+    storage = localStorage,
 }: TimelineBarProps) {
-    const [expanded, setExpanded] = useState<boolean>(readExpanded);
-    const [hasSeenTimeline, setHasSeenTimeline] = useState<boolean>(readSeen);
+    const [expanded, setExpanded] = useState<boolean>(() => initialExpanded ?? readExpanded(storage));
+    const [hasSeenTimeline, setHasSeenTimeline] = useState<boolean>(() => readSeen(storage));
 
     // Remember the expand/collapse choice so a refresh keeps the bar as it was.
+    // Skipped when initialExpanded is forced (mobile sheet) so it doesn't leak
+    // into the desktop inline bar's saved preference.
     useEffect(() => {
+        if (initialExpanded !== undefined) return;
         try {
-            localStorage.setItem(EXPANDED_STORAGE_KEY, String(expanded));
+            storage.setItem(EXPANDED_STORAGE_KEY, String(expanded));
         } catch {
             /* ignore unavailable storage */
         }
-    }, [expanded]);
+    }, [expanded, initialExpanded, storage]);
 
     const markSeen = useCallback(() => {
         setHasSeenTimeline((prev) => {
             if (prev) return prev;
             try {
-                localStorage.setItem(SEEN_STORAGE_KEY, '1');
+                storage.setItem(SEEN_STORAGE_KEY, '1');
             } catch {
                 /* ignore unavailable storage */
             }
             return true;
         });
-    }, []);
+    }, [storage]);
 
     const comparing = compareFrom !== null && compareTo !== null;
 
@@ -203,11 +218,13 @@ export function TimelineBar({
                         className="flex items-center"
                         style={{ padding: '14px 22px 10px', gap: 10 }}
                     >
-                        <IoTimeOutline size={14} style={{ color: colors.ink[500], strokeWidth: 2 }} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: colors.ink[900] }}>
-                            Timeline
+                        <TimelineHeader currentVersion={currentVersion} />
+                        <span
+                            className="truncate min-w-0"
+                            style={{ fontSize: 12, color: colors.ink[500] }}
+                        >
+                            {headerSubLabel}
                         </span>
-                        <span style={{ fontSize: 12, color: colors.ink[500] }}>{headerSubLabel}</span>
                         <button
                             type="button"
                             className="ml-auto flex items-center justify-center bg-transparent border-0 p-0 cursor-pointer"

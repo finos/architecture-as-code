@@ -14,7 +14,7 @@ export const labelFor = (n?: WithOptionalLabel, id?: string) =>
  * Standard implementation of VMNodeFactory for creating leaf nodes with interface attachments
  */
 export class StandardVMNodeFactory implements VMNodeFactory {
-    createLeafNode(node: CalmNodeCanonicalModel, renderInterfaces: boolean): { node: VMLeafNode; attachments: VMAttach[] } {
+    createLeafNode(node: CalmNodeCanonicalModel, renderInterfaces: boolean, activeInterfaceIds?: Set<string>): { node: VMLeafNode; attachments: VMAttach[] } {
         const attachments: VMAttach[] = [];
         const leaf: VMLeafNode = {
             id: node['unique-id'],
@@ -23,11 +23,16 @@ export class StandardVMNodeFactory implements VMNodeFactory {
         };
 
         if (renderInterfaces && Array.isArray(node.interfaces) && node.interfaces.length > 0) {
-            leaf.interfaces = node.interfaces.map(itf => {
-                const iid = ifaceId(node['unique-id'], itf['unique-id']);
-                attachments.push({ from: node['unique-id'], to: iid });
-                return { id: iid, label: `◻ ${itf.name || itf['unique-id']}` };
-            });
+            const visibleInterfaces = activeInterfaceIds
+                ? node.interfaces.filter(itf => activeInterfaceIds.has(itf['unique-id']))
+                : node.interfaces;
+            if (visibleInterfaces.length > 0) {
+                leaf.interfaces = visibleInterfaces.map(itf => {
+                    const iid = ifaceId(node['unique-id'], itf['unique-id']);
+                    attachments.push({ from: node['unique-id'], to: iid });
+                    return { id: iid, label: `◻ ${itf.name || itf['unique-id']}` };
+                });
+            }
         }
 
         return { node: leaf, attachments };

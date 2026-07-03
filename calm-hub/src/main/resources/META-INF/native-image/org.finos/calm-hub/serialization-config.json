@@ -32,6 +32,18 @@
             "name": "java.util.ArrayList"
         },
         {
+            "name": "java.time.LocalDate"
+        },
+        {
+            "name": "java.time.LocalDateTime"
+        },
+        {
+            "name": "java.time.LocalTime"
+        },
+        {
+            "name": "java.time.Ser"
+        },
+        {
             "name": "java.util.CollSer"
         },
         {

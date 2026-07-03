@@ -22,6 +22,10 @@ const PRIVATE_IPV6_PATTERNS = [
     /^fe80:/i,
 ];
 
+// Mirrors CalmHubDocumentLoader.SAFE_PATH_PATTERN: a strict character allowlist for the request
+// path, checked in addition to (not instead of) the host allowlist below.
+const SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_.-]+$/;
+
 function isPrivateHost(hostname: string): boolean {
     if (/^localhost$/i.test(hostname)) return true;
     // URL.hostname wraps IPv6 in brackets; strip them for isIP/pattern checks
@@ -43,7 +47,7 @@ function normalizeHost(hostname: string): string {
 
 function toRequestPath(parsedUrl: URL): string {
     const normalizedPath = parsedUrl.pathname.replace(/^\/+/, '');
-    return `/${normalizedPath}${parsedUrl.search}`;
+    return `/${normalizedPath}`;
 }
 
 export class DirectUrlDocumentLoader implements DocumentLoader {
@@ -134,7 +138,31 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     recoverable: false
                 });
             }
+            // The URL constructor normalizes '..' segments, so parsedUrl.pathname is already
+            // resolved. Reject if the original input contained traversal sequences before
+            // normalization, rather than silently trusting the normalized result.
+            if (documentId.includes('/..')) {
+                throw new DocumentLoadError({
+                    name: 'UNKNOWN',
+                    message: `Direct URL loading rejected a path containing directory traversal: ${documentId}`,
+                    recoverable: false
+                });
+            }
             const requestPath = toRequestPath(parsedUrl);
+            if (!SAFE_PATH_PATTERN.test(requestPath)) {
+                throw new DocumentLoadError({
+                    name: 'UNKNOWN',
+                    message: `Direct URL loading rejected a path with disallowed characters: ${requestPath}`,
+                    recoverable: false
+                });
+            }
+            if (parsedUrl.search) {
+                throw new DocumentLoadError({
+                    name: 'UNKNOWN',
+                    message: `Direct URL loading does not support a query string: ${documentId}`,
+                    recoverable: false
+                });
+            }
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
             const response = await this.ax.get(requestPath, {
                 baseURL,

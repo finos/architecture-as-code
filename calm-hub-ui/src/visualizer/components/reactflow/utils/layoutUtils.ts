@@ -20,6 +20,23 @@ export function getNodeHeight(node: Node): number {
 }
 
 /**
+ * Containment depth of a node: how many parents are crossed walking up the
+ * `parentId` chain (0 for a top-level node). `byId` must map every id that can
+ * appear in a chain. Cycle-safe via the `seen` guard.
+ */
+function nodeDepth(node: Node, byId: Map<string, Node>): number {
+    let d = 0;
+    let current: Node | undefined = node;
+    const seen = new Set<string>();
+    while (current?.parentId && byId.has(current.parentId) && !seen.has(current.id)) {
+        seen.add(current.id);
+        d++;
+        current = byId.get(current.parentId);
+    }
+    return d;
+}
+
+/**
  * Orders container nodes so that the most deeply nested containers come first.
  * Containers must be laid out (and therefore sized) bottom-up: an outer
  * container can only be sized correctly once its inner container children
@@ -27,20 +44,18 @@ export function getNodeHeight(node: Node): number {
  */
 export function sortContainersDeepestFirst(containers: Node[]): Node[] {
     const byId = new Map(containers.map((c) => [c.id, c]));
+    return [...containers].sort((a, b) => nodeDepth(b, byId) - nodeDepth(a, byId));
+}
 
-    const depth = (node: Node): number => {
-        let d = 0;
-        let current: Node | undefined = node;
-        const seen = new Set<string>();
-        while (current?.parentId && byId.has(current.parentId) && !seen.has(current.id)) {
-            seen.add(current.id);
-            d++;
-            current = byId.get(current.parentId);
-        }
-        return d;
-    };
-
-    return [...containers].sort((a, b) => depth(b) - depth(a));
+/**
+ * Orders nodes so that every parent appears before its children (shallowest
+ * depth first). React Flow requires a parent node to precede its child nodes in
+ * the array, otherwise nested group children are dropped or mispositioned.
+ * Returns a new array; the input is not mutated. Stable for equal depths.
+ */
+export function sortNodesParentsBeforeChildren(nodes: Node[]): Node[] {
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    return [...nodes].sort((a, b) => nodeDepth(a, byId) - nodeDepth(b, byId));
 }
 
 /**

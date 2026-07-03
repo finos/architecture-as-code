@@ -88,13 +88,8 @@ public class NitriteDomainStore implements DomainStore {
         }
     }
 
-    /**
-     * Checks if a domain with the given name already exists.
-     *
-     * @param name the domain name to check
-     * @return true if the domain exists, false otherwise
-     */
-    private boolean domainExists(String name) {
+    @Override
+    public boolean domainExists(String name) {
         Filter filter = where(NAME_FIELD).eq(name);
         return domainCollection.find(filter).firstOrNull() != null;
     }

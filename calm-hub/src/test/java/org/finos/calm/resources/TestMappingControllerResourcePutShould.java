@@ -44,9 +44,9 @@ public class TestMappingControllerResourcePutShould {
         when(mockPermissionChecker.canWriteByDomain(any(), any())).thenReturn(true);
     }
 
-    private static String versionedDoc(String namespace, String type, String name, String version) {
-        return "{\"$id\":\"http://localhost:8080/calm/namespaces/"
-                + namespace + "/" + type + "/" + name + "/versions/" + version + "\"}";
+    private static String versionedDoc(String namespace, String type, String name, String version, String title) {
+        String id = "http://localhost:8080/calm/namespaces/" + namespace + "/" + type + "/" + name + "/versions/" + version;
+        return "{\"$id\":\"" + id + "\", \"title\": \"" + title + "\"}";
     }
 
     @Test
@@ -57,8 +57,8 @@ public class TestMappingControllerResourcePutShould {
         when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(existing);
 
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0")).when()
-                .put("/calm")
+                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0", "test pattern"))
+                .when().put("/calm")
                 .then().statusCode(201)
                 .header("Location", containsString("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0"));
 
@@ -73,8 +73,8 @@ public class TestMappingControllerResourcePutShould {
         when(mockMappingStore.getMapping("finos", "my-arch")).thenReturn(existing);
 
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("finos", "architectures", "my-arch", "1.0.0")).when()
-                .put("/calm")
+                .body(versionedDoc("finos", "architectures", "my-arch", "1.0.0", "test architecture"))
+                .when().put("/calm")
                 .then().statusCode(201)
                 .header("Location", containsString("/calm/namespaces/finos/architectures/my-arch/versions/1.0.0"));
 
@@ -89,8 +89,8 @@ public class TestMappingControllerResourcePutShould {
         when(mockMappingStore.getMapping("finos", "my-flow")).thenReturn(existing);
 
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("finos", "flows", "my-flow", "1.0.0")).when()
-                .put("/calm")
+                .body(versionedDoc("finos", "flows", "my-flow", "1.0.0", "test flow"))
+                .when().put("/calm")
                 .then().statusCode(201)
                 .header("Location", containsString("/calm/namespaces/finos/flows/my-flow/versions/1.0.0"));
 
@@ -105,8 +105,8 @@ public class TestMappingControllerResourcePutShould {
         when(mockMappingStore.getMapping("finos", "my-standard")).thenReturn(existing);
 
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("finos", "standards", "my-standard", "1.0.0")).when()
-                .put("/calm")
+                .body(versionedDoc("finos", "standards", "my-standard", "1.0.0", "test standard"))
+                .when().put("/calm")
                 .then().statusCode(501).body(containsString("not supported"));
     }
 
@@ -118,8 +118,8 @@ public class TestMappingControllerResourcePutShould {
         when(mockMappingStore.getMapping("finos", "my-interface")).thenReturn(existing);
 
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("finos", "interfaces", "my-interface", "1.0.0")).when()
-                .put("/calm")
+                .body(versionedDoc("finos", "interfaces", "my-interface", "1.0.0", "test interface"))
+                .when().put("/calm")
                 .then().statusCode(501).body(containsString("not supported"));
     }
 
@@ -128,8 +128,8 @@ public class TestMappingControllerResourcePutShould {
         when(mockMappingStore.getMapping("finos", "nonexistent")).thenThrow(new MappingNotFoundException());
 
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("finos", "patterns", "nonexistent", "1.0.0")).when()
-                .put("/calm")
+                .body(versionedDoc("finos", "patterns", "nonexistent", "1.0.0", "whatever"))
+                .when().put("/calm")
                 .then().statusCode(404).body(containsString("nonexistent"));
     }
 
@@ -145,8 +145,8 @@ public class TestMappingControllerResourcePutShould {
         when(mockMappingStore.getMapping("invalid", "api-gateway")).thenThrow(new NamespaceNotFoundException());
 
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("invalid", "patterns", "api-gateway", "1.0.0")).when()
-                .put("/calm")
+                .body(versionedDoc("invalid", "patterns", "api-gateway", "1.0.0", "test pattern"))
+                .when().put("/calm")
                 .then().statusCode(404);
     }
 
@@ -170,7 +170,7 @@ public class TestMappingControllerResourcePutShould {
     void return_403_when_put_is_forbidden_for_namespace() {
         when(mockPermissionChecker.canWrite(any(), eq("finos"))).thenReturn(false);
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0"))
+                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0", "test pattern"))
                 .when().put("/calm")
                 .then().statusCode(403).body(containsString("finos"));
     }
@@ -184,7 +184,7 @@ public class TestMappingControllerResourcePutShould {
         doThrow(new NamespaceNotFoundException()).when(mockPatternStore)
                 .updatePatternForVersion(any(Pattern.class));
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0"))
+                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0", "test pattern"))
                 .when().put("/calm")
                 .then().statusCode(404);
     }
@@ -198,7 +198,7 @@ public class TestMappingControllerResourcePutShould {
         doThrow(new RuntimeException("unexpected store failure")).when(mockPatternStore)
                 .updatePatternForVersion(any(Pattern.class));
         given().header("Content-Type", "application/json")
-                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0"))
+                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0", "test pattern"))
                 .when().put("/calm")
                 .then().statusCode(500);
     }

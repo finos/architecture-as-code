@@ -166,5 +166,16 @@ describe('WidgetEngine', () => {
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('related-nodes', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('block-architecture', expect.any(Function));
         });
+
+        // Alphabetical order makes the registration list easier to scan and
+        // reduces merge conflicts when multiple contributors add widgets simultaneously.
+        it('registers widgets in alphabetical order by id', () => {
+            engine.registerDefaultWidgets();
+
+            const widgetIds = (registerMock as Mock).mock.calls.map(
+                ([widget]) => (widget as { id: string }).id
+            );
+            expect(widgetIds).toEqual([...widgetIds].sort());
+        });
     });
 });

@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ControlDetailSection } from './ControlDetailSection.js';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ControlData } from '../../../model/control.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { ControlConfigDetail, ControlData } from '../../../model/control.js';
 
 // ── Mocks ─────────────────────────────────────────────────
 
@@ -34,6 +34,27 @@ vi.mock('../../../service/control-service.js', () => ({
     }; }),
 }));
 
+/**
+ * Force `useIsMobile()` (which reads window.matchMedia) to report the given
+ * viewport. Returns a restore function.
+ */
+function mockViewport(isMobile: boolean) {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+        matches: isMobile,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
+    return () => {
+        window.matchMedia = original;
+    };
+}
+
 // ── Test data ─────────────────────────────────────────────
 
 const controlData: ControlData = {
@@ -59,19 +80,19 @@ const configJson = { minKeyLength: 256, algorithm: 'AES' };
 function setupMocks({
     reqVersions = ['0.1.0'],
     reqSchema = requirementSchema,
-    configIds = [10],
+    configs = [{ id: 10 }] as ControlConfigDetail[],
     cfgVersions = ['1.0.0'],
     cfgJson = configJson,
 }: {
     reqVersions?: string[];
     reqSchema?: object;
-    configIds?: number[];
+    configs?: ControlConfigDetail[];
     cfgVersions?: string[];
     cfgJson?: object;
 } = {}) {
     mockFetchRequirementVersions.mockResolvedValue(reqVersions);
     mockFetchRequirementForVersion.mockResolvedValue(reqSchema);
-    mockFetchConfigurationsForControl.mockResolvedValue(configIds);
+    mockFetchConfigurationsForControl.mockResolvedValue(configs);
     mockFetchConfigurationVersions.mockResolvedValue(cfgVersions);
     mockFetchConfigurationForVersion.mockResolvedValue(cfgJson);
 }
@@ -100,6 +121,17 @@ describe('ControlDetailSection', () => {
             });
         });
 
+        it('renders the requirement breadcrumb header with control title when present', async () => {
+            setupMocks();
+            render(<ControlDetailSection controlData={{ ...controlData, controlTitle: 'Pretty Title' }} />);
+
+            await waitFor(() => {
+                const headings = screen.getAllByRole('heading');
+                expect(headings[0]).toHaveTextContent('Pretty Title');
+                expect(headings[0]).not.toHaveTextContent('Access Control');
+            });
+        });
+
         it('renders the configuration breadcrumb header with control name', async () => {
             setupMocks();
             render(<ControlDetailSection controlData={controlData} />);
@@ -114,7 +146,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('hides the configurations panel when no config IDs exist', async () => {
-            setupMocks({ configIds: [] });
+            setupMocks({ configs: [] });
             render(<ControlDetailSection controlData={controlData} />);
 
             // Wait for requirement panel to render, then assert configurations heading is absent
@@ -248,8 +280,23 @@ describe('ControlDetailSection', () => {
     // Configuration tabs
     // ──────────────────────────────────────────────────
     describe('configuration tabs', () => {
+        it('renders config tab labels using title then name then fallback', async () => {
+            setupMocks({ configs: [
+                { id: 10, title: 'Rate Limit Config' },
+                { id: 20, name: 'config-b' },
+                { id: 30 },
+            ]});
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: 'Rate Limit Config' })).toBeInTheDocument();
+                expect(screen.getByRole('tab', { name: 'config-b' })).toBeInTheDocument();
+                expect(screen.getByRole('tab', { name: 'Config 30' })).toBeInTheDocument();
+            });
+        });
+
         it('renders config ID tabs', async () => {
-            setupMocks({ configIds: [10, 20] });
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
@@ -259,7 +306,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('clicking a config ID tab fetches its versions', async () => {
-            setupMocks({ configIds: [10, 20] });
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -273,7 +320,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('applies active style to the selected config tab', async () => {
-            setupMocks({ configIds: [10, 20] });
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -284,7 +331,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('shows the selected config ID in the breadcrumb header', async () => {
-            setupMocks({ configIds: [10] });
+            setupMocks({ configs: [{ id: 10 }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -295,7 +342,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('renders config version tabs after selecting a config ID', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0', '1.1.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0', '1.1.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -308,7 +355,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('clicking a config version tab fetches the configuration JSON', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -329,7 +376,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('applies active style to the selected config version tab', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0', '1.1.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0', '1.1.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -345,7 +392,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('shows the selected config version in the breadcrumb header', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -360,7 +407,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('does not show config version tabs until a config ID is selected', async () => {
-            setupMocks({ configIds: [10], cfgVersions: ['1.0.0'] });
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
@@ -404,7 +451,7 @@ describe('ControlDetailSection', () => {
         });
 
         it('switches configuration panel to Raw JSON view independently', async () => {
-            setupMocks();
+            setupMocks({ configs: [{ id: 10 }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -445,6 +492,81 @@ describe('ControlDetailSection', () => {
                 expect(document.querySelectorAll('[data-cy="json-renderer-wrapper"]')).toHaveLength(0);
                 expect(screen.getAllByTestId('readable-json-view')).toHaveLength(2);
             });
+        });
+    });
+
+    // ──────────────────────────────────────────────────
+    // Mobile tabbed layout
+    // ──────────────────────────────────────────────────
+    describe('mobile layout', () => {
+        let restore: () => void;
+
+        beforeEach(() => {
+            restore = mockViewport(true);
+        });
+
+        afterEach(() => {
+            restore();
+        });
+
+        it('renders Requirement and Configuration tabs instead of stacked panels', async () => {
+            setupMocks();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: 'Requirement' })).toBeInTheDocument();
+                expect(screen.getByRole('tab', { name: 'Configuration' })).toBeInTheDocument();
+            });
+
+            // Only the active (requirement) panel is shown, so just one readable view.
+            expect(screen.getAllByTestId('readable-json-view')).toHaveLength(1);
+        });
+
+        it('shows the requirement panel by default', async () => {
+            setupMocks({ reqSchema: requirementSchema });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                const view = screen.getByTestId('readable-json-view');
+                expect(view).toHaveTextContent(JSON.stringify(requirementSchema));
+            });
+        });
+
+        it('omits the Configuration tab when no configurations exist', async () => {
+            setupMocks({ configs: [] });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: 'Requirement' })).toBeInTheDocument();
+            });
+            expect(screen.queryByRole('tab', { name: 'Configuration' })).not.toBeInTheDocument();
+        });
+
+        it('switches to the configuration panel and shows its config tabs', async () => {
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await user.click(await screen.findByRole('tab', { name: 'Configuration' }));
+
+            expect(screen.getByRole('tab', { name: 'Config 10' })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Config 20' })).toBeInTheDocument();
+            // Requirement version pickers are not visible on the configuration panel.
+            expect(screen.queryByText('Requirement /')).not.toBeInTheDocument();
+        });
+
+        it('applies the active style to the selected panel tab', async () => {
+            setupMocks();
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            const reqTab = await screen.findByRole('tab', { name: 'Requirement' });
+            expect(reqTab).toHaveClass('tab-active');
+
+            await user.click(screen.getByRole('tab', { name: 'Configuration' }));
+
+            expect(screen.getByRole('tab', { name: 'Configuration' })).toHaveClass('tab-active');
+            expect(screen.getByRole('tab', { name: 'Requirement' })).not.toHaveClass('tab-active');
         });
     });
 

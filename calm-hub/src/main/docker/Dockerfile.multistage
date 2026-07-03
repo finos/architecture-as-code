@@ -2,7 +2,7 @@
 FROM maven:3.9-eclipse-temurin-17 AS build
 
 # Install Node.js, npm, and required tools (including rsync)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_26.x | bash - \
     && apt-get update && apt-get install -y nodejs rsync \
     && npm install -g npm@latest
 

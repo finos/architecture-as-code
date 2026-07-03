@@ -5,6 +5,7 @@ import { CopyStrategy } from './copy-strategy';
 import { TemplateEngine } from '../template-engine';
 import { TemplateEntry, OutputContext } from '../types';
 import { Logger } from '../../logger';
+import { createMockLogger } from '../../test/test-utils';
 
 vi.mock('fs');
 
@@ -20,12 +21,7 @@ describe('CopyStrategy', () => {
             compileTemplate: vi.fn()
         } as unknown as TemplateEngine;
 
-        mockLogger = {
-            info: vi.fn(),
-            warn: vi.fn(),
-            debug: vi.fn(),
-            error: vi.fn()
-        } as unknown as Logger;
+        mockLogger = createMockLogger();
 
         strategy = new CopyStrategy(mockEngine);
 

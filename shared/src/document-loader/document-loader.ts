@@ -5,9 +5,15 @@ import { FileSystemDocumentLoader } from './file-system-document-loader';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
 import { MappedDocumentLoader } from './mapped-document-loader';
+import { WorkspaceDocumentLoader } from './workspace-document-loader';
 import { AuthPlugin } from '..';
 
-export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline';
+export type CalmDocumentType = 'architecture' | 'pattern' | 'schema' | 'timeline' | 'interface' | 'flow' | 'adr' | 'control';
+export const CALM_DOCUMENT_TYPES_LIST: CalmDocumentType[] = ['pattern', 'architecture', 'interface', 'flow', 'control', 'schema', 'timeline', 'adr'];
+
+export function isValidCalmDocumentType(input: string): input is CalmDocumentType {
+    return (CALM_DOCUMENT_TYPES_LIST as string[]).includes(input);
+}
 
 export const CALM_HUB_PROTOS = ['http:', 'https:', 'calm:'];
 
@@ -29,11 +35,20 @@ export type DocumentLoaderOptions = {
     basePath?: string;
     allowedRemoteHosts?: string[];
     debug?: boolean;
+    // If set, a WorkspaceDocumentLoader is added as the highest-priority source, resolving any
+    // reference to a document tracked in the workspace bundle at this path to its local copy.
+    workspaceBundlePath?: string;
 };
 
 export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): DocumentLoader {
     const loaders = [];
     const debug = docLoaderOpts.debug ?? false;
+
+    // Workspace bundle takes top priority: local working copies override CalmHub and every
+    // other source, for any reference form (bare id, $id, versioned path, or full URL).
+    if (docLoaderOpts.workspaceBundlePath) {
+        loaders.push(new WorkspaceDocumentLoader(docLoaderOpts.workspaceBundlePath, debug));
+    }
 
     // Add MappedDocumentLoader FIRST if mapping or basePath provided
     // This ensures URL mappings are resolved before other loaders.

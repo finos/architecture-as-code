@@ -4,6 +4,7 @@ import com.mongodb.ErrorCategory;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
@@ -46,6 +47,11 @@ public class MongoDomainStore implements DomainStore {
             domains.add(doc.getString("name"));
         }
         return domains;
+    }
+
+    @Override
+    public boolean domainExists(String name) {
+        return domainsCollection.countDocuments(Filters.eq("name", name)) > 0;
     }
 
     /**

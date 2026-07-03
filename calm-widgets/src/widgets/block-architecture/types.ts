@@ -49,7 +49,7 @@ export interface BlockArchOptions {
     ['focus-controls']?: string;
     ['focus-interfaces']?: string;
     ['highlight-nodes']?: string;
-    ['render-interfaces']?: boolean;
+    ['render-interfaces']?: boolean | 'related';
     ['render-node-type-shapes']?: boolean;
     ['include-containers']?: IncludeContainers;
     ['include-children']?: IncludeChildren;
@@ -105,7 +105,7 @@ export type NormalizedOptions = {
     edges: Edges;
     nodeTypes?: string[];
     direction: Direction;
-    renderInterfaces: boolean;
+    renderInterfaces: boolean | 'related';
     renderNodeTypeShapes: boolean;
     edgeLabels: EdgeLabels;
     collapseRelationships: boolean;

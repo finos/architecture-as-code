@@ -1,22 +1,17 @@
-import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, DiagramExportFormat, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions, loadChoicesFromInput } from './command-helpers/generate-options';
-import * as cliConfig from './cli-config';
 import path from 'path';
+import { findWorkspaceManifestPath } from './workspace-resolver';
+import { setupWorkspaceCommands } from './command-helpers/workspace/commands';
+import * as cliConfig from './cli-config';
 import { select } from '@inquirer/prompts';
 import {
     CreateNamespaceOptions,
-    ListArchitecturesOptions,
     ListNamespacesOptions,
-    ListPatternsOptions,
-    ListStandardsOptions,
-    PullArchitectureOptions,
-    PullPatternOptions,
-    PullStandardOptions,
-    PushArchitectureOptions,
-    PushPatternOptions,
-    PushStandardOptions,
+    PushOptions,
+    PullOptions,
     runCreateNamespace,
     runListArchitectures,
     runListNamespaces,
@@ -30,25 +25,21 @@ import {
     runPushStandard,
     CreateDomainOptions,
     ListDomainsOptions,
-    CreateControlRequirementOptions,
-    ListControlRequirementsOptions,
-    PushControlRequirementOptions,
-    PullControlRequirementOptions,
-    PushControlConfigurationOptions,
-    PullControlConfigurationOptions,
+    PushControlOptions,
+    PullControlOptions,
+    ListControlsOptions,
+    ListControlConfigurationsOptions,
     runCreateDomain,
     runListDomains,
-    runCreateControlRequirement,
-    runListControlRequirements,
     runPushControlRequirement,
     runPullControlRequirement,
     runPushControlConfiguration,
     runPullControlConfiguration,
-    CreateControlConfigurationOptions,
-    ListControlConfigurationsOptions,
-    runCreateControlConfiguration,
-    runListControlConfigurations
+    runListControls,
+    runListControlConfigurations,
+    ListOptions,
 } from './command-helpers/hub-commands';
+import type { ResourceChangeType } from '@finos/calm-shared';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -82,11 +73,11 @@ const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
 const NAMESPACE_OPTION = '--namespace <namespace>';
 const NAME_OPTION = '--name <name>';
 const DESCRIPTION_OPTION = '--description <description>';
-const ID_OPTION = '--id <id>';
 const HUB_VERSION_OPTION = '--ver <version>'; // --version conflicts with Commander's built-in version flag
 const DOMAIN_OPTION = '--domain <domain>';
-const CONTROL_ID_OPTION = '--control-id <controlId>';
-const CONFIG_ID_OPTION = '--config-id <configId>';
+const CONTROL_NAME_OPTION = '--control-name <controlName>';
+const CONFIG_NAME_OPTION = '--config-name <configName>';
+const MAPPING_OPTION = '-m, --mapping <mapping>';
 
 export function setupCLI(program: Command) {
     program
@@ -223,6 +214,14 @@ Validation requires:
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option('--scaffold', 'Copy template files without processing (for customization/live docify)', false)
         .addOption(new Option('--ants').default(false).hideHelp())
+        .addOption(new Option('--export-diagrams <format>',
+            'Render mermaid diagrams to image files using a local Chromium-based browser ' +
+            '(adds roughly 10-40s depending on diagram count)').choices(['svg', 'png']))
+        .option('--browser-path <path>',
+            'Path to a Chromium-based browser executable, only needed if automatic detection fails (run with --export-diagrams to see guidance)')
+        .option('--diagram-render-timeout <ms>',
+            'Per-diagram render timeout in milliseconds, only used with --export-diagrams (default: 30000). ' +
+            'Increase this for large/complex diagrams that time out during rendering.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { Docifier } = await import('@finos/calm-shared');
@@ -241,6 +240,30 @@ Validation requires:
             if (options.ants && flagsUsed.length > 0) {
                 console.error('❌ --ants cannot be combined with --template or --template-dir');
                 process.exit(1);
+            }
+
+            if (options.exportDiagrams && options.scaffold) {
+                console.error('❌ --export-diagrams cannot be combined with --scaffold (scaffold output is unrendered)');
+                process.exit(1);
+            }
+
+            if (options.browserPath && !options.exportDiagrams) {
+                console.error('❌ --browser-path requires --export-diagrams <svg|png>');
+                process.exit(1);
+            }
+
+            if (options.diagramRenderTimeout && !options.exportDiagrams) {
+                console.error('❌ --diagram-render-timeout requires --export-diagrams <svg|png>');
+                process.exit(1);
+            }
+
+            let diagramRenderTimeoutMs: number | undefined;
+            if (options.diagramRenderTimeout) {
+                diagramRenderTimeoutMs = Number(options.diagramRenderTimeout);
+                if (!Number.isFinite(diagramRenderTimeoutMs) || diagramRenderTimeoutMs <= 0) {
+                    console.error('❌ --diagram-render-timeout must be a positive number of milliseconds');
+                    process.exit(1);
+                }
             }
 
             let docifyMode: DocifyMode = 'WEBSITE';
@@ -267,7 +290,10 @@ Validation requires:
                 templateProcessingMode,
                 templatePath,
                 options.clearOutputDirectory,
-                options.scaffold
+                options.scaffold,
+                options.exportDiagrams as DiagramExportFormat | undefined,
+                options.browserPath,
+                diagramRenderTimeoutMs
             );
 
             await docifier.docify();
@@ -435,6 +461,13 @@ Example:
 
     const hubOutputOption = new Option(FORMAT_OPTION, 'Output format').choices(['json', 'pretty']).default('json');
 
+    const hubVersionBumpOption = new Option('-t, --change-type <type>', 'Type of change for version bump when pushing a new version of an existing resource. Defaults to \'patch\'')
+        .choices(['patch', 'minor', 'major'])
+        .default('patch');
+
+    const hubFailIfModifiedOption = new Option('--fail-if-modified', 'Strict mode: do not auto-bump. Skip if the document is unchanged from the latest published version; fail if it has changed. A brand-new mapping is still created at 1.0.0.')
+        .default(false);
+
     const hubCmd = new Command('hub').description('Interact with CALM Hub');
 
     // hub push
@@ -442,118 +475,102 @@ Example:
 
     hubPushCmd
         .command('architecture <architecture-file>')
-        .description('Push a CALM architecture file to CALM Hub')
-        .option(NAME_OPTION, 'Name for the architecture in CALM Hub (required when creating a new architecture)')
-        .option(DESCRIPTION_OPTION, 'Description for the architecture')
-        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .description('Push a CALM architecture file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
+        .option(NAME_OPTION, 'Name for the architecture in CALM Hub; overrides `title` field if set.')
+        .option(DESCRIPTION_OPTION, 'Description for the architecture; overrides `description` field if set.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option(ID_OPTION, 'Existing architecture ID (required when adding a new version)')
-        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (architectureFile, options) => {
-            const pushOptions: PushArchitectureOptions = {
+            const pushOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                namespace: options.namespace,
                 name: options.name,
                 description: options.description,
                 file: architectureFile,
-                id: options.id,
-                version: options.ver,
-                format: options.format
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushArchitecture(pushOptions);
         });
 
     hubPushCmd
         .command('pattern <pattern-file>')
-        .description('Push a CALM pattern file to CALM Hub')
-        .option(NAME_OPTION, 'Name for the pattern in CALM Hub (required when creating a new pattern)')
+        .description('Push a CALM pattern file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
+        .option(NAME_OPTION, 'Name for the pattern in CALM Hub; overrides `title` field if set.')
         .option(DESCRIPTION_OPTION, 'Description for the pattern')
-        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option(ID_OPTION, 'Existing pattern ID (required when adding a new version)')
-        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (patternFile, options) => {
-            const pushPatternOptions: PushPatternOptions = {
+            const pushPatternOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                namespace: options.namespace,
                 name: options.name,
                 description: options.description,
                 file: patternFile,
-                id: options.id,
-                version: options.ver,
-                format: options.format
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushPattern(pushPatternOptions);
         });
 
     hubPushCmd
         .command('standard <standard-file>')
-        .description('Push a CALM standard file to CALM Hub')
-        .option(NAME_OPTION, 'Name for the standard in CALM Hub (required when creating a new standard)')
+        .description('Push a CALM standard file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
+        .option(NAME_OPTION, 'Name for the standard in CALM Hub')
         .option(DESCRIPTION_OPTION, 'Description for the standard')
-        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option(ID_OPTION, 'Existing standard ID (required when adding a new version)')
-        .option(HUB_VERSION_OPTION, 'Semver version to create (required when --id is provided)')
         .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (standardFile, options) => {
-            const pushStandardOptions: PushStandardOptions = {
+            const pushStandardOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                namespace: options.namespace,
                 name: options.name,
                 description: options.description,
                 file: standardFile,
-                id: options.id,
-                version: options.ver,
-                format: options.format
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushStandard(pushStandardOptions);
         });
 
     hubPushCmd
         .command('control-requirement <requirement-file>')
-        .description('Push a control requirement version to CALM Hub')
-        .requiredOption(DOMAIN_OPTION, 'Target domain')
-        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
-        .requiredOption(HUB_VERSION_OPTION, 'Semver version to create')
-        .option(NAME_OPTION, 'Name for the requirement version wrapper')
-        .option(DESCRIPTION_OPTION, 'Description for the requirement version wrapper')
+        .description('Push a control requirement version to CALM Hub. $id of document must contain a full control requirement document ID including domain, control name and version.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (requirementFile, options) => {
-            const pushOptions: PushControlRequirementOptions = {
+            const pushOptions: PushControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                domain: options.domain,
-                controlId: options.controlId,
-                version: options.ver,
-                name: options.name,
-                description: options.description,
                 file: requirementFile,
-                format: options.format
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushControlRequirement(pushOptions);
         });
 
     hubPushCmd
         .command('control-configuration <config-file>')
-        .description('Push a control configuration version to CALM Hub')
-        .requiredOption(DOMAIN_OPTION, 'Target domain')
-        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
-        .requiredOption(CONFIG_ID_OPTION, 'Configuration ID')
-        .requiredOption(HUB_VERSION_OPTION, 'Semver version to create')
+        .description('Push a control configuration version to CALM Hub. $id of document must contain a full control configuration document ID including domain, control name, configuration name and version.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (configFile, options) => {
-            const pushOptions: PushControlConfigurationOptions = {
+            const pushOptions: PushControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                domain: options.domain,
-                controlId: options.controlId,
-                configId: options.configId,
-                version: options.ver,
                 file: configFile,
-                format: options.format
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushControlConfiguration(pushOptions);
         });
@@ -565,15 +582,15 @@ Example:
         .command('architecture')
         .description('Pull a specific version of a CALM architecture from CALM Hub')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
-        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
-        .requiredOption(ID_OPTION, 'Architecture ID to pull')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the architecture to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const pullOptions: PullArchitectureOptions = {
+            const pullOptions: PullOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
-                id: options.id,
+                mapping: options.mapping,
                 version: options.ver,
                 output: options.output
             };
@@ -584,15 +601,15 @@ Example:
         .command('pattern')
         .description('Pull a specific version of a CALM pattern from CALM Hub')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
-        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
-        .requiredOption(ID_OPTION, 'Pattern ID to pull')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the pattern to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const pullPatternOptions: PullPatternOptions = {
+            const pullPatternOptions: PullOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
-                id: options.id,
+                mapping: options.mapping,
                 version: options.ver,
                 output: options.output
             };
@@ -603,15 +620,15 @@ Example:
         .command('standard')
         .description('Pull a specific version of a CALM standard from CALM Hub')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
-        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
-        .requiredOption(ID_OPTION, 'Standard ID to pull')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the standard to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const pullStandardOptions: PullStandardOptions = {
+            const pullStandardOptions: PullOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
-                id: options.id,
+                mapping: options.mapping,
                 version: options.ver,
                 output: options.output
             };
@@ -622,15 +639,15 @@ Example:
         .command('control-requirement')
         .description('Pull a control requirement version from CALM Hub')
         .requiredOption(DOMAIN_OPTION, 'Source domain')
-        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
-        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .requiredOption(CONTROL_NAME_OPTION, 'Control name')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve (defaults to the latest)')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const pullOptions: PullControlRequirementOptions = {
+            const pullOptions: PullControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 domain: options.domain,
-                controlId: options.controlId,
+                controlName: options.controlName,
                 version: options.ver,
                 output: options.output
             };
@@ -641,17 +658,17 @@ Example:
         .command('control-configuration')
         .description('Pull a control configuration version from CALM Hub')
         .requiredOption(DOMAIN_OPTION, 'Source domain')
-        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
-        .requiredOption(CONFIG_ID_OPTION, 'Configuration ID')
-        .requiredOption(HUB_VERSION_OPTION, 'Version to retrieve')
+        .requiredOption(CONTROL_NAME_OPTION, 'Control name')
+        .requiredOption(CONFIG_NAME_OPTION, 'Configuration name')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve (defaults to the latest)')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
         .action(async (options) => {
-            const pullOptions: PullControlConfigurationOptions = {
+            const pullOptions: PullControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 domain: options.domain,
-                controlId: options.controlId,
-                configId: options.configId,
+                controlName: options.controlName,
+                configName: options.configName,
                 version: options.ver,
                 output: options.output
             };
@@ -668,7 +685,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const listOptions: ListArchitecturesOptions = {
+            const listOptions: ListOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
                 format: options.format
@@ -696,7 +713,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const listPatternsOptions: ListPatternsOptions = {
+            const listPatternsOptions: ListOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
                 format: options.format
@@ -711,7 +728,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const listStandardsOptions: ListStandardsOptions = {
+            const listStandardsOptions: ListOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 namespace: options.namespace,
                 format: options.format
@@ -733,32 +750,32 @@ Example:
         });
 
     hubListCmd
-        .command('control-requirements')
-        .description('List control requirements with versions in a domain')
+        .command('controls')
+        .description('List control names in a domain')
         .requiredOption(DOMAIN_OPTION, 'Target domain')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
-            const listOptions: ListControlRequirementsOptions = {
+            const listOptions: ListControlsOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 domain: options.domain,
                 format: options.format
             };
-            await runListControlRequirements(listOptions);
+            await runListControls(listOptions);
         });
 
     hubListCmd
         .command('control-configurations')
-        .description('List configurations and versions for a control')
+        .description('List configuration names for a control')
         .requiredOption(DOMAIN_OPTION, 'Target domain')
-        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
+        .requiredOption(CONTROL_NAME_OPTION, 'Control name')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .action(async (options) => {
             const listOptions: ListControlConfigurationsOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 domain: options.domain,
-                controlId: options.controlId,
+                controlName: options.controlName,
                 format: options.format
             };
             await runListControlConfigurations(listOptions);
@@ -799,46 +816,10 @@ Example:
             await runCreateDomain(createOptions);
         });
 
-    hubCreateCmd
-        .command('control-requirement <control-file>')
-        .description('Create a new control in CALM Hub')
-        .requiredOption(DOMAIN_OPTION, 'Target domain')
-        .requiredOption(NAME_OPTION, 'Control name')
-        .requiredOption(DESCRIPTION_OPTION, 'Control description')
-        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .addOption(hubOutputOption)
-        .action(async (controlFile, options) => {
-            const createOptions: CreateControlRequirementOptions = {
-                calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                domain: options.domain,
-                name: options.name,
-                description: options.description,
-                file: controlFile,
-                format: options.format
-            };
-            await runCreateControlRequirement(createOptions);
-        });
-
-    hubCreateCmd
-        .command('control-configuration <config-file>')
-        .description('Create a new configuration for a control in CALM Hub')
-        .requiredOption(DOMAIN_OPTION, 'Target domain')
-        .requiredOption(CONTROL_ID_OPTION, 'Control ID')
-        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .addOption(hubOutputOption)
-        .action(async (configFile, options) => {
-            const createOptions: CreateControlConfigurationOptions = {
-                calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                domain: options.domain,
-                controlId: options.controlId,
-                file: configFile,
-                format: options.format
-            };
-            await runCreateControlConfiguration(createOptions);
-        });
-
     program.addCommand(hubCmd);
 
+    // Dev commands
+    setupWorkspaceCommands(program);
 }
 
 interface ParseDocumentLoaderOptions {
@@ -879,6 +860,23 @@ export async function parseDocumentLoaderConfig(
         } catch (err) {
             logger.error('Failed to load auth plugin: ' + (err instanceof Error ? err.message : String(err)));
         }
+    }
+
+
+    // If a CALM workspace bundle is present in the repository, prefer it for resolving documents.
+    // The WorkspaceDocumentLoader (added first by buildDocumentLoader when workspaceBundlePath is
+    // set) resolves any reference to a tracked document — bare id, $id, versioned path, or full
+    // URL — to the local working copy, overriding CalmHub.
+    try {
+        const workspaceBundle = findWorkspaceManifestPath(process.cwd());
+        if (workspaceBundle) {
+            logger.info('Using workspace bundle for document resolution: ' + workspaceBundle);
+            docLoaderOpts.workspaceBundlePath = workspaceBundle;
+            // Fall back to the bundle as the base path so relative references still resolve.
+            docLoaderOpts.basePath = docLoaderOpts.basePath ?? workspaceBundle;
+        }
+    } catch (err) {
+        logger.debug('Error while checking for workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
     }
 
     if (userConfig && userConfig.allowedRemoteHosts && !options.allowedRemoteHosts) {

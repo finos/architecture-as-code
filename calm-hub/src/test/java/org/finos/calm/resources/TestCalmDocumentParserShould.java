@@ -321,6 +321,27 @@ class TestCalmDocumentParserShould {
     }
 
     // -------------------------------------------------------------------------
+    // extractIdFromJsonStrict
+    // -------------------------------------------------------------------------
+
+    @Test
+    void extractIdFromJsonStrict_extracts_id_from_valid_json() throws JsonProcessingException {
+        assertEquals("http://example.com/thing",
+                parser.extractIdFromJsonStrict("{\"$id\":\"http://example.com/thing\",\"other\":\"field\"}"));
+    }
+
+    @Test
+    void extractIdFromJsonStrict_returns_null_when_id_absent() throws JsonProcessingException {
+        assertNull(parser.extractIdFromJsonStrict("{\"name\":\"x\"}"));
+    }
+
+    @Test
+    void extractIdFromJsonStrict_throws_for_malformed_json() {
+        assertThrows(JsonProcessingException.class,
+                () -> parser.extractIdFromJsonStrict("{invalid json"));
+    }
+
+    // -------------------------------------------------------------------------
     // domainPrefix
     // -------------------------------------------------------------------------
 

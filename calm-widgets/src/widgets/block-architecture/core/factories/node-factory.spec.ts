@@ -63,6 +63,34 @@ describe('StandardVMNodeFactory', () => {
         expect(ids).toEqual(['n4__iface__api', 'n4__iface__events']);
     });
 
+    it('only renders interfaces present in activeInterfaceIds when provided', () => {
+        const f = new StandardVMNodeFactory();
+        const node: Partial<CalmNodeCanonicalModel> = {
+            'unique-id': 'n6',
+            interfaces: [
+                { 'unique-id': 'payment-api', name: 'Payment API' },
+                { 'unique-id': 'audit-log-iface', name: 'Audit Log' },
+            ],
+        };
+        const activeInterfaceIds = new Set<string>(['payment-api']);
+        const res = f.createLeafNode(node as CalmNodeCanonicalModel, true, activeInterfaceIds);
+        expect(res.node.interfaces).toHaveLength(1);
+        expect(res.node.interfaces![0].label).toContain('Payment API');
+        expect(res.attachments).toHaveLength(1);
+        expect(res.attachments[0].to).toBe('n6__iface__payment-api');
+    });
+
+    it('renders no interfaces when activeInterfaceIds is empty', () => {
+        const f = new StandardVMNodeFactory();
+        const node: Partial<CalmNodeCanonicalModel> = {
+            'unique-id': 'n7',
+            interfaces: [{ 'unique-id': 'some-iface', name: 'Some' }],
+        };
+        const res = f.createLeafNode(node as CalmNodeCanonicalModel, true, new Set<string>());
+        expect(res.node.interfaces).toBeUndefined();
+        expect(res.attachments).toHaveLength(0);
+    });
+
     it('ignores interfaces array if it is empty', () => {
         const f = new StandardVMNodeFactory();
         const node: Partial<CalmNodeCanonicalModel> = {

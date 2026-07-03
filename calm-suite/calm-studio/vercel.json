@@ -1,5 +1,0 @@
-{
-  "buildCommand": "pnpm --filter studio... run build",
-  "outputDirectory": "apps/studio/build",
-  "framework": null
-}

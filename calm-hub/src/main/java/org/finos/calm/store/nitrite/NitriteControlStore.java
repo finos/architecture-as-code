@@ -22,11 +22,14 @@ import org.finos.calm.store.ControlStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.finos.calm.store.util.VersionKeySelector;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 import io.quarkus.arc.lookup.LookupIfProperty;
@@ -49,6 +52,8 @@ public class NitriteControlStore implements ControlStore {
     private static final String CONFIGURATIONS_FIELD = "configurations";
     private static final String CONFIGURATION_ID_FIELD = "configurationId";
     private static final String VERSIONS_FIELD = "versions";
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final NitriteCollection controlCollection;
     private final NitriteDomainStore domainStore;
@@ -75,10 +80,13 @@ public class NitriteControlStore implements ControlStore {
                 continue;
             }
             for (Document control : controls) {
+                Document requirement = control.get(REQUIREMENT_FIELD, Document.class);
+                String title = titleFromRequirementNitriteDoc(requirement);
                 result.add(new ControlDetail(
                         control.get(CONTROL_ID_FIELD, Integer.class),
                         control.get("name", String.class),
-                        control.get("description", String.class)
+                        control.get("description", String.class),
+                        title
                 ));
             }
         }
@@ -196,9 +204,12 @@ public class NitriteControlStore implements ControlStore {
 
         List<ControlConfigDetail> details = new ArrayList<>();
         for (Document config : configurations) {
+            Document versions = config.get(VERSIONS_FIELD, Document.class);
+            String title = titleFromVersionsNitriteDoc(versions);
             details.add(new ControlConfigDetail(
                     config.get(CONFIGURATION_ID_FIELD, Integer.class),
-                    config.get("name", String.class)));
+                    config.get("name", String.class),
+                    title));
         }
         return details;
     }
@@ -398,6 +409,32 @@ public class NitriteControlStore implements ControlStore {
         }
 
         throw new ControlConfigurationNotFoundException();
+    }
+
+    private String titleFromJsonString(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            JsonNode node = OBJECT_MAPPER.readTree(json);
+            JsonNode titleNode = node.get("title");
+            return (titleNode != null && titleNode.isTextual()) ? titleNode.asText() : null;
+        } catch (Exception e) {
+            LOG.debug("Could not parse version JSON to extract title", e);
+            return null;
+        }
+    }
+
+    private String titleFromRequirementNitriteDoc(Document requirement) {
+        if (requirement == null || requirement.getFields().isEmpty()) return null;
+        String latestKey = VersionKeySelector.latestVersionKey(requirement.getFields());
+        if (latestKey == null) return null;
+        return titleFromJsonString(requirement.get(latestKey, String.class));
+    }
+
+    private String titleFromVersionsNitriteDoc(Document versions) {
+        if (versions == null || versions.getFields().isEmpty()) return null;
+        String latestKey = VersionKeySelector.latestVersionKey(versions.getFields());
+        if (latestKey == null) return null;
+        return titleFromJsonString(versions.get(latestKey, String.class));
     }
 
     private void validateDomain(String domain) throws DomainNotFoundException {

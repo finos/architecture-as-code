@@ -86,30 +86,31 @@ export class WidgetEngine {
     }
 
     registerDefaultWidgets() {
+        // Entries must stay in alphabetical order by widget id — enforced by widget-engine.spec.ts.
         const widgets: { widget: CalmWidget<unknown, object, unknown>, folder: string }[] = [
             {
-                widget: TableWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/table',
-            },
-            {
-                widget: ListWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/list',
-            },
-            {
-                widget: JsonViewerWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/json-viewer',
+                widget: BlockArchitectureWidget as CalmWidget<unknown, object, unknown>,
+                folder: __dirname + '/widgets/block-architecture',
             },
             {
                 widget: FlowSequenceWidget as CalmWidget<unknown, object, unknown>,
                 folder: __dirname + '/widgets/flow-sequence',
             },
             {
+                widget: JsonViewerWidget as CalmWidget<unknown, object, unknown>,
+                folder: __dirname + '/widgets/json-viewer',
+            },
+            {
+                widget: ListWidget as CalmWidget<unknown, object, unknown>,
+                folder: __dirname + '/widgets/list',
+            },
+            {
                 widget: RelatedNodesWidget as CalmWidget<unknown, object, unknown>,
                 folder: __dirname + '/widgets/related-nodes',
             },
             {
-                widget: BlockArchitectureWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/block-architecture',
+                widget: TableWidget as CalmWidget<unknown, object, unknown>,
+                folder: __dirname + '/widgets/table',
             },
         ];
         this.setupWidgets(widgets);

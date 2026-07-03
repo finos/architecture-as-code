@@ -47,7 +47,7 @@ export {
     type ParsedFrontMatter,
     type FrontMatterInjectionParams
 } from './template/front-matter.js';
-export { Docifier, DocifyMode } from './docify/docifier.js';
+export { Docifier, DocifyMode, DiagramExportFormat } from './docify/docifier.js';
 export { C4Model } from './docify/graphing/c4.js';
 export { CalmRelationshipGraph } from './docify/graphing/relationship-graph.js';
 export { ValidationOutcome } from './commands/validate/validation.output';
@@ -55,6 +55,7 @@ export * from './test/file-comparison.js';
 export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
 export { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from './document-loader/document-loader';
 export { FileSystemDocumentLoader } from './document-loader/file-system-document-loader';
+export { WorkspaceDocumentLoader } from './document-loader/workspace-document-loader';
 export * from './document-loader/loading-helpers.js';
 export {
     hasArchitectureExtension,
@@ -65,17 +66,31 @@ export {
     CalmHubClient,
     HubClientError,
     type HubNamespaceSummary,
-    type HubArchitectureSummary,
-    type HubPatternSummary,
-    type HubStandardSummary,
     type HubCreateResult,
     type HubNamespaceCreateResult,
     type HubDomainCreateResult,
     type HubDomainSummary,
     type HubControlSummary,
-    type HubControlRequirementSummary,
-    type CalmHubOptions
+    type CalmHubOptions,
+    type ResourceType,
+    type ResourceChangeType,
+    isValidResourceType
 } from './hub/calm-hub-client.js';
+export {
+    constructDocumentId,
+    isConformantDocumentId,
+    namespaceFromDocumentId,
+    extractDocumentMetadata,
+    updateDocumentMetadata,
+    type DocumentMetadata,
+    constructControlDocumentId,
+    extractControlMetadata,
+    updateControlDocumentMetadata,
+    type ControlDocumentMetadata,
+    type ControlDocumentKind
+} from './hub/document-id-utils.js';
+export { computeSemVerBump, compareSemVer, sortSemVer } from './hub/semver.js';
+export { canonicalEqual, canonicalize } from './hub/canonical.js';
 export {
     enrichWithDocumentPositions,
     parseDocumentWithPositions,
