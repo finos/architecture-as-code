@@ -13,7 +13,7 @@ This file lists the maintainers of this repository.
 | @YoofiTT96 | Joseph Yoofi Brown-Pobee | turntabl | yoofi.brownpobee@outlook.com |
 | @aamanrebello | Aaman Rebello | Morgan Stanley | aaman.rebello@morganstanley.com |
 | @aidanm3341 | Aidan McPhelim | Morgan Stanley | aidan.mcphelim@morganstanley.com |
-| @dc-ms | *please add name* | *please add organization* | *please add email* |
+| @dc-ms | Denis Coffaro | Morgan Stanley | denis.coffaro@morganstanley.com |
 | @eddie-knight | Eddie Knight | Revanite Incorporated | knight@linux.com |
 | @gjs-opsflo | Gourav J. Shah | OpsFlow.Sh | gjs@opsflow.sh |
 | @grahampacker-ms | Graham Packer | *please add organization* | *please add email* |
