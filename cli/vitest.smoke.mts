@@ -12,5 +12,6 @@ export default defineConfig({
         hookTimeout: 240_000,
         fileParallelism: false,
         pool: 'forks',
+        globalSetup: ['./smoke/global-setup.ts'],
     },
 });
