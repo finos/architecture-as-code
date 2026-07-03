@@ -30,11 +30,14 @@ describe('Flow 2: generate/validate (local + CalmHub refs)', () => {
         const out = path.join(cli.tempDir, 'local-arch.json');
         await cli.run(['generate', '-p', PATTERN_FIXTURE, '-o', out]);
         expect(fs.existsSync(out)).toBe(true);
-        expect(Array.isArray(readJson(out).nodes)).toBe(true);
+        const nodes = readJson(out).nodes;
+        expect(Array.isArray(nodes)).toBe(true);
+        expect(nodes.length).toBeGreaterThan(0);
     });
 
     test('validate a local architecture against the local pattern passes', async () => {
         const arch = path.join(cli.tempDir, 'local-arch.json');
+        expect(fs.existsSync(arch)).toBe(true);
         const { stdout } = await cli.run(['validate', '-p', PATTERN_FIXTURE, '-a', arch, '-f', 'json']);
         expect(JSON.parse(stdout).hasErrors).toBe(false);
     });
@@ -48,11 +51,14 @@ describe('Flow 2: generate/validate (local + CalmHub refs)', () => {
         const out = path.join(cli.tempDir, 'hub-arch.json');
         await cli.run(['generate', '-p', PATTERN_URL, '-o', out, '-c', SMOKE_HUB_URL]);
         expect(fs.existsSync(out)).toBe(true);
-        expect(Array.isArray(readJson(out).nodes)).toBe(true);
+        const nodes = readJson(out).nodes;
+        expect(Array.isArray(nodes)).toBe(true);
+        expect(nodes.length).toBeGreaterThan(0);
     });
 
     test('validate against a CalmHub-hosted pattern URL passes', async () => {
         const arch = path.join(cli.tempDir, 'hub-arch.json');
+        expect(fs.existsSync(arch)).toBe(true);
         const { stdout } = await cli.run(['validate', '-p', PATTERN_URL, '-a', arch, '-f', 'json', '-c', SMOKE_HUB_URL]);
         expect(JSON.parse(stdout).hasErrors).toBe(false);
     });
