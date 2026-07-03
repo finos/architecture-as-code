@@ -22,8 +22,8 @@ export default async function setup(): Promise<() => Promise<void>> {
         );
     }
 
-    compose(['up', '-d']);
     try {
+        compose(['up', '-d']);
         await waitForHub(SMOKE_HUB_URL);
     } catch (err) {
         try {

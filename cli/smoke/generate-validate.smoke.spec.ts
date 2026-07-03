@@ -4,17 +4,13 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { installPackedCli, type CliInstall } from '../src/test_helpers/cli-runner';
 import { SMOKE_HUB_URL } from './global-setup';
 import { hubApi } from './harness/hub-api';
-import { hubDocId } from './harness/fixtures';
+import { hubDocId, readJson } from './harness/fixtures';
 
 const CLI_ROOT = path.resolve(__dirname, '..');
 const NS = 'smoke-genval';
 const PATTERN_FIXTURE = path.resolve(__dirname, 'fixtures/genval/conference-signup.pattern.json');
 const PATTERN_URL = hubDocId(NS, 'patterns', 'conference-signup', '1.0.0');
 const api = hubApi();
-
-function readJson(f: string) {
-    return JSON.parse(fs.readFileSync(f, 'utf8'));
-}
 
 describe('Flow 2: generate/validate (local + CalmHub refs)', () => {
     let cli: CliInstall;
@@ -30,7 +26,7 @@ describe('Flow 2: generate/validate (local + CalmHub refs)', () => {
         const out = path.join(cli.tempDir, 'local-arch.json');
         await cli.run(['generate', '-p', PATTERN_FIXTURE, '-o', out]);
         expect(fs.existsSync(out)).toBe(true);
-        const nodes = readJson(out).nodes;
+        const nodes = readJson(out).nodes as unknown[];
         expect(Array.isArray(nodes)).toBe(true);
         expect(nodes.length).toBeGreaterThan(0);
     });
@@ -51,7 +47,7 @@ describe('Flow 2: generate/validate (local + CalmHub refs)', () => {
         const out = path.join(cli.tempDir, 'hub-arch.json');
         await cli.run(['generate', '-p', PATTERN_URL, '-o', out, '-c', SMOKE_HUB_URL]);
         expect(fs.existsSync(out)).toBe(true);
-        const nodes = readJson(out).nodes;
+        const nodes = readJson(out).nodes as unknown[];
         expect(Array.isArray(nodes)).toBe(true);
         expect(nodes.length).toBeGreaterThan(0);
     });
