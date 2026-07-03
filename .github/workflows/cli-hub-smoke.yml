@@ -1,0 +1,44 @@
+name: CLI + CalmHub Smoke Tests
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        paths:
+            - 'cli/**'
+            - 'calm-hub/**'
+            - 'shared/**'
+            - '.github/workflows/cli-hub-smoke.yml'
+    workflow_dispatch:
+
+jobs:
+    cli-hub-smoke:
+        name: CLI ↔ CalmHub smoke
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Set up JDK
+              uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5
+              with:
+                  distribution: 'temurin'
+                  java-version: '21'
+
+            - name: Set up Node
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              with:
+                  node-version-file: '.nvmrc'
+
+            - name: Install npm dependencies
+              run: npm ci
+
+            - name: Build CLI
+              run: npm run build:cli
+
+            - name: Build calm-hub:smoke image
+              run: bash scripts/build-hub-smoke-image.sh
+
+            - name: Run CLI/CalmHub smoke tests
+              run: npm run test:smoke --workspace cli
