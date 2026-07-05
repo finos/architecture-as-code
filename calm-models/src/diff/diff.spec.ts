@@ -497,6 +497,40 @@ describe('diff', () => {
                 },
             });
         });
+
+        it('records description-only control edits when requirements are structurally identical', () => {
+            const modified = {
+                ...testArchitectures.baseArchitecture,
+                controls: {
+                    ...testArchitectures.baseArchitecture.controls,
+                    'id-1': {
+                        description: 'edited content',
+                        requirements: testArchitectures.baseArchitecture.controls['id-1'].requirements.map((r) => ({ ...r })),
+                    },
+                },
+            } as CalmArchitectureSchema;
+
+            const result = diffArchitectures(testArchitectures.baseArchitecture, modified);
+
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({});
+
+            expect(result.controlItemsModified['id-1'].descriptionDiff).toEqual([
+                { changeType: 'removed', content: 'test control description' },
+                { changeType: 'added', content: 'edited content' },
+            ]);
+
+            expect(result.controlItemsModified['id-1'].requirementsDiff).toEqual([
+                {
+                    changeType: 'unchanged',
+                    content: {
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url',
+                    },
+                },
+            ]);
+        });
     });
 
     describe('diffArchitectures - comprehensive scenarios', () => {
