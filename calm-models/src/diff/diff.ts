@@ -236,7 +236,7 @@ export function diffAdrs(
 }
 
 /**
- * Core diff function for CALM control objects. Identifies which controls are added, removed and unchaged by ID, and identifies control changes under an individual ID.
+ * Core diff function for CALM control objects. Identifies which controls are added, removed and unchanged by ID, and identifies control changes under an individual ID.
  */
 export function diffControls(
     controlsA: CalmControlsSchema,
@@ -269,7 +269,7 @@ export function diffControls(
     const editedControlIds: string[] = [];
 
     commonControlIds.forEach((id: string) => {
-        if (JSON.stringify(controlsA[id]) === JSON.stringify(controlsB[id])) {
+        if (valuesEqual(controlsA[id], controlsB[id])) {
             result.controlItemsUnchanged[id] = controlsA[id];
         } else {
             editedControlIds.push(id);
@@ -289,7 +289,7 @@ function diffControlItem(controlItemA: CalmControlSchema, controlItemB: CalmCont
             content: diff.value,
             changeType: getChangeTypeFromChangeObject(diff),
         })),
-        requirementsDiff: diffArrays<CalmControlDetailSchema>(controlItemA.requirements, controlItemB.requirements).flatMap((diff: ChangeObject<CalmControlDetailSchema[]>) => diff.value.map((val: CalmControlDetailSchema) => ({
+        requirementsDiff: diffArrays<CalmControlDetailSchema>(controlItemA.requirements, controlItemB.requirements, { comparator: valuesEqual }).flatMap((diff: ChangeObject<CalmControlDetailSchema[]>) => diff.value.map((val: CalmControlDetailSchema) => ({
             content: val,
             changeType: getChangeTypeFromChangeObject(diff),
         })))

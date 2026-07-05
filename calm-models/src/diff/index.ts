@@ -1,6 +1,7 @@
 export {
     diffAdrs,
     diffArchitectures,
+    diffControls,
     diffNodesAndRelationships,
     nodeStructureMatches,
     relationshipStructureMatches,
