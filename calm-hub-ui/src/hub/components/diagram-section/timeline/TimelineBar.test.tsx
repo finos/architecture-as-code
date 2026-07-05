@@ -33,6 +33,100 @@ function renderBar(overrides?: {
 describe('TimelineBar', () => {
     beforeEach(() => localStorage.clear());
 
+    describe('version-navigator labelling (#4)', () => {
+        it('labels the collapsed strip "Browse versions" with an explanatory line', () => {
+            renderBar();
+            expect(screen.getByText('Browse versions')).toBeInTheDocument();
+            expect(
+                screen.getByText(/click a moment to re-render the diagram & JSON at that version/i)
+            ).toBeInTheDocument();
+        });
+
+        it('shows the current version as a right-aligned mono pill', () => {
+            renderBar({ currentVersion: '1.5.0' });
+            const pill = screen.getByTestId('timeline-version-pill');
+            expect(pill).toHaveTextContent('v1.5.0');
+        });
+
+        it('keeps the "Browse versions" label and version pill in the expanded panel', () => {
+            renderBar({ currentVersion: '2.0.0' });
+            fireEvent.click(screen.getByRole('button', { name: /expand timeline/i }));
+            expect(screen.getByTestId('timeline-bar-expanded')).toBeInTheDocument();
+            expect(screen.getByText('Browse versions')).toBeInTheDocument();
+            expect(screen.getByTestId('timeline-version-pill')).toHaveTextContent('v2.0.0');
+        });
+
+        it('renders the active moment dot in the redesign primary blue', () => {
+            renderBar({ currentVersion: '1.5.0' });
+            const activeMarker = screen.getByLabelText('Moment 1.5.0');
+            const dot = activeMarker.querySelector('[data-active="true"]') as HTMLElement;
+            expect(dot).toBeTruthy();
+            // redesign.primary #2563EB → rgb(37, 99, 235)
+            expect(dot).toHaveStyle({ backgroundColor: 'rgb(37, 99, 235)' });
+        });
+    });
+
+    describe('collapsed sparkline interactions', () => {
+        it('left-click on a collapsed dot navigates to that version', () => {
+            const { onNavigate } = renderBar({ currentVersion: '1.5.0' });
+            // No expand — drive the default collapsed sparkline directly.
+            fireEvent.click(screen.getByLabelText('Moment 2.0.0'));
+            expect(onNavigate).toHaveBeenCalledWith('2.0.0');
+        });
+
+        it('right-click on a collapsed dot opens a compare menu and starts a compare', () => {
+            const { onCompare } = renderBar({ currentVersion: '1.5.0' });
+            fireEvent.contextMenu(screen.getByLabelText('Moment 1.0.0'));
+            expect(screen.getByTestId('timeline-context-menu')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('menuitem', { name: /compare from/i }));
+            // from = this moment (1.0.0), to = current (1.5.0)
+            expect(onCompare).toHaveBeenCalledWith('1.0.0', '1.5.0');
+        });
+
+        it('shows a blue progress overlay between the compared endpoints', () => {
+            renderBar({ currentVersion: '1.5.0', compareFrom: '1.0.0', compareTo: '2.0.0' });
+            expect(screen.getByTestId('timeline-progress')).toBeInTheDocument();
+        });
+    });
+
+    describe('single-version resources collapse the track', () => {
+        const single: TimelineMoment[] = [{ key: 'm1', label: '1.0.0', version: '1.0.0' }];
+
+        function renderSingle() {
+            return render(
+                <TimelineBar
+                    moments={single}
+                    currentVersion="1.0.0"
+                    compareFrom={null}
+                    compareTo={null}
+                    onNavigate={vi.fn()}
+                    onCompare={vi.fn()}
+                />
+            );
+        }
+
+        it('hides the dot track and shows just the header + version pill', () => {
+            renderSingle();
+            expect(screen.getByTestId('timeline-bar-collapsed')).toBeInTheDocument();
+            expect(screen.queryByTestId('timeline-sparkline-track')).not.toBeInTheDocument();
+            expect(screen.getByText('Browse versions')).toBeInTheDocument();
+            expect(screen.getByTestId('timeline-version-pill')).toHaveTextContent('v1.0.0');
+        });
+
+        it('does not render an inert single moment dot', () => {
+            renderSingle();
+            expect(screen.queryByLabelText('Moment 1.0.0')).not.toBeInTheDocument();
+        });
+
+        it('expands a single-version resource without crashing, keeping the header and pill', () => {
+            renderSingle();
+            fireEvent.click(screen.getByRole('button', { name: /expand timeline/i }));
+            expect(screen.getByTestId('timeline-bar-expanded')).toBeInTheDocument();
+            expect(screen.getByText('Browse versions')).toBeInTheDocument();
+            expect(screen.getByTestId('timeline-version-pill')).toHaveTextContent('v1.0.0');
+        });
+    });
+
     it('renders the collapsed sparkline by default with all version dots, NEW pill and an expand chevron', () => {
         renderBar();
         expect(screen.getByTestId('timeline-bar-collapsed')).toBeInTheDocument();

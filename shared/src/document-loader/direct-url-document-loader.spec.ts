@@ -173,4 +173,22 @@ describe('direct-url-document-loader', () => {
         await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
         await expect(promise).rejects.toThrow('Expected a JSON object');
     });
+
+    it('rejects URLs with path traversal sequences', async () => {
+        const url = 'https://calm.finos.org/calm/../secret.json';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('directory traversal');
+    });
+
+    it('rejects paths containing disallowed characters', async () => {
+        const url = 'https://calm.finos.org/core.json;evil';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('disallowed characters');
+    });
+
+    it('rejects URLs that include a query string', async () => {
+        const url = 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json?evil=1';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('query string');
+    });
 });

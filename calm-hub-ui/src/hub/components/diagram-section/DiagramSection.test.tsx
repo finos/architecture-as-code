@@ -180,6 +180,21 @@ describe('DiagramSection', () => {
             expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
         });
 
+        it('paints the active view tab with the redesign brand blue, not the old accent (#8)', () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            // Default active tab is Diagram — the one blue active system is the
+            // interaction token (--color-interaction → #2563EB), so the filled pill
+            // must carry the token-backed brand-blue class (not bg-accent).
+            const activeTab = screen.getByRole('tab', { name: /diagram/i });
+            expect(activeTab).toHaveClass('!bg-[var(--color-interaction)]');
+            expect(activeTab.className).not.toContain('bg-accent');
+        });
+
         it('renders Deployments tab only for architectures, not patterns', () => {
             const { rerender } = render(
                 <MemoryRouter>

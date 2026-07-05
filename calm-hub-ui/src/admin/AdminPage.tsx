@@ -2,13 +2,30 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { useUserAccess } from './context/UserAccessContext.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
+import { colors } from '../theme/colors.js';
+
+// One active-state system (redesign problem #8): both Admin nav surfaces use the
+// redesign blue (`colors.redesign.primary`) inline — the same accent the browse
+// rail and view tabs use. DaisyUI's `text-primary`/`menu-active` resolve to the
+// global navy brand (`--color-primary` = #000063) / a neutral pill, so they are
+// NOT used for the active accent here.
+const ACTIVE = colors.redesign.primary;
+const ACTIVE_TINT = colors.redesign.tintBg;
 
 function sidebarNavClass({ isActive }: { isActive: boolean }) {
-    return isActive ? 'menu-active' : '';
+    return isActive ? 'font-semibold' : '';
+}
+
+function sidebarNavStyle({ isActive }: { isActive: boolean }) {
+    return isActive ? { backgroundColor: ACTIVE_TINT, color: ACTIVE } : undefined;
 }
 
 function mobileTabClass({ isActive }: { isActive: boolean }) {
-    return `flex-1 text-center py-2 text-sm border-b-2 transition-colors ${isActive ? 'border-primary font-semibold text-primary' : 'border-transparent hover:border-base-content/20'}`;
+    return `flex-1 text-center py-2 text-sm border-b-2 transition-colors ${isActive ? 'font-semibold' : 'border-transparent hover:border-base-content/20'}`;
+}
+
+function mobileTabStyle({ isActive }: { isActive: boolean }) {
+    return isActive ? { borderBottomColor: ACTIVE, color: ACTIVE } : undefined;
 }
 
 export function AdminPage() {
@@ -34,9 +51,9 @@ export function AdminPage() {
                     {/* Mobile: tab bar for section navigation */}
                     {isMobile && (
                         <nav className="flex border-b border-base-300 bg-base-200" aria-label="Admin sections">
-                            <NavLink to="namespaces" className={mobileTabClass}>Namespaces</NavLink>
-                            {isGlobalAdmin && <NavLink to="domains" className={mobileTabClass}>Domains</NavLink>}
-                            <NavLink to="entitlements" className={mobileTabClass}>Entitlements</NavLink>
+                            <NavLink to="namespaces" className={mobileTabClass} style={mobileTabStyle}>Namespaces</NavLink>
+                            {isGlobalAdmin && <NavLink to="domains" className={mobileTabClass} style={mobileTabStyle}>Domains</NavLink>}
+                            <NavLink to="entitlements" className={mobileTabClass} style={mobileTabStyle}>Entitlements</NavLink>
                         </nav>
                     )}
 
@@ -45,9 +62,9 @@ export function AdminPage() {
                         {!isMobile && (
                             <aside className="w-52 bg-base-200 flex-shrink-0 border-r border-base-300">
                                 <ul className="menu p-4 gap-1">
-                                    <li><NavLink to="namespaces" className={sidebarNavClass}>Namespaces</NavLink></li>
-                                    {isGlobalAdmin && <li><NavLink to="domains" className={sidebarNavClass}>Domains</NavLink></li>}
-                                    <li><NavLink to="entitlements" className={sidebarNavClass}>Entitlements</NavLink></li>
+                                    <li><NavLink to="namespaces" className={sidebarNavClass} style={sidebarNavStyle}>Namespaces</NavLink></li>
+                                    {isGlobalAdmin && <li><NavLink to="domains" className={sidebarNavClass} style={sidebarNavStyle}>Domains</NavLink></li>}
+                                    <li><NavLink to="entitlements" className={sidebarNavClass} style={sidebarNavStyle}>Entitlements</NavLink></li>
                                 </ul>
                             </aside>
                         )}

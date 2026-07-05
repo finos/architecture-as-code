@@ -5,6 +5,7 @@ import { ExploreRail } from './components/explore-rail/ExploreRail.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { NamespacePage } from './components/namespace-page/NamespacePage.js';
 import { DomainPage } from './components/domain-page/DomainPage.js';
+import { FirstRunLanding } from './components/first-run-landing/FirstRunLanding.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { Data, Adr } from '../model/calm.js';
@@ -37,6 +38,7 @@ export default function Hub() {
     // zero, so consumers must render them as unknown rather than a misleading 0.
     const [namespaceCountsFailed, setNamespaceCountsFailed] = useState(false);
     const [domainCounts, setDomainCounts] = useState<DomainControlCount[]>([]);
+    const [domainCountsLoaded, setDomainCountsLoaded] = useState(false);
     const isMobile = useIsMobile();
 
     // Route-first content selection (redesign problem #4): the same <Hub/> element
@@ -70,7 +72,11 @@ export default function Hub() {
             // unknown (loading)" from "known zero" — an absent namespace after a
             // successful fetch is genuinely zero, not still loading.
             .finally(() => setNamespaceCountsLoaded(true));
-        countsService.fetchDomainCounts().then(setDomainCounts).catch(() => setDomainCounts([]));
+        countsService
+            .fetchDomainCounts()
+            .then(setDomainCounts)
+            .catch(() => setDomainCounts([]))
+            .finally(() => setDomainCountsLoaded(true));
     }, [countsService]);
 
     useEffect(() => {
@@ -195,7 +201,9 @@ export default function Hub() {
 
     // Route decides the content pane. A loaded resource (including an in-place
     // control/interface selected from the domain/namespace page) takes precedence
-    // over the route-driven page so its detail view shows.
+    // over the route-driven page so its detail view shows. With nothing loaded and
+    // no namespace/domain route (i.e. `/`), the first-run landing fills what was
+    // the ~75% blank canvas (redesign problem #7).
     const content =
         isDetailRoute || controlData || interfaceData || adrData || data ? (
             detailContent
@@ -204,11 +212,15 @@ export default function Hub() {
         ) : activeDomain ? (
             <DomainPage domain={activeDomain} controlCount={domainControlCount} onControlLoad={handleControlLoad} />
         ) : (
-            // Dedicated landing arm: nothing loaded and no browse route active. Kept separate
-            // from detailContent so it never renders DocumentDetailSection with undefined data.
-            <div className="flex-1 flex items-center justify-center text-[14px] text-base-content/50">
-                Select a namespace or control domain from the Explore rail to begin.
-            </div>
+            <FirstRunLanding
+                namespaceCounts={namespaceCounts}
+                domainCounts={domainCounts}
+                // Ready only once both fetches have settled AND the namespace fetch
+                // didn't fail: the tiles include a Controls total from domainCounts (so
+                // namespace-only gating would flash a 0 for Controls), and a failed
+                // namespace fetch is unknown, not zero — hold the placeholder in both cases.
+                countsLoaded={namespaceCountsLoaded && domainCountsLoaded && !namespaceCountsFailed}
+            />
         );
 
     return (
