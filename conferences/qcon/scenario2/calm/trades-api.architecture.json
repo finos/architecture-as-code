@@ -1,0 +1,51 @@
+{
+  "$schema": "https://calm.finos.org/qcon/trades-api.pattern.json",
+  "$id": "https://calm.finos.org/calm/namespaces/qcon/architectures/trades-api/versions/1.0.0",
+  "unique-id": "trades-api-architecture",
+  "name": "Trades API Architecture",
+  "description": "Concrete instantiation of the Trades API pattern, deploying the trades REST service on a local Minikube cluster",
+  "nodes": [
+    {
+      "unique-id": "trades-api",
+      "node-type": "service",
+      "name": "Trades API",
+      "description": "REST API for accessing and managing trade data",
+      "interfaces": [
+        {
+          "unique-id": "trades-api-image",
+          "image": "jpgough/trades-rest-server:latest"
+        },
+        {
+          "unique-id": "trades-api-port",
+          "port": 8080
+        }
+      ]
+    },
+    {
+      "unique-id": "k8s-cluster",
+      "node-type": "system",
+      "name": "Kubernetes Cluster",
+      "description": "Kubernetes cluster hosting the trades API",
+      "interfaces": [
+        {
+          "unique-id": "cluster-type",
+          "value": "minikube"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "trades-api-deployed-in-k8s",
+      "description": "Trades API deployed on the Kubernetes cluster",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "k8s-cluster",
+          "nodes": [
+            "trades-api"
+          ]
+        }
+      }
+    }
+  ]
+}

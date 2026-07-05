@@ -7,7 +7,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
-import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PatternStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ class TestPatternToolsShould {
     @Test
     void return_patterns_when_namespace_has_entries() throws NamespaceNotFoundException {
         when(patternStore.getPatternsForNamespace("workshop"))
-                .thenReturn(List.of(new NamespacePatternSummary("Conference Pattern", "A conference signup pattern", 1)));
+                .thenReturn(List.of(new NamespaceResourceSummary("Conference Pattern", "A conference signup pattern", 1, 0)));
 
         ToolResponse result = patternTools.listPatterns("workshop");
 

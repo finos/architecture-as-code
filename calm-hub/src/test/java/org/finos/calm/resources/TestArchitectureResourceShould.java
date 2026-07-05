@@ -8,7 +8,7 @@ import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.architecture.ArchitectureRequest;
-import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -73,9 +73,9 @@ public class TestArchitectureResourceShould {
 
     @Test
     void return_list_of_architecture_ids_when_valid_namespace_provided_on_get_architectures() throws NamespaceNotFoundException {
-        List<NamespaceArchitectureSummary> summaries = List.of(
-                new NamespaceArchitectureSummary("Arch One", "First architecture", 12345),
-                new NamespaceArchitectureSummary("Arch Two", "Second architecture", 54321)
+        List<NamespaceResourceSummary> summaries = List.of(
+                new NamespaceResourceSummary("Arch One", "First architecture", 12345, 3),
+                new NamespaceResourceSummary("Arch Two", "Second architecture", 54321, 1)
         );
         when(mockArchitectureStore.getArchitecturesForNamespace(anyString())).thenReturn(summaries);
 
@@ -87,9 +87,11 @@ public class TestArchitectureResourceShould {
                 .body("values[0].name", equalTo("Arch One"))
                 .body("values[0].description", equalTo("First architecture"))
                 .body("values[0].id", equalTo(12345))
+                .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Arch Two"))
                 .body("values[1].description", equalTo("Second architecture"))
-                .body("values[1].id", equalTo(54321));
+                .body("values[1].id", equalTo(54321))
+                .body("values[1].versionCount", equalTo(1));
 
         verify(mockArchitectureStore, times(1)).getArchitecturesForNamespace("finos");
     }

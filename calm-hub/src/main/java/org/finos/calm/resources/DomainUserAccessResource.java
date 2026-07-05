@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
 @Path("/api/calm/domains")
@@ -46,12 +47,17 @@ public class DomainUserAccessResource {
             summary = "Create user access for domain",
             description = "Creates a user-access grant for a given domain"
     )
-    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_ADMIN)
     public Response createUserAccessForDomain(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain,
                                               @Valid @NotNull UserAccessRequest request) {
 
         if (!domainStore.domainExists(domain)) {
             return invalidDomainResponse(domain);
+        }
+        if ("*".equals(request.getUsername()) && request.getPermission() == UserAccess.Permission.admin) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Wildcard username is not permitted for admin permission on a domain")
+                    .build();
         }
         UserAccess userAccess = new UserAccess.UserAccessBuilder()
                 .setDomain(domain)
@@ -76,7 +82,7 @@ public class DomainUserAccessResource {
             summary = "Get user-access for a given domain",
             description = "Get user-access details for a given domain"
     )
-    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_ADMIN)
     public Response getUserAccessForDomain(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain) {
         if (!domainStore.domainExists(domain)) {
             return invalidDomainResponse(domain);
@@ -91,7 +97,7 @@ public class DomainUserAccessResource {
             summary = "Get the user-access record for a given domain and Id",
             description = "Get user-access details for a given domain and Id"
     )
-    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_ADMIN)
     public Response getUserAccessForDomainAndId(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain,
                                                 @PathParam("userAccessId") @NotNull Integer userAccessId) {
         if (!domainStore.domainExists(domain)) {
@@ -112,7 +118,7 @@ public class DomainUserAccessResource {
             summary = "Revoke a domain user-access grant",
             description = "Deletes the user-access record for the given domain and id"
     )
-    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    @PermissionsAllowed(CalmHubScopes.DOMAIN_ADMIN)
     public Response deleteUserAccessForDomain(@PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain,
                                               @PathParam("userAccessId") @NotNull Integer userAccessId) {
         if (!domainStore.domainExists(domain)) {
@@ -130,7 +136,7 @@ public class DomainUserAccessResource {
 
     private Response invalidDomainResponse(String domain) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Invalid domain provided: " + domain)
+                .entity("Invalid domain provided: " + STRICT_SANITIZATION_POLICY.sanitize(domain))
                 .build();
     }
 

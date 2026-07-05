@@ -160,4 +160,43 @@ describe('TimelineBar', () => {
         expect(screen.getByText('FROM')).toBeInTheDocument();
         expect(screen.getByText('TO')).toBeInTheDocument();
     });
+
+    // #2728 — long moment names must not block the expand control or clip cards.
+    describe('long moment names are bounded (#2728)', () => {
+        it('clips the collapsed sparkline track so labels cannot paint over the expand button', () => {
+            renderBar();
+            // The centre track is clipped so an overlong label can never overflow
+            // out to cover the statically-positioned expand button.
+            expect(screen.getByTestId('timeline-sparkline-track')).toHaveStyle({
+                overflow: 'hidden',
+            });
+        });
+
+        it('truncates each collapsed label with an ellipsis while keeping its full-name tooltip', () => {
+            renderBar();
+            const label = screen.getByText('1.0.0');
+            expect(label).toHaveStyle({
+                maxWidth: '120px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+            });
+            // The label keeps pointer events (it is not removed from hit-testing),
+            // so the native title tooltip still exposes the full moment name.
+            expect(label).toHaveAttribute('title', '1.0.0');
+        });
+
+        it('truncates each expanded moment-card title with an ellipsis and keeps its tooltip', () => {
+            renderBar();
+            fireEvent.click(screen.getByRole('button', { name: /expand timeline/i }));
+            const title = screen.getByText('1.0.0');
+            expect(title).toHaveStyle({
+                maxWidth: '200px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+            });
+            expect(title).toHaveAttribute('title', '1.0.0');
+        });
+    });
 });

@@ -156,6 +156,9 @@ public class MongoStandardIntegration {
         expected.put("id", createdStandardId);
         expected.put("name", "New Name");
         expected.put("description", "New Description");
+        // The standards summary now carries a versionCount; this standard has two versions
+        // (1.0.0 from creation + 2.0.0 added above), so the list item is an exact 4-key map.
+        expected.put("versionCount", 2);
 
         given()
                 .when().get("/api/calm/namespaces/finos/standards")

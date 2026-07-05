@@ -1,0 +1,22 @@
+{
+    "$schema": "https://calm.finos.org/release/1.0/meta/control.json",
+    "$id": "https://calm.finos.org/qcon/controls/micro-segmentation.requirement.json",
+    "title": "Micro-Segmentation Control Requirement",
+    "description": "Defines the requirement for Kubernetes clusters to support network policy enforcement through micro-segmentation. This control ensures that clusters can implement deny-by-default network policies and enforce fine-grained traffic rules between services.",
+    "control-id": "security-001",
+    "type": "object",
+    "properties": {
+        "permit-ingress": {
+            "type": "boolean",
+            "description": "Whether to permit ingress traffic from external sources to services within the cluster"
+        },
+        "permit-egress": {
+            "type": "boolean",
+            "description": "Whether to permit egress traffic from services within the cluster to external destinations"
+        }
+    },
+    "required": [
+        "permit-ingress",
+        "permit-egress"
+    ]
+}

@@ -179,7 +179,7 @@ public class ControlResource {
     @Path("{domain}/controls/{controlId}/configurations")
     @Operation(
             summary = "Retrieve configurations for a control",
-            description = "Returns the list of configuration IDs for a given control"
+            description = "Returns the list of configurations (id, name, title) for a given control"
     )
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationsForControl(
@@ -188,7 +188,7 @@ public class ControlResource {
             String domain,
             @PathParam("controlId") int controlId) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getConfigurationsForControl(domain, controlId))).build();
+            return Response.ok(new ValueWrapper<>(store.getConfigurationDetailsForControl(domain, controlId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving configurations", domain, e);
             return invalidDomainResponse(domain);

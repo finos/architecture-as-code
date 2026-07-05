@@ -61,6 +61,37 @@ function parseDocumentId(documentId: string): DocumentIdMetadata {
     throw new Error(`Invalid document ID format: ${documentId}`);
 }
 
+/**
+ * Returns true if the given string is a conformant CalmHub document `$id` — either a
+ * namespace-resource id or a control requirement/configuration id.
+ */
+export function isConformantDocumentId(id: string): boolean {
+    try {
+        parseDocumentId(id);
+        return true;
+    } catch {
+        // not a namespace-resource id; try the control forms
+    }
+    try {
+        parseControlDocumentId(id);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Returns the namespace of a namespace-resource document `$id`, or undefined if the id is a
+ * control document or is not conformant.
+ */
+export function namespaceFromDocumentId(id: string): string | undefined {
+    try {
+        return parseDocumentId(id).namespace;
+    } catch {
+        return undefined;
+    }
+}
+
 export function constructDocumentId(metadata: DocumentMetadata): string {
     if (!metadata.namespace || !metadata.mapping) {
         throw new Error('Invalid document $id format. Document ID must be of the form $BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION');

@@ -86,6 +86,7 @@ export class WidgetEngine {
     }
 
     registerDefaultWidgets() {
+        // Entries must stay in alphabetical order by widget id — enforced by widget-engine.spec.ts.
         const widgets: { widget: CalmWidget<unknown, object, unknown>, folder: string }[] = [
             {
                 widget: BlockArchitectureWidget as CalmWidget<unknown, object, unknown>,

@@ -2,8 +2,10 @@ import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, DiagramExportFormat, initLogger
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions, loadChoicesFromInput } from './command-helpers/generate-options';
-import * as cliConfig from './cli-config';
 import path from 'path';
+import { findWorkspaceManifestPath } from './workspace-resolver';
+import { setupWorkspaceCommands } from './command-helpers/workspace/commands';
+import * as cliConfig from './cli-config';
 import { select } from '@inquirer/prompts';
 import {
     CreateNamespaceOptions,
@@ -463,6 +465,9 @@ Example:
         .choices(['patch', 'minor', 'major'])
         .default('patch');
 
+    const hubFailIfModifiedOption = new Option('--fail-if-modified', 'Strict mode: do not auto-bump. Skip if the document is unchanged from the latest published version; fail if it has changed. A brand-new mapping is still created at 1.0.0.')
+        .default(false);
+
     const hubCmd = new Command('hub').description('Interact with CALM Hub');
 
     // hub push
@@ -476,6 +481,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (architectureFile, options) => {
             const pushOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
@@ -483,7 +489,8 @@ Example:
                 description: options.description,
                 file: architectureFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushArchitecture(pushOptions);
         });
@@ -496,6 +503,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (patternFile, options) => {
             const pushPatternOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
@@ -504,6 +512,7 @@ Example:
                 file: patternFile,
                 format: options.format,
                 changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushPattern(pushPatternOptions);
         });
@@ -516,6 +525,7 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (standardFile, options) => {
             const pushStandardOptions: PushOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
@@ -524,6 +534,7 @@ Example:
                 file: standardFile,
                 format: options.format,
                 changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushStandard(pushStandardOptions);
         });
@@ -534,12 +545,14 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (requirementFile, options) => {
             const pushOptions: PushControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 file: requirementFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushControlRequirement(pushOptions);
         });
@@ -550,12 +563,14 @@ Example:
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
         .action(async (configFile, options) => {
             const pushOptions: PushControlOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
                 file: configFile,
                 format: options.format,
-                changeType: options.changeType.toUpperCase() as ResourceChangeType
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
             };
             await runPushControlConfiguration(pushOptions);
         });
@@ -803,6 +818,8 @@ Example:
 
     program.addCommand(hubCmd);
 
+    // Dev commands
+    setupWorkspaceCommands(program);
 }
 
 interface ParseDocumentLoaderOptions {
@@ -843,6 +860,23 @@ export async function parseDocumentLoaderConfig(
         } catch (err) {
             logger.error('Failed to load auth plugin: ' + (err instanceof Error ? err.message : String(err)));
         }
+    }
+
+
+    // If a CALM workspace bundle is present in the repository, prefer it for resolving documents.
+    // The WorkspaceDocumentLoader (added first by buildDocumentLoader when workspaceBundlePath is
+    // set) resolves any reference to a tracked document — bare id, $id, versioned path, or full
+    // URL — to the local working copy, overriding CalmHub.
+    try {
+        const workspaceBundle = findWorkspaceManifestPath(process.cwd());
+        if (workspaceBundle) {
+            logger.info('Using workspace bundle for document resolution: ' + workspaceBundle);
+            docLoaderOpts.workspaceBundlePath = workspaceBundle;
+            // Fall back to the bundle as the base path so relative references still resolve.
+            docLoaderOpts.basePath = docLoaderOpts.basePath ?? workspaceBundle;
+        }
+    } catch (err) {
+        logger.debug('Error while checking for workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
     }
 
     if (userConfig && userConfig.allowedRemoteHosts && !options.allowedRemoteHosts) {

@@ -9,6 +9,7 @@ export type InMsg =
   | { type: 'requestTemplateData' }
   | { type: 'refreshAll' }
   | { type: 'toggleLabels'; showLabels: boolean }
+  | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string; diagramIndex: number }
   | { type: 'log'; message: string }
   | { type: 'error'; message: string; stack?: string }
 
@@ -27,6 +28,7 @@ export interface PreviewCommandTarget {
   handleRequestTemplateData(): void
   handleRefreshAll(): void
   handleToggleLabels(showLabels: boolean): void
+  handleExportDiagram(format: 'svg' | 'png', data: string, diagramIndex: number): void | Promise<void>
   handleLog(message: string): void
   handleError(message: string, stack?: string): void
 }
@@ -40,7 +42,14 @@ export interface WebviewCommand<T extends InMsg = InMsg> {
 export class CommandRegistry {
   private map = new Map<InMsg['type'], WebviewCommand>()
   register(cmd: WebviewCommand) { this.map.set(cmd.type, cmd) }
-  dispatch(msg: InMsg) { this.map.get(msg.type)?.execute(msg as any) }
+  dispatch(msg: InMsg) {
+    // execute() may return a Promise for async commands (e.g. ExportDiagramCmd) - catch any
+    // rejection here so a failure outside a command's own try/catch (e.g. a disposed panel
+    // racing the write) doesn't surface as an unhandled promise rejection.
+    this.map.get(msg.type)?.execute(msg as any)?.catch?.((err: unknown) => {
+      console.error(`[CommandRegistry] Unhandled error executing command "${msg.type}":`, err)
+    })
+  }
 }
 
 // Concrete command implementations - each operates on the PreviewCommandTarget
@@ -88,6 +97,13 @@ export class ToggleLabelsCmd implements WebviewCommand<{ type: 'toggleLabels'; s
   readonly type = 'toggleLabels' as const
   constructor(private p: PreviewCommandTarget) { }
   execute(m: { type: 'toggleLabels'; showLabels: boolean }) { this.p.handleToggleLabels(!!m.showLabels) }
+}
+export class ExportDiagramCmd implements WebviewCommand<{ type: 'exportDiagram'; format: 'svg' | 'png'; data: string; diagramIndex: number }> {
+  readonly type = 'exportDiagram' as const
+  constructor(private p: PreviewCommandTarget) { }
+  execute(m: { type: 'exportDiagram'; format: 'svg' | 'png'; data: string; diagramIndex: number }) {
+    return this.p.handleExportDiagram(m.format, m.data, m.diagramIndex)
+  }
 }
 export class LogCmd implements WebviewCommand<{ type: 'log'; message: string }> {
   readonly type = 'log' as const

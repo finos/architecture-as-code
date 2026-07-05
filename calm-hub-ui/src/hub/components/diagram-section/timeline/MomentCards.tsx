@@ -202,6 +202,13 @@ export function MomentCards({
                                         fontSize: 13,
                                         fontWeight: isViewed ? 600 : 500,
                                         color: titleColor,
+                                        // Cap + truncate long names so each card stays a
+                                        // bounded, readable size; the title tooltip shows
+                                        // the full name (#2728).
+                                        maxWidth: 200,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
                                     }}
                                     title={moment.label}
                                 >

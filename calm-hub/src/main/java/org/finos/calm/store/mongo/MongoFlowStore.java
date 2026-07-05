@@ -11,13 +11,14 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.store.util.VersionKeySelector;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
-import org.finos.calm.domain.flow.NamespaceFlowSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.FlowStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,7 @@ public class MongoFlowStore implements FlowStore {
     }
 
     @Override
-    public List<NamespaceFlowSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceResourceSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
         if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -70,7 +71,7 @@ public class MongoFlowStore implements FlowStore {
         }
 
         List<Document> flows = namespaceDocument.getList("flows", Document.class);
-        List<NamespaceFlowSummary> flowSummaries = new ArrayList<>();
+        List<NamespaceResourceSummary> flowSummaries = new ArrayList<>();
 
         for (Document flow : flows) {
             Integer flowId = flow.getInteger("flowId");
@@ -78,7 +79,10 @@ public class MongoFlowStore implements FlowStore {
             String description = flow.getString("description");
             if (name == null) name = "Flow " + flowId;
             if (description == null) description = "";
-            flowSummaries.add(new NamespaceFlowSummary(name, description, flowId));
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Object rawVersions = flow.get("versions");
+            int versionCount = VersionKeySelector.versionCount(rawVersions instanceof Document d ? d.keySet() : null);
+            flowSummaries.add(new NamespaceResourceSummary(name, description, flowId, versionCount));
         }
 
         return flowSummaries;

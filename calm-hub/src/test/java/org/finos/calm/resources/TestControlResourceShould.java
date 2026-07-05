@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
+import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -266,9 +267,12 @@ public class TestControlResourceShould {
     @MethodSource("provideParametersForGetConfigurationsTests")
     void respond_correctly_to_get_configurations(String domain, Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
         if (exceptionToThrow != null) {
-            when(mockControlStore.getConfigurationsForControl(anyString(), anyInt())).thenThrow(exceptionToThrow);
+            when(mockControlStore.getConfigurationDetailsForControl(anyString(), anyInt())).thenThrow(exceptionToThrow);
         } else {
-            when(mockControlStore.getConfigurationsForControl(anyString(), anyInt())).thenReturn(List.of(10, 20));
+            when(mockControlStore.getConfigurationDetailsForControl(anyString(), anyInt()))
+                    .thenReturn(List.of(
+                            new ControlConfigDetail(10, "config-a", "Config A Title"),
+                            new ControlConfigDetail(20, "config-b", null)));
         }
 
         if (expectedStatusCode == 200) {
@@ -278,8 +282,11 @@ public class TestControlResourceShould {
                     .then()
                     .statusCode(expectedStatusCode)
                     .body("values", hasSize(2))
-                    .body("values[0]", equalTo(10))
-                    .body("values[1]", equalTo(20));
+                    .body("values[0].id", equalTo(10))
+                    .body("values[0].name", equalTo("config-a"))
+                    .body("values[0].title", equalTo("Config A Title"))
+                    .body("values[1].id", equalTo(20))
+                    .body("values[1].name", equalTo("config-b"));
         } else {
             given()
                     .when()
@@ -288,12 +295,12 @@ public class TestControlResourceShould {
                     .statusCode(expectedStatusCode);
         }
 
-        verify(mockControlStore).getConfigurationsForControl(domain, 1);
+        verify(mockControlStore).getConfigurationDetailsForControl(domain, 1);
     }
 
     @Test
     void return_empty_configurations_for_control_with_none() throws Exception {
-        when(mockControlStore.getConfigurationsForControl(VALID_DOMAIN, 1)).thenReturn(List.of());
+        when(mockControlStore.getConfigurationDetailsForControl(VALID_DOMAIN, 1)).thenReturn(List.of());
 
         given()
                 .when()
@@ -302,7 +309,7 @@ public class TestControlResourceShould {
                 .statusCode(200)
                 .body("values", is(empty()));
 
-        verify(mockControlStore).getConfigurationsForControl(VALID_DOMAIN, 1);
+        verify(mockControlStore).getConfigurationDetailsForControl(VALID_DOMAIN, 1);
     }
 
     // --- Configuration Version Endpoints ---

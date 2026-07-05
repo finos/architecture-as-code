@@ -500,6 +500,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                         namespace={data.name}
                         id={data.id}
                         version={data.version}
+                        typeSegment={urlType}
                         showVersion={false}
                         displayName={displayName}
                         typeLabel={typeLabel}

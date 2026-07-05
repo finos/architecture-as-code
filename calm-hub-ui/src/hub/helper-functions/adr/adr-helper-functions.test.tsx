@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DisplayAdrStatus } from './adr-helper-function.js';
-import { CalmAdrStatus } from '@finos/calm-shared/src/types/adr-types.js';
+import { CalmAdrStatus } from '@finos/calm-models/types';
 describe('ADR Status', () => {
     it('should return Draft with orange styling if ADR status is draft', () => {
         const status: CalmAdrStatus = 'draft';

@@ -4,6 +4,7 @@ import * as path from 'path'
 import { detectFileType, FileType } from '../../models/file-types'
 import { parseFrontMatter, parseFrontMatterFromContent } from '@finos/calm-shared'
 import { ModelService } from '../../core/services/model-service'
+import { DiagramExportService } from '../../core/services/diagram-export-service'
 import { TemplateService } from '../../cli/template-service'
 import { HtmlBuilder } from '../../cli/html-builder'
 import { DocifyService } from '../../cli/docify-service'
@@ -21,6 +22,7 @@ import {
   RequestTemplateDataCmd,
   RefreshAllCmd,
   ToggleLabelsCmd,
+  ExportDiagramCmd,
   LogCmd,
   ErrorCmd,
 } from './commands'
@@ -42,6 +44,7 @@ export class CalmPreviewPanel {
   private templateService: TemplateService
   private htmlBuilder: HtmlBuilder
   private docifyService: DocifyService
+  private diagramExportService: DiagramExportService
   public readonly viewModel: PreviewViewModel  // Made public for external access
 
   private runDocifyGuard = new AsyncGuard()
@@ -131,6 +134,7 @@ export class CalmPreviewPanel {
     this.templateService = new TemplateService(context, log)
     this.htmlBuilder = new HtmlBuilder(context)
     this.docifyService = new DocifyService(log, this.templateService)
+    this.diagramExportService = new DiagramExportService()
 
     // Use external ViewModel if provided, otherwise create new one
     this.viewModel = externalViewModel || new PreviewViewModel()
@@ -148,6 +152,7 @@ export class CalmPreviewPanel {
     this.commands.register(new RequestTemplateDataCmd(this))
     this.commands.register(new RefreshAllCmd(this))
     this.commands.register(new ToggleLabelsCmd(this))
+    this.commands.register(new ExportDiagramCmd(this))
     this.commands.register(new LogCmd(this))
     this.commands.register(new ErrorCmd(this))
 
@@ -332,6 +337,26 @@ export class CalmPreviewPanel {
 
   public async handleToggleLabels(showLabels: boolean) {
     this.viewModel.handleToggleLabels(showLabels)
+  }
+
+  public async handleExportDiagram(format: 'svg' | 'png', data: string, diagramIndex: number): Promise<void> {
+    const currentUri = this.getCurrentUri()
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+    const defaultPath = this.diagramExportService.computeDefaultPath(currentUri?.fsPath, workspaceRoot, diagramIndex, format)
+    const defaultUri = vscode.Uri.file(defaultPath)
+
+    const filters = format === 'svg' ? { 'SVG Image': ['svg'] } : { 'PNG Image': ['png'] }
+    const saveUri = await vscode.window.showSaveDialog({ defaultUri, filters })
+    if (!saveUri) return
+
+    try {
+      const buffer = this.diagramExportService.decodeExportData(format, data)
+      await vscode.workspace.fs.writeFile(saveUri, buffer)
+      vscode.window.showInformationMessage(`Diagram exported to ${saveUri.fsPath}`)
+    } catch (error) {
+      this.log.error?.(`[preview] Failed to export diagram: ${String(error)}`)
+      vscode.window.showErrorMessage(`Failed to export diagram: ${String(error)}`)
+    }
   }
 
   public handleLog(message: string) {

@@ -8,7 +8,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.Architecture;
-import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -52,7 +52,7 @@ public class ArchitectureTools {
         if (err.isPresent()) return err.get();
 
         try {
-            List<NamespaceArchitectureSummary> architectures = architectureStore.getArchitecturesForNamespace(namespace);
+            List<NamespaceResourceSummary> architectures = architectureStore.getArchitecturesForNamespace(namespace);
             List<McpResponseFormatter.ResourceSummary> summaries = architectures.stream()
                     .map(a -> new McpResponseFormatter.ResourceSummary(a.getId(), a.getName(), a.getDescription()))
                     .toList();
@@ -142,8 +142,8 @@ public class ArchitectureTools {
         String resolvedName = null;
         String resolvedDescription = null;
         try {
-            List<NamespaceArchitectureSummary> summaries = architectureStore.getArchitecturesForNamespace(namespace);
-            for (NamespaceArchitectureSummary summary : summaries) {
+            List<NamespaceResourceSummary> summaries = architectureStore.getArchitecturesForNamespace(namespace);
+            for (NamespaceResourceSummary summary : summaries) {
                 if (Objects.equals(summary.getId(), architectureId)) {
                     resolvedName = summary.getName();
                     resolvedDescription = summary.getDescription();
@@ -204,8 +204,8 @@ public class ArchitectureTools {
         String resolvedDescription = description;
         if (resolvedName == null || resolvedDescription == null) {
             try {
-                List<NamespaceArchitectureSummary> summaries = architectureStore.getArchitecturesForNamespace(namespace);
-                for (NamespaceArchitectureSummary summary : summaries) {
+                List<NamespaceResourceSummary> summaries = architectureStore.getArchitecturesForNamespace(namespace);
+                for (NamespaceResourceSummary summary : summaries) {
                     if (Objects.equals(summary.getId(), architectureId)) {
                         if (resolvedName == null) resolvedName = summary.getName();
                         if (resolvedDescription == null) resolvedDescription = summary.getDescription();

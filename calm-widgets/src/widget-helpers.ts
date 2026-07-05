@@ -1,6 +1,7 @@
 import { buildThemeClassDefsString, buildThemeFrontMatter } from './widgets/block-architecture/core/themes/theme-builder';
 import { ThemeColors } from './widgets/block-architecture/types';
 
+// Helper keys must stay in alphabetical order — enforced by widget-helpers.spec.ts.
 export function registerGlobalTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
     return {
         currentDate: (): string => new Date().toISOString().split('T')[0],

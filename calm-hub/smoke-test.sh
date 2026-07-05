@@ -18,13 +18,15 @@
 #   GET  /calm/namespaces/{ns}/{type}
 #   PUT  /calm  → 403 when allow.put.operations=false (default)
 #
-# Readonly mode assertions:
+# Readonly mode assertions (curated hosted-hub dataset):
 #   GET    /api/calm/namespaces                              -> 200  (reads work)
-#   GET    /api/calm/namespaces/finos/architectures          -> 200  (seeded namespace)
-#   GET    /api/calm/namespaces/finos/patterns               -> 200
-#   GET    /api/calm/namespaces/traderx/architectures        -> 200
-#   GET    /api/calm/namespaces/finos/architectures          body contains "name","description"
-#   GET    /api/calm/namespaces/finos/patterns               body contains "name"
+#   GET    /api/calm/namespaces                              body contains "finos.calm","finos.traderx","workshop"
+#   GET    /api/calm/namespaces/finos.calm/standards         -> 200 + body contains "name"
+#   GET    /api/calm/namespaces/finos.calm/interfaces        -> 200 + body contains "name"
+#   GET    /api/calm/namespaces/workshop/patterns            -> 200 + body contains "Conference Signup Pattern"
+#   GET    /api/calm/namespaces/workshop/architectures       -> 200 + body contains "name","description"
+#   GET    /api/calm/namespaces/finos.traderx/architectures  -> 200 + body contains "name"
+#   Conference Signup Pattern: versions list contains "1.0.0" and "2.0.0" (uses jq)
 #   POST   /api/calm/namespaces                             -> 405  (blocked by ReadOnlyRequestFilter)
 #   PUT    /api/calm/namespaces/smoke                       -> 405
 #   DELETE /api/calm/namespaces/smoke                       -> 405
@@ -106,16 +108,42 @@ assert_body_contains() {
 echo "[smoke] Running assertions (mode: ${MODE})..."
 
 if [[ "${MODE}" == "readonly" ]]; then
-    # Read access to pre-seeded namespaces (numeric-ID storage API)
+    # Read access and curated namespace list
     assert GET /api/calm/namespaces 200
-    assert GET /api/calm/namespaces/finos/architectures 200
-    assert GET /api/calm/namespaces/finos/patterns 200
-    assert GET /api/calm/namespaces/traderx/architectures 200
-    # Summary payloads must be populated, not empty objects (native serialization
-    # regression guard): a seeded summary must carry name and description fields.
-    assert_body_contains GET /api/calm/namespaces/finos/architectures '"name"'
-    assert_body_contains GET /api/calm/namespaces/finos/architectures '"description"'
-    assert_body_contains GET /api/calm/namespaces/finos/patterns '"name"'
+    assert_body_contains GET /api/calm/namespaces '"finos.calm"'
+    assert_body_contains GET /api/calm/namespaces '"finos.traderx"'
+    assert_body_contains GET /api/calm/namespaces '"workshop"'
+
+    # finos.calm — deployment standard and interfaces must be present
+    assert GET /api/calm/namespaces/finos.calm/standards 200
+    assert_body_contains GET /api/calm/namespaces/finos.calm/standards '"name"'
+    assert GET /api/calm/namespaces/finos.calm/interfaces 200
+    assert_body_contains GET /api/calm/namespaces/finos.calm/interfaces '"name"'
+
+    # workshop — patterns and architectures must be present with populated payloads
+    # (native-image serialization regression guard: non-empty name/description fields)
+    assert GET /api/calm/namespaces/workshop/patterns 200
+    assert_body_contains GET /api/calm/namespaces/workshop/patterns '"Conference Signup Pattern"'
+    assert GET /api/calm/namespaces/workshop/architectures 200
+    assert_body_contains GET /api/calm/namespaces/workshop/architectures '"name"'
+    assert_body_contains GET /api/calm/namespaces/workshop/architectures '"description"'
+
+    # finos.traderx — TraderX architecture must be present
+    assert GET /api/calm/namespaces/finos.traderx/architectures 200
+    assert_body_contains GET /api/calm/namespaces/finos.traderx/architectures '"name"'
+
+    # Conference Signup Pattern must have both v1.0.0 (always seeded) and v2.0.0
+    # (only seeds when post_pattern_version sends the correct {name,patternJson} envelope).
+    # Requires jq to extract the numeric pattern id from the summary response.
+    conf_pattern_id=$(curl -s "${BASE_URL}/api/calm/namespaces/workshop/patterns" \
+        | jq -r '.values[] | select(.name == "Conference Signup Pattern") | .id // empty' 2>/dev/null || true)
+    if [[ -z "$conf_pattern_id" ]]; then
+        echo "[smoke] FAIL could not resolve Conference Signup Pattern id from workshop/patterns" >&2
+        exit 1
+    fi
+    assert_body_contains GET "/api/calm/namespaces/workshop/patterns/${conf_pattern_id}/versions" '"1.0.0"'
+    assert_body_contains GET "/api/calm/namespaces/workshop/patterns/${conf_pattern_id}/versions" '"2.0.0"'
+
     # All mutating methods must be blocked on both API surfaces
     assert POST   /api/calm/namespaces       405 -H 'Content-Type: application/json' -d '{"name":"smoke-test","description":"smoke test namespace"}'
     assert PUT    /api/calm/namespaces/smoke  405

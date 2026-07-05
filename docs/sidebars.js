@@ -71,6 +71,7 @@ const sidebars = {
 
   // Learning sidebar - tutorials
   learningSidebar: [
+    'tutorials/calm-overview-presentation',
     {
       type: 'category',
       label: 'Tutorials',
@@ -109,6 +110,13 @@ const sidebars = {
             'tutorials/intermediate/18-standards',
             'tutorials/intermediate/19-enforcing-standards',
             'tutorials/intermediate/20-multi-pattern-validation',
+          ],
+        },
+        {
+          type: 'category',
+          label: '🔴 Advanced',
+          items: [
+            'tutorials/advanced/qcon-demos',
           ],
         },
         {

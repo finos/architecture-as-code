@@ -32,6 +32,17 @@ export function RiskLevelBadge({ level }: { level: string }) {
     return <Badge icon={AlertTriangle} label={level} color={getRiskLevelColor(level)} />;
 }
 
+function PropertyValue({ value, className }: { value: unknown; className?: string }) {
+    if (value !== null && typeof value === 'object') {
+        return (
+            <pre className={`${className ?? ''} whitespace-pre-wrap break-all m-0 font-mono`}>
+                {JSON.stringify(value, null, 2)}
+            </pre>
+        );
+    }
+    return <span className={className}>{String(value)}</span>;
+}
+
 export function PropertiesSection({ properties }: { properties: [string, unknown][] }) {
     if (properties.length === 0) return null;
     return (
@@ -40,7 +51,7 @@ export function PropertiesSection({ properties }: { properties: [string, unknown
                 {properties.map(([key, value]) => (
                     <div key={key} className="contents">
                         <span className="text-xs text-base-content/50 font-medium">{formatFieldName(key)}</span>
-                        <span className="text-xs text-base-content font-medium">{String(value)}</span>
+                        <PropertyValue value={value} className="text-xs text-base-content font-medium" />
                     </div>
                 ))}
             </div>
@@ -131,7 +142,7 @@ export function InterfacesSection({ interfaces }: { interfaces: Record<string, u
                             {otherFields.map(([k, v]) => (
                                 <div key={k} className="flex justify-between text-xs">
                                     <span className="text-base-content/50">{formatFieldName(k)}</span>
-                                    <span className="text-base-content font-mono">{String(v)}</span>
+                                    <PropertyValue value={v} className="text-base-content font-mono" />
                                 </div>
                             ))}
                         </div>

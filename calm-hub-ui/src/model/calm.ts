@@ -1,8 +1,8 @@
-import { CalmAdrMeta } from '@finos/calm-shared/src/view-model/adr.js';
 import {
     CalmArchitectureSchema,
     CalmPatternSchema,
     CalmFlowSchema,
+    CalmAdrMetaSchema,
 } from '@finos/calm-models/types';
 
 export type Namespace = string;
@@ -15,7 +15,7 @@ export type AdrID = string;
 export type Flow = CalmFlowSchema;
 export type Version = string;
 export type Revision = string;
-export type Adr = CalmAdrMeta;
+export type Adr = CalmAdrMetaSchema;
 export type CalmType = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs' | 'Standards';
 
 /**
@@ -26,6 +26,12 @@ export interface ResourceSummary {
     name: string;
     description: string;
     customId?: string;
+    /**
+     * Number of stored versions, present for the version-map resource types
+     * (architectures, patterns, flows, standards). Absent for resources that don't
+     * carry a version map.
+     */
+    versionCount?: number;
 }
 
 /**

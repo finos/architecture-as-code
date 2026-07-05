@@ -22,22 +22,22 @@ const STORAGE_PREFIX = 'calm-hub:node-positions:';
 const storageKeyFor = (key: string) => `${STORAGE_PREFIX}${key}`;
 
 /** Persist the current positions of every node for the given diagram key. */
-export function saveNodePositions(key: string, nodes: Node[]) {
+export function saveNodePositions(key: string, nodes: Node[], storage: Storage = localStorage) {
     try {
         const positions: StoredNodePosition[] = nodes.map((node) => ({
             id: node.id,
             position: { x: node.position.x, y: node.position.y },
         }));
-        localStorage.setItem(storageKeyFor(key), JSON.stringify(positions));
+        storage.setItem(storageKeyFor(key), JSON.stringify(positions));
     } catch (err) {
         console.error('Failed to save node positions:', err);
     }
 }
 
 /** The stored positions for a diagram key, or null when none/unreadable. */
-export function loadStoredNodePositions(key: string): StoredNodePosition[] | null {
+export function loadStoredNodePositions(key: string, storage: Storage = localStorage): StoredNodePosition[] | null {
     try {
-        const data = localStorage.getItem(storageKeyFor(key));
+        const data = storage.getItem(storageKeyFor(key));
         if (!data) return null;
         const parsed = JSON.parse(data);
         // Guard against valid JSON of an unexpected shape (e.g. tampered or
@@ -54,8 +54,8 @@ export function loadStoredNodePositions(key: string): StoredNodePosition[] | nul
  * reflow containers so they re-hug their restored children. Returns the nodes
  * unchanged when nothing is stored, so callers fall back to the auto-layout.
  */
-export function applyStoredPositions(key: string, nodes: Node[]): Node[] {
-    const stored = loadStoredNodePositions(key);
+export function applyStoredPositions(key: string, nodes: Node[], storage: Storage = localStorage): Node[] {
+    const stored = loadStoredNodePositions(key, storage);
     if (!stored || stored.length === 0) return nodes;
 
     const positionsById = new Map(stored.map((p) => [p.id, p.position]));

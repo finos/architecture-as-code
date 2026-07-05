@@ -7,6 +7,8 @@ interface SectionHeaderProps {
     namespace: string;
     id: string;
     version: string;
+    /** URL path segment for the resource type (e.g. "architectures", "flows"). Distinct from the display-only `typeLabel`. */
+    typeSegment: string;
     rightContent?: ReactNode;
     /** When provided (and non-empty), the version renders as a selectable dropdown. */
     versions?: string[];
@@ -21,13 +23,10 @@ interface SectionHeaderProps {
     typeLabel?: string;
 }
 
-export function SectionHeader({ icon, namespace, id, version, rightContent, versions, onVersionChange, titleActions, showVersion = true, displayName, typeLabel }: SectionHeaderProps) {
+export function SectionHeader({ icon, namespace, id, version, typeSegment, rightContent, versions, onVersionChange, titleActions, showVersion = true, displayName, typeLabel }: SectionHeaderProps) {
     const [copied, setCopied] = useState(false);
-    const [pinned, setPinned] = useState(false);
     const showShareBar = isSlug(id);
-    const latestUrl = `${window.location.origin}/calm/namespaces/${namespace}/${id}`;
-    const pinnedUrl = `${latestUrl}/versions/${version}`;
-    const shareUrl = pinned ? pinnedUrl : latestUrl;
+    const shareUrl = `${window.location.origin}/calm/namespaces/${encodeURIComponent(namespace)}/${typeSegment}/${encodeURIComponent(id)}/versions/${encodeURIComponent(version)}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(shareUrl).then(() => {
@@ -79,22 +78,6 @@ export function SectionHeader({ icon, namespace, id, version, rightContent, vers
             {showShareBar && (
                 <div className="bg-base-200 px-4 sm:px-6 py-2 flex items-center gap-2 border-b border-base-300" data-testid="share-bar">
                     <IoLinkOutline className="text-base-content/50 shrink-0" />
-                    <div className="join shrink-0">
-                        <button
-                            className={`join-item btn btn-xs ${!pinned ? 'btn-active' : 'btn-ghost'}`}
-                            onClick={() => setPinned(false)}
-                            title="Link to latest version"
-                        >
-                            Latest
-                        </button>
-                        <button
-                            className={`join-item btn btn-xs ${pinned ? 'btn-active' : 'btn-ghost'}`}
-                            onClick={() => setPinned(true)}
-                            title="Link to this specific version"
-                        >
-                            Pinned
-                        </button>
-                    </div>
                     <div className="join flex-1">
                         <input
                             className="input input-sm input-bordered join-item w-full font-mono text-xs"

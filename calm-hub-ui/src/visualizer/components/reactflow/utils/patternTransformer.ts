@@ -4,6 +4,7 @@ import {
     createTopLevelLayout,
     calculateChildBounds,
     sortContainersDeepestFirst,
+    sortNodesParentsBeforeChildren,
 } from './layoutUtils';
 import { createEdge } from './edgeFactory';
 import { GRAPH_LAYOUT } from './constants';
@@ -600,11 +601,11 @@ function applyPatternLayout(regularNodes: Node[], groupNodes: Node[], edges: Edg
         if (pos) node.position = pos;
     });
 
-    const allNodes = [
+    const allNodes = sortNodesParentsBeforeChildren([
         ...topLevelGroupNodes,
         ...nodesWithoutParents.filter((n) => !groupNodes.includes(n)),
         ...nodesWithParents,
-    ];
+    ]);
 
     return { nodes: allNodes, edges };
 }

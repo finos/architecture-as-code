@@ -6,7 +6,7 @@ sidebar_position: 5
 
 # CALM Hub Entitlements
 
-CALM Hub uses a hierarchical permission model to control who can read, write, and administer namespaces. This page explains how that model works and how to configure access.
+CALM Hub uses a hierarchical permission model to control who can read, write, and administer namespaces, and a flat permission model for control domains. This page explains how both models work and how to configure access.
 
 ---
 
@@ -16,13 +16,15 @@ Every access grant specifies one of three permission levels:
 
 | Permission | What it allows |
 | :--- | :--- |
-| `read` | Read any document in the namespace |
-| `write` | Create documents in the namespace (implies `read`) |
-| `admin` | Full control: read, write, and manage entitlements for other users in the namespace (implies `read` and `write`) |
+| `read` | Read any document in the namespace or domain |
+| `write` | Create documents (implies `read`) |
+| `admin` | Full control: read, write, and manage entitlements for other users (implies `read` and `write`) |
 
 ---
 
-## Namespace Hierarchy
+## Namespace Permissions
+
+### Hierarchy
 
 Namespaces in CALM Hub use `.` as a separator to express parent/child relationships:
 
@@ -61,11 +63,31 @@ To **write** or **admin** a namespace, a user must have a sufficient grant at th
 
 A grant at `org` is sufficient to write anything under `org.ecosystem`, `org.ecosystem.system`, and so on. This lets you delegate broad access with a single grant rather than one per sub-namespace.
 
+### Creating Namespaces
+
+To create a **top-level namespace** (e.g. `org`), a user must be a global admin.
+
+To create a **child namespace** (e.g. `org.ecosystem`), a user must be a global admin **or** have `admin` on the direct parent namespace (`org` in this example).
+
+---
+
+## Domain Permissions
+
+Control domains use a **flat** permission model — there is no ancestor chain. A grant on domain `payments` applies only to `payments`; it does not cascade to any other domain.
+
+| Permission | What it allows |
+| :--- | :--- |
+| `read` | Read content in the domain |
+| `write` | Read and write content in the domain |
+| `admin` | Read, write, and manage entitlements for the domain |
+
+Only global admins can create and delete domains. Domain admin grants are managed through the admin UI or the `/api/calm/domains/{domain}/user-access` endpoints.
+
 ---
 
 ## Public Access: the `*` Username
 
-The reserved username `*` represents **anyone** — including unauthenticated users if your deployment allows it. A `*` grant at a namespace means that namespace is open to all users at that permission level.
+The reserved username `*` represents **anyone** — including unauthenticated users if your deployment allows it. A `*` grant at a namespace or domain means it is open to all users at that permission level.
 
 ```
 username: *
@@ -73,12 +95,12 @@ permission: read
 namespace: org.ab
 ```
 
-`*` grants are evaluated by the same AND/OR rules as named user grants. You manage them through the same API — `*` is just a username value that matches everyone.
+`*` grants are evaluated by the same AND/OR rules as named user grants. You manage them through the same API or admin UI — `*` is just a username value that matches everyone.
 
-When a namespace is created, CALM Hub automatically inserts a `* read` grant so the namespace is publicly readable by default. To restrict a namespace, delete that `*` grant.
+When a namespace is created, CALM Hub automatically inserts a `* read` grant so the namespace is publicly readable by default. To restrict a namespace, delete that `* read` grant. The same applies to domains.
 
-:::tip
-`*` can be granted `write` or `admin` as well — useful for private internal deployments where all authenticated users should be able to contribute freely.
+:::warning
+`*` can be granted `write`, but **not `admin`** — attempts to create a wildcard admin grant on any namespace or domain are rejected with `400 Bad Request`. This prevents accidental elevation of all users to administrators.
 :::
 
 ---
@@ -91,7 +113,17 @@ Setting `calm.auth.allow-public-read=true` makes every namespace readable by eve
 
 ### Global admin
 
-A user with `admin` on the special `GLOBAL` namespace bypasses all namespace-level permission checks. Use this for super-administrators who need unrestricted access. Global admins can also manage control domains.
+A user with `admin` on the special `GLOBAL` namespace bypasses all namespace-level and domain-level permission checks. Use this for super-administrators who need unrestricted access. Global admins can:
+
+- Read and write all namespaces and domains
+- Create and delete namespaces and domains
+- Manage entitlements for any namespace or domain, including granting further GLOBAL admin access
+
+To bootstrap a new deployment, create the first GLOBAL admin grant via the admin UI in `no-auth` mode (or via the Swagger UI at `/q/swagger-ui`), then switch to a secured auth profile.
+
+:::note
+The GLOBAL namespace is a sentinel value — it is not a real namespace in the store and cannot be used to store documents.
+:::
 
 ---
 
@@ -118,40 +150,60 @@ Consider three users on a hub with the following grants:
 
 ---
 
-## Managing Entitlements via the API
+## Managing Entitlements
 
-Entitlements are managed through the `/user-access` REST endpoints. Use the [Swagger UI](http://localhost:8080/q/swagger-ui) to explore available operations.
+### Admin UI
+
+The easiest way to manage entitlements is the built-in admin UI, available at `/admin` in your CALM Hub instance. Users with any admin entitlement can access it; the sections visible depend on your permission level:
+
+- **Namespace Access** — available to any namespace admin; manage grants for namespaces you administer
+- **Domain Access** — available to global admins only; manage grants for any domain
+- **Global Admin Access** — available to global admins only; grant or revoke GLOBAL admin access for other users
+
+### REST API
+
+Entitlements can also be managed directly through the REST API. Use the [Swagger UI](http://localhost:8080/q/swagger-ui) to explore available operations.
 
 **Grant `bob` read access to `org.ab.cd`:**
 
 ```http
-POST /user-access
+POST /api/calm/namespaces/org.ab.cd/user-access
 Content-Type: application/json
 
 {
   "username": "bob",
-  "permission": "read",
-  "namespace": "org.ab.cd"
+  "permission": "read"
 }
 ```
 
 **Make `org.ab` publicly readable:**
 
 ```http
-POST /user-access
+POST /api/calm/namespaces/org.ab/user-access
 Content-Type: application/json
 
 {
   "username": "*",
-  "permission": "read",
-  "namespace": "org.ab"
+  "permission": "read"
 }
 ```
 
 **Remove public access from `org.ab`:**
 
 ```http
-DELETE /user-access/{id}
+DELETE /api/calm/namespaces/org.ab/user-access/{id}
+```
+
+**Grant `carol` admin access to the `payments` domain:**
+
+```http
+POST /api/calm/domains/payments/user-access
+Content-Type: application/json
+
+{
+  "username": "carol",
+  "permission": "admin"
+}
 ```
 
 ---
@@ -160,8 +212,8 @@ DELETE /user-access/{id}
 
 To make a namespace private:
 
-1. Find the `* read` grant for the namespace using `GET /user-access?namespace=org.ab`.
-2. Delete it with `DELETE /user-access/{id}`.
+1. Find the `* read` grant for the namespace using `GET /api/calm/namespaces/org.ab/user-access`.
+2. Delete it with `DELETE /api/calm/namespaces/org.ab/user-access/{id}`.
 
 Once removed, only users with explicit grants — or a write/admin grant on an ancestor — can access that namespace.
 

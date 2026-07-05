@@ -12,9 +12,10 @@ import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Standard;
+import org.finos.calm.store.util.VersionKeySelector;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.standards.CreateStandardRequest;
-import org.finos.calm.domain.standards.NamespaceStandardSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.StandardStore;
 
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ public class MongoStandardStore implements StandardStore {
     }
 
     @Override
-    public List<NamespaceStandardSummary> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceResourceSummary> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
         if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -64,19 +65,23 @@ public class MongoStandardStore implements StandardStore {
         }
 
         List<Document> standards = namespaceDocument.getList("standards", Document.class);
-        List<NamespaceStandardSummary> namespaceStanadardSummary = new ArrayList<>();
+        List<NamespaceResourceSummary> namespaceStandardSummary = new ArrayList<>();
 
         for (Document standard : standards) {
-            NamespaceStandardSummary standardSummary = new NamespaceStandardSummary(
+            // Count versions from the already-in-memory sub-document (O(1), no extra query).
+            Object rawVersions = standard.get("versions");
+            int versionCount = VersionKeySelector.versionCount(rawVersions instanceof Document d ? d.keySet() : null);
+            NamespaceResourceSummary standardSummary = new NamespaceResourceSummary(
                     standard.getString("name"),
                     standard.getString("description"),
-                    standard.getInteger("standardId")
+                    standard.getInteger("standardId"),
+                    versionCount
             );
 
-            namespaceStanadardSummary.add(standardSummary);
+            namespaceStandardSummary.add(standardSummary);
         }
 
-        return namespaceStanadardSummary;
+        return namespaceStandardSummary;
     }
 
     @Override
