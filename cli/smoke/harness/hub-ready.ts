@@ -12,7 +12,7 @@ export async function waitForHub(
     let lastErr: unknown;
     while (Date.now() < deadline) {
         try {
-            const res = await fetch(`${baseUrl}/q/swagger-ui`);
+            const res = await fetch(`${baseUrl}/q/swagger-ui`, { signal: AbortSignal.timeout(intervalMs) });
             if (res.ok) return;
             lastErr = new Error(`status ${res.status}`);
         } catch (err) {

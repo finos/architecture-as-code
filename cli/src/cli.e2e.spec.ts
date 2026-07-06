@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { parseStringPromise } from 'xml2js';
 import { expectDirectoryMatch, expectFilesMatch } from '@finos/calm-shared';
 import { installPackedCli, type CliInstall } from './test_helpers/cli-runner';
+import { patchJson } from './test_helpers/json-file';
 import { STATIC_GETTING_STARTED_MAPPING_PATH } from './test_helpers/getting-started-url-mapping';
 
 const millisPerSecond = 1000;
@@ -827,21 +828,6 @@ describe('CLI Integration Tests', () => {
         expect(generated.moments).toHaveLength(1);
         expect(generated.moments[0]['node-type']).toBe('moment');
     });
-
-    function writeJson(filePath: string, obj: object) {
-        fs.mkdirSync(path.dirname(filePath), { recursive: true });
-        fs.writeFileSync(filePath, JSON.stringify(obj, null, 2));
-    }
-
-    function readJson(filePath: string): Record<string, unknown> {
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    }
-
-    function patchJson(filePath: string, patchFn: (o: Record<string, unknown>) => void) {
-        const obj = readJson(filePath);
-        patchFn(obj);
-        writeJson(filePath, obj);
-    }
 
     // Utility to recursively remove specific line/character fields from JSON
     function removeLineNumbers(obj: unknown): void {

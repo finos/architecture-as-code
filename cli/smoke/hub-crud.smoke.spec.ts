@@ -65,7 +65,7 @@ describe('Flow 1: hub push/pull/list', () => {
         await cli.run(['hub', 'pull', 'architecture', '--namespace', NS, '-m', MAPPING, '--ver', '1.0.0', '-o', out, '-c', SMOKE_HUB_URL]);
         const pulled = readJson(out);
         const stored = await api.getDocument(NS, TYPE, MAPPING, '1.0.0');
-        expect(canonicalEqual(JSON.stringify(pulled), JSON.stringify(stored))).toBe(true);
+        expect(canonicalEqual(pulled, stored)).toBe(true);
     });
 
     test('re-push of a changed doc auto-bumps to 1.0.1 (default patch)', async () => {

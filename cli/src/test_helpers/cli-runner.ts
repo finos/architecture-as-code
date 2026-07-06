@@ -18,14 +18,26 @@ export interface CliInstall {
 export function installPackedCli(repoRoot: string, prefix: string): CliInstall {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 
-    const tgzName = execSync('npm pack', { cwd: repoRoot }).toString().trim();
-    const sourceTarball = path.join(repoRoot, tgzName);
-    const targetTarball = path.join(tempDir, tgzName);
-    fs.copyFileSync(sourceTarball, targetTarball);
-    fs.unlinkSync(sourceTarball);
+    // A failure partway through (e.g. a flaky npm install) would otherwise strand the temp dir and
+    // a stray .tgz inside repoRoot, since the caller never receives a CliInstall to clean up.
+    let sourceTarball: string | undefined;
+    try {
+        const tgzName = execSync('npm pack', { cwd: repoRoot }).toString().trim();
+        sourceTarball = path.join(repoRoot, tgzName);
+        const targetTarball = path.join(tempDir, tgzName);
+        fs.copyFileSync(sourceTarball, targetTarball);
+        fs.unlinkSync(sourceTarball);
+        sourceTarball = undefined;
 
-    execSync('npm init -y', { cwd: tempDir, stdio: 'inherit' });
-    execSync(`npm install ${targetTarball}`, { cwd: tempDir, stdio: 'inherit' });
+        execSync('npm init -y', { cwd: tempDir, stdio: 'inherit' });
+        execSync(`npm install ${targetTarball}`, { cwd: tempDir, stdio: 'inherit' });
+    } catch (err) {
+        if (sourceTarball && fs.existsSync(sourceTarball)) {
+            fs.rmSync(sourceTarball, { force: true });
+        }
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        throw err;
+    }
 
     const calmBin = path.join(tempDir, 'node_modules/.bin/calm');
 

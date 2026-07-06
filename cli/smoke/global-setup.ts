@@ -31,7 +31,11 @@ export default async function setup(): Promise<() => Promise<void>> {
         } catch {
             // Best-effort diagnostics; never let a logs failure skip teardown.
         }
-        compose(['down', '-v']);
+        try {
+            compose(['down', '-v']);
+        } catch {
+            // Best-effort teardown; never let a down failure mask the original error.
+        }
         throw err;
     }
 
