@@ -2,7 +2,6 @@ import path from 'path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { installPackedCli, type CliInstall } from '../src/test_helpers/cli-runner';
 
-// Proves the smoke glob + packed-CLI harness work without needing Docker.
 const CLI_ROOT = path.resolve(__dirname, '..');
 
 describe('smoke scaffolding', () => {
