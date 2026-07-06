@@ -66,11 +66,6 @@ export function Navbar() {
                             Hub
                         </NavLink>
                     </li>
-                    <li>
-                        <NavLink to="/visualizer" className={menuNavClass} onClick={closeMenu}>
-                            Visualizer
-                        </NavLink>
-                    </li>
                     {showAdminLink && (
                         <li>
                             <NavLink to="/admin" className={menuNavClass} onClick={closeMenu}>

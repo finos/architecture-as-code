@@ -1,19 +1,21 @@
-package org.finos.calm.domain.pattern;
+package org.finos.calm.domain.namespaces;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.util.Objects;
 
 @RegisterForReflection
-public class NamespacePatternSummary {
+public class NamespaceResourceSummary {
     private String name;
     private String description;
     private Integer id;
+    private int versionCount;
 
-    public NamespacePatternSummary(String name, String description, Integer id) {
+    public NamespaceResourceSummary(String name, String description, Integer id, int versionCount) {
         this.name = name;
         this.description = description;
         this.id = id;
+        this.versionCount = versionCount;
     }
 
     public String getName() {
@@ -40,15 +42,19 @@ public class NamespacePatternSummary {
         this.id = id;
     }
 
+    public int getVersionCount() {
+        return versionCount;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        NamespacePatternSummary that = (NamespacePatternSummary) o;
-        return Objects.equals(name, that.name) && Objects.equals(description, that.description) && Objects.equals(id, that.id);
+        NamespaceResourceSummary that = (NamespaceResourceSummary) o;
+        return versionCount == that.versionCount && Objects.equals(name, that.name) && Objects.equals(description, that.description) && Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, id);
+        return Objects.hash(name, description, id, versionCount);
     }
 }

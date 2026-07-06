@@ -23,7 +23,7 @@ import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
-import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -112,21 +112,25 @@ public class TestMongoPatternStoreShould {
         Document documentMock = Mockito.mock(Document.class);
         when(findIterable.first()).thenReturn(documentMock);
 
-        Document doc1 = new Document("patternId", 1001).append("name", "Pattern One").append("description", "First pattern");
-        Document doc2 = new Document("patternId", 1002).append("name", "Pattern Two").append("description", "Second pattern");
+        Document doc1 = new Document("patternId", 1001).append("name", "Pattern One").append("description", "First pattern")
+                .append("versions", new Document("1-0-0", new Document()).append("2-0-0", new Document()));
+        Document doc2 = new Document("patternId", 1002).append("name", "Pattern Two").append("description", "Second pattern")
+                .append("versions", new Document("1-0-0", new Document()));
 
         when(documentMock.getList("patterns", Document.class))
                 .thenReturn(Arrays.asList(doc1, doc2));
 
-        List<NamespacePatternSummary> patterns = mongoPatternStore.getPatternsForNamespace("finos");
+        List<NamespaceResourceSummary> patterns = mongoPatternStore.getPatternsForNamespace("finos");
 
         assertThat(patterns.size(), is(2));
         assertThat(patterns.get(0).getName(), is("Pattern One"));
         assertThat(patterns.get(0).getDescription(), is("First pattern"));
         assertThat(patterns.get(0).getId(), is(1001));
+        assertThat(patterns.get(0).getVersionCount(), is(2));
         assertThat(patterns.get(1).getName(), is("Pattern Two"));
         assertThat(patterns.get(1).getDescription(), is("Second pattern"));
         assertThat(patterns.get(1).getId(), is(1002));
+        assertThat(patterns.get(1).getVersionCount(), is(1));
         verify(namespaceStore).namespaceExists("finos");
     }
 
@@ -145,12 +149,14 @@ public class TestMongoPatternStoreShould {
         when(documentMock.getList("patterns", Document.class))
                 .thenReturn(List.of(legacyDoc));
 
-        List<NamespacePatternSummary> patterns = mongoPatternStore.getPatternsForNamespace("finos");
+        List<NamespaceResourceSummary> patterns = mongoPatternStore.getPatternsForNamespace("finos");
 
         assertThat(patterns.size(), is(1));
         assertThat(patterns.get(0).getName(), is("Pattern 99"));
         assertThat(patterns.get(0).getDescription(), is(""));
         assertThat(patterns.get(0).getId(), is(99));
+        // Legacy document carries no versions sub-document → count guards to 0.
+        assertThat(patterns.get(0).getVersionCount(), is(0));
     }
 
     private DocumentFindIterable setupInvalidPattern() {

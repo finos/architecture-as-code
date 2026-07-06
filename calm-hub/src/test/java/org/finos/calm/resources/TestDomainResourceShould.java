@@ -4,7 +4,9 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Domain;
+import org.finos.calm.domain.controls.DomainControlCount;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
+import org.finos.calm.services.CountsService;
 import org.finos.calm.services.DomainService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +32,9 @@ public class TestDomainResourceShould {
     @InjectMock
     DomainService mockDomainService;
 
+    @InjectMock
+    CountsService mockCountsService;
+
     @Test
     void return_an_empty_list_when_no_domains_exist() {
         when(mockDomainService.getDomains()).thenReturn(new ArrayList<>());
@@ -54,6 +59,33 @@ public class TestDomainResourceShould {
             .body(is("{\"values\":[\"test-domain\"]}"));
 
         verify(mockDomainService).getDomains();
+    }
+
+    @Test
+    void return_an_empty_list_when_no_domain_counts_exist() {
+        when(mockCountsService.getDomainCounts(any())).thenReturn(new ArrayList<>());
+
+        given()
+            .when().get(CALM_DOMAINS + "/counts")
+            .then()
+            .statusCode(200)
+            .body(is("{\"values\":[]}"));
+
+        verify(mockCountsService).getDomainCounts(any());
+    }
+
+    @Test
+    void return_domain_control_counts_when_present() {
+        when(mockCountsService.getDomainCounts(any())).thenReturn(List.of(new DomainControlCount(TEST_DOMAIN, 5)));
+
+        given()
+            .when().get(CALM_DOMAINS + "/counts")
+            .then()
+            .statusCode(200)
+            .body("values[0].domain", is(TEST_DOMAIN))
+            .body("values[0].controlCount", is(5));
+
+        verify(mockCountsService).getDomainCounts(any());
     }
 
     @Test

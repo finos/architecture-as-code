@@ -8,6 +8,10 @@ public final class VersionKeySelector {
     private VersionKeySelector() {
     }
 
+    public static int versionCount(Set<String> keys) {
+        return keys == null ? 0 : keys.size();
+    }
+
     public static String latestVersionKey(Set<String> keys) {
         return keys.stream()
                 .max(Comparator.comparingInt(k -> {
