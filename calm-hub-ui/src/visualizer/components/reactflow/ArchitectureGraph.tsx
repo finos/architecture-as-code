@@ -54,7 +54,7 @@ const FIT_VIEW_OPTIONS = { padding: 0.2, minZoom: 0.6, maxZoom: 1.2 } as const;
  * Tighter padding (0.1) reclaims width on the narrow screen; maxZoom matches
  * desktop so a sparse graph isn't blown up.
  */
-const MOBILE_FIT_VIEW_OPTIONS = { padding: 0.1, minZoom: 0.1, maxZoom: 1.2 } as const;
+const MOBILE_FIT_VIEW_OPTIONS = { padding: 0.1, minZoom: 0.1, maxZoom: FIT_VIEW_OPTIONS.maxZoom } as const;
 
 /** Persist the minimap show/hide choice so it survives a refresh. */
 const MINIMAP_HIDDEN_KEY = 'calmHub.diagramMinimapHidden';
@@ -68,11 +68,19 @@ function readMinimapHidden(): boolean {
 }
 
 export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewportKey }: ArchitectureGraphProps) {
+    const isMobile = useIsMobile();
+
+    // The viewport store key is namespaced by device. Mobile fits to a far lower zoom
+    // floor (0.1 vs desktop's 0.6), so a viewport saved while mobile must not be
+    // restored raw on desktop — defaultViewport bypasses fitViewOptions, so it would
+    // silently defeat the desktop floor. Separate keys keep each device's view to itself.
+    const storageKey = viewportKey ? `${isMobile ? 'mobile' : 'desktop'}:${viewportKey}` : undefined;
+
     // Restore the saved viewport for this diagram (so a refresh keeps the zoom/pan);
     // a different diagram has no saved viewport for its key, so it fits to view.
     const savedViewport = useMemo<Viewport | undefined>(
-        () => (viewportKey ? readViewportForKey(viewportKey) : undefined),
-        [viewportKey]
+        () => (storageKey ? readViewportForKey(storageKey) : undefined),
+        [storageKey]
     );
 
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
@@ -85,12 +93,11 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
     // re-triggering when setNodes/setEdges update styles.
     const sourceNodesRef = useRef<Node[]>([]);
 
-    // Holds the React Flow instance on mobile so a viewport resize (rotation,
-    // browser-chrome show/hide) can re-fit the graph. Captured via onInit only on
-    // mobile; desktop never sets it, keeping its props behaviourally unchanged.
+    // Holds the React Flow instance so a viewport resize (rotation, browser-chrome
+    // show/hide) or a desktop→mobile breakpoint crossing can re-fit the graph.
+    // Captured via onInit on both devices so the ref exists even if the app started
+    // on desktop and only later crossed into mobile.
     const flowInstanceRef = useRef<ReactFlowInstance | null>(null);
-
-    const isMobile = useIsMobile();
 
     // Minimap is a help on dense graphs but clutter on sparse ones, so let the
     // user hide it; the choice persists for the session. Desktop-only — mobile
@@ -159,13 +166,15 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         );
     }, [searchTerm, typeFilter, isSearchActive, setNodes, setEdges]);
 
-    // Mobile only: re-fit the graph when the viewport resizes (device rotation,
-    // iOS chrome collapsing) so it keeps fitting 390px and never drifts off-screen
-    // (redesign problem #10). The ref keeps this off exhaustive-deps and means the
-    // effect has no desktop counterpart. fitView() is a no-op until onInit runs.
+    // Mobile: re-fit the graph on a viewport resize (rotation, iOS chrome collapsing)
+    // AND immediately when the app first crosses into mobile — fitView only auto-runs
+    // on ReactFlow's initial mount, so a discrete breakpoint crossing (window snap,
+    // foldable, DevTools toggle) without a later resize would otherwise leave the
+    // graph un-fit (redesign problem #10). refit() is a no-op until onInit has run.
     useEffect(() => {
         if (!isMobile) return;
         const refit = () => flowInstanceRef.current?.fitView(MOBILE_FIT_VIEW_OPTIONS);
+        refit();
         window.addEventListener('resize', refit);
         return () => window.removeEventListener('resize', refit);
     }, [isMobile]);
@@ -173,6 +182,14 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
     if (nodes.length === 0) {
         return <EmptyGraphState message="No architecture data to display. Load a CALM architecture to visualize." />;
     }
+
+    // One derived config so the device-dependent fit props can't drift out of sync.
+    // Mobile always fits on load (ignoring any persisted viewport) so the whole graph
+    // fits 390px (redesign problem #10); desktop restores its saved viewport, or fits
+    // when there's none.
+    const flowConfig = isMobile
+        ? { fitView: true, defaultViewport: undefined, fitViewOptions: MOBILE_FIT_VIEW_OPTIONS }
+        : { fitView: !savedViewport, defaultViewport: savedViewport, fitViewOptions: FIT_VIEW_OPTIONS };
 
     return (
         <div style={{ height: '100%', width: '100%' }}>
@@ -191,15 +208,13 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
                 onNodeMouseLeave={handleNodeMouseLeave}
                 onEdgeClick={handleEdgeClick}
                 onMove={(_, viewport) => {
-                    if (viewportKey) saveViewportForKey(viewportKey, viewport);
+                    if (storageKey) saveViewportForKey(storageKey, viewport);
                 }}
-                // Mobile always fits on load (ignoring any persisted desktop-scale
-                // viewport) so the whole graph fits 390px (redesign problem #10);
-                // desktop keeps its restore-or-fit behaviour byte-for-byte.
-                onInit={isMobile ? (instance) => { flowInstanceRef.current = instance; } : undefined}
-                fitView={isMobile ? true : !savedViewport}
-                defaultViewport={isMobile ? undefined : savedViewport}
-                fitViewOptions={isMobile ? MOBILE_FIT_VIEW_OPTIONS : FIT_VIEW_OPTIONS}
+                // Capture the instance on both devices so a later desktop→mobile
+                // crossing can re-fit (the effect above), then spread the device-derived
+                // fit config so the props always agree.
+                onInit={(instance) => { flowInstanceRef.current = instance; }}
+                {...flowConfig}
                 minZoom={0.1}
                 attributionPosition="bottom-left"
                 style={{ background: THEME.colors.background }}

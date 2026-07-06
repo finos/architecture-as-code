@@ -168,10 +168,13 @@ export default function Hub() {
     // Architecture-only (its `nodes` is a flat array; patterns nest them under
     // `properties.nodes` and degrade to no steppers) and node-only (a selected edge
     // has no place in the node list, so the neighbours resolve to undefined).
+    // Steppers only feed the mobile NodeSheet; desktop renders <Sidebar> and never
+    // consumes onPrev/onNext, so skip the derivation entirely off mobile.
     const diagramNodes = useMemo<CalmNodeSchema[]>(() => {
+        if (!isMobile) return [];
         const nodes = (data?.data as { nodes?: unknown } | undefined)?.nodes;
         return Array.isArray(nodes) ? (nodes as CalmNodeSchema[]) : [];
-    }, [data]);
+    }, [data, isMobile]);
 
     const selectedNodeIndex = useMemo(() => {
         const selected = selectedItem?.data;
@@ -180,13 +183,12 @@ export default function Hub() {
         return diagramNodes.findIndex((n) => n['unique-id'] === id);
     }, [selectedItem, diagramNodes]);
 
-    const stepToNode = useCallback(
-        (index: number) => {
-            const node = diagramNodes[index];
-            if (node) setSelectedItem({ data: node });
-        },
-        [diagramNodes]
-    );
+    // Plain function, not useCallback: onPrev/onNext below are fresh inline closures
+    // each render regardless, so memoising this buys no referential stability.
+    const stepToNode = (index: number) => {
+        const node = diagramNodes[index];
+        if (node) setSelectedItem({ data: node });
+    };
 
     const onPrevNode =
         selectedNodeIndex > 0 ? () => stepToNode(selectedNodeIndex - 1) : undefined;

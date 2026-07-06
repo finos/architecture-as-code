@@ -85,9 +85,10 @@ describe('ArchitectureGraph', () => {
     it('restores a saved viewport (no fit) on desktop — unchanged by the mobile branch', () => {
         // Desktop must keep restore-or-fit: with a saved viewport it restores and
         // does NOT fit. This guards the desktop path against the mobile #10 change.
+        // The store key is device-namespaced, so seed the desktop entry.
         sessionStorage.setItem(
             'calm-hub:diagram-viewport',
-            JSON.stringify({ key: 'ns/id', viewport: { x: 5, y: 6, zoom: 0.8 } })
+            JSON.stringify({ key: 'desktop:ns/id', viewport: { x: 5, y: 6, zoom: 0.8 } })
         );
         render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" />);
         expect(reactFlowProps.current?.fitView).toBe(false);
@@ -99,9 +100,9 @@ describe('ArchitectureGraph', () => {
         });
     });
 
-    it('does not wire onInit on desktop (the resize re-fit is mobile-only)', () => {
+    it('wires onInit on desktop too, so a later desktop→mobile crossing can re-fit', () => {
         render(<ArchitectureGraph jsonData={mockCalmData} />);
-        expect(reactFlowProps.current?.onInit).toBeUndefined();
+        expect(typeof reactFlowProps.current?.onInit).toBe('function');
     });
 
     describe('minimap (#5)', () => {
@@ -180,11 +181,11 @@ describe('ArchitectureGraph', () => {
         });
 
         it('always fits the view on load on mobile, ignoring any saved viewport (#10)', () => {
-            // Seed a saved viewport so the desktop path would restore (not fit) it;
-            // mobile must still fit so a dense graph fits 390px rather than overflow.
+            // Seed a saved viewport under the mobile-namespaced key; mobile must still
+            // fit (not restore) so a dense graph fits 390px rather than overflow.
             sessionStorage.setItem(
                 'calm-hub:diagram-viewport',
-                JSON.stringify({ key: 'ns/id', viewport: { x: 0, y: 0, zoom: 1 } })
+                JSON.stringify({ key: 'mobile:ns/id', viewport: { x: 0, y: 0, zoom: 1 } })
             );
             mockMobileViewport();
             render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" />);
@@ -203,7 +204,7 @@ describe('ArchitectureGraph', () => {
             mockMobileViewport();
             render(<ArchitectureGraph jsonData={mockCalmData} />);
 
-            // onInit is wired only on mobile so a resize can re-fit.
+            // onInit is wired on both devices (captured here on mobile) so a resize can re-fit.
             const onInit = reactFlowProps.current?.onInit as
                 | ((i: { fitView: (o?: unknown) => void }) => void)
                 | undefined;

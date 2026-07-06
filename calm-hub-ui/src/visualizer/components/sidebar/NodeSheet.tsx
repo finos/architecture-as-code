@@ -1,12 +1,10 @@
-import { IoCloseOutline, IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5';
+import { IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5';
 import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import { NodeDetails } from './NodeDetails.js';
 import { RelationshipDetails } from './RelationshipDetails.js';
+import { CloseButton } from './CloseButton.js';
+import { isCALMNode } from './calm-type-guards.js';
 import { colors } from '../../../theme/colors.js';
-
-function isCALMNode(data: CalmNodeSchema | CalmRelationshipSchema): data is CalmNodeSchema {
-    return 'node-type' in data;
-}
 
 export interface NodeSheetProps {
     selectedData: CalmNodeSchema | CalmRelationshipSchema;
@@ -81,14 +79,7 @@ export function NodeSheet({ selectedData, closeSheet, onPrev, onNext }: NodeShee
                             </button>
                         </>
                     )}
-                    <button
-                        type="button"
-                        aria-label="Close details"
-                        onClick={closeSheet}
-                        className="btn btn-ghost btn-xs btn-circle"
-                    >
-                        <IoCloseOutline size={20} />
-                    </button>
+                    <CloseButton onClick={closeSheet} />
                 </div>
 
                 {/* Single scroll owner: NodeDetails / RelationshipDetails already
