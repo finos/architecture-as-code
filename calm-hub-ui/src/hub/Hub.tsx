@@ -376,6 +376,7 @@ export default function Hub() {
                             className="fixed inset-0 z-40 bg-base-100 animate-slide-in-right flex flex-col"
                             role="dialog"
                             aria-modal="true"
+                            aria-label="Control details"
                         >
                             <ControlPanel controlData={controlData} onClose={handleControlClose} />
                         </div>

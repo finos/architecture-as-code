@@ -33,6 +33,7 @@ export function ControlPanel({ controlData, onClose }: ControlPanelProps) {
                     <div className="flex items-center gap-1">
                         <div role="tablist" className="inline-flex rounded-lg bg-base-300 p-0.5">
                             <button
+                                type="button"
                                 role="tab"
                                 aria-label="Readable"
                                 aria-selected={viewMode === 'readable'}
@@ -43,6 +44,7 @@ export function ControlPanel({ controlData, onClose }: ControlPanelProps) {
                                 <IoEyeOutline size={14} />
                             </button>
                             <button
+                                type="button"
                                 role="tab"
                                 aria-label="Raw JSON"
                                 aria-selected={viewMode === 'raw'}
@@ -54,6 +56,7 @@ export function ControlPanel({ controlData, onClose }: ControlPanelProps) {
                             </button>
                         </div>
                         <button
+                            type="button"
                             aria-label="Close control details"
                             onClick={onClose}
                             className="btn btn-ghost btn-xs btn-circle"

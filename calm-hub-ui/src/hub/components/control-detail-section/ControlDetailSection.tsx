@@ -117,6 +117,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
     const viewToggle = (mode: ViewMode, setMode: (m: ViewMode) => void) => (
         <div role="tablist" className="inline-flex rounded-lg bg-base-300 p-0.5">
             <button
+                type="button"
                 role="tab"
                 aria-label="Readable"
                 aria-selected={mode === 'readable'}
@@ -127,6 +128,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                 <IoEyeOutline size={14} />
             </button>
             <button
+                type="button"
                 role="tab"
                 aria-label="Raw JSON"
                 aria-selected={mode === 'raw'}
@@ -141,6 +143,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
 
     const reqVersionButtons = requirementVersions.map((v) => (
         <button
+            type="button"
             key={v}
             role="tab"
             className={`tab gap-1 rounded-lg ${selectedReqVersion === v ? 'tab-active !bg-primary !text-primary-content' : ''}`}
@@ -152,6 +155,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
 
     const configIdButtons = configs.map((cfg) => (
         <button
+            type="button"
             key={cfg.id}
             role="tab"
             className={`tab gap-1 rounded-lg ${selectedConfigId === cfg.id ? 'tab-active !bg-primary !text-primary-content' : ''}`}
@@ -163,6 +167,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
 
     const configVersionButtons = configVersions.map((v) => (
         <button
+            type="button"
             key={v}
             role="tab"
             className={`tab gap-1 rounded-lg ${selectedConfigVersion === v ? 'tab-active !bg-primary !text-primary-content' : ''}`}
@@ -209,6 +214,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                 {/* Requirement / Configuration tabs */}
                 <div role="tablist" className="tabs tabs-bordered bg-base-100 border-b border-base-200 px-2">
                     <button
+                        type="button"
                         role="tab"
                         className={`tab flex-1 ${panel === 'requirement' ? 'tab-active text-primary font-semibold' : ''}`}
                         onClick={() => setActivePanel('requirement')}
@@ -217,6 +223,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                     </button>
                     {showConfig && (
                         <button
+                            type="button"
                             role="tab"
                             className={`tab flex-1 ${panel === 'configuration' ? 'tab-active text-primary font-semibold' : ''}`}
                             onClick={() => setActivePanel('configuration')}
