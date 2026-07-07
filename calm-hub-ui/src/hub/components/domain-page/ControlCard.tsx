@@ -33,7 +33,9 @@ export function ControlCard({ name, description, controlId, active = false, onAc
             thumbnailIcon={
                 <IoShieldCheckmarkOutline
                     size={30}
-                    style={{ color: colors.redesign.primary, opacity: 0.55 }}
+                    // Same control-type accent the striped header and pill use, so the
+                    // shield can't drift if the control colours are adjusted independently.
+                    style={{ color: colors.resourceTypes.control.accent, opacity: 0.55 }}
                 />
             }
             active={active}

@@ -75,8 +75,10 @@ export function ItemCard({
     const { accent, tint } = getResourceTypeColors(type);
     // Selected treatment mirrors the diagram's selected-node style: an interaction-blue
     // outline + elevated shadow while the item's detail panel is open. Uses the brand
-    // interaction blue (not the type accent) so selection reads consistently.
-    const selected = active === true;
+    // interaction blue (not the type accent) so selection reads consistently. Only the
+    // button form is a toggle, so this is gated to cards without an href — a link-card
+    // is plain navigation and never carries the "selected" treatment (or aria-pressed).
+    const selected = active === true && href === undefined;
     const selectedAccent = colors.redesign.primary;
     // Striped header derived from the type's own tokens (tint + accent at low
     // alpha) rather than hardcoded mockup hexes, so it tracks the palette.
