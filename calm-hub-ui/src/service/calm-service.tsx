@@ -7,17 +7,25 @@ import { apiClient } from './utils/api-client.js';
 
 /**
  * Build the optional `limit`/`offset` query params for the namespace summary endpoints.
- * Returns `undefined` when neither is supplied so the request URL is unchanged (and the
+ * Returns `undefined` when no `limit` is supplied so the request URL is unchanged (and the
  * backend returns the full list) — preserving backward-compatible behaviour.
+ *
+ * `offset` is only included alongside a `limit`: the backend applies it only with a limit
+ * ($slice can't express offset-without-limit) and ignores an offset-only request, so sending
+ * one would be a silent no-op that misleads callers into thinking paging is happening.
  */
 function summaryPageParams(
     limit?: number,
     offset?: number
-): { limit?: number; offset?: number } | undefined {
-    const params: { limit?: number; offset?: number } = {};
-    if (limit !== undefined) params.limit = limit;
-    if (offset !== undefined) params.offset = offset;
-    return Object.keys(params).length > 0 ? params : undefined;
+): { limit: number; offset?: number } | undefined {
+    if (limit === undefined) {
+        return undefined;
+    }
+    const params: { limit: number; offset?: number } = { limit };
+    if (offset !== undefined) {
+        params.offset = offset;
+    }
+    return params;
 }
 
 /**
