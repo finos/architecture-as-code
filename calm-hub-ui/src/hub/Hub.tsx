@@ -174,6 +174,24 @@ export default function Hub() {
         }
     }, [isDetailRoute, controlData, navigate]);
 
+    // Activating a card from the backdrop grid. On the detail route the URL owns the
+    // selected control, so navigate to the new control's detail route (which reloads
+    // it via useResourceFromRoute) rather than swapping it in place — otherwise the
+    // URL and panel desync and Back/refresh reverts to the deep-linked control. Off
+    // the detail route (/domain/:domain) load in place as before. For controls the
+    // domain segment is the namespace (see useResourceFromRoute), so the route is
+    // /<domain>/controls/<id>/detail.
+    const handleControlActivate = useCallback(
+        (control: ControlData) => {
+            if (isDetailRoute) {
+                navigate(`/${encodeURIComponent(control.domain)}/controls/${control.controlId}/detail`);
+            } else {
+                handleControlLoad(control);
+            }
+        },
+        [isDetailRoute, navigate, handleControlLoad]
+    );
+
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
 
     // Mobile node bottom-sheet prev/next steppers (Frame G). The ordered node list
@@ -230,17 +248,20 @@ export default function Hub() {
             }
         );
     }, [namespaceCounts, namespaceCountsLoaded, namespaceCountsFailed, activeNamespace]);
+    // Both counts stay `undefined` until the domain-counts fetch settles, so a
+    // deep-link shows "controls" rather than a misleading "0 controls" before it
+    // resolves (mirrors the activeNamespaceCounts gate above).
     const domainControlCount = useMemo(
-        () => domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0,
-        [domainCounts, activeDomain]
+        () => (domainCountsLoaded ? (domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0) : undefined),
+        [domainCounts, domainCountsLoaded, activeDomain]
     );
     // Count for the grid shown behind a selected control's panel — the control's own
     // domain, which may differ from the route's activeDomain when reached via the
     // detail route (deep-link / mobile drill-down).
     const controlDomain = controlData?.domain;
     const controlDomainCount = useMemo(
-        () => domainCounts.find((c) => c.domain === controlDomain)?.controlCount ?? 0,
-        [domainCounts, controlDomain]
+        () => (domainCountsLoaded ? (domainCounts.find((c) => c.domain === controlDomain)?.controlCount ?? 0) : undefined),
+        [domainCounts, domainCountsLoaded, controlDomain]
     );
 
     const detailContent = interfaceData ? (
@@ -267,7 +288,7 @@ export default function Hub() {
         <DomainPage
             domain={controlData.domain}
             controlCount={controlDomainCount}
-            onControlLoad={handleControlLoad}
+            onControlLoad={handleControlActivate}
             selectedControlId={controlData.controlId}
         />
     ) : isDetailRoute || interfaceData || adrData || data ? (
@@ -279,7 +300,6 @@ export default function Hub() {
             domain={activeDomain}
             controlCount={domainControlCount}
             onControlLoad={handleControlLoad}
-            selectedControlId={controlData?.controlId}
         />
     ) : (
         <FirstRunLanding
@@ -370,19 +390,29 @@ export default function Hub() {
                     — the control-domain counterpart of the diagram's node Sidebar.
                     Desktop: inline right column. Mobile: full-screen takeover. The
                     grid stays mounted, so closing returns to it (not "back"). */}
-                {controlData &&
-                    (isMobile ? (
-                        <div
-                            className="fixed inset-0 z-40 bg-base-100 animate-slide-in-right flex flex-col"
-                            role="dialog"
-                            aria-modal="true"
-                            aria-label="Control details"
-                        >
-                            <ControlPanel controlData={controlData} onClose={handleControlClose} />
-                        </div>
-                    ) : (
-                        <ControlPanel controlData={controlData} onClose={handleControlClose} />
-                    ))}
+                {controlData && (
+                    // One stable element type across the breakpoint so a resize past it
+                    // doesn't remount the panel (which would reset the view mode / refetch).
+                    // On desktop the wrapper is layout-transparent (display:contents); on
+                    // mobile it's the full-screen overlay dialog. The key resets the panel's
+                    // view mode when the selected control changes.
+                    <div
+                        className={
+                            isMobile
+                                ? 'fixed inset-0 z-40 bg-base-100 animate-slide-in-right flex flex-col'
+                                : 'contents'
+                        }
+                        {...(isMobile
+                            ? { role: 'dialog', 'aria-modal': true, 'aria-label': 'Control details' }
+                            : {})}
+                    >
+                        <ControlPanel
+                            key={controlData.controlId}
+                            controlData={controlData}
+                            onClose={handleControlClose}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

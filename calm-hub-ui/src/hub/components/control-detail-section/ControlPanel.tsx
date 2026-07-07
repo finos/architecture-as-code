@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { IoShieldCheckmarkOutline, IoCloseOutline, IoEyeOutline, IoCodeOutline } from 'react-icons/io5';
+import { IoShieldCheckmarkOutline, IoCloseOutline } from 'react-icons/io5';
 import { ControlData } from '../../../model/control.js';
 import { ControlDetailSection, type ViewMode } from './ControlDetailSection.js';
+import { ViewToggle } from './ViewToggle.js';
 
 interface ControlPanelProps {
     controlData: ControlData;
@@ -31,30 +32,7 @@ export function ControlPanel({ controlData, onClose }: ControlPanelProps) {
                         <span>Control</span>
                     </h2>
                     <div className="flex items-center gap-1">
-                        <div role="tablist" className="inline-flex rounded-lg bg-base-300 p-0.5">
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-label="Readable"
-                                aria-selected={viewMode === 'readable'}
-                                title="Readable"
-                                className={`p-1.5 rounded-md transition-colors ${viewMode === 'readable' ? 'bg-primary text-primary-content' : 'text-base-content/50 hover:text-base-content'}`}
-                                onClick={() => setViewMode('readable')}
-                            >
-                                <IoEyeOutline size={14} />
-                            </button>
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-label="Raw JSON"
-                                aria-selected={viewMode === 'raw'}
-                                title="Raw JSON"
-                                className={`p-1.5 rounded-md transition-colors ${viewMode === 'raw' ? 'bg-primary text-primary-content' : 'text-base-content/50 hover:text-base-content'}`}
-                                onClick={() => setViewMode('raw')}
-                            >
-                                <IoCodeOutline size={14} />
-                            </button>
-                        </div>
+                        <ViewToggle mode={viewMode} onChange={setViewMode} />
                         <button
                             type="button"
                             aria-label="Close control details"

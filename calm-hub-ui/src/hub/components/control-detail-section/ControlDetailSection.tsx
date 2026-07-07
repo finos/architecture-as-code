@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { IoShieldCheckmarkOutline, IoEyeOutline, IoCodeOutline } from 'react-icons/io5';
+import { IoShieldCheckmarkOutline } from 'react-icons/io5';
+import { ViewToggle } from './ViewToggle.js';
 import { ControlConfigDetail, ControlData } from '../../../model/control.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { ReadableJsonView } from './ReadableJsonView.js';
@@ -111,36 +112,6 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
     // ── Shared builders (used by both the desktop stacked layout and the
     //    mobile tabbed layout) so role/name selectors stay identical. ─────────
 
-    // Readable / Raw toggle as icon buttons, matching the diagram node Sidebar's
-    // Details/JSON switch (eye = readable, code = raw) — the text labels read
-    // cramped in the control panel. Accessible names stay "Readable" / "Raw JSON".
-    const viewToggle = (mode: ViewMode, setMode: (m: ViewMode) => void) => (
-        <div role="tablist" className="inline-flex rounded-lg bg-base-300 p-0.5">
-            <button
-                type="button"
-                role="tab"
-                aria-label="Readable"
-                aria-selected={mode === 'readable'}
-                title="Readable"
-                className={`p-1.5 rounded-md transition-colors ${mode === 'readable' ? 'bg-primary text-primary-content' : 'text-base-content/50 hover:text-base-content'}`}
-                onClick={() => setMode('readable')}
-            >
-                <IoEyeOutline size={14} />
-            </button>
-            <button
-                type="button"
-                role="tab"
-                aria-label="Raw JSON"
-                aria-selected={mode === 'raw'}
-                title="Raw JSON"
-                className={`p-1.5 rounded-md transition-colors ${mode === 'raw' ? 'bg-primary text-primary-content' : 'text-base-content/50 hover:text-base-content'}`}
-                onClick={() => setMode('raw')}
-            >
-                <IoCodeOutline size={14} />
-            </button>
-        </div>
-    );
-
     const reqVersionButtons = requirementVersions.map((v) => (
         <button
             type="button"
@@ -240,7 +211,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                             <h2 className="text-xs font-semibold text-base-content/70 truncate">
                                 Requirement{selectedReqVersion ? ` / ${selectedReqVersion}` : ''}
                             </h2>
-                            {viewMode === undefined && viewToggle(reqViewMode, setReqViewMode)}
+                            {viewMode === undefined && <ViewToggle mode={reqViewMode} onChange={setReqViewMode} />}
                         </div>
                         {requirementVersions.length > 1 && (
                             <div className="bg-base-200 px-4 pb-2 border-b border-base-300 overflow-x-auto">
@@ -262,7 +233,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                                 {selectedCfgLabel ? ` / ${selectedCfgLabel}` : ''}
                                 {selectedConfigVersion ? ` / ${selectedConfigVersion}` : ''}
                             </h2>
-                            {viewMode === undefined && viewToggle(cfgViewMode, setCfgViewMode)}
+                            {viewMode === undefined && <ViewToggle mode={cfgViewMode} onChange={setCfgViewMode} />}
                         </div>
                         <div className="bg-base-200 px-4 pb-2 border-b border-base-300 overflow-x-auto">
                             <div className="flex items-center gap-2 w-max">
@@ -308,7 +279,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                         )}
                     </h2>
                     {/* Readable / Raw toggle */}
-                    {viewMode === undefined && viewToggle(reqViewMode, setReqViewMode)}
+                    {viewMode === undefined && <ViewToggle mode={reqViewMode} onChange={setReqViewMode} />}
                 </div>
 
                 {/* Requirement version tabs */}
@@ -350,7 +321,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                         )}
                     </h2>
                     {/* Readable / Raw toggle */}
-                    {viewMode === undefined && viewToggle(cfgViewMode, setCfgViewMode)}
+                    {viewMode === undefined && <ViewToggle mode={cfgViewMode} onChange={setCfgViewMode} />}
                 </div>
 
                 {/* Configuration breadcrumb navigation */}

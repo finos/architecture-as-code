@@ -8,8 +8,12 @@ import { ControlCard } from './ControlCard.js';
 
 interface DomainPageProps {
     domain: string;
-    /** Control count for the header meta (from the domain counts endpoint). */
-    controlCount: number;
+    /**
+     * Control count for the header meta (from the domain counts endpoint).
+     * `undefined` while the counts fetch is in flight — distinct from a known 0 —
+     * so a deep-link renders "controls" rather than a misleading "0 controls".
+     */
+    controlCount: number | undefined;
     /** Opens a control's detail panel (kept on-page beside the card grid). */
     onControlLoad: (control: ControlData) => void;
     /** Id of the control whose detail panel is open, for selected-card styling. */
@@ -69,7 +73,9 @@ export function DomainPage({ domain, controlCount, onControlLoad, selectedContro
                     {domain}
                 </h1>
                 <span className="font-mono-jb text-[13px] whitespace-nowrap" style={{ color: colors.redesign.mutedAlt }}>
-                    {controlCount} {controlCount === 1 ? 'control' : 'controls'}
+                    {controlCount === undefined
+                        ? 'controls'
+                        : `${controlCount} ${controlCount === 1 ? 'control' : 'controls'}`}
                 </span>
             </div>
 
