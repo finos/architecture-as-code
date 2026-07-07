@@ -106,4 +106,31 @@ describe('ItemCard', () => {
         );
         expect(screen.getByText('1 version')).toBeInTheDocument();
     });
+
+    it('carries no aria-pressed on a plain browse card (not a toggle)', () => {
+        // Browse cards omit `active`, so the activation button must not read as a toggle.
+        render(<ItemCard name="Browse Me" type="Architectures" onActivate={() => {}} />);
+        expect(screen.getByTestId('item-card')).not.toHaveAttribute('aria-pressed');
+    });
+
+    it('reflects the selected state via aria-pressed when active is provided', () => {
+        const { rerender } = render(
+            <ItemCard name="Selectable" type="Controls" active={false} onActivate={() => {}} />
+        );
+        expect(screen.getByTestId('item-card')).toHaveAttribute('aria-pressed', 'false');
+        rerender(<ItemCard name="Selectable" type="Controls" active onActivate={() => {}} />);
+        expect(screen.getByTestId('item-card')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('renders a thumbnail icon in the header when provided', () => {
+        render(
+            <ItemCard
+                name="With Icon"
+                type="Controls"
+                thumbnailIcon={<svg data-testid="thumb-icon" />}
+                onActivate={() => {}}
+            />
+        );
+        expect(screen.getByTestId('thumb-icon')).toBeInTheDocument();
+    });
 });

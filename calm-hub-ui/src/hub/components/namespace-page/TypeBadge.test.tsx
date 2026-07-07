@@ -27,4 +27,12 @@ describe('TypeBadge', () => {
             color: colors.resourceTypes.interface.accent,
         });
     });
+
+    it('renders the "Control" label and control accent for the Controls card type', () => {
+        render(<TypeBadge type="Controls" />);
+        const badge = screen.getByTestId('type-badge');
+        expect(badge).toHaveTextContent('Control');
+        expect(badge).toHaveStyle({ color: colors.resourceTypes.control.accent });
+        expect(badge).toHaveStyle({ backgroundColor: colors.resourceTypes.control.tint });
+    });
 });
