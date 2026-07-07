@@ -71,7 +71,7 @@ program
     .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
     .option(RATE_LIMIT_WINDOW_OPTION, 'Rate limit window in milliseconds (default: 900000 = 15 minutes)', '900000')
     .option(RATE_LIMIT_MAX_OPTION, 'Max requests per IP within the rate limit window (default: 100)', '100')
-    .option(ALLOWED_REMOTE_HOSTS_OPTION, 'Comma-separated list of trusted remtote hosts allowed for $ref resolution in user-supplied patterns (default: calm.finos.org). Can also be set via the CALM_ALLOWED_REMOTE_HOSTS environment variable.')
+    .option(ALLOWED_REMOTE_HOSTS_OPTION, 'Comma-separated list of trusted remote hosts allowed for $ref resolution in user-supplied patterns (default: calm.finos.org). Can also be set via the CALM_ALLOWED_REMOTE_HOSTS environment variable.')
     .action(async (options) => {
         try {
             const debug = !!options.verbose;

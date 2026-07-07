@@ -2,7 +2,7 @@ import request from 'supertest';
 import * as fs from 'fs';
 
 import express, { Application } from 'express';
-import { ValidationRouter, findDisallowedPatternRef } from './validation-route';
+import { ValidationRouter, hasDisallowedPatternRef } from './validation-route';
 import path from 'path';
 import { FileSystemDocumentLoader, SchemaDirectory, validate } from '@finos/calm-shared';
 import { vi } from 'vitest';
@@ -58,7 +58,7 @@ describe('ValidationRouter', () => {
 
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
-            error: 'The "$schema" field is missing from the request body',
+            error: 'The "$schema" field in the architecture is missing or is not a string',
         });
     });
 
@@ -106,7 +106,7 @@ describe('ValidationRouter', () => {
 
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
-            error: 'The "$schema" field referenced is not available to the server',
+            error: 'The "$schema" field in the architecture references a schema that is not available to the server',
         });
     });
 
@@ -122,7 +122,7 @@ describe('ValidationRouter', () => {
             
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
-            error: 'The "$schema" field must be an absolute http(s) URL'
+            error: 'The "$schema" field in the architecture must be an absolute http(s) URL'
         });
     });
 
@@ -235,7 +235,7 @@ describe('ValidationRouter', () => {
     });
 });
 
-describe('ValidationRouter - /with-pattern', () => {
+describe('ValidationRouter - /calm/validate with a pattern', () => {
     let app: Application;
     
     beforeEach(() => {
@@ -244,7 +244,7 @@ describe('ValidationRouter - /with-pattern', () => {
 
     test('should return 400 when architecture JSON is invalid', async () => {
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: 'not valid json {' });
             
         expect(response.status).toBe(400);
@@ -255,18 +255,18 @@ describe('ValidationRouter - /with-pattern', () => {
 
     test('should return 400 when $schema is missing from the architecture', async () => {
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: '{}' , pattern: '{}' });
 
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
-            error: 'The "$schema" field is missing from the request body'
+            error: 'The "$schema" field in the architecture is missing or is not a string'
         });
     });
 
     test('should return 400 when pattern JSON is invalid', async () => {
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: 'not valid json {' });
             
         expect(response.status).toBe(400);
@@ -277,18 +277,18 @@ describe('ValidationRouter - /with-pattern', () => {
 
     test('should return 400 when $id is missing from the pattern', async () => {
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: '{}' });
             
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
-            error: 'The "$id" field is missing from the provided pattern'
+            error: 'The "$id" field in the provided pattern is missing or is not a string'
         });
     });
     
     test('should return 400 when $schema in architecture does not match $id in pattern', async () => {
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: JSON.stringify({ $id: 'https://example.com/different-schema' }) });
             
         expect(response.status).toBe(400);
@@ -312,7 +312,7 @@ describe('ValidationRouter - /with-pattern', () => {
         app.use('/calm/validate', router);
 
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: JSON.stringify({ $id: 'https://example.com/schema' }) });
             
         expect(response.status).toBe(500);
@@ -323,7 +323,7 @@ describe('ValidationRouter - /with-pattern', () => {
 
     test('should return 400 when the architecture relationships field is not an array', async () => {
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema', relationships: 'not-an-array' }), pattern: JSON.stringify({ $id: 'https://example.com/schema', type: 'object' }) });
             
         expect(response.status).toBe(400);
@@ -346,7 +346,7 @@ describe('ValidationRouter - /with-pattern', () => {
         localApp.use('/calm/validate', router);
 
         const response = await request(localApp)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema' }), pattern: JSON.stringify({ $id: 'https://example.com/schema', type: 'object' }) });
             
         expect(response.status).toBe(500);
@@ -363,7 +363,7 @@ describe('ValidationRouter - /with-pattern', () => {
         const requestBody = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'));
 
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send(requestBody);
             
         expect(response.status).toBe(201);
@@ -385,7 +385,7 @@ describe('ValidationRouter - /with-pattern', () => {
         });
 
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture, pattern });
             
         expect(response.status).toBe(201);
@@ -394,7 +394,7 @@ describe('ValidationRouter - /with-pattern', () => {
 
     test('should return 400 when the parsed architecture is not an object', async () => {
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: 'null', pattern: JSON.stringify({ $id: 'https://example.com/schema'}) });
 
         expect(response.status).toBe(400);
@@ -405,12 +405,24 @@ describe('ValidationRouter - /with-pattern', () => {
 
     test('should return 400 when the parsed pattern is not an object', async () => {
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: '42' });
 
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
             error: 'The pattern must be a JSON object'
+        });
+    });
+
+    test('should treat an empty pattern as no pattern and validate against the schema only', async () => {
+
+        const response = await request(app)
+            .post('/calm/validate')
+            .send({ architecture: JSON.stringify({ $schema: 'etc/passwd.json' }), pattern: '   ' });
+            
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+            error: 'The "$schema" field in the architecture must be an absolute http(s) URL'
         });
     });
 
@@ -429,17 +441,16 @@ describe('ValidationRouter - /with-pattern', () => {
         });
 
         const response = await request(app)
-            .post('/calm/validate/with-pattern')
+            .post('/calm/validate')
             .send({ architecture, pattern });
             
         expect(response.status).toBe(400);
         expect(response.body.error).toContain('non-permitted location');
-        expect(response.body.error).toContain(ref);
     }); 
 
 });
 
-describe('findDisallowedPatternRef (pattern $ref guard)', () => {
+describe('hasDisallowedPatternRef (pattern $ref guard)', () => {
     const patternWith = (ref: string) => ({ type: 'object', properties: { x: { $ref: ref } } });
     
     test.each([
@@ -449,7 +460,7 @@ describe('findDisallowedPatternRef (pattern $ref guard)', () => {
         'https://calm.finos.org/release/1.2/meta/core.json#defs/node',
         'http://example.com/schema.json',
     ])('allows %s (local fragment or http(s) URL)', (ref) => {
-        expect(findDisallowedPatternRef(patternWith(ref))).toBeUndefined();
+        expect(hasDisallowedPatternRef(patternWith(ref))).toBe(false);
     });
     
     test.each([
@@ -460,16 +471,20 @@ describe('findDisallowedPatternRef (pattern $ref guard)', () => {
         'C:\\secret.json',
         'calm://namespace/thing',
     ])('flags %s (local / non-permitted location)', (ref) => {
-        expect(findDisallowedPatternRef(patternWith(ref))).toBe(ref);
+        expect(hasDisallowedPatternRef(patternWith(ref))).toBe(true);
     });
 
-    test('returns undefined when there are no $refs', () => {
-        expect(findDisallowedPatternRef({ type: 'object', properties: { x: { type: 'string' } } })).toBeUndefined();
+    test('returns false when there are no $refs', () => {
+        expect(hasDisallowedPatternRef({ type: 'object', properties: { x: { type: 'string' } } })).toBe(false);
     });
 
-    test('finds a disallowed $ref nested inside arrays and objects', () => {
+    test('detects a disallowed $ref nested inside arrays and objects', () => {
         const pattern = { allOf: [{ properties: { y: { prefixItems: [{ $ref: '/etc/x.json' }] } } }] };
-        expect(findDisallowedPatternRef(pattern)).toBe('/etc/x.json');
+        expect(hasDisallowedPatternRef(pattern)).toBe(true);
+    });
+
+    test('ignores a property literally named "$ref" whose value is not a string', () => {
+        expect(hasDisallowedPatternRef({ properties: { $ref: { type: 'string' } } })).toBe(false);
     });
 
 });
