@@ -6,6 +6,21 @@ import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
 import { apiClient } from './utils/api-client.js';
 
 /**
+ * Build the optional `limit`/`offset` query params for the namespace summary endpoints.
+ * Returns `undefined` when neither is supplied so the request URL is unchanged (and the
+ * backend returns the full list) — preserving backward-compatible behaviour.
+ */
+function summaryPageParams(
+    limit?: number,
+    offset?: number
+): { limit?: number; offset?: number } | undefined {
+    const params: { limit?: number; offset?: number } = {};
+    if (limit !== undefined) params.limit = limit;
+    if (offset !== undefined) params.offset = offset;
+    return Object.keys(params).length > 0 ? params : undefined;
+}
+
+/**
  * Service for interacting with CALM API endpoints.
  * 
  * TODO: Add type safety for API responses by:
@@ -79,10 +94,17 @@ export class CalmService {
             });
     }
 
-    public async fetchPatternSummaries(namespace: string): Promise<ResourceSummary[]> {
+    public async fetchPatternSummaries(
+        namespace: string,
+        limit?: number,
+        offset?: number
+    ): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`, {
+                headers,
+                params: summaryPageParams(limit, offset),
+            })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -109,10 +131,17 @@ export class CalmService {
             });
     }
 
-    public async fetchArchitectureSummaries(namespace: string): Promise<ResourceSummary[]> {
+    public async fetchArchitectureSummaries(
+        namespace: string,
+        limit?: number,
+        offset?: number
+    ): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures`, {
+                headers,
+                params: summaryPageParams(limit, offset),
+            })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })

@@ -3,6 +3,7 @@ package org.finos.calm.resources;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -26,8 +27,10 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import static org.finos.calm.resources.ResourceValidationConstants.LIMIT_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.OFFSET_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
@@ -53,14 +56,18 @@ public class PatternResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Retrieve patterns in a given namespace",
-            description = "Patterns stored in a given namespace"
+            description = "Patterns stored in a given namespace. Optional limit/offset query "
+                    + "parameters page the result; when omitted the full list is returned. Offset "
+                    + "is only applied alongside a limit."
     )
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getPatternsForNamespace(
-            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
+            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @QueryParam("limit") @Min(value = 1, message = LIMIT_MESSAGE) Integer limit,
+            @QueryParam("offset") @Min(value = 0, message = OFFSET_MESSAGE) Integer offset
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getPatternsForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(store.getPatternsForNamespace(namespace, limit, offset))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving patterns", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

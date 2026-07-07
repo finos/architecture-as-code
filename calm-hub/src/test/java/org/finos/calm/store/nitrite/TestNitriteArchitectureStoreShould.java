@@ -174,6 +174,57 @@ public class TestNitriteArchitectureStoreShould {
     }
 
     @Test
+    public void testGetArchitecturesForNamespace_appliesLimitAndOffsetInMemory() throws NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        List<Document> architectures = new java.util.ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            architectures.add(Document.createDocument()
+                    .put("architectureId", 1000 + i)
+                    .put("name", "Arch " + i)
+                    .put("description", "Architecture " + i)
+                    .put("versions", Document.createDocument().put("1-0-0", "{}")));
+        }
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("architectures", architectures);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        // Nitrite has no array-slice projection, so the limit/offset window is applied in memory.
+        List<NamespaceResourceSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE, 2, 1);
+
+        assertThat(result.size(), is(2));
+        assertThat(result.get(0).getId(), is(1002));
+        assertThat(result.get(1).getId(), is(1003));
+    }
+
+    @Test
+    public void testGetArchitecturesForNamespace_returnsFullListWhenNoLimit() throws NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document doc1 = Document.createDocument()
+                .put("architectureId", 1001)
+                .put("name", "Arch One")
+                .put("description", "First")
+                .put("versions", Document.createDocument().put("1-0-0", "{}"));
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("architectures", Arrays.asList(doc1));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        List<NamespaceResourceSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE, null, null);
+
+        assertThat(result.size(), is(1));
+        assertThat(result.get(0).getId(), is(1001));
+    }
+
+    @Test
     public void testGetArchitecturesForNamespace_whenLegacyDocumentsMissingNameAndDescription_returnsFallbacks() throws NamespaceNotFoundException {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 

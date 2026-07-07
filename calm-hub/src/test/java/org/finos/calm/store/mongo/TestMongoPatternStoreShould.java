@@ -135,6 +135,38 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
+    void get_patterns_for_namespace_applies_slice_projection_when_limit_provided() throws NamespaceNotFoundException {
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any())).thenReturn(findIterable);
+        Document documentMock = Mockito.mock(Document.class);
+        when(findIterable.first()).thenReturn(documentMock);
+        when(documentMock.getList("patterns", Document.class)).thenReturn(new ArrayList<>());
+
+        mongoPatternStore.getPatternsForNamespace("finos", 3, 6);
+
+        // The limit/offset is pushed down to Mongo as a $slice projection on the patterns array,
+        // rather than being sliced in memory after loading the whole namespace document.
+        verify(findIterable).projection(eq(Projections.slice("patterns", 6, 3)));
+    }
+
+    @Test
+    void get_patterns_for_namespace_does_not_project_when_no_limit_provided() throws NamespaceNotFoundException {
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
+                .thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        mongoPatternStore.getPatternsForNamespace("finos", null, null);
+
+        // No limit → full list → no $slice projection (unchanged behaviour).
+        verify(findIterable, times(0)).projection(any());
+    }
+
+    @Test
     void get_pattern_for_namespace_returns_fallback_for_legacy_documents() throws NamespaceNotFoundException {
         FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);

@@ -57,6 +57,30 @@ describe('CalmService', () => {
             expect(actual).toEqual(expectedSummaries);
         });
 
+        it('should not send limit/offset params when none are supplied', async () => {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(200, {
+                values: [],
+            });
+            await calmService.fetchPatternSummaries(namespace);
+            expect(mock.history.get[0].params).toBeUndefined();
+        });
+
+        it('should send a limit param when a limit is supplied', async () => {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(200, {
+                values: [],
+            });
+            await calmService.fetchPatternSummaries(namespace, 3);
+            expect(mock.history.get[0].params).toEqual({ limit: 3 });
+        });
+
+        it('should send both limit and offset params when supplied', async () => {
+            mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(200, {
+                values: [],
+            });
+            await calmService.fetchPatternSummaries(namespace, 3, 6);
+            expect(mock.history.get[0].params).toEqual({ limit: 3, offset: 6 });
+        });
+
         it('should throw an error when backend returns error status', async () => {
             mock.onGet(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(500, {
                 message: 'Error',
@@ -97,6 +121,30 @@ describe('CalmService', () => {
             });
             const actual = await calmService.fetchArchitectureSummaries(namespace);
             expect(actual).toEqual(expectedSummaries);
+        });
+
+        it('should not send limit/offset params when none are supplied', async () => {
+            mock.onGet(`/api/calm/namespaces/${namespace}/architectures`).reply(200, {
+                values: [],
+            });
+            await calmService.fetchArchitectureSummaries(namespace);
+            expect(mock.history.get[0].params).toBeUndefined();
+        });
+
+        it('should send a limit param when a limit is supplied', async () => {
+            mock.onGet(`/api/calm/namespaces/${namespace}/architectures`).reply(200, {
+                values: [],
+            });
+            await calmService.fetchArchitectureSummaries(namespace, 3);
+            expect(mock.history.get[0].params).toEqual({ limit: 3 });
+        });
+
+        it('should send both limit and offset params when supplied', async () => {
+            mock.onGet(`/api/calm/namespaces/${namespace}/architectures`).reply(200, {
+                values: [],
+            });
+            await calmService.fetchArchitectureSummaries(namespace, 3, 6);
+            expect(mock.history.get[0].params).toEqual({ limit: 3, offset: 6 });
         });
 
         it('should throw an error when backend returns error status', async () => {
