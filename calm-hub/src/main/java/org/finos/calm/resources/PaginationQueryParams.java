@@ -25,11 +25,6 @@ public class PaginationQueryParams {
     public PaginationQueryParams() {
     }
 
-    public PaginationQueryParams(Integer limit, Integer offset) {
-        this.limit = limit;
-        this.offset = offset;
-    }
-
     /**
      * @return a {@link PageRequest} value object for the store layer.
      */
