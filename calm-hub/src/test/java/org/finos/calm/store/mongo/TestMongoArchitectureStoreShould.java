@@ -23,6 +23,7 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.store.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -155,7 +156,7 @@ public class TestMongoArchitectureStoreShould {
         when(findIterable.first()).thenReturn(documentMock);
         when(documentMock.getList("architectures", Document.class)).thenReturn(new ArrayList<>());
 
-        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, 3, 6);
+        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, new PageRequest(3, 6));
 
         // The limit/offset is pushed down to Mongo as a $slice projection on the architectures array,
         // rather than being sliced in memory after loading the whole namespace document.
@@ -170,7 +171,7 @@ public class TestMongoArchitectureStoreShould {
                 .thenReturn(findIterable);
         when(findIterable.first()).thenReturn(null);
 
-        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, null, null);
+        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, PageRequest.UNPAGED);
 
         // No limit → full list → no $slice projection (unchanged behaviour).
         verify(findIterable, times(0)).projection(any());
@@ -185,8 +186,24 @@ public class TestMongoArchitectureStoreShould {
         when(findIterable.projection(any())).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(null);
 
-        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, 3, null);
+        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, new PageRequest(3, null));
 
+        verify(findIterable).projection(eq(Projections.slice("architectures", 0, 3)));
+    }
+
+    @Test
+    void get_architectures_for_namespace_clamps_a_negative_offset_to_zero() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any())).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, new PageRequest(3, -5));
+
+        // A negative offset is clamped to 0 rather than passed to $slice, which Mongo would otherwise
+        // interpret as "count from the end" — matching the in-memory Nitrite path.
         verify(findIterable).projection(eq(Projections.slice("architectures", 0, 3)));
     }
 

@@ -9,6 +9,7 @@ import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
+import org.finos.calm.store.PageRequest;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
@@ -124,7 +125,7 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
-    public void testGetPatternsForNamespace_appliesLimitAndOffsetInMemory() throws NamespaceNotFoundException {
+    public void get_patterns_for_namespace_applies_limit_and_offset_in_memory() throws NamespaceNotFoundException {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         List<Document> patterns = new java.util.ArrayList<>();
@@ -143,7 +144,7 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Nitrite has no array-slice projection, so the limit/offset window is applied in memory.
-        List<NamespaceResourceSummary> result = patternStore.getPatternsForNamespace(NAMESPACE, 2, 1);
+        List<NamespaceResourceSummary> result = patternStore.getPatternsForNamespace(NAMESPACE, new PageRequest(2, 1));
 
         assertThat(result.size(), is(2));
         assertThat(result.get(0).getId(), is(2));
@@ -151,7 +152,7 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
-    public void testGetPatternsForNamespace_returnsFullListWhenNoLimit() throws NamespaceNotFoundException {
+    public void get_patterns_for_namespace_returns_full_list_when_no_limit() throws NamespaceNotFoundException {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         Document patternDoc = Document.createDocument("patternId", 1).put("name", "Pattern One").put("description", "First")
@@ -164,7 +165,7 @@ public class TestNitritePatternStoreShould {
         when(cursor.firstOrNull()).thenReturn(namespaceDoc);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
-        List<NamespaceResourceSummary> result = patternStore.getPatternsForNamespace(NAMESPACE, null, null);
+        List<NamespaceResourceSummary> result = patternStore.getPatternsForNamespace(NAMESPACE, PageRequest.UNPAGED);
 
         assertThat(result.size(), is(1));
         assertThat(result.get(0).getId(), is(1));

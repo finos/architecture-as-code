@@ -4,8 +4,9 @@ import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.inject.Inject;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
+import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -13,7 +14,6 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
@@ -36,10 +36,8 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.finos.calm.resources.ResourceValidationConstants.LIMIT_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
-import static org.finos.calm.resources.ResourceValidationConstants.OFFSET_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
@@ -85,11 +83,10 @@ public class ArchitectureResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getArchitecturesForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @QueryParam("limit") @Min(value = 1, message = LIMIT_MESSAGE) Integer limit,
-            @QueryParam("offset") @Min(value = 0, message = OFFSET_MESSAGE) Integer offset
+            @Valid @BeanParam PaginationQueryParams page
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getArchitecturesForNamespace(namespace, limit, offset))).build();
+            return Response.ok(new ValueWrapper<>(store.getArchitecturesForNamespace(namespace, page.toPageRequest()))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving architectures", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

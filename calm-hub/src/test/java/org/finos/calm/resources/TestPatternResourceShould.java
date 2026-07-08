@@ -11,6 +11,7 @@ import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +45,7 @@ public class TestPatternResourceShould {
 
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_patterns() throws NamespaceNotFoundException {
-        when(mockPatternStore.getPatternsForNamespace(anyString(), any(), any())).thenThrow(new NamespaceNotFoundException());
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenThrow(new NamespaceNotFoundException());
 
         given()
                 .when()
@@ -52,7 +53,7 @@ public class TestPatternResourceShould {
                 .then()
                 .statusCode(404);
 
-        verify(mockPatternStore, times(1)).getPatternsForNamespace("invalid", null, null);
+        verify(mockPatternStore, times(1)).getPatternsForNamespace("invalid", PageRequest.UNPAGED);
     }
 
     @Test
@@ -71,7 +72,7 @@ public class TestPatternResourceShould {
                 new NamespaceResourceSummary("Pattern One", "First", 12345, 3),
                 new NamespaceResourceSummary("Pattern Two", "Second", 54321, 1)
         );
-        when(mockPatternStore.getPatternsForNamespace(anyString(), any(), any())).thenReturn(summaries);
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenReturn(summaries);
 
         given()
                 .when()
@@ -87,12 +88,12 @@ public class TestPatternResourceShould {
                 .body("values[1].id", equalTo(54321))
                 .body("values[1].versionCount", equalTo(1));
 
-        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", null, null);
+        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", PageRequest.UNPAGED);
     }
 
     @Test
     void pass_limit_and_offset_to_store_when_provided_on_get_patterns() throws NamespaceNotFoundException {
-        when(mockPatternStore.getPatternsForNamespace(anyString(), any(), any())).thenReturn(List.of());
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenReturn(List.of());
 
         given()
                 .when()
@@ -100,7 +101,7 @@ public class TestPatternResourceShould {
                 .then()
                 .statusCode(200);
 
-        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", 3, 6);
+        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", new PageRequest(3, 6));
     }
 
     @Test
