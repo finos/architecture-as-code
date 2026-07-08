@@ -6,26 +6,26 @@ import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
 import { apiClient } from './utils/api-client.js';
 
 /**
- * Build the optional `limit`/`offset` query params for the namespace summary endpoints.
- * Returns `undefined` when no `limit` is supplied so the request URL is unchanged (and the
+ * Build the optional `limit`/`offset` query string for the namespace summary endpoints.
+ * Returns an empty string when no `limit` is supplied so the request URL is unchanged (and the
  * backend returns the full list) — preserving backward-compatible behaviour.
  *
  * `offset` is only included alongside a `limit`: the backend applies it only with a limit
  * ($slice can't express offset-without-limit) and ignores an offset-only request, so sending
  * one would be a silent no-op that misleads callers into thinking paging is happening.
+ *
+ * Mirrors the `URLSearchParams` pattern used by `fetchDecoratorValues`.
  */
-function summaryPageParams(
-    limit?: number,
-    offset?: number
-): { limit: number; offset?: number } | undefined {
+function summaryPageQuery(limit?: number, offset?: number): string {
     if (limit === undefined) {
-        return undefined;
+        return '';
     }
-    const params: { limit: number; offset?: number } = { limit };
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
     if (offset !== undefined) {
-        params.offset = offset;
+        params.set('offset', String(offset));
     }
-    return params;
+    return `?${params.toString()}`;
 }
 
 /**
@@ -108,10 +108,10 @@ export class CalmService {
         offset?: number
     ): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
+        const query = summaryPageQuery(limit, offset);
         return this.ax
-            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`, {
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns${query}`, {
                 headers,
-                params: summaryPageParams(limit, offset),
             })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
@@ -145,10 +145,10 @@ export class CalmService {
         offset?: number
     ): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
+        const query = summaryPageQuery(limit, offset);
         return this.ax
-            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures`, {
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures${query}`, {
                 headers,
-                params: summaryPageParams(limit, offset),
             })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
