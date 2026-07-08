@@ -1,12 +1,12 @@
 import {
-    type NamespaceResourceType,
+    type CardResourceType,
     getResourceTypeColors,
     getResourceTypeMeta,
 } from './resource-type-meta.js';
 
 interface TypeBadgeProps {
     /** Resource type whose accent / tint and singular label the pill shows. */
-    type: NamespaceResourceType;
+    type: CardResourceType;
 }
 
 /**

@@ -7,8 +7,22 @@ import { NamespaceCounts } from '../../../model/counts.js';
  * `Controls` (a control-domain concept, not a namespace browse type). Derived from
  * `TypeInUI` so a new browsable type can't silently miss a tab — adding one to
  * `TypeInUI` makes this union (and the `Record`s keyed on it) require it.
+ *
+ * Only the browse-tab machinery (`NAMESPACE_RESOURCE_TYPES`, `COUNT_FIELD`,
+ * `SegmentedTypeTabs`) keys on this narrow union, so widening the card surface below
+ * never grows the tab set.
  */
 export type NamespaceResourceType = Exclude<TypeInUI, 'Controls'>;
+
+/**
+ * The resource types a browse *card* (and its {@link TypeBadge} / thumbnail colours)
+ * can represent — the browse types plus `Controls`. Controls reuse the shared card
+ * anatomy in the control-domain grid but are deliberately absent from the namespace
+ * tabs; this superset lets ItemCard/TypeBadge/`getResourceType*` accept a control
+ * without leaking a `Controls` tab into {@link NamespaceResourceType}. Equal to
+ * `TypeInUI` today; named for intent.
+ */
+export type CardResourceType = NamespaceResourceType | 'Controls';
 
 type ResourceTypeKey = keyof typeof colors.resourceTypes;
 
@@ -31,17 +45,20 @@ interface ResourceTypeMeta {
  * TypeBadge, ItemCard thumbnails and the type tabs all derive colour and label
  * from one place rather than re-deriving the plural→singular / colour mapping.
  *
- * Only the six namespace browse types are represented; `Controls` is not a
- * namespace browse type and is intentionally excluded by the `NamespaceResourceType`
- * narrowing on consumers.
+ * Keyed on {@link CardResourceType}, so `Controls` is included for the shared browse
+ * card (its "Control" pill + blue thumbnail) even though it is not a namespace tab —
+ * the tab exports below stay narrowed to {@link NamespaceResourceType}. Indexed only
+ * (`RESOURCE_TYPE_META[type]`), never enumerated, so the `Controls` row can't leak
+ * into any tab list.
  */
-const RESOURCE_TYPE_META: Record<NamespaceResourceType, ResourceTypeMeta> = {
+const RESOURCE_TYPE_META: Record<CardResourceType, ResourceTypeMeta> = {
     Architectures: { label: 'Architecture', pluralLabel: 'architectures', colorKey: 'architecture' },
     Patterns: { label: 'Pattern', pluralLabel: 'patterns', colorKey: 'pattern' },
     Flows: { label: 'Flow', pluralLabel: 'flows', colorKey: 'flow' },
     Standards: { label: 'Standard', pluralLabel: 'standards', colorKey: 'standard' },
     ADRs: { label: 'ADR', pluralLabel: 'ADRs', colorKey: 'adr' },
     Interfaces: { label: 'Interface', pluralLabel: 'interfaces', colorKey: 'interface' },
+    Controls: { label: 'Control', pluralLabel: 'controls', colorKey: 'control' },
 };
 
 /**
@@ -74,11 +91,11 @@ export const NAMESPACE_RESOURCE_TYPES: NamespaceResourceType[] = [
     'Interfaces',
 ];
 
-export function getResourceTypeMeta(type: NamespaceResourceType): ResourceTypeMeta {
+export function getResourceTypeMeta(type: CardResourceType): ResourceTypeMeta {
     return RESOURCE_TYPE_META[type];
 }
 
-/** The accent + tint colour pair for a browse resource type. */
-export function getResourceTypeColors(type: NamespaceResourceType): { accent: string; tint: string } {
+/** The accent + tint colour pair for a browse (or control) card resource type. */
+export function getResourceTypeColors(type: CardResourceType): { accent: string; tint: string } {
     return colors.resourceTypes[RESOURCE_TYPE_META[type].colorKey];
 }
