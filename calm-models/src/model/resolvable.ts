@@ -1,3 +1,11 @@
+/**
+ * A resolvable node in the CALM model — either a plain {@link Resolvable} or a
+ * {@link ResolvableAndAdaptable}. Both expose `reference`, `isResolved` and `value`.
+ */
+export type AnyResolvable =
+    | Resolvable<unknown>
+    | ResolvableAndAdaptable<unknown, unknown>;
+
 export class Resolvable<T> {
     constructor(
         public reference: string,

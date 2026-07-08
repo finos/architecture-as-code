@@ -11,15 +11,17 @@ export class SchemaDirectory {
     private readonly schemas: Map<string, object> = new Map<string, object>();
     private readonly schemaTypes: Map<string, CalmDocumentType> = new Map<string, CalmDocumentType>();
     private readonly logger: Logger;
+    private readonly debug: boolean;
     private readonly PATTERN_CURRENTLY_VALIDATING = 'patternCurrentlyValidating';
     private documentLoader: DocumentLoader;
 
     /**
      * Initialise the SchemaDirectory. Does not load the schemas until loadSchemas is called.
-     * @param directoryPath The directory path from which to load schemas. All JSON and YAML files under this path will be loaded, including subfolders.
+     * @param documentLoader The document loader to use for loading documents.
      * @param debug Whether to log at debug level.
      */
     constructor(documentLoader: DocumentLoader, debug: boolean = false) {
+        this.debug = debug;
         this.logger = initLogger(debug, 'schema-directory');
         this.documentLoader = documentLoader;
     }
@@ -169,5 +171,39 @@ export class SchemaDirectory {
         this.logger.debug(`Storing document with ID ${documentId} of type ${documentType}.`);
         this.schemas.set(documentId, document);
         this.schemaTypes.set(documentId, documentType);
+    }
+
+    /**
+     * Load a CALM document (e.g. an architecture) by reference via the DocumentLoader.
+     * Unlike {@link getSchema}, this does not cache the result in the schema map and
+     * accepts an explicit document type. Used to fetch raw sub-architecture documents
+     * for recursive validation.
+     */
+    public async loadDocument(documentId: string, type: CalmDocumentType): Promise<object> {
+        return this.documentLoader.loadMissingDocument(documentId, type);
+    }
+
+    /**
+     * Return a new SchemaDirectory backed by the same DocumentLoader, pre-seeded with a
+     * copy of this directory's already-loaded schemas.
+     *
+     * Isolation prevents AJV schema-ID collisions between a parent architecture and a
+     * sub-architecture compilation, while reusing the warm cache means the base CALM
+     * schemas are not re-fetched for every sub-architecture. The pattern-currently-
+     * validating entry is intentionally not copied so the fork can load its own pattern.
+     */
+    public fork(): SchemaDirectory {
+        const forked = new SchemaDirectory(this.documentLoader, this.debug);
+        for (const [id, doc] of this.schemas) {
+            if (id === this.PATTERN_CURRENTLY_VALIDATING) {
+                continue;
+            }
+            forked.schemas.set(id, doc);
+            const type = this.schemaTypes.get(id);
+            if (type) {
+                forked.schemaTypes.set(id, type);
+            }
+        }
+        return forked;
     }
 }

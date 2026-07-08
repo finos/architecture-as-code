@@ -23,6 +23,24 @@ export class ValidationOutput {
         this.character_end = character_end;
         this.source = source;
     }
+
+    /**
+     * Build an `error`-severity output without the positional `line`/`character` noise.
+     * @param opts.schemaPath optional JSON-schema path.
+     * @param opts.source     optional source label (e.g. 'architecture' or 'pattern').
+     */
+    static error(code: string | number, message: string, path: string, opts: { schemaPath?: string, source?: string } = {}): ValidationOutput {
+        return new ValidationOutput(code, 'error', message, path, opts.schemaPath, undefined, undefined, undefined, undefined, opts.source);
+    }
+
+    /**
+     * Build a `warning`-severity output without the positional `line`/`character` noise.
+     * @param opts.schemaPath optional JSON-schema path.
+     * @param opts.source     optional source label (e.g. 'architecture' or 'pattern').
+     */
+    static warning(code: string | number, message: string, path: string, opts: { schemaPath?: string, source?: string } = {}): ValidationOutput {
+        return new ValidationOutput(code, 'warning', message, path, opts.schemaPath, undefined, undefined, undefined, undefined, opts.source);
+    }
 }
 
 export class ValidationOutcome {
