@@ -99,9 +99,16 @@ export class ValidationRouter {
         }
 
         if (hasPattern(req.body.pattern)) {
-            return this.validateWithPattern(architecture, req.body.pattern, res);
+            return this.validateAgainstPattern(architecture, req.body.pattern, res);
         }
 
+        return this.validateAgainstSchema(architecture, res);
+    };
+
+    private validateAgainstSchema = async (
+        architecture: Record<string, unknown>,
+        res: Response<ValidationOutcome | ErrorResponse>
+    ) => {
         const schema = architecture['$schema'];
         if (typeof schema !== 'string') {
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field in the architecture is missing or is not a string'));
@@ -138,7 +145,7 @@ export class ValidationRouter {
         }
     };
 
-    private validateWithPattern = async (
+    private validateAgainstPattern = async (
         architecture: Record<string, unknown>,
         patternRaw: string,
         res: Response<ValidationOutcome | ErrorResponse>
@@ -203,7 +210,7 @@ class ErrorResponse {
     }
 }
 
-class ValidationRequest {
-    architecture!: string;
+interface ValidationRequest {
+    architecture: string;
     pattern?: string;
 }
