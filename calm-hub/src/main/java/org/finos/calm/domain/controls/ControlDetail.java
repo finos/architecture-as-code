@@ -1,7 +1,10 @@
 package org.finos.calm.domain.controls;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.util.Objects;
 
+@RegisterForReflection
 public class ControlDetail {
     private Integer id;
     private String name;

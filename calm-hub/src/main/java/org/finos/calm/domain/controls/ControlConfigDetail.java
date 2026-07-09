@@ -1,11 +1,14 @@
 package org.finos.calm.domain.controls;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.util.Objects;
 
 /**
  * Lightweight projection returned by the User Facing API that pairs a configuration's
  * numeric storage id with its human-readable name slug.
  */
+@RegisterForReflection
 public class ControlConfigDetail {
 
     private Integer id;
