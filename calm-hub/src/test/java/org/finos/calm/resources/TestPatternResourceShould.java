@@ -11,6 +11,7 @@ import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,10 +25,13 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.LIMIT_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.OFFSET_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -41,7 +45,7 @@ public class TestPatternResourceShould {
 
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_patterns() throws NamespaceNotFoundException {
-        when(mockPatternStore.getPatternsForNamespace(anyString())).thenThrow(new NamespaceNotFoundException());
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenThrow(new NamespaceNotFoundException());
 
         given()
                 .when()
@@ -49,7 +53,7 @@ public class TestPatternResourceShould {
                 .then()
                 .statusCode(404);
 
-        verify(mockPatternStore, times(1)).getPatternsForNamespace("invalid");
+        verify(mockPatternStore, times(1)).getPatternsForNamespace("invalid", PageRequest.UNPAGED);
     }
 
     @Test
@@ -68,7 +72,7 @@ public class TestPatternResourceShould {
                 new NamespaceResourceSummary("Pattern One", "First", 12345, 3),
                 new NamespaceResourceSummary("Pattern Two", "Second", 54321, 1)
         );
-        when(mockPatternStore.getPatternsForNamespace(anyString())).thenReturn(summaries);
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenReturn(summaries);
 
         given()
                 .when()
@@ -84,7 +88,40 @@ public class TestPatternResourceShould {
                 .body("values[1].id", equalTo(54321))
                 .body("values[1].versionCount", equalTo(1));
 
-        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos");
+        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", PageRequest.UNPAGED);
+    }
+
+    @Test
+    void pass_limit_and_offset_to_store_when_provided_on_get_patterns() throws NamespaceNotFoundException {
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenReturn(List.of());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns?limit=3&offset=6")
+                .then()
+                .statusCode(200);
+
+        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", new PageRequest(3, 6));
+    }
+
+    @Test
+    void return_a_400_when_limit_is_less_than_one_on_get_patterns() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns?limit=0")
+                .then()
+                .statusCode(400)
+                .body(containsString(LIMIT_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_offset_is_negative_on_get_patterns() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns?offset=-1")
+                .then()
+                .statusCode(400)
+                .body(containsString(OFFSET_MESSAGE));
     }
 
     @Test

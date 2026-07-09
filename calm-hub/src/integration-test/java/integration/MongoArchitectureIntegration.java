@@ -142,4 +142,42 @@ public class MongoArchitectureIntegration {
                 .statusCode(400)
                 .body(containsString("could not be parsed"));
     }
+
+    @Test
+    @Order(7)
+    void end_to_end_create_a_second_architecture() {
+        String payload = """
+                {
+                     "name": "second",
+                     "description": "second architecture",
+                     "architectureJson": "{\\"name\\": \\"demo-pattern\\"}"
+                }
+                """;
+
+        given()
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/api/calm/namespaces/finos/architectures")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("calm/namespaces/finos/architectures/2"));
+    }
+
+    @Test
+    @Order(8)
+    void end_to_end_limit_slices_the_summary_list() {
+        // With two architectures stored, limit=1 must return exactly one via the Mongo $slice
+        // projection, while no limit returns the full list.
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures?limit=1")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1));
+
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2));
+    }
 }

@@ -183,6 +183,10 @@ export const colors = {
         standard: { accent: '#D97706', tint: '#FCF1E2' },
         adr: { accent: '#DB2777', tint: '#FCE9F2' },
         interface: { accent: '#059669', tint: '#E4F5EE' },
+        // Controls aren't a namespace browse type, but their browse card reuses the
+        // shared ItemCard/TypeBadge. Uses the interaction/selection blue (matching
+        // redesign.primary / tintBg) so control cards read as the selectable family.
+        control: { accent: '#2563EB', tint: '#EEF4FF' },
     },
     diffPalette: {
         add: { bg: '#e8f6ee', border: '#b6dfc6', fg: '#15803d', sign: '+' },

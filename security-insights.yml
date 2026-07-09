@@ -1,0 +1,146 @@
+header:
+  schema-version: 2.2.0
+  last-updated: '2026-07-03'
+  last-reviewed: '2026-07-03'
+  url: https://raw.githubusercontent.com/finos/architecture-as-code/main/security-insights.yml
+  comment: |
+    Architecture as Code (CALM) is a monorepo. The repositories listed under
+    project.repositories are subprojects/packages within this single GitHub
+    repository, not separate git repositories, compiled into independent
+    releases (npm packages, Docker images, a VS Code extension, etc).
+
+project:
+  name: Architecture as Code (CALM)
+  homepage: https://calm.finos.org
+  roadmap: https://roadmapper.rocketstack.co/view/finos/architecture-as-code/ffffff/24292f
+  administrators:
+    - name: rocketstack-matt
+      primary: true
+    - name: jpgough-ms
+      primary: false
+    - name: markscott-ms
+      primary: false
+  documentation:
+    quickstart-guide: https://calm.finos.org/tutorials/
+    code-of-conduct: https://www.finos.org/code-of-conduct
+  repositories:
+    - name: calm
+      url: https://github.com/finos/architecture-as-code/tree/main/calm
+      comment: |
+        CALM JSON Meta Schema specification, the core architecture modelling
+        language this project is built around. Status: Incubating, actively
+        maintained.
+    - name: cli
+      url: https://github.com/finos/architecture-as-code/tree/main/cli
+      comment: |
+        @finos/calm-cli, the TypeScript CLI for validating, generating and
+        visualizing CALM architectures. Published to npm. Status: Incubating,
+        actively maintained.
+    - name: shared
+      url: https://github.com/finos/architecture-as-code/tree/main/shared
+      comment: |
+        @finos/calm-shared, TypeScript utilities shared across the CLI, the
+        VSCode extension and other CALM tooling. Published to npm.
+        Status: Incubating, actively maintained.
+    - name: calm-models
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-models
+      comment: |
+        @finos/calm-models, TypeScript data models generated from the CALM
+        schema and consumed across the TypeScript packages. Published to npm.
+        Status: Incubating, actively maintained.
+    - name: calm-widgets
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-widgets
+      comment: |
+        @finos/calm-widgets, React visualization components and Handlebars
+        template widgets used to render CALM architectures. Published to npm.
+        Status: Incubating, actively maintained.
+    - name: calm-ai
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-ai
+      comment: |
+        AI agent tools and prompts for working with CALM. Prompt/tooling
+        assets only (no build), managed separately from the CLI for easier
+        maintenance and broader reuse. Status: Incubating, actively maintained.
+    - name: calm-hub
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-hub
+      comment: |
+        CALM Hub, a Java/Quarkus REST API backend for storing and serving
+        CALM architectures (MongoDB or NitriteDB storage). Published as a
+        Docker image. Status: Incubating, actively maintained.
+    - name: calm-hub-ui
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-hub-ui
+      comment: |
+        React frontend for CALM Hub. Status: Incubating, actively maintained.
+    - name: calm-server
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-server
+      comment: |
+        @finos/calm-server, a TypeScript CALM server package. Published to
+        npm. Status: Incubating, actively maintained.
+    - name: calm-plugins/vscode
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-plugins/vscode
+      comment: |
+        VS Code extension for authoring and validating CALM architectures.
+        Published to the VS Code Marketplace as finos.calm-vscode-plugin.
+        Status: Incubating, actively maintained.
+    - name: calm-studio
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-studio
+      comment: |
+        SvelteKit visual CALM editor; itself a nested npm-workspace monorepo
+        (calm-core, calmscript, extensions, github-action, mcp, diagram web
+        component, vscode-extension, studio app). Status: Experimental.
+    - name: calm-guard
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-guard
+      comment: |
+        CALMGuard, a Next.js continuous-compliance platform for validating
+        architectures against CALM controls, plus its Docusaurus docs site.
+        Status: Experimental.
+    - name: docs
+      url: https://github.com/finos/architecture-as-code/tree/main/docs
+      comment: |
+        Docusaurus documentation site published at calm.finos.org.
+        Status: Incubating, actively maintained.
+  vulnerability-reporting:
+    reports-accepted: true
+    bug-bounty-available: false
+    contact:
+      name: Architecture as Code Maintainers
+      primary: true
+    policy: https://github.com/finos/architecture-as-code/security/advisories/new
+    comment: |
+      GitHub private vulnerability reporting is enabled on this repository;
+      use the "Report a vulnerability" action under the Security tab.
+
+repository:
+  url: https://github.com/finos/architecture-as-code
+  status: active
+  accepts-change-request: true
+  accepts-automated-change-request: true
+  core-team:
+    - name: rocketstack-matt
+      primary: true
+    - name: jpgough-ms
+      primary: false
+    - name: markscott-ms
+      primary: false
+  documentation:
+    contributing-guide: https://github.com/finos/architecture-as-code/blob/main/CONTRIBUTING.md
+    governance: https://github.com/finos/architecture-as-code/blob/main/Governance.md
+    security-policy: https://github.com/finos/architecture-as-code/security
+  license:
+    url: https://github.com/finos/architecture-as-code/blob/main/LICENSE
+    expression: Apache-2.0
+  release:
+    automated-pipeline: true
+    distribution-points:
+      - uri: https://github.com/finos/architecture-as-code/releases
+        comment: GitHub Releases page for tagged releases across the monorepo's packages.
+      - uri: https://www.npmjs.com/package/@finos/calm-cli
+        comment: npm packages published under the @finos scope (calm-cli, calm-shared, calm-models, calm-widgets, calm-server).
+      - uri: https://hub.docker.com/r/finos/calm-hub
+        comment: Docker Hub image for CALM Hub.
+      - uri: https://marketplace.visualstudio.com/items?itemName=finos.calm-vscode-plugin
+        comment: VS Code Marketplace listing for the CALM VSCode extension.
+  security:
+    assessments:
+      self:
+        comment: |
+          Self assessment has not yet been completed.

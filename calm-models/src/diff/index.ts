@@ -1,6 +1,7 @@
 export {
     diffAdrs,
     diffArchitectures,
+    diffControls,
     diffNodesAndRelationships,
     nodeStructureMatches,
     relationshipStructureMatches,
@@ -24,6 +25,7 @@ export {
 export type {
     AdrDiffResult,
     ArchitectureDiffResult,
+    ControlDiffResult,
     NodeChange,
     NodesAndRelationshipsDiffResult,
     RelationshipChange,

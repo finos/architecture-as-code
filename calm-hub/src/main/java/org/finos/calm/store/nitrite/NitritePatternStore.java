@@ -16,6 +16,7 @@ import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.finos.calm.store.util.VersionKeySelector;
@@ -63,7 +64,7 @@ public class NitritePatternStore implements PatternStore {
     }
 
     @Override
-    public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving patterns", namespace);
             throw new NamespaceNotFoundException();
@@ -100,8 +101,10 @@ public class NitritePatternStore implements PatternStore {
             }
         }
 
-        LOG.debug("Retrieved {} patterns for namespace '{}'", patternSummaries.size(), namespace);
-        return patternSummaries;
+        // Nitrite has no array-slice projection, so apply the limit/offset window in memory.
+        List<NamespaceResourceSummary> pageResults = page.apply(patternSummaries);
+        LOG.debug("Retrieved {} of {} patterns for namespace '{}'", pageResults.size(), patternSummaries.size(), namespace);
+        return pageResults;
     }
 
     @Override

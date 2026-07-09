@@ -97,7 +97,7 @@ describe('Sidebar Component', () => {
     it('should call closeSidebar when close button is clicked', () => {
         render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'close-sidebar' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
         expect(mockCloseSidebar).toHaveBeenCalled();
     });
 });

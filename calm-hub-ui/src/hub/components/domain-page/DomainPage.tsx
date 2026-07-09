@@ -4,13 +4,20 @@ import { IoShieldCheckmarkOutline } from 'react-icons/io5';
 import { ControlService } from '../../../service/control-service.js';
 import { ControlData, ControlDetail } from '../../../model/control.js';
 import { colors } from '../../../theme/colors.js';
+import { ControlCard } from './ControlCard.js';
 
 interface DomainPageProps {
     domain: string;
-    /** Control count for the header meta (from the domain counts endpoint). */
-    controlCount: number;
-    /** Loads a control into the existing ControlDetailSection flow. */
+    /**
+     * Control count for the header meta (from the domain counts endpoint).
+     * `undefined` while the counts fetch is in flight — distinct from a known 0 —
+     * so a deep-link renders "controls" rather than a misleading "0 controls".
+     */
+    controlCount: number | undefined;
+    /** Opens a control's detail panel (kept on-page beside the card grid). */
     onControlLoad: (control: ControlData) => void;
+    /** Id of the control whose detail panel is open, for selected-card styling. */
+    selectedControlId?: number;
 }
 
 /**
@@ -18,7 +25,7 @@ interface DomainPageProps {
  * domain's controls; selecting one loads it via the existing `onControlLoad`
  * mechanism (ControlDetailSection), preserving control browsing.
  */
-export function DomainPage({ domain, controlCount, onControlLoad }: DomainPageProps) {
+export function DomainPage({ domain, controlCount, onControlLoad, selectedControlId }: DomainPageProps) {
     const controlService = useMemo(() => new ControlService(), []);
     const [controls, setControls] = useState<ControlDetail[]>([]);
     const [loading, setLoading] = useState(true);
@@ -66,7 +73,9 @@ export function DomainPage({ domain, controlCount, onControlLoad }: DomainPagePr
                     {domain}
                 </h1>
                 <span className="font-mono-jb text-[13px] whitespace-nowrap" style={{ color: colors.redesign.mutedAlt }}>
-                    {controlCount} {controlCount === 1 ? 'control' : 'controls'}
+                    {controlCount === undefined
+                        ? 'controls'
+                        : `${controlCount} ${controlCount === 1 ? 'control' : 'controls'}`}
                 </span>
             </div>
 
@@ -80,27 +89,26 @@ export function DomainPage({ domain, controlCount, onControlLoad }: DomainPagePr
                         No controls in this domain yet.
                     </p>
                 ) : (
-                    <ul className="flex flex-col gap-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {controls.map((control) => (
-                            <li key={control.id}>
-                                <button
-                                    className="w-full text-left px-3 py-2 rounded-[7px] text-[14px] hover:bg-base-200"
-                                    style={{ color: colors.redesign.bodyStrong }}
-                                    onClick={() =>
-                                        onControlLoad({
-                                            domain,
-                                            controlId: control.id,
-                                            controlName: control.name,
-                                            controlDescription: control.description,
-                                            controlTitle: control.title,
-                                        })
-                                    }
-                                >
-                                    {control.title ?? control.name}
-                                </button>
-                            </li>
+                            <ControlCard
+                                key={control.id}
+                                name={control.title ?? control.name}
+                                description={control.description}
+                                controlId={control.id}
+                                active={control.id === selectedControlId}
+                                onActivate={() =>
+                                    onControlLoad({
+                                        domain,
+                                        controlId: control.id,
+                                        controlName: control.name,
+                                        controlDescription: control.description,
+                                        controlTitle: control.title,
+                                    })
+                                }
+                            />
                         ))}
-                    </ul>
+                    </div>
                 )}
             </div>
         </div>

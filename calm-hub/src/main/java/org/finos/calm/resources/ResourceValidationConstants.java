@@ -18,6 +18,8 @@ public class ResourceValidationConstants {
     public static final String CUSTOM_ID_MESSAGE = "customId must match pattern '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'";
     public static final String QUERY_PARAM_NO_WHITESPACE_REGEX = "^[A-Za-z0-9_/.-]+$";
     public static final String QUERY_PARAM_NO_WHITESPACE_MESSAGE = "Query parameter must match pattern '^[A-Za-z0-9_/.-]+$'";
+    public static final String LIMIT_MESSAGE = "limit must be greater than or equal to 1";
+    public static final String OFFSET_MESSAGE = "offset must be greater than or equal to 0";
     public static final PolicyFactory STRICT_SANITIZATION_POLICY = new HtmlPolicyBuilder().toFactory();
 
 }

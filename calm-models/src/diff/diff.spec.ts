@@ -380,6 +380,159 @@ describe('diff', () => {
         });
     });
 
+    describe('diffArchitectures - control diffs', () => {
+        it('records added and unchanged controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.controlAdditionArchitecture);
+            expect(result.controlItemsAdded).toEqual({
+                'id-2': {
+                    description: 'test control description 2',
+                    requirements: [{
+                        'requirement-url': 'https://new-url',
+                        'config-url': 'https://new-config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({
+                'id-1': {
+                    description: 'test control description',
+                    requirements: [{
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsModified).toEqual({});
+        });
+
+        it('records removed controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.controlRemovalArchitecture);
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({
+                'id-1': {
+                    description: 'test control description',
+                    requirements: [{
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsUnchanged).toEqual({});
+            expect(result.controlItemsModified).toEqual({});
+        });
+
+        it('records unchanged controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.baseArchitecture);
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({
+                'id-1': {
+                    description: 'test control description',
+                    requirements: [{
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsModified).toEqual({});
+        });
+
+        it('records added and removed controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.controlSimultaneousAddAndRemovalArchitecture);
+            expect(result.controlItemsAdded).toEqual({
+                'id-2': {
+                    description: 'test control description 2',
+                    requirements: [{
+                        'requirement-url': 'https://new-url',
+                        'config-url': 'https://new-config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsRemoved).toEqual({
+                'id-1': {
+                    description: 'test control description',
+                    requirements: [{
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsUnchanged).toEqual({});
+            expect(result.controlItemsModified).toEqual({});
+        });
+
+        it('records modified controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.controlEditArchitecture);
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({});
+            expect(result.controlItemsModified).toEqual({
+                'id-1': {
+                    descriptionDiff: [
+                        {
+                            changeType: 'removed',
+                            content: 'test control description',
+                        },
+                        {
+                            changeType: 'added',
+                            content: 'edited content',
+                        },
+                    ],
+                    requirementsDiff: [
+                        {
+                            changeType: 'removed',
+                            content: {
+                                'config-url': 'https://config-url',
+                                'requirement-url': 'https://url',
+                            },
+                        },
+                        {
+                            changeType: 'added',
+                            content: {
+                                'config-url': 'https://updated-config-url',
+                                'requirement-url': 'https://updated-url',
+                            },
+                        },
+                    ],
+                },
+            });
+        });
+
+        it('records description-only control edits when requirements are structurally identical', () => {
+            const modified = {
+                ...testArchitectures.baseArchitecture,
+                controls: {
+                    ...testArchitectures.baseArchitecture.controls,
+                    'id-1': {
+                        description: 'edited content',
+                        requirements: testArchitectures.baseArchitecture.controls['id-1'].requirements.map((r) => ({ ...r })),
+                    },
+                },
+            } as CalmArchitectureSchema;
+
+            const result = diffArchitectures(testArchitectures.baseArchitecture, modified);
+
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({});
+
+            expect(result.controlItemsModified['id-1'].descriptionDiff).toEqual([
+                { changeType: 'removed', content: 'test control description' },
+                { changeType: 'added', content: 'edited content' },
+            ]);
+
+            expect(result.controlItemsModified['id-1'].requirementsDiff).toEqual([
+                {
+                    changeType: 'unchanged',
+                    content: {
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url',
+                    },
+                },
+            ]);
+        });
+    });
+
     describe('diffArchitectures - comprehensive scenarios', () => {
         const empty = (): CalmArchitectureSchema => ({
             nodes: [],

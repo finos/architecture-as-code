@@ -148,10 +148,11 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     recoverable: false
                 });
             }
-            if (!SAFE_PATH_PATTERN.test(parsedUrl.pathname)) {
+            const requestPath = toRequestPath(parsedUrl);
+            if (!SAFE_PATH_PATTERN.test(requestPath)) {
                 throw new DocumentLoadError({
                     name: 'UNKNOWN',
-                    message: `Direct URL loading rejected a path with disallowed characters: ${parsedUrl.pathname}`,
+                    message: `Direct URL loading rejected a path with disallowed characters: ${requestPath}`,
                     recoverable: false
                 });
             }
@@ -162,7 +163,6 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     recoverable: false
                 });
             }
-            const requestPath = toRequestPath(parsedUrl);
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
             const response = await this.ax.get(requestPath, {
                 baseURL,

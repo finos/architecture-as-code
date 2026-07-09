@@ -19,6 +19,7 @@ import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,12 +72,16 @@ public class MongoArchitectureStore implements ArchitectureStore {
     }
 
     @Override
-    public List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
-        Document namespaceDocument = architectureCollection.find(Filters.eq("namespace", namespace)).first();
+        // When paged, the window is pushed down to Mongo via a $slice projection so only the requested
+        // slice of the architectures array is returned rather than the whole list. Unpaged → no
+        // projection → full list (unchanged behaviour). See MongoResourceSlice.
+        Bson filter = Filters.eq("namespace", namespace);
+        Document namespaceDocument = MongoResourceSlice.findNamespaceDoc(architectureCollection, filter, "architectures", page);
 
         //protects from an unpopulated mongo collection
         if (namespaceDocument == null || namespaceDocument.isEmpty()) {

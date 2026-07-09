@@ -16,6 +16,7 @@ import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.finos.calm.store.util.VersionKeySelector;
 import org.slf4j.Logger;
@@ -62,7 +63,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     }
 
     @Override
-    public List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving architectures", namespace);
             throw new NamespaceNotFoundException();
@@ -90,8 +91,10 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             architectureSummaries.add(summary);
         }
 
-        LOG.debug("Retrieved {} architectures for namespace '{}'", architectureSummaries.size(), namespace);
-        return architectureSummaries;
+        // Nitrite has no array-slice projection, so apply the limit/offset window in memory.
+        List<NamespaceResourceSummary> pageResults = page.apply(architectureSummaries);
+        LOG.debug("Retrieved {} of {} architectures for namespace '{}'", pageResults.size(), architectureSummaries.size(), namespace);
+        return pageResults;
     }
 
     @Override

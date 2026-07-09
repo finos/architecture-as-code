@@ -16,6 +16,8 @@ Note that if they're set on the command line, e.g. `--calm-hub-url`, this will o
 | `authPluginPath`     | `CALM_AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
 | `calmHubUrl`         | `CALM_HUB_URL`              | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
 
+Rather than hand-editing this file, use [`calm init-config`](#managing-the-config-file-with-init-config) to create or update it.
+
 ## Using the CLI
 
 ### Getting Started
@@ -45,15 +47,19 @@ Options:
 
 Commands:
   generate [options]          Generate an architecture from a CALM pattern file.
-  validate [options]          Validate that an architecture conforms to a given CALM pattern.
-  diff [options]              Compare two CALM documents (architectures or patterns) and report what changed.
-  template [options]          Generate files from a CALM model using a Handlebars template bundle.
-  docify [options]            Generate a documentation website off your CALM model.
+  validate [options]          Validate a CALM document.
+  template [options]          Generate files from a CALM model using a template bundle, a single file, or a directory of templates
+  docify [options]            Generate a documentation website from your CALM model using a template or template directory
   init-ai [options]           Augment a git repository with AI assistance for CALM
+  diff [options]              Compare two CALM documents (architectures or patterns), or the moments of a CALM timeline, and report what changed.
+  timeline [options]          Synthesise an implied CALM timeline from a set of local versioned architecture files.
+  init-config [options]       Create or update the CALM CLI configuration file (~/.calm.json).
+  hub [command]               Interact with CALM Hub
+  workspace [command]         Manage CALM workspace bundle and development helpers
   help [command]              display help for command
 ```
 
-### Generating an architecture from a CALM pattern file
+## Generating an architecture from a CALM pattern file
 
 This command lets you create a shell of an architecture from a pattern file.
 You can try it out using the example patterns provided in this repo under `calm/pattern`.
@@ -80,7 +86,7 @@ The most simple way to use this command is to call it with only the pattern opti
 % calm generate -p ./conferences/osff-ln-2025/workshop/conference-signup.pattern.json
 ```
 
-#### Pattern options
+### Pattern options
 
 Some CALM patterns define **options** — decision points where the architecture can vary. When a pattern contains options, the `generate` command will prompt you interactively to make your selections. At the end of the prompts, the CLI prints the choices you made in a format you can save and reuse:
 
@@ -104,7 +110,7 @@ To skip the interactive prompts, pass your choices via `--option-choices` as an 
 % calm generate -p pattern.json --option-choices ./my-choices.json
 ```
 
-### Validating a CALM architecture
+## Validating a CALM architecture
 
 This command will tell you if an architecture matches a pattern that you provide.
 If it doesn't, then it will output a list of problems that you can address to help your architecture conform to the pattern.
@@ -113,15 +119,23 @@ If it doesn't, then it will output a list of problems that you can address to he
 % calm validate --help
 Usage: calm validate [options]
 
-Validate that an architecture conforms to a given CALM pattern.
+Validate a CALM document.
+
+Validation requires:
+  - an architecture:             to validate against CALM schema
+  - an architecture and pattern: to validate the architecture against the CALM pattern
+  - a pattern:                   to validate the pattern against CALM schema
+  - a timeline:                  to validate the timeline against CALM timeline schema
 
 Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
-  -a, --architecture <file>     Path to the pattern architecture file to use. May be a file path or a URL.
+  -a, --architecture <file>     Path to the architecture file to use. May be a file path or a URL.
+  --timeline <file>             Path to the timeline file to validate. May be a file path or a URL.
   -s, --schema-directory <path> Path to the directory containing the meta schemas to use. (default: "../calm/release")
   -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
+  -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths
   --strict                  When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
-  -f, --format <format>         The format of the output (choices: "json", "junit", default: "json")
+  -f, --format <format>         The format of the output (choices: "json", "junit", "pretty", default: "json")
   -o, --output <file>           Path location at which to output the generated file.
   -v, --verbose                 Enable verbose logging. (default: false)
   -h, --help                    display help for command
@@ -278,109 +292,6 @@ WARN  issues:
 which is just letting you know that you have left in some placeholder values which might have been generated with the generate command.
 This isn't a full break, but it implies that you've forgotten to fill out a detail in your architecture.
 
-### Diffing two CALM documents
-
-This command compares two versions of a CALM document and reports what changed between them. It works on both **architectures** and **patterns**, matching nodes and relationships by their `unique-id` and classifying each as added, removed, modified, or renamed. The document type is auto-detected; use `--type` to override detection.
-
-```shell
-% calm diff --help
-Usage: calm diff [options]
-
-Compare two CALM documents (architectures or patterns) and report what changed.
-
-Options:
-  -a, --document-a <file>   Path to the first (baseline) CALM document.
-  -b, --document-b <file>   Path to the second CALM document to compare against the baseline.
-  -f, --format <format>     Output format (choices: "json", "summary", default: "json")
-  -t, --type <type>         Force the document type instead of auto-detecting it. (choices: "architecture", "pattern")
-  -o, --output <file>       Path location at which to write the diff output. If omitted, prints to stdout.
-  --exit-code               Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.
-  -v, --verbose             Enable verbose logging. (default: false)
-  -h, --help                display help for command
-```
-
-For a quick human-readable overview, use `--format summary`:
-
-```shell
-% calm diff -a ./baseline.arch.json -b ./updated.arch.json --format summary
-CALM architecture diff
-----------------------
-Nodes:         +1  -0  ~1  ↔0  =3
-Relationships: +1  -0  ~0  ↔0  =2
-
-Nodes added:
-  - audit-service
-...
-```
-
-The same command compares two patterns — pass the pattern files instead:
-
-```shell
-% calm diff -a ./v1.pattern.json -b ./v2.pattern.json --format summary
-```
-
-The `--exit-code` flag makes the command exit non-zero when any change (including items skipped for a missing `unique-id`) is detected, so it can gate version bumps in CI:
-
-```shell
-% calm diff -a ./baseline.arch.json -b ./updated.arch.json --exit-code
-```
-
-## CALM init-ai
-
-The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present four AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, and Codex.
-
-```shell
-calm init-ai --help
-Usage: calm init-ai [options]
-
-Augment a git repository with AI assistance for CALM
-
-Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex")
-  -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
-  -v, --verbose              Enable verbose logging. (default: false)
-  -h, --help                 display help for command
-```
-
-This command creates a custom chat prompt configuration for the specified <provider> that provides AI assistance with specialized knowledge about CALM architecture modeling, including:
-
-- **Schema-accurate guidance**: Complete JSON schema definitions for all CALM components
-- **Critical validation requirements**: Emphasis on oneOf constraints and other validation rules
-- **Best practice enforcement**: Naming conventions, relationship patterns, and proper structure
-- **Comprehensive examples**: Realistic architecture examples based on actual CALM patterns
-- **Tool specialization**: Separate tools for nodes, relationships, interfaces, controls, flows, patterns, and metadata
-
-### Setting up CALM AI assistance
-
-To set up AI assistance for your CALM project:
-
-```shell
-# In your project directory
-calm init-ai -p <provider>
-
-# Or specify a different directory
-calm init-ai -p <provider> --directory /path/to/your/calm-project
-```
-
-This will create the necessary assistant-specific configuration files to enable CALM-specific AI assistance. Once set up, your selected assistant can use specialized CALM tools that understand schema requirements, validation rules, and best practices. For Codex, this creates a CALM skill under `.agents/skills/calm` and does not create or modify root `AGENTS.md`.
-
-### Tool Prompts
-
-The agent includes specialized tools for each CALM component:
-
-- **Node Creation**: Guide for creating nodes with proper validation and interface definitions
-- **Relationship Creation**: Guide for creating relationships with correct types and constraints
-- **Interface Creation**: Critical guidance for interface oneOf constraints and schema compliance
-- **Control Creation**: Guide for security controls, requirements, and configurations
-- **Flow Creation**: Guide for business process flows and transitions
-- **Pattern Creation**: Guide for reusable architectural patterns using JSON schema constructs
-- **Metadata Creation**: Guide for metadata structure options (single object vs. array)
-- **Standards Creation**: Guide for creating JSON Schema 2020-12 Standards that extend CALM components with organizational requirements
-
-Each tool includes complete schema definitions, validation rules, realistic examples, and cross-references to related tools.
-
-
-
 ## CALM Template
 
 The CALM Template system allows users to generate different machine or human-readable outputs from a CALM model by providing a **template bundle**.
@@ -389,7 +300,7 @@ The CALM Template system allows users to generate different machine or human-rea
 calm template --help
 Usage: calm template [options]
 
-Generate files from a CALM model using a Handlebars template bundle.
+Generate files from a CALM model using a template bundle, a single file, or a directory of templates
 
 Options:
   -a, --architecture <path>               Path to the CALM model JSON file.
@@ -442,7 +353,7 @@ The **CALM Docify** command generates documentation from a CALM model.
 calm docify --help
 Usage: calm docify [options]
 
-Generate a documentation website off your CALM model.
+Generate a documentation website from your CALM model using a template or template directory
 
 Options:
   -a, --architecture <path>               Path to the CALM model JSON file.
@@ -535,6 +446,183 @@ This differs:
 {{ block-architecture render-node-type-shapes=false }}
 ```
 
+## CALM init-ai
+
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present four AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, and Codex.
+
+```shell
+calm init-ai --help
+Usage: calm init-ai [options]
+
+Augment a git repository with AI assistance for CALM
+
+Options:
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex")
+  -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
+  -v, --verbose              Enable verbose logging. (default: false)
+  -h, --help                 display help for command
+```
+
+This command creates a custom chat prompt configuration for the specified <provider> that provides AI assistance with specialized knowledge about CALM architecture modeling, including:
+
+- **Schema-accurate guidance**: Complete JSON schema definitions for all CALM components
+- **Critical validation requirements**: Emphasis on oneOf constraints and other validation rules
+- **Best practice enforcement**: Naming conventions, relationship patterns, and proper structure
+- **Comprehensive examples**: Realistic architecture examples based on actual CALM patterns
+- **Tool specialization**: Separate tools for nodes, relationships, interfaces, controls, flows, patterns, and metadata
+
+### Setting up CALM AI assistance
+
+To set up AI assistance for your CALM project:
+
+```shell
+# In your project directory
+calm init-ai -p <provider>
+
+# Or specify a different directory
+calm init-ai -p <provider> --directory /path/to/your/calm-project
+```
+
+This will create the necessary assistant-specific configuration files to enable CALM-specific AI assistance. Once set up, your selected assistant can use specialized CALM tools that understand schema requirements, validation rules, and best practices. For Codex, this creates a CALM skill under `.agents/skills/calm` and does not create or modify root `AGENTS.md`.
+
+### Tool Prompts
+
+The agent includes specialized tools for each CALM component:
+
+- **Node Creation**: Guide for creating nodes with proper validation and interface definitions
+- **Relationship Creation**: Guide for creating relationships with correct types and constraints
+- **Interface Creation**: Critical guidance for interface oneOf constraints and schema compliance
+- **Control Creation**: Guide for security controls, requirements, and configurations
+- **Flow Creation**: Guide for business process flows and transitions
+- **Pattern Creation**: Guide for reusable architectural patterns using JSON schema constructs
+- **Metadata Creation**: Guide for metadata structure options (single object vs. array)
+- **Standards Creation**: Guide for creating JSON Schema 2020-12 Standards that extend CALM components with organizational requirements
+
+Each tool includes complete schema definitions, validation rules, realistic examples, and cross-references to related tools.
+
+## Diffing two CALM documents
+
+This command compares two versions of a CALM document and reports what changed between them. It works on **architectures**, **patterns**, and the moments of a **CALM timeline**, matching nodes and relationships by their `unique-id` and classifying each as added, removed, modified, or renamed. For two-document diffing, the document type is auto-detected; use `--type` to override detection.
+
+```shell
+% calm diff --help
+Usage: calm diff [options]
+
+Compare two CALM documents (architectures or patterns), or the moments of a CALM timeline, and report what changed.
+
+Diff modes:
+  - two documents:  diff -a <doc-a> -b <doc-b>
+  - a timeline:     diff --timeline <file>                       (diffs every adjacent moment pair)
+  - timeline pair:  diff --timeline <file> --from <id> --to <id> (diffs any two moments)
+
+Timeline moment 'detailed-architecture' references are resolved relative to the timeline file's directory.
+
+Options:
+  -a, --document-a <file>   Path to the first (baseline) CALM document.
+  -b, --document-b <file>   Path to the second CALM document to compare against the baseline.
+  --timeline <file>         Path to a CALM timeline file. Diffs adjacent moments, or a specific pair with --from/--to.
+  --from <momentId>         With --timeline, the unique-id of the baseline moment (requires --to).
+  --to <momentId>           With --timeline, the unique-id of the moment to compare against (requires --from).
+  -f, --format <format>     Output format (choices: "json", "summary", default: "json")
+  -t, --type <type>         Force the document type instead of auto-detecting it. (choices: "architecture", "pattern")
+  -o, --output <file>       Path location at which to write the diff output. If omitted, prints to stdout.
+  --exit-code               Exit with a non-zero status code when changes are detected. Useful in CI to gate version bumps.
+  -v, --verbose             Enable verbose logging. (default: false)
+  -h, --help                display help for command
+```
+
+`--document-a`/`--document-b` were previously named `--architecture-a`/`--architecture-b`. Those flags still work as deprecated, hidden aliases, but print a warning — switch to `--document-a`/`--document-b`.
+
+For a quick human-readable overview, use `--format summary`:
+
+```shell
+% calm diff -a ./baseline.arch.json -b ./updated.arch.json --format summary
+CALM architecture diff
+----------------------
+Nodes:         +1  -0  ~1  ↔0  =3
+Relationships: +1  -0  ~0  ↔0  =2
+
+Nodes added:
+  - audit-service
+...
+```
+
+The same command compares two patterns — pass the pattern files instead:
+
+```shell
+% calm diff -a ./v1.pattern.json -b ./v2.pattern.json --format summary
+```
+
+The `--exit-code` flag makes the command exit non-zero when any change (including items skipped for a missing `unique-id`) is detected, so it can gate version bumps in CI:
+
+```shell
+% calm diff -a ./baseline.arch.json -b ./updated.arch.json --exit-code
+```
+
+### Diffing a CALM timeline
+
+Pass `--timeline` instead of `-a`/`-b` to diff the moments of a [CALM timeline](#synthesising-a-calm-timeline) (see below for generating one). With no `--from`/`--to`, every adjacent pair of moments is diffed in turn:
+
+```shell
+% calm diff --timeline ./calm-timeline.json --format summary
+```
+
+To diff any two specific moments (not just adjacent ones), pass both `--from` and `--to` with the moments' `unique-id`s:
+
+```shell
+% calm diff --timeline ./calm-timeline.json --from moment-1 --to moment-3 --format summary
+```
+
+## Synthesising a CALM timeline
+
+The `timeline` command builds a CALM timeline document from a set of local, versioned architecture files — one moment per input file, in the order the files are given.
+
+```shell
+% calm timeline --help
+Usage: calm timeline [options]
+
+Synthesise an implied CALM timeline from a set of local versioned architecture files.
+
+One moment is generated per input architecture, in the order the files are given
+(plain files have no semver versions to sort by). Each moment's name/description
+is taken from the architecture's own name/description when present, else derived
+from the filename. The 'detailed-architecture' reference is written relative to
+the --output file's directory so the timeline is portable and reloadable by
+'calm validate --timeline' / 'calm diff --timeline'.
+
+Options:
+  -a, --architecture <files...>  Paths to architecture files, in moment order. Repeat the flag or pass several paths after one flag.
+  -o, --output <file>            Path location at which to write the generated timeline. If omitted, prints to stdout.
+  -v, --verbose                  Enable verbose logging. (default: false)
+  -h, --help                     display help for command
+```
+
+```shell
+% calm timeline -a v1.json -a v2.json -a v3.json -o calm-timeline.json
+```
+
+The resulting timeline file can be validated with `calm validate --timeline` or diffed moment-by-moment with `calm diff --timeline` (see above).
+
+## Managing the config file with `init-config`
+
+Rather than hand-editing `~/.calm.json`, use `calm init-config` to create or update it. Existing values are preserved and merged with anything new you provide.
+
+```shell
+% calm init-config --help
+Usage: calm init-config [options]
+
+Create or update the CALM CLI configuration file (~/.calm.json).
+
+Options:
+  --allowed-remote-hosts <hosts>  Comma-separated list of trusted remote hosts to allow for direct URL loading
+  --calm-hub-url <url>            URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents
+  -h, --help                      display help for command
+```
+
+```shell
+% calm init-config --calm-hub-url https://calmhub.example.com --allowed-remote-hosts raw.githubusercontent.com,calm.finos.org
+```
+
 ## Authentication plugins
 
 The CLI supports an external authentication plugin to allow authentication to CalmHub in enterprise environments, where seamless auth will likely require specific logic.
@@ -556,6 +644,123 @@ To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fash
   "calmHubUrl": "http://calmhub.com",
   "authPluginPath": "~/plugins/auth-plugin.js"
 }
+```
+
+## CALM Hub
+
+The `calm hub` commands let you push, pull, list, and create resources on a CalmHub instance directly, one document/resource at a time. (If you're managing a whole set of interrelated documents, see [CALM Workspace](#calm-workspace) below, which wraps these same operations for a tracked bundle of files.)
+
+```shell
+% calm hub --help
+Usage: calm hub [command]
+
+Interact with CALM Hub
+
+Commands:
+  push [command]     Push a CALM document to CALM Hub
+  pull [command]     Pull a CALM document from CALM Hub
+  list [command]     List CALM Hub resources
+  create [command]   Create CALM Hub resources
+  help [command]     display help for command
+```
+
+Every subcommand accepts `-c, --calm-hub-url <url>` (falls back to `calmHubUrl` in `~/.calm.json` if omitted).
+
+### `calm hub push`
+
+Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). By default, `push` **auto-bumps**: it computes a new version off the latest published version (or creates the mapping at `1.0.0` if it doesn't exist yet).
+
+```
+calm hub push <architecture|pattern|standard|control-requirement|control-configuration> <file> [options]
+```
+
+| Option | Applies to | Description |
+|--------|------------|-------------|
+| `--name <name>` | `architecture`, `pattern`, `standard` | Overrides the document's `title` field in CalmHub. |
+| `--description <description>` | `architecture`, `pattern`, `standard` | Overrides the document's `description` field. |
+| `-c, --calm-hub-url <url>` | all | CalmHub instance to push to. |
+| `-f, --format <format>` | all | Output format: `json` (default) or `pretty`. |
+| `-t, --change-type <type>` | all | Version bump type when auto-bumping: `patch` (default), `minor`, or `major`. |
+| `--fail-if-modified` | all | Strict mode: don't auto-bump. Skip if the document is unchanged from the latest published version; fail if it's changed. A brand-new mapping is still created at `1.0.0`. |
+
+```shell
+# Auto-bump: creates the next patch version off the latest published version
+calm hub push architecture ./architectures/payment-service.json
+
+# Strict merge-time push: fail if this exact version already exists with different content
+calm hub push pattern ./patterns/microservice-pattern.json --fail-if-modified
+
+# Control documents don't take --name/--description
+calm hub push control-requirement ./controls/encryption-at-rest.requirement.json
+calm hub push control-configuration ./controls/encryption-at-rest.config.json
+```
+
+The local document is normalised the same way CalmHub stores it before comparing content, so a version-only or defaulted-field difference between disk and CalmHub is not mistaken for a real change.
+
+### `calm hub pull`
+
+Pulls a specific (or latest) version of a resource from CalmHub.
+
+```
+calm hub pull <architecture|pattern|standard|control-requirement|control-configuration> [options]
+```
+
+| Option | Applies to | Description |
+|--------|------------|-------------|
+| `--namespace <namespace>` | `architecture`, `pattern`, `standard` (required) | Source namespace. |
+| `-m, --mapping <mapping>` | `architecture`, `pattern`, `standard` (required) | Mapping slug of the document to pull. |
+| `--domain <domain>` | `control-requirement`, `control-configuration` (required) | Source domain. |
+| `--control-name <controlName>` | `control-requirement`, `control-configuration` (required) | Control name. |
+| `--config-name <configName>` | `control-configuration` (required) | Configuration name. |
+| `--ver <version>` | all | Version to retrieve (defaults to the latest). |
+| `-c, --calm-hub-url <url>` | all | CalmHub instance to pull from. |
+| `-o, --output <file>` | all | Write output to this file instead of stdout. |
+
+```shell
+calm hub pull architecture --namespace com.example --mapping payment-service --ver 2.1.0 -o ./payment-service.json
+calm hub pull control-configuration --domain security --control-name encryption-at-rest --config-name default
+```
+
+### `calm hub list`
+
+Lists resources of a given kind.
+
+```
+calm hub list <architectures|patterns|standards|namespaces|domains|controls|control-configurations> [options]
+```
+
+| Option | Applies to | Description |
+|--------|------------|-------------|
+| `--namespace <namespace>` | `architectures`, `patterns`, `standards` | Target namespace (default: `"default"`). |
+| `--domain <domain>` | `controls` (required), `control-configurations` (required) | Target domain. |
+| `--control-name <controlName>` | `control-configurations` (required) | Control name. |
+| `-c, --calm-hub-url <url>` | all | CalmHub instance. |
+| `-f, --format <format>` | all | Output format: `json` (default) or `pretty`. |
+
+```shell
+calm hub list architectures --namespace com.example
+calm hub list namespaces
+calm hub list control-configurations --domain security --control-name encryption-at-rest
+```
+
+### `calm hub create`
+
+Creates a new namespace or domain.
+
+```
+calm hub create <namespace|domain> [options]
+```
+
+| Option | Applies to | Description |
+|--------|------------|-------------|
+| `--name <name>` | both (required) | Namespace or domain name. |
+| `--description <description>` | `namespace` (required) | Namespace description. |
+| `-c, --calm-hub-url <url>` | all | CalmHub instance. |
+| `-f, --format <format>` | all | Output format: `json` (default) or `pretty`. |
+
+```shell
+calm hub create namespace --name com.example --description "Example org namespace"
+calm hub create domain --name security
 ```
 
 ## CALM Workspace
@@ -603,14 +808,14 @@ calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] 
 | Option | Description |
 |--------|-------------|
 | `--id <id>` | Explicit manifest registration id. Overrides automatic resolution. |
-| `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `architecture`, `pattern`, `schema`, `interface`, `timeline`. |
+| `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `pattern`, `architecture`, `interface`, `flow`, `control`, `schema`, `timeline`, `adr`. |
 | `--namespace <namespace>` | CalmHub namespace to record in the manifest. If omitted, it is derived from the document `$id`. |
 | `--copy` | Copy the file into the bundle's `files/` directory instead of referencing it in place. |
 
 **Document `$id` handling.** `add` inspects the file's CalmHub `$id`:
 - **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
 - **Conformant `$id`** → left untouched; the manifest namespace is derived from it.
-- **Non-conformant `$id`** → you are prompted to rebuild it, the corrected `$id` is written back, and the command **fails** (non-zero exit) so the change is surfaced before you re-run `add`.
+- **Non-conformant `$id`** → left as-is; a warning is printed and the document is still tracked, but it cannot be pushed to CalmHub until the `$id` is fixed (silently rewriting it would lose data for types that don't use CalmHub URLs, e.g. `flow`, `adr`, `timeline`).
 
 **Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file, else an interactive prompt.
 
@@ -755,10 +960,26 @@ calm workspace list
 
 #### `calm workspace show`
 
-Print the name of the currently active workspace.
+Print the name of the currently active workspace, followed by every document currently tracked in its bundle (id, type, namespace, and CalmHub ID where set).
 
 ```
 calm workspace show
+```
+
+#### `calm workspace rm [id]`
+
+Remove a document from the active workspace's manifest. If `id` is omitted, you're prompted to pick one from the tracked documents. This only untracks the document — it does not delete the underlying file (nor anything already pushed to CalmHub).
+
+```
+calm workspace rm [id]
+```
+
+```shell
+# Prompts you to choose which tracked document to remove
+calm workspace rm
+
+# Remove a specific document by its manifest id
+calm workspace rm payment-service
 ```
 
 #### `calm workspace switch <name>`

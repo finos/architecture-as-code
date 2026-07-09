@@ -1,21 +1,25 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
     Node,
     Background,
     Controls,
+    ControlButton,
     MiniMap,
     Panel,
     useNodesState,
     useEdgesState,
+    type ReactFlowInstance,
     type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { Map as MapIcon } from 'lucide-react';
 import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
 import { SystemGroupNode } from './SystemGroupNode.js';
 import { SearchBar } from './SearchBar.js';
 import { THEME } from './theme.js';
+import { colors } from '../../../theme/colors.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
 import { parseCALMData } from './utils/calmTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
@@ -29,12 +33,54 @@ const edgeTypes = { custom: FloatingEdge };
 const nodeTypes = { custom: CustomNode, group: SystemGroupNode };
 const GROUP_NODE_TYPES = ['group'];
 
+/**
+ * fitView floors the zoom so a dense graph doesn't shrink nodes below the point
+ * where their labels are legible (redesign problem #6); the user can still pinch
+ * out past this via the pane-level minZoom. maxZoom caps fit-to-view so a sparse
+ * graph doesn't render its few nodes oversized. padding leaves breathing room.
+ * A dense graph can therefore load with some nodes off-screen; the default-on
+ * minimap is the off-screen cue (pan/pinch reveal the rest), so keep it default
+ * visible — a future change that hides it by default would silently regress #6.
+ */
+const FIT_VIEW_OPTIONS = { padding: 0.2, minZoom: 0.6, maxZoom: 1.2 } as const;
+
+/**
+ * Mobile fit-to-view (redesign problem #10): the whole graph must fit a ~390px
+ * viewport on load, so the floor drops to the pane-level minZoom (0.1) — far below
+ * the desktop 0.6. A wide/dense graph genuinely needs to zoom out this far to fit a
+ * phone: the seeded TraderX architecture (14 nodes inside a wide boundary group)
+ * fits 390px only at ~0.16, so any higher floor leaves it clipped left/right
+ * (verified live). Pinch-to-zoom is the native way to then read small labels.
+ * Tighter padding (0.1) reclaims width on the narrow screen; maxZoom matches
+ * desktop so a sparse graph isn't blown up.
+ */
+const MOBILE_FIT_VIEW_OPTIONS = { padding: 0.1, minZoom: 0.1, maxZoom: FIT_VIEW_OPTIONS.maxZoom } as const;
+
+/** Persist the minimap show/hide choice so it survives a refresh. */
+const MINIMAP_HIDDEN_KEY = 'calmHub.diagramMinimapHidden';
+
+function readMinimapHidden(): boolean {
+    try {
+        return sessionStorage.getItem(MINIMAP_HIDDEN_KEY) === '1';
+    } catch {
+        return false;
+    }
+}
+
 export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewportKey }: ArchitectureGraphProps) {
+    const isMobile = useIsMobile();
+
+    // The viewport store key is namespaced by device. Mobile fits to a far lower zoom
+    // floor (0.1 vs desktop's 0.6), so a viewport saved while mobile must not be
+    // restored raw on desktop — defaultViewport bypasses fitViewOptions, so it would
+    // silently defeat the desktop floor. Separate keys keep each device's view to itself.
+    const storageKey = viewportKey ? `${isMobile ? 'mobile' : 'desktop'}:${viewportKey}` : undefined;
+
     // Restore the saved viewport for this diagram (so a refresh keeps the zoom/pan);
     // a different diagram has no saved viewport for its key, so it fits to view.
     const savedViewport = useMemo<Viewport | undefined>(
-        () => (viewportKey ? readViewportForKey(viewportKey) : undefined),
-        [viewportKey]
+        () => (storageKey ? readViewportForKey(storageKey) : undefined),
+        [storageKey]
     );
 
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
@@ -47,7 +93,28 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
     // re-triggering when setNodes/setEdges update styles.
     const sourceNodesRef = useRef<Node[]>([]);
 
-    const isMobile = useIsMobile();
+    // Holds the React Flow instance so a viewport resize (rotation, browser-chrome
+    // show/hide) or a desktop→mobile breakpoint crossing can re-fit the graph.
+    // Captured via onInit on both devices so the ref exists even if the app started
+    // on desktop and only later crossed into mobile.
+    const flowInstanceRef = useRef<ReactFlowInstance | null>(null);
+
+    // Minimap is a help on dense graphs but clutter on sparse ones, so let the
+    // user hide it; the choice persists for the session. Desktop-only — mobile
+    // hides the minimap entirely (Phase 5 owns the mobile diagram).
+    const [minimapHidden, setMinimapHidden] = useState<boolean>(() => readMinimapHidden());
+
+    const toggleMinimap = () => {
+        setMinimapHidden((prev) => {
+            const next = !prev;
+            try {
+                sessionStorage.setItem(MINIMAP_HIDDEN_KEY, next ? '1' : '0');
+            } catch {
+                /* ignore unavailable storage */
+            }
+            return next;
+        });
+    };
 
     const {
         onNodesChange,
@@ -99,9 +166,30 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         );
     }, [searchTerm, typeFilter, isSearchActive, setNodes, setEdges]);
 
+    // Mobile: re-fit the graph on a viewport resize (rotation, iOS chrome collapsing)
+    // AND immediately when the app first crosses into mobile — fitView only auto-runs
+    // on ReactFlow's initial mount, so a discrete breakpoint crossing (window snap,
+    // foldable, DevTools toggle) without a later resize would otherwise leave the
+    // graph un-fit (redesign problem #10). refit() is a no-op until onInit has run.
+    useEffect(() => {
+        if (!isMobile) return;
+        const refit = () => flowInstanceRef.current?.fitView(MOBILE_FIT_VIEW_OPTIONS);
+        refit();
+        window.addEventListener('resize', refit);
+        return () => window.removeEventListener('resize', refit);
+    }, [isMobile]);
+
     if (nodes.length === 0) {
         return <EmptyGraphState message="No architecture data to display. Load a CALM architecture to visualize." />;
     }
+
+    // One derived config so the device-dependent fit props can't drift out of sync.
+    // Mobile always fits on load (ignoring any persisted viewport) so the whole graph
+    // fits 390px (redesign problem #10); desktop restores its saved viewport, or fits
+    // when there's none.
+    const flowConfig = isMobile
+        ? { fitView: true, defaultViewport: undefined, fitViewOptions: MOBILE_FIT_VIEW_OPTIONS }
+        : { fitView: !savedViewport, defaultViewport: savedViewport, fitViewOptions: FIT_VIEW_OPTIONS };
 
     return (
         <div style={{ height: '100%', width: '100%' }}>
@@ -120,11 +208,13 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
                 onNodeMouseLeave={handleNodeMouseLeave}
                 onEdgeClick={handleEdgeClick}
                 onMove={(_, viewport) => {
-                    if (viewportKey) saveViewportForKey(viewportKey, viewport);
+                    if (storageKey) saveViewportForKey(storageKey, viewport);
                 }}
-                fitView={!savedViewport}
-                defaultViewport={savedViewport}
-                fitViewOptions={{ padding: 0.2 }}
+                // Capture the instance on both devices so a later desktop→mobile
+                // crossing can re-fit (the effect above), then spread the device-derived
+                // fit config so the props always agree.
+                onInit={(instance) => { flowInstanceRef.current = instance; }}
+                {...flowConfig}
                 minZoom={0.1}
                 attributionPosition="bottom-left"
                 style={{ background: THEME.colors.background }}
@@ -137,16 +227,63 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
                             border: `1px solid ${THEME.colors.border}`,
                             borderRadius: '8px',
                         }}
+                    >
+                        <ControlButton
+                            onClick={toggleMinimap}
+                            title={minimapHidden ? 'Show minimap' : 'Hide minimap'}
+                            aria-label={minimapHidden ? 'Show minimap' : 'Hide minimap'}
+                            aria-pressed={!minimapHidden}
+                        >
+                            <MapIcon
+                                size={14}
+                                color={minimapHidden ? THEME.colors.muted : colors.redesign.primary}
+                            />
+                        </ControlButton>
+                    </Controls>
+                )}
+                {isMobile && (
+                    // Mobile gets visible zoom controls (redesign problem #11) —
+                    // larger touch cells, bottom-right per Frame F, no minimap
+                    // toggle (mobile has no minimap) and no lock cell. Sized via the
+                    // scoped `calm-mobile-controls` CSS class so the desktop Controls
+                    // styling above is untouched.
+                    <Controls
+                        className="calm-mobile-controls"
+                        position="bottom-right"
+                        showInteractive={false}
+                        // Match the on-load fit cap so the "fit" button doesn't
+                        // over-zoom a sparse graph (reactflow's default maxZoom is 2).
+                        fitViewOptions={MOBILE_FIT_VIEW_OPTIONS}
                     />
                 )}
-                {!isMobile && (
+                {!isMobile && !minimapHidden && (
                     <MiniMap
+                        data-testid="diagram-minimap"
+                        pannable
+                        zoomable
+                        // Fixed compact panel so the minimap can't overflow the canvas
+                        // or collide with the drawer/timeline (redesign problem #5). The
+                        // bottom offset clears the timeline bar pinned below the canvas.
                         style={{
-                            background: THEME.colors.backgroundSecondary,
-                            border: `1px solid ${THEME.colors.border}`,
+                            width: 132,
+                            height: 84,
+                            bottom: 16,
+                            background: colors.redesign.surface,
+                            border: `1px solid ${colors.redesign.borderStrong}`,
+                            borderRadius: 8,
+                            overflow: 'hidden',
+                            boxShadow: '0 2px 6px rgba(16,24,40,.06)',
                         }}
-                        nodeColor={THEME.colors.accent}
-                        maskColor={`${THEME.colors.background}cc`}
+                        // Faint tinted node chips so the map reads as a soft field,
+                        // not solid accent on every node.
+                        nodeColor={`${colors.redesign.primary}40`}
+                        nodeStrokeColor={`${colors.redesign.primary}66`}
+                        // Light mask (~25%) so the surrounding field stays faint and the
+                        // transparent viewport hole reads clearly; the primary-blue stroke
+                        // outlines the current viewport rect.
+                        maskColor={`${colors.redesign.surface}40`}
+                        maskStrokeColor={colors.redesign.primary}
+                        maskStrokeWidth={1.5}
                     />
                 )}
                 {!externalSearch && (
