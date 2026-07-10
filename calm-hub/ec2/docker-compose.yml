@@ -22,6 +22,16 @@ services:
       # Opts this container into Watchtower; --label-enable means Watchtower
       # ignores every other container on the box.
       - "com.centurylinklabs.watchtower.enable=true"
+    # Hardening: the app is a native binary reading a baked-in, read-only
+    # NitriteDB — it needs no capabilities, no privilege escalation, and no
+    # writable filesystem beyond /tmp (Vert.x cache).
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     # No environment needed: the read-only-native image bakes in
     # QUARKUS_PROFILE=standalone, CALM_READONLY=true, the standalone data
     # directory, and disabled auth.
@@ -33,9 +43,23 @@ services:
   watchtower:
     # containrrr/watchtower was archived (Dec 2025) — nickfedor/watchtower is the
     # actively maintained, API-compatible continuation of the same project.
-    image: nickfedor/watchtower:latest
+    #
+    # Pinned to a release tag: this container holds the Docker socket
+    # (root-equivalent), so it must not auto-track a mutable `latest` tag.
+    # Watchtower never updates itself (--label-enable and it isn't labelled);
+    # bump the pin manually — releases at
+    # https://github.com/nicholas-fedor/watchtower/releases — then
+    # `sudo docker compose up -d`.
+    image: nickfedor/watchtower:1.19.0
     container_name: watchtower
     restart: unless-stopped
+    # Hardening: watchtower only talks to the Docker API over the mounted
+    # socket — it needs no capabilities and no privilege escalation. (The
+    # socket itself still grants root-equivalent control; see README.md.)
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:

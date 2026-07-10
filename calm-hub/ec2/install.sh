@@ -41,12 +41,25 @@ if ! sudo docker compose version >/dev/null 2>&1; then
   ASSET="docker-compose-linux-${ARCH}"
   RELEASE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}"
 
+  # Checksums vendored from the release's published .sha256 assets. Fetching
+  # the checksum from the same host as the binary at install time only proves
+  # the download wasn't corrupted; a vendored hash also detects a tampered
+  # release. When bumping COMPOSE_VERSION, update both hashes from the new
+  # release's .sha256 files.
+  case "${ARCH}" in
+    x86_64)  EXPECTED_SHA="ed1917fb54db184192ea9d0717bcd59e3662ea79db48bff36d3475516c480a6b" ;;
+    aarch64) EXPECTED_SHA="0c4591cf3b1ed039adcd803dbbeddf757375fc08c11245b0154135f838495a2f" ;;
+    *)
+      echo "!! No vendored Docker Compose checksum for architecture '${ARCH}' — aborting" >&2
+      exit 1
+      ;;
+  esac
+
   TMP_COMPOSE="$(mktemp)"
   curl -fsSL "${RELEASE_URL}/${ASSET}" -o "${TMP_COMPOSE}"
 
-  # Verify against Docker's published checksum before installing a root-owned
+  # Verify against the vendored checksum before installing a root-owned
   # binary — protects against a corrupted or tampered download.
-  EXPECTED_SHA="$(curl -fsSL "${RELEASE_URL}/${ASSET}.sha256" | awk '{print $1}')"
   ACTUAL_SHA="$(sha256sum "${TMP_COMPOSE}" | awk '{print $1}')"
   if [ "${EXPECTED_SHA}" != "${ACTUAL_SHA}" ]; then
     echo "!! Docker Compose checksum mismatch (expected ${EXPECTED_SHA}, got ${ACTUAL_SHA}) — aborting" >&2

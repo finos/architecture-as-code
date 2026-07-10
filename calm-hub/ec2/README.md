@@ -2,7 +2,7 @@
 
 Runs [`finos/calm-hub:latest-read-only-native`](https://hub.docker.com/r/finos/calm-hub) — the
 self-contained CALM Hub image (NitriteDB baked in, no external database, no auth) — on a single
-EC2 host, auto-updated by [Watchtower](https://github.com/nickfedor/watchtower) whenever a new
+EC2 host, auto-updated by [Watchtower](https://github.com/nicholas-fedor/watchtower) whenever a new
 image is published to Docker Hub.
 
 Uses the [`nickfedor/watchtower`](https://hub.docker.com/r/nickfedor/watchtower) image — the
@@ -10,6 +10,11 @@ actively maintained continuation of the original `containrrr/watchtower` project
 archived in December 2025. The original image's frozen Docker client can no longer talk to
 current Docker daemons (it negotiates down to an API version below the daemon's minimum), so do
 not switch back to `containrrr/watchtower`.
+
+Watchtower is **pinned to a release tag** in `docker-compose.yml` (it holds the Docker socket, so
+it must not auto-track a mutable `latest` tag; Watchtower never updates itself). To bump it, pick
+a release from [nicholas-fedor/watchtower/releases](https://github.com/nicholas-fedor/watchtower/releases),
+update the `image:` tag, and run `sudo docker compose up -d`.
 
 This folder supersedes the previous on-box `setup.sh` / `restart.sh` scripts, which lived only on
 the instance and had to be run by hand.
@@ -68,6 +73,10 @@ remove any container, mount the host filesystem, and effectively escalate to roo
 limits *which containers Watchtower will act on*, not what the socket itself grants; it does not
 sandbox Watchtower's own privileges. Only deploy this stack on a dedicated, otherwise-locked-down
 box — don't run other untrusted workloads alongside it.
+
+Both containers run with `no-new-privileges` and all Linux capabilities dropped, and `calm-hub`
+runs on a read-only root filesystem (tmpfs `/tmp` only) — the app is a native binary serving a
+baked-in read-only database, so nothing needs to write to disk.
 
 **This swap is not zero-downtime.** The old container stops before the new one starts, causing a
 brief (<1s) gap in availability. Maintainers have accepted this tradeoff rather than adding a
