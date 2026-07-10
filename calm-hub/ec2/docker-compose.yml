@@ -1,0 +1,45 @@
+# CALM Hub — EC2 deployment.
+#
+# Runs the self-contained finos/calm-hub:latest-read-only-native image (NitriteDB
+# baked in, no external database, no auth) behind Watchtower, which polls Docker
+# Hub and automatically recreates the calm-hub container whenever a new image is
+# published. The image swap is not zero-downtime (the old container is stopped
+# before the new one starts) — maintainers have accepted the brief (<1s) gap this
+# causes rather than adding a reverse proxy.
+#
+# TLS is terminated upstream (ALB / Cloudflare) — this box serves plain HTTP on :80.
+#
+# See README.md for the full install/ops runbook.
+
+services:
+  calm-hub:
+    image: ${CALM_HUB_IMAGE:-finos/calm-hub:latest-read-only-native}
+    container_name: calm-hub
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    labels:
+      # Opts this container into Watchtower; --label-enable means Watchtower
+      # ignores every other container on the box.
+      - "com.centurylinklabs.watchtower.enable=true"
+    # No environment needed: the read-only-native image bakes in
+    # QUARKUS_PROFILE=standalone, CALM_READONLY=true, the standalone data
+    # directory, and disabled auth.
+    #
+    # No container HEALTHCHECK: this image is distroless (no shell, no curl),
+    # so readiness is probed host-side (see install.sh / redeploy.sh), not
+    # from inside the container.
+
+  watchtower:
+    # containrrr/watchtower was archived (Dec 2025) — nickfedor/watchtower is the
+    # actively maintained, API-compatible continuation of the same project.
+    image: nickfedor/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "--label-enable"
+      - "--cleanup"
+      - "--interval"
+      - "${WATCHTOWER_POLL_INTERVAL:-120}"

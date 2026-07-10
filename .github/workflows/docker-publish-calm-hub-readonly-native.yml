@@ -9,6 +9,7 @@ on:
             - main
         paths:
             - 'calm-hub/**'
+            - '!calm-hub/ec2/**'
             - 'calm-hub-ui/**'
             - 'calm/**'
             - '.github/workflows/docker-publish-calm-hub-readonly-native.yml'

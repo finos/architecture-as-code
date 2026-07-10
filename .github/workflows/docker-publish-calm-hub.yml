@@ -9,6 +9,7 @@ on:
             - main
         paths:
             - 'calm-hub/**'
+            - '!calm-hub/ec2/**'
             - 'calm-hub-ui/**'
             - '.github/workflows/docker-publish-calm-hub.yml'
     # Manual trigger from GitHub UI (allows custom tag)
