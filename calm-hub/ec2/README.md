@@ -62,6 +62,13 @@ cd calm-hub/ec2
 - `--label-enable` scopes Watchtower to *only* the labelled container — it will never touch
   anything else you later add to this box.
 
+**Security note:** Watchtower is granted the Docker socket (`/var/run/docker.sock`), which is
+root-equivalent control of the host — anything with access to that socket can run, inspect, or
+remove any container, mount the host filesystem, and effectively escalate to root. `--label-enable`
+limits *which containers Watchtower will act on*, not what the socket itself grants; it does not
+sandbox Watchtower's own privileges. Only deploy this stack on a dedicated, otherwise-locked-down
+box — don't run other untrusted workloads alongside it.
+
 **This swap is not zero-downtime.** The old container stops before the new one starts, causing a
 brief (<1s) gap in availability. Maintainers have accepted this tradeoff rather than adding a
 reverse proxy for blue-green swaps.

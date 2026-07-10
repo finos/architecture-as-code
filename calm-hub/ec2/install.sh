@@ -38,11 +38,25 @@ if ! sudo docker compose version >/dev/null 2>&1; then
   echo "==> Installing Docker Compose plugin"
   COMPOSE_VERSION="v2.32.4"
   ARCH="$(uname -m)"
+  ASSET="docker-compose-linux-${ARCH}"
+  RELEASE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}"
+
+  TMP_COMPOSE="$(mktemp)"
+  curl -fsSL "${RELEASE_URL}/${ASSET}" -o "${TMP_COMPOSE}"
+
+  # Verify against Docker's published checksum before installing a root-owned
+  # binary — protects against a corrupted or tampered download.
+  EXPECTED_SHA="$(curl -fsSL "${RELEASE_URL}/${ASSET}.sha256" | awk '{print $1}')"
+  ACTUAL_SHA="$(sha256sum "${TMP_COMPOSE}" | awk '{print $1}')"
+  if [ "${EXPECTED_SHA}" != "${ACTUAL_SHA}" ]; then
+    echo "!! Docker Compose checksum mismatch (expected ${EXPECTED_SHA}, got ${ACTUAL_SHA}) — aborting" >&2
+    rm -f "${TMP_COMPOSE}"
+    exit 1
+  fi
+
   sudo mkdir -p /usr/local/lib/docker/cli-plugins
-  sudo curl -fsSL \
-    "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${ARCH}" \
-    -o /usr/local/lib/docker/cli-plugins/docker-compose
-  sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+  sudo install -m 0755 "${TMP_COMPOSE}" /usr/local/lib/docker/cli-plugins/docker-compose
+  rm -f "${TMP_COMPOSE}"
 else
   echo "==> Docker Compose plugin already installed"
 fi
