@@ -31,13 +31,104 @@
     "adrs": {
       "type": "array",
       "items": {
-        "type": "string"
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/defs/adr-reference"
+          }
+        ]
       },
-      "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation."
+      "description": "References to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. Each entry is either a plain link (URL or internal reference, retained for backward compatibility) or a structured adr-reference, which can declare the Solution Design Document the decision is part of."
+    },
+    "sdds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/defs/sdd-reference"
+      },
+      "description": "References to Solution Design Documents (SDDs) that describe this architecture. An SDD is the snapshot view of a solution; ADRs referencing it via part-of form its decision log."
     },
     "additionalProperties": false
   },
   "defs": {
+    "adr-reference": {
+      "type": "object",
+      "description": "A structured reference to an Architecture Decision Record. When the decision belongs to a Solution Design Document's decision log, part-of names that SDD by its unique-id in this document's sdds array.",
+      "properties": {
+        "unique-id": {
+          "type": "string",
+          "description": "Stable identifier of the decision within its governance scope, e.g. GOV-ADR-001 for solution scope or ADR-007 for repository-local software scope."
+        },
+        "ref": {
+          "type": "string",
+          "description": "Link to the decision record: a URL or an internal documentation reference."
+        },
+        "status": {
+          "enum": [
+            "proposed",
+            "accepted",
+            "superseded",
+            "rejected"
+          ],
+          "description": "Lifecycle status of the decision at the time this architecture document was produced."
+        },
+        "scope": {
+          "enum": [
+            "enterprise",
+            "solution",
+            "software"
+          ],
+          "description": "Governance scope of the decision in a federated decision hierarchy."
+        },
+        "part-of": {
+          "type": "string",
+          "description": "unique-id of the Solution Design Document (in this document's sdds array) whose decision log this ADR belongs to."
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "unique-ids of decisions this record supersedes."
+        }
+      },
+      "required": [
+        "ref"
+      ],
+      "additionalProperties": false
+    },
+    "sdd-reference": {
+      "type": "object",
+      "description": "A reference to a Solution Design Document: the human-readable snapshot of a solution's structure, of which this CALM document may be the machine-readable counterpart.",
+      "properties": {
+        "unique-id": {
+          "type": "string",
+          "description": "Stable identifier of the SDD, e.g. GOV-SDD."
+        },
+        "ref": {
+          "type": "string",
+          "description": "Link to the SDD: a URL or an internal documentation reference."
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "in-review",
+            "approved",
+            "retired"
+          ],
+          "description": "Lifecycle status of the SDD at the time this architecture document was produced."
+        }
+      },
+      "required": [
+        "unique-id",
+        "ref"
+      ],
+      "additionalProperties": false
+    },
     "node": {
       "type": "object",
       "properties": {

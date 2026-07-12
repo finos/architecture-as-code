@@ -1,0 +1,40 @@
+{
+  "$schema": "https://calm.finos.org/draft/2026-03/meta/calm.json",
+  "$id": "https://calm.finos.org/draft/2026-03/samples/adr-sdd-linkage-example.json",
+  "title": "ADR-to-SDD linkage example",
+  "sdds": [
+    {
+      "unique-id": "GOV-SDD",
+      "ref": "https://github.com/org/architecture/blob/main/solutions/GOV/sdd.md",
+      "title": "Federated ADR Governance Platform - Solution Design",
+      "status": "approved"
+    }
+  ],
+  "adrs": [
+    {
+      "unique-id": "GOV-ADR-001",
+      "ref": "https://github.com/org/architecture/blob/main/solutions/GOV/adr/GOV-ADR-001.md",
+      "status": "accepted",
+      "scope": "solution",
+      "part-of": "GOV-SDD"
+    },
+    {
+      "unique-id": "GOV-ADR-002",
+      "ref": "https://github.com/org/architecture/blob/main/solutions/GOV/adr/GOV-ADR-002.md",
+      "status": "proposed",
+      "scope": "solution",
+      "part-of": "GOV-SDD",
+      "supersedes": ["GOV-ADR-001"]
+    },
+    "https://internal-docs.company.com/adr/0001-rate-limiting.pdf"
+  ],
+  "nodes": [
+    {
+      "unique-id": "architecture-repo",
+      "node-type": "system",
+      "name": "Central Architecture Repository",
+      "description": "System of record for solution-level architecture decisions"
+    }
+  ],
+  "relationships": []
+}
