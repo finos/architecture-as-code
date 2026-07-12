@@ -102,13 +102,42 @@ export type CalmRelationshipSchema = {
     [key: string]: unknown;
 };
 
+export type CalmAdrStatusSchema =
+    | 'proposed'
+    | 'accepted'
+    | 'superseded'
+    | 'rejected';
+
+export type CalmAdrScopeSchema = 'enterprise' | 'solution' | 'software';
+
+export type CalmAdrReferenceSchema = {
+    'unique-id'?: string;
+    ref: string;
+    status?: CalmAdrStatusSchema;
+    scope?: CalmAdrScopeSchema;
+    /** unique-id of the SDD (in `sdds`) whose decision log this ADR belongs to */
+    'part-of'?: string;
+    supersedes?: string[];
+};
+
+export type CalmSddStatusSchema = 'draft' | 'in-review' | 'approved' | 'retired';
+
+export type CalmSddReferenceSchema = {
+    'unique-id': string;
+    ref: string;
+    title?: string;
+    status?: CalmSddStatusSchema;
+};
+
 export type CalmCoreSchema = {
     nodes?: CalmNodeSchema[];
     relationships?: CalmRelationshipSchema[];
     metadata?: CalmMetadataSchema;
     controls?: CalmControlsSchema;
     flows?: CalmFlowSchema[];
-    adrs?: string[];
+    /** plain links (legacy) or structured references that may declare SDD membership */
+    adrs?: (string | CalmAdrReferenceSchema)[];
+    sdds?: CalmSddReferenceSchema[];
 };
 
 export type CalmArchitectureSchema = CalmCoreSchema;
