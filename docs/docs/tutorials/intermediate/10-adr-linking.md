@@ -31,9 +31,39 @@ Complete the [Beginner Tutorials](../beginner/07-complete-architecture) section 
 Architecture Decision Records (ADRs) capture significant architectural decisions along with their context and consequences. CALM supports linking ADRs to architectures through the `adrs` top-level property.
 
 **How CALM ADR Linking Works:**
-- The `adrs` property is a simple array of URL strings
+- The `adrs` property is an array whose entries are either plain URL strings or structured `adr-reference` objects
 - URLs can be **relative paths** to local markdown files (e.g., `docs/adr/0001-decision.md`)
 - URLs can be **absolute URLs** to external resources (e.g., a wiki, GitHub repo, or ADR management tool)
+- A structured entry can additionally carry the decision's `unique-id`, `status`, `scope`, `supersedes`, and — where the decision belongs to a Solution Design Document's decision log — `part-of`, naming an SDD declared in the document-level `sdds` array
+
+**Linking decisions to Solution Design Documents (SDDs):**
+
+Some ADRs are not free-standing: they form the decision log of a Solution Design Document. Declare the SDD once in `sdds`, then point each member decision at it via `part-of`:
+
+```json
+{
+  "sdds": [
+    {
+      "unique-id": "GOV-SDD",
+      "ref": "solutions/GOV/sdd.md",
+      "title": "Governance Platform — Solution Design",
+      "status": "approved"
+    }
+  ],
+  "adrs": [
+    {
+      "unique-id": "GOV-ADR-001",
+      "ref": "solutions/GOV/adr/GOV-ADR-001.md",
+      "status": "accepted",
+      "scope": "solution",
+      "part-of": "GOV-SDD"
+    },
+    "docs/adr/0002-free-standing-decision.md"
+  ]
+}
+```
+
+Plain string entries remain fully supported; use the structured form only when the extra fields earn their keep.
 
 **ADR Format — MADR:**
 We'll use **[MADR (Markdown Any Decision Records)](https://adr.github.io/madr)** which includes:
@@ -226,7 +256,7 @@ Remember to baseline your work using git. Committing at this point gives you a c
 }
 ```
 
-The `adrs` array is a flat list of URL strings — either relative local paths or absolute URLs to external ADR repositories.
+Each `adrs` entry is either a plain URL string (relative local path or absolute URL) or a structured `adr-reference` object carrying `unique-id`, `status`, `scope`, `supersedes`, and `part-of` for SDD membership.
 
 ### MADR Template Structure
 
