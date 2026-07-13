@@ -6,7 +6,6 @@ This file lists the maintainers of this repository.
 
 | GitHub Username | Name | Organization              | Email                            |
 |----------------|------|---------------------------|----------------------------------|
-| @Adwoa-Konadu-Appiah | *please add name* | *please add organization* | *please add email*               |
 | @Budlee | Matthew Auburn | Morgan Stanley            | matthew.auburn@morganstanley.com |
 | @LeighFinegold | LeighF | Morgan Stanley            | leigh_finegold@hotmail.co.uk     |
 | @Thels | *please add name* | *please add organization* | *please add email*               |
