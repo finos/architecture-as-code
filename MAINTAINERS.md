@@ -20,7 +20,7 @@ This file lists the maintainers of this repository.
 | @jpgough-ms       | James Gough              | Morgan Stanley        | james.gough@morganstanley.com    |
 | @lbulanti-ms      | Luigi Bulanti            | Morgan Stanley        | bulantiluigi@gmail.com           |
 | @markscott-ms     | Mark Scott               | Morgan Stanley        | markscot@morganstanley.com       |
-| @opsflowanoop     | *please add name*        | *please add organization* | *please add email*               |
+| @opsflowanoop     | Anoop Mehendale          | Opsflow               | anoop@opsflow.sh                 |
 | @rocketstack-matt | Matthew Bain             | Morgan Stanley        | matt@rocketstack.co              |
 | @willosborne      | Will Osborne             | Morgan Stanley        | willfosborne@gmail.com           |
 | @yt-ms            | Yan                      | Morgan Stanley        | yan.tordoff@morganstanley.com    |
