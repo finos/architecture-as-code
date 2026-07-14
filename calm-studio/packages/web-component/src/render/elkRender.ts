@@ -10,6 +10,7 @@ import type { CalmArchitecture } from '@calmstudio/calm-core';
 import { renderNodeSvg } from './nodeRenderer.js';
 import { renderEdgeSvg, renderEdgeMarkers } from './edgeRenderer.js';
 import { renderFlowOverlay, applyFlowDimming, getFlowNodeIds, type EdgeLayout } from './flowOverlay.js';
+import { relationshipToEdges, type DiagramEdge } from './relationshipEdges.js';
 
 // ---------------------------------------------------------------------------
 // ELK type helpers
@@ -74,6 +75,9 @@ export async function renderELKDiagram(
     );
   }
 
+  // Expand relationships (nested or legacy flat) into renderable edges
+  const diagramEdges: DiagramEdge[] = arch.relationships.flatMap((r) => relationshipToEdges(r));
+
   // Build ELK graph
   const NODE_WIDTH = 180;
   const NODE_HEIGHT = 70;
@@ -92,10 +96,10 @@ export async function renderELKDiagram(
       height: NODE_HEIGHT,
       labels: [{ text: n.name }],
     })),
-    edges: arch.relationships.map((r) => ({
-      id: r['unique-id'],
-      sources: [r.source],
-      targets: [r.destination],
+    edges: diagramEdges.map((e) => ({
+      id: e.id,
+      sources: [e.source],
+      targets: [e.target],
     })),
   };
 
@@ -111,8 +115,8 @@ export async function renderELKDiagram(
   }
 
   const relTypeMap = new Map<string, string>();
-  for (const r of arch.relationships) {
-    relTypeMap.set(r['unique-id'], r['relationship-type']);
+  for (const e of diagramEdges) {
+    relTypeMap.set(e.id, e.variant);
   }
 
   // Compute canvas dimensions

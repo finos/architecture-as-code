@@ -14,9 +14,12 @@ const fixture = {
   relationships: [
     {
       'unique-id': 'web-to-api',
-      'relationship-type': 'connects',
-      source: 'web',
-      destination: 'api',
+      'relationship-type': {
+        connects: {
+          source: { node: 'web' },
+          destination: { node: 'api' },
+        },
+      },
       protocol: 'HTTPS',
     },
   ],

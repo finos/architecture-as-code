@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import type { CalmArchitecture, CalmFlow } from '@calmstudio/calm-core';
+import { getReferencedNodeIds, type CalmArchitecture, type CalmFlow, type CalmRelationship } from '@calmstudio/calm-core';
 
 // ---------------------------------------------------------------------------
 // Internal types
@@ -118,11 +118,29 @@ export function getFlowNodeIds(
   const flowEdgeIds = new Set(flow.transitions.map((t) => t['relationship-unique-id']));
   for (const rel of arch.relationships) {
     if (flowEdgeIds.has(rel['unique-id'])) {
-      nodeIds.add(rel.source);
-      nodeIds.add(rel.destination);
+      for (const nodeId of getReferencedNodeIdsWithFlatFallback(rel)) {
+        nodeIds.add(nodeId);
+      }
     }
   }
   return nodeIds;
+}
+
+/**
+ * Resolve the node ids referenced by a relationship, supporting both the
+ * canonical nested `relationship-type` object and the legacy flat
+ * CalmStudio shape (`relationship-type` as a string plus sibling
+ * `source`/`destination` strings) as a fallback.
+ */
+function getReferencedNodeIdsWithFlatFallback(rel: CalmRelationship): string[] {
+  const raw = rel as unknown as Record<string, unknown>;
+  if (typeof raw['relationship-type'] === 'string') {
+    const out: string[] = [];
+    if (typeof raw.source === 'string') out.push(raw.source);
+    if (typeof raw.destination === 'string') out.push(raw.destination);
+    return out;
+  }
+  return getReferencedNodeIds(rel);
 }
 
 // ---------------------------------------------------------------------------
