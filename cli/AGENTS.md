@@ -138,6 +138,23 @@ npm test --workspace cli -- --watch   # Watch mode
 npm test --workspace cli -- <file>    # Specific test file
 ```
 
+### CalmHub Smoke Tests (opt-in, Docker required)
+
+`cli/smoke/*.smoke.spec.ts` drive the packed CLI against a real CalmHub
+(Docker + MongoDB, no-auth). They are excluded from the default `npm test`.
+
+```bash
+# One-time (per change to calm-hub): build the hub image
+bash scripts/build-hub-smoke-image.sh   # -> calm-hub:smoke
+
+# Run the smoke suite (starts/stops the hub via docker compose)
+npm run build:cli
+npm run test:smoke --workspace cli
+```
+
+The suite starts one shared hub via `cli/smoke/global-setup.ts`; each flow uses
+its own namespace (`smoke-crud`, `smoke-genval`, `smoke-workspace`).
+
 ### Common Test Patterns
 - Use `test_helpers/` for shared test utilities
 - Mock external dependencies (file system, HTTP)

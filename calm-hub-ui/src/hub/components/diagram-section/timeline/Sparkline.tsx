@@ -140,7 +140,7 @@ export function Sparkline({
     return (
         <div
             data-testid="timeline-bar-collapsed"
-            className="flex flex-col bg-white border-t font-inter"
+            className="flex flex-col bg-base-100 border-t font-inter"
             style={{ borderTopColor: colors.ink[200], padding: '12px 20px 14px', gap: 8 }}
         >
             {/* Header row: purpose + version pill on the left, NEW pill + expand on the right. */}

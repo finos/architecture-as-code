@@ -4,12 +4,20 @@
  * This file defines all color values used throughout the application.
  * Components should import from this file rather than defining colors inline.
  *
- * Brand colors are also exposed as CSS custom properties via initThemeCssVars()
- * called at app startup, so they can be used in Tailwind/DaisyUI contexts.
+ * Values come in two flavours, and which one a token gets is not a style choice:
  *
- * Note: ReactFlow and inline styles need direct hex values because:
- * 1. They can't use CSS variables in some contexts (e.g., SVG markers)
- * 2. We need to create transparent variants (e.g., `${color}20`)
+ * 1. Neutrals (surfaces, text, borders, washes) are `var(--calm-…)` strings, defined
+ *    per theme in ./theme.css. Inline styles resolve them against the active
+ *    `data-theme`, so a component that reads from here follows the theme for free.
+ *
+ * 2. Chromatic values (node-type hues, risk/status, brand accents) stay hex, because
+ *    they are alpha-concatenated (`${color}20`) — `var(--x)20` is not a colour — and
+ *    because ReactFlow serialises some of them into SVG presentation attributes,
+ *    where `var()` does not resolve.
+ *
+ * Where a chromatic accent is used as *text* it gets a separate `…Text` token that
+ * is a var: #007dff and #2563EB cannot reach 4.5:1 on any dark background, not even
+ * pure black, so the text role has to lighten while the fill role does not.
  */
 
 export const colors = {
@@ -18,27 +26,29 @@ export const colors = {
         primary: '#000063',
         accent: '#007dff',
         accentLight: '#b2d8f5',
+        /** `accent` in a text or icon role. See the header note on contrast. */
+        accentText: 'var(--calm-accent-text)',
     },
 
     // Background colors
     background: {
-        base: '#ffffff',
-        secondary: '#f8fafc', // slate-50
-        tertiary: '#f1f5f9', // slate-100
-        card: '#ffffff',
+        base: 'var(--calm-bg-base)',
+        secondary: 'var(--calm-bg-secondary)',
+        tertiary: 'var(--calm-bg-tertiary)',
+        card: 'var(--calm-bg-card)',
     },
 
     // Text colors
     text: {
-        primary: '#1e293b', // slate-800
-        secondary: '#64748b', // slate-500
-        muted: '#94a3b8', // slate-400
+        primary: 'var(--calm-text-primary)',
+        secondary: 'var(--calm-text-secondary)',
+        muted: 'var(--calm-text-muted)',
     },
 
     // Border colors
     border: {
-        default: '#e2e8f0', // slate-200
-        dark: '#cbd5e1', // slate-300
+        default: 'var(--calm-border-default)',
+        dark: 'var(--calm-border-dark)',
     },
 
     // Node type colors for architecture visualization
@@ -93,9 +103,9 @@ export const colors = {
 
     // Group/container colors for visualization
     group: {
-        background: '#f8fafc', // slate-50
-        border: '#cbd5e1', // slate-300
-        label: '#64748b', // slate-500
+        background: 'var(--calm-group-bg)',
+        border: 'var(--calm-group-border)',
+        label: 'var(--calm-group-label)',
     },
 
     // Decision colors for pattern visualization
@@ -116,20 +126,22 @@ export const colors = {
     calm: {
         blue: '#1f6dff', // primary / active dots / progress / NOW-FROM-TO bg
         blueDeep: '#0a4ad6', // hover / pressed, badge bg, deep label colour
-        blueSoft: '#e8f0ff', // CURRENT pill bg, selected-row bg
+        blueSoft: 'var(--calm-blue-soft)', // CURRENT pill bg, selected-row bg
         teal: '#1aa3b7', // architecture node border (thumbnails)
     },
+    // A light ramp (50 lightest … 900 darkest) that inverts under dark, so that
+    // `ink[900]` stays "the strongest text colour" in both themes.
     ink: {
-        900: '#0f172a',
-        700: '#334155',
-        500: '#64748b',
-        400: '#94a3b8',
-        300: '#cbd5e1',
-        200: '#e2e8f0',
-        100: '#f1f5f9',
-        50: '#f8fafc',
+        900: 'var(--calm-ink-900)',
+        700: 'var(--calm-ink-700)',
+        500: 'var(--calm-ink-500)',
+        400: 'var(--calm-ink-400)',
+        300: 'var(--calm-ink-300)',
+        200: 'var(--calm-ink-200)',
+        100: 'var(--calm-ink-100)',
+        50: 'var(--calm-ink-50)',
     },
-    timelineBg: '#f6f7f9',
+    timelineBg: 'var(--calm-timeline-bg)',
     new: '#ef4444',
 
     // ── CALM Hub redesign tokens (Phase 1) ────────────────────────────────────
@@ -137,74 +149,108 @@ export const colors = {
     // namespaced under `redesign` so it does not touch the existing global brand
     // (`brand.primary` navy / `brand.accent`) or the logo — `#2563EB` here is the
     // redesign's interaction / selection colour only, per the design handoff.
-    // Components in the new rail / namespace / domain surfaces consume hex from
-    // here via inline `style`. The one value also needed inside Tailwind
-    // pseudo-variants (e.g. `focus-visible:outline-[var(--color-interaction)]`),
-    // where inline style can't reach, is `primary` — `initThemeCssVars()` mirrors
-    // it as the runtime CSS var `--color-interaction` so there is a single source
-    // of truth for the brand interaction blue. Exact hex values are from the spec.
+    // Components in the new rail / namespace / domain surfaces consume these via
+    // inline `style`. Tailwind pseudo-variants (e.g.
+    // `focus-visible:outline-[var(--color-interaction)]`) can't read an inline
+    // style, so `--color-interaction` is declared alongside the rest in theme.css.
+    // Light values are exactly the spec's hex.
     redesign: {
-        // Brand / interaction
+        // Brand / interaction. `primary` stays hex: it is alpha-concatenated and fed
+        // to ReactFlow SVG attributes. Use `primaryText` for a text or icon role.
         primary: '#2563EB', // active states, selection, links, focus, primary
-        activeText: '#1D4ED8', // active tab / rail text
-        tintBg: '#EEF4FF', // selected rail row, icon tile, active pill bg
-        tint2: '#F8FAFF', // dropzone / welcome hover bg
+        primaryText: 'var(--calm-interaction-text)', // `primary` as text / icon
+        activeText: 'var(--calm-redesign-active-text)', // active tab / rail text
+        tintBg: 'var(--calm-redesign-tint-bg)', // selected rail row, icon tile, active pill bg
+        tint2: 'var(--calm-redesign-tint2)', // dropzone / welcome hover bg
         // Text scale
-        ink: '#0B1220', // H1/H2/H3, node labels
-        bodyStrong: '#0F172A', // current breadcrumb segment, strong body
-        body: '#41506A', // paragraph copy
-        bodyAlt: '#475569', // resting tab text
-        muted: '#5A6678', // sub-copy, card descriptions
-        mutedAlt: '#64748B', // meta
-        faint: '#8A94A6', // mono section labels
-        faintAlt: '#9AA6B8', // faint hints (NAMESPACES label colour)
-        disabled: '#B6BECC', // zero-count tab text + badge
+        ink: 'var(--calm-redesign-ink)', // H1/H2/H3, node labels
+        bodyStrong: 'var(--calm-redesign-body-strong)', // current breadcrumb segment, strong body
+        body: 'var(--calm-redesign-body)', // paragraph copy
+        bodyAlt: 'var(--calm-redesign-body-alt)', // resting tab text
+        muted: 'var(--calm-redesign-muted)', // sub-copy, card descriptions
+        mutedAlt: 'var(--calm-redesign-muted-alt)', // meta
+        faint: 'var(--calm-redesign-faint)', // mono section labels
+        faintAlt: 'var(--calm-redesign-faint-alt)', // faint hints (NAMESPACES label colour)
+        disabled: 'var(--calm-redesign-disabled)', // zero-count tab text + badge
         // Surfaces / borders
-        borderStrong: '#E2E6ED', // inputs, controls, minimap
-        border: '#E6E9EE', // cards, rails, top bar, dividers
-        tabDivider: '#EAEDF1', // tab bottom border
-        canvas: '#F7F8FA', // diagram stage
-        surface: '#F8FAFC', // search bg, rail bg
-        surfaceAlt: '#FCFCFD', // rail bg, minimap field
+        borderStrong: 'var(--calm-redesign-border-strong)', // inputs, controls, minimap
+        border: 'var(--calm-redesign-border)', // cards, rails, top bar, dividers
+        tabDivider: 'var(--calm-redesign-tab-divider)', // tab bottom border
+        canvas: 'var(--calm-redesign-canvas)', // diagram stage
+        surface: 'var(--calm-redesign-surface)', // search bg, rail bg
+        surfaceAlt: 'var(--calm-redesign-surface-alt)', // rail bg, minimap field
         // Resting count-badge bg / text
-        badgeBg: '#EEF2F7',
+        badgeBg: 'var(--calm-redesign-badge-bg)',
         // Faint count-badge bg for a zero-count (dimmed) tab
-        badgeBgFaint: '#F4F6F9',
+        badgeBgFaint: 'var(--calm-redesign-badge-bg-faint)',
         // Selected-rail accent (inset left bar)
         railAccentShadow: 'inset 3px 0 0 #2563EB',
     },
 
     // Resource-type accents (badges, card thumbnails, node borders, type dots).
-    // `tint` is the soft badge background per accent. Defined now for later phases.
+    // `accent` is the chromatic fill/border/stripe value and stays hex (it is
+    // alpha-concatenated in ItemCard). `accentText` is the same colour in a text or
+    // icon role, which has to lighten under dark to clear 4.5:1 against `tint`.
     resourceTypes: {
-        architecture: { accent: '#2563EB', tint: '#EEF4FF' },
-        pattern: { accent: '#7C3AED', tint: '#F2ECFD' },
-        flow: { accent: '#0891B2', tint: '#E5F6FA' },
-        standard: { accent: '#D97706', tint: '#FCF1E2' },
-        adr: { accent: '#DB2777', tint: '#FCE9F2' },
-        interface: { accent: '#059669', tint: '#E4F5EE' },
+        architecture: {
+            accent: '#2563EB',
+            accentText: 'var(--calm-rt-architecture-text)',
+            tint: 'var(--calm-rt-architecture-tint)',
+        },
+        pattern: {
+            accent: '#7C3AED',
+            accentText: 'var(--calm-rt-pattern-text)',
+            tint: 'var(--calm-rt-pattern-tint)',
+        },
+        flow: {
+            accent: '#0891B2',
+            accentText: 'var(--calm-rt-flow-text)',
+            tint: 'var(--calm-rt-flow-tint)',
+        },
+        standard: {
+            accent: '#D97706',
+            accentText: 'var(--calm-rt-standard-text)',
+            tint: 'var(--calm-rt-standard-tint)',
+        },
+        adr: {
+            accent: '#DB2777',
+            accentText: 'var(--calm-rt-adr-text)',
+            tint: 'var(--calm-rt-adr-tint)',
+        },
+        interface: {
+            accent: '#059669',
+            accentText: 'var(--calm-rt-interface-text)',
+            tint: 'var(--calm-rt-interface-tint)',
+        },
+        // Controls aren't a namespace browse type, but their browse card reuses the
+        // shared ItemCard/TypeBadge. Uses the interaction/selection blue (matching
+        // redesign.primary / tintBg) so control cards read as the selectable family.
+        control: {
+            accent: '#2563EB',
+            accentText: 'var(--calm-rt-control-text)',
+            tint: 'var(--calm-rt-control-tint)',
+        },
     },
     diffPalette: {
-        add: { bg: '#e8f6ee', border: '#b6dfc6', fg: '#15803d', sign: '+' },
-        mod: { bg: '#fdf3e2', border: '#f3dca4', fg: '#b45309', sign: '~' },
-        del: { bg: '#fde8e8', border: '#f1bfbf', fg: '#b91c1c', sign: '−' },
+        add: {
+            bg: 'var(--calm-diff-add-bg)',
+            border: 'var(--calm-diff-add-border)',
+            fg: 'var(--calm-diff-add-fg)',
+            sign: '+',
+        },
+        mod: {
+            bg: 'var(--calm-diff-mod-bg)',
+            border: 'var(--calm-diff-mod-border)',
+            fg: 'var(--calm-diff-mod-fg)',
+            sign: '~',
+        },
+        del: {
+            bg: 'var(--calm-diff-del-bg)',
+            border: 'var(--calm-diff-del-border)',
+            fg: 'var(--calm-diff-del-fg)',
+            sign: '−',
+        },
     },
 } as const;
 
 export type Colors = typeof colors;
-
-/**
- * Sets CSS custom properties on the document root from colors.brand,
- * so Tailwind/DaisyUI classes can reference them without duplicating values.
- * Call once at app startup (e.g., in index.tsx).
- */
-export function initThemeCssVars(): void {
-    const root = document.documentElement;
-    root.style.setProperty('--color-primary', colors.brand.primary);
-    root.style.setProperty('--color-accent', colors.brand.accent);
-    root.style.setProperty('--color-accent-light', colors.brand.accentLight);
-    // Redesign interaction / selection blue, exposed for Tailwind pseudo-variant
-    // arbitraries (focus rings) that can't read an inline style. Single source of
-    // truth for `#2563EB`; does NOT touch the navy global `--color-primary`.
-    root.style.setProperty('--color-interaction', colors.redesign.primary);
-}

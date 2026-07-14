@@ -1,4 +1,6 @@
 import { Editor } from '@monaco-editor/react';
+import { useResolvedTheme } from '../../../theme/useTheme.js';
+import { CALM_DARK, defineCalmThemes } from '../../../theme/monaco-theme.js';
 
 interface JsonRendererProps {
     json?: object;
@@ -10,11 +12,18 @@ function NoData() {
 }
 
 function JsonDisplay({ data, showLineNumbers = true }: { data: object; showLineNumbers?: boolean }) {
+    // Monaco paints its own colours and ignores our stylesheet, so it needs telling
+    // which theme is active — otherwise its light syntax colours land on our dark
+    // surface as near-black text.
+    const theme = useResolvedTheme();
+
     return (
         <Editor
             height="100%"
             defaultLanguage="json"
             value={JSON.stringify(data, null, 2)}
+            beforeMount={defineCalmThemes}
+            theme={theme === 'dark' ? CALM_DARK : 'light'}
             data-cy={"json-renderer"}
             options={{
                 readOnly: true,

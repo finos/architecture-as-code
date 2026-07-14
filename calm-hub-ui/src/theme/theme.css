@@ -1,0 +1,323 @@
+/*
+ * Theme tokens for calm-hub-ui.
+ *
+ * Every neutral colour in the app resolves through one of these custom properties.
+ * `src/theme/colors.ts` holds `var(--calm-…)` strings for its neutral leaves, so the
+ * 33 files that inline-style from `colors` follow `data-theme` without any React
+ * state. Chromatic leaves (node-type hues, risk/status) stay hex literals there
+ * because they are alpha-concatenated (`${color}20`), which `var()` cannot survive.
+ *
+ * `--calm-*-text` tokens exist because an accent that reads as *text* needs 4.5:1.
+ * The brand blues (#007dff, #2563EB) cannot reach that on any dark background — not
+ * even pure black — so the text role gets its own lightened value while the fill /
+ * border / stripe roles keep the brand hex.
+ *
+ * The light values below are byte-identical to the hex they replaced, so light mode
+ * cannot regress. `data-theme` is always present on <html> (set by the anti-flash
+ * script in index.html), which is why the themed selectors qualify `:root` with the
+ * attribute: `:root[data-theme=…]` scores (0,2,0) and so beats daisyUI's own
+ * `[data-theme=…]` blocks at (0,1,0) no matter which file the bundler emits first.
+ * The bare `:root` arm is the no-JS fallback and carries the light palette.
+ */
+
+:root,
+:root[data-theme='light'] {
+    /* daisyUI overrides — brand.
+     * `--color-interaction` carries white text (`!bg-[var(--color-interaction)]
+     * !text-white`) as well as focus outlines, so it stays #2563EB in both themes:
+     * lightening it would drop that white text below 4.5:1. On the dark base it
+     * still clears the 3:1 bar that focus rings need. The text/icon role uses
+     * --calm-interaction-text instead. */
+    --color-primary: #000063;
+    --color-primary-content: #ffffff;
+    --color-accent: #007dff;
+    --color-accent-content: #ffffff;
+    --color-accent-light: #b2d8f5;
+    --color-interaction: #2563EB;
+
+    /* Surfaces */
+    --calm-bg-base: #ffffff;
+    --calm-bg-secondary: #f8fafc;
+    --calm-bg-tertiary: #f1f5f9;
+    --calm-bg-card: #ffffff;
+
+    /* Text */
+    --calm-text-primary: #1e293b;
+    --calm-text-secondary: #64748b;
+    --calm-text-muted: #94a3b8;
+
+    /* Borders */
+    --calm-border-default: #e2e8f0;
+    --calm-border-dark: #cbd5e1;
+
+    /* Accent in a text/icon role */
+    --calm-accent-text: #007dff;
+
+    /* ADR +/- markers. Mirrors `colors.feedback`, which stays hex for inline use. */
+    --calm-feedback-positive: #16a34a;
+    --calm-feedback-negative: #dc2626;
+
+    /* Visualiser group containers */
+    --calm-group-bg: #f8fafc;
+    --calm-group-border: #cbd5e1;
+    --calm-group-label: #64748b;
+
+    /* Timeline */
+    --calm-blue-soft: #e8f0ff;
+    --calm-timeline-bg: #f6f7f9;
+
+    /* Ink ramp — 50 lightest … 900 darkest. Inverts under dark. */
+    --calm-ink-900: #0f172a;
+    --calm-ink-700: #334155;
+    --calm-ink-500: #64748b;
+    --calm-ink-400: #94a3b8;
+    --calm-ink-300: #cbd5e1;
+    --calm-ink-200: #e2e8f0;
+    --calm-ink-100: #f1f5f9;
+    --calm-ink-50: #f8fafc;
+
+    /* Redesign — text ramp (separate from the ink ramp above) */
+    --calm-redesign-ink: #0B1220;
+    --calm-redesign-body-strong: #0F172A;
+    --calm-redesign-body: #41506A;
+    --calm-redesign-body-alt: #475569;
+    --calm-redesign-muted: #5A6678;
+    --calm-redesign-muted-alt: #64748B;
+    --calm-redesign-faint: #8A94A6;
+    --calm-redesign-faint-alt: #9AA6B8;
+    --calm-redesign-disabled: #B6BECC;
+    --calm-redesign-active-text: #1D4ED8;
+    --calm-interaction-text: #2563EB;
+
+    /* Redesign — surfaces, washes, borders */
+    --calm-redesign-tint-bg: #EEF4FF;
+    --calm-redesign-tint2: #F8FAFF;
+    --calm-redesign-border-strong: #E2E6ED;
+    --calm-redesign-border: #E6E9EE;
+    --calm-redesign-tab-divider: #EAEDF1;
+    --calm-redesign-canvas: #F7F8FA;
+    --calm-redesign-surface: #F8FAFC;
+    --calm-redesign-surface-alt: #FCFCFD;
+    --calm-redesign-badge-bg: #EEF2F7;
+    --calm-redesign-badge-bg-faint: #F4F6F9;
+
+    /* Resource types — tint background + accent in a text role */
+    --calm-rt-architecture-tint: #EEF4FF;
+    --calm-rt-architecture-text: #2563EB;
+    --calm-rt-pattern-tint: #F2ECFD;
+    --calm-rt-pattern-text: #7C3AED;
+    --calm-rt-flow-tint: #E5F6FA;
+    --calm-rt-flow-text: #0891B2;
+    --calm-rt-standard-tint: #FCF1E2;
+    --calm-rt-standard-text: #D97706;
+    --calm-rt-adr-tint: #FCE9F2;
+    --calm-rt-adr-text: #DB2777;
+    --calm-rt-interface-tint: #E4F5EE;
+    --calm-rt-interface-text: #059669;
+    --calm-rt-control-tint: #EEF4FF;
+    --calm-rt-control-text: #2563EB;
+
+    /* Diff — inline summary chips (colors.diffPalette) */
+    --calm-diff-add-bg: #e8f6ee;
+    --calm-diff-add-border: #b6dfc6;
+    --calm-diff-add-fg: #15803d;
+    --calm-diff-mod-bg: #fdf3e2;
+    --calm-diff-mod-border: #f3dca4;
+    --calm-diff-mod-fg: #b45309;
+    --calm-diff-del-bg: #fde8e8;
+    --calm-diff-del-border: #f1bfbf;
+    --calm-diff-del-fg: #b91c1c;
+
+    /* Deployment status badges. The `dot` beside each badge stays a chromatic hex. */
+    --calm-status-completed-bg: #dcfce7;
+    --calm-status-completed-fg: #15803d;
+    --calm-status-failed-bg: #fee2e2;
+    --calm-status-failed-fg: #b91c1c;
+    --calm-status-inprogress-bg: #dbeafe;
+    --calm-status-inprogress-fg: #1d4ed8;
+    --calm-status-pending-bg: #f3f4f6;
+    --calm-status-pending-fg: #4b5563;
+    --calm-status-rolledback-bg: #fef3c7;
+    --calm-status-rolledback-fg: #92400e;
+
+    /* Disabled chip (e.g. "Deployment link not recorded") */
+    --calm-chip-disabled-bg: #e5e7eb;
+    --calm-chip-disabled-fg: #9ca3af;
+
+    /* Diff — the comparison view chrome (Diff.css). A separate group because it is
+       built on Tailwind's `gray` ramp, not the `slate` one the rest of the app uses;
+       folding it into the slate tokens would shift light mode. */
+    --calm-diffview-border: #e5e7eb;
+    --calm-diffview-panel-bg: #ffffff;
+    --calm-diffview-header-bg: #f9fafb;
+    --calm-diffview-text-strong: #374151;
+    --calm-diffview-text-muted: #6b7280;
+    --calm-diffview-dropzone-border: #d1d5db;
+    --calm-diffview-dropzone-border-hover: #9ca3af;
+    --calm-diffview-drag-border: #3b82f6;
+    --calm-diffview-drag-bg: #eff6ff;
+    --calm-diffview-added-bg: #dcfce7;
+    --calm-diffview-added-accent: #16a34a;
+    --calm-diffview-removed-bg: #fef2f2;
+    --calm-diffview-removed-accent: #dc2626;
+    --calm-diffview-modified-bg: #fef3c7;
+    --calm-diffview-modified-accent: #d97706;
+    --calm-diffview-renamed-bg: #e0e7ff;
+    --calm-diffview-renamed-accent: #6366f1;
+    --calm-diffview-unchanged-bg: #f3f4f6;
+    --calm-diffview-unchanged-accent: #9ca3af;
+}
+
+:root[data-theme='dark'] {
+    /* daisyUI overrides — brand. The navy #000063 is unreadable on a dark base, and
+       `text-primary` is a text role in ~15 places, so primary lifts to a tint of
+       itself and its content colour darkens to keep `bg-primary` legible.
+       `--color-interaction` is deliberately unchanged — see the light block. */
+    --color-primary: #6E8BFF;
+    --color-primary-content: #0F172A;
+    --color-accent: #38BDF8;
+    --color-accent-content: #08131f;
+    --color-accent-light: #1e4a6d;
+    --color-interaction: #2563EB;
+
+    /* daisyUI overrides — base ramp. daisyUI's stock dark is a neutral grey; the
+       app's inline styles use the slate ramp below. Without this the class-styled
+       surfaces (bg-base-100) and the inline-styled ones (--calm-bg-base) would be
+       two visibly different darks on the same screen. The light theme is left on
+       daisyUI's own values, so light mode is untouched. */
+    --color-base-100: #0F172A;
+    --color-base-200: #1E293B;
+    --color-base-300: #334155;
+    --color-base-content: #E2E8F0;
+
+    /* Surfaces */
+    --calm-bg-base: #0F172A;
+    --calm-bg-secondary: #1E293B;
+    --calm-bg-tertiary: #334155;
+    --calm-bg-card: #1E293B;
+
+    /* Text */
+    --calm-text-primary: #E2E8F0;
+    --calm-text-secondary: #94A3B8;
+    --calm-text-muted: #64748B;
+
+    /* Borders */
+    --calm-border-default: #334155;
+    --calm-border-dark: #475569;
+
+    /* Accent in a text/icon role — #007dff only reaches 3.75:1 on #1E293B. */
+    --calm-accent-text: #38BDF8;
+
+    /* ADR +/- markers, lifted off the 600-weight light values to clear 4.5:1. */
+    --calm-feedback-positive: #4ADE80;
+    --calm-feedback-negative: #F87171;
+
+    /* Visualiser group containers */
+    --calm-group-bg: #1E293B;
+    --calm-group-border: #475569;
+    --calm-group-label: #94A3B8;
+
+    /* Timeline */
+    --calm-blue-soft: #1E3A5F;
+    --calm-timeline-bg: #0F172A;
+
+    /* Ink ramp — inverted: 900 is now the lightest. */
+    --calm-ink-900: #E2E8F0;
+    --calm-ink-700: #CBD5E1;
+    --calm-ink-500: #94A3B8;
+    --calm-ink-400: #64748B;
+    --calm-ink-300: #475569;
+    --calm-ink-200: #334155;
+    --calm-ink-100: #1E293B;
+    --calm-ink-50: #0F172A;
+
+    /* Redesign — text ramp */
+    --calm-redesign-ink: #F1F5F9;
+    --calm-redesign-body-strong: #E2E8F0;
+    --calm-redesign-body: #B6C2D4;
+    --calm-redesign-body-alt: #94A3B8;
+    --calm-redesign-muted: #94A3B8;
+    --calm-redesign-muted-alt: #8A94A6;
+    --calm-redesign-faint: #64748B;
+    --calm-redesign-faint-alt: #64748B;
+    --calm-redesign-disabled: #475569;
+    --calm-redesign-active-text: #93B4FF;
+    --calm-interaction-text: #93B4FF;
+
+    /* Redesign — surfaces, washes, borders */
+    --calm-redesign-tint-bg: #1B2942;
+    --calm-redesign-tint2: #1A2436;
+    --calm-redesign-border-strong: #334155;
+    --calm-redesign-border: #1E293B;
+    --calm-redesign-tab-divider: #1E293B;
+    --calm-redesign-canvas: #0F172A;
+    --calm-redesign-surface: #1E293B;
+    --calm-redesign-surface-alt: #1E293B;
+    --calm-redesign-badge-bg: #334155;
+    --calm-redesign-badge-bg-faint: #1E293B;
+
+    /* Resource types. Each `-text` value is checked at >=4.5:1 on its own tint. */
+    --calm-rt-architecture-tint: #1B2942;
+    --calm-rt-architecture-text: #93B4FF;
+    --calm-rt-pattern-tint: #241C3A;
+    --calm-rt-pattern-text: #C4B5FD;
+    --calm-rt-flow-tint: #0E3038;
+    --calm-rt-flow-text: #67E8F9;
+    --calm-rt-standard-tint: #3A2A12;
+    --calm-rt-standard-text: #FCD34D;
+    --calm-rt-adr-tint: #3A1B2C;
+    --calm-rt-adr-text: #F9A8D4;
+    --calm-rt-interface-tint: #0F3328;
+    --calm-rt-interface-text: #6EE7B7;
+    --calm-rt-control-tint: #1B2942;
+    --calm-rt-control-text: #93B4FF;
+
+    /* Diff — inline summary chips */
+    --calm-diff-add-bg: #0F2A1A;
+    --calm-diff-add-border: #1F5133;
+    --calm-diff-add-fg: #4ADE80;
+    --calm-diff-mod-bg: #2E2410;
+    --calm-diff-mod-border: #6B4E16;
+    --calm-diff-mod-fg: #FBBF24;
+    --calm-diff-del-bg: #2E1414;
+    --calm-diff-del-border: #6B2020;
+    --calm-diff-del-fg: #F87171;
+
+    /* Deployment status badges — dark washes with lifted text. */
+    --calm-status-completed-bg: #0F2A1A;
+    --calm-status-completed-fg: #4ADE80;
+    --calm-status-failed-bg: #2E1414;
+    --calm-status-failed-fg: #F87171;
+    --calm-status-inprogress-bg: #1B2942;
+    --calm-status-inprogress-fg: #93B4FF;
+    --calm-status-pending-bg: #1E293B;
+    --calm-status-pending-fg: #94A3B8;
+    --calm-status-rolledback-bg: #2E2410;
+    --calm-status-rolledback-fg: #FBBF24;
+
+    /* Disabled chip */
+    --calm-chip-disabled-bg: #334155;
+    --calm-chip-disabled-fg: #64748B;
+
+    /* Diff — the comparison view chrome. Row backgrounds are dark washes; the
+       left-border accents lighten so they stay visible against them. */
+    --calm-diffview-border: #334155;
+    --calm-diffview-panel-bg: #1E293B;
+    --calm-diffview-header-bg: #1E293B;
+    --calm-diffview-text-strong: #E2E8F0;
+    --calm-diffview-text-muted: #94A3B8;
+    --calm-diffview-dropzone-border: #475569;
+    --calm-diffview-dropzone-border-hover: #64748B;
+    --calm-diffview-drag-border: #60A5FA;
+    --calm-diffview-drag-bg: #1B2942;
+    --calm-diffview-added-bg: #0F2A1A;
+    --calm-diffview-added-accent: #4ADE80;
+    --calm-diffview-removed-bg: #2E1414;
+    --calm-diffview-removed-accent: #F87171;
+    --calm-diffview-modified-bg: #2E2410;
+    --calm-diffview-modified-accent: #FBBF24;
+    --calm-diffview-renamed-bg: #1E2447;
+    --calm-diffview-renamed-accent: #A5B4FC;
+    --calm-diffview-unchanged-bg: #1E293B;
+    --calm-diffview-unchanged-accent: #64748B;
+}

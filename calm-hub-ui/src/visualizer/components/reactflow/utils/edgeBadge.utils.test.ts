@@ -24,8 +24,10 @@ describe('edgeBadge.utils', () => {
 
         it('returns muted colors when both flags are false', () => {
             const result = getBadgeStyle(false, false);
+            // `muted` is a theme var, so its tint is mixed rather than suffixed with
+            // the `20` alpha byte the chromatic branches use.
             expect(result).toEqual({
-                background: `${THEME.colors.muted}20`,
+                background: `color-mix(in srgb, ${THEME.colors.muted} 12.5%, transparent)`,
                 border: THEME.colors.muted,
                 iconColor: THEME.colors.muted,
             });

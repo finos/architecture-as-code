@@ -14,7 +14,7 @@ export function FlowsPanelHeader({ flowCount }: FlowsPanelHeaderProps) {
                 background: THEME.colors.backgroundSecondary,
             }}
         >
-            <FiGitBranch style={{ width: '16px', height: '16px', color: THEME.colors.accent }} />
+            <FiGitBranch style={{ width: '16px', height: '16px', color: THEME.colors.accentText }} />
             <span style={{ fontWeight: 600, fontSize: '14px', color: THEME.colors.foreground }}>
                 Business Flows
             </span>

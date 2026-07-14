@@ -53,14 +53,17 @@ public class PatternResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Retrieve patterns in a given namespace",
-            description = "Patterns stored in a given namespace"
+            description = "Patterns stored in a given namespace. Optional limit/offset query "
+                    + "parameters page the result; when omitted the full list is returned. Offset "
+                    + "is only applied alongside a limit."
     )
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getPatternsForNamespace(
-            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
+            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @Valid @BeanParam PaginationQueryParams page
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getPatternsForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(store.getPatternsForNamespace(namespace, page.toPageRequest()))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving patterns", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

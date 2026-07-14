@@ -98,13 +98,15 @@ export function useCatalogueHighlights(
                     // Only fetch a type the namespace actually has — skip the wasted request otherwise.
                     hasArchitectures
                         ? service
-                              .fetchArchitectureSummaries(namespace)
+                              // Only ever render MAX_HIGHLIGHTS cards, so ask the endpoint for that many
+                              // rather than downloading the whole namespace catalogue per request.
+                              .fetchArchitectureSummaries(namespace, MAX_HIGHLIGHTS)
                               .then((summaries) => toHighlights(summaries, namespace, 'Architectures'))
                               .catch(() => [] as CatalogueHighlight[])
                         : empty,
                     hasPatterns
                         ? service
-                              .fetchPatternSummaries(namespace)
+                              .fetchPatternSummaries(namespace, MAX_HIGHLIGHTS)
                               .then((summaries) => toHighlights(summaries, namespace, 'Patterns'))
                               .catch(() => [] as CatalogueHighlight[])
                         : empty,

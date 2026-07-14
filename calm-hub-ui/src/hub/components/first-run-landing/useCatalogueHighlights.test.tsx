@@ -52,12 +52,14 @@ describe('useCatalogueHighlights', () => {
         // zero-count type is skipped rather than fetched and discarded.
         expect(arch).toHaveBeenCalledTimes(1);
         expect(pattern).toHaveBeenCalledTimes(1);
-        expect(arch).toHaveBeenCalledWith('a');
-        expect(pattern).toHaveBeenCalledWith('c');
-        expect(arch).not.toHaveBeenCalledWith('c');
-        expect(pattern).not.toHaveBeenCalledWith('a');
-        expect(arch).not.toHaveBeenCalledWith('b');
-        expect(arch).not.toHaveBeenCalledWith('d');
+        // Each fetch requests only the number of cards rendered (MAX_HIGHLIGHTS = 3) as its limit,
+        // rather than downloading the whole namespace catalogue.
+        expect(arch).toHaveBeenCalledWith('a', 3);
+        expect(pattern).toHaveBeenCalledWith('c', 3);
+        expect(arch).not.toHaveBeenCalledWith('c', 3);
+        expect(pattern).not.toHaveBeenCalledWith('a', 3);
+        expect(arch).not.toHaveBeenCalledWith('b', 3);
+        expect(arch).not.toHaveBeenCalledWith('d', 3);
     });
 
     it('tags highlights with their true type, spanning architectures and patterns', async () => {

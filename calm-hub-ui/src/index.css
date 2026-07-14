@@ -1,6 +1,7 @@
 @import 'tailwindcss';
+@import './theme/theme.css';
 @plugin "daisyui" {
-    themes: light --default;
+    themes: light --default, dark;
 }
 
 /* Fonts for the timeline / diff UI, exposed via --font-* so Tailwind v4
@@ -13,10 +14,7 @@
         'Liberation Mono', 'Courier New', monospace;
 }
 
-/*
- * Brand colors (--color-primary, --color-accent, --color-accent-light)
- * are set at runtime from src/theme/colors.ts via initThemeCssVars().
- */
+/* Brand colors and every theme token live in ./theme/theme.css, imported above. */
 
 #root {
     height: 100vh;
@@ -52,9 +50,52 @@ code {
     animation: slide-in-right 0.25s ease-out;
 }
 
-/* ReactFlow style overrides */
+/* Bottom-sheet slide-up (mobile node sheet — keeps the diagram peeking above). */
+@keyframes slide-up {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-up {
+    animation: slide-up 0.25s ease-out;
+}
+
+/*
+ * ReactFlow style overrides.
+ *
+ * ReactFlow serialises `<Background color>` and `<MiniMap nodeColor/maskColor>`
+ * into SVG presentation attributes, where `var()` does not resolve. Those props
+ * are therefore omitted in the components and the colours applied here instead —
+ * a CSS `fill` property always beats a presentation attribute.
+ */
 .react-flow__background {
-    background-color: #ffffff;
+    background-color: var(--calm-bg-base);
+}
+
+/* Dot pattern, formerly `<Background color={THEME.colors.border}>`. */
+.react-flow__background circle {
+    fill: var(--calm-border-default);
+}
+
+/* Line / cross variants, should a graph switch away from dots. */
+.react-flow__background path {
+    stroke: var(--calm-border-default);
+}
+
+/* Minimap veils, formerly the `maskColor` prop. The two graphs deliberately use
+ * different veils, so each opts in by class rather than sharing one rule.
+ * 0x40/0xff = 25%; 0xcc/0xff = 80%. */
+.calm-minimap-mask-surface .react-flow__minimap-mask {
+    fill: color-mix(in srgb, var(--calm-redesign-surface) 25%, transparent);
+}
+
+.calm-minimap-mask-base .react-flow__minimap-mask {
+    fill: color-mix(in srgb, var(--calm-bg-base) 80%, transparent);
 }
 
 .react-flow__edge-labels {
@@ -75,32 +116,52 @@ code {
     border-radius: 8px;
 }
 
-.react-flow__controls-button {
-    background: #ffffff;
-    border-color: #e2e8f0;
-    color: #64748b;
+/* `reactflow/dist/style.css` defines these same selectors and is bundled after this
+ * file, so an unqualified rule here would lose the source-order tie. Scoping under
+ * `.react-flow` adds a class and wins on specificity instead. */
+.react-flow .react-flow__controls-button {
+    background: var(--calm-bg-card);
+    border-color: var(--calm-border-default);
+    color: var(--calm-text-secondary);
 }
 
-.react-flow__controls-button:hover {
-    background: #f1f5f9;
+.react-flow .react-flow__controls-button:hover {
+    background: var(--calm-bg-tertiary);
 }
 
-.react-flow__controls-button svg {
-    fill: #64748b;
+.react-flow .react-flow__controls-button svg {
+    fill: var(--calm-text-secondary);
 }
 
-.react-flow__minimap {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+/* Mobile zoom controls (redesign problem #11): larger touch cells (~40px) bottom
+ * right per Frame F. Scoped to .calm-mobile-controls so the desktop Controls above
+ * keep their default sizing, and under .react-flow to stay at or above the
+ * specificity of the colour rules above it. */
+.react-flow .calm-mobile-controls .react-flow__controls-button {
+    width: 40px;
+    height: 40px;
+}
+
+.react-flow .calm-mobile-controls .react-flow__controls-button svg {
+    width: 18px;
+    height: 18px;
+    max-width: 18px;
+    max-height: 18px;
+}
+
+/* Also defined by reactflow's stylesheet — same specificity note as above. */
+.react-flow .react-flow__minimap {
+    background: var(--calm-bg-secondary);
+    border: 1px solid var(--calm-border-default);
     border-radius: 8px;
 }
 
-.react-flow__attribution {
+.react-flow .react-flow__attribution {
     background: transparent;
 }
 
-.react-flow__attribution a {
-    color: #94a3b8;
+.react-flow .react-flow__attribution a {
+    color: var(--calm-text-muted);
 }
 
 /* ADR marker styles */
@@ -108,12 +169,12 @@ code {
     content: '- ';
     font-size: 100%;
     font-weight: bold;
-    color: #dc2626;
+    color: var(--calm-feedback-negative);
 }
 
 .marker-positive::before {
     content: '+ ';
     font-size: 100%;
     font-weight: bold;
-    color: #16a34a;
+    color: var(--calm-feedback-positive);
 }

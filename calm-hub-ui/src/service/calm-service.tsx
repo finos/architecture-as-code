@@ -6,6 +6,29 @@ import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
 import { apiClient } from './utils/api-client.js';
 
 /**
+ * Build the optional `limit`/`offset` query string for the namespace summary endpoints.
+ * Returns an empty string when no `limit` is supplied so the request URL is unchanged (and the
+ * backend returns the full list) — preserving backward-compatible behaviour.
+ *
+ * `offset` is only included alongside a `limit`: the backend applies it only with a limit
+ * ($slice can't express offset-without-limit) and ignores an offset-only request, so sending
+ * one would be a silent no-op that misleads callers into thinking paging is happening.
+ *
+ * Mirrors the `URLSearchParams` pattern used by `fetchDecoratorValues`.
+ */
+function summaryPageQuery(limit?: number, offset?: number): string {
+    if (limit === undefined) {
+        return '';
+    }
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    if (offset !== undefined) {
+        params.set('offset', String(offset));
+    }
+    return `?${params.toString()}`;
+}
+
+/**
  * Service for interacting with CALM API endpoints.
  * 
  * TODO: Add type safety for API responses by:
@@ -79,10 +102,17 @@ export class CalmService {
             });
     }
 
-    public async fetchPatternSummaries(namespace: string): Promise<ResourceSummary[]> {
+    public async fetchPatternSummaries(
+        namespace: string,
+        limit?: number,
+        offset?: number
+    ): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
+        const query = summaryPageQuery(limit, offset);
         return this.ax
-            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns${query}`, {
+                headers,
+            })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -109,10 +139,17 @@ export class CalmService {
             });
     }
 
-    public async fetchArchitectureSummaries(namespace: string): Promise<ResourceSummary[]> {
+    public async fetchArchitectureSummaries(
+        namespace: string,
+        limit?: number,
+        offset?: number
+    ): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
+        const query = summaryPageQuery(limit, offset);
         return this.ax
-            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures${query}`, {
+                headers,
+            })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })

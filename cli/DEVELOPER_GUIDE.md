@@ -137,3 +137,18 @@ The [OWASP dependency check tool](https://jeremylong.github.io/DependencyCheck/)
 To use the dependency check tool locally, first install the tool following the instructions for your operating system [here](https://jeremylong.github.io/DependencyCheck/dependency-check-cli/index.html).
 
 Once that is done the tool is configured as a script in the package.json, run `npm run dependency-check`; the reports will be output to `cli/dependency-check-report`.
+
+
+## Smoke test suite
+
+A smoke test suite is available under `cli/smoke`. 
+This test suite will:
+- Build a local CalmHub image
+- Build the CLI
+- Run a set of happy-path flows through, validating at each step.
+
+Tests run include common features such as `calm generate/validate`, `calm hub *`, and `calm workspace`.
+
+To run these smoke tests locally, run:
+- `scripts/build-hub-smoke-image.sh`
+- `npm run test:smoke --workspace cli`

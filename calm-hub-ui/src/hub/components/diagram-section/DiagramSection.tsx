@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
-import { Data } from '../../../model/calm.js';
+import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
@@ -26,12 +26,21 @@ import {
 import { computeChanges, type VersionChange } from './timeline/perVersionChanges.js';
 import { fetchVersionData, fetchVersionList } from './compare/compareData.js';
 import { CalmService } from '../../../service/calm-service.js';
+import { colors } from '../../../theme/colors.js';
 import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
 
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
     onItemSelect?: (item: SelectedItem) => void;
     hasDetailsPanel?: boolean;
+    breadcrumbs?: BreadcrumbItem[];
+    /**
+     * Mirrors the resolved display name up to Hub, which snapshots it into the
+     * breadcrumb pushed on detailed-architecture navigation. Must be
+     * identity-stable (memoised by the caller): it is listed in the deps of the
+     * fetch effect that reports it.
+     */
+    onDisplayNameChange?: (name: string | undefined) => void;
 }
 
 const iconMap = {
@@ -41,9 +50,10 @@ const iconMap = {
 
 type DiagramTabType = 'diagram' | 'json' | 'deployments';
 
-export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramSectionProps) {
+export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange }: DiagramSectionProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const tabParam = searchParams.get('tab') as DiagramTabType | null;
     const activeTab: DiagramTabType = tabParam ?? 'diagram';
     const isMobile = useIsMobile();
@@ -94,7 +104,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const [compareError, setCompareError] = useState<string | null>(null);
 
     const setActiveTab = (tab: DiagramTabType) => {
-        setSearchParams({ tab }, { replace: true });
+        setSearchParams({ tab }, { replace: true, state: location.state });
     };
 
     const isArchitecture = data.calmType === 'Architectures';
@@ -108,10 +118,16 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         setCompareFrom(null);
         setCompareTo(null);
         if (version === data.version) return;
-        // Preserve the active tab when switching version.
+        // Preserve the active tab and breadcrumb state when switching version.
         const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
-        navigate(`/${data.name}/${urlType}/${data.id}/${version}${query}`);
+        navigate(`/${data.name}/${urlType}/${data.id}/${version}${query}`, { state: location.state });
     };
+
+    const handleBreadcrumbClick = useCallback((crumb: BreadcrumbItem, index: number) => {
+        navigate(`/${crumb.namespace}/${crumb.type}/${crumb.id}/${crumb.version}`, {
+            state: { breadcrumbs: (breadcrumbs || []).slice(0, index) }
+        });
+    }, [navigate, breadcrumbs]);
 
     const startCompare = (from: string, to: string) => {
         setCompareFrom(from);
@@ -191,14 +207,18 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                 if (cancelled) return;
                 const match = list.find((s) => String(s.id) === data.id || s.customId === data.id);
                 setDisplayName(match?.name);
+                onDisplayNameChange?.(match?.name);
             })
             .catch(() => {
-                if (!cancelled) setDisplayName(undefined);
+                if (!cancelled) {
+                    setDisplayName(undefined);
+                    onDisplayNameChange?.(undefined);
+                }
             });
         return () => {
             cancelled = true;
         };
-    }, [calmService, data.name, data.id, isArchitecture]);
+    }, [calmService, data.name, data.id, isArchitecture, onDisplayNameChange]);
 
     useEffect(() => {
         let cancelled = false;
@@ -286,7 +306,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
         navigate(
             `/${data.name}/${urlType}/${data.id}/${currentMoment.version}${query}`,
-            { replace: true }
+            { replace: true, state: location.state }
         );
     }, [
         isArchitecture,
@@ -300,6 +320,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         urlType,
         activeTab,
         navigate,
+        location.state,
     ]);
 
     const Icon = iconMap[data.calmType];
@@ -394,12 +415,20 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
 
     const viewMenu = (
         <>
+            {/* Labelled "◉ View" pill (redesign problem #11): replaces the bare,
+                unlabeled eye with an icon + visible "View" label, brand-tinted per
+                Frame F. The open/close behaviour and navbar-slot portal are unchanged. */}
             <button
                 aria-label="View options"
-                className="btn btn-ghost btn-circle text-primary"
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold"
+                style={{
+                    backgroundColor: colors.redesign.tintBg,
+                    color: colors.redesign.activeText,
+                }}
                 onClick={() => setShowViewMenu(true)}
             >
                 {activeViewIcon}
+                <span>View</span>
             </button>
             {showViewMenu && (
                 <div className="fixed inset-0 z-40 bg-base-100 flex flex-col animate-slide-in-right" role="dialog" aria-modal="true">
@@ -505,6 +534,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                         displayName={displayName}
                         typeLabel={typeLabel}
                         rightContent={tabs}
+                        breadcrumbs={breadcrumbs}
+                        onBreadcrumbClick={handleBreadcrumbClick}
                     />
                     <div className="flex-1 min-h-0 overflow-hidden">{content}</div>
                     {timelineBar}
@@ -522,6 +553,24 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         <div className="w-full h-full">
             {navbarSlot ? createPortal(viewMenu, navbarSlot) : viewMenu}
             <div className="h-full bg-base-100 overflow-hidden flex flex-col">
+                {/* Mobile has no SectionHeader (full-bleed canvas), so after a
+                    detailed-architecture hop the trail would be unreachable.
+                    iOS-style single back chip instead: one full-width tap target
+                    to the immediate parent, mirroring Hub's Explore bar. Absent
+                    without a trail, so the plain diagram view stays full-bleed. */}
+                {breadcrumbs && breadcrumbs.length > 0 && (
+                    <button
+                        className="w-full flex items-center gap-2 px-4 py-2 bg-base-200 border-b border-base-300 text-sm text-primary shrink-0"
+                        onClick={() =>
+                            handleBreadcrumbClick(breadcrumbs[breadcrumbs.length - 1], breadcrumbs.length - 1)
+                        }
+                    >
+                        <IoChevronBackOutline size={16} className="shrink-0" />
+                        <span className="truncate">
+                            Back to {breadcrumbs[breadcrumbs.length - 1].name || breadcrumbs[breadcrumbs.length - 1].id}
+                        </span>
+                    </button>
+                )}
                 <div className="flex-1 min-h-0 overflow-hidden relative">
                     {content}
                 </div>

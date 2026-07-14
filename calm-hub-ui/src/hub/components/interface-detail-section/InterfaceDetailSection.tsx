@@ -65,7 +65,7 @@ export function InterfaceDetailSection({ interfaceData }: InterfaceDetailSection
                         <span>{interfaceData.interfaceName}</span>
                         {selectedVersion && (
                             <>
-                                <span className="text-gray-400">/</span>
+                                <span className="text-base-content/40">/</span>
                                 <span>{selectedVersion}</span>
                             </>
                         )}
@@ -74,14 +74,14 @@ export function InterfaceDetailSection({ interfaceData }: InterfaceDetailSection
                     <div role="tablist" className="tabs tabs-boxed tabs-xs bg-base-100">
                         <button
                             role="tab"
-                            className={`tab ${viewMode === 'readable' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            className={`tab ${viewMode === 'readable' ? 'tab-active !bg-accent !text-accent-content' : ''}`}
                             onClick={() => setViewMode('readable')}
                         >
                             Readable
                         </button>
                         <button
                             role="tab"
-                            className={`tab ${viewMode === 'raw' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            className={`tab ${viewMode === 'raw' ? 'tab-active !bg-accent !text-accent-content' : ''}`}
                             onClick={() => setViewMode('raw')}
                         >
                             Raw JSON
@@ -97,7 +97,7 @@ export function InterfaceDetailSection({ interfaceData }: InterfaceDetailSection
                                 <button
                                     key={v}
                                     role="tab"
-                                    className={`tab gap-1 rounded-lg ${selectedVersion === v ? 'tab-active !bg-accent !text-white' : ''}`}
+                                    className={`tab gap-1 rounded-lg ${selectedVersion === v ? 'tab-active !bg-accent !text-accent-content' : ''}`}
                                     onClick={() => handleVersionClick(v)}
                                 >
                                     {v}

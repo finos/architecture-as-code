@@ -92,6 +92,14 @@ describe('NamespacePage', () => {
         expect(screen.getByTestId('type-tab-Interfaces')).toBeInTheDocument();
     });
 
+    it('renders exactly the six browse tabs and no Controls tab', () => {
+        // Controls reuse the shared card/badge, but must not become a namespace tab:
+        // guards against the card-surface type widening leaking into the tab set.
+        renderPage();
+        expect(screen.getAllByRole('tab')).toHaveLength(6);
+        expect(screen.queryByTestId('type-tab-Controls')).not.toBeInTheDocument();
+    });
+
     it('defaults the active tab to the first type with items', async () => {
         renderPage();
         expect(screen.getByTestId('type-tab-Architectures')).toHaveAttribute('aria-selected', 'true');

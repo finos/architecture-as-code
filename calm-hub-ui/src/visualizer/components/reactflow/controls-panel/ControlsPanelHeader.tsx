@@ -14,7 +14,7 @@ export function ControlsPanelHeader({ controlCount }: ControlsPanelHeaderProps) 
                 background: THEME.colors.backgroundSecondary,
             }}
         >
-            <FiShield style={{ width: '16px', height: '16px', color: THEME.colors.accent }} />
+            <FiShield style={{ width: '16px', height: '16px', color: THEME.colors.accentText }} />
             <span style={{ fontWeight: 600, fontSize: '14px', color: THEME.colors.foreground }}>
                 CALM Controls
             </span>

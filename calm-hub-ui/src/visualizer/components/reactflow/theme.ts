@@ -9,9 +9,13 @@ import { colors } from '../../../theme/colors.js';
 
 export const THEME = {
     colors: {
-        // Brand colors
+        // Brand colors. `accent` is the chromatic value used for edge strokes, solid
+        // fills and `${accent}20` tints; `accentText` is the same colour in a text or
+        // icon role, which lightens under dark to stay legible. They are not
+        // interchangeable — see the contrast note in src/theme/colors.ts.
         primary: colors.brand.primary,
         accent: colors.brand.accent,
+        accentText: colors.brand.accentText,
         accentLight: colors.brand.accentLight,
 
         // Background colors

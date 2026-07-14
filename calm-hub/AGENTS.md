@@ -338,10 +338,12 @@ curl -s -X POST http://localhost:8080/mcp \
 
 | Workflow file | Image tag | Trigger (path filter on `main`) |
 |:-------------|:----------|:-------------------------------|
-| `docker-publish-calm-hub.yml` | `latest` | `calm-hub/**`, `calm-hub-ui/**` |
-| `docker-publish-calm-hub-native.yml` | `latest-native` | `calm-hub/**`, `calm-hub-ui/**` |
-| `docker-publish-calm-hub-readonly.yml` | `latest-read-only-static` | `calm-hub/**`, `calm-hub-ui/**`, `calm/**` |
-| `docker-publish-calm-hub-readonly-native.yml` | `latest-read-only-native` | `calm-hub/**`, `calm-hub-ui/**`, `calm/**` |
+| `docker-publish-calm-hub.yml` | `latest` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
+| `docker-publish-calm-hub-native.yml` | `latest-native` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
+| `docker-publish-calm-hub-readonly.yml` | `latest-read-only-static` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**`, `calm/**` |
+| `docker-publish-calm-hub-readonly-native.yml` | `latest-read-only-native` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**`, `calm/**` |
+
+`calm-hub/ec2/**` (the EC2 deployment scripts) is excluded from all four triggers so edits to the on-box install/deploy tooling don't kick off a native multi-arch image rebuild.
 
 All four workflows:
 - Support `workflow_dispatch` with a `tag` input (default: the tag above).

@@ -4,7 +4,9 @@ import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
+import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -74,14 +76,17 @@ public class ArchitectureResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Retrieve architectures in a given namespace",
-            description = "Architecture stored in a given namespace"
+            description = "Architecture stored in a given namespace. Optional limit/offset query "
+                    + "parameters page the result; when omitted the full list is returned. Offset "
+                    + "is only applied alongside a limit."
     )
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getArchitecturesForNamespace(
-            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @Valid @BeanParam PaginationQueryParams page
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getArchitecturesForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(store.getArchitecturesForNamespace(namespace, page.toPageRequest()))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving architectures", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

@@ -61,6 +61,15 @@ export interface AdrSummary {
     status: string;
 }
 
+export interface BreadcrumbItem {
+    namespace: string;
+    type: 'architectures' | 'patterns';
+    id: string;
+    version: string;
+    /** Human-readable display name; falls back to id when absent. */
+    name?: string;
+}
+
 export type Data =
     | {
         id: string;

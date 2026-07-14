@@ -35,7 +35,7 @@ export function StatTile({ value, label, accent = false, loaded = true }: StatTi
                     color: !loaded
                         ? colors.redesign.disabled
                         : accent
-                          ? colors.redesign.primary
+                          ? colors.redesign.primaryText
                           : colors.redesign.ink,
                 }}
             >

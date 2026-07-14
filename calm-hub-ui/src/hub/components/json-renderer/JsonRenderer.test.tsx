@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { JsonRenderer } from './JsonRenderer.js';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { CALM_DARK } from '../../../theme/monaco-theme.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -11,15 +12,32 @@ vi.mock('react-router-dom', async () => {
     };
 });
 
+/** Themes registered through the `beforeMount` hook the real Editor would call. */
+const definedThemes: string[] = [];
+
 vi.mock('@monaco-editor/react', () => ({
-    Editor: ({ value, options }: { value: string; options?: { lineNumbers?: 'on' | 'off' } }) => (
-        <textarea
-            value={value}
-            readOnly
-            data-testid="monaco-editor"
-            data-line-numbers={options?.lineNumbers}
-        />
-    )
+    Editor: ({
+        value,
+        options,
+        theme,
+        beforeMount,
+    }: {
+        value: string;
+        options?: { lineNumbers?: 'on' | 'off' };
+        theme?: string;
+        beforeMount?: (monaco: unknown) => void;
+    }) => {
+        beforeMount?.({ editor: { defineTheme: (name: string) => definedThemes.push(name) } });
+        return (
+            <textarea
+                value={value}
+                readOnly
+                data-testid="monaco-editor"
+                data-line-numbers={options?.lineNumbers}
+                data-theme={theme}
+            />
+        );
+    }
 }));
 
 describe('JsonRenderer', () => {
@@ -93,5 +111,46 @@ describe('JsonRenderer', () => {
 
         const textarea = screen.getByTestId('monaco-editor');
         expect(textarea).toHaveAttribute('data-line-numbers', 'off');
+    });
+
+    describe('theme', () => {
+        beforeEach(() => {
+            definedThemes.length = 0;
+        });
+        afterEach(() => document.documentElement.removeAttribute('data-theme'));
+
+        // Registration must happen even when mounting in light, or toggling to dark
+        // would name a theme Monaco has never heard of and it would fall back to vs.
+        it('registers the CALM dark theme on mount, whichever theme is active', () => {
+            document.documentElement.setAttribute('data-theme', 'light');
+            render(
+                <MemoryRouter>
+                    <JsonRenderer json={{ a: 1 }} />
+                </MemoryRouter>
+            );
+            expect(definedThemes).toContain(CALM_DARK);
+        });
+
+        // Monaco ignores our stylesheet, so without this its light syntax colours
+        // render as near-black text on the dark surface.
+        it('uses the CALM dark Monaco theme when the document is dark', () => {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            render(
+                <MemoryRouter>
+                    <JsonRenderer json={{ a: 1 }} />
+                </MemoryRouter>
+            );
+            expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-theme', CALM_DARK);
+        });
+
+        it('uses the light Monaco theme when the document is light', () => {
+            document.documentElement.setAttribute('data-theme', 'light');
+            render(
+                <MemoryRouter>
+                    <JsonRenderer json={{ a: 1 }} />
+                </MemoryRouter>
+            );
+            expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-theme', 'light');
+        });
     });
 });

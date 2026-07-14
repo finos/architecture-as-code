@@ -193,7 +193,8 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                 attributionPosition="bottom-left"
                 style={{ background: THEME.colors.background }}
             >
-                <Background color={THEME.colors.border} gap={16} />
+                {/* Dot colour lives in index.css — see ArchitectureGraph. */}
+                <Background gap={16} />
                 {!isMobile && (
                     <Controls
                         style={{
@@ -205,12 +206,12 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                 )}
                 {!isMobile && (
                     <MiniMap
+                        className="calm-minimap-mask-base"
                         style={{
                             background: THEME.colors.backgroundSecondary,
                             border: `1px solid ${THEME.colors.border}`,
                         }}
                         nodeColor={THEME.colors.accent}
-                        maskColor={`${THEME.colors.background}cc`}
                     />
                 )}
                 <Panel position="top-left">

@@ -1,5 +1,6 @@
 package org.finos.calm.domain.controls;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
 import java.util.Objects;
@@ -9,6 +10,7 @@ import java.util.Objects;
  * the browse rail's control-domain section can show live counts without one
  * client round-trip per domain.
  */
+@RegisterForReflection
 @JsonbPropertyOrder({"domain", "controlCount"})
 public class DomainControlCount {
     private final String domain;

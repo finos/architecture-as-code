@@ -80,7 +80,7 @@ export function DecisionSelectorPanel({
                             style={{
                                 border: 'none',
                                 background: 'transparent',
-                                color: THEME.colors.accent,
+                                color: THEME.colors.accentText,
                                 cursor: 'pointer',
                                 fontSize: '11px',
                                 padding: '2px 4px',

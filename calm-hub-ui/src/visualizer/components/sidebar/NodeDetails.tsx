@@ -1,7 +1,8 @@
 import { CalmNodeSchema } from '@finos/calm-models/types';
 import { ZoomIn } from 'lucide-react';
-import { extractNodeType } from '../reactflow/utils/calmHelpers.js';
+import { extractNodeType, resolveDetailedArchitecture } from '../reactflow/utils/calmHelpers.js';
 import { getNodeTypeColor } from '../../../theme/helpers.js';
+import { useDiagramActions } from '../../context/DiagramActionsContext.js';
 import type { ControlItem } from '../../contracts/contracts.js';
 import {
     Badge, RiskLevelBadge,
@@ -15,6 +16,7 @@ const KNOWN_FIELDS = new Set([
 ]);
 
 export function NodeDetails({ data }: { data: CalmNodeSchema }) {
+    const { onNavigateToDetailedArch } = useDiagramActions();
     const nodeType = extractNodeType(data) || 'Unknown';
     const Icon = getNodeIcon(nodeType);
 
@@ -25,8 +27,10 @@ export function NodeDetails({ data }: { data: CalmNodeSchema }) {
 
     const controls: Record<string, ControlItem> = data.controls || {};
     const interfaces = (data.interfaces || []) as Record<string, unknown>[];
-    const detailedArch = data.details?.['detailed-architecture'];
+    const detailedArchRaw = data.details?.['detailed-architecture'];
     const extraProps = getExtraProperties(data as unknown as Record<string, unknown>, KNOWN_FIELDS);
+
+    const archResolution = resolveDetailedArchitecture(detailedArchRaw);
 
     return (
         <div className="flex flex-col gap-3 p-4 overflow-auto">
@@ -43,10 +47,31 @@ export function NodeDetails({ data }: { data: CalmNodeSchema }) {
                 <p className="text-sm text-base-content/70 leading-relaxed">{data.description}</p>
             )}
 
-            {detailedArch && (
-                <div className="flex items-center gap-2 text-xs text-accent font-medium bg-accent/10 rounded-lg px-3 py-2">
-                    <ZoomIn className="w-3.5 h-3.5" />
-                    Has detailed architecture
+            {detailedArchRaw && (
+                <div className="flex items-start gap-2 text-xs text-accent font-medium bg-accent/10 rounded-lg px-3 py-2">
+                    <ZoomIn className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <div className="flex flex-col min-w-0">
+                        <span>Detailed Architecture</span>
+                        {archResolution.type === 'internal' && onNavigateToDetailedArch ? (
+                            <button
+                                onClick={() => onNavigateToDetailedArch(archResolution.path)}
+                                className="font-mono font-normal text-accent underline hover:text-accent/70 truncate text-left"
+                            >
+                                {detailedArchRaw}
+                            </button>
+                        ) : archResolution.type === 'external' ? (
+                            <a
+                                href={detailedArchRaw}
+                                className="font-mono font-normal text-accent underline hover:text-accent/70 truncate"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                {detailedArchRaw}
+                            </a>
+                        ) : (
+                            <span className="font-mono font-normal text-base-content/60 truncate">{detailedArchRaw}</span>
+                        )}
+                    </div>
                 </div>
             )}
 

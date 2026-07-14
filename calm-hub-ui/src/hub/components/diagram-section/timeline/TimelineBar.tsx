@@ -211,7 +211,7 @@ export function TimelineBar({
             ) : (
                 <div
                     data-testid="timeline-bar-expanded"
-                    className="bg-white border-t font-inter"
+                    className="bg-base-100 border-t font-inter"
                     style={{ borderTopColor: colors.ink[200] }}
                 >
                     <div

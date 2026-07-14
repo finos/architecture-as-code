@@ -21,6 +21,7 @@ const callbacks = {
     onAdrLoad: vi.fn(),
     onControlLoad: vi.fn(),
     onInterfaceLoad: vi.fn(),
+    onLoadError: vi.fn(),
 };
 
 function Harness() {
@@ -73,6 +74,7 @@ describe('useResourceFromRoute', () => {
                 'traderx',
                 'my-arch',
                 expect.anything(),
+                expect.any(Function),
                 expect.any(Function)
             );
         });
@@ -120,5 +122,85 @@ describe('useResourceFromRoute', () => {
                 controlTitle: 'Encryption at rest',
             });
         });
+    });
+});
+
+describe('useResourceFromRoute — load failures', () => {
+    it('reports a failed slug load through onLoadError', async () => {
+        vi.spyOn(loaders, 'loadResourceForId').mockImplementation(
+            (_version, _type, _ns, _id, _svc, _onData, onError) => {
+                onError?.(new Error('404'));
+            }
+        );
+        renderAt('/finos/architectures/model-registry/1.0.0');
+        await waitFor(() => expect(callbacks.onLoadError).toHaveBeenCalled());
+        expect(callbacks.onDataLoad).not.toHaveBeenCalled();
+    });
+
+    it('reports a failed numeric-id load through onLoadError', async () => {
+        vi.spyOn(loaders, 'loadResource').mockImplementation(({ onError }) => {
+            onError?.(new Error('404'));
+        });
+        renderAt('/finos/architectures/42/1.0.0');
+        await waitFor(() => expect(callbacks.onLoadError).toHaveBeenCalled());
+        expect(callbacks.onDataLoad).not.toHaveBeenCalled();
+    });
+});
+
+describe('useResourceFromRoute — stale results after navigation', () => {
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    it('drops a late numeric-id success that resolves after cleanup', async () => {
+        let emitData: ((data: unknown) => void) | undefined;
+        vi.spyOn(loaders, 'loadResource').mockImplementation(({ onDataLoad }) => {
+            emitData = onDataLoad as (data: unknown) => void;
+        });
+        const { unmount } = renderAt('/finos/architectures/42/1.0.0');
+        await waitFor(() => expect(emitData).toBeDefined());
+
+        unmount();
+        emitData!({ id: 'stale' });
+
+        expect(callbacks.onDataLoad).not.toHaveBeenCalled();
+    });
+
+    it('drops a late slug success that resolves after cleanup', async () => {
+        let emitData: ((data: unknown) => void) | undefined;
+        vi.spyOn(loaders, 'loadResourceForId').mockImplementation(
+            (_version, _type, _ns, _id, _svc, onData) => {
+                emitData = onData as (data: unknown) => void;
+            }
+        );
+        const { unmount } = renderAt('/finos/architectures/my-arch/1.0.0');
+        await waitFor(() => expect(emitData).toBeDefined());
+
+        unmount();
+        emitData!({ id: 'stale' });
+
+        expect(callbacks.onDataLoad).not.toHaveBeenCalled();
+    });
+
+    it('drops a late interface success that resolves after cleanup', async () => {
+        let resolveInterfaces: (value: unknown) => void = () => undefined;
+        fetchInterfacesForNamespace.mockReturnValue(new Promise((resolve) => { resolveInterfaces = resolve; }));
+        const { unmount } = renderAt('/traderx/interfaces/7/detail');
+
+        unmount();
+        resolveInterfaces([{ id: 7, name: 'My Interface', description: 'desc' }]);
+        await flush();
+
+        expect(callbacks.onInterfaceLoad).not.toHaveBeenCalled();
+    });
+
+    it('drops a late control success that resolves after cleanup', async () => {
+        let resolveControls: (value: unknown) => void = () => undefined;
+        fetchControlsForDomain.mockReturnValue(new Promise((resolve) => { resolveControls = resolve; }));
+        const { unmount } = renderAt('/security/controls/5/detail');
+
+        unmount();
+        resolveControls([{ id: 5, name: 'Encryption', description: 'desc' }]);
+        await flush();
+
+        expect(callbacks.onControlLoad).not.toHaveBeenCalled();
     });
 });

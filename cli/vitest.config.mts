@@ -1,4 +1,4 @@
-import {defineConfig} from 'vitest/config';
+import {configDefaults, defineConfig} from 'vitest/config';
 import {CoverageV8Options} from "vitest/node";
 
 const v8CoverageSettings: CoverageV8Options = {
@@ -10,7 +10,7 @@ const v8CoverageSettings: CoverageV8Options = {
         lines: 75,
         statements: 75
     },
-    exclude: ['test_fixtures/**', '*.config.ts'],
+    exclude: ['test_fixtures/**', '*.config.ts', 'smoke/**'],
     include: ['**/*.ts']
 }
 
@@ -18,6 +18,7 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'node',
+        exclude: [...configDefaults.exclude, '**/*.smoke.spec.ts'],
         coverage: {
             provider: 'v8',
             ...v8CoverageSettings,

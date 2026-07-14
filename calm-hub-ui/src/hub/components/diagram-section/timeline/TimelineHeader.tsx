@@ -39,7 +39,7 @@ export function TimelineHeader({ currentVersion, children }: TimelineHeaderProps
                 className="font-mono-jb rounded-full"
                 style={{
                     backgroundColor: colors.redesign.tintBg,
-                    color: colors.redesign.primary,
+                    color: colors.redesign.primaryText,
                     fontSize: 11,
                     fontWeight: 600,
                     padding: '2px 8px',

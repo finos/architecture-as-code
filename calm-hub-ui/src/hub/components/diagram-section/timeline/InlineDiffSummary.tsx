@@ -276,7 +276,7 @@ function Pill({ kind, name, type }: { kind: 'add' | 'mod' | 'del'; name: string;
                 style={{
                     width: 18,
                     height: 18,
-                    background: '#ffffff',
+                    background: colors.background.card,
                     color: palette.fg,
                     fontWeight: 700,
                     fontSize: 12,

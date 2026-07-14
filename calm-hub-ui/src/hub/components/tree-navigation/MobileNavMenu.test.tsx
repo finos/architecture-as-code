@@ -3,6 +3,7 @@ import { MemoryRouter, useNavigate, useParams } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 import { MobileNavMenu } from './MobileNavMenu.js';
 import type { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
+import { colors } from '../../../theme/colors.js';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -129,7 +130,7 @@ describe('MobileNavMenu', () => {
 
         // Zero-count badges are dimmed (faint bg), matching the desktop type tabs.
         const zeroBadge = badges.find((b) => b.textContent === '0')!;
-        expect(zeroBadge).toHaveStyle({ backgroundColor: '#F4F6F9' });
+        expect(zeroBadge).toHaveStyle({ backgroundColor: colors.redesign.badgeBgFaint });
     });
 
     it('shows a count badge on each control-domain row', async () => {
@@ -147,7 +148,7 @@ describe('MobileNavMenu', () => {
         fireEvent.click(screen.getByText('Namespaces'));
 
         const activeRow = (await screen.findByText('traderx')).closest('button')!;
-        expect(activeRow).toHaveStyle({ backgroundColor: '#EEF4FF' });
+        expect(activeRow).toHaveStyle({ backgroundColor: colors.redesign.tintBg });
     });
 
     it('navigates to a resource and closes when a leaf is selected', async () => {

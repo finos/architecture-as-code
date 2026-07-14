@@ -23,6 +23,8 @@
 #   GET    /api/calm/namespaces                              body contains "finos.calm","finos.traderx","workshop"
 #   GET    /api/calm/namespaces/finos.calm/standards         -> 200 + body contains "name"
 #   GET    /api/calm/namespaces/finos.calm/interfaces        -> 200 + body contains "name"
+#   GET    /api/calm/domains/counts                          -> 200 + body contains "controlCount","finos-ai-governance"
+#   GET    /api/calm/domains/finos-ai-governance/controls    -> 200 + body contains "id":1,"AIR-OP-004
 #   GET    /api/calm/namespaces/workshop/patterns            -> 200 + body contains "Conference Signup Pattern"
 #   GET    /api/calm/namespaces/workshop/architectures       -> 200 + body contains "name","description"
 #   GET    /api/calm/namespaces/finos.traderx/architectures  -> 200 + body contains "name"
@@ -119,6 +121,20 @@ if [[ "${MODE}" == "readonly" ]]; then
     assert_body_contains GET /api/calm/namespaces/finos.calm/standards '"name"'
     assert GET /api/calm/namespaces/finos.calm/interfaces 200
     assert_body_contains GET /api/calm/namespaces/finos.calm/interfaces '"name"'
+
+    # Control-domain counts (browse rail) — guards against DomainControlCount
+    # serializing as an empty object in native (missing @RegisterForReflection)
+    assert GET /api/calm/domains/counts 200
+    assert_body_contains GET /api/calm/domains/counts '"controlCount"'
+    assert_body_contains GET /api/calm/domains/counts '"finos-ai-governance"'
+
+    # Control detail list (domain page) — same native reflection guard, for
+    # ControlDetail. (ControlConfigDetail's /configurations endpoint has no
+    # equivalent coverage: the curated seed creates no control configurations,
+    # so there is no populated body to assert against.)
+    assert GET /api/calm/domains/finos-ai-governance/controls 200
+    assert_body_contains GET /api/calm/domains/finos-ai-governance/controls '"id":1'
+    assert_body_contains GET /api/calm/domains/finos-ai-governance/controls '"AIR-OP-004'
 
     # workshop — patterns and architectures must be present with populated payloads
     # (native-image serialization regression guard: non-empty name/description fields)

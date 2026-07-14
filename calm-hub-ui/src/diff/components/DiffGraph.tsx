@@ -87,7 +87,8 @@ function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphPr
             attributionPosition="bottom-left"
             style={{ background: THEME.colors.background }}
         >
-            <Background color={THEME.colors.border} gap={16} />
+            {/* Dot colour lives in index.css — see ArchitectureGraph. */}
+            <Background gap={16} />
             {!isMobile && (
                 <Controls
                     style={{
@@ -99,12 +100,12 @@ function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphPr
             )}
             {!isMobile && (
                 <MiniMap
+                    className="calm-minimap-mask-base"
                     style={{
                         background: THEME.colors.backgroundSecondary,
                         border: `1px solid ${THEME.colors.border}`,
                     }}
                     nodeColor={THEME.colors.accent}
-                    maskColor={`${THEME.colors.background}cc`}
                 />
             )}
         </ReactFlow>

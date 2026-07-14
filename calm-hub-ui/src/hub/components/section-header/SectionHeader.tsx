@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { IoCopyOutline, IoCheckmarkOutline, IoLinkOutline } from 'react-icons/io5';
-import { isSlug } from '../../../model/calm.js';
+import { BreadcrumbItem, isSlug } from '../../../model/calm.js';
+import { BreadcrumbTrail } from './BreadcrumbTrail.js';
 
 interface SectionHeaderProps {
     icon: ReactNode;
@@ -21,9 +22,12 @@ interface SectionHeaderProps {
     displayName?: string;
     /** Element type label inserted into the trail (e.g. "Architecture"). */
     typeLabel?: string;
+    /** Parent breadcrumbs to render as clickable items before the current trail. */
+    breadcrumbs?: BreadcrumbItem[];
+    onBreadcrumbClick?: (crumb: BreadcrumbItem, index: number) => void;
 }
 
-export function SectionHeader({ icon, namespace, id, version, typeSegment, rightContent, versions, onVersionChange, titleActions, showVersion = true, displayName, typeLabel }: SectionHeaderProps) {
+export function SectionHeader({ icon, namespace, id, version, typeSegment, rightContent, versions, onVersionChange, titleActions, showVersion = true, displayName, typeLabel, breadcrumbs, onBreadcrumbClick }: SectionHeaderProps) {
     const [copied, setCopied] = useState(false);
     const showShareBar = isSlug(id);
     const shareUrl = `${window.location.origin}/calm/namespaces/${encodeURIComponent(namespace)}/${typeSegment}/${encodeURIComponent(id)}/versions/${encodeURIComponent(version)}`;
@@ -40,19 +44,20 @@ export function SectionHeader({ icon, namespace, id, version, typeSegment, right
             <div className="bg-base-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2 border-b border-base-300">
                 <h2 className="text-base sm:text-xl font-semibold flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                     {icon}
+                    {breadcrumbs && <BreadcrumbTrail breadcrumbs={breadcrumbs} onBreadcrumbClick={onBreadcrumbClick} />}
                     {namespace}
                     {typeLabel && (
                         <>
                             {' '}
-                            <span className="text-gray-400">/</span> {typeLabel}
+                            <span className="text-base-content/40">/</span> {typeLabel}
                         </>
                     )}{' '}
-                    <span className="text-gray-400">/</span>{' '}
+                    <span className="text-base-content/40">/</span>{' '}
                     <span title={id}>{displayName || id}</span>
                     {showVersion && (
                         <>
                             {' '}
-                            <span className="text-gray-400">/</span>{' '}
+                            <span className="text-base-content/40">/</span>{' '}
                             {versions && versions.length > 0 ? (
                                 <select
                                     className="select select-ghost text-xl font-semibold !h-auto !min-h-0 !py-0 !pl-1 !pr-6 !leading-tight !border-0 focus:!outline-none"
@@ -73,7 +78,7 @@ export function SectionHeader({ icon, namespace, id, version, typeSegment, right
                     )}
                     {titleActions}
                 </h2>
-                {rightContent}
+                {rightContent && <div className="shrink-0">{rightContent}</div>}
             </div>
             {showShareBar && (
                 <div className="bg-base-200 px-4 sm:px-6 py-2 flex items-center gap-2 border-b border-base-300" data-testid="share-bar">

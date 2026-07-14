@@ -15,6 +15,8 @@ export interface LoadResourceOptions {
     onDataLoad: (data: Data) => void;
     onAdrLoad: (adr: Adr) => void;
     adrService: AdrService;
+    /** Invoked when the resource fetch rejects (e.g. the resource does not exist). */
+    onError?: (error: unknown) => void;
 }
 
 export function mapTypeInUrlToTypeInUI(urlType: TypeInUrl): TypeInUI {
@@ -66,9 +68,13 @@ export function loadResourceForId(
     resourceID: string,
     calmService: CalmService,
     onDataLoad: (data: Data) => void,
+    onError?: (error: unknown) => void,
 ) {
     if (isSlug(resourceID)) {
-        calmService.fetchResourceByCustomId(namespace, resourceID, version, type).then(onDataLoad);
+        calmService
+            .fetchResourceByCustomId(namespace, resourceID, version, type)
+            .then(onDataLoad)
+            .catch((error) => onError?.(error));
     }
 }
 
@@ -138,16 +144,18 @@ export function loadResource({
     onDataLoad,
     onAdrLoad,
     adrService,
+    onError,
 }: LoadResourceOptions) {
+    const handleError = (error: unknown) => onError?.(error);
     if (type === 'Architectures') {
-        calmService.fetchArchitecture(namespace, resourceID, version).then(onDataLoad);
+        calmService.fetchArchitecture(namespace, resourceID, version).then(onDataLoad).catch(handleError);
     } else if (type === 'Patterns') {
-        calmService.fetchPattern(namespace, resourceID, version).then(onDataLoad);
+        calmService.fetchPattern(namespace, resourceID, version).then(onDataLoad).catch(handleError);
     } else if (type === 'Flows') {
-        calmService.fetchFlow(namespace, resourceID, version).then(onDataLoad);
+        calmService.fetchFlow(namespace, resourceID, version).then(onDataLoad).catch(handleError);
     } else if (type === 'Standards') {
-        calmService.fetchStandard(namespace, resourceID, version).then(onDataLoad);
+        calmService.fetchStandard(namespace, resourceID, version).then(onDataLoad).catch(handleError);
     } else if (type === 'ADRs') {
-        adrService.fetchAdr(namespace, resourceID, version).then(onAdrLoad);
+        adrService.fetchAdr(namespace, resourceID, version).then(onAdrLoad).catch(handleError);
     }
 }

@@ -46,8 +46,9 @@ describe('LandingStatTiles', () => {
         render(<LandingStatTiles namespaceCounts={namespaceCounts} domainCounts={domainCounts} />);
         const nsTile = screen.getByText('Namespaces').closest('[data-testid="stat-tile"]')!;
         const numberEl = nsTile.querySelector('.font-mono-jb') as HTMLElement;
-        // jsdom normalises hex to rgb; compare via the element's inline style colour.
-        expect(numberEl.style.color.replace(/\s/g, '')).toBe('rgb(37,99,235)');
+        // The number is text, so it takes the text-role token, which lightens on dark.
+        expect(numberEl.style.color).toBe(colors.redesign.primaryText);
+        // Guard against regressing to the navy brand or a neutral.
         expect(colors.redesign.primary).toBe('#2563EB');
     });
 

@@ -71,11 +71,11 @@ export function DisplayConsideredOptions(props: { consideredOptions: Option[] })
     for (const consideredOption of props.consideredOptions) {
         returnList.push(
             <div className="mt-3">
-                <div className="collapse collapse-arrow border border-l-4 border-gray-300 border-l-blue-500">
+                <div className="collapse collapse-arrow border border-l-4 border-base-300 border-l-blue-500">
                     <input type="checkbox" />
                     <div className="collapse-title font-bold">{consideredOption.name}</div>
 
-                    <div className="collapse-content border-t border-gray-300">
+                    <div className="collapse-content border-t border-base-300">
                         <div className=" pt-1 pe-2 markdownParagraphSpacing">
                             <Markdown>{consideredOption.description}</Markdown>
                         </div>

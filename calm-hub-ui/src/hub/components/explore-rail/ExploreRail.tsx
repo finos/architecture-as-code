@@ -53,7 +53,7 @@ export function ExploreRail({ namespaceCounts, domainCounts, onCollapse }: Explo
         >
             <div className="flex items-center justify-between px-3 pt-3 pb-2">
                 <h2 className="flex items-center gap-2 font-bold text-[15px]" style={{ color: colors.redesign.ink }}>
-                    <IoCompassOutline style={{ color: colors.redesign.primary }} />
+                    <IoCompassOutline style={{ color: colors.redesign.primaryText }} />
                     Explore
                 </h2>
                 {onCollapse && (

@@ -82,8 +82,8 @@ export function DeploymentDetail({ decorator }: { decorator: DeploymentDecorator
                             fontWeight: 600,
                             padding: '6px 14px',
                             borderRadius: '6px',
-                            background: '#e5e7eb',
-                            color: '#9ca3af',
+                            background: 'var(--calm-chip-disabled-bg)',
+                            color: 'var(--calm-chip-disabled-fg)',
                             whiteSpace: 'nowrap',
                             cursor: 'default',
                         }}

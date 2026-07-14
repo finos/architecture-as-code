@@ -143,7 +143,7 @@ describe('Drawer', () => {
 
     it('does not show sidebar initially', () => {
         render(<Drawer data={calmData as unknown as Data} />);
-        expect(screen.queryByLabelText('close-sidebar')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Close details')).not.toBeInTheDocument();
     });
 
     it('surfaces an error (and does not throw) when a non-JSON file is dropped', async () => {

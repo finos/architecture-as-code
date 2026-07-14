@@ -98,7 +98,8 @@ describe('AdminPage (active-state consistency, problem #8)', () => {
     it('uses the redesign blue (not navy/neutral) on the active desktop sidebar link', () => {
         renderLayout(adminState, '/admin/namespaces');
         const activeLink = screen.getByRole('link', { name: /namespaces/i });
-        expect(activeLink).toHaveStyle({ color: REDESIGN_BLUE_RGB });
+        // The label is text, so it takes the text-role token, which lightens on dark.
+        expect(activeLink).toHaveStyle({ color: colors.redesign.primaryText });
         // Guard against regressing to the global navy brand or a neutral pill.
         expect(colors.redesign.primary).toBe('#2563EB');
         expect(activeLink).not.toHaveClass('menu-active');
@@ -107,14 +108,15 @@ describe('AdminPage (active-state consistency, problem #8)', () => {
     it('does not apply the active blue to a resting desktop sidebar link', () => {
         renderLayout(adminState, '/admin/namespaces');
         const restingLink = screen.getByRole('link', { name: /entitlements/i });
-        expect(restingLink).not.toHaveStyle({ color: REDESIGN_BLUE_RGB });
+        expect(restingLink).not.toHaveStyle({ color: colors.redesign.primaryText });
     });
 
     it('uses the redesign blue on the active mobile tab', () => {
         restore = mockMobileViewport(true);
         renderLayout(adminState, '/admin/namespaces');
         const activeTab = screen.getByRole('link', { name: /namespaces/i });
-        expect(activeTab).toHaveStyle({ color: REDESIGN_BLUE_RGB });
+        expect(activeTab).toHaveStyle({ color: colors.redesign.primaryText });
+        // The underline is a border, not text, so it keeps the chromatic blue.
         expect(activeTab).toHaveStyle({ borderBottomColor: REDESIGN_BLUE_RGB });
     });
 });

@@ -2,7 +2,7 @@ import type { DeploymentStatus } from './deployment-types.js';
 import { STATUS_STYLES } from './deployment-types.js';
 
 export function StatusBadge({ status }: { status?: DeploymentStatus }) {
-    const style = status ? STATUS_STYLES[status] : { background: '#f3f4f6', color: '#4b5563', dot: '#6b7280' };
+    const style = status ? STATUS_STYLES[status] : STATUS_STYLES.pending;
     return (
         <span
             style={{

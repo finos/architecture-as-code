@@ -142,10 +142,10 @@ export function MomentCards({
                 // active state matches the one blue active system used elsewhere
                 // (redesign problem #8). Badges (NOW / FROM / TO) are independent.
                 const borderColor = isViewed ? colors.redesign.primary : colors.ink[200];
-                const background = isViewed ? colors.redesign.tintBg : '#ffffff';
+                const background = isViewed ? colors.redesign.tintBg : colors.background.card;
                 const titleColor =
                     badge === 'FROM' || badge === 'TO'
-                        ? colors.redesign.primary
+                        ? colors.redesign.primaryText
                         : isViewed
                             ? colors.ink[900]
                             : colors.ink[700];

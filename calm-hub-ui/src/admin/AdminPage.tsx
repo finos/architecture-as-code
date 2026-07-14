@@ -10,6 +10,8 @@ import { colors } from '../theme/colors.js';
 // global navy brand (`--color-primary` = #000063) / a neutral pill, so they are
 // NOT used for the active accent here.
 const ACTIVE = colors.redesign.primary;
+/** The same blue in a text role; it has to lighten on dark to stay legible. */
+const ACTIVE_TEXT = colors.redesign.primaryText;
 const ACTIVE_TINT = colors.redesign.tintBg;
 
 function sidebarNavClass({ isActive }: { isActive: boolean }) {
@@ -17,7 +19,7 @@ function sidebarNavClass({ isActive }: { isActive: boolean }) {
 }
 
 function sidebarNavStyle({ isActive }: { isActive: boolean }) {
-    return isActive ? { backgroundColor: ACTIVE_TINT, color: ACTIVE } : undefined;
+    return isActive ? { backgroundColor: ACTIVE_TINT, color: ACTIVE_TEXT } : undefined;
 }
 
 function mobileTabClass({ isActive }: { isActive: boolean }) {
@@ -25,7 +27,7 @@ function mobileTabClass({ isActive }: { isActive: boolean }) {
 }
 
 function mobileTabStyle({ isActive }: { isActive: boolean }) {
-    return isActive ? { borderBottomColor: ACTIVE, color: ACTIVE } : undefined;
+    return isActive ? { borderBottomColor: ACTIVE, color: ACTIVE_TEXT } : undefined;
 }
 
 export function AdminPage() {

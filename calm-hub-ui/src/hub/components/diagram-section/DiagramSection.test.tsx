@@ -3,7 +3,7 @@ import { MemoryRouter, useNavigate } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { Data } from '../../../model/calm.js';
+import { BreadcrumbItem, Data } from '../../../model/calm.js';
 
 const calmServiceMock = {
     fetchDeploymentDecoratorsForArchitecture: vi.fn().mockResolvedValue([]),
@@ -317,7 +317,7 @@ describe('DiagramSection', () => {
 
             await user.click(screen.getByText('nav-2.0.0'));
 
-            expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/2.0.0');
+            expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/2.0.0', expect.objectContaining({ state: null }));
         });
 
         it('keeps the timeline bar visible across tabs', async () => {
@@ -331,6 +331,204 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
             await user.click(screen.getByRole('tab', { name: /json/i }));
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
+        });
+    });
+
+    // Shared: force useIsMobile() to report a mobile viewport. Returns a restore fn.
+    function mockMobileViewport() {
+        const original = window.matchMedia;
+        window.matchMedia = ((query: string) => ({
+            matches: query.includes('max-width: 1023px'),
+            media: query,
+            onchange: null,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            addListener: () => {},
+            removeListener: () => {},
+            dispatchEvent: () => false,
+        })) as unknown as typeof window.matchMedia;
+        return () => {
+            window.matchMedia = original;
+        };
+    }
+
+    describe('mobile view pill (#11)', () => {
+
+        it('renders a labelled "View" pill (not a bare icon) as the menu trigger on mobile', () => {
+            const restore = mockMobileViewport();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            const trigger = screen.getByRole('button', { name: /view options/i });
+            // The trigger now carries a visible "View" label, replacing the bare eye.
+            expect(trigger).toHaveTextContent('View');
+            restore();
+        });
+
+        it('opens the full-screen view menu when the pill is clicked', async () => {
+            const restore = mockMobileViewport();
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByRole('button', { name: /view options/i }));
+            // Opening reveals the view-mode list (Diagram / JSON / Deployments rows).
+            expect(screen.getByRole('button', { name: /close view options/i })).toBeInTheDocument();
+            restore();
+        });
+
+        // Desktop boundary guard: the pill is gated by render-path (the desktop
+        // return ships `tabs`, never `viewMenu`), not by an `isMobile` conditional
+        // in the JSX. Locking it here means a future refactor that hoists `viewMenu`
+        // into the desktop return regresses with a red test, not green ones. No
+        // matchMedia mock — the default reports desktop.
+        it('shows the view-mode tabs and NOT the "View" pill on desktop', () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            // Desktop ships the inline view-mode tabs...
+            expect(screen.getByRole('tab', { name: /diagram/i })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: /json/i })).toBeInTheDocument();
+            // ...and never the mobile "View options" pill (a button, distinct from
+            // the role="tab" view-mode buttons).
+            expect(screen.queryByRole('button', { name: /view options/i })).not.toBeInTheDocument();
+            expect(screen.queryByText('View')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('breadcrumb navigation', () => {
+        it('renders parent breadcrumb in the heading when breadcrumbs prop is provided', () => {
+            const crumbs: BreadcrumbItem[] = [
+                { namespace: 'finos', type: 'patterns', id: 'api-gateway-pattern', version: '1.0.0' },
+            ];
+
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} breadcrumbs={crumbs} />
+                </MemoryRouter>
+            );
+
+            const heading = screen.getByRole('heading');
+            expect(heading).toHaveTextContent('api-gateway-pattern');
+        });
+
+        it('navigates to parent when breadcrumb is clicked', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+            const user = userEvent.setup();
+            const crumbs: BreadcrumbItem[] = [
+                { namespace: 'finos', type: 'patterns', id: 'api-gateway-pattern', version: '1.0.0' },
+            ];
+
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} breadcrumbs={crumbs} />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByRole('button', { name: 'api-gateway-pattern' }));
+
+            expect(navigate).toHaveBeenCalledWith(
+                '/finos/patterns/api-gateway-pattern/1.0.0',
+                { state: { breadcrumbs: [] } }
+            );
+        });
+    });
+
+    describe('mobile breadcrumb back bar', () => {
+        const crumbs: BreadcrumbItem[] = [
+            { namespace: 'finos', type: 'architectures', id: 'root-arch', version: '1.0.0' },
+            { namespace: 'finos', type: 'architectures', id: 'parent-arch', version: '2.0.0', name: 'Parent Arch' },
+        ];
+
+        it('renders a back chip to the immediate parent on mobile', () => {
+            const restore = mockMobileViewport();
+            try {
+                render(
+                    <MemoryRouter>
+                        <DiagramSection data={architectureData} breadcrumbs={crumbs} />
+                    </MemoryRouter>
+                );
+
+                expect(screen.getByRole('button', { name: /back to Parent Arch/i })).toBeInTheDocument();
+            } finally {
+                restore();
+            }
+        });
+
+        it('navigates to the parent with the trail sliced when tapped', async () => {
+            const restore = mockMobileViewport();
+            try {
+                const navigate = vi.fn();
+                vi.mocked(useNavigate).mockReturnValue(navigate);
+                const user = userEvent.setup();
+                render(
+                    <MemoryRouter>
+                        <DiagramSection data={architectureData} breadcrumbs={crumbs} />
+                    </MemoryRouter>
+                );
+
+                await user.click(screen.getByRole('button', { name: /back to Parent Arch/i }));
+
+                expect(navigate).toHaveBeenCalledWith('/finos/architectures/parent-arch/2.0.0', {
+                    state: { breadcrumbs: [crumbs[0]] },
+                });
+            } finally {
+                restore();
+            }
+        });
+
+        it('falls back to the parent id when the crumb has no display name', () => {
+            const restore = mockMobileViewport();
+            try {
+                render(
+                    <MemoryRouter>
+                        <DiagramSection data={architectureData} breadcrumbs={[crumbs[0]]} />
+                    </MemoryRouter>
+                );
+
+                expect(screen.getByRole('button', { name: /back to root-arch/i })).toBeInTheDocument();
+            } finally {
+                restore();
+            }
+        });
+
+        it('does not render the chip without a trail (canvas stays full-bleed)', () => {
+            const restore = mockMobileViewport();
+            try {
+                render(
+                    <MemoryRouter>
+                        <DiagramSection data={architectureData} />
+                    </MemoryRouter>
+                );
+
+                expect(screen.queryByRole('button', { name: /back to/i })).not.toBeInTheDocument();
+            } finally {
+                restore();
+            }
+        });
+
+        // Desktop boundary guard: the chip lives only in the mobile return; desktop
+        // shows the header trail instead. No matchMedia mock — default is desktop.
+        it('does not render the chip on desktop even with a trail', () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} breadcrumbs={crumbs} />
+                </MemoryRouter>
+            );
+
+            expect(screen.queryByRole('button', { name: /back to/i })).not.toBeInTheDocument();
+            // The trail itself renders in the header instead.
+            expect(screen.getByRole('button', { name: 'Parent Arch' })).toBeInTheDocument();
         });
     });
 

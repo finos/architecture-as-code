@@ -443,6 +443,26 @@ describe('parsePatternData', () => {
         expect(result.nodes[0].id).toBe('node-1');
     });
 
+    it('extracts detailed-architecture from node details schema', () => {
+        const pattern = makePattern([
+            schemaNode('api-gateway', 'API Gateway', 'system', {
+                details: {
+                    properties: {
+                        'detailed-architecture': {
+                            const: '/calm/namespaces/finos/architectures/api-platform/versions/1-0-0',
+                        },
+                    },
+                    required: ['detailed-architecture'],
+                },
+            }),
+        ]);
+        const result = parsePatternData(pattern);
+        const node = result.nodes.find((n) => n.id === 'api-gateway');
+        expect(node?.data.details).toEqual({
+            'detailed-architecture': '/calm/namespaces/finos/architectures/api-platform/versions/1-0-0',
+        });
+    });
+
     it('does not create edges for unknown node references', () => {
         const pattern = makePattern(
             [schemaNode('node-1', 'Node 1', 'service')],

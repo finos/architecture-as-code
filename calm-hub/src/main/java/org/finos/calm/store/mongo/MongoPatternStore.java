@@ -19,6 +19,7 @@ import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,12 +59,16 @@ public class MongoPatternStore implements PatternStore {
     }
 
     @Override
-    public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
         if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
-        Document namespaceDocument = patternCollection.find(Filters.eq("namespace", namespace)).first();
+        // When paged, the window is pushed down to Mongo via a $slice projection so only the requested
+        // slice of the patterns array is returned rather than the whole list. Unpaged → no projection →
+        // full list (unchanged behaviour). See MongoResourceSlice.
+        Bson filter = Filters.eq("namespace", namespace);
+        Document namespaceDocument = MongoResourceSlice.findNamespaceDoc(patternCollection, filter, "patterns", page);
 
         //protects from an unpopulated mongo collection
         if(namespaceDocument == null || namespaceDocument.isEmpty()) {

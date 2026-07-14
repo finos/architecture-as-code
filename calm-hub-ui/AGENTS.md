@@ -160,6 +160,86 @@ Instead, place `HeaderSection` and `BodySection` in their own files and import t
 - Use `useCallback` for functions referenced in `useEffect` dependency arrays
 - **Never suppress** `react-hooks/exhaustive-deps` — fix the dependency array properly
 
+## Theming (light + dark)
+
+The app ships a light and a dark theme. `<html data-theme>` is the **single source of
+truth**: it is always present and always `light` or `dark`.
+
+### The two systems, and why tokens are split
+
+Colour reaches the DOM two ways, and both must be satisfied:
+
+1. **daisyUI semantic classes** (`bg-base-100`, `text-base-content`, `btn-primary`).
+   These follow `data-theme` for free.
+2. **`src/theme/colors.ts`**, consumed by **inline `style` props** in ~35 files (the
+   ReactFlow visualiser, timeline, explore rail, namespace cards). `data-theme` cannot
+   reach these, because JavaScript bakes the value into the DOM.
+
+So `colors.ts` leaves come in two flavours, and which one a token gets is **not** an
+aesthetic choice:
+
+- **Neutrals** (surfaces, text, borders, washes, the `ink` ramp) are `var(--calm-…)`
+  strings, defined per theme in `src/theme/theme.css`. Inline styles resolve them
+  against the active `data-theme`. No React state, no provider.
+- **Chromatic** values (node-type hues, risk/status, brand accents) stay **hex**,
+  because they are alpha-concatenated (`` `${color}20` ``) — `var(--x)20` is not a
+  colour — and because ReactFlow serialises some into SVG presentation attributes.
+
+### Adding a colour
+
+- Neutral? Add `--calm-*` to **both** blocks in `theme.css` and point `colors.ts` at it.
+  The `[data-theme='light']` value must equal the hex it replaces — light mode must not
+  move.
+- Chromatic and used as **text or an icon**? It needs a separate `…Text` token
+  (`brand.accentText`, `redesign.primaryText`, `resourceTypes.*.accentText`). `#007dff`
+  and `#2563EB` cannot reach 4.5:1 on *any* dark background, not even black, so the
+  text role has to lighten while the fill/border/stripe role does not. Check every new
+  dark tint against its accent with a contrast checker.
+
+### Three traps that have already bitten
+
+1. **SVG presentation attributes ignore `var()`.** ReactFlow writes `<Background color>`
+   and `<MiniMap nodeColor/maskColor>` straight into `fill`/`stroke` attributes. Don't
+   pass theme colours through those props — omit them and style
+   `.react-flow__background circle`, `.react-flow__minimap-mask` etc. in `index.css`,
+   where a CSS *property* beats the attribute.
+2. **`reactflow/dist/style.css` is bundled after `index.css`.** It defines
+   `.react-flow__controls-button`, `.react-flow__minimap` and `.react-flow__attribution a`,
+   so an unqualified override here silently loses the source-order tie. Scope ours under
+   `.react-flow` to win on specificity.
+3. **Components with their own theme system need telling.** Monaco (`JsonRenderer`)
+   paints its own colours. Use `useResolvedTheme()` from `src/theme/useTheme.ts`, which
+   observes the `data-theme` attribute — never call `useTheme()` a second time, as each
+   call holds its own state and the copies drift apart when the toggle is pressed.
+   Monaco's theme API takes literal hex and cannot read `--calm-*`, so the dark editor
+   chrome is duplicated in `src/theme/monaco-theme.ts`; `monaco-theme.test.ts` parses
+   theme.css and fails if the copies drift. It registers the theme from `beforeMount`
+   unconditionally — an editor first mounted in light must still be able to switch.
+
+### Toggle and persistence
+
+`useTheme(storage?)` owns the attribute. It reads `localStorage['calm-theme']`
+(`light` | `dark` | absent → follow the OS via `prefers-color-scheme`, tracked live).
+An inline script in `index.html` applies the same resolution before the bundle loads,
+so there is no flash; do **not** rely on daisyUI's `--prefersdark`, which emits a media
+query for daisyUI's own variables only and would leave every `--calm-*` token unresolved.
+
+Pass a `createMemoryStorage()` from `src/test-support/memory-storage.ts` in tests.
+
+### Testing colour
+
+jsdom's inline-style resolver keeps `var(...)` and `color-mix(...)` verbatim but
+normalises hex to `rgb(...)`. So assert **by reference**
+(`toHaveStyle({ backgroundColor: colors.redesign.tintBg })`), never against a literal
+hex — a literal will break the moment the token becomes a var.
+
+Beware the `mockViewport`/`mockMobileViewport` helpers: they return `matches: <isMobile>`
+for **every** query, not just the width one. Since the Navbar also asks for
+`(prefers-color-scheme: dark)`, a `mockMobileViewport(true)` test silently resolves the
+theme to dark and stamps `data-theme="dark"` on the document. Harmless for the
+assertions that exist today, but if you write a theme-sensitive assertion inside a
+mobile test, match on the query string in the mock.
+
 ## Responsive Design
 
 The CALM Hub UI is **mobile responsive** — it must be usable on phones as well as

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import {
     Shield,
@@ -14,14 +14,67 @@ import {
     Globe2,
     FileText,
     ZoomIn,
+    ExternalLink,
     Info,
 } from 'lucide-react';
-import { extractId, extractNodeType } from './utils/calmHelpers.js';
+import { extractId, extractNodeType, resolveDetailedArchitecture } from './utils/calmHelpers.js';
 import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
 import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
+import { useDiagramActions } from '../../context/DiagramActionsContext.js';
+
+/**
+ * Shared style for the hover-panel action buttons ("Show Details", "Explore
+ * Architecture", "Open Architecture"): one filled `primary` and one bordered
+ * `outline` variant. Inline styles (not classes) are the file's idiom — the
+ * visualiser themes through JS tokens.
+ */
+function PanelButton({
+  variant,
+  onClick,
+  children,
+}: {
+  variant: 'primary' | 'outline';
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  const isPrimary = variant === 'primary';
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        padding: '8px 12px',
+        fontSize: '12px',
+        fontWeight: 500,
+        borderRadius: '6px',
+        background: isPrimary ? THEME.colors.accent : 'transparent',
+        color: isPrimary ? '#ffffff' : THEME.colors.accent,
+        border: isPrimary ? 'none' : `1px solid ${THEME.colors.accent}`,
+        cursor: 'pointer',
+        transition: 'opacity 0.2s',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.opacity = isPrimary ? '0.9' : '0.8';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.opacity = '1';
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function CustomNode({ data }: NodeProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const { onNavigateToDetailedArch } = useDiagramActions();
 
   // Get callbacks from data
   const onShowDetails = data.onShowDetails;
@@ -30,6 +83,14 @@ export function CustomNode({ data }: NodeProps) {
   const description = data.description || 'No description available';
   const nodeType = extractNodeType(data) || 'Unknown';
   const detailedArchitecture = data.details?.['detailed-architecture'];
+  const archResolution = resolveDetailedArchitecture(detailedArchitecture);
+  const isSameOriginArch = archResolution.type === 'internal';
+  const isExternalArch = archResolution.type === 'external';
+  // A truthy ref that resolves to neither an in-app path nor an openable URL
+  // (e.g. a bare filename). There is no drill-down action for it, so the header
+  // indicator is suppressed and the hover panel surfaces the raw value instead.
+  const isUnknownArch = !!detailedArchitecture && archResolution.type === 'unknown';
+  const archPath = archResolution.type === 'internal' ? archResolution.path : undefined;
 
     // Extract AIGF data (if present in node metadata)
     const aigf = data.metadata?.aigf;
@@ -93,6 +154,7 @@ export function CustomNode({ data }: NodeProps) {
 
   return (
     <div
+      data-testid="custom-node"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
@@ -124,9 +186,9 @@ export function CustomNode({ data }: NodeProps) {
         <div style={{ fontWeight: 600, marginBottom: '4px', flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <NodeIcon style={{ width: '16px', height: '16px', flexShrink: 0, color: nodeTypeStyle.color }} />
           <span>{data.label}</span>
-          {detailedArchitecture && (
+          {detailedArchitecture && !isUnknownArch && (
             <div title="Has detailed architecture">
-              <ZoomIn style={{ width: '14px', height: '14px', flexShrink: 0, color: THEME.colors.accent }} />
+              <ZoomIn style={{ width: '20px', height: '20px', flexShrink: 0, color: THEME.colors.accentText }} />
             </div>
           )}
         </div>
@@ -179,7 +241,7 @@ export function CustomNode({ data }: NodeProps) {
                   fontSize: '12px',
                   fontWeight: 500,
                   background: `${THEME.colors.accent}20`,
-                  color: THEME.colors.accent,
+                  color: THEME.colors.accentText,
                 }}
               >
                 <Shield style={{ width: '12px', height: '12px' }} />
@@ -210,7 +272,7 @@ export function CustomNode({ data }: NodeProps) {
         >
           <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px' }}>
             <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Type:</div>
-            <div style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.accent }}>{nodeType}</div>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.accentText }}>{nodeType}</div>
           </div>
           {riskLevel && (
             <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
@@ -279,7 +341,7 @@ export function CustomNode({ data }: NodeProps) {
                       }}
                       title="Click to jump to control definition"
                     >
-                      <div style={{ fontWeight: 500, color: THEME.colors.accent }}>{controlId}</div>
+                      <div style={{ fontWeight: 500, color: THEME.colors.accentText }}>{controlId}</div>
                       {control.description && (
                         <div style={{ color: THEME.colors.muted, marginLeft: '8px' }}>{control.description}</div>
                       )}
@@ -293,39 +355,42 @@ export function CustomNode({ data }: NodeProps) {
             <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Description:</div>
             <div style={{ fontSize: '12px', color: THEME.colors.foreground, lineHeight: 1.5 }}>{description}</div>
           </div>
-          {onShowDetails && (
+          {isUnknownArch && (
             <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShowDetails(data);
-                }}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  borderRadius: '6px',
-                  background: THEME.colors.accent,
-                  color: '#ffffff',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'opacity 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '0.9';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '1';
-                }}
-              >
-                <Info style={{ width: '14px', height: '14px' }} />
-                Show Details
-              </button>
+              <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Detailed Architecture:</div>
+              <div style={{ fontSize: '12px', fontFamily: 'monospace', color: THEME.colors.foreground, wordBreak: 'break-all' }}>
+                {detailedArchitecture}
+              </div>
+            </div>
+          )}
+          {(onShowDetails || isExternalArch || (isSameOriginArch && onNavigateToDetailedArch)) && (
+            <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {onShowDetails && (
+                <PanelButton variant="primary" onClick={() => onShowDetails(data)}>
+                  <Info style={{ width: '14px', height: '14px' }} />
+                  Show Details
+                </PanelButton>
+              )}
+              {isSameOriginArch && onNavigateToDetailedArch && (
+                <PanelButton variant="outline" onClick={() => onNavigateToDetailedArch(archPath!)}>
+                  <ZoomIn style={{ width: '14px', height: '14px' }} />
+                  Explore Architecture
+                </PanelButton>
+              )}
+              {isExternalArch && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <PanelButton
+                    variant="outline"
+                    onClick={() => window.open(detailedArchitecture, '_blank', 'noopener,noreferrer')}
+                  >
+                    <ExternalLink style={{ width: '14px', height: '14px' }} />
+                    Open Architecture
+                  </PanelButton>
+                  <div style={{ fontSize: '11px', color: THEME.colors.muted, textAlign: 'center' }}>
+                    External resource — may require authentication
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

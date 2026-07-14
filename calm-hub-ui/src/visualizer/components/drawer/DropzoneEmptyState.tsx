@@ -32,18 +32,18 @@ export function DropzoneEmptyState({ isDragActive, error }: DropzoneEmptyStatePr
             >
                 <IoCloudUploadOutline
                     size={36}
-                    style={{ color: colors.redesign.primary }}
+                    style={{ color: colors.redesign.primaryText }}
                     aria-hidden="true"
                 />
                 {isDragActive ? (
-                    <p className="text-[15px] font-medium" style={{ color: colors.redesign.primary }}>
+                    <p className="text-[15px] font-medium" style={{ color: colors.redesign.primaryText }}>
                         Drop your file here…
                     </p>
                 ) : (
                     <>
                         <p className="text-[15px]" style={{ color: colors.redesign.body }}>
                             Drag &amp; drop or{' '}
-                            <span className="font-semibold" style={{ color: colors.redesign.primary }}>
+                            <span className="font-semibold" style={{ color: colors.redesign.primaryText }}>
                                 Browse
                             </span>
                         </p>

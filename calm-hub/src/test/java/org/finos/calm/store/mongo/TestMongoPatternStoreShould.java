@@ -24,6 +24,7 @@ import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.store.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -132,6 +133,54 @@ public class TestMongoPatternStoreShould {
         assertThat(patterns.get(1).getId(), is(1002));
         assertThat(patterns.get(1).getVersionCount(), is(1));
         verify(namespaceStore).namespaceExists("finos");
+    }
+
+    @Test
+    void get_patterns_for_namespace_applies_slice_projection_when_limit_provided() throws NamespaceNotFoundException {
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any())).thenReturn(findIterable);
+        Document documentMock = Mockito.mock(Document.class);
+        when(findIterable.first()).thenReturn(documentMock);
+        when(documentMock.getList("patterns", Document.class)).thenReturn(new ArrayList<>());
+
+        mongoPatternStore.getPatternsForNamespace("finos", new PageRequest(3, 6));
+
+        // The limit/offset is pushed down to Mongo as a $slice projection on the patterns array,
+        // rather than being sliced in memory after loading the whole namespace document.
+        verify(findIterable).projection(eq(Projections.slice("patterns", 6, 3)));
+    }
+
+    @Test
+    void get_patterns_for_namespace_clamps_a_negative_offset_to_zero() throws NamespaceNotFoundException {
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any())).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        mongoPatternStore.getPatternsForNamespace("finos", new PageRequest(3, -5));
+
+        // A negative offset is clamped to 0 rather than passed to $slice, which Mongo would otherwise
+        // interpret as "count from the end" — matching the in-memory Nitrite path.
+        verify(findIterable).projection(eq(Projections.slice("patterns", 0, 3)));
+    }
+
+    @Test
+    void get_patterns_for_namespace_does_not_project_when_no_limit_provided() throws NamespaceNotFoundException {
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
+                .thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        mongoPatternStore.getPatternsForNamespace("finos", PageRequest.UNPAGED);
+
+        // No limit → full list → no $slice projection (unchanged behaviour).
+        verify(findIterable, times(0)).projection(any());
     }
 
     @Test

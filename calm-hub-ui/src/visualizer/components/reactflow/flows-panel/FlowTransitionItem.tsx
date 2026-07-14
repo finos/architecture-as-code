@@ -49,7 +49,7 @@ function SequenceBadge({ sequenceNumber }: { sequenceNumber: number }) {
                 height: '20px',
                 borderRadius: '50%',
                 background: `${THEME.colors.accent}20`,
-                color: THEME.colors.accent,
+                color: THEME.colors.accentText,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

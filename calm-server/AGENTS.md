@@ -8,7 +8,7 @@ The calm-server provides:
 
 - **Bundled CALM Schemas** - All CALM schemas (release and draft) are bundled during build
 - **Health Check Endpoint** (`/health`) - Status endpoint for monitoring
-- **Validation Endpoint** (`/calm/validate`) - POST endpoint for validating CALM architectures
+- **Validation Endpoint** (`/calm/validate`) - POST endpoint for validating a CALM architecture. By default it resolves the architecture's `$schema` against the bundled schemas; if the request body also includes an optional `pattern`, the architecture is validated against that runtime-supplied pattern instead. When a pattern is supplied it must include a `$id` field that matches the architecture's `$schema` field
 - **Rate Limiting** - Protects against abuse with 100 requests per 15 minutes per IP
 
 ## Project Structure
@@ -22,7 +22,7 @@ calm-server/
 │   │   └── routes/
 │   │       ├── routes.ts           # Router setup
 │   │       ├── health-route.ts     # Health check endpoint
-│   │       └── validation-route.ts # Architecture validation endpoint
+│   │       └── validation-route.ts # Architecture validation endpoints (/calm/validate, with optional pattern in the body)
 │   └── *.spec.ts                   # Unit tests
 ├── dist/                           # (generated) build output
 │   ├── index.js                    # Compiled executable
@@ -87,6 +87,9 @@ Options:
   -c, --calm-hub-url <url>        URL to CALMHub instance
   --rate-limit-window <ms>        Rate limit window in milliseconds (default: 900000 = 15 minutes)
   --rate-limit-max <requests>     Max requests per IP within the rate limit window (default: 100)
+  --allowed-remote-hosts <hosts>  Commma-separated trusted remote hosts allowed for $ref resolution
+                                  in user-supplied patterns (default: calm.finos.org).
+                                  Also configurable via CALM_ALLOWED_REMOTE_HOSTS.
   -h, --help                      display help for command
 ```
 
@@ -95,6 +98,8 @@ Options:
 - **Default Host**: The server binds to `127.0.0.1` (localhost) by default
 - **No Authentication**: The server has **NO authentication or authorization controls**
 - **Network Exposure Warning**: If you bind to a non-localhost host (e.g., `0.0.0.0`, `::`, public IP), a warning will be logged. Only do this in trusted network environments
+- **User-Supplied Pattern `$ref`s** (pattern supplied to `/calm/validate`): `$ref`s in the supplied pattern are restricted to local fragment references (e.g. `#/defs/node`) and absolute `https(s)` URLs. Absolute filesystem paths (`/etc/...`, `C:\...`), relative paths, and `file://` URLs are rejected with a `400` to prevent arbitrary local-file reads. Remote hosts are governed by the `--allowed-remote-hosts` allowlist (`--allowed-remote-hosts` / `CALM_ALLOWED_REMOTE_HOSTS`, default `calm.finos.org`), mirroring the CLI's construct in `shared`'s `DirectUrlDocumentLoader`
+- **Architecture `$schema` (no pattern supplied)**: when no pattern is provided, the `$schema` field is resolved through the document loader to locate the schema, so it must be an absolute `http(s)` URL. Local filesystem paths (absolute or relative) and `file://` URLs are rejected with a `400` to prevent arbitrary local-file reads. When a pattern **is** supplied, `$schema` is only matched against the pattern's `$id` and is not resolved
 
 ## Testing
 
@@ -122,6 +127,18 @@ kill $SERVER_PID
 curl -X POST http://localhost:3000/calm/validate \
   -H "Content-Type: application/json" \
   -d '{"architecture": "{\"$schema\": \"https://...\"...}"}'
+```
+
+### Test the validation endpoint with pattern
+```bash
+# With a CALM architecture and pattern JSON (pattern is optional on /calm/validate)
+# The architecture's $schema must match the pattern's $id
+curl -X POST http://localhost:3000/calm/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "architecture": "{\"$schema\": \"https://example.com/schema\", \"nodes\": []}",
+    "pattern": "{\"$id\": \"https://example.com/schema\", \"type\": \"object\"}"
+  }'
 ```
 
 ## Dependencies

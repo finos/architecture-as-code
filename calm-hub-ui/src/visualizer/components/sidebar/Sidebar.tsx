@@ -1,18 +1,11 @@
 import { useState } from 'react';
-import { IoCloseOutline, IoCubeOutline, IoGitNetworkOutline, IoEyeOutline, IoCodeOutline } from 'react-icons/io5';
-import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
+import { IoCubeOutline, IoGitNetworkOutline, IoEyeOutline, IoCodeOutline } from 'react-icons/io5';
 import { JsonRenderer } from '../../../hub/components/json-renderer/JsonRenderer.js';
 import { NodeDetails } from './NodeDetails.js';
 import { RelationshipDetails } from './RelationshipDetails.js';
+import { CloseButton } from './CloseButton.js';
+import { isCALMNode, isCALMRelationship } from './calm-type-guards.js';
 import type { SidebarProps } from '../../contracts/visualizer-contracts.js';
-
-function isCALMNode(data: CalmNodeSchema | CalmRelationshipSchema): data is CalmNodeSchema {
-    return 'node-type' in data;
-}
-
-function isCALMRelationship(data: CalmNodeSchema | CalmRelationshipSchema): data is CalmRelationshipSchema {
-    return 'relationship-type' in data;
-}
 
 export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
     const [activeTab, setActiveTab] = useState<'details' | 'json'>('details');
@@ -41,7 +34,7 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                                 role="tab"
                                 aria-label="Details"
                                 onClick={() => setActiveTab('details')}
-                                className={`p-1.5 rounded-md transition-colors ${activeTab === 'details' ? 'bg-accent text-white' : 'text-base-content/50 hover:text-base-content'}`}
+                                className={`p-1.5 rounded-md transition-colors ${activeTab === 'details' ? 'bg-accent text-accent-content' : 'text-base-content/50 hover:text-base-content'}`}
                             >
                                 <IoEyeOutline size={14} />
                             </button>
@@ -49,21 +42,17 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                                 role="tab"
                                 aria-label="JSON"
                                 onClick={() => setActiveTab('json')}
-                                className={`p-1.5 rounded-md transition-colors ${activeTab === 'json' ? 'bg-accent text-white' : 'text-base-content/50 hover:text-base-content'}`}
+                                className={`p-1.5 rounded-md transition-colors ${activeTab === 'json' ? 'bg-accent text-accent-content' : 'text-base-content/50 hover:text-base-content'}`}
                             >
                                 <IoCodeOutline size={14} />
                             </button>
                         </div>
-                        <button
-                            aria-label="close-sidebar"
+                        <CloseButton
                             onClick={(e) => {
                                 e.stopPropagation();
                                 closeSidebar();
                             }}
-                            className="btn btn-ghost btn-xs btn-circle"
-                        >
-                            <IoCloseOutline size={20} />
-                        </button>
+                        />
                     </div>
                 </div>
 

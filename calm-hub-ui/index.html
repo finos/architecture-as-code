@@ -1,7 +1,30 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
+        <script>
+            // Resolve the theme before first paint, so the page never flashes light
+            // before the bundle mounts. `data-theme` must always be present and
+            // always be light or dark: the --calm-* tokens in theme.css are keyed
+            // solely off this attribute, and would resolve to nothing without it.
+            // Kept in sync with src/theme/useTheme.ts.
+            (function () {
+                var theme;
+                try {
+                    theme = localStorage.getItem('calm-theme');
+                } catch (e) {
+                    theme = null;
+                }
+                if (theme !== 'light' && theme !== 'dark') {
+                    theme =
+                        window.matchMedia &&
+                        window.matchMedia('(prefers-color-scheme: dark)').matches
+                            ? 'dark'
+                            : 'light';
+                }
+                document.documentElement.setAttribute('data-theme', theme);
+            })();
+        </script>
         <link rel="icon" href="/brand/Icon/2025_CALM_Icon.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

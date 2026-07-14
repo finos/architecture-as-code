@@ -16,8 +16,10 @@ export function getBadgeStyle(hasFlowInfo: boolean, hasAIGF: boolean): EdgeBadge
             iconColor: THEME.colors.success,
         };
     }
+    // `muted` is a theme var, so it can't take the `${hex}20` alpha suffix the
+    // chromatic branches above use. 0x20/0xff is 12.5%.
     return {
-        background: `${THEME.colors.muted}20`,
+        background: `color-mix(in srgb, ${THEME.colors.muted} 12.5%, transparent)`,
         border: THEME.colors.muted,
         iconColor: THEME.colors.muted,
     };

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { CountBadge } from './CountBadge.js';
+import { colors } from '../../../theme/colors.js';
 
 describe('CountBadge', () => {
     it('renders the integer count', () => {
@@ -10,7 +11,7 @@ describe('CountBadge', () => {
 
     it('renders a grey resting badge by default', () => {
         render(<CountBadge count={1} />);
-        expect(screen.getByTestId('count-badge')).toHaveStyle({ backgroundColor: '#EEF2F7' });
+        expect(screen.getByTestId('count-badge')).toHaveStyle({ backgroundColor: colors.redesign.badgeBg });
     });
 
     it('fills blue with white text when active', () => {
