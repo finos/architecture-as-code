@@ -14,4 +14,6 @@ export default defineConfig({
   dts: true,
   clean: true,
   external: ['@calmstudio/diagram', '@calmstudio/diagram/render', 'react', 'react/jsx-runtime'],
+  // TODO(docusaurus-plugin Task 5): restore `onSuccess: 'cp src/theme/CalmDiagram/styles.css dist/styles.css'`
+  // once styles.css exists — the package.json `./styles.css` export has no producer until then.
 });
