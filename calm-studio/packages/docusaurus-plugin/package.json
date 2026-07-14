@@ -1,0 +1,67 @@
+{
+  "name": "@calmstudio/docusaurus-plugin",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Embed CALM architecture diagrams in Docusaurus MDX — build-time SVG with client-side interactive hydration",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./loader": {
+      "import": "./dist/loader.js",
+      "require": "./dist/loader.cjs"
+    },
+    "./remark": {
+      "import": "./dist/remark.js",
+      "require": "./dist/remark.cjs"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "lint": "echo \"no-op\" && exit 0",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@calmstudio/diagram": "*",
+    "unist-util-visit": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@docusaurus/core": ">=3.0.0",
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@docusaurus/types": "3.9.2",
+    "@mdx-js/mdx": "^3.1.0",
+    "@types/mdast": "^4.0.4",
+    "@types/react": "^19.1.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "mdast-util-mdx-jsx": "^3.2.0",
+    "mdast-util-mdxjs-esm": "^2.0.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "unified": "^11.0.5",
+    "vitest": "^4.1.0",
+    "webpack": "^5.99.5"
+  }
+}
