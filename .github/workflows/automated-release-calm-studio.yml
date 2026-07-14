@@ -49,6 +49,7 @@ jobs:
                   npm run build --if-present --workspace=calmstudio
                   npm run build --if-present --workspace=@calmstudio/github-action
                   npm run build --if-present --workspace=@calmstudio/diagram
+                  npm run build --if-present --workspace=@calmstudio/docusaurus-plugin
 
             - name: Release
               # Run multi-semantic-release from calm-studio dir so it scopes to @calmstudio/*
