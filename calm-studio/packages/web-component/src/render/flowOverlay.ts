@@ -116,7 +116,7 @@ export function getFlowNodeIds(
 ): Set<string> {
   const nodeIds = new Set<string>();
   const flowEdgeIds = new Set(flow.transitions.map((t) => t['relationship-unique-id']));
-  for (const rel of arch.relationships) {
+  for (const rel of arch.relationships ?? []) {
     if (flowEdgeIds.has(rel['unique-id'])) {
       for (const nodeId of getReferencedNodeIdsWithFlatFallback(rel)) {
         nodeIds.add(nodeId);

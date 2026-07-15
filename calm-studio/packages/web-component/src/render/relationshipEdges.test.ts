@@ -125,6 +125,25 @@ describe('relationshipToEdges', () => {
     expect(edges).toEqual([]);
   });
 
+  it('rule 3b: nested interacts with an empty-string node entry filters it via validNodes', () => {
+    const rel: CalmRelationship = {
+      'unique-id': 'rel-interacts-blank',
+      'relationship-type': {
+        interacts: {
+          actor: 'user',
+          nodes: ['svc-a', '', 'svc-b'],
+        },
+      },
+    };
+
+    const edges = relationshipToEdges(rel);
+    expect(edges).toEqual([
+      { id: 'rel-interacts-blank__0', source: 'user', target: 'svc-a', variant: 'interacts' },
+      { id: 'rel-interacts-blank__1', source: 'user', target: 'svc-b', variant: 'interacts' },
+    ]);
+    expect(edges.every((e) => e.target.length > 0)).toBe(true);
+  });
+
   it('rule 6: nested connects with missing destination is defensively skipped', () => {
     const rel = {
       'unique-id': 'rel-missing-dest',

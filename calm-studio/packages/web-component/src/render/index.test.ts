@@ -39,4 +39,24 @@ describe('render entry', () => {
     const dark = await renderELKDiagram(fixture, { theme: 'dark' });
     expect(light).not.toEqual(dark);
   });
+
+  it('renders nodes-only architecture (no relationships key) without crashing', async () => {
+    const nodesOnly = {
+      nodes: [
+        { 'unique-id': 'solo', 'node-type': 'system', name: 'Solo System', description: 'Standalone' },
+      ],
+    } as unknown as CalmArchitecture;
+
+    const svg = await renderELKDiagram(nodesOnly, { theme: 'light' });
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('Solo System');
+  });
+
+  it('renders fully empty architecture (no nodes/relationships keys) as the "No nodes" placeholder', async () => {
+    const empty = {} as unknown as CalmArchitecture;
+
+    const svg = await renderELKDiagram(empty, { theme: 'light' });
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('No nodes');
+  });
 });

@@ -64,8 +64,14 @@ export async function renderELKDiagram(
 ): Promise<string> {
   const { theme = 'light', direction = 'DOWN', flow: flowId } = options;
 
+  // CALM's meta-schema requires no top-level properties, so `nodes` and
+  // `relationships` may both be absent on a valid architecture document.
+  // Normalize once and use these locals throughout.
+  const nodes = arch.nodes ?? [];
+  const relationships = arch.relationships ?? [];
+
   // Handle empty architecture
-  if (arch.nodes.length === 0) {
+  if (nodes.length === 0) {
     const bgColor = theme === 'dark' ? '#1e1e1e' : '#f5f5f5';
     const textColor = theme === 'dark' ? '#ccc' : '#999';
     return (
@@ -76,7 +82,7 @@ export async function renderELKDiagram(
   }
 
   // Expand relationships (nested or legacy flat) into renderable edges
-  const diagramEdges: DiagramEdge[] = arch.relationships.flatMap((r) => relationshipToEdges(r));
+  const diagramEdges: DiagramEdge[] = relationships.flatMap((r) => relationshipToEdges(r));
 
   // Build ELK graph
   const NODE_WIDTH = 180;
@@ -90,7 +96,7 @@ export async function renderELKDiagram(
       'elk.layered.spacing.nodeNodeBetweenLayers': '80',
       'elk.spacing.nodeNode': '60',
     },
-    children: arch.nodes.map((n) => ({
+    children: nodes.map((n) => ({
       id: n['unique-id'],
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
@@ -109,7 +115,7 @@ export async function renderELKDiagram(
   // Build lookup maps
   const nodeTypeMap = new Map<string, string>();
   const nodeDescMap = new Map<string, string>();
-  for (const n of arch.nodes) {
+  for (const n of nodes) {
     nodeTypeMap.set(n['unique-id'], n['node-type']);
     nodeDescMap.set(n['unique-id'], n.description ?? '');
   }
