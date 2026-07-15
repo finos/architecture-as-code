@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "build": "vite build && vite build --config vite.config.iife.ts && vite build --config vite.config.render-cjs.ts",
+    "build": "vite build && vite build --config vite.config.iife.ts && vite build --config vite.config.render-es.ts && vite build --config vite.config.render-cjs.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
