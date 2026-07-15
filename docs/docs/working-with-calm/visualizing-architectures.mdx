@@ -1,0 +1,37 @@
+---
+id: visualizing-architectures
+title: Visualizing Architectures in Docs
+sidebar_position: 99
+---
+
+import { CalmDiagram } from '@finos/calm-docusaurus-plugin'
+
+# Visualizing Architectures in Docs
+
+CALM architectures can be embedded directly in Docusaurus pages — the same
+way you would embed a Mermaid diagram, but driven by your real,
+validatable architecture file instead of a hand-drawn sketch.
+
+The diagram below renders `calm-platform.calm.json`, the CALM
+self-description of the CALM platform itself. It is generated at build
+time as a static SVG (works without JavaScript, indexed by search
+engines) and upgrades in the browser to an interactive view — scroll to
+zoom, drag to pan, click nodes for details.
+
+<CalmDiagram src="./architectures/calm-platform.calm.json" />
+
+## Usage
+
+```mdx
+import { CalmDiagram } from '@finos/calm-docusaurus-plugin'
+
+<CalmDiagram src="./architectures/my-system.calm.json" />
+```
+
+| Prop | Default | Description |
+| --- | --- | --- |
+| `src` | — | Relative path to a `.calm.json` file, or an `https://` URL (fetched client-side). |
+| `data` | — | Inline architecture object (client-rendered). |
+| `theme` | follows site theme | Force `light` or `dark`. |
+| `flow` | — | Flow `unique-id` to highlight after hydration. |
+| `interactive` | `true` | Set `false` to keep the static SVG only. |
