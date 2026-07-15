@@ -25,6 +25,10 @@ describe('calmstudioDocusaurusPlugin', () => {
   });
 
   it('ships its stylesheet as a client module', () => {
-    expect(plugin.getClientModules?.()).toEqual(['@calmstudio/docusaurus-plugin/styles.css']);
+    // Docusaurus resolves getClientModules() entries with
+    // path.resolve(plugin.path, entry) — plugin.path is the resolved entry
+    // file's directory (dist/), so the path must be relative to dist/, not
+    // a package-exports specifier.
+    expect(plugin.getClientModules?.()).toEqual(['./styles.css']);
   });
 });

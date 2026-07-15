@@ -34,7 +34,13 @@ export default function calmstudioDocusaurusPlugin(): Plugin<void> {
       };
     },
     getClientModules() {
-      return ['@calmstudio/docusaurus-plugin/styles.css'];
+      // Docusaurus resolves getClientModules() entries with
+      // `path.resolve(plugin.path, entry)`, where `plugin.path` is the
+      // directory of this plugin's resolved entry file (i.e. `dist/`) — NOT
+      // a module specifier lookup through the package's `exports` map. A
+      // package-specifier string here silently resolves to a bogus nested
+      // path. Use a path relative to `dist/` instead.
+      return ['./styles.css'];
     },
   };
 }
