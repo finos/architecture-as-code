@@ -80,3 +80,4 @@ test-results/
 conferences/qcon/scenario*/infrastructure/
 conferences/qcon/scenario*/generated/
 conferences/qcon/scenario*/generated-*/
+calm-suite/calm-studio/architecture-as-code.code-workspace

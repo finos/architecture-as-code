@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.2/meta/interface.json",
+  "title": "Common Architecture Language Model Interfaces",
+  "defs": {
+    "interface-definition": {
+      "type": "object",
+      "description": "A modular interface definition referencing an external schema",
+      "properties": {
+        "unique-id": {
+          "type": "string",
+          "description": "Unique identifier for this interface instance"
+        },
+        "definition-url": {
+          "type": "string",
+          "description": "URI of the external schema this interface configuration conforms to"
+        },
+        "config": {
+          "type": "object",
+          "description": "Inline configuration conforming to the external interface schema"
+        }
+      },
+      "required": [
+        "unique-id",
+        "definition-url",
+        "config"
+      ],
+      "additionalProperties": false
+    },
+    "interface-type": {
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "unique-id"
+      ],
+      "additionalProperties": true
+    },
+    "node-interface": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "interfaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "node"
+      ]
+    }
+  }
+}

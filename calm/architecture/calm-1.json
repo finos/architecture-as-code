@@ -52,6 +52,19 @@
             "node-type": "system",
             "name": "CALM Hub System",
             "description": "Complete CALM Hub system including API backend, web UI, and database"
+        },
+        {
+            "unique-id": "test",
+            "node-type": "component",
+            "name": "Test",
+            "description": "Test system",
+            "interfaces": [
+                {
+                    "unique-id": "test-port",
+                    "type": "port-interface",
+                    "port": 8080
+                }
+            ]
         }
     ],
     "relationships": [
@@ -136,7 +149,8 @@
                     "nodes": [
                         "calm-hub",
                         "calm-hub-ui",
-                        "mongodb"
+                        "mongodb",
+                        "test"
                     ]
                 }
             }

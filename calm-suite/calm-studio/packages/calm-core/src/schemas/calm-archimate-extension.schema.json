@@ -1,0 +1,184 @@
+{
+  "$id": "https://calm.finos.org/extensions/archimate/calm-archimate-extension.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CALM ArchiMate Extension",
+  "description": "Validates metadata.archimate on CALM nodes and relationships. Element IDs use archimate:{camelCase} per CalmStudio pack convention.",
+  "$comment": "CALM extension schema — validate metadata fragments only; architecture shape is defined by calm/release/1.2/meta/core.json.",
+  "defs": {
+    "archimate-element-id": {
+      "type": "string",
+      "pattern": "^archimate:[a-z][a-zA-Z0-9]*$",
+      "description": "Namespaced ArchiMate element ID (e.g. archimate:applicationService)."
+    },
+    "archimate-element-enum": {
+      "type": "string",
+      "enum": [
+        "archimate:businessActor",
+        "archimate:businessRole",
+        "archimate:businessProcess",
+        "archimate:applicationComponent",
+        "archimate:applicationService",
+        "archimate:applicationFunction",
+        "archimate:applicationInterface",
+        "archimate:applicationEvent",
+        "archimate:applicationProcess",
+        "archimate:applicationInteraction",
+        "archimate:applicationCollaboration",
+        "archimate:dataObject",
+        "archimate:dataStore",
+        "archimate:node",
+        "archimate:device",
+        "archimate:systemSoftware",
+        "archimate:technologyService",
+        "archimate:technologyInterface",
+        "archimate:artifact",
+        "archimate:path",
+        "archimate:communicationNetwork"
+      ]
+    },
+    "archimate-element": {
+      "type": "object",
+      "required": ["layer", "element", "viewpoint"],
+      "properties": {
+        "layer": {
+          "type": "string",
+          "enum": ["Business", "Application", "Technology", "Motivation", "Implementation"]
+        },
+        "element": {
+          "allOf": [
+            { "$ref": "#/defs/archimate-element-id" },
+            { "$ref": "#/defs/archimate-element-enum" }
+          ]
+        },
+        "viewpoint": {
+          "type": "string",
+          "enum": [
+            "SystemContext",
+            "ApplicationCooperation",
+            "ApplicationUsage",
+            "InformationStructure",
+            "TechnologyDeployment",
+            "ImplementationAndMigration"
+          ]
+        },
+        "stereotype": { "type": "string" },
+        "color": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "archimate-node-metadata": {
+      "type": "object",
+      "required": ["owner", "archimate"],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 2
+        },
+        "lifecycle": {
+          "type": "string",
+          "enum": ["planned", "active", "deprecated", "retired"]
+        },
+        "criticality": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "dataClassification": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted"]
+        },
+        "archimate": {
+          "$ref": "#/defs/archimate-element"
+        }
+      },
+      "additionalProperties": true
+    },
+    "calm-core-relationship-variant": {
+      "type": "string",
+      "enum": ["connects", "interacts", "composed-of", "deployed-in", "options"],
+      "description": "Required CALM 1.2 relationship-type variant for this ArchiMate relationship."
+    },
+    "archimate-relationship-type": {
+      "type": "string",
+      "enum": [
+        "Composition",
+        "Aggregation",
+        "Assignment",
+        "Realization",
+        "Serving",
+        "Access",
+        "Influence",
+        "Triggering",
+        "Flow",
+        "Specialization",
+        "Association",
+        "Deployment"
+      ],
+      "description": "Standard ArchiMate relationship type name (PascalCase). Serving maps to CALM interacts."
+    },
+    "archimate-relationship": {
+      "type": "object",
+      "required": ["relationship", "calm-core-variant"],
+      "properties": {
+        "relationship": { "$ref": "#/defs/archimate-relationship-type" },
+        "calm-core-variant": { "$ref": "#/defs/calm-core-relationship-variant" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "relationship": { "const": "Serving" } },
+            "required": ["relationship"]
+          },
+          "then": {
+            "properties": {
+              "calm-core-variant": { "const": "interacts" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "relationship": { "const": "Composition" } },
+            "required": ["relationship"]
+          },
+          "then": {
+            "properties": {
+              "calm-core-variant": { "const": "composed-of" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "relationship": { "const": "Aggregation" } },
+            "required": ["relationship"]
+          },
+          "then": {
+            "properties": {
+              "calm-core-variant": { "const": "composed-of" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "relationship": { "const": "Deployment" } },
+            "required": ["relationship"]
+          },
+          "then": {
+            "properties": {
+              "calm-core-variant": { "const": "deployed-in" }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "archimate-relationship-metadata": {
+      "type": "object",
+      "required": ["archimate"],
+      "properties": {
+        "archimate": {
+          "$ref": "#/defs/archimate-relationship"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

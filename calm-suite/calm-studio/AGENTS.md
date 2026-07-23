@@ -1,0 +1,61 @@
+# CalmStudio
+
+Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, npm workspaces monorepo.
+
+## Structure
+- `packages/calm-core/` — CALM types, validation
+- `packages/extensions/` — Node type packs (core, fluxnova, ai, aws, gcp, azure, k8s, messaging, identity, opengris)
+- `packages/calmscript/` — DSL compiler
+- `packages/mcp-server/` — MCP server (20 tools)
+- `packages/github-action/` — GitHub Action build target
+- `packages/vscode-extension/` — VSCode extension build target
+- `packages/web-component/` — embeddable web component build target
+- `apps/studio/src/lib/` — canvas, editor, io, layout, palette, properties, stores, validation, governance, templates (also c4, desktop, search, toolbar; list illustrative)
+
+## Commands
+`npm run dev --workspace=@calmstudio/studio` | `npm run build --workspace=@calmstudio/studio` | `npm run test --workspace=@calmstudio/studio` | `npm run typecheck --workspace=@calmstudio/studio` (from repo root)
+
+## CALM 1.2 Rules
+
+All output must conform to CALM 1.2. These are non-negotiable:
+
+**Controls:**
+- Keys are **domain-oriented** (`edge-protection`, `mcp-security`), NOT framework-prefixed (`aigf-*`, `nist-*`). Framework IDs go in `config-url` only.
+- Attach controls to **individual nodes/relationships directly**. Not at document level with `appliesTo`.
+- **No risk/threat annotations on nodes.** Risks belong in control config files (`threats-mitigated`), not on architecture elements.
+- Key regex: `^[a-zA-Z0-9-]+$]`. `requirement-url` required; `config-url`/`config` optional.
+- Multiple mitigations = multiple entries in `requirements[]`.
+- **Decorators** = cross-cutting overlays (scores, mappings). **Controls** = node-level enforcement.
+
+**Node types:** `actor`, `ecosystem`, `system`, `service`, `database`, `network`, `ldap`, `webclient`, `data-asset`. Extensions: `fluxnova:engine`, `ai:llm`, etc.
+
+**Relationships** — nested form per CALM 1.2 meta-schema. `relationship-type` is an **object** keyed by variant. Exactly one variant key is present:
+
+```json
+{ "unique-id": "...", "relationship-type": { "connects": { "source": { "node": "..." }, "destination": { "node": "..." } } } }
+{ "unique-id": "...", "relationship-type": { "composed-of": { "container": "...", "nodes": ["..."] } } }
+{ "unique-id": "...", "relationship-type": { "interacts": { "actor": "...", "nodes": ["..."] } } }
+{ "unique-id": "...", "relationship-type": { "deployed-in": { "container": "...", "nodes": ["..."] } } }
+{ "unique-id": "...", "relationship-type": { "options": [ ... ] } }
+```
+
+The flat shape (`'relationship-type': 'connects'` + sibling `source`/`destination` strings) was a **local CalmStudio divergence** — it has **never** been valid in any published CALM release. The nested `relationship-type` object above is canonical across CALM 1.0/1.1/1.2 (identical in `calm/release/1.1/meta/core.json` and `calm/release/1.2/meta/core.json`); CalmStudio was brought onto it in #2550/#2553. Use the variant accessors `getRelationshipVariant`, `getConnectsEndpoints`, `getContainerAndNodes`, `getActorAndNodes`, `getReferencedNodeIds` from `@calmstudio/calm-core` to traverse relationships generically.
+
+**Protocols:** `HTTP`, `HTTPS`, `FTP`, `SFTP`, `JDBC`, `WebSocket`, `SocketIO`, `LDAP`, `AMQP`, `TLS`, `mTLS`, `TCP`
+
+**Required:** Nodes need `unique-id`, `node-type`, `name`, `description`. Relationships need `unique-id`, `relationship-type`. Controls need `description`, `requirements[]`.
+
+## Packs
+`PackDefinition` in `packages/extensions/src/packs/`. Register via `initAllPacks()` in `index.ts`.
+
+## AIGF
+Docs: `docs/AIGF_CATALOGUE.json`, `docs/CALM_1.2_CONTROLS_SCHEMA.md`, `docs/REQ_fluxnova_aigf_integration.md`. Follow control rules above.
+
+## Conventions
+- TS strict, no `any`. Svelte 5 runes only. kebab-case files, PascalCase components/types.
+- `git commit -s` (DCO). Conventional commits.
+
+## Refs
+- CALM: https://calm.finos.org/release/1.2/ | https://github.com/finos/architecture-as-code
+- AIGF: https://air-governance-framework.finos.org/ | https://github.com/finos/ai-governance-framework
+- Reference impl: https://github.com/karlmoll/codegen_sandbox/pull/7

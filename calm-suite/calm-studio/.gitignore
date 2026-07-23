@@ -1,0 +1,15 @@
+# CalmStudio is built as part of the FINOS architecture-as-code monorepo.
+# The authoritative dependency lockfile is the repository-root package-lock.json,
+# which resolves calm-studio's packages/* and apps/* as npm workspaces and applies
+# the central security `overrides` (e.g. cookie, undici). Every CI workflow installs
+# from that root lockfile via `npm ci`.
+#
+# A separate nested lockfile here is never installed by CI and silently drifts from
+# the central build (it does not inherit the root overrides, so it re-introduces
+# already-patched CVEs). Keep it out of version control so the root lockfile remains
+# the single source of truth. Run npm commands from the repository root.
+#
+# Anchored to this directory only (leading slash): the divergent lockfile lives at
+# the calm-studio root. apps/* and packages/* are root npm workspaces that share the
+# root lockfile, so a recursive match is neither needed nor intended.
+/package-lock.json

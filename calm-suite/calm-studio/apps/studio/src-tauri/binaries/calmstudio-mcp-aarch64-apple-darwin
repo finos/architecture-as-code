@@ -1,0 +1,3 @@
+#\!/bin/sh
+echo "MCP sidecar placeholder — build with: pnpm --filter @calmstudio/mcp-server build:sidecar"
+exit 0

@@ -1,0 +1,317 @@
+/* SPDX-FileCopyrightText: 2024 CalmStudio contributors - see NOTICE file */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+@import "tailwindcss";
+@import '@xyflow/svelte/dist/style.css';
+
+/* ─── Design Tokens ─────────────────────────────────────────────────────────
+   Linear/Vercel-inspired palette: slate neutrals, indigo accent.
+   Professional, focused, premium feel for software architects.
+*/
+
+@theme {
+	--color-surface: #ffffff;
+	--color-surface-secondary: #f8fafc;
+	--color-surface-tertiary: #f1f5f9;
+	--color-border: #e2e8f0;
+	--color-border-subtle: #f1f5f9;
+	--color-text-primary: #0f172a;
+	--color-text-secondary: #475569;
+	--color-text-tertiary: #94a3b8;
+	--color-accent: #6366f1;
+	--color-accent-hover: #4f46e5;
+	--color-accent-subtle: #eef2ff;
+	--color-canvas-bg: #fafbfc;
+	--color-canvas-dots: #e2e8f0;
+
+	--font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* ─── Node Type Color Tokens ────────────────────────────────────────────── *
+   Each CALM node type has a unique desaturated hue for instant recognition.
+   Light: subtle tinted bg + soft border + medium stroke.
+   Dark: deep tinted bg + glowing border + bright stroke.
+*/
+
+:root {
+	/* Actor — soft blue (people/users) */
+	--node-actor-bg: #eef3ff;
+	--node-actor-border: #b8ccf0;
+	--node-actor-stroke: #5b7fbf;
+	--node-actor-badge: #6889c2;
+
+	/* System — cool slate (infrastructure) */
+	--node-system-bg: #f0f2f6;
+	--node-system-border: #bcc3d0;
+	--node-system-stroke: #5a6577;
+	--node-system-badge: #6b7689;
+
+	/* Service — muted violet (processing) */
+	--node-service-bg: #f2effb;
+	--node-service-border: #c5b9ed;
+	--node-service-stroke: #7b63c9;
+	--node-service-badge: #8572c4;
+
+	/* Database — warm amber (storage) */
+	--node-database-bg: #fdf6e8;
+	--node-database-border: #e8d4a0;
+	--node-database-stroke: #b08838;
+	--node-database-badge: #a98840;
+
+	/* Network — soft cyan (connectivity) */
+	--node-network-bg: #eaf8fb;
+	--node-network-border: #a5d8e5;
+	--node-network-stroke: #4a95a8;
+	--node-network-badge: #5299ab;
+
+	/* Webclient — muted green (frontend) */
+	--node-webclient-bg: #edf8f0;
+	--node-webclient-border: #a6dab5;
+	--node-webclient-stroke: #3e8f58;
+	--node-webclient-badge: #4a9460;
+
+	/* Ecosystem — dusty rose (external boundary) */
+	--node-ecosystem-bg: #fdf0f1;
+	--node-ecosystem-border: #e8b0b8;
+	--node-ecosystem-stroke: #c25566;
+	--node-ecosystem-badge: #be5c6b;
+
+	/* LDAP — warm gold (security/auth) */
+	--node-ldap-bg: #fdf9e8;
+	--node-ldap-border: #e2d17a;
+	--node-ldap-stroke: #a08520;
+	--node-ldap-badge: #9a8530;
+
+	/* Data Asset — teal/emerald (documents) */
+	--node-data-asset-bg: #edfaf5;
+	--node-data-asset-border: #8edcc0;
+	--node-data-asset-stroke: #2d9068;
+	--node-data-asset-badge: #3a9570;
+
+	/* Generic — neutral gray (unknown/custom) */
+	--node-generic-bg: #f5f6f8;
+	--node-generic-border: #c5cad2;
+	--node-generic-stroke: #6e7787;
+	--node-generic-badge: #7a8393;
+
+	/* Container — soft indigo (grouping boundary) */
+	--node-container-bg: transparent;
+	--node-container-border: #b0b8f0;
+	--node-container-stroke: #6366d6;
+	--node-container-badge: #7275d0;
+	--node-container-header-bg: #f0f1fc;
+	--node-container-header-border: #d8daf0;
+
+	/* Shared node tokens */
+	--node-label-color: var(--color-text-primary);
+	--node-selected-ring: var(--color-accent);
+	--node-font: var(--font-sans);
+}
+
+.dark {
+	/* Actor — glowing blue */
+	--node-actor-bg: rgba(96, 165, 250, 0.06);
+	--node-actor-border: rgba(96, 165, 250, 0.28);
+	--node-actor-stroke: #60a5fa;
+	--node-actor-badge: #7db8fa;
+
+	/* System — steel */
+	--node-system-bg: rgba(148, 163, 184, 0.06);
+	--node-system-border: rgba(148, 163, 184, 0.22);
+	--node-system-stroke: #94a3b8;
+	--node-system-badge: #a8b5c6;
+
+	/* Service — violet glow */
+	--node-service-bg: rgba(139, 92, 246, 0.06);
+	--node-service-border: rgba(139, 92, 246, 0.28);
+	--node-service-stroke: #a78bfa;
+	--node-service-badge: #b8a0fa;
+
+	/* Database — amber glow */
+	--node-database-bg: rgba(217, 119, 6, 0.06);
+	--node-database-border: rgba(217, 119, 6, 0.28);
+	--node-database-stroke: #fbbf24;
+	--node-database-badge: #f5c842;
+
+	/* Network — cyan glow */
+	--node-network-bg: rgba(34, 211, 238, 0.06);
+	--node-network-border: rgba(34, 211, 238, 0.22);
+	--node-network-stroke: #22d3ee;
+	--node-network-badge: #5ce0ef;
+
+	/* Webclient — green glow */
+	--node-webclient-bg: rgba(34, 197, 94, 0.06);
+	--node-webclient-border: rgba(34, 197, 94, 0.22);
+	--node-webclient-stroke: #4ade80;
+	--node-webclient-badge: #6ae898;
+
+	/* Ecosystem — rose glow */
+	--node-ecosystem-bg: rgba(244, 63, 94, 0.06);
+	--node-ecosystem-border: rgba(244, 63, 94, 0.25);
+	--node-ecosystem-stroke: #fb7185;
+	--node-ecosystem-badge: #fb8a9a;
+
+	/* LDAP — gold glow */
+	--node-ldap-bg: rgba(234, 179, 8, 0.06);
+	--node-ldap-border: rgba(234, 179, 8, 0.25);
+	--node-ldap-stroke: #facc15;
+	--node-ldap-badge: #fbd63a;
+
+	/* Data Asset — emerald glow */
+	--node-data-asset-bg: rgba(16, 185, 129, 0.06);
+	--node-data-asset-border: rgba(16, 185, 129, 0.25);
+	--node-data-asset-stroke: #34d399;
+	--node-data-asset-badge: #5edbab;
+
+	/* Generic — neutral */
+	--node-generic-bg: rgba(148, 163, 184, 0.04);
+	--node-generic-border: rgba(148, 163, 184, 0.2);
+	--node-generic-stroke: #94a3b8;
+	--node-generic-badge: #a8b5c6;
+
+	/* Container — indigo glow */
+	--node-container-bg: transparent;
+	--node-container-border: rgba(129, 140, 248, 0.3);
+	--node-container-stroke: #818cf8;
+	--node-container-badge: #a5b4fc;
+	--node-container-header-bg: rgba(129, 140, 248, 0.06);
+	--node-container-header-border: rgba(129, 140, 248, 0.15);
+
+	/* Shared dark tokens */
+	--node-label-color: #e2e8f0;
+}
+
+/* ─── Global resets ─────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	overflow: hidden;
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Light mode — Svelte Flow ──────────────────────────────────────────── */
+
+.svelte-flow {
+	--xy-background-color-default: var(--color-canvas-bg);
+	--xy-background-pattern-color-default: var(--color-canvas-dots);
+
+	--xy-node-background-color-default: var(--color-surface);
+	--xy-node-border-color-default: var(--color-border);
+	--xy-node-color-default: var(--color-text-primary);
+	--xy-node-boxshadow-default: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+	--xy-node-boxshadow-selected-default: 0 0 0 2px var(--color-accent);
+
+	--xy-edge-stroke-default: #94a3b8;
+	--xy-edge-stroke-selected-default: var(--color-accent);
+	--xy-edge-label-background-color-default: var(--color-surface);
+	--xy-edge-label-color-default: var(--color-text-secondary);
+
+	--xy-handle-background-color-default: var(--color-surface);
+	--xy-handle-border-color-default: #94a3b8;
+
+	--xy-attribution-background-color-default: var(--color-surface-secondary);
+	--xy-controls-button-background-color-default: var(--color-surface);
+	--xy-controls-button-border-color-default: var(--color-border);
+	--xy-controls-button-color-default: var(--color-text-secondary);
+	--xy-controls-button-background-color-hover-default: var(--color-surface-tertiary);
+	--xy-minimap-background-color-default: var(--color-surface);
+	--xy-minimap-node-background-color-default: var(--color-border);
+}
+
+/* ─── Dark mode — Svelte Flow ───────────────────────────────────────────── */
+
+.dark .svelte-flow {
+	--xy-background-color-default: #0b0f1a;
+	--xy-background-pattern-color-default: #1e293b;
+
+	--xy-node-background-color-default: #111827;
+	--xy-node-border-color-default: #334155;
+	--xy-node-color-default: #e2e8f0;
+	--xy-node-boxshadow-default: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+	--xy-node-boxshadow-selected-default: 0 0 0 2px #818cf8;
+
+	--xy-edge-stroke-default: #64748b;
+	--xy-edge-stroke-selected-default: #818cf8;
+	--xy-edge-label-background-color-default: #111827;
+	--xy-edge-label-color-default: #94a3b8;
+
+	--xy-handle-background-color-default: #1e293b;
+	--xy-handle-border-color-default: #64748b;
+
+	--xy-attribution-background-color-default: #111827;
+	--xy-controls-button-background-color-default: #111827;
+	--xy-controls-button-border-color-default: #1e293b;
+	--xy-controls-button-color-default: #cbd5e1;
+	--xy-controls-button-background-color-hover-default: #1e293b;
+	--xy-minimap-background-color-default: #0f172a;
+	--xy-minimap-node-background-color-default: #334155;
+}
+
+/* ─── Dark mode — global overrides ──────────────────────────────────────── */
+
+.dark {
+	color-scheme: dark;
+}
+
+/* ─── Scrollbar styling ─────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+	width: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: #cbd5e1;
+	border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+	background: #334155;
+}
+
+/* ─── Svelte Flow node refinements ──────────────────────────────────────── */
+
+.svelte-flow .svelte-flow__node {
+	border-radius: 8px;
+	font-family: var(--font-sans);
+	font-size: 13px;
+}
+
+.svelte-flow .svelte-flow__handle {
+	width: 8px;
+	height: 8px;
+	border-width: 2px;
+}
+
+/* ─── Selection & interaction refinements ───────────────────────────────── */
+
+.svelte-flow .svelte-flow__selection {
+	background: rgb(99 102 241 / 0.08);
+	border: 1px solid rgb(99 102 241 / 0.4);
+	border-radius: 4px;
+}
+
+.dark .svelte-flow .svelte-flow__selection {
+	background: rgb(129 140 248 / 0.1);
+	border: 1px solid rgb(129 140 248 / 0.3);
+}
+
+/* ─── Attribution hide (for clean canvas) ───────────────────────────────── */
+
+.svelte-flow .svelte-flow__attribution {
+	display: none;
+}

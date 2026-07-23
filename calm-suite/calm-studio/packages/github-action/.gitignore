@@ -1,0 +1,4 @@
+# Override root dist/ exclusion — GitHub Action dist/index.js MUST be committed
+# GitHub reads this file directly when running `uses: ./` or `uses: owner/repo@ref`
+!dist/
+!dist/index.js

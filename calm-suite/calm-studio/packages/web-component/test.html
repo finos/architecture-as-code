@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalmDiagram Web Component — Flow Visualization Test</title>
+  <script src="./dist/calm-diagram.iife.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #f0f4f8;
+      padding: 24px;
+    }
+    h1 { font-size: 20px; color: #1e293b; margin-bottom: 8px; }
+    p.subtitle { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .card-header h2 { font-size: 14px; font-weight: 600; color: #334155; }
+    .card-header p { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+    calm-diagram {
+      display: block;
+      width: 100%;
+      height: 400px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-orange { background: #fff7ed; color: #c2410c; }
+  </style>
+</head>
+<body>
+
+  <h1>CalmDiagram Web Component — Flow Visualization Test</h1>
+  <p class="subtitle">
+    Scroll to zoom · Drag to pan · Click nodes for description tooltip ·
+    Left diagram: no flow (full opacity) · Right diagram: <code>flow="auth-flow"</code> active (dimming + animated dots)
+  </p>
+
+  <div class="grid">
+
+    <!-- Diagram 1: No flow active -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Without Flow <span class="badge badge-green">light theme</span></h2>
+        <p>All nodes and edges at full opacity — no flow attribute set</p>
+      </div>
+      <calm-diagram
+        id="diagram-plain"
+        theme="light"
+        data=''
+      ></calm-diagram>
+    </div>
+
+    <!-- Diagram 2: auth-flow active -->
+    <div class="card">
+      <div class="card-header">
+        <h2>With <code>flow="auth-flow"</code> <span class="badge badge-blue">dark theme</span></h2>
+        <p>Animated dots on flow edges · Non-flow elements dimmed to 30% · Numbered sequence badges</p>
+      </div>
+      <calm-diagram
+        id="diagram-flow"
+        theme="dark"
+        flow="auth-flow"
+        data=''
+      ></calm-diagram>
+    </div>
+
+  </div>
+
+  <script>
+    const CALM_ARCH = {
+      nodes: [
+        {
+          "unique-id": "user-browser",
+          "node-type": "webclient",
+          "name": "Browser Client",
+          "description": "User's browser making auth requests"
+        },
+        {
+          "unique-id": "auth-service",
+          "node-type": "service",
+          "name": "Auth Service",
+          "description": "Handles authentication and JWT issuance"
+        },
+        {
+          "unique-id": "user-db",
+          "node-type": "database",
+          "name": "User Database",
+          "description": "PostgreSQL database storing user credentials"
+        },
+        {
+          "unique-id": "lambda-token",
+          "node-type": "aws:lambda",
+          "name": "Token Validator",
+          "description": "AWS Lambda validating JWT tokens for downstream services"
+        }
+      ],
+      relationships: [
+        {
+          "unique-id": "rel-login",
+          "relationship-type": "connects",
+          "source": "user-browser",
+          "destination": "auth-service",
+          "protocol": "HTTPS"
+        },
+        {
+          "unique-id": "rel-lookup",
+          "relationship-type": "connects",
+          "source": "auth-service",
+          "destination": "user-db",
+          "protocol": "JDBC"
+        },
+        {
+          "unique-id": "rel-validate",
+          "relationship-type": "connects",
+          "source": "auth-service",
+          "destination": "lambda-token",
+          "protocol": "HTTPS"
+        }
+      ],
+      flows: [
+        {
+          "unique-id": "auth-flow",
+          "name": "Authentication Flow",
+          "description": "User login sequence: browser -> auth service -> DB lookup -> token issuance",
+          "transitions": [
+            {
+              "relationship-unique-id": "rel-login",
+              "sequence-number": 1,
+              "summary": "User submits login credentials via HTTPS POST /auth/login",
+              "direction": "source-to-destination"
+            },
+            {
+              "relationship-unique-id": "rel-lookup",
+              "sequence-number": 2,
+              "summary": "Auth Service queries User DB to verify credentials",
+              "direction": "source-to-destination"
+            }
+          ]
+        }
+      ]
+    };
+
+    const archJson = JSON.stringify(CALM_ARCH);
+
+    document.getElementById('diagram-plain').setAttribute('data', archJson);
+    document.getElementById('diagram-flow').setAttribute('data', archJson);
+  </script>
+
+</body>
+</html>

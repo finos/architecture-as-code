@@ -1,0 +1,4 @@
+apps/studio/src-tauri/target/
+apps/studio/src-tauri/gen/
+*.vsix
+.playwright-mcp/

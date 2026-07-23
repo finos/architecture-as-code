@@ -1,0 +1,47 @@
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table-container table {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+/* Single-column table → use auto layout */
+.table-container table:has(tr > th:only-child),
+.table-container table:has(tr > td:only-child) {
+    table-layout: auto;
+    min-width: 0;
+}
+
+/* Cells */
+.table-container th,
+.table-container td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Fixed first column only when multiple columns exist */
+.table-container th:first-child:not(:only-child),
+.table-container td:first-child:not(:only-child) {
+    width: 200px;
+    max-width: 200px;
+}
+
+/* Single column fills */
+.table-container th:only-child,
+.table-container td:only-child {
+    width: 100%;
+}
+
+/* MDX helper */
+.text-left {
+    text-align: left;
+}
