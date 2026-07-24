@@ -1,0 +1,200 @@
+/**
+ * Shared layout primitives for the custom landing pages
+ * (homepage, Learn hub, journeys, community).
+ * Colour tokens come from src/css/custom.css.
+ */
+
+.wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 28px;
+}
+
+.eyebrow {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ifm-color-primary);
+}
+
+.section {
+    padding: 64px 0;
+}
+
+.sectionHead {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto 38px;
+}
+
+.sectionHead h2 {
+    font-family: var(--ifm-heading-font-family);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--calm-heading-color);
+    margin: 10px 0 12px;
+}
+
+.sectionHead p {
+    font-size: 16px;
+    color: var(--calm-muted);
+    margin: 0;
+}
+
+/* ---------- buttons ---------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 11px 20px;
+    border-radius: 9px;
+    border: 1.5px solid transparent;
+    line-height: 1;
+}
+
+.btn:hover {
+    text-decoration: none;
+}
+
+.btnPrimary {
+    composes: btn;
+    background: var(--ifm-color-primary);
+    color: #fff;
+    box-shadow: 0 10px 22px -8px rgba(0, 125, 255, 0.55);
+}
+
+.btnPrimary:hover {
+    background: var(--ifm-color-primary-dark);
+    color: #fff;
+}
+
+.btnGhost {
+    composes: btn;
+    border-color: #cdd7e6;
+    color: var(--ifm-font-color-base);
+}
+
+.btnGhost:hover {
+    color: var(--ifm-font-color-base);
+    border-color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .btnGhost {
+    border-color: #3b4569;
+}
+
+/* ---------- cards & grids ---------- */
+.card {
+    background: var(--calm-surface);
+    border: 1px solid var(--calm-line);
+    border-radius: 14px;
+    padding: 22px;
+    display: block;
+    color: var(--ifm-font-color-base);
+}
+
+.card:hover {
+    color: var(--ifm-font-color-base);
+    text-decoration: none;
+    border-color: #cdd7e6;
+    box-shadow: 0 12px 26px -16px rgba(11, 16, 32, 0.2);
+}
+
+[data-theme='dark'] .card:hover {
+    border-color: #46527d;
+}
+
+.card h3 {
+    font-family: var(--ifm-heading-font-family);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    color: var(--ifm-font-color-base);
+}
+
+.card p {
+    font-size: 14px;
+    color: var(--calm-muted);
+    margin: 0;
+}
+
+.grid3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+}
+
+.grid4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 996px) {
+    .grid3,
+    .grid4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .grid3,
+    .grid4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---------- page banner (hub headers) ---------- */
+.banner {
+    padding: 52px 0 40px;
+    background: linear-gradient(180deg, var(--calm-bg-soft), var(--ifm-background-color));
+    border-bottom: 1px solid var(--calm-line);
+}
+
+.banner h1 {
+    font-family: var(--ifm-heading-font-family);
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--calm-heading-color);
+    margin: 12px 0 12px;
+    letter-spacing: -0.02em;
+}
+
+.banner p {
+    font-size: 17px;
+    color: var(--calm-slate);
+    max-width: 640px;
+    margin: 0;
+}
+
+/* ---------- breadcrumb ---------- */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--calm-muted);
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.breadcrumb a {
+    color: var(--calm-muted);
+}
+
+.breadcrumb a:hover {
+    color: var(--ifm-color-primary);
+    text-decoration: none;
+}
+
+.breadcrumbSep {
+    color: #c3ccd8;
+}
+
+[data-theme='dark'] .breadcrumbSep {
+    color: #4a5578;
+}

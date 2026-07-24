@@ -15,7 +15,6 @@
 const sidebars = {
   // Default sidebar - shows when clicking CALM logo (introduction, core-concepts, working-with-calm)
   docsSidebar: [
-    'home',
     {
       type: 'category',
       label: 'Introduction',

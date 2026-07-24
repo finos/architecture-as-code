@@ -1,23 +1,452 @@
 /**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
+ * Homepage styles. Colour tokens come from src/css/custom.css; shared
+ * layout primitives from src/components/shared.module.css.
  */
 
-.heroBanner {
-  padding: 4rem 0;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+/* ---------- hero ---------- */
+.hero {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 44px;
+    align-items: center;
+    padding-top: 60px;
+    padding-bottom: 52px;
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
-  }
+.heroTitle {
+    font-family: var(--ifm-heading-font-family);
+    font-size: 50px;
+    line-height: 1.05;
+    font-weight: 700;
+    color: var(--calm-heading-color);
+    margin: 14px 0 18px;
+    letter-spacing: -0.02em;
 }
 
-.buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.heroLead {
+    font-size: 18px;
+    color: var(--calm-slate);
+    margin: 0 0 28px;
+    max-width: 520px;
+}
+
+.heroCtas {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.heroMeta {
+    margin-top: 26px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12.5px;
+    color: var(--calm-faint);
+}
+
+@media (max-width: 996px) {
+    .hero {
+        grid-template-columns: 1fr;
+        padding-top: 40px;
+    }
+
+    .heroTitle {
+        font-size: 36px;
+    }
+}
+
+/* ---------- hero code card (dark in both themes) ---------- */
+.codeCard {
+    background: #0b1030;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 24px 50px -20px rgba(0, 0, 99, 0.55);
+}
+
+[data-theme='dark'] .codeCard {
+    border: 1px solid #222a5c;
+}
+
+.codeCardBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.codeCardFile {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    color: #7f8bb5;
+}
+
+.codeCardOk {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    color: #22d3a7;
+    background: rgba(34, 211, 167, 0.14);
+    padding: 3px 9px;
+    border-radius: 6px;
+}
+
+.codeCardPre {
+    margin: 0;
+    padding: 0;
+    background: none;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #c7d0f0;
+    white-space: pre;
+    overflow: hidden;
+}
+
+.k {
+    color: #6ea8ff;
+}
+
+.s {
+    color: #8ee6c8;
+}
+
+.codeCardDiagram {
+    margin-top: 14px;
+    height: 118px;
+    border-radius: 10px;
+    background: repeating-linear-gradient(
+        135deg,
+        #161d45,
+        #161d45 11px,
+        #1a2250 11px,
+        #1a2250 22px
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    color: #8b96c9;
+    border: 1px solid #222a5c;
+}
+
+/* ---------- value band ---------- */
+.value {
+    padding: 34px 0;
+    border-top: 1px solid var(--calm-line);
+    border-bottom: 1px solid var(--calm-line);
+    background: var(--calm-bg-soft);
+}
+
+.valueGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+@media (max-width: 996px) {
+    .valueGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.valueN {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    color: var(--ifm-color-primary);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.valueT {
+    font-size: 15px;
+    color: var(--calm-slate);
+}
+
+/* ---------- role picker section ---------- */
+.rolePicker {
+    background: linear-gradient(180deg, var(--calm-bg-soft) 0%, var(--calm-bg-tint) 100%);
+    border-top: 1px solid var(--calm-line);
+}
+
+/* ---------- journey roadmap ---------- */
+.journey {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 158px 62px 158px;
+    margin-top: 48px;
+}
+
+.journeyLine {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-self: center;
+    height: 5px;
+    border-radius: 99px;
+    background: linear-gradient(
+        90deg,
+        var(--calm-green) 0%,
+        var(--calm-amber) 34%,
+        var(--calm-violet) 67%,
+        var(--calm-sky) 100%
+    );
+    margin: 0 11%;
+    box-shadow: 0 2px 8px -2px rgba(11, 16, 32, 0.15);
+}
+
+.journeyPin {
+    position: absolute;
+    top: 189px;
+    transform: translateY(-50%);
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+}
+
+.journeyPinStart {
+    left: 0;
+    background: #0b1030;
+    color: #fff;
+}
+
+[data-theme='dark'] .journeyPinStart {
+    border: 1px solid #2b3453;
+}
+
+.journeyPinEnd {
+    right: 0;
+    background: #eafaf0;
+    color: #0f7a3d;
+    border: 1px solid #bbe5c8;
+}
+
+[data-theme='dark'] .journeyPinEnd {
+    background: rgba(34, 211, 167, 0.12);
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.35);
+}
+
+/* Each stop is a dot + card pair; on wide screens the wrapper dissolves
+   (display: contents) so both place directly onto the roadmap grid. */
+.stopWrap {
+    display: contents;
+}
+
+.stopCell {
+    position: relative;
+    z-index: 3;
+    grid-column: var(--col);
+    grid-row: 2;
+    justify-self: center;
+    align-self: center;
+}
+
+.stopDot {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 3px solid var(--ifm-background-color);
+    background: var(--calm-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    box-shadow: 0 6px 14px -3px color-mix(in srgb, var(--accent) 60%, transparent),
+        0 0 0 1px var(--calm-line);
+}
+
+.stopStem {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 2px dashed color-mix(in srgb, var(--accent) 45%, var(--ifm-background-color));
+    height: 22px;
+}
+
+.stemUp {
+    bottom: 100%;
+}
+
+.stemDown {
+    top: 100%;
+}
+
+.jcard {
+    grid-column: var(--col);
+    margin: 0 8px;
+    background: var(--calm-surface);
+    border: 1px solid var(--calm-line);
+    border-top: 3px solid var(--accent);
+    border-radius: 14px;
+    padding: 15px 16px;
+    box-shadow: 0 12px 28px -16px rgba(11, 16, 32, 0.24);
+    color: var(--ifm-font-color-base);
+}
+
+.jcard:hover {
+    text-decoration: none;
+    color: var(--ifm-font-color-base);
+    border-color: var(--accent);
+}
+
+.above {
+    grid-row: 1;
+    align-self: end;
+}
+
+.below {
+    grid-row: 3;
+    align-self: start;
+}
+
+.jcardHead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.jcardTag {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border-radius: 6px;
+    padding: 2px 7px;
+}
+
+.jcardTtl {
+    font-family: var(--ifm-heading-font-family);
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--accent-ink, var(--accent));
+}
+
+[data-theme='dark'] .jcardTtl {
+    color: var(--accent-ink-dark, var(--accent));
+}
+
+.jcardMono {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 6px;
+}
+
+.jcardDesc {
+    font-size: 13px;
+    color: var(--calm-muted);
+    line-height: 1.45;
+}
+
+.journeyCta {
+    text-align: center;
+    margin-top: 34px;
+}
+
+/* Narrow screens: the roadmap degrades to a stacked list of dot + card
+   rows; the gradient line, pins and stems disappear. */
+@media (max-width: 996px) {
+    .journey {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-top: 32px;
+    }
+
+    .journeyLine,
+    .journeyPin,
+    .stopStem {
+        display: none;
+    }
+
+    .stopWrap {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+    }
+
+    .stopCell {
+        flex-shrink: 0;
+    }
+
+    .jcard {
+        flex: 1;
+        margin: 0;
+    }
+}
+
+/* ---------- tools strip (dark navy in both themes) ---------- */
+.tools {
+    padding: 52px 0 56px;
+    background: var(--calm-navy);
+    color: #fff;
+}
+
+.toolsTitle {
+    font-family: var(--ifm-heading-font-family);
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 6px;
+}
+
+.toolsSub {
+    font-size: 15px;
+    color: #aeb8e6;
+    margin: 0 0 26px;
+}
+
+.toolsGrid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+}
+
+@media (max-width: 996px) {
+    .toolsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .toolsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.toolChip {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 18px;
+    color: #fff;
+    display: block;
+}
+
+.toolChip:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    text-decoration: none;
+}
+
+.toolChip b {
+    font-family: var(--ifm-heading-font-family);
+    font-weight: 600;
+    font-size: 16px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.toolChip span {
+    font-size: 13px;
+    color: #aeb8e6;
 }

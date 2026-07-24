@@ -24,6 +24,22 @@
   --calm-ink: #0b1020;
   --calm-heading-color: var(--calm-navy);
 
+  /* Surface tokens shared by the custom landing pages (homepage, Learn,
+     journeys, community). Dark-mode values below. */
+  --calm-line: #e4e9f2;
+  --calm-slate: #414b60;
+  --calm-muted: #5b6478;
+  --calm-faint: #8b95a7;
+  --calm-bg-soft: #f5f8fd;
+  --calm-bg-tint: #eef3fb;
+  --calm-surface: #ffffff;
+  --calm-green: #16a34a;
+  --calm-amber: #d97706;
+  --calm-violet: #7c3aed;
+  --calm-sky: #0284c7;
+  --calm-grey: #64748b;
+  --calm-card-shadow: 0 4px 14px -6px rgba(11, 16, 32, 0.1);
+
   --ifm-font-family-base: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI",
     Roboto, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --ifm-font-family-monospace: "IBM Plex Mono", SFMono-Regular, Menlo, Monaco,
@@ -45,6 +61,15 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 
   --calm-heading-color: #e6ecff;
+
+  --calm-line: #2b3453;
+  --calm-slate: #b6c1d9;
+  --calm-muted: #96a1bd;
+  --calm-faint: #7d89a6;
+  --calm-bg-soft: #151b31;
+  --calm-bg-tint: #121830;
+  --calm-surface: #1b2340;
+  --calm-card-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.5);
 }
 
 /* Top-level headings (h1-h3) take the brand navy and tighter tracking;
