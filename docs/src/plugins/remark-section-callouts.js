@@ -28,6 +28,15 @@
 
 const EDIT_URL_BASE = 'https://github.com/finos/architecture-as-code/blob/main/docs/docs';
 const WORDS_PER_MINUTE = 220;
+// Pages whose body is essentially a component have no countable prose — a
+// "1 min read" chip there is meaningless, so below this floor the read-time
+// chip is omitted.
+const MIN_WORDS_FOR_READ_TIME = 30;
+// Pages whose real duration isn't their prose word count (the word count on
+// the presentation page only sees the presenter notes around the deck).
+const READ_TIME_OVERRIDES = {
+    'tutorials/calm-overview-presentation.md': 40,
+};
 
 /** Normalised heading text -> [colour variant, icon, canonical label]. */
 const KNOWN_SECTIONS = {
@@ -181,7 +190,9 @@ function buildChipsRow({readTime, difficulty, sectionChip, docPath}) {
     if (sectionChip) {
         chips.push(jsxText('span', 'calm-dm calm-dm-sec', [text(sectionChip)]));
     }
-    chips.push(jsxText('span', 'calm-dm', [text(`⏱ ${readTime} min read`)]));
+    if (readTime !== null) {
+        chips.push(jsxText('span', 'calm-dm', [text(`⏱ ${readTime} min read`)]));
+    }
     if (difficulty) {
         chips.push(jsxText('span', 'calm-dm calm-dm-diff', [text(difficulty)]));
     }
@@ -210,7 +221,11 @@ export default function remarkSectionCallouts() {
         }
 
         const difficulty = extractDifficulty(root);
-        const readTime = Math.max(1, Math.round(countWords(root) / WORDS_PER_MINUTE));
+        const words = countWords(root);
+        const readTime = READ_TIME_OVERRIDES[docPath]
+            ?? (words < MIN_WORDS_FOR_READ_TIME
+                ? null
+                : Math.max(1, Math.round(words / WORDS_PER_MINUTE)));
         wrapKnownSections(root);
 
         const section = SECTION_KICKERS.find(([pattern]) => pattern.test(docPath))?.[1] ?? null;
