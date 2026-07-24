@@ -29,9 +29,8 @@
   --ifm-font-family-monospace: "IBM Plex Mono", SFMono-Regular, Menlo, Monaco,
     Consolas, "Liberation Mono", "Courier New", monospace;
   --ifm-heading-font-family: "Space Grotesk", var(--ifm-font-family-base);
-  --ifm-heading-font-weight: 700;
 
-  --ifm-navbar-height: 64px;
+  --ifm-navbar-height: 4rem;
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
@@ -74,9 +73,10 @@ h3 {
   border-bottom-color: var(--ifm-color-primary);
 }
 
-/* "Get started" call-to-action in the navbar. */
-.navbar .calm-navbar-cta {
-  background: var(--ifm-color-primary);
+/* "Get started" call-to-action in the navbar (desktop items only — the
+   mobile drawer renders this item as a plain menu link). */
+.navbar__items .calm-navbar-cta {
+  background: var(--ifm-color-primary-darker);
   color: #fff;
   border-radius: 9px;
   padding: 0.45rem 1rem;
@@ -85,7 +85,17 @@ h3 {
   border-bottom: none;
 }
 
-.navbar .calm-navbar-cta:hover {
-  background: var(--ifm-color-primary-dark);
+.navbar__items .calm-navbar-cta:hover {
+  background: var(--ifm-color-primary-darkest);
   color: #fff;
+}
+
+[data-theme="dark"] .navbar__items .calm-navbar-cta {
+  background: var(--ifm-color-primary);
+  color: var(--calm-ink);
+}
+
+[data-theme="dark"] .navbar__items .calm-navbar-cta:hover {
+  background: var(--ifm-color-primary-light);
+  color: var(--calm-ink);
 }
