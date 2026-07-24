@@ -1,83 +1,420 @@
 /**
- * Learning-lab styles. The lab surfaces (tabbed panes, terminal,
- * editor, diagram, status bar) are dark-native — fixed navy palette so
- * they look right in both site themes — while the surrounding chrome
- * (steps, toolbar) uses the --calm-* tokens from src/css/custom.css.
+ * Learning-lab styles. The whole lab lives inside one continuous,
+ * theme-invariant dark application frame — the "chassis" — that looks
+ * identical in the site's light and dark modes; only the page chrome
+ * around it changes (light mode adds an elevation shadow so it reads
+ * as a docked app window).
  *
- * Layout: mobile-first stacked page flow; from 997px the workspace
- * docks into a full-viewport IDE (fixed height under the navbar, each
- * pane scrolling independently, a draggable editor/terminal splitter).
+ * Chassis palette (fixed, never the site tokens):
+ *   bg #0b1030 · panel-alt #0d1436 · border #1b2350 / outer #222a5c
+ *   text #c7d0f0 · dim #8b96c9 · accent #4da3ff · ok #22d3a7
+ *   err #ff7b8a · hint-amber #e8a13c · chips #16204a
+ * Fonts: IBM Plex Mono (panel labels/terminal/status) and IBM Plex
+ * Sans (guide prose) via the site's --ifm font variables.
+ *
+ * Layout: mobile-first stacked flow; from 997px the chassis docks to
+ * the full viewport under the navbar (page never scrolls; each panel
+ * scrolls independently; draggable editor/terminal splitter).
  */
 
-/* ---------- workspace shell ---------- */
+/* ---------- page shell & chassis ---------- */
 .workspace {
+    padding: 12px;
+}
+
+.chassis {
     display: flex;
+    flex-direction: column;
+    background: #0b1030;
+    border: 1px solid #222a5c;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+:global([data-theme='light']) .chassis {
+    box-shadow: 0 22px 48px -20px rgba(11, 16, 32, 0.45);
+}
+
+/* ---------- titlebar ---------- */
+.titlebar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 36px;
+    flex-shrink: 0;
+    padding: 0 12px;
+    background: #0d1436;
+    border-bottom: 1px solid #1b2350;
+}
+
+.titleLabel {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: #8b96c9;
+}
+
+.titleDots {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.titleDotsVertical {
     flex-direction: column;
 }
 
-/* ---------- toolbar ---------- */
-.toolbar {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    padding: 10px 18px;
-    background: var(--calm-bg-soft);
-    border-bottom: 1px solid var(--calm-line);
-    flex-shrink: 0;
+.titleDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-sizing: border-box;
 }
 
-.toolbarTitle {
-    font-family: var(--ifm-heading-font-family);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--calm-heading-color);
-    margin: 0;
-    letter-spacing: -0.01em;
+.dotDone {
+    background: #22d3a7;
+}
+
+.dotCurrent {
+    background: transparent;
+    border: 2px solid #4da3ff;
+}
+
+.dotPending {
+    background: #2b3453;
 }
 
 .resetBtn {
     margin-left: auto;
     background: transparent;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 13px;
-    padding: 6px 14px;
-    flex-shrink: 0;
-}
-
-/* Lesson-rail toggle: desktop-only (the rail always shows on mobile). */
-.railToggle {
-    display: none;
-    background: transparent;
-    border: 1px solid var(--calm-line);
+    border: 1px solid #222a5c;
     border-radius: 7px;
-    color: var(--calm-muted);
+    color: #8b96c9;
     font-family: var(--ifm-font-family-monospace);
     font-size: 11.5px;
-    padding: 5px 10px;
+    padding: 4px 11px;
     cursor: pointer;
     flex-shrink: 0;
 }
 
-.railToggle:hover {
-    color: var(--ifm-color-primary);
-    border-color: var(--ifm-color-primary);
+.resetBtn:hover {
+    color: #c7d0f0;
+    border-color: #4da3ff;
 }
 
-/* ---------- pane grid (stacked by default) ---------- */
-.grid {
+/* ---------- chassis body ---------- */
+.chassisBody {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: 16px;
+    min-height: 0;
 }
 
+/* ---------- guide panel ---------- */
+.guide {
+    display: flex;
+    flex-direction: column;
+    background: #0d1436;
+    border-bottom: 1px solid #1b2350;
+    min-height: 0;
+}
+
+.guideHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px 8px;
+    border-bottom: 1px solid #1b2350;
+    flex-shrink: 0;
+}
+
+.guideTitle {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: #8b96c9;
+}
+
+.guideProgress {
+    margin-left: auto;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    color: #4da3ff;
+}
+
+.guideCollapseBtn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.guideCollapseBtn:hover {
+    color: #4da3ff;
+    background: #16204a;
+}
+
+.guideScroll {
+    padding: 8px 10px 14px;
+    min-height: 0;
+}
+
+/* collapsed-guide rail (desktop only) */
+.guideRail {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 28px;
+    flex-shrink: 0;
+    padding: 10px 0;
+    background: #0d1436;
+    border-right: 1px solid #1b2350;
+}
+
+.guideRailBtn {
+    background: transparent;
+    border: none;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    padding: 6px 2px;
+    writing-mode: vertical-rl;
+    border-radius: 5px;
+}
+
+.guideRailBtn:hover {
+    color: #4da3ff;
+    background: #16204a;
+}
+
+/* ---------- guide accordion ---------- */
+.stepsList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.step {
+    border-bottom: 1px solid #1b2350;
+}
+
+.stepRow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 10px 6px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.stepRow:hover {
+    background: #101a44;
+}
+
+.stepIndex {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 10.5px;
+    color: #5a648c;
+    flex-shrink: 0;
+}
+
+.stepGlyph {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    color: #5a648c;
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+}
+
+.stepGlyphDone {
+    color: #22d3a7;
+}
+
+.stepGlyphCurrent {
+    color: #4da3ff;
+}
+
+.stepTitle {
+    font-family: var(--ifm-font-family-base);
+    font-size: 14px;
+    font-weight: 600;
+    color: #c7d0f0;
+}
+
+.stepBodyWrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+        grid-template-rows 200ms ease,
+        opacity 200ms ease;
+}
+
+.stepBodyOpen {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stepBodyWrap {
+        transition: none;
+    }
+}
+
+.stepBodyInner {
+    overflow: hidden;
+    min-height: 0;
+    padding: 0 6px;
+}
+
+.stepBody {
+    font-family: var(--ifm-font-family-base);
+    font-size: 13px;
+    line-height: 1.6;
+    color: #c7d0f0;
+    margin: 2px 0 0;
+}
+
+.stepBody code {
+    background: #16204a;
+    border: 1px solid #222a5c;
+    border-radius: 5px;
+    color: #c7d0f0;
+    font-size: 11.5px;
+    padding: 1px 5px;
+}
+
+.hintBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 10px 0 12px;
+    color: #e8a13c;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.hintBtn:hover {
+    text-decoration: underline;
+}
+
+.hintBlock {
+    margin: 0 0 14px;
+    border: 1px solid #222a5c;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0b1030;
+}
+
+.hintHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 8px 5px 10px;
+    background: #16204a;
+    border-bottom: 1px solid #222a5c;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8b96c9;
+}
+
+.copyBtn {
+    background: #0d1436;
+    border: 1px solid #222a5c;
+    border-radius: 5px;
+    color: #c7d0f0;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 10.5px;
+    padding: 2px 9px;
+    cursor: pointer;
+}
+
+.copyBtn:hover {
+    border-color: #4da3ff;
+    color: #fff;
+}
+
+.hintPre {
+    margin: 0;
+    padding: 10px 12px;
+    color: #c7d0f0;
+    font-size: 11.5px;
+    line-height: 1.5;
+    overflow: auto;
+    max-height: 240px;
+    white-space: pre;
+}
+
+/* completion card */
+.doneCard {
+    margin: 14px 2px 4px;
+    padding: 14px;
+    border: 1px solid rgba(34, 211, 167, 0.55);
+    border-radius: 10px;
+    background: rgba(34, 211, 167, 0.12);
+}
+
+.doneCard h3 {
+    font-family: var(--ifm-font-family-base);
+    font-size: 14px;
+    color: #e6ecff;
+    margin: 0 0 6px;
+}
+
+.doneCard p {
+    font-family: var(--ifm-font-family-base);
+    font-size: 13px;
+    line-height: 1.55;
+    color: #c7d0f0;
+    margin: 0 0 10px;
+}
+
+.doneLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.doneLinks a {
+    color: #4da3ff;
+}
+
+.doneLinks a:hover {
+    color: #7cbcff;
+    text-decoration: none;
+}
+
+/* ---------- center column ---------- */
 .centerCol {
     display: flex;
     flex-direction: column;
     min-width: 0;
     min-height: 0;
+    padding: 12px;
 }
 
 .editorSlot {
@@ -92,7 +429,7 @@
     flex-direction: column;
     height: 300px;
     min-height: 0;
-    margin-top: 16px;
+    margin-top: 12px;
 }
 
 .hSplitter {
@@ -102,16 +439,16 @@
 /* ---------- tabbed panes ---------- */
 .tabbedPane {
     background: #0b1030;
-    border: 1px solid #232b4e;
-    border-radius: 12px;
+    border: 1px solid #1b2350;
+    border-radius: 10px;
     overflow: hidden;
 }
 
 .tabBar {
     display: flex;
     align-items: stretch;
-    background: #10173b;
-    border-bottom: 1px solid #232b4e;
+    background: #0d1436;
+    border-bottom: 1px solid #1b2350;
     flex-shrink: 0;
     overflow-x: auto;
 }
@@ -123,7 +460,7 @@
     padding: 9px 16px;
     background: transparent;
     border: none;
-    border-right: 1px solid #232b4e;
+    border-right: 1px solid #1b2350;
     color: #8b96c9;
     font-family: var(--ifm-font-family-monospace);
     font-size: 12.5px;
@@ -177,44 +514,53 @@
     flex-direction: column;
 }
 
+/* ---------- desktop (docked IDE) ---------- */
 @media (min-width: 997px) {
     .workspace {
         height: calc(100vh - var(--ifm-navbar-height));
         overflow: hidden;
+        padding: 14px 18px;
     }
 
-    .toolbar {
-        flex-wrap: nowrap;
-        height: 48px;
-        padding: 0 18px;
+    .chassis {
+        height: 100%;
     }
 
-    .railToggle {
-        display: inline-flex;
-        align-items: center;
-    }
-
-    .grid {
+    .chassisBody {
         flex: 1;
-        min-height: 0;
-        display: grid;
-        grid-template-columns: 300px minmax(0, 1fr);
-        column-gap: 0;
-        padding: 12px 16px;
+        flex-direction: row;
     }
 
-    .gridNoRail {
-        grid-template-columns: minmax(0, 1fr);
+    .guide {
+        width: 300px;
+        flex-shrink: 0;
+        border-bottom: none;
+        border-right: 1px solid #1b2350;
     }
 
-    .gridNoRail .stepsRail {
+    .guideScroll {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .guideCollapseBtn {
+        display: inline-flex;
+    }
+
+    .guide.guideHiddenDesktop {
         display: none;
     }
 
-    .stepsRail {
-        overflow-y: auto;
-        min-height: 0;
-        padding-right: 14px;
+    .guideRail {
+        display: flex;
+    }
+
+    .guideRail.guideRailHidden {
+        display: none;
+    }
+
+    .centerCol {
+        flex: 1;
     }
 
     .editorSlot {
@@ -246,20 +592,20 @@
         width: 44px;
         height: 3px;
         border-radius: 2px;
-        background: var(--calm-line);
+        background: #222a5c;
     }
 
     .hSplitter:hover::after {
-        background: var(--ifm-color-primary);
+        background: #4da3ff;
     }
 }
 
-/* ---------- shared dark pane chrome ---------- */
+/* ---------- legacy pane chrome (standalone component use) ---------- */
 .editorPane,
 .terminalPane,
 .diagramPane {
     background: #0b1030;
-    border: 1px solid #232b4e;
+    border: 1px solid #1b2350;
     border-radius: 12px;
     overflow: hidden;
     display: flex;
@@ -281,8 +627,8 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: #10173b;
-    border-bottom: 1px solid #232b4e;
+    background: #0d1436;
+    border-bottom: 1px solid #1b2350;
     color: #8b96c9;
     font-family: var(--ifm-font-family-monospace);
     font-size: 12.5px;
@@ -299,7 +645,7 @@
     width: 9px;
     height: 9px;
     border-radius: 50%;
-    background: #2b3568;
+    background: #222a5c;
 }
 
 /* ---------- terminal ---------- */
@@ -374,17 +720,17 @@
 }
 
 .dirtyDot {
-    color: #ffce6a;
+    color: #e8a13c;
     font-size: 10px;
 }
 
 .saveBtn {
     margin-left: auto;
-    background: #1a2350;
+    background: #16204a;
     color: #c7d0f0;
-    border: 1px solid #2b3568;
+    border: 1px solid #222a5c;
     border-radius: 7px;
-    font-family: inherit;
+    font-family: var(--ifm-font-family-monospace);
     font-size: 12px;
     padding: 5px 12px;
     cursor: pointer;
@@ -408,7 +754,7 @@
     overflow: hidden;
     text-align: right;
     color: #4a5578;
-    background: #0d1233;
+    background: #0d1436;
     border-right: 1px solid #1b2350;
     font-family: var(--ifm-font-family-monospace);
     font-size: 13px;
@@ -435,133 +781,6 @@
     white-space: pre;
     overflow: auto;
     tab-size: 4;
-}
-
-/* ---------- lesson steps rail ---------- */
-.stepsList {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.step {
-    background: var(--calm-surface);
-    border: 1px solid var(--calm-line);
-    border-radius: 12px;
-    padding: 14px 16px;
-}
-
-.stepCurrent {
-    border-color: var(--ifm-color-primary);
-    box-shadow: 0 0 0 1px var(--ifm-color-primary);
-}
-
-.stepDone {
-    background: var(--calm-bg-soft);
-}
-
-.stepHead {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-}
-
-.stepHead h3 {
-    font-family: var(--ifm-heading-font-family);
-    font-size: 15px;
-    font-weight: 600;
-    margin: 0;
-    color: var(--ifm-font-color-base);
-}
-
-.stepBadge {
-    flex-shrink: 0;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1.5px solid var(--calm-line);
-    color: var(--calm-muted);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.stepBadgeDone {
-    background: var(--calm-green);
-    border-color: var(--calm-green);
-    color: #fff;
-}
-
-.stepBadgeCurrent {
-    border-color: var(--ifm-color-primary);
-    color: var(--ifm-color-primary);
-}
-
-.stepBody {
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: var(--calm-slate);
-    margin: 8px 0 0;
-}
-
-.stepBody code {
-    font-size: 12px;
-}
-
-.hintBtn {
-    background: none;
-    border: none;
-    padding: 0;
-    margin-top: 8px;
-    color: var(--ifm-color-primary);
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.hintPre {
-    margin: 8px 0 0;
-    padding: 10px 12px;
-    background: #0b1030;
-    color: #c7d0f0;
-    border-radius: 8px;
-    font-size: 12px;
-    line-height: 1.5;
-    overflow-x: auto;
-    white-space: pre;
-}
-
-.doneCard {
-    margin-top: 12px;
-    padding: 16px;
-    border: 1px solid var(--calm-green);
-    border-radius: 12px;
-    background: rgba(22, 163, 74, 0.08);
-}
-
-.doneCard h3 {
-    font-size: 15px;
-    margin: 0 0 6px;
-}
-
-.doneCard p {
-    font-size: 13.5px;
-    color: var(--calm-slate);
-    margin: 0 0 10px;
-}
-
-.doneLinks {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 13.5px;
-    font-weight: 600;
 }
 
 /* ---------- diagram ---------- */
@@ -631,7 +850,7 @@
     word-break: break-word;
 }
 
-/* ---------- IDE status bar ---------- */
+/* ---------- status bar (chassis bottom edge) ---------- */
 .statusBar {
     display: flex;
     align-items: center;
@@ -640,8 +859,8 @@
     height: 28px;
     flex-shrink: 0;
     padding: 0 14px;
-    background: #0b1030;
-    border-top: 1px solid #232b4e;
+    background: #0d1436;
+    border-top: 1px solid #1b2350;
     color: #8b96c9;
     font-family: var(--ifm-font-family-monospace);
     font-size: 11px;
