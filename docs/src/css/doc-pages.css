@@ -1,0 +1,383 @@
+/**
+ * Doc-page reading experience (docs redesign #2873, phase 3).
+ *
+ * Presentation for the markup injected at build time by
+ * src/plugins/remark-section-callouts.js (kicker, meta chips, section
+ * callouts) plus theme-level prose chrome (H2 accent bars, TOC, pager,
+ * blockquotes, tables). Everything is scoped to doc pages
+ * (.theme-doc-markdown / docs layout classes) so the custom landing pages
+ * are unaffected.
+ */
+
+/* ---------------------------------------------------------------- *
+ *  Doc header: kicker + meta chips                                 *
+ * ---------------------------------------------------------------- */
+
+.theme-doc-markdown .calm-doc-kicker {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
+  margin-bottom: 10px;
+}
+
+.theme-doc-markdown header > h1 {
+  font-size: 38px;
+  line-height: 1.14;
+  margin-bottom: 14px;
+}
+
+.theme-doc-markdown .calm-doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 28px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--calm-line);
+}
+
+.theme-doc-markdown .calm-dm {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--calm-muted);
+  background: var(--calm-bg-soft);
+  border: 1px solid var(--calm-line);
+  border-radius: 999px;
+  padding: 4px 11px;
+}
+
+.theme-doc-markdown .calm-dm-sec {
+  color: var(--ifm-color-primary);
+  background: #eaf3ff;
+  border-color: #cfe0f7;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .theme-doc-markdown .calm-dm-sec {
+  background: rgba(0, 125, 255, 0.14);
+  border-color: rgba(77, 163, 255, 0.4);
+}
+
+.theme-doc-markdown .calm-dm-diff {
+  color: #8a4b06;
+  background: #fff6e9;
+  border-color: #f0dcc0;
+}
+
+[data-theme='dark'] .theme-doc-markdown .calm-dm-diff {
+  color: #f5c883;
+  background: rgba(217, 119, 6, 0.14);
+  border-color: rgba(217, 119, 6, 0.45);
+}
+
+.theme-doc-markdown a.calm-dm-edit {
+  color: var(--calm-muted);
+  text-decoration: none;
+  margin-left: auto;
+}
+
+.theme-doc-markdown a.calm-dm-edit:hover {
+  color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+
+/* ---------------------------------------------------------------- *
+ *  Section callouts (Prerequisites, Learning objectives, …)        *
+ * ---------------------------------------------------------------- */
+
+.theme-doc-markdown .calm-callout {
+  --cc: #007dff;
+  --ccbg: #f1f7ff;
+  margin: 22px 0;
+  padding: 16px 18px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--calm-line);
+  border-left: 4px solid var(--cc);
+  background: var(--ccbg);
+}
+
+.theme-doc-markdown .calm-callout__h {
+  font-family: var(--ifm-heading-font-family);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cc);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.theme-doc-markdown .calm-callout__ic {
+  font-size: 14px;
+}
+
+.theme-doc-markdown .calm-callout > *:last-child {
+  margin-bottom: 0;
+}
+
+.theme-doc-markdown .calm-callout p {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.theme-doc-markdown .calm-callout ul,
+.theme-doc-markdown .calm-callout ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.theme-doc-markdown .calm-callout li {
+  font-size: 15px;
+  margin: 5px 0;
+}
+
+.theme-doc-markdown .calm-callout a {
+  color: var(--cc);
+  font-weight: 600;
+}
+
+.theme-doc-markdown .calm-callout--sky {
+  --cc: #0284c7;
+  --ccbg: #f0f8ff;
+}
+
+.theme-doc-markdown .calm-callout--violet {
+  --cc: #7c3aed;
+  --ccbg: #faf7ff;
+}
+
+.theme-doc-markdown .calm-callout--blue {
+  --cc: #007dff;
+  --ccbg: #f1f7ff;
+}
+
+.theme-doc-markdown .calm-callout--green {
+  --cc: #16a34a;
+  --ccbg: #f2fbf5;
+}
+
+.theme-doc-markdown .calm-callout--slate {
+  --cc: #64748b;
+  --ccbg: #f6f8fb;
+}
+
+.theme-doc-markdown .calm-callout--amber {
+  --cc: #d97706;
+  --ccbg: #fff9f0;
+}
+
+/* Dark mode: lighter accents, tinted surface backgrounds. */
+[data-theme='dark'] .theme-doc-markdown .calm-callout {
+  --ccbg: color-mix(in srgb, var(--cc) 10%, var(--ifm-background-color));
+}
+
+[data-theme='dark'] .theme-doc-markdown .calm-callout--sky {
+  --cc: #38bdf8;
+}
+
+[data-theme='dark'] .theme-doc-markdown .calm-callout--violet {
+  --cc: #a78bfa;
+}
+
+[data-theme='dark'] .theme-doc-markdown .calm-callout--blue {
+  --cc: #4da3ff;
+}
+
+[data-theme='dark'] .theme-doc-markdown .calm-callout--green {
+  --cc: #4ade80;
+}
+
+[data-theme='dark'] .theme-doc-markdown .calm-callout--slate {
+  --cc: #94a3b8;
+}
+
+[data-theme='dark'] .theme-doc-markdown .calm-callout--amber {
+  --cc: #fbbf24;
+}
+
+/* ---------------------------------------------------------------- *
+ *  Prose chrome                                                    *
+ * ---------------------------------------------------------------- */
+
+/* H2s get the rounded accent bar from the prototype. */
+.theme-doc-markdown h2 {
+  position: relative;
+  margin-top: 40px;
+}
+
+.theme-doc-markdown h2::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 0.28em;
+  width: 6px;
+  height: 24px;
+  border-radius: 3px;
+  background: var(--ifm-color-primary);
+}
+
+@media (max-width: 996px) {
+  .theme-doc-markdown h2::before {
+    display: none;
+  }
+}
+
+.theme-doc-markdown blockquote {
+  margin: 0 0 18px;
+  padding: 12px 18px;
+  border-left: 4px solid var(--ifm-color-primary);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--ifm-color-primary) 5%, var(--ifm-background-color));
+  color: var(--calm-slate);
+}
+
+.theme-doc-markdown table th,
+.theme-doc-markdown table td {
+  border: 1px solid var(--calm-line);
+  padding: 9px 12px;
+}
+
+.theme-doc-markdown table th {
+  background: var(--calm-bg-soft);
+  font-weight: 600;
+}
+
+.theme-doc-markdown table tr {
+  background: transparent;
+  border-top: none;
+}
+
+.theme-doc-markdown :not(pre) > code {
+  background: #f0f3f9;
+  border: 1px solid #e4e9f2;
+  border-radius: 5px;
+  padding: 1px 6px;
+  color: #0b3a66;
+}
+
+[data-theme='dark'] .theme-doc-markdown :not(pre) > code {
+  background: #1e2745;
+  border-color: #2b3453;
+  color: #9fc3ff;
+}
+
+.theme-doc-markdown img {
+  border: 1px solid var(--calm-line);
+  border-radius: 10px;
+}
+
+/* ---------------------------------------------------------------- *
+ *  "On this page" — desktop right rail                             *
+ * ---------------------------------------------------------------- */
+
+.theme-doc-toc-desktop::before {
+  content: 'On this page';
+  display: block;
+  font-family: var(--ifm-heading-font-family);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--calm-heading-color);
+  margin: 10px 0 8px;
+  padding-left: 14px;
+}
+
+.theme-doc-toc-desktop .table-of-contents {
+  border-left: none;
+  font-size: 13px;
+  padding: 0 0 8px;
+}
+
+.theme-doc-toc-desktop .table-of-contents ul {
+  padding-left: 0;
+  margin: 0;
+}
+
+.theme-doc-toc-desktop .table-of-contents__link {
+  display: block;
+  padding: 4px 0 4px 12px;
+  border-left: 2px solid var(--calm-line);
+  color: var(--calm-muted);
+}
+
+.theme-doc-toc-desktop .table-of-contents li {
+  margin: 0;
+}
+
+.theme-doc-toc-desktop .table-of-contents li li .table-of-contents__link {
+  padding-left: 24px;
+  font-size: 12.5px;
+}
+
+.theme-doc-toc-desktop .table-of-contents__link:hover,
+.theme-doc-toc-desktop .table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+  border-left-color: var(--ifm-color-primary);
+}
+
+/* ---------------------------------------------------------------- *
+ *  "On this page" — inline collapsible card (narrow screens)       *
+ * ---------------------------------------------------------------- */
+
+.theme-doc-toc-mobile {
+  border: 1px solid var(--calm-line);
+  border-radius: 10px;
+  background: var(--calm-bg-soft);
+  margin-bottom: 24px;
+}
+
+.theme-doc-toc-mobile > button {
+  font-family: var(--ifm-heading-font-family);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--calm-heading-color);
+}
+
+.theme-doc-toc-mobile .table-of-contents__link {
+  color: var(--calm-muted);
+}
+
+.theme-doc-toc-mobile .table-of-contents__link:hover,
+.theme-doc-toc-mobile .table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+}
+
+/* ---------------------------------------------------------------- *
+ *  Prev / next pager                                               *
+ * ---------------------------------------------------------------- */
+
+.pagination-nav {
+  margin-top: 44px;
+  border-top: 1px solid var(--calm-line);
+  padding-top: 22px;
+}
+
+.pagination-nav__link {
+  border: 1px solid var(--calm-line);
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--ifm-color-primary);
+}
+
+.pagination-nav__sublabel {
+  font-size: 12px;
+  color: var(--calm-muted);
+}
+
+.pagination-nav__label {
+  font-weight: 700;
+  color: var(--ifm-color-primary);
+  margin-top: 2px;
+}
