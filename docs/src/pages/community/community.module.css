@@ -1,0 +1,14 @@
+/**
+ * Community landing styles. Shared primitives come from
+ * src/components/shared.module.css.
+ */
+
+.highlightCard {
+    background: #fff9f0;
+    border-color: #f0d8a8;
+}
+
+[data-theme='dark'] .highlightCard {
+    background: rgba(217, 119, 6, 0.1);
+    border-color: rgba(240, 164, 55, 0.35);
+}

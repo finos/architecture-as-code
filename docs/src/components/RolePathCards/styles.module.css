@@ -1,0 +1,132 @@
+/**
+ * Role picker cards. Per-role accent arrives via the inline custom
+ * properties --accent-light / --accent-dark set on each card.
+ */
+
+.paths {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 996px) {
+    .paths {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .paths {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pathCard {
+    --accent: var(--accent-light, #007dff);
+    position: relative;
+    overflow: hidden;
+    background: var(--calm-surface);
+    border: 1px solid var(--calm-line);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: var(--calm-card-shadow);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    display: block;
+    color: var(--ifm-font-color-base);
+}
+
+[data-theme='dark'] .pathCard {
+    --accent: var(--accent-dark, var(--accent-light, #007dff));
+}
+
+.pathCard:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent);
+    box-shadow: 0 22px 40px -18px color-mix(in srgb, var(--accent) 45%, transparent);
+    color: var(--ifm-font-color-base);
+    text-decoration: none;
+}
+
+.wm {
+    position: absolute;
+    right: -6px;
+    bottom: -18px;
+    font-size: 92px;
+    font-weight: 700;
+    color: color-mix(in srgb, var(--accent) 7%, transparent);
+    font-family: var(--ifm-font-family-monospace);
+    line-height: 1;
+}
+
+.top {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin-bottom: 16px;
+}
+
+.icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 20px;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
+}
+
+.iconSmall {
+    font-size: 16px;
+}
+
+.role {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.cardTitle {
+    font-family: var(--ifm-heading-font-family);
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--ifm-font-color-base);
+    margin: 0 0 7px;
+    position: relative;
+}
+
+.cardBlurb {
+    font-size: 14px;
+    color: var(--calm-muted);
+    margin: 0 0 18px;
+    min-height: 40px;
+    position: relative;
+}
+
+.foot {
+    border-top: 1px solid var(--calm-line);
+    padding-top: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.meta {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    color: var(--calm-faint);
+}
+
+.go {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 14px;
+}
