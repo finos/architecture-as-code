@@ -110,7 +110,7 @@ const config = {
                         to: '/community',
                         label: 'Community',
                         position: 'left',
-                        activeBaseRegex: '/community(/|$)',
+                        activeBaseRegex: '/(community|talks)(/|$)',
                     },
                     {
                         href: 'https://hub.calm.finos.org/',
