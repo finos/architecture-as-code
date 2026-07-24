@@ -22,6 +22,7 @@ function Loading() {
 export default function LearnLab() {
     return (
         <Layout
+            noFooter
             title="Learning Lab"
             description="Model and validate a real CALM architecture entirely in your browser — a terminal, an editor and a live diagram, no install required.">
             <BrowserOnly fallback={<Loading />}>
