@@ -135,13 +135,13 @@ function TalkMedia({talk}) {
 
     if (playing) {
         return talk.type === 'file' ? (
-            <video className={styles.media} controls autoPlay src={talk.src} />
+            <video className={styles.media} controls src={talk.src} />
         ) : (
             <iframe
                 className={styles.media}
-                src={`https://www.youtube-nocookie.com/embed/${talk.id}?autoplay=1${talk.start ? `&start=${talk.start}` : ''}`}
+                src={`https://www.youtube-nocookie.com/embed/${talk.id}${talk.start ? `?start=${talk.start}` : ''}`}
                 title={talk.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
             />
