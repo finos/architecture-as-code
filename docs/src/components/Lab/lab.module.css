@@ -1,0 +1,473 @@
+/**
+ * Learning-lab styles. The lab surfaces (terminal, editor, diagram)
+ * are dark-native — fixed navy palette so they look right in both
+ * site themes — while the surrounding chrome (steps, status card,
+ * banner) uses the --calm-* tokens from src/css/custom.css.
+ */
+
+/* ---------- banner ---------- */
+.banner {
+    padding: 36px 0 30px;
+}
+
+.bannerRow {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.resetBtn {
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+}
+
+/* ---------- layout ---------- */
+.labSection {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 26px 28px 64px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(280px, 330px);
+    gap: 18px;
+    align-items: start;
+}
+
+.mainCol {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 740px;
+    min-width: 0;
+}
+
+.side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+@media (max-width: 996px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mainCol {
+        height: auto;
+    }
+
+    .editorPane {
+        height: 400px;
+    }
+
+    .terminalPane {
+        height: 300px;
+    }
+}
+
+/* ---------- shared dark pane chrome ---------- */
+.editorPane,
+.terminalPane,
+.diagramPane {
+    background: #0b1030;
+    border: 1px solid #232b4e;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.editorPane {
+    flex: 3 1 0;
+    min-height: 0;
+}
+
+.terminalPane {
+    flex: 2 1 0;
+    min-height: 0;
+}
+
+.paneHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #10173b;
+    border-bottom: 1px solid #232b4e;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12.5px;
+    flex-shrink: 0;
+}
+
+.paneDots {
+    display: inline-flex;
+    gap: 5px;
+    margin-right: 2px;
+}
+
+.paneDots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #2b3568;
+}
+
+/* ---------- terminal ---------- */
+.termScroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 13px;
+    line-height: 1.55;
+    cursor: text;
+}
+
+.termLine {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.lineOut {
+    color: #c7d0f0;
+}
+
+.lineOk {
+    color: #22d3a7;
+}
+
+.lineErr {
+    color: #ff7b8a;
+}
+
+.lineDim {
+    color: #8b96c9;
+}
+
+.lineCmd {
+    color: #e6ecff;
+}
+
+.promptRow {
+    display: flex;
+    align-items: center;
+}
+
+.promptUser {
+    color: #22d3a7;
+    font-weight: 600;
+}
+
+.promptPath {
+    color: #4da3ff;
+}
+
+.promptSep {
+    color: #8b96c9;
+}
+
+.termInput {
+    flex: 1;
+    min-width: 40px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e6ecff;
+    font: inherit;
+    padding: 0 0 0 8px;
+    caret-color: #22d3a7;
+}
+
+/* ---------- editor ---------- */
+.editorFileName {
+    color: #c7d0f0;
+}
+
+.dirtyDot {
+    color: #ffce6a;
+    font-size: 10px;
+}
+
+.saveBtn {
+    margin-left: auto;
+    background: #1a2350;
+    color: #c7d0f0;
+    border: 1px solid #2b3568;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 5px 12px;
+    cursor: pointer;
+}
+
+.saveBtn:hover {
+    border-color: #4da3ff;
+    color: #fff;
+}
+
+.editorBody {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+.gutter {
+    flex-shrink: 0;
+    width: 46px;
+    padding: 12px 0;
+    overflow: hidden;
+    text-align: right;
+    color: #4a5578;
+    background: #0d1233;
+    border-right: 1px solid #1b2350;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 13px;
+    line-height: 1.55;
+    user-select: none;
+}
+
+.gutter div {
+    padding-right: 10px;
+}
+
+.editorTextarea {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    color: #dfe6ff;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 12px 14px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+    overflow: auto;
+    tab-size: 4;
+}
+
+/* ---------- lesson steps rail ---------- */
+.stepsList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.step {
+    background: var(--calm-surface);
+    border: 1px solid var(--calm-line);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.stepCurrent {
+    border-color: var(--ifm-color-primary);
+    box-shadow: 0 0 0 1px var(--ifm-color-primary);
+}
+
+.stepDone {
+    background: var(--calm-bg-soft);
+}
+
+.stepHead {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.stepHead h3 {
+    font-family: var(--ifm-heading-font-family);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ifm-font-color-base);
+}
+
+.stepBadge {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--calm-line);
+    color: var(--calm-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.stepBadgeDone {
+    background: var(--calm-green);
+    border-color: var(--calm-green);
+    color: #fff;
+}
+
+.stepBadgeCurrent {
+    border-color: var(--ifm-color-primary);
+    color: var(--ifm-color-primary);
+}
+
+.stepBody {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--calm-slate);
+    margin: 8px 0 0;
+}
+
+.stepBody code {
+    font-size: 12px;
+}
+
+.hintBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 8px;
+    color: var(--ifm-color-primary);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.hintPre {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    background: #0b1030;
+    color: #c7d0f0;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+.doneCard {
+    margin-top: 12px;
+    padding: 16px;
+    border: 1px solid var(--calm-green);
+    border-radius: 12px;
+    background: rgba(22, 163, 74, 0.08);
+}
+
+.doneCard h3 {
+    font-size: 15px;
+    margin: 0 0 6px;
+}
+
+.doneCard p {
+    font-size: 13.5px;
+    color: var(--calm-slate);
+    margin: 0 0 10px;
+}
+
+.doneLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+/* ---------- diagram ---------- */
+.diagramBox {
+    padding: 14px;
+}
+
+.diagramSvg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+}
+
+.diagramEmpty {
+    padding: 26px 14px;
+    text-align: center;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12.5px;
+}
+
+.diagramCaption {
+    padding: 0 14px 12px;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+}
+
+/* ---------- validation status card ---------- */
+.statusCard {
+    background: var(--calm-surface);
+    border: 1px solid var(--calm-line);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.statusTitle {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--calm-muted);
+    margin-bottom: 8px;
+}
+
+.statusOk {
+    color: var(--calm-green);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.statusErr {
+    color: #d64560;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.statusDim {
+    color: var(--calm-muted);
+    font-size: 12.5px;
+    margin-top: 6px;
+}
+
+.statusList {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--calm-muted);
+    word-break: break-word;
+}
+
+/* ---------- a11y ---------- */
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
