@@ -99,7 +99,7 @@ const config = {
                         to: '/learn',
                         label: 'Learn',
                         position: 'left',
-                        activeBaseRegex: '/(learn|tutorials)/',
+                        activeBaseRegex: '/(learn|tutorials)(/|$)',
                     },
                     {
                         to: '/core-concepts/',
@@ -117,7 +117,7 @@ const config = {
                         to: '/community',
                         label: 'Community',
                         position: 'left',
-                        activeBaseRegex: '/community/',
+                        activeBaseRegex: '/community(/|$)',
                     },
                     {
                         href: 'https://github.com/finos/architecture-as-code',
@@ -161,7 +161,7 @@ const config = {
                             },
                             {
                                 label: 'Talks',
-                                href: '/talks/',
+                                to: '/talks/',
                             },
                         ],
                     },

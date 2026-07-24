@@ -23,6 +23,8 @@
 
 .pathCard {
     --accent: var(--accent-light, #007dff);
+    /* Darkened for small accent text to meet WCAG AA in light mode. */
+    --accent-text: color-mix(in srgb, var(--accent) 72%, #0b1020);
     position: relative;
     overflow: hidden;
     background: var(--calm-surface);
@@ -37,6 +39,7 @@
 
 [data-theme='dark'] .pathCard {
     --accent: var(--accent-dark, var(--accent-light, #007dff));
+    --accent-text: var(--accent);
 }
 
 .pathCard:hover {
@@ -90,7 +93,7 @@
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-text);
 }
 
 .cardTitle {
@@ -126,7 +129,7 @@
 }
 
 .go {
-    color: var(--accent);
+    color: var(--accent-text);
     font-weight: 600;
     font-size: 14px;
 }

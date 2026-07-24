@@ -5,10 +5,16 @@
 
 .root {
     --accent: var(--accent-light, #007dff);
+    /* Darkened derivatives so small text and white-on-accent solids meet
+       WCAG AA in light mode; dark mode uses the accent as-is. */
+    --accent-solid: color-mix(in srgb, var(--accent) 78%, #000);
+    --accent-text: color-mix(in srgb, var(--accent) 72%, #0b1020);
 }
 
 [data-theme='dark'] .root {
     --accent: var(--accent-dark, var(--accent-light, #007dff));
+    --accent-solid: var(--accent);
+    --accent-text: var(--accent);
 }
 
 /* ---------- accent-tinted banner ---------- */
@@ -86,7 +92,7 @@
     padding: 11px 20px;
     border-radius: 9px;
     line-height: 1;
-    background: var(--accent);
+    background: var(--accent-solid);
     color: #fff;
     box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--accent) 60%, transparent);
 }
@@ -125,7 +131,8 @@
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-text);
+    margin: 0;
 }
 
 .stepCount {
@@ -146,7 +153,7 @@
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--accent-solid);
     color: #fff;
     display: flex;
     align-items: center;
@@ -176,7 +183,7 @@
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-text);
     margin-bottom: 6px;
 }
 
