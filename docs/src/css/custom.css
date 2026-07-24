@@ -47,7 +47,9 @@
   --calm-heading-color: #e6ecff;
 }
 
-/* Headings pick up the display face and the brand navy. */
+/* Top-level headings (h1-h3) take the brand navy and tighter tracking;
+   all heading levels already get the display face via
+   --ifm-heading-font-family above. */
 h1,
 h2,
 h3 {
