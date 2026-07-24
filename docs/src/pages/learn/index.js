@@ -79,6 +79,9 @@ export default function Learn() {
                             <Link className={shared.btnGhost} to="/introduction/what-is-calm">
                                 What is CALM? · 5-min read
                             </Link>
+                            <Link className={shared.btnGhost} to="/learn/lab">
+                                ⚡ Try CALM in your browser
+                            </Link>
                         </div>
                     </div>
                 </section>
