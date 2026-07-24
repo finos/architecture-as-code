@@ -47,6 +47,9 @@
     border: none;
     padding: 0;
     background: #0b1030;
+}
+
+.mediaButton {
     cursor: pointer;
 }
 
