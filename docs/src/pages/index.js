@@ -65,7 +65,13 @@ function Hero() {
                     <span className={styles.s}>"orders-api"</span>
                     {' } }\n  ]\n}'}
                 </pre>
-                <div className={styles.codeCardDiagram}>rendered architecture diagram →</div>
+                <img
+                    className={styles.codeCardDiagram}
+                    src="/img/hero-trading-diagram.png"
+                    alt="The trading-system architecture rendered as a diagram in CALM Hub: Trading UI connecting to Orders API"
+                    width="1210"
+                    height="215"
+                />
             </div>
         </section>
     );
