@@ -138,7 +138,7 @@ const config = {
                         items: [
                             {
                                 label: 'Schema',
-                                href: 'http://github.com/finos/architecture-as-code/blob/master/calm/',
+                                href: 'https://github.com/finos/architecture-as-code/tree/main/calm/',
                             },
                             {
                                 label: 'CALM Hub',
