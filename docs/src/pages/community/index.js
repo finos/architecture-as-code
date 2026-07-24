@@ -57,6 +57,7 @@ export default function Community() {
                     </div>
                 </section>
                 <section className={clsx(shared.wrap, shared.section)}>
+                    <h2 className={styles.srOnly}>Get involved</h2>
                     <div className={shared.grid3}>
                         {CARDS.map((card) => (
                             <Link

@@ -19,9 +19,11 @@ export default function RolePathCards() {
                         '--accent-light': journey.accent,
                         '--accent-dark': journey.accentDark,
                     }}>
-                    <span className={styles.wm}>{journey.icon}</span>
+                    <span className={styles.wm} aria-hidden="true">{journey.icon}</span>
                     <div className={styles.top}>
-                        <div className={clsx(styles.icon, journey.icon.length > 1 && styles.iconSmall)}>
+                        <div
+                            className={clsx(styles.icon, journey.icon.length > 1 && styles.iconSmall)}
+                            aria-hidden="true">
                             {journey.icon}
                         </div>
                         <div className={styles.role}>{journey.roleLabel}</div>

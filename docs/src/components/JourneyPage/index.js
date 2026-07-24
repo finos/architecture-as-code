@@ -2,7 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import Layout from '@theme/Layout';
-import shared from '../shared.module.css';
+import shared from '@site/src/components/shared.module.css';
 import styles from './styles.module.css';
 
 function StepLink({step, children, className}) {
@@ -33,7 +33,9 @@ export default function JourneyPage({journey}) {
                             <span>{journey.roleLabel}</span>
                         </nav>
                         <div className={styles.bannerHead}>
-                            <div className={clsx(styles.iconTile, journey.icon.length > 1 && styles.iconTileSmall)}>
+                            <div
+                                className={clsx(styles.iconTile, journey.icon.length > 1 && styles.iconTileSmall)}
+                                aria-hidden="true">
                                 {journey.icon}
                             </div>
                             <div>
@@ -51,11 +53,11 @@ export default function JourneyPage({journey}) {
                 </section>
                 <section className={clsx(shared.wrap, styles.pathSection)}>
                     <div className={styles.pathHead}>
-                        <span className={styles.pathEyebrow}>Your path</span>
+                        <h2 className={styles.pathEyebrow}>Your path</h2>
                         <span className={styles.stepCount}>{journey.steps.length} steps</span>
                     </div>
                     {journey.steps.map((step, i) => (
-                        <div className={styles.step} key={i}>
+                        <div className={styles.step} key={step.title}>
                             <div className={styles.stepNum}>{i + 1}</div>
                             <div className={styles.stepCard}>
                                 <div className={styles.stepKicker}>{step.kicker}</div>

@@ -98,7 +98,7 @@
     line-height: 1.7;
     color: #c7d0f0;
     white-space: pre;
-    overflow: hidden;
+    overflow-x: auto;
 }
 
 .k {
@@ -317,7 +317,8 @@
     font-family: var(--ifm-font-family-monospace);
     font-size: 10.5px;
     font-weight: 600;
-    color: var(--accent);
+    /* Darkened so the small tag text meets WCAG AA on the light tint. */
+    color: color-mix(in srgb, var(--accent) 72%, #0b1020);
     background: color-mix(in srgb, var(--accent) 12%, transparent);
     border-radius: 6px;
     padding: 2px 7px;
@@ -337,8 +338,13 @@
 .jcardMono {
     font-family: var(--ifm-font-family-monospace);
     font-size: 11px;
-    color: var(--accent);
+    color: color-mix(in srgb, var(--accent) 72%, #0b1020);
     margin-bottom: 6px;
+}
+
+[data-theme='dark'] .jcardTag,
+[data-theme='dark'] .jcardMono {
+    color: var(--accent);
 }
 
 .jcardDesc {

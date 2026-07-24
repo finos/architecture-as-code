@@ -182,8 +182,8 @@ function JourneyRoadmap() {
             </div>
             <div className={styles.journey}>
                 <div className={styles.journeyLine} />
-                <div className={clsx(styles.journeyPin, styles.journeyPinStart)}>◆ START</div>
-                <div className={clsx(styles.journeyPin, styles.journeyPinEnd)}>🏁 ARRIVE</div>
+                <div className={clsx(styles.journeyPin, styles.journeyPinStart)} aria-hidden="true">◆ START</div>
+                <div className={clsx(styles.journeyPin, styles.journeyPinEnd)} aria-hidden="true">🏁 ARRIVE</div>
                 {ROADMAP_STOPS.map((stop, i) => {
                     const vars = {
                         '--accent': stop.accent,
@@ -195,7 +195,7 @@ function JourneyRoadmap() {
                         <div className={styles.stopWrap} style={vars} key={stop.tag}>
                             <div className={styles.stopCell}>
                                 <div className={clsx(styles.stopStem, stop.cardAbove ? styles.stemUp : styles.stemDown)} />
-                                <div className={styles.stopDot}>{stop.dot}</div>
+                                <div className={styles.stopDot} aria-hidden="true">{stop.dot}</div>
                             </div>
                             <Link
                                 to={stop.to}
