@@ -1,8 +1,8 @@
 /**
- * The lab's validation engine: the REAL CALM 1.2 JSON Schemas
- * (imported straight from calm/release/1.2/meta in this repo),
- * compiled by Ajv — the same validation core the CALM CLI uses —
- * plus one semantic check the schema cannot express.
+ * The lab's validation engine: the REAL CALM JSON Schemas — the 1.2
+ * release set plus the draft/2025-03 set (imported straight from
+ * calm/ in this repo) — compiled by Ajv, the same validation core the
+ * CALM CLI uses, plus one semantic check the schema cannot express.
  */
 
 import Ajv2020 from 'ajv/dist/2020';
@@ -19,6 +19,14 @@ import unitsSchema from '../../../../calm/release/1.2/meta/units.json';
 import decoratorsSchema from '../../../../calm/release/1.2/meta/decorators.json';
 import timelineSchema from '../../../../calm/release/1.2/meta/timeline.json';
 import calmTimelineSchema from '../../../../calm/release/1.2/meta/calm-timeline.json';
+import draftCalmSchema from '../../../../calm/draft/2025-03/meta/calm.json';
+import draftCoreSchema from '../../../../calm/draft/2025-03/meta/core.json';
+import draftInterfaceSchema from '../../../../calm/draft/2025-03/meta/interface.json';
+import draftControlSchema from '../../../../calm/draft/2025-03/meta/control.json';
+import draftControlRequirementSchema from '../../../../calm/draft/2025-03/meta/control-requirement.json';
+import draftEvidenceSchema from '../../../../calm/draft/2025-03/meta/evidence.json';
+import draftFlowSchema from '../../../../calm/draft/2025-03/meta/flow.json';
+import draftUnitsSchema from '../../../../calm/draft/2025-03/meta/units.json';
 
 const SCHEMAS = [
     calmSchema,
@@ -32,6 +40,17 @@ const SCHEMAS = [
     decoratorsSchema,
     timelineSchema,
     calmTimelineSchema,
+    // draft/2025-03 set: documents that declare the draft $schema (e.g. the
+    // TraderX sample) validate against their declared schema rather than
+    // falling back to the 1.2 release.
+    draftCalmSchema,
+    draftCoreSchema,
+    draftInterfaceSchema,
+    draftControlSchema,
+    draftControlRequirementSchema,
+    draftEvidenceSchema,
+    draftFlowSchema,
+    draftUnitsSchema,
 ];
 
 export const DEFAULT_SCHEMA_ID = 'https://calm.finos.org/release/1.2/meta/calm.json';

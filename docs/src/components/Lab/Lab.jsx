@@ -4,7 +4,7 @@ import Link from '@docusaurus/Link';
 import styles from './lab.module.css';
 import Terminal from './Terminal';
 import Editor from './Editor';
-import Diagram from './Diagram';
+import HubDiagram from './HubDiagram';
 import {createVfs} from './vfs';
 import {validateArchitecture} from './engine';
 import {runCommand} from './shell';
@@ -507,7 +507,11 @@ export default function Lab() {
                                 />
                             </div>
                             <div className={styles.tabPanel} hidden={topTab !== 'diagram'}>
-                                <Diagram chromeless jsonText={editorText} />
+                                {/* Mounted only while active so the ReactFlow canvas
+                                    always measures a real size and fits on open. */}
+                                {topTab === 'diagram' && (
+                                    <HubDiagram jsonText={vfs.read(ARCHITECTURE_FILE) ?? ''} />
+                                )}
                             </div>
                         </div>
                         <div

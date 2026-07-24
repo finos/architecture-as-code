@@ -615,24 +615,15 @@
 
 /* ---------- legacy pane chrome (standalone component use) ---------- */
 .editorPane,
-.terminalPane,
-.diagramPane {
+.terminalPane {
     background: #0b1030;
     border: 1px solid #1b2350;
     border-radius: 12px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-}
-
-.editorPane,
-.terminalPane {
     flex: 1 1 0;
     min-height: 0;
-}
-
-.diagramPane {
-    flex-shrink: 0;
 }
 
 .paneHeader {
@@ -796,30 +787,145 @@
     tab-size: 4;
 }
 
-/* ---------- diagram ---------- */
-.diagramBox {
-    padding: 14px;
-}
-
-.diagramBoxFill {
+/* ---------- diagram (CALM Hub visualizer pipeline) ---------- */
+.flowCanvas {
     flex: 1;
     min-height: 0;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 18px;
-    overflow: auto;
 }
 
-.diagramBoxFill .diagramSvg {
-    max-width: 760px;
-}
-
-.diagramSvg {
-    display: block;
+/* Dark-chassis ReactFlow chrome. Scoped under .flowCanvas so these rules beat
+   reactflow/dist/style.css regardless of bundle order (specificity, not order). */
+.flowCanvas :global(.react-flow) {
     width: 100%;
-    height: auto;
-    max-width: 100%;
+    height: 100%;
+}
+
+.flowCanvas :global(.react-flow__controls) {
+    background: #0d1436;
+    border: 1px solid #222a5c;
+    border-radius: 8px;
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.flowCanvas :global(.react-flow__controls-button) {
+    background: #0d1436;
+    border-bottom: 1px solid #222a5c;
+}
+
+.flowCanvas :global(.react-flow__controls-button svg) {
+    fill: #c7d0f0;
+}
+
+.flowCanvas :global(.react-flow__controls-button:hover) {
+    background: #16204a;
+}
+
+.flowCanvas :global(.react-flow__attribution) {
+    background: transparent;
+}
+
+.flowCanvas :global(.react-flow__attribution a) {
+    color: #5a648c;
+}
+
+/* reactflow's stylesheet paints .react-flow__node-group with a light default
+   background/border; neutralise it so only the lab-skinned group shows. */
+.flowCanvas :global(.react-flow__node-group) {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.flowNode {
+    width: 220px;
+    background: #0d1436;
+    border: 2px solid #4da3ff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: #c7d0f0;
+    font-family: var(--ifm-font-family-base);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.25);
+}
+
+.flowNodeLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #e6ecff;
+    line-height: 1.35;
+}
+
+.flowNodeDot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.flowNodeType {
+    margin-top: 5px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    color: #8b96c9;
+}
+
+.flowGroup {
+    background: rgba(77, 163, 255, 0.06);
+    border: 2px dashed rgba(77, 163, 255, 0.45);
+    border-radius: 12px;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allow clicks to pass through to child nodes */
+}
+
+.flowGroupLabel {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+    font-family: var(--ifm-font-family-monospace);
+    background: #0d1436;
+    color: #c7d0f0;
+    border: 1px solid #222a5c;
+    pointer-events: auto; /* Re-enable pointer events for the label */
+}
+
+.flowEdgeLabel {
+    position: absolute;
+    pointer-events: all;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 200px;
+    background: rgba(11, 16, 48, 0.9);
+    border: 1px solid #222a5c;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-family: var(--ifm-font-family-base);
+    font-size: 10.5px;
+    color: #c7d0f0;
+}
+
+.flowEdgeProtocol {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 9.5px;
+    font-weight: 600;
+    color: #4da3ff;
+    background: #16204a;
+    border-radius: 4px;
+    padding: 1px 5px;
+    flex-shrink: 0;
 }
 
 .diagramEmpty {
