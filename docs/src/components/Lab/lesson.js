@@ -24,6 +24,61 @@ const SEED_ARCHITECTURE = `{
 }
 `;
 
+/**
+ * Paste-safe hints: for the editing steps the hint is the COMPLETE
+ * target file, so paste-replace-save always produces a valid result.
+ */
+const STEP_2_TARGET_FILE = `{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "trading-ui",
+            "node-type": "webclient",
+            "name": "Trading UI",
+            "description": "Web client used by traders to submit and monitor orders"
+        },
+        {
+            "unique-id": "orders-api",
+            "node-type": "service",
+            "name": "Orders API",
+            "description": "Service that accepts and processes orders"
+        }
+    ],
+    "relationships": []
+}
+`;
+
+const STEP_3_TARGET_FILE = `{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "trading-ui",
+            "node-type": "webclient",
+            "name": "Trading UI",
+            "description": "Web client used by traders to submit and monitor orders"
+        },
+        {
+            "unique-id": "orders-api",
+            "node-type": "service",
+            "name": "Orders API",
+            "description": "Service that accepts and processes orders"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "trading-ui-connects-orders-api",
+            "description": "Traders submit and monitor orders",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "trading-ui" },
+                    "destination": { "node": "orders-api" }
+                }
+            }
+        }
+    ]
+}
+`;
+
 export const SEED_FILES = {
     '/workspace/README.md':
         'Welcome to the CALM learning lab — a real CALM workspace, entirely in your browser.\n' +
@@ -62,6 +117,7 @@ export const STEPS = [
             '`cat architecture/trading-system.architecture.json` to read the model, then ' +
             '`calm validate architecture/trading-system.architecture.json` to check it against ' +
             'the real CALM 1.2 schemas.',
+        hintLabel: 'commands',
         hint:
             'ls\n' +
             'cat architecture/trading-system.architecture.json\n' +
@@ -75,13 +131,8 @@ export const STEPS = [
             'The trading UI needs a backend. In the editor, add a second entry to `nodes` with ' +
             '`unique-id` `orders-api` and `node-type` `service` (plus a `name` and `description`), ' +
             'then save with the Save button or Cmd/Ctrl+S.',
-        hint:
-            '{\n' +
-            '    "unique-id": "orders-api",\n' +
-            '    "node-type": "service",\n' +
-            '    "name": "Orders API",\n' +
-            '    "description": "Service that accepts and processes orders"\n' +
-            '}',
+        hintLabel: 'complete file',
+        hint: STEP_2_TARGET_FILE,
         check: (state) =>
             Boolean(state.doc) && hasOrdersApiNode(state.doc) && state.validation.ok,
     },
@@ -92,28 +143,14 @@ export const STEPS = [
             'Nodes on their own are just boxes. Add a `connects` relationship to the ' +
             '`relationships` array — from `trading-ui` to `orders-api` — save, then re-run ' +
             '`calm validate architecture/trading-system.architecture.json`.',
-        hint:
-            '{\n' +
-            '    "unique-id": "trading-ui-connects-orders-api",\n' +
-            '    "description": "Traders submit and monitor orders",\n' +
-            '    "relationship-type": {\n' +
-            '        "connects": {\n' +
-            '            "source": { "node": "trading-ui" },\n' +
-            '            "destination": { "node": "orders-api" }\n' +
-            '        }\n' +
-            '    }\n' +
-            '}',
-        // State-based on purpose: the saved file must hold the resolving
-        // relationship and be schema-valid, and a successful terminal
-        // `calm validate` of this file must have happened at some point.
-        // Requiring the validate to happen AFTER the save wedged learners
-        // who validated (from shell history) just before saving: every
-        // indicator showed green but the step never completed.
+        hintLabel: 'complete file',
+        hint: STEP_3_TARGET_FILE,
+        // State-based on purpose: saving runs the exact same Ajv engine
+        // as `calm validate`, so the tick must not additionally require a
+        // terminal validate — learners who pasted the hint and saved saw
+        // an all-green editor while the step refused to complete.
         check: (state) =>
-            Boolean(state.doc) &&
-            hasConnectsRelationship(state.doc) &&
-            state.validation.ok &&
-            state.hasValidatedOk,
+            Boolean(state.doc) && hasConnectsRelationship(state.doc) && state.validation.ok,
     },
 ];
 
