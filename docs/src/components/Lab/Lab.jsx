@@ -20,6 +20,11 @@ import {
 
 const PROGRESS_KEY = 'calm-lab-progress-v1';
 const EDITOR_FILE_LABEL = 'architecture/trading-system.architecture.json';
+const MIN_PANE_HEIGHT = 120;
+const SPLITTER_SIZE = 8;
+const SIDE_MIN_WIDTH = 240;
+const SIDE_MAX_WIDTH = 480;
+const SIDE_DEFAULT_WIDTH = 320;
 
 function loadProgress() {
     try {
@@ -112,6 +117,52 @@ export default function Lab() {
     const [completed, setCompleted] = useState(loadProgress);
     const [terminalNonce, setTerminalNonce] = useState(0);
 
+    // Splitter state (desktop IDE layout only).
+    const [termHeight, setTermHeight] = useState(null);
+    const [sideWidth, setSideWidth] = useState(SIDE_DEFAULT_WIDTH);
+    const centerRef = useRef(null);
+    const termSlotRef = useRef(null);
+    const dragCleanupRef = useRef(null);
+
+    useEffect(() => () => dragCleanupRef.current?.(), []);
+
+    const beginDrag = (event, onMove) => {
+        event.preventDefault();
+        const stop = () => {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', stop);
+            window.removeEventListener('pointercancel', stop);
+            dragCleanupRef.current = null;
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', stop);
+        window.addEventListener('pointercancel', stop);
+        dragCleanupRef.current = stop;
+    };
+
+    const startTermDrag = (event) => {
+        const startY = event.clientY;
+        const startHeight = termSlotRef.current?.offsetHeight ?? 0;
+        const columnHeight = centerRef.current?.offsetHeight ?? 0;
+        const maxHeight = Math.max(
+            MIN_PANE_HEIGHT,
+            columnHeight - MIN_PANE_HEIGHT - SPLITTER_SIZE,
+        );
+        beginDrag(event, (moveEvent) => {
+            const next = startHeight - (moveEvent.clientY - startY);
+            setTermHeight(Math.min(Math.max(next, MIN_PANE_HEIGHT), maxHeight));
+        });
+    };
+
+    const startSideDrag = (event) => {
+        const startX = event.clientX;
+        const startWidth = sideWidth;
+        beginDrag(event, (moveEvent) => {
+            const next = startWidth - (moveEvent.clientX - startX);
+            setSideWidth(Math.min(Math.max(next, SIDE_MIN_WIDTH), SIDE_MAX_WIDTH));
+        });
+    };
+
     const recompute = () => {
         const text = vfs.read(ARCHITECTURE_FILE) ?? '';
         const result = validateArchitecture(text);
@@ -190,58 +241,55 @@ export default function Lab() {
     const currentStep = STEPS.find((step) => !completed.has(step.id));
     const allDone = completed.size === STEPS.length;
     const errorCount = validation ? validation.errors.length + (validation.parseError ? 1 : 0) : 0;
+    const lineCount = editorText.split('\n').length;
+    const cssVars = {
+        '--lab-side-width': `${sideWidth}px`,
+        ...(termHeight != null ? {'--lab-term-height': `${termHeight}px`} : {}),
+    };
 
     return (
-        <main>
-            <section className={clsx(shared.banner, styles.banner)}>
-                <div className={clsx(shared.wrap, styles.bannerRow)}>
-                    <div>
-                        <span className={shared.eyebrow}>Learn · Lab</span>
-                        <h1>CALM Learning Lab</h1>
-                        <p>
-                            Model and validate a real CALM architecture — terminal, editor and
-                            live diagram, entirely in your browser.
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        className={clsx(shared.btnGhost, styles.resetBtn)}
-                        onClick={handleReset}>
-                        Reset lesson
-                    </button>
-                </div>
-            </section>
+        <main className={styles.workspace} style={cssVars}>
+            <div className={styles.toolbar}>
+                <span className={shared.eyebrow}>Learn · Lab</span>
+                <h1 className={styles.toolbarTitle}>CALM Learning Lab</h1>
+                <button
+                    type="button"
+                    className={clsx(shared.btnGhost, styles.resetBtn)}
+                    onClick={handleReset}>
+                    Reset lesson
+                </button>
+            </div>
 
-            <section className={styles.labSection}>
-                <div className={styles.grid}>
-                    <nav className={styles.stepsRail} aria-label="Lesson steps">
-                        <ol className={styles.stepsList}>
-                            {STEPS.map((step, index) => (
-                                <StepItem
-                                    key={step.id}
-                                    step={step}
-                                    index={index}
-                                    done={completed.has(step.id)}
-                                    current={currentStep?.id === step.id}
-                                />
-                            ))}
-                        </ol>
-                        {allDone && (
-                            <div className={styles.doneCard}>
-                                <h3>🏁 {COMPLETION.heading}</h3>
-                                <p>{COMPLETION.message}</p>
-                                <div className={styles.doneLinks}>
-                                    {COMPLETION.links.map((link) => (
-                                        <Link to={link.to} key={link.to}>
-                                            {link.label}
-                                        </Link>
-                                    ))}
-                                </div>
+            <div className={styles.grid}>
+                <nav className={styles.stepsRail} aria-label="Lesson steps">
+                    <ol className={styles.stepsList}>
+                        {STEPS.map((step, index) => (
+                            <StepItem
+                                key={step.id}
+                                step={step}
+                                index={index}
+                                done={completed.has(step.id)}
+                                current={currentStep?.id === step.id}
+                            />
+                        ))}
+                    </ol>
+                    {allDone && (
+                        <div className={styles.doneCard}>
+                            <h3>🏁 {COMPLETION.heading}</h3>
+                            <p>{COMPLETION.message}</p>
+                            <div className={styles.doneLinks}>
+                                {COMPLETION.links.map((link) => (
+                                    <Link to={link.to} key={link.to}>
+                                        {link.label}
+                                    </Link>
+                                ))}
                             </div>
-                        )}
-                    </nav>
+                        </div>
+                    )}
+                </nav>
 
-                    <div className={styles.mainCol}>
+                <div className={styles.centerCol} ref={centerRef}>
+                    <div className={styles.editorSlot}>
                         <Editor
                             fileName={EDITOR_FILE_LABEL}
                             value={editorText}
@@ -252,41 +300,61 @@ export default function Lab() {
                             }}
                             onSave={handleSave}
                         />
+                    </div>
+                    <div
+                        className={styles.hSplitter}
+                        role="separator"
+                        aria-orientation="horizontal"
+                        aria-label="Resize editor and terminal"
+                        onPointerDown={startTermDrag}
+                    />
+                    <div className={styles.termSlot} ref={termSlotRef}>
                         <Terminal key={terminalNonce} cwd={cwd} onRun={runShell} />
                     </div>
-
-                    <aside className={styles.side}>
-                        <Diagram jsonText={editorText} />
-                        <div className={styles.statusCard}>
-                            <div className={styles.statusTitle}>validation</div>
-                            {!validation ? (
-                                <div className={styles.statusDim}>checking…</div>
-                            ) : validation.ok ? (
-                                <div className={styles.statusOk}>✓ valid CALM architecture</div>
-                            ) : (
-                                <>
-                                    <div className={styles.statusErr}>
-                                        ✗ {errorCount} problem{errorCount === 1 ? '' : 's'} found
-                                    </div>
-                                    <ul className={styles.statusList}>
-                                        {validation.parseError && <li>{validation.parseError}</li>}
-                                        {validation.errors.slice(0, 4).map((error) => (
-                                            <li key={`${error.path}|${error.message}`}>
-                                                {error.path} — {error.message}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </>
-                            )}
-                            {dirty && (
-                                <div className={styles.statusDim}>
-                                    unsaved changes — save to re-check
-                                </div>
-                            )}
-                        </div>
-                    </aside>
                 </div>
-            </section>
+
+                <div
+                    className={styles.vSplitter}
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Resize side panel"
+                    onPointerDown={startSideDrag}
+                />
+
+                <aside className={styles.side}>
+                    <Diagram jsonText={editorText} />
+                    {validation && !validation.ok && (
+                        <div className={styles.problemsCard}>
+                            <div className={styles.problemsTitle}>problems</div>
+                            <ul className={styles.problemsList}>
+                                {validation.parseError && <li>{validation.parseError}</li>}
+                                {validation.errors.slice(0, 6).map((error) => (
+                                    <li key={`${error.path}|${error.message}`}>
+                                        {error.path} — {error.message}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </aside>
+            </div>
+
+            <div className={styles.statusBar}>
+                <span>CALM 1.2 · Ajv engine</span>
+                {!validation ? (
+                    <span>checking…</span>
+                ) : validation.ok ? (
+                    <span className={styles.statusOk}>✓ schema-valid</span>
+                ) : (
+                    <span className={styles.statusErr}>
+                        ✗ {errorCount} problem{errorCount === 1 ? '' : 's'}
+                    </span>
+                )}
+                <span className={styles.statusFile}>
+                    {EDITOR_FILE_LABEL}
+                    {dirty ? ' ●' : ''} · {lineCount} lines
+                </span>
+            </div>
         </main>
     );
 }
