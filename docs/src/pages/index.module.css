@@ -109,6 +109,22 @@
     color: #8ee6c8;
 }
 
+.codeCardCaption {
+    margin-top: 8px;
+    text-align: right;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+}
+
+.codeCardCaption a {
+    color: #8b96c9;
+    text-decoration: none;
+}
+
+.codeCardCaption a:hover {
+    color: #c7d0f0;
+}
+
 /* Real render of the architecture above, captured from CALM Hub's
    dark-theme diagram view. */
 .codeCardDiagram {
@@ -400,6 +416,22 @@
     font-size: 15px;
     color: #aeb8e6;
     margin: 0 0 26px;
+}
+
+.toolsHosted {
+    font-size: 14px;
+    color: #aeb8e6;
+    margin: 22px 0 0;
+}
+
+.toolsHosted a {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.toolsHosted a:hover {
+    text-decoration: underline;
 }
 
 .toolsGrid {
