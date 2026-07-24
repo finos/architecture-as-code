@@ -14,7 +14,7 @@ You **do not** need to run it for every PR — only when extension UI or documen
 
 ## Prerequisites
 
-- Node 22 (see root `AGENTS.md` for the Node-version policy).
+- Node 26 (see root `AGENTS.md` for the Node-version policy).
 - The extension must be built. From the repo root:
   ```bash
   npm run build --workspace calm-plugins/vscode
