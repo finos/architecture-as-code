@@ -85,6 +85,32 @@
   border-color: var(--ifm-color-primary);
 }
 
+/* Action chip on Hub-related pages: jump to the FINOS-hosted instance. */
+.theme-doc-markdown a.calm-dm-hub {
+  color: var(--ifm-color-primary);
+  background: #eaf3ff;
+  border-color: #cfe0f7;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.theme-doc-markdown a.calm-dm-hub:hover {
+  color: #fff;
+  background: var(--ifm-color-primary-darker);
+  border-color: var(--ifm-color-primary-darker);
+}
+
+[data-theme='dark'] .theme-doc-markdown a.calm-dm-hub {
+  background: rgba(0, 125, 255, 0.14);
+  border-color: rgba(77, 163, 255, 0.4);
+}
+
+[data-theme='dark'] .theme-doc-markdown a.calm-dm-hub:hover {
+  color: var(--calm-ink);
+  background: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+
 /* ---------------------------------------------------------------- *
  *  Section callouts (Prerequisites, Learning objectives, …)        *
  * ---------------------------------------------------------------- */

@@ -180,6 +180,31 @@
     text-decoration: none;
 }
 
+.chipPrimary {
+    background: var(--ifm-color-primary-darker);
+    border-color: var(--ifm-color-primary-darker);
+    color: #fff;
+    font-weight: 600;
+}
+
+.chipPrimary:hover {
+    background: var(--ifm-color-primary-darkest);
+    border-color: var(--ifm-color-primary-darkest);
+    color: #fff;
+}
+
+[data-theme='dark'] .chipPrimary {
+    background: var(--ifm-color-primary);
+    border-color: var(--ifm-color-primary);
+    color: var(--calm-ink);
+}
+
+[data-theme='dark'] .chipPrimary:hover {
+    background: var(--ifm-color-primary-light);
+    border-color: var(--ifm-color-primary-light);
+    color: var(--calm-ink);
+}
+
 /* ---------- page banner (hub headers) ---------- */
 .banner {
     padding: 52px 0 40px;

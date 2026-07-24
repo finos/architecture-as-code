@@ -58,6 +58,11 @@ const SECTION_KICKERS = [
     [/^(working-with-calm|calm-hub)\//, 'Tools'],
 ];
 
+// Pages about CALM Hub get an action chip linking to the FINOS-hosted,
+// public read-only instance.
+const HUB_URL = 'https://hub.calm.finos.org/';
+const HUB_PAGES = /^(calm-hub\/|working-with-calm\/calm-hub)/;
+
 const text = (value) => ({type: 'text', value});
 
 const attr = (name, value) => ({type: 'mdxJsxAttribute', name, value});
@@ -195,6 +200,13 @@ function buildChipsRow({readTime, difficulty, sectionChip, docPath}) {
     }
     if (difficulty) {
         chips.push(jsxText('span', 'calm-dm calm-dm-diff', [text(difficulty)]));
+    }
+    if (HUB_PAGES.test(docPath)) {
+        chips.push(jsxText('a', 'calm-dm calm-dm-hub', [text('Open CALM Hub ↗')], [
+            attr('href', HUB_URL),
+            attr('target', '_blank'),
+            attr('rel', 'noopener noreferrer'),
+        ]));
     }
     chips.push(jsxText('a', 'calm-dm calm-dm-edit', [text('Edit on GitHub ↗')], [
         attr('href', `${EDIT_URL_BASE}/${docPath}`),

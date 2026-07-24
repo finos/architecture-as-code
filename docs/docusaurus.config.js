@@ -125,6 +125,11 @@ const config = {
                         activeBaseRegex: '/community(/|$)',
                     },
                     {
+                        href: 'https://hub.calm.finos.org/',
+                        label: 'Hub',
+                        position: 'right',
+                    },
+                    {
                         href: 'https://github.com/finos/architecture-as-code',
                         label: 'GitHub',
                         position: 'right',
@@ -146,6 +151,10 @@ const config = {
                             {
                                 label: 'Schema',
                                 href: 'http://github.com/finos/architecture-as-code/blob/master/calm/',
+                            },
+                            {
+                                label: 'CALM Hub',
+                                href: 'https://hub.calm.finos.org/',
                             },
                         ],
                     },

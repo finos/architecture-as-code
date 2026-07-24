@@ -15,6 +15,7 @@ const TOOLS = [
 ];
 
 const HUB_LINKS = [
+    {href: 'https://hub.calm.finos.org/', label: 'Open the hosted Hub ↗', primary: true},
     {to: '/calm-hub/', label: 'Hub Overview'},
     {to: '/calm-hub/calm-hub-developer-guide', label: 'Developer Guide'},
     {to: '/calm-hub/calm-hub-mcp-api', label: 'MCP & API'},
@@ -50,11 +51,16 @@ export default function Tools() {
                     <div className={clsx(shared.card, shared.cardTint)} style={{marginTop: 18}}>
                         <h3>CALM Hub — deeper</h3>
                         <p style={{marginBottom: 10}}>
-                            Overview, developer guide, MCP &amp; API, and entitlements.
+                            Explore the FINOS-hosted, publicly accessible Hub, or go
+                            deeper: overview, developer guide, MCP &amp; API, and
+                            entitlements.
                         </p>
                         <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
                             {HUB_LINKS.map((link) => (
-                                <Link className={shared.chip} to={link.to} key={link.label}>
+                                <Link
+                                    className={clsx(shared.chip, link.primary && shared.chipPrimary)}
+                                    {...(link.to ? {to: link.to} : {href: link.href})}
+                                    key={link.label}>
                                     {link.label}
                                 </Link>
                             ))}
