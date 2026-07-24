@@ -13,7 +13,8 @@
 
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
-  // Default sidebar - shows when clicking CALM logo (introduction, core-concepts, working-with-calm)
+  // Default sidebar - reached via the Reference and Tools navbar items
+  // (introduction, core-concepts, working-with-calm)
   docsSidebar: [
     {
       type: 'category',
