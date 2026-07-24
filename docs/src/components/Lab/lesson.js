@@ -1,7 +1,10 @@
 /**
  * Lesson content and progress checks for the learning lab.
  * Checks are pure functions of a state snapshot assembled by Lab.jsx:
- *   {doc, validation, hasValidatedOk, validatedWithRelationship}
+ *   {doc, validation, hasValidatedOk}
+ * They are deliberately state-based rather than event-ordered: they
+ * look at what the SAVED workspace contains right now, so the order in
+ * which a learner edits, saves and validates never wedges a step.
  */
 
 export const HOME_DIR = '/workspace';
@@ -100,10 +103,17 @@ export const STEPS = [
             '        }\n' +
             '    }\n' +
             '}',
+        // State-based on purpose: the saved file must hold the resolving
+        // relationship and be schema-valid, and a successful terminal
+        // `calm validate` of this file must have happened at some point.
+        // Requiring the validate to happen AFTER the save wedged learners
+        // who validated (from shell history) just before saving: every
+        // indicator showed green but the step never completed.
         check: (state) =>
             Boolean(state.doc) &&
             hasConnectsRelationship(state.doc) &&
-            state.validatedWithRelationship,
+            state.validation.ok &&
+            state.hasValidatedOk,
     },
 ];
 

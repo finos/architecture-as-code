@@ -15,10 +15,10 @@ import {
     HOME_DIR,
     SEED_FILES,
     STEPS,
-    hasConnectsRelationship,
 } from './lesson';
 
 const PROGRESS_KEY = 'calm-lab-progress-v1';
+const UI_PREFS_KEY = 'calm-lab-ui-v1';
 const EDITOR_FILE_LABEL = 'architecture/trading-system.architecture.json';
 const MIN_PANE_HEIGHT = 120;
 const SPLITTER_SIZE = 8;
@@ -49,6 +49,29 @@ function saveProgress(completed) {
 function clearProgress() {
     try {
         window.localStorage?.removeItem(PROGRESS_KEY);
+    } catch {
+        // ignore
+    }
+}
+
+function loadUiPrefs() {
+    try {
+        const raw = window.localStorage?.getItem(UI_PREFS_KEY);
+        if (raw) {
+            const prefs = JSON.parse(raw);
+            if (prefs && typeof prefs === 'object') {
+                return prefs;
+            }
+        }
+    } catch {
+        // ignore
+    }
+    return {};
+}
+
+function saveUiPrefs(prefs) {
+    try {
+        window.localStorage?.setItem(UI_PREFS_KEY, JSON.stringify(prefs));
     } catch {
         // ignore
     }
@@ -106,17 +129,28 @@ export default function Lab() {
     }
     const vfs = vfsRef.current;
 
-    const flagsRef = useRef({hasValidatedOk: false, validatedWithRelationship: false});
+    const flagsRef = useRef({hasValidatedOk: false});
     const [editorText, setEditorText] = useState(() => vfs.read(ARCHITECTURE_FILE) ?? '');
     const [dirty, setDirty] = useState(false);
     const [cwd, setCwd] = useState(() => vfs.getCwd());
     const [validation, setValidation] = useState(null);
-    const [completed, setCompleted] = useState(loadProgress);
+
+    // completedRef mirrors the completed state so progress can be
+    // computed and persisted synchronously inside event handlers (a
+    // reload right after completing a step must never lose the tick).
+    const completedRef = useRef(null);
+    if (completedRef.current === null) {
+        completedRef.current = loadProgress();
+    }
+    const [completed, setCompleted] = useState(() => completedRef.current);
     const [terminalNonce, setTerminalNonce] = useState(0);
 
     // Pane tabs.
     const [topTab, setTopTab] = useState('editor');
     const [bottomTab, setBottomTab] = useState('terminal');
+
+    // Lesson rail visibility (persisted UI preference; desktop only).
+    const [railHidden, setRailHidden] = useState(() => Boolean(loadUiPrefs().railHidden));
 
     // Splitter state (desktop IDE layout only).
     const [termHeight, setTermHeight] = useState(null);
@@ -162,23 +196,22 @@ export default function Lab() {
             doc: result.doc || null,
             validation: result,
             hasValidatedOk: flagsRef.current.hasValidatedOk,
-            validatedWithRelationship: flagsRef.current.validatedWithRelationship,
         };
-        setCompleted((prev) => {
-            let changed = false;
-            const next = new Set(prev);
-            for (const step of STEPS) {
-                if (!next.has(step.id) && step.check(state)) {
-                    next.add(step.id);
-                    changed = true;
-                }
+        let changed = false;
+        const next = new Set(completedRef.current);
+        for (const step of STEPS) {
+            if (!next.has(step.id) && step.check(state)) {
+                next.add(step.id);
+                changed = true;
             }
-            if (changed) {
-                saveProgress(next);
-                return next;
-            }
-            return prev;
-        });
+        }
+        if (changed) {
+            // Persist synchronously, before any render, so a reload
+            // immediately after completing a step keeps the tick.
+            completedRef.current = next;
+            saveProgress(next);
+            setCompleted(next);
+        }
     };
 
     useEffect(() => {
@@ -187,12 +220,16 @@ export default function Lab() {
     }, []);
 
     const handleEvent = (event) => {
-        if (event.type === 'validate' && event.file === ARCHITECTURE_FILE && event.ok) {
+        if (event.type !== 'validate' || !event.ok) {
+            return;
+        }
+        // Compare resolved-to-resolved so any path spelling that reaches
+        // the lesson file ('./x', 'architecture//x', relative from a cd'd
+        // directory, ...) counts.
+        const eventFile = vfs.resolve('/', event.file || '');
+        const lessonFile = vfs.resolve('/', ARCHITECTURE_FILE);
+        if (eventFile === lessonFile) {
             flagsRef.current.hasValidatedOk = true;
-            const result = validateArchitecture(vfs.read(ARCHITECTURE_FILE) ?? '');
-            if (result.doc && hasConnectsRelationship(result.doc)) {
-                flagsRef.current.validatedWithRelationship = true;
-            }
         }
     };
 
@@ -217,10 +254,17 @@ export default function Lab() {
         recompute();
     };
 
+    const toggleRail = () => {
+        const next = !railHidden;
+        saveUiPrefs({...loadUiPrefs(), railHidden: next});
+        setRailHidden(next);
+    };
+
     const handleReset = () => {
         vfs.seed(SEED_FILES);
         clearProgress();
-        flagsRef.current = {hasValidatedOk: false, validatedWithRelationship: false};
+        flagsRef.current = {hasValidatedOk: false};
+        completedRef.current = new Set();
         setCompleted(new Set());
         setEditorText(vfs.read(ARCHITECTURE_FILE) ?? '');
         setDirty(false);
@@ -239,6 +283,14 @@ export default function Lab() {
     return (
         <main className={styles.workspace} style={cssVars}>
             <div className={styles.toolbar}>
+                <button
+                    type="button"
+                    className={styles.railToggle}
+                    aria-label={railHidden ? 'Show lesson panel' : 'Hide lesson panel'}
+                    aria-expanded={!railHidden}
+                    onClick={toggleRail}>
+                    {railHidden ? '▶ Lessons' : '◀ Lessons'}
+                </button>
                 <span className={shared.eyebrow}>Learn · Lab</span>
                 <h1 className={styles.toolbarTitle}>CALM Learning Lab</h1>
                 <button
@@ -249,7 +301,7 @@ export default function Lab() {
                 </button>
             </div>
 
-            <div className={styles.grid}>
+            <div className={clsx(styles.grid, railHidden && styles.gridNoRail)}>
                 <nav className={styles.stepsRail} aria-label="Lesson steps">
                     <ol className={styles.stepsList}>
                         {STEPS.map((step, index) => (
