@@ -5,6 +5,7 @@
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
 import {themes as prismThemes} from 'prism-react-renderer';
+import remarkSectionCallouts from './src/plugins/remark-section-callouts.js';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -62,10 +63,14 @@ const config = {
                 docs: {
                     routeBasePath: '/',
                     sidebarPath: './sidebars.js',
+                    // Runs before Docusaurus' own heading/TOC plugins so the
+                    // headings it replaces with callouts never reach the page
+                    // TOC. Deliberately not applied to the 'talks' plugin.
+                    beforeDefaultRemarkPlugins: [remarkSectionCallouts],
                 },
                 blog: false,
                 theme: {
-                    customCss: './src/css/custom.css',
+                    customCss: ['./src/css/custom.css', './src/css/doc-pages.css'],
                 },
             }),
         ],
