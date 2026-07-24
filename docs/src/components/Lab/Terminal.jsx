@@ -21,7 +21,7 @@ function Prompt({cwd}) {
     );
 }
 
-export default function Terminal({cwd, onRun}) {
+export default function Terminal({cwd, onRun, chromeless = false}) {
     const [lines, setLines] = useState([WELCOME_LINE]);
     const [input, setInput] = useState('');
     const [history, setHistory] = useState([]);
@@ -88,13 +88,15 @@ export default function Terminal({cwd, onRun}) {
     };
 
     return (
-        <div className={styles.terminalPane} onClick={focusInput}>
-            <div className={styles.paneHeader}>
-                <span className={styles.paneDots} aria-hidden="true">
-                    <i /><i /><i />
-                </span>
-                terminal
-            </div>
+        <div className={chromeless ? styles.paneFill : styles.terminalPane} onClick={focusInput}>
+            {!chromeless && (
+                <div className={styles.paneHeader}>
+                    <span className={styles.paneDots} aria-hidden="true">
+                        <i /><i /><i />
+                    </span>
+                    terminal
+                </div>
+            )}
             <div className={styles.termScroll} ref={scrollRef}>
                 {lines.map((line, index) =>
                     line.kind === 'cmd' ? (

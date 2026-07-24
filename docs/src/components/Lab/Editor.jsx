@@ -1,7 +1,7 @@
 import React, {useRef} from 'react';
 import styles from './lab.module.css';
 
-export default function Editor({fileName, value, dirty, onChange, onSave}) {
+export default function Editor({fileName, value, dirty, onChange, onSave, chromeless = false}) {
     const gutterRef = useRef(null);
     const textareaRef = useRef(null);
     const lineCount = value.split('\n').length;
@@ -30,25 +30,27 @@ export default function Editor({fileName, value, dirty, onChange, onSave}) {
     };
 
     return (
-        <div className={styles.editorPane}>
-            <div className={styles.paneHeader}>
-                <span className={styles.paneDots} aria-hidden="true">
-                    <i /><i /><i />
-                </span>
-                <span className={styles.editorFileName}>{fileName}</span>
-                {dirty && (
-                    <span className={styles.dirtyDot} title="Unsaved changes" aria-label="Unsaved changes">
-                        ●
+        <div className={chromeless ? styles.paneFill : styles.editorPane}>
+            {!chromeless && (
+                <div className={styles.paneHeader}>
+                    <span className={styles.paneDots} aria-hidden="true">
+                        <i /><i /><i />
                     </span>
-                )}
-                <button
-                    type="button"
-                    className={styles.saveBtn}
-                    onClick={onSave}
-                    title="Save (Cmd/Ctrl+S)">
-                    Save (⌘S)
-                </button>
-            </div>
+                    <span className={styles.editorFileName}>{fileName}</span>
+                    {dirty && (
+                        <span className={styles.dirtyDot} title="Unsaved changes" aria-label="Unsaved changes">
+                            ●
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        className={styles.saveBtn}
+                        onClick={onSave}
+                        title="Save (Cmd/Ctrl+S)">
+                        Save (⌘S)
+                    </button>
+                </div>
+            )}
             <div className={styles.editorBody}>
                 <div className={styles.gutter} ref={gutterRef} aria-hidden="true">
                     {Array.from({length: lineCount}, (_, index) => (

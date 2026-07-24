@@ -1,11 +1,11 @@
 import React from 'react';
 import styles from './lab.module.css';
 
-const NODE_W = 170;
-const NODE_H = 64;
-const GAP_X = 64;
-const GAP_Y = 56;
-const PAD = 24;
+const NODE_W = 210;
+const NODE_H = 80;
+const GAP_X = 84;
+const GAP_Y = 68;
+const PAD = 28;
 const PER_ROW = 3;
 
 function truncate(text, max) {
@@ -32,7 +32,7 @@ function edgeEndpoints(a, b) {
     };
 }
 
-export default function Diagram({jsonText}) {
+export default function Diagram({jsonText, chromeless = false}) {
     let doc = null;
     try {
         doc = JSON.parse(jsonText);
@@ -128,21 +128,21 @@ export default function Diagram({jsonText}) {
                             />
                             <text
                                 x={position.cx}
-                                y={position.cy - 4}
+                                y={position.cy - 5}
                                 textAnchor="middle"
                                 fill="#e6ecff"
-                                fontSize="13"
+                                fontSize="15"
                                 fontWeight="600">
-                                {truncate(String(label), 20)}
+                                {truncate(String(label), 22)}
                             </text>
                             <text
                                 x={position.cx}
-                                y={position.cy + 16}
+                                y={position.cy + 18}
                                 textAnchor="middle"
                                 fill="#8b96c9"
-                                fontSize="11"
+                                fontSize="12"
                                 fontFamily="var(--ifm-font-family-monospace)">
-                                {truncate(String(node['node-type'] || ''), 24)}
+                                {truncate(String(node['node-type'] || ''), 26)}
                             </text>
                         </g>
                     );
@@ -152,14 +152,16 @@ export default function Diagram({jsonText}) {
     }
 
     return (
-        <div className={styles.diagramPane}>
-            <div className={styles.paneHeader}>
-                <span className={styles.paneDots} aria-hidden="true">
-                    <i /><i /><i />
-                </span>
-                diagram
-            </div>
-            <div className={styles.diagramBox}>{body}</div>
+        <div className={chromeless ? styles.paneFill : styles.diagramPane}>
+            {!chromeless && (
+                <div className={styles.paneHeader}>
+                    <span className={styles.paneDots} aria-hidden="true">
+                        <i /><i /><i />
+                    </span>
+                    diagram
+                </div>
+            )}
+            <div className={chromeless ? styles.diagramBoxFill : styles.diagramBox}>{body}</div>
             <div className={styles.diagramCaption}>live preview — rendered from your file</div>
         </div>
     );

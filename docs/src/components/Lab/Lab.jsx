@@ -22,9 +22,6 @@ const PROGRESS_KEY = 'calm-lab-progress-v1';
 const EDITOR_FILE_LABEL = 'architecture/trading-system.architecture.json';
 const MIN_PANE_HEIGHT = 120;
 const SPLITTER_SIZE = 8;
-const SIDE_MIN_WIDTH = 240;
-const SIDE_MAX_WIDTH = 480;
-const SIDE_DEFAULT_WIDTH = 320;
 
 function loadProgress() {
     try {
@@ -117,9 +114,12 @@ export default function Lab() {
     const [completed, setCompleted] = useState(loadProgress);
     const [terminalNonce, setTerminalNonce] = useState(0);
 
+    // Pane tabs.
+    const [topTab, setTopTab] = useState('editor');
+    const [bottomTab, setBottomTab] = useState('terminal');
+
     // Splitter state (desktop IDE layout only).
     const [termHeight, setTermHeight] = useState(null);
-    const [sideWidth, setSideWidth] = useState(SIDE_DEFAULT_WIDTH);
     const centerRef = useRef(null);
     const termSlotRef = useRef(null);
     const dragCleanupRef = useRef(null);
@@ -151,15 +151,6 @@ export default function Lab() {
         beginDrag(event, (moveEvent) => {
             const next = startHeight - (moveEvent.clientY - startY);
             setTermHeight(Math.min(Math.max(next, MIN_PANE_HEIGHT), maxHeight));
-        });
-    };
-
-    const startSideDrag = (event) => {
-        const startX = event.clientX;
-        const startWidth = sideWidth;
-        beginDrag(event, (moveEvent) => {
-            const next = startWidth - (moveEvent.clientX - startX);
-            setSideWidth(Math.min(Math.max(next, SIDE_MIN_WIDTH), SIDE_MAX_WIDTH));
         });
     };
 
@@ -242,10 +233,8 @@ export default function Lab() {
     const allDone = completed.size === STEPS.length;
     const errorCount = validation ? validation.errors.length + (validation.parseError ? 1 : 0) : 0;
     const lineCount = editorText.split('\n').length;
-    const cssVars = {
-        '--lab-side-width': `${sideWidth}px`,
-        ...(termHeight != null ? {'--lab-term-height': `${termHeight}px`} : {}),
-    };
+    const cssVars =
+        termHeight != null ? {'--lab-term-height': `${termHeight}px`} : undefined;
 
     return (
         <main className={styles.workspace} style={cssVars}>
@@ -289,17 +278,58 @@ export default function Lab() {
                 </nav>
 
                 <div className={styles.centerCol} ref={centerRef}>
-                    <div className={styles.editorSlot}>
-                        <Editor
-                            fileName={EDITOR_FILE_LABEL}
-                            value={editorText}
-                            dirty={dirty}
-                            onChange={(text) => {
-                                setEditorText(text);
-                                setDirty(true);
-                            }}
-                            onSave={handleSave}
-                        />
+                    <div className={clsx(styles.tabbedPane, styles.editorSlot)}>
+                        <div className={styles.tabBar} role="tablist" aria-label="Editor panes">
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={topTab === 'editor'}
+                                className={clsx(styles.tab, topTab === 'editor' && styles.tabActive)}
+                                onClick={() => setTopTab('editor')}>
+                                {EDITOR_FILE_LABEL}
+                                {dirty && (
+                                    <span
+                                        className={styles.dirtyDot}
+                                        title="Unsaved changes"
+                                        aria-label="Unsaved changes">
+                                        ●
+                                    </span>
+                                )}
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={topTab === 'diagram'}
+                                className={clsx(styles.tab, topTab === 'diagram' && styles.tabActive)}
+                                onClick={() => setTopTab('diagram')}>
+                                Diagram
+                            </button>
+                            <div className={styles.tabBarActions}>
+                                <button
+                                    type="button"
+                                    className={styles.saveBtn}
+                                    onClick={handleSave}
+                                    title="Save (Cmd/Ctrl+S)">
+                                    Save (⌘S)
+                                </button>
+                            </div>
+                        </div>
+                        <div className={styles.tabPanel} hidden={topTab !== 'editor'}>
+                            <Editor
+                                chromeless
+                                fileName={EDITOR_FILE_LABEL}
+                                value={editorText}
+                                dirty={dirty}
+                                onChange={(text) => {
+                                    setEditorText(text);
+                                    setDirty(true);
+                                }}
+                                onSave={handleSave}
+                            />
+                        </div>
+                        <div className={styles.tabPanel} hidden={topTab !== 'diagram'}>
+                            <Diagram chromeless jsonText={editorText} />
+                        </div>
                     </div>
                     <div
                         className={styles.hSplitter}
@@ -308,35 +338,56 @@ export default function Lab() {
                         aria-label="Resize editor and terminal"
                         onPointerDown={startTermDrag}
                     />
-                    <div className={styles.termSlot} ref={termSlotRef}>
-                        <Terminal key={terminalNonce} cwd={cwd} onRun={runShell} />
+                    <div className={clsx(styles.tabbedPane, styles.termSlot)} ref={termSlotRef}>
+                        <div className={styles.tabBar} role="tablist" aria-label="Terminal panes">
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={bottomTab === 'terminal'}
+                                className={clsx(styles.tab, bottomTab === 'terminal' && styles.tabActive)}
+                                onClick={() => setBottomTab('terminal')}>
+                                Terminal
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={bottomTab === 'problems'}
+                                className={clsx(styles.tab, bottomTab === 'problems' && styles.tabActive)}
+                                onClick={() => setBottomTab('problems')}>
+                                Problems
+                                {errorCount > 0 && (
+                                    <span className={styles.tabBadge}>{errorCount}</span>
+                                )}
+                            </button>
+                        </div>
+                        <div className={styles.tabPanel} hidden={bottomTab !== 'terminal'}>
+                            <Terminal
+                                chromeless
+                                key={terminalNonce}
+                                cwd={cwd}
+                                onRun={runShell}
+                            />
+                        </div>
+                        <div className={styles.tabPanel} hidden={bottomTab !== 'problems'}>
+                            <div className={styles.problemsPanel}>
+                                {!validation || validation.ok ? (
+                                    <div className={styles.problemsEmpty}>
+                                        no problems — the saved file is schema-valid
+                                    </div>
+                                ) : (
+                                    <ul className={styles.problemsList}>
+                                        {validation.parseError && <li>{validation.parseError}</li>}
+                                        {validation.errors.map((error) => (
+                                            <li key={`${error.path}|${error.message}`}>
+                                                ✗ {error.path} — {error.message}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <div
-                    className={styles.vSplitter}
-                    role="separator"
-                    aria-orientation="vertical"
-                    aria-label="Resize side panel"
-                    onPointerDown={startSideDrag}
-                />
-
-                <aside className={styles.side}>
-                    <Diagram jsonText={editorText} />
-                    {validation && !validation.ok && (
-                        <div className={styles.problemsCard}>
-                            <div className={styles.problemsTitle}>problems</div>
-                            <ul className={styles.problemsList}>
-                                {validation.parseError && <li>{validation.parseError}</li>}
-                                {validation.errors.slice(0, 6).map((error) => (
-                                    <li key={`${error.path}|${error.message}`}>
-                                        {error.path} — {error.message}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                </aside>
             </div>
 
             <div className={styles.statusBar}>
@@ -346,9 +397,13 @@ export default function Lab() {
                 ) : validation.ok ? (
                     <span className={styles.statusOk}>✓ schema-valid</span>
                 ) : (
-                    <span className={styles.statusErr}>
+                    <button
+                        type="button"
+                        className={clsx(styles.statusErr, styles.statusErrBtn)}
+                        title="Open the Problems tab"
+                        onClick={() => setBottomTab('problems')}>
                         ✗ {errorCount} problem{errorCount === 1 ? '' : 's'}
-                    </span>
+                    </button>
                 )}
                 <span className={styles.statusFile}>
                     {EDITOR_FILE_LABEL}
