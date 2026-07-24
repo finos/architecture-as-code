@@ -26,7 +26,7 @@
  *    loader when imported; they are skipped entirely.
  */
 
-const EDIT_URL = 'https://github.com/finos/architecture-as-code/tree/main/docs';
+const EDIT_URL_BASE = 'https://github.com/finos/architecture-as-code/blob/main/docs/docs';
 const WORDS_PER_MINUTE = 220;
 
 /** Normalised heading text -> [colour variant, icon, canonical label]. */
@@ -83,6 +83,15 @@ function normaliseHeading(headingText) {
         .trim();
 }
 
+/** GitHub-style anchor slug, so replaced headings keep their original ids. */
+function slugify(headingText) {
+    return headingText
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-');
+}
+
 /** Word count outside fenced code blocks, per the prototype's read-time formula. */
 function countWords(node) {
     if (node.type === 'code' || node.type === 'yaml' || node.type === 'mdxjsEsm') {
@@ -106,6 +115,12 @@ function countWords(node) {
 function extractDifficulty(root) {
     for (let i = 0; i < root.children.length; i++) {
         const node = root.children[i];
+        // The difficulty line always sits in the header zone, before the first
+        // section heading — stop there so prose quoting the pattern later in a
+        // page is never swallowed.
+        if (node.type === 'heading' && node.depth >= 2) {
+            return null;
+        }
         if (node.type !== 'paragraph') {
             continue;
         }
@@ -127,12 +142,14 @@ function extractDifficulty(root) {
  */
 function wrapKnownSections(root) {
     const children = root.children;
+    const usedSlugs = new Map();
     for (let i = 0; i < children.length; i++) {
         const node = children[i];
         if (node.type !== 'heading' || node.depth < 2 || node.depth > 4) {
             continue;
         }
-        const spec = KNOWN_SECTIONS[normaliseHeading(nodeText(node))];
+        const headingText = nodeText(node);
+        const spec = KNOWN_SECTIONS[normaliseHeading(headingText)];
         if (!spec) {
             continue;
         }
@@ -140,19 +157,26 @@ function wrapKnownSections(root) {
         while (end < children.length && !(children[end].type === 'heading' && children[end].depth <= node.depth)) {
             end++;
         }
+        // Keep the original heading semantics (document outline, screen-reader
+        // navigation) and anchor id — JSX headings are invisible to Docusaurus'
+        // TOC/anchor plugins, so the section still stays out of "On this page".
+        const baseSlug = slugify(headingText);
+        const seen = usedSlugs.get(baseSlug) ?? 0;
+        usedSlugs.set(baseSlug, seen + 1);
+        const slug = seen === 0 ? baseSlug : `${baseSlug}-${seen}`;
         const [variant, icon, label] = spec;
         const callout = jsxFlow('div', `calm-callout calm-callout--${variant}`, [
-            jsxFlow('div', 'calm-callout__h', [
-                jsxText('span', 'calm-callout__ic', [text(icon)]),
+            jsxFlow(`h${node.depth}`, 'calm-callout__h', [
+                jsxText('span', 'calm-callout__ic', [text(icon)], [attr('aria-hidden', 'true')]),
                 text(label),
-            ]),
+            ], [attr('id', slug)]),
             ...children.slice(i + 1, end),
         ]);
         children.splice(i, end - i, callout);
     }
 }
 
-function buildChipsRow({readTime, difficulty, sectionChip}) {
+function buildChipsRow({readTime, difficulty, sectionChip, docPath}) {
     const chips = [];
     if (sectionChip) {
         chips.push(jsxText('span', 'calm-dm calm-dm-sec', [text(sectionChip)]));
@@ -162,7 +186,7 @@ function buildChipsRow({readTime, difficulty, sectionChip}) {
         chips.push(jsxText('span', 'calm-dm calm-dm-diff', [text(difficulty)]));
     }
     chips.push(jsxText('a', 'calm-dm calm-dm-edit', [text('Edit on GitHub ↗')], [
-        attr('href', EDIT_URL),
+        attr('href', `${EDIT_URL_BASE}/${docPath}`),
         attr('target', '_blank'),
         attr('rel', 'noopener noreferrer'),
     ]));
@@ -194,7 +218,7 @@ export default function remarkSectionCallouts() {
 
         if (h1Index !== -1) {
             // Kicker above the title, chips row directly below it.
-            const chipsRow = buildChipsRow({readTime, difficulty, sectionChip: null});
+            const chipsRow = buildChipsRow({readTime, difficulty, sectionChip: null, docPath});
             if (section) {
                 root.children.splice(h1Index, 0, jsxFlow('div', 'calm-doc-kicker', [text(section)]));
                 root.children.splice(h1Index + 2, 0, chipsRow);
@@ -205,7 +229,7 @@ export default function remarkSectionCallouts() {
             // No body H1: the theme renders the frontmatter title itself, so the
             // chips row goes at the top of the content, carrying the section as
             // a chip instead of a kicker (which would render below the title).
-            const chipsRow = buildChipsRow({readTime, difficulty, sectionChip: section});
+            const chipsRow = buildChipsRow({readTime, difficulty, sectionChip: section, docPath});
             let insertAt = 0;
             while (
                 insertAt < root.children.length &&

@@ -100,6 +100,8 @@
   background: var(--ccbg);
 }
 
+/* The callout header is a real h2/h3/h4 (document outline + anchor id are
+   preserved) — reset the prose heading chrome it would otherwise inherit. */
 .theme-doc-markdown .calm-callout__h {
   font-family: var(--ifm-heading-font-family);
   font-size: 12px;
@@ -107,7 +109,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--cc);
-  margin-bottom: 10px;
+  margin: 0 0 10px;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -143,32 +145,32 @@
 }
 
 .theme-doc-markdown .calm-callout--sky {
-  --cc: #0284c7;
+  --cc: var(--calm-sky);
   --ccbg: #f0f8ff;
 }
 
 .theme-doc-markdown .calm-callout--violet {
-  --cc: #7c3aed;
+  --cc: var(--calm-violet);
   --ccbg: #faf7ff;
 }
 
 .theme-doc-markdown .calm-callout--blue {
-  --cc: #007dff;
+  --cc: var(--ifm-color-primary);
   --ccbg: #f1f7ff;
 }
 
 .theme-doc-markdown .calm-callout--green {
-  --cc: #16a34a;
+  --cc: var(--calm-green);
   --ccbg: #f2fbf5;
 }
 
 .theme-doc-markdown .calm-callout--slate {
-  --cc: #64748b;
+  --cc: var(--calm-grey);
   --ccbg: #f6f8fb;
 }
 
 .theme-doc-markdown .calm-callout--amber {
-  --cc: #d97706;
+  --cc: var(--calm-amber);
   --ccbg: #fff9f0;
 }
 
@@ -220,6 +222,11 @@
   height: 24px;
   border-radius: 3px;
   background: var(--ifm-color-primary);
+}
+
+/* Callout headers are headings too — no accent bar or prose margins there. */
+.theme-doc-markdown .calm-callout__h::before {
+  content: none;
 }
 
 @media (max-width: 996px) {
