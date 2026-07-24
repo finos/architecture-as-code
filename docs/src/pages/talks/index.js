@@ -18,9 +18,11 @@ const EVENTS = [
             {
                 type: 'youtube',
                 id: 'oof9AQpXgLM',
+                // Jump straight to the CALM segment of the keynote.
+                start: 410,
                 title: 'Keynote: State of the Community — launching the CALM Suite & FDC3 3.0',
                 speakers: 'Gabriele Columbro with Matt Bain, Morgan Stanley, and Kris West',
-                meta: '17 min',
+                meta: '17 min · CALM segment from 06:50',
             },
         ],
     },
@@ -137,7 +139,7 @@ function TalkMedia({talk}) {
         ) : (
             <iframe
                 className={styles.media}
-                src={`https://www.youtube-nocookie.com/embed/${talk.id}?autoplay=1`}
+                src={`https://www.youtube-nocookie.com/embed/${talk.id}?autoplay=1${talk.start ? `&start=${talk.start}` : ''}`}
                 title={talk.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
