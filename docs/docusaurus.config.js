@@ -102,16 +102,16 @@ const config = {
                         activeBaseRegex: '/(learn|tutorials)(/|$)',
                     },
                     {
-                        to: '/core-concepts/',
+                        to: '/reference',
                         label: 'Reference',
                         position: 'left',
-                        activeBaseRegex: '/(core-concepts|introduction)/',
+                        activeBaseRegex: '/(reference|core-concepts|introduction)(/|$)',
                     },
                     {
-                        to: '/working-with-calm/',
+                        to: '/tools',
                         label: 'Tools',
                         position: 'left',
-                        activeBaseRegex: '/(working-with-calm|calm-hub)/',
+                        activeBaseRegex: '/(tools|working-with-calm|calm-hub)(/|$)',
                     },
                     {
                         to: '/community',

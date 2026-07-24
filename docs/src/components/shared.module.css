@@ -122,6 +122,12 @@
     margin: 0;
 }
 
+.grid2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
 .grid3 {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -142,10 +148,36 @@
 }
 
 @media (max-width: 600px) {
+    .grid2,
     .grid3,
     .grid4 {
         grid-template-columns: 1fr;
     }
+}
+
+/* Tinted variant for the wide "see also" cards on the hub landings. */
+.cardTint {
+    background: var(--calm-bg-soft);
+}
+
+/* Pill links (the CALM Hub deep-links on the Tools hub). */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--calm-surface);
+    border: 1px solid var(--calm-line);
+    border-radius: 999px;
+    padding: 8px 15px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ifm-font-color-base);
+}
+
+.chip:hover {
+    color: var(--ifm-color-primary);
+    border-color: var(--ifm-color-primary);
+    text-decoration: none;
 }
 
 /* ---------- page banner (hub headers) ---------- */

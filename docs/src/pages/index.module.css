@@ -109,23 +109,14 @@
     color: #8ee6c8;
 }
 
+/* Real render of the architecture above, captured from CALM Hub's
+   dark-theme diagram view. */
 .codeCardDiagram {
+    display: block;
+    width: 100%;
+    height: auto;
     margin-top: 14px;
-    height: 118px;
     border-radius: 10px;
-    background: repeating-linear-gradient(
-        135deg,
-        #161d45,
-        #161d45 11px,
-        #1a2250 11px,
-        #1a2250 22px
-    );
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--ifm-font-family-monospace);
-    font-size: 12px;
-    color: #8b96c9;
     border: 1px solid #222a5c;
 }
 
