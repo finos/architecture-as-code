@@ -76,18 +76,6 @@ const config = {
         ],
     ],
 
-    plugins: [
-        [
-            '@docusaurus/plugin-content-docs',
-            {
-                id: 'talks',
-                path: 'talks',
-                routeBasePath: 'talks',
-                sidebarPath: require.resolve('./talksSidebar.js'),
-            },
-        ],
-    ],
-
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
         ({
