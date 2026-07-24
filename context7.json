@@ -28,8 +28,7 @@
     "sandbox",
     "experimental",
     "brand",
-    "template-bundles",
-    "advent-of-calm"
+    "template-bundles"
   ],
   "excludeFiles": [
     "CHANGELOG.md",

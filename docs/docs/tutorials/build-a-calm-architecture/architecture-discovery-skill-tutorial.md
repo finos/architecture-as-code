@@ -261,7 +261,6 @@ Once discovery is completed, the AI Assistant displays this warning:
 - .github
 - .husky
 - .mvn
-- advent-of-calm
 - brand
 - calm
 - calm-ai
