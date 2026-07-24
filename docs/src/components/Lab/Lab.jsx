@@ -85,31 +85,46 @@ function inline(text) {
 }
 
 function CopyButton({text}) {
-    const [copied, setCopied] = useState(false);
+    const [state, setState] = useState('idle');
     const timerRef = useRef(null);
     useEffect(() => () => clearTimeout(timerRef.current), []);
-    const copy = async () => {
+    const flash = (next) => {
+        setState(next);
+        clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setState('idle'), 1800);
+    };
+    const fallbackCopy = () => {
         try {
-            if (navigator.clipboard?.writeText) {
-                await navigator.clipboard.writeText(text);
-            } else {
-                const scratch = document.createElement('textarea');
-                scratch.value = text;
-                document.body.appendChild(scratch);
-                scratch.select();
-                document.execCommand('copy');
-                document.body.removeChild(scratch);
-            }
-            setCopied(true);
-            clearTimeout(timerRef.current);
-            timerRef.current = setTimeout(() => setCopied(false), 1500);
+            const scratch = document.createElement('textarea');
+            scratch.value = text;
+            scratch.style.position = 'fixed';
+            scratch.style.opacity = '0';
+            document.body.appendChild(scratch);
+            scratch.focus();
+            scratch.select();
+            scratch.setSelectionRange(0, text.length);
+            const ok = document.execCommand('copy');
+            document.body.removeChild(scratch);
+            return ok;
         } catch {
-            // Clipboard unavailable — the text stays selectable instead.
+            return false;
+        }
+    };
+    const copy = () => {
+        // Call writeText synchronously in the click gesture (Safari requires
+        // it); fall back to execCommand if it is missing or rejects.
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard
+                .writeText(text)
+                .then(() => flash('copied'))
+                .catch(() => flash(fallbackCopy() ? 'copied' : 'failed'));
+        } else {
+            flash(fallbackCopy() ? 'copied' : 'failed');
         }
     };
     return (
         <button type="button" className={styles.copyBtn} onClick={copy}>
-            {copied ? 'Copied ✓' : 'Copy'}
+            {state === 'copied' ? 'Copied ✓' : state === 'failed' ? 'Copy failed — select the text' : 'Copy'}
         </button>
     );
 }
