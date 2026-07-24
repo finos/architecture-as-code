@@ -190,7 +190,9 @@ export default function Talks() {
                             <h2 className={styles.eventHead}>{group.event}</h2>
                             <div className={styles.talkGrid}>
                                 {group.talks.map((talk) => (
-                                    <article className={styles.talkCard} key={talk.title}>
+                                    <article
+                                        className={styles.talkCard}
+                                        key={talk.id ?? talk.href ?? talk.src}>
                                         <TalkMedia talk={talk} />
                                         <div className={styles.talkBody}>
                                             <h3 className={styles.talkTitle}>{talk.title}</h3>
