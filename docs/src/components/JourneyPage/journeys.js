@@ -262,7 +262,7 @@ export const journeys = {
                 kicker: 'Contribute',
                 title: 'Find a good first issue',
                 href: 'https://github.com/finos/architecture-as-code/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22',
-                description: 'Pick an issue labelled good-first-issue to start with.',
+                description: 'Pick an issue labelled "good first issue" to start with.',
             },
             {
                 kicker: 'Contribute',
