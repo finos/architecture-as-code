@@ -501,6 +501,35 @@
     padding: 3px 7px;
 }
 
+/* Unviewed-changes dot on the Diagram tab. */
+.staleDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4da3ff;
+    flex-shrink: 0;
+    animation: stalePulse 1.6s ease infinite;
+}
+
+@keyframes stalePulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.4);
+        opacity: 0.55;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .staleDot {
+        animation: none;
+    }
+}
+
 .tabBarActions {
     margin-left: auto;
     display: flex;

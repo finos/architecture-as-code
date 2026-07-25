@@ -227,6 +227,10 @@ export default function Lab() {
     const [topTab, setTopTab] = useState('editor');
     const [bottomTab, setBottomTab] = useState('terminal');
 
+    // True while the saved architecture has changed since the diagram
+    // was last on screen — drives the "updated" dot on the Diagram tab.
+    const [diagramStale, setDiagramStale] = useState(false);
+
     // Guide accordion: AUTO_EXPAND follows the current step; a step id
     // is a manual selection; null means everything is collapsed.
     const [expandedId, setExpandedId] = useState(AUTO_EXPAND);
@@ -339,7 +343,15 @@ export default function Lab() {
         completeCommand(input, cursor, {vfs, getCwd: () => vfs.getCwd()});
 
     const handleSave = () => {
+        // Saving is the only mutation path to the architecture file
+        // (terminal commands are read-only) — flag the diagram as stale
+        // when a save actually changes it while the diagram is hidden;
+        // an open diagram re-renders live, so no flag is needed then.
+        const changed = vfs.read(ARCHITECTURE_FILE) !== editorText;
         vfs.write(ARCHITECTURE_FILE, editorText);
+        if (changed && topTab !== 'diagram') {
+            setDiagramStale(true);
+        }
         setDirty(false);
         recompute();
     };
@@ -358,6 +370,7 @@ export default function Lab() {
         setCompleted(new Set());
         setEditorText(vfs.read(ARCHITECTURE_FILE) ?? '');
         setDirty(false);
+        setDiagramStale(false);
         setCwd(HOME_DIR);
         setTerminalNonce((nonce) => nonce + 1);
         setExpandedId(AUTO_EXPAND);
@@ -483,8 +496,21 @@ export default function Lab() {
                                     role="tab"
                                     aria-selected={topTab === 'diagram'}
                                     className={clsx(styles.tab, topTab === 'diagram' && styles.tabActive)}
-                                    onClick={() => setTopTab('diagram')}>
+                                    onClick={() => {
+                                        setTopTab('diagram');
+                                        setDiagramStale(false);
+                                    }}>
                                     Diagram
+                                    {diagramStale && (
+                                        <>
+                                            <span
+                                                className={styles.staleDot}
+                                                title="The diagram has changed since you last viewed it"
+                                                aria-hidden="true"
+                                            />
+                                            <span className={styles.srOnly}>(updated)</span>
+                                        </>
+                                    )}
                                 </button>
                                 <div className={styles.tabBarActions}>
                                     <button
