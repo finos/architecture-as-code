@@ -95,7 +95,7 @@
         },
         {
             "unique-id": "storage-to-nitrite",
-            "description": "Persists to, when calm.database.mode is standalone or read-only",
+            "description": "Persists to, when calm.database.mode is standalone, including read-only deployments using calm.readonly=true",
             "relationship-type": {
                 "connects": {
                     "source": {
