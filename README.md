@@ -89,7 +89,7 @@ Currently we have three typescript packages - two of which are managed via `npm 
 
 ## License
 
-Copyright 2024 FINOS
+Copyright FINOS
 
 Distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
