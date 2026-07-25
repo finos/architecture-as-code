@@ -163,6 +163,10 @@ const config = {
                                 label: 'Talks',
                                 to: '/talks/',
                             },
+                            {
+                                label: 'Contribute',
+                                to: '/learn/contribute',
+                            },
                         ],
                     },
                     {

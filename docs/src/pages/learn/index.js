@@ -109,6 +109,14 @@ export default function Learn() {
                             </p>
                         </div>
                         <RolePathCards />
+                        <p className={styles.deepDives}>
+                            Going deeper:{' '}
+                            <Link to="/learn/contribute">Contributor guide</Link>
+                            {' · '}
+                            <Link to="/learn/calm-for-leaders">
+                                CALM for engineering leaders — value &amp; adoption
+                            </Link>
+                        </p>
                     </div>
                 </section>
 

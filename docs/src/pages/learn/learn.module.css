@@ -28,3 +28,10 @@
     text-align: center;
     margin-top: 26px;
 }
+
+.deepDives {
+    text-align: center;
+    margin: 26px 0 0;
+    font-size: 14px;
+    color: var(--calm-muted);
+}

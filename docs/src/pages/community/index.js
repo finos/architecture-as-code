@@ -32,6 +32,11 @@ const CARDS = [
         desc: 'Set up the monorepo and ship your first pull request.',
     },
     {
+        to: '/learn/contribute',
+        title: 'Contributor guide',
+        desc: 'Monorepo setup, good first issues, and how to raise your first pull request.',
+    },
+    {
         href: 'https://calendar.finos.org/',
         title: 'Meetups & office hours',
         desc: 'Community calls and office hours are listed on the FINOS project calendar.',
