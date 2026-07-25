@@ -21,7 +21,7 @@ function Prompt({cwd}) {
     );
 }
 
-export default function Terminal({cwd, onRun, chromeless = false}) {
+export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
     const [lines, setLines] = useState([WELCOME_LINE]);
     const [input, setInput] = useState('');
     const [history, setHistory] = useState([]);
@@ -55,6 +55,26 @@ export default function Terminal({cwd, onRun, chromeless = false}) {
         if (event.key === 'Enter') {
             event.preventDefault();
             submit();
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            if (!onComplete) {
+                return;
+            }
+            const el = event.target;
+            const result = onComplete(input, el.selectionStart ?? input.length);
+            if (!result) {
+                return;
+            }
+            if (result.value != null) {
+                setInput(result.value);
+                const caret = result.caret;
+                requestAnimationFrame(() => el.setSelectionRange(caret, caret));
+            } else if (result.candidates?.length) {
+                setLines((prev) => [
+                    ...prev,
+                    {text: result.candidates.join('  '), kind: 'dim'},
+                ]);
+            }
         } else if (event.key === 'ArrowUp') {
             event.preventDefault();
             if (history.length) {

@@ -8,6 +8,12 @@
  * scrollback.
  */
 
+/** Every command `runCommand` understands — the terminal completes against this. */
+export const COMMAND_NAMES = ['calm', 'cat', 'cd', 'clear', 'echo', 'help', 'ls', 'pwd'];
+
+/** Second-token completions after `calm`. */
+export const CALM_SUBCOMMANDS = ['validate', 'help', '--version'];
+
 const HELP_LINES = [
     {text: 'Available commands:', kind: 'out'},
     {text: '  ls [path]            list files', kind: 'dim'},
@@ -65,6 +71,87 @@ function runCalm(args, ctx) {
             kind: 'dim',
         },
     ];
+}
+
+function longestCommonPrefix(values) {
+    let prefix = values[0] || '';
+    for (const value of values.slice(1)) {
+        let length = 0;
+        while (
+            length < prefix.length &&
+            length < value.length &&
+            prefix[length] === value[length]
+        ) {
+            length += 1;
+        }
+        prefix = prefix.slice(0, length);
+    }
+    return prefix;
+}
+
+/**
+ * Path completion for the token `partial`, relative to the cwd. Splits
+ * on `/` so the learner can drill into directories: directories
+ * complete with a trailing `/` and no space, files with a space.
+ */
+function completePath(partial, ctx) {
+    const slash = partial.lastIndexOf('/');
+    const dirPart = slash === -1 ? '' : partial.slice(0, slash + 1);
+    const base = slash === -1 ? partial : partial.slice(slash + 1);
+    const dir = dirPart ? ctx.vfs.resolve(ctx.getCwd(), dirPart) : ctx.getCwd();
+    if (!ctx.vfs.isDir(dir)) {
+        return [];
+    }
+    return ctx.vfs
+        .list(dir)
+        .filter((entry) => entry.name.startsWith(base))
+        .map((entry) => ({
+            core: dirPart + entry.name,
+            suffix: entry.isDir ? '/' : ' ',
+            display: entry.isDir ? `${entry.name}/` : entry.name,
+        }));
+}
+
+/**
+ * Bash-style tab completion for the token ending at `cursor`.
+ * Returns null when nothing matches; otherwise either
+ * `{value, caret}` (replace the input, move the caret) or
+ * `{candidates}` (print the possibilities, keep the input as-is).
+ */
+export function completeCommand(input, cursor, ctx) {
+    const caret = typeof cursor === 'number' ? cursor : input.length;
+    const before = input.slice(0, caret);
+    const partial = before.match(/\S*$/)[0];
+    const tokenStart = caret - partial.length;
+    const preceding = before.slice(0, tokenStart).split(/\s+/).filter(Boolean);
+
+    let candidates;
+    if (preceding.length === 0) {
+        candidates = COMMAND_NAMES.filter((name) => name.startsWith(partial)).map(
+            (name) => ({core: name, suffix: ' ', display: name}),
+        );
+    } else if (preceding.length === 1 && preceding[0] === 'calm') {
+        candidates = CALM_SUBCOMMANDS.filter((name) => name.startsWith(partial)).map(
+            (name) => ({core: name, suffix: ' ', display: name}),
+        );
+    } else {
+        candidates = completePath(partial, ctx);
+    }
+
+    if (!candidates.length) {
+        return null;
+    }
+    const head = input.slice(0, tokenStart);
+    const tail = input.slice(caret);
+    if (candidates.length === 1) {
+        const text = candidates[0].core + candidates[0].suffix;
+        return {value: head + text + tail, caret: tokenStart + text.length};
+    }
+    const prefix = longestCommonPrefix(candidates.map((candidate) => candidate.core));
+    if (prefix.length > partial.length) {
+        return {value: head + prefix + tail, caret: tokenStart + prefix.length};
+    }
+    return {candidates: candidates.map((candidate) => candidate.display)};
 }
 
 export function runCommand(input, ctx) {

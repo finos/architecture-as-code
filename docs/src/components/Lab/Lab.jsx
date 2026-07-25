@@ -7,7 +7,7 @@ import Editor from './Editor';
 import HubDiagram from './HubDiagram';
 import {createVfs} from './vfs';
 import {validateArchitecture} from './engine';
-import {runCommand} from './shell';
+import {completeCommand, runCommand} from './shell';
 import {
     ARCHITECTURE_FILE,
     COMPLETION,
@@ -335,6 +335,9 @@ export default function Lab() {
         return lines;
     };
 
+    const completeShell = (input, cursor) =>
+        completeCommand(input, cursor, {vfs, getCwd: () => vfs.getCwd()});
+
     const handleSave = () => {
         vfs.write(ARCHITECTURE_FILE, editorText);
         setDirty(false);
@@ -549,6 +552,7 @@ export default function Lab() {
                                     key={terminalNonce}
                                     cwd={cwd}
                                     onRun={runShell}
+                                    onComplete={completeShell}
                                 />
                             </div>
                             <div className={styles.tabPanel} hidden={bottomTab !== 'problems'}>

@@ -770,21 +770,81 @@
     padding-right: 10px;
 }
 
-.editorTextarea {
+/* Positioning context for the highlight layer + textarea pair. */
+.editorStack {
+    position: relative;
     flex: 1;
     min-width: 0;
-    background: transparent;
-    color: #dfe6ff;
-    border: none;
-    outline: none;
-    resize: none;
+    display: flex;
+}
+
+/* The textarea stays the source of truth (native caret/undo/IME); its
+   text is transparent and this pre paints the colours behind it. The
+   two MUST share identical text metrics and padding, or the layers
+   drift apart. The pre never scrolls itself — its scrollTop/scrollLeft
+   are driven from the textarea's onScroll (same pattern as the gutter). */
+.highlightLayer,
+.editorTextarea {
+    margin: 0;
     padding: 12px 14px;
     font-family: var(--ifm-font-family-monospace);
     font-size: 13px;
     line-height: 1.55;
+    letter-spacing: normal;
+    font-variant-ligatures: none;
     white-space: pre;
-    overflow: auto;
+    word-break: normal;
+    overflow-wrap: normal;
     tab-size: 4;
+}
+
+.highlightLayer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    /* Infima styles bare `pre` elements — keep this one invisible chrome. */
+    background: transparent;
+    border-radius: 0;
+    color: #c7d0f0;
+    pointer-events: none;
+}
+
+.tokKey {
+    color: #6ea8ff;
+}
+
+.tokString {
+    color: #8ee6c8;
+}
+
+.tokNumber {
+    color: #e8a13c;
+}
+
+.tokLiteral {
+    color: #4da3ff;
+}
+
+.tokPunct {
+    color: #8b96c9;
+}
+
+.editorTextarea {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    color: transparent;
+    caret-color: #c7d0f0;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow: auto;
+}
+
+.editorTextarea::selection {
+    background: rgba(77, 163, 255, 0.35);
+    color: transparent;
 }
 
 /* ---------- diagram (CALM Hub visualizer pipeline) ---------- */
