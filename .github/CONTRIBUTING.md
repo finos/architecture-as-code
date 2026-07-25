@@ -35,6 +35,19 @@ To make review of PRs easier, please:
  * Ensure all new files include a header comment block containing the [Apache License v2.0 and your copyright information](http://www.apache.org/licenses/LICENSE-2.0#apply).
  * If necessary (e.g. due to 3rd party dependency licensing requirements), update the [NOTICE file](https://github.com/finos/architecture-as-code/blob/master/NOTICE) with any new attribution or other notices
 
+### Responsible Use of AI Coding Assistants
+
+AI coding assistants are welcome, but their output must be treated as draft input.
+Before submitting a PR, contributors must understand and be able to explain all
+changes, validate behavior with the project's required checks, and review the
+full diff for correctness, security, privacy, licensing, and dependency impact.
+
+Do not share credentials, confidential information, or private data with AI
+services unless authorized. Contributors remain responsible for the entire
+submission, including any AI-assisted portions.
+
+For full guidance, see [CONTRIBUTING.md](../CONTRIBUTING.md#responsible-use-of-ai-coding-assistants).
+
 
 ### Commit and PR Messages
 
