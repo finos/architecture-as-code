@@ -4,27 +4,100 @@
  * work well for content-centric websites.
  */
 
-/* You can override the default Infima variables here. */
+/**
+ * CALM brand tokens.
+ * Brand: CALM blue #007dff · navy #000063
+ * Type:  Space Grotesk (headings) · IBM Plex Sans (body) · IBM Plex Mono (code)
+ */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-color-primary: #007dff;
+  --ifm-color-primary-dark: #0071e6;
+  --ifm-color-primary-darker: #006bd9;
+  --ifm-color-primary-darkest: #0058b3;
+  --ifm-color-primary-light: #1a8aff;
+  --ifm-color-primary-lighter: #2690ff;
+  --ifm-color-primary-lightest: #4da3ff;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  --calm-navy: #000063;
+  --calm-ink: #0b1020;
+  --calm-heading-color: var(--calm-navy);
+
+  --ifm-font-family-base: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI",
+    Roboto, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --ifm-font-family-monospace: "IBM Plex Mono", SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+  --ifm-heading-font-family: "Space Grotesk", var(--ifm-font-family-base);
+
+  --ifm-navbar-height: 4rem;
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme="dark"] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
+  --ifm-color-primary: #4da3ff;
+  --ifm-color-primary-dark: #2e93ff;
+  --ifm-color-primary-darker: #1f8bff;
+  --ifm-color-primary-darkest: #0071e6;
+  --ifm-color-primary-light: #6cb3ff;
+  --ifm-color-primary-lighter: #7bbaff;
+  --ifm-color-primary-lightest: #a8d1ff;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+
+  --calm-heading-color: #e6ecff;
+}
+
+/* Top-level headings (h1-h3) take the brand navy and tighter tracking;
+   all heading levels already get the display face via
+   --ifm-heading-font-family above. */
+h1,
+h2,
+h3 {
+  color: var(--calm-heading-color);
+  letter-spacing: -0.01em;
+}
+
+/* Navbar: brand-weight title, active item underlined in CALM blue. */
+.navbar__title {
+  font-family: var(--ifm-heading-font-family);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--calm-heading-color);
+}
+
+.navbar__link {
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+
+.navbar__link--active {
+  color: var(--ifm-color-primary);
+  border-bottom-color: var(--ifm-color-primary);
+}
+
+/* "Get started" call-to-action in the navbar (desktop items only — the
+   mobile drawer renders this item as a plain menu link). */
+.navbar__items .calm-navbar-cta {
+  background: var(--ifm-color-primary-darker);
+  color: #fff;
+  border-radius: 9px;
+  padding: 0.45rem 1rem;
+  margin-left: 0.5rem;
+  font-weight: 600;
+  border-bottom: none;
+}
+
+.navbar__items .calm-navbar-cta:hover {
+  background: var(--ifm-color-primary-darkest);
+  color: #fff;
+}
+
+[data-theme="dark"] .navbar__items .calm-navbar-cta {
+  background: var(--ifm-color-primary);
+  color: var(--calm-ink);
+}
+
+[data-theme="dark"] .navbar__items .calm-navbar-cta:hover {
+  background: var(--ifm-color-primary-light);
+  color: var(--calm-ink);
 }

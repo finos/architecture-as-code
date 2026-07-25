@@ -39,6 +39,21 @@ const config = {
         }
     },
 
+    headTags: [
+        {
+            tagName: 'link',
+            attributes: {rel: 'preconnect', href: 'https://fonts.googleapis.com'},
+        },
+        {
+            tagName: 'link',
+            attributes: {rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous'},
+        },
+    ],
+
+    stylesheets: [
+        'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap',
+    ],
+
     presets: [
         [
             'classic',
@@ -83,19 +98,37 @@ const config = {
                     {
                         type: 'docSidebar',
                         sidebarId: 'learningSidebar',
-                        label: '📚 Learning',
+                        label: 'Learn',
                         position: 'left',
                     },
                     {
-                        to: '/talks/',
-                        label: '🎤 Talks',
+                        to: '/core-concepts/',
+                        label: 'Reference',
                         position: 'left',
-                        activeBaseRegex: `/talks/`,
+                        activeBaseRegex: '/(core-concepts|introduction)/',
+                    },
+                    {
+                        to: '/working-with-calm/',
+                        label: 'Tools',
+                        position: 'left',
+                        activeBaseRegex: '/(working-with-calm|calm-hub)/',
+                    },
+                    {
+                        to: '/talks/',
+                        label: 'Community',
+                        position: 'left',
+                        activeBaseRegex: '/talks/',
                     },
                     {
                         href: 'https://github.com/finos/architecture-as-code',
                         label: 'GitHub',
                         position: 'right',
+                    },
+                    {
+                        to: '/tutorials/',
+                        label: 'Get started',
+                        position: 'right',
+                        className: 'calm-navbar-cta',
                     },
                 ],
             },
