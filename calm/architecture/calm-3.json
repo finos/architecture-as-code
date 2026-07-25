@@ -22,11 +22,34 @@
             "development-language": "TypeScript"
         },
         {
+            "unique-id": "calm-studio",
+            "node-type": "system",
+            "name": "CalmStudio",
+            "description": "Browser-based visual CALM architecture editor (SvelteKit) for creating and editing architectures with built-in CALM 1.2 validation",
+            "development-language": "TypeScript"
+        },
+        {
+            "unique-id": "calm-server",
+            "node-type": "service",
+            "name": "CALM Server",
+            "description": "Standalone HTTP server exposing CALM architecture validation as a REST API, independent of the CALM Hub",
+            "development-language": "TypeScript",
+            "interfaces": [
+                {
+                    "unique-id": "calm-server-validate-api",
+                    "type": "api"
+                }
+            ]
+        },
+        {
             "unique-id": "calm-hub",
             "node-type": "service",
             "name": "CALM Hub API",
             "description": "Central registry and API service for CALM architectures, patterns, and standards built with Quarkus",
             "development-language": "Java",
+            "details": {
+                "detailed-architecture": "calm-hub-detail.architecture.json"
+            },
             "interfaces": [
                 {
                     "unique-id": "calm-hub-rest-api",
@@ -100,6 +123,30 @@
                     "actor": "calm-user",
                     "nodes": [
                         "calm-vscode"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "user-interacts-with-studio",
+            "description": "CALM user interacts with CalmStudio through a web browser",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-studio"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "user-interacts-with-calm-server",
+            "description": "CALM user or CI pipeline invokes CALM Server's validation API directly",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-server"
                     ]
                 }
             }
@@ -233,6 +280,30 @@
                     "relationship-unique-id": "user-interacts-with-vscode",
                     "sequence-number": 1,
                     "description": "User opens a CALM file in VS Code and triggers validation"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-edit-in-studio",
+            "name": "Edit Architecture in CalmStudio",
+            "description": "User visually creates or edits a CALM architecture in the browser using CalmStudio",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-studio",
+                    "sequence-number": 1,
+                    "description": "User opens a CALM architecture in CalmStudio and edits it visually"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-validate-via-api",
+            "name": "Validate Architecture via CALM Server",
+            "description": "User or automated pipeline validates a CALM architecture by calling CALM Server's REST API",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-calm-server",
+                    "sequence-number": 1,
+                    "description": "Caller POSTs an architecture to CALM Server's /calm/validate endpoint and receives validation results"
                 }
             ]
         }
