@@ -181,7 +181,7 @@ const config = {
                         ],
                     },
                 ],
-                copyright: `Copyright © ${new Date().getFullYear()} DevOps Automation - FINOS`,
+                copyright: `Copyright © ${new Date().getFullYear()} Architecture as Code - FINOS`,
             },
             prism: {
                 theme: prismThemes.github,
