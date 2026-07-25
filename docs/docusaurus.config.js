@@ -96,28 +96,28 @@ const config = {
                 },
                 items: [
                     {
-                        type: 'docSidebar',
-                        sidebarId: 'learningSidebar',
+                        to: '/learn',
                         label: 'Learn',
                         position: 'left',
+                        activeBaseRegex: '/(learn|tutorials)(/|$)',
                     },
                     {
-                        to: '/core-concepts/',
+                        to: '/reference',
                         label: 'Reference',
                         position: 'left',
-                        activeBaseRegex: '/(core-concepts|introduction)/',
+                        activeBaseRegex: '/(reference|core-concepts|introduction)(/|$)',
                     },
                     {
-                        to: '/working-with-calm/',
+                        to: '/tools',
                         label: 'Tools',
                         position: 'left',
-                        activeBaseRegex: '/(working-with-calm|calm-hub)/',
+                        activeBaseRegex: '/(tools|working-with-calm|calm-hub)(/|$)',
                     },
                     {
-                        to: '/talks/',
+                        to: '/community',
                         label: 'Community',
                         position: 'left',
-                        activeBaseRegex: '/talks/',
+                        activeBaseRegex: '/community(/|$)',
                     },
                     {
                         href: 'https://github.com/finos/architecture-as-code',
@@ -125,7 +125,7 @@ const config = {
                         position: 'right',
                     },
                     {
-                        to: '/tutorials/',
+                        to: '/learn',
                         label: 'Get started',
                         position: 'right',
                         className: 'calm-navbar-cta',
@@ -158,6 +158,14 @@ const config = {
                             {
                                 label: 'Bug Report',
                                 href: 'https://github.com/finos/architecture-as-code/issues/new?assignees=&labels=&projects=&template=Bug_report.md',
+                            },
+                            {
+                                label: 'Talks',
+                                to: '/talks/',
+                            },
+                            {
+                                label: 'Contribute',
+                                to: '/learn/contribute',
                             },
                         ],
                     },

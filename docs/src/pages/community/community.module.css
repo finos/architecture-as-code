@@ -1,0 +1,27 @@
+/**
+ * Community landing styles. Shared primitives come from
+ * src/components/shared.module.css.
+ */
+
+.highlightCard {
+    background: #fff9f0;
+    border-color: #f0d8a8;
+}
+
+[data-theme='dark'] .highlightCard {
+    background: rgba(217, 119, 6, 0.1);
+    border-color: rgba(240, 164, 55, 0.35);
+}
+
+/* Visually-hidden heading keeping the h1 → h2 → h3 document outline. */
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
