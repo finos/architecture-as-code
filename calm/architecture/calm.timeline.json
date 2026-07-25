@@ -1,6 +1,6 @@
 {
     "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
-    "current-moment": "calm-2",
+    "current-moment": "calm-3",
     "moments": [
         {
             "unique-id": "calm-1",
@@ -19,6 +19,16 @@
             "valid-from": "2025-09-30",
             "details": {
                 "detailed-architecture": "calm-2.json"
+            }
+        },
+        {
+            "unique-id": "calm-3",
+            "node-type": "moment",
+            "name": "CALM with CalmStudio and CALM Server",
+            "description": "The FINOS CALM architecture including CLI, VSCode extension, CalmStudio, CALM Server, Hub API, and Hub UI. The CALM Hub API now also links out to a detailed architecture of its own internal layering",
+            "valid-from": "2026-04-11",
+            "details": {
+                "detailed-architecture": "calm-3.json"
             }
         }
     ],
