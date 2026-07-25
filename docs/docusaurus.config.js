@@ -126,7 +126,7 @@ const config = {
                     },
                     {
                         href: 'https://hub.calm.finos.org/',
-                        label: 'Hub',
+                        label: 'CALM Hub',
                         position: 'right',
                     },
                     {
