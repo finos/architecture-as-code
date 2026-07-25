@@ -126,9 +126,12 @@ function TalkMedia({talk}) {
 
     if (talk.type === 'external') {
         return (
-            <Link className={clsx(styles.media, styles.mediaExternal)} href={talk.href}>
+            <Link
+                className={clsx(styles.media, styles.mediaExternal)}
+                href={talk.href}
+                aria-label={`Watch: ${talk.title} (on finos.org)`}>
                 <span className={styles.playBadge} aria-hidden="true">▶</span>
-                <span className={styles.externalLabel}>Watch on finos.org ↗</span>
+                <span className={styles.externalLabel} aria-hidden="true">Watch on finos.org ↗</span>
             </Link>
         );
     }
