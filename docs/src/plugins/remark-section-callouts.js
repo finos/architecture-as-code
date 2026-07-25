@@ -179,12 +179,23 @@ function wrapKnownSections(root) {
         usedSlugs.set(baseSlug, seen + 1);
         const slug = seen === 0 ? baseSlug : `${baseSlug}-${seen}`;
         const [variant, icon, label] = spec;
+        // Sub-headings must follow the parent into JSX: left as mdast headings
+        // they would keep their own TOC entries while the hidden parent's
+        // disappears, orphaning them in "On this page". Ids are prefixed with
+        // the parent slug so they can't collide with a same-named heading
+        // elsewhere on the page.
+        const body = children.slice(i + 1, end).map((child) =>
+            child.type === 'heading'
+                ? jsxFlow(`h${child.depth}`, 'calm-callout__subh', child.children,
+                      [attr('id', `${slug}-${slugify(nodeText(child))}`)])
+                : child
+        );
         const callout = jsxFlow('div', `calm-callout calm-callout--${variant}`, [
             jsxFlow(`h${node.depth}`, 'calm-callout__h', [
                 jsxText('span', 'calm-callout__ic', [text(icon)], [attr('aria-hidden', 'true')]),
                 text(label),
             ], [attr('id', slug)]),
-            ...children.slice(i + 1, end),
+            ...body,
         ]);
         children.splice(i, end - i, callout);
     }
