@@ -79,6 +79,20 @@ git commit -m "docs: update installation instructions"
 Accepted types include `feat`, `fix`, `docs`, `test`, `chore`, `refactor` and
 more; see the repo's `CONTRIBUTING.md` for the full list of types and scopes.
 
+### Responsible use of AI coding assistants
+
+AI coding assistants are welcome, but treat generated code as a draft, not a
+finished contribution. Do not submit code you cannot explain. Keep changes
+focused, review the full diff, run the required validation steps, and verify
+technical claims with project docs and tests.
+
+Do not share credentials or confidential information with AI tools unless you
+are authorized to do so. By opening a PR, you remain responsible for the full
+change, including any AI-assisted portions.
+
+For full guidance, see the repository contributor policy:
+[Responsible Use of AI Coding Assistants](https://github.com/finos/architecture-as-code/blob/main/CONTRIBUTING.md#responsible-use-of-ai-coding-assistants).
+
 ## 6. Open your pull request
 
 Push your branch to your fork and open a pull request against `main`. CI will

@@ -76,18 +76,6 @@ const config = {
         ],
     ],
 
-    plugins: [
-        [
-            '@docusaurus/plugin-content-docs',
-            {
-                id: 'talks',
-                path: 'talks',
-                routeBasePath: 'talks',
-                sidebarPath: require.resolve('./talksSidebar.js'),
-            },
-        ],
-    ],
-
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
         ({
@@ -98,6 +86,9 @@ const config = {
                 logo: {
                     alt: 'CALM Logo',
                     src: 'img/2025_CALM_Icon.svg',
+                    // Same white variant CALM Hub uses in its dark mode — the
+                    // navy element of the standard icon vanishes on a dark base.
+                    srcDark: 'img/2025_CALM_Icon_WHT.svg',
                 },
                 items: [
                     {
@@ -122,7 +113,7 @@ const config = {
                         to: '/community',
                         label: 'Community',
                         position: 'left',
-                        activeBaseRegex: '/community(/|$)',
+                        activeBaseRegex: '/(community|talks)(/|$)',
                     },
                     {
                         href: 'https://hub.calm.finos.org/',
@@ -193,7 +184,7 @@ const config = {
                         ],
                     },
                 ],
-                copyright: `Copyright © ${new Date().getFullYear()} DevOps Automation - FINOS`,
+                copyright: `Copyright © ${new Date().getFullYear()} Architecture as Code - FINOS`,
             },
             prism: {
                 theme: prismThemes.github,
