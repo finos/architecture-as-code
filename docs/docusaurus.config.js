@@ -86,6 +86,9 @@ const config = {
                 logo: {
                     alt: 'CALM Logo',
                     src: 'img/2025_CALM_Icon.svg',
+                    // Same white variant CALM Hub uses in its dark mode — the
+                    // navy element of the standard icon vanishes on a dark base.
+                    srcDark: 'img/2025_CALM_Icon_WHT.svg',
                 },
                 items: [
                     {
