@@ -20,9 +20,9 @@ request.
   nvm use   # reads .nvmrc
   ```
 
-- **Java 21 and Maven** — only needed if you are working on the CALM Hub
-  backend (`calm-hub`). The repo ships a Maven wrapper (`./mvnw`), so you just
-  need a JDK.
+- **Java 21 (JDK)** — only needed if you are working on the CALM Hub backend
+  (`calm-hub`). You don't need Maven itself; the repo ships a Maven wrapper
+  (`./mvnw`).
 - **Docker** — optional; used for CALM Hub integration tests and local
   MongoDB.
 

@@ -72,6 +72,9 @@ function Hero() {
                     width="1210"
                     height="215"
                 />
+                <div className={styles.codeCardCaption}>
+                    <Link href="https://hub.calm.finos.org/">rendered by CALM Hub ↗</Link>
+                </div>
             </div>
         </section>
     );
@@ -248,6 +251,10 @@ function ToolsStrip() {
                         </Link>
                     ))}
                 </div>
+                <p className={styles.toolsHosted}>
+                    CALM Hub is hosted by FINOS —{' '}
+                    <Link href="https://hub.calm.finos.org/">explore the public instance ↗</Link>
+                </p>
             </div>
         </section>
     );
