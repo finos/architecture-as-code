@@ -26,7 +26,7 @@
  *    loader when imported; they are skipped entirely.
  */
 
-const EDIT_URL_BASE = 'https://github.com/finos/architecture-as-code/blob/main/docs/docs';
+const EDIT_URL_BASE = 'https://github.com/finos/architecture-as-code/edit/main/docs/docs';
 const WORDS_PER_MINUTE = 220;
 // Pages whose body is essentially a component have no countable prose — a
 // "1 min read" chip there is meaningless, so below this floor the read-time
