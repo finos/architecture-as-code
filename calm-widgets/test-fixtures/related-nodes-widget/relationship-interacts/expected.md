@@ -1,6 +1,6 @@
 ```mermaid
 graph TD;
-User -- Interacts --> Frontend;
+User[User] -- Interacts --> frontend-svc[Frontend App];
 classDef highlight fill:#f2bbae;
 ```
 

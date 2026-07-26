@@ -37,6 +37,30 @@ describe('Widget Helpers', () => {
         });
     });
 
+    describe('nodeLabel helper', () => {
+        it('returns the mapped name when the id is present in the map', () => {
+            expect(helpers.nodeLabel('svc-a', { 'svc-a': 'Service Alpha' })).toBe('Service Alpha');
+        });
+
+        it('falls back to the id when the map has no entry for it', () => {
+            expect(helpers.nodeLabel('svc-a', { 'svc-b': 'Service Beta' })).toBe('svc-a');
+        });
+
+        it('falls back to the id when no map is provided', () => {
+            expect(helpers.nodeLabel('svc-a', undefined)).toBe('svc-a');
+        });
+
+        it('falls back to the id when the mapped value is not a non-empty string', () => {
+            expect(helpers.nodeLabel('svc-a', { 'svc-a': '' })).toBe('svc-a');
+            expect(helpers.nodeLabel('svc-a', { 'svc-a': 42 })).toBe('svc-a');
+        });
+
+        it('returns an empty string for a non-string id', () => {
+            expect(helpers.nodeLabel(undefined, { x: 'X' })).toBe('');
+            expect(helpers.nodeLabel(42, { x: 'X' })).toBe('');
+        });
+    });
+
     describe('currentTimestamp helper', () => {
         it('returns ISO timestamp string', () => {
             const timestamp = helpers.currentTimestamp();

@@ -30,7 +30,7 @@ title: "Conference Website Load Balancer"
 ## Related Nodes
 ```mermaid
 graph TD;
-conference-website -- Connects --> load-balancer;
+conference-website[Conference Website] -- Connects --> load-balancer[Load Balancer];
 classDef highlight fill:#f2bbae;
 ```
 

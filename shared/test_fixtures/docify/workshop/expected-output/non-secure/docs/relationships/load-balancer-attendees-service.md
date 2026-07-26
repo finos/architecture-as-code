@@ -30,7 +30,7 @@ title: "Load Balancer Attendees Service"
 ## Related Nodes
 ```mermaid
 graph TD;
-load-balancer -- Connects --> attendees;
+load-balancer[Load Balancer] -- Connects --> attendees[Attendees Service];
 classDef highlight fill:#f2bbae;
 ```
 

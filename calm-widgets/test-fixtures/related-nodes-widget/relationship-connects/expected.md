@@ -1,6 +1,6 @@
 ```mermaid
 graph TD;
-ServiceA -- Connects --> ServiceB;
+svc-a[Service Alpha] -- Connects --> svc-b[Service Beta];
 classDef highlight fill:#f2bbae;
 ```
 

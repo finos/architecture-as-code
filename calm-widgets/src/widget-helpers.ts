@@ -124,6 +124,14 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
                 .replace(/"/g, '#quot;');
         },
         ne: (a: unknown, b: unknown): boolean => a !== b,
+        nodeLabel: (id: unknown, nodeNames: unknown): string => {
+            if (typeof id !== 'string' || !id) return '';
+            if (nodeNames && typeof nodeNames === 'object') {
+                const name = (nodeNames as Record<string, unknown>)[id];
+                if (typeof name === 'string' && name) return name;
+            }
+            return id;
+        },
         notEmpty: (value: unknown): boolean => {
             if (value == null) return false;
             if (Array.isArray(value)) return value.length > 0;

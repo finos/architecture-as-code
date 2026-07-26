@@ -124,25 +124,26 @@ Renders relationships as Mermaid graph diagrams, showing connections between nod
 - For `relationship-id`: The specified relationship must exist in the `relationships` array.
 
 **Supported relationship types:**
-- **Interacts**: Actor-to-node interactions (e.g., "User -- Interacts --> Frontend")
-- **Connects**: Direct connections between services (e.g., "API -- Connects --> Database")
-- **Composed-of**: Container composition relationships (e.g., "System -- Composed Of --> Service")
-- **Deployed-in**: Deployment relationships (e.g., "Cluster -- Deployed In --> Service")
+- **Interacts**: Actor-to-node interactions (e.g., "User[User] -- Interacts --> Frontend[Frontend App]")
+- **Connects**: Direct connections between services (e.g., "api[API] -- Connects --> db[Database]")
+- **Composed-of**: Container composition relationships (e.g., "sys[System] -- Composed Of --> svc[Service]")
+- **Deployed-in**: Deployment relationships (e.g., "cluster[Cluster] -- Deployed In --> svc[Service]")
 
 **Output behavior:**
 - **Node perspective**: When using `node-id`, shows the node highlighted with all its related connections
 - **Relationship perspective**: When using `relationship-id`, shows just that specific relationship
 - **Container filtering**: Automatically filters relationships based on the focus node (container vs. service perspective)
+- **Labels**: Every node reference is labeled with its `name`
 
 **Example outputs:**
 
 *Node view (`node-id="load-balancer"`)* - Shows the load balancer and all its connections:
 ```mermaid
 graph TD;
-load-balancer[load-balancer]:::highlight;
-conference-website -- Connects --> load-balancer;
-load-balancer -- Connects --> attendees;
-k8s-cluster -- Deployed In --> load-balancer;
+load-balancer[Load Balancer]:::highlight;
+conference-website[Conference Website] -- Connects --> load-balancer[Load Balancer];
+load-balancer[Load Balancer] -- Connects --> attendees[Attendees Service];
+k8s-cluster[Kubernetes Cluster] -- Deployed In --> load-balancer[Load Balancer];
 classDef highlight fill:#f2bbae;
 ```
 
