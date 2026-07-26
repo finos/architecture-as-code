@@ -522,9 +522,11 @@ public class TestMongoArchitectureStoreShould {
                 () -> mongoArchitectureStore.updateArchitectureForVersion(architecture));
 
         // The entity-existence pre-check catches the missing architecture before any write is
-        // attempted, so no update is ever sent to Mongo.
+        // attempted, so no update is ever sent to Mongo (either overload).
         verify(architectureCollection, never())
                 .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(architectureCollection, never())
+                .updateOne(any(Bson.class), any(Bson.class));
     }
 
     @Test

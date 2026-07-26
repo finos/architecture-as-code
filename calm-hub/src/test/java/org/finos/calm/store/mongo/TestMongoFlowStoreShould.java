@@ -398,9 +398,11 @@ public class TestMongoFlowStoreShould {
                 () -> mongoFlowStore.updateFlowForVersion(flow));
 
         // The entity-existence pre-check catches the missing flow before any write is
-        // attempted, so no update is ever sent to Mongo.
+        // attempted, so no update is ever sent to Mongo (either overload).
         verify(flowCollection, never())
                 .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(flowCollection, never())
+                .updateOne(any(Bson.class), any(Bson.class));
     }
 
     @Test

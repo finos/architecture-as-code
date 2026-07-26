@@ -409,9 +409,11 @@ public class TestMongoTimelineStoreShould {
                 () -> mongoTimelineStore.updateTimelineForVersion(timeline));
 
         // The entity-existence pre-check catches the missing timeline before any write is
-        // attempted, so no update is ever sent to Mongo.
+        // attempted, so no update is ever sent to Mongo (either overload).
         verify(timelineCollection, never())
                 .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(timelineCollection, never())
+                .updateOne(any(Bson.class), any(Bson.class));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -11,7 +12,12 @@ import org.slf4j.LoggerFactory;
  * Maps {@link StorageWriteException} to an honest HTTP response instead of letting a write
  * failure surface as a misleading not-found error or an undiagnostic generic 500. The full
  * cause is logged server-side only, never echoed to the client.
+ *
+ * <p>{@code @ApplicationScoped} makes this injectable directly (e.g. by {@link AdrResource},
+ * whose per-endpoint blanket exception catch would otherwise shadow this mapper), so the
+ * 413/500 mapping logic has a single definition instead of being duplicated.
  */
+@ApplicationScoped
 @Provider
 public class StorageWriteExceptionMapper implements ExceptionMapper<StorageWriteException> {
 

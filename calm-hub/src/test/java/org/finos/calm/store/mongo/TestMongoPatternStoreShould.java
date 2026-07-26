@@ -481,9 +481,11 @@ public class TestMongoPatternStoreShould {
                 () -> mongoPatternStore.updatePatternForVersion(pattern));
 
         // The entity-existence pre-check catches the missing pattern before any write is
-        // attempted, so no update is ever sent to Mongo.
+        // attempted, so no update is ever sent to Mongo (either overload).
         verify(patternCollection, never())
                 .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(patternCollection, never())
+                .updateOne(any(Bson.class), any(Bson.class));
     }
 
     @Test
