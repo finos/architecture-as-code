@@ -194,7 +194,9 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
                 // Return the pattern JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(architecture.getMongoVersion());
-                log.info("VersionDoc: [{}], Mongo Version: [{}]", architectureDoc.get("versions"), architecture.getMongoVersion());
+                // Pre-existing bug: this used to log the entire versions map (every version's
+                // full content) rather than just the requested one — log identifying info only.
+                log.info("Version [{}] found: {}", architecture.getMongoVersion(), versionDoc != null);
                 if (versionDoc == null) {
                     throw new ArchitectureVersionNotFoundException();
                 }
@@ -255,7 +257,10 @@ public class MongoArchitectureStore implements ArchitectureStore {
         try {
             architectureCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
-            log.error("Failed to write architecture to mongo [{}]", architecture, ex);
+            // Log identifying fields only, not the full architecture object — its toString()
+            // includes the entire (potentially near-16MB) architectureJson payload.
+            log.error("Failed to write architecture [namespace={}, id={}, version={}] to mongo",
+                    architecture.getNamespace(), architecture.getId(), architecture.getMongoVersion(), ex);
             throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }

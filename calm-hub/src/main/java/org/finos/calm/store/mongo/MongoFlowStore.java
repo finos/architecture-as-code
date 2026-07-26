@@ -168,7 +168,9 @@ public class MongoFlowStore implements FlowStore {
 
                 // Return the flow JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(flow.getMongoVersion());
-                log.info("VersionDoc: [{}], Mongo Version: [{}]", flowDoc.get("versions"), flow.getMongoVersion());
+                // Pre-existing bug: this used to log the entire versions map (every version's
+                // full content) rather than just the requested one — log identifying info only.
+                log.info("Version [{}] found: {}", flow.getMongoVersion(), versionDoc != null);
                 if(versionDoc == null) {
                     throw new FlowVersionNotFoundException();
                 }
@@ -221,7 +223,10 @@ public class MongoFlowStore implements FlowStore {
         try {
             flowCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
-            log.error("Failed to write flow to mongo [{}]", flow, ex);
+            // Log identifying fields only, not the full flow object — its toString()
+            // includes the entire (potentially near-16MB) flowJson payload.
+            log.error("Failed to write flow [namespace={}, id={}, version={}] to mongo",
+                    flow.getNamespace(), flow.getId(), flow.getMongoVersion(), ex);
             throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }

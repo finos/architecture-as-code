@@ -227,7 +227,9 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                     // Return the architecture JSON blob for the specified version
                     String mongoVersion = architecture.getMongoVersion();
                     Object versionObj = versions.get(mongoVersion);
-                    LOG.info("VersionDoc: [{}], Mongo Version: [{}]", versions, mongoVersion);
+                    // Pre-existing bug: this used to log the entire versions map (every version's
+                    // full content) rather than just the requested one — log identifying info only.
+                    LOG.info("Version [{}] found: {}", mongoVersion, versionObj instanceof String);
 
                     if (!(versionObj instanceof String)) {
                         LOG.warn("Version '{}' not found for architecture {} in namespace '{}'",

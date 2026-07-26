@@ -166,7 +166,9 @@ public class MongoTimelineStore implements TimelineStore {
 
                 // Return the timeline JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(timeline.getMongoVersion());
-                log.info("VersionDoc: [{}], Mongo Version: [{}]", timelineDoc.get("versions"), timeline.getMongoVersion());
+                // Pre-existing bug: this used to log the entire versions map (every version's
+                // full content) rather than just the requested one — log identifying info only.
+                log.info("Version [{}] found: {}", timeline.getMongoVersion(), versionDoc != null);
                 if (versionDoc == null) {
                     throw new TimelineVersionNotFoundException();
                 }
@@ -219,7 +221,10 @@ public class MongoTimelineStore implements TimelineStore {
         try {
             timelineCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
-            log.error("Failed to write timeline to mongo [{}]", timeline, ex);
+            // Log identifying fields only, not the full timeline object — its toString()
+            // includes the entire (potentially near-16MB) timelineJson payload.
+            log.error("Failed to write timeline [namespace={}, id={}, version={}] to mongo",
+                    timeline.getNamespace(), timeline.getId(), timeline.getMongoVersion(), ex);
             throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }

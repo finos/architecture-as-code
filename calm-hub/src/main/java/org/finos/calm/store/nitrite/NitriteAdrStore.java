@@ -215,7 +215,9 @@ public class NitriteAdrStore implements AdrStore {
 
             // Return the ADR JSON blob for the specified revision
             String adrStr = revisionsDoc.get(String.valueOf(adrMeta.getRevision()), String.class);
-            LOG.info("RevisionDoc: [{}], Revision: [{}]", revisionsDoc, adrMeta.getRevision());
+            // Pre-existing bug: this used to log the entire revisions map (every revision's full
+            // content) rather than just the requested one — log identifying info only.
+            LOG.info("Revision [{}] found: {}", adrMeta.getRevision(), adrStr != null);
 
             if (adrStr == null) {
                 LOG.warn("Revision {} not found for ADR {} in namespace '{}'",
@@ -339,7 +341,9 @@ public class NitriteAdrStore implements AdrStore {
 
         // Return the ADR JSON blob for the specified revision
         String adrStr = revisionsDoc.get(String.valueOf(latestRevision), String.class);
-        LOG.info("RevisionDoc: [{}], Revision: [{}]", adrStr, latestRevision);
+        // Pre-existing bug: this used to log the full revision content rather than just
+        // identifying it — log the revision number only.
+        LOG.info("Resolved latest revision: [{}]", latestRevision);
 
         try {
             return new AdrMeta.AdrMetaBuilder()
