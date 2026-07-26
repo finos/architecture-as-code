@@ -19,6 +19,7 @@ import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.TimelineStore;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -206,7 +207,10 @@ public class MongoTimelineStore implements TimelineStore {
     }
 
     private void writeTimelineToMongo(Timeline timeline) throws TimelineNotFoundException, NamespaceNotFoundException {
-        retrieveTimelineVersions(timeline);
+        // Verifies the namespace AND the specific timeline entity exist, so any
+        // MongoWriteException from the update below is a genuine write failure, not a
+        // disguised not-found.
+        getTimelineVersions(timeline);
 
         Document filter = new Document("namespace", timeline.getNamespace())
                 .append("timelines.timelineId", timeline.getId());
@@ -216,7 +220,7 @@ public class MongoTimelineStore implements TimelineStore {
             timelineCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
             log.error("Failed to write timeline to mongo [{}]", timeline, ex);
-            throw new TimelineNotFoundException();
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 

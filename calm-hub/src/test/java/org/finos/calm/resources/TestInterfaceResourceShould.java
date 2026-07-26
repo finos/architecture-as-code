@@ -11,6 +11,7 @@ import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
 import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.store.InterfaceStore;
@@ -317,6 +318,8 @@ public class TestInterfaceResourceShould {
                 Arguments.of("valid", new InterfaceNotFoundException(), 404),
                 Arguments.of("valid", new InterfaceVersionExistsException(), 409),
                 Arguments.of("valid", new JsonParseException(), 400),
+                Arguments.of("valid", StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of("valid", StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of("valid", null, 201)
         );
     }

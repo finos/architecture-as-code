@@ -448,7 +448,7 @@ public class TestMongoAdrStoreShould {
     }
 
     @Test
-    void throw_an_exception_when_updating_an_adr_but_mongo_cannot_write_update() throws JsonProcessingException {
+    void throw_a_storage_write_exception_without_capacity_exceeded_when_updating_an_adr_but_mongo_cannot_write_update() throws JsonProcessingException {
         mockSetupAdrDocumentWithRevisions();
         when(adrCollection.updateOne(any(Bson.class), any(Bson.class)))
                 .thenThrow(new MongoWriteException(new WriteError(1, "error", new BsonDocument()), new ServerAddress(), List.of()));
@@ -459,8 +459,26 @@ public class TestMongoAdrStoreShould {
                 .setAdr(new Adr.AdrBuilder().build())
                 .build();
 
-        assertThrows(AdrPersistenceException.class,
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
                 () -> mongoAdrStore.updateAdrForNamespace(adrMeta));
+        assertThat(exception.isCapacityExceeded(), is(false));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_an_adr_hits_the_document_size_limit() throws JsonProcessingException {
+        mockSetupAdrDocumentWithRevisions();
+        when(adrCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(new MongoWriteException(new WriteError(10334, "object to insert too large", new BsonDocument()), new ServerAddress(), List.of()));
+
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(42)
+                .setAdr(new Adr.AdrBuilder().build())
+                .build();
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoAdrStore.updateAdrForNamespace(adrMeta));
+        assertThat(exception.isCapacityExceeded(), is(true));
     }
 
     @Test
@@ -541,7 +559,7 @@ public class TestMongoAdrStoreShould {
     }
 
     @Test
-    void throw_an_exception_when_updating_the_status_of_an_adr_but_mongo_cannot_write_update() throws JsonProcessingException {
+    void throw_a_storage_write_exception_without_capacity_exceeded_when_updating_the_status_of_an_adr_but_mongo_cannot_write_update() throws JsonProcessingException {
         mockSetupAdrDocumentWithRevisions();
         when(adrCollection.updateOne(any(Bson.class), any(Bson.class)))
                 .thenThrow(new MongoWriteException(new WriteError(1, "error", new BsonDocument()), new ServerAddress(), List.of()));
@@ -551,8 +569,25 @@ public class TestMongoAdrStoreShould {
                 .setId(42)
                 .build();
 
-        assertThrows(AdrPersistenceException.class,
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
                 () -> mongoAdrStore.updateAdrStatus(adrMeta, Status.proposed));
+        assertThat(exception.isCapacityExceeded(), is(false));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_the_status_of_an_adr_hits_the_document_size_limit() throws JsonProcessingException {
+        mockSetupAdrDocumentWithRevisions();
+        when(adrCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(new MongoWriteException(new WriteError(10334, "object to insert too large", new BsonDocument()), new ServerAddress(), List.of()));
+
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(42)
+                .build();
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoAdrStore.updateAdrStatus(adrMeta, Status.proposed));
+        assertThat(exception.isCapacityExceeded(), is(true));
     }
 
     @Test

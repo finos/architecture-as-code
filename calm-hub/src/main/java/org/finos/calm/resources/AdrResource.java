@@ -310,7 +310,8 @@ public class AdrResource {
                 AdrRevisionNotFoundException.class, ex -> handleAdrRevisionNotFoundException(adrId, revision, ex),
                 AdrParseException.class, this::handleAdrParseException,
                 AdrPersistenceException.class, ex -> handleAdrPersistenceException(adrId, ex),
-                AdrRevisionExistsException.class, ex -> handleAdrRevisionExistsException(adrId, ex)
+                AdrRevisionExistsException.class, ex -> handleAdrRevisionExistsException(adrId, ex),
+                StorageWriteException.class, ex -> handleStorageWriteException((StorageWriteException) ex)
         );
 
         return handlers.getOrDefault(e.getClass(), ex -> {
@@ -347,6 +348,18 @@ public class AdrResource {
     private Response handleAdrPersistenceException(int adrId, Exception ex) {
         logger.error("Could not persist update of ADR [{}]", adrId, ex);
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Could not persist update of ADR: [{}]:" + adrId).build();
+    }
+
+    private Response handleStorageWriteException(StorageWriteException ex) {
+        logger.error("Storage write failed", ex);
+        if (ex.isCapacityExceeded()) {
+            return Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
+                    .entity("This resource has reached the maximum storage size and cannot accept further versions")
+                    .build();
+        }
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("The write could not be completed due to a storage error")
+                .build();
     }
 
     private Response handleAdrRevisionExistsException(int adrId, Exception ex) {

@@ -1,0 +1,32 @@
+package org.finos.calm.resources;
+
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
+import org.finos.calm.domain.exception.StorageWriteException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Maps {@link StorageWriteException} to an honest HTTP response instead of letting a write
+ * failure surface as a misleading not-found error or an undiagnostic generic 500. The full
+ * cause is logged server-side only, never echoed to the client.
+ */
+@Provider
+public class StorageWriteExceptionMapper implements ExceptionMapper<StorageWriteException> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StorageWriteExceptionMapper.class);
+
+    @Override
+    public Response toResponse(StorageWriteException e) {
+        LOG.error("Storage write failed", e);
+        if (e.isCapacityExceeded()) {
+            return Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
+                    .entity("This resource has reached the maximum storage size and cannot accept further versions")
+                    .build();
+        }
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("The write could not be completed due to a storage error")
+                .build();
+    }
+}

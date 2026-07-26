@@ -10,6 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.finos.calm.store.util.VersionKeySelector;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Architecture;
@@ -238,7 +239,10 @@ public class MongoArchitectureStore implements ArchitectureStore {
     }
 
     private void writeArchitectureToMongo(Architecture architecture) throws ArchitectureNotFoundException, NamespaceNotFoundException {
-        retrieveArchitectureVersions(architecture);
+        // Verifies the namespace AND the specific architecture entity exist, so any
+        // MongoWriteException from the update below is a genuine write failure, not a
+        // disguised not-found.
+        getArchitectureVersions(architecture);
 
         Document filter = new Document("namespace", architecture.getNamespace())
                 .append("architectures.architectureId", architecture.getId());
@@ -252,7 +256,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
             architectureCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
             log.error("Failed to write architecture to mongo [{}]", architecture, ex);
-            throw new ArchitectureNotFoundException();
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 

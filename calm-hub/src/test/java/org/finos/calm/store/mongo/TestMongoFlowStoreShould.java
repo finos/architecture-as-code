@@ -22,6 +22,7 @@ import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.junit.jupiter.api.BeforeEach;
@@ -385,22 +386,55 @@ public class TestMongoFlowStoreShould {
     }
 
     @Test
-    void throw_an_flow_not_found_exception_when_creating_or_updating_a_version() {
+    void throw_a_flow_not_found_exception_when_creating_or_updating_a_version_for_a_missing_flow() {
         mockSetupFlowDocumentWithVersions();
         Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
                 .setId(50).setVersion("1.0.1")
                 .setFlow(validJson).build();
 
-        WriteError writeError = new WriteError(2, "The positional operator did not find the match needed from the query", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-
-        when(flowCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
-
         assertThrows(FlowNotFoundException.class,
                 () -> mongoFlowStore.createFlowForVersion(flow));
         assertThrows(FlowNotFoundException.class,
                 () -> mongoFlowStore.updateFlowForVersion(flow));
+
+        // The entity-existence pre-check catches the missing flow before any write is
+        // attempted, so no update is ever sent to Mongo.
+        verify(flowCollection, never())
+                .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_a_version_hits_the_document_size_limit() {
+        mockSetupFlowDocumentWithVersions();
+        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
+                .setId(42).setVersion("1.0.1")
+                .setFlow(validJson).build();
+
+        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(flowCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoFlowStore.updateFlowForVersion(flow));
+        assertThat(exception.isCapacityExceeded(), is(true));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_updating_a_version() {
+        mockSetupFlowDocumentWithVersions();
+        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
+                .setId(42).setVersion("1.0.1")
+                .setFlow(validJson).build();
+
+        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(flowCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoFlowStore.updateFlowForVersion(flow));
+        assertThat(exception.isCapacityExceeded(), is(false));
     }
 
     @Test

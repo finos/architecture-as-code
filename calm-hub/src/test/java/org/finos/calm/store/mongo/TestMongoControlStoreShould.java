@@ -24,6 +24,7 @@ import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,6 +33,7 @@ import org.mockito.Mockito;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -515,6 +517,32 @@ public class TestMongoControlStoreShould {
     }
 
     @Test
+    void create_requirement_for_version_throws_storage_write_exception_with_capacity_exceeded_when_document_size_limit_hit() {
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+
+        Document requirement = new Document("1-0-0", new Document("type", "req"));
+        Document controlDoc = new Document("controlId", 1)
+                .append("name", "Test")
+                .append("description", "Test Desc")
+                .append("requirement", requirement)
+                .append("configurations", new ArrayList<>());
+        Document domainDoc = new Document("domain", "security")
+                .append("controls", List.of(controlDoc));
+
+        FindIterable<Document> findIterable = mockFindIterable();
+        when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(domainDoc);
+
+        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(controlCollection.updateOne(any(Document.class), any(Document.class))).thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class, () ->
+                mongoControlStore.createRequirementForVersion("security", 1, "2.0.0", new CreateControlRequirement("n", "d", "{\"type\": \"req-v2\"}")));
+        assertThat(exception.isCapacityExceeded(), is(true));
+    }
+
+    @Test
     void create_requirement_for_version_throws_when_version_already_exists() {
         when(domainStore.getDomains()).thenReturn(List.of("security"));
 
@@ -641,6 +669,35 @@ public class TestMongoControlStoreShould {
         mongoControlStore.createConfigurationForVersion("security", 1, 10, "2.0.0", new CreateControlConfiguration("{\"setting\": \"b\"}"));
 
         verify(controlCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+    }
+
+    @Test
+    void create_configuration_for_version_throws_storage_write_exception_with_capacity_exceeded_when_document_size_limit_hit() {
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+
+        Document config = new Document("configurationId", 10)
+                .append("versions", new Document("1-0-0", new Document("setting", "a")));
+
+        Document controlDoc = new Document("controlId", 1)
+                .append("name", "Test")
+                .append("description", "Desc")
+                .append("requirement", new Document("1-0-0", new Document()))
+                .append("configurations", List.of(config));
+        Document domainDoc = new Document("domain", "security")
+                .append("controls", List.of(controlDoc));
+
+        FindIterable<Document> findIterable = mockFindIterable();
+        when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(domainDoc);
+
+        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(controlCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class, () ->
+                mongoControlStore.createConfigurationForVersion("security", 1, 10, "2.0.0", new CreateControlConfiguration("{\"setting\": \"b\"}")));
+        assertThat(exception.isCapacityExceeded(), is(true));
     }
 
     @Test

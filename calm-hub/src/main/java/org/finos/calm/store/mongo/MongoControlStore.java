@@ -1,5 +1,6 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -21,8 +22,10 @@ import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -257,8 +260,15 @@ public class MongoControlStore implements ControlStore {
         }
         Document update = new Document("$set", setFields);
 
-        if (controlCollection.updateOne(filter, update).getMatchedCount() == 0) {
-            throw new ControlRequirementVersionExistsException();
+        try {
+            if (controlCollection.updateOne(filter, update).getMatchedCount() == 0) {
+                throw new ControlRequirementVersionExistsException();
+            }
+        } catch (MongoWriteException ex) {
+            if (MongoWriteFailures.isDocumentTooLarge(ex)) {
+                throw StorageWriteException.capacityExceeded(ex);
+            }
+            throw ex;
         }
     }
 
@@ -313,16 +323,23 @@ public class MongoControlStore implements ControlStore {
                 )
         );
 
-        if (controlCollection.updateOne(
-                filter,
-                Updates.set("controls.$[ctrl].configurations.$[cfg].versions." + mongoVersion,
-                        Document.parse(request.getConfigurationJson())),
-                new UpdateOptions().arrayFilters(List.of(
-                        Filters.eq("ctrl.controlId", controlId),
-                        Filters.eq("cfg.configurationId", configurationId)
-                ))
-        ).getMatchedCount() == 0) {
-            throw new ControlConfigurationVersionExistsException();
+        try {
+            if (controlCollection.updateOne(
+                    filter,
+                    Updates.set("controls.$[ctrl].configurations.$[cfg].versions." + mongoVersion,
+                            Document.parse(request.getConfigurationJson())),
+                    new UpdateOptions().arrayFilters(List.of(
+                            Filters.eq("ctrl.controlId", controlId),
+                            Filters.eq("cfg.configurationId", configurationId)
+                    ))
+            ).getMatchedCount() == 0) {
+                throw new ControlConfigurationVersionExistsException();
+            }
+        } catch (MongoWriteException ex) {
+            if (MongoWriteFailures.isDocumentTooLarge(ex)) {
+                throw StorageWriteException.capacityExceeded(ex);
+            }
+            throw ex;
         }
     }
 

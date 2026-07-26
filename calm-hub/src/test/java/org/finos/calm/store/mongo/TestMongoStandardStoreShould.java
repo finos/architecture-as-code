@@ -20,6 +20,7 @@ import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
@@ -391,6 +392,33 @@ public class TestMongoStandardStoreShould {
                 .thenReturn(UpdateResult.acknowledged(0, 0L, null));
 
         assertThrows(StandardVersionExistsException.class, () -> mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.0"));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_with_capacity_exceeded_when_creating_a_version_hits_the_document_size_limit() {
+        mockSetupStandardDocumentWithVersions();
+        CreateStandardRequest standard = standardToStore();
+
+        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(standardCollection.updateOne(any(Bson.class), any(Bson.class))).thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.1"));
+        assertThat(exception.isCapacityExceeded(), is(true));
+    }
+
+    @Test
+    void propagate_other_write_failures_raw_when_creating_a_version() {
+        mockSetupStandardDocumentWithVersions();
+        CreateStandardRequest standard = standardToStore();
+
+        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(standardCollection.updateOne(any(Bson.class), any(Bson.class))).thenThrow(mongoWriteException);
+
+        assertThrows(MongoWriteException.class,
+                () -> mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.1"));
     }
 
     @Test

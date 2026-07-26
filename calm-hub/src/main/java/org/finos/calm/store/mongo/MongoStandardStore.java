@@ -11,6 +11,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.finos.calm.store.util.VersionKeySelector;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.standards.CreateStandardRequest;
@@ -190,8 +191,15 @@ public class MongoStandardStore implements StandardStore {
                 .append("standards.$.description", standardRequest.getDescription())
                 .append("standards.$.versions." + mongoVersion, Document.parse(standardRequest.getStandardJson())));
 
-        if (standardCollection.updateOne(filter, update).getMatchedCount() == 0) {
-            throw new StandardVersionExistsException();
+        try {
+            if (standardCollection.updateOne(filter, update).getMatchedCount() == 0) {
+                throw new StandardVersionExistsException();
+            }
+        } catch (MongoWriteException ex) {
+            if (MongoWriteFailures.isDocumentTooLarge(ex)) {
+                throw StorageWriteException.capacityExceeded(ex);
+            }
+            throw ex;
         }
 
         Standard standard = new Standard(standardRequest);

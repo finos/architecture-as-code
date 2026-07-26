@@ -18,6 +18,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.exception.TimelineVersionExistsException;
 import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
@@ -396,22 +397,55 @@ public class TestMongoTimelineStoreShould {
     }
 
     @Test
-    void throw_a_timeline_not_found_exception_when_creating_or_updating_a_version() {
+    void throw_a_timeline_not_found_exception_when_creating_or_updating_a_version_for_a_missing_timeline() {
         mockSetupTimelineDocumentWithVersions();
         Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
                 .setId(50).setVersion("1.0.1")
                 .setTimeline(validJson).build();
 
-        WriteError writeError = new WriteError(2, "The positional operator did not find the match needed from the query", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-
-        when(timelineCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
-
         assertThrows(TimelineNotFoundException.class,
                 () -> mongoTimelineStore.createTimelineForVersion(timeline));
         assertThrows(TimelineNotFoundException.class,
                 () -> mongoTimelineStore.updateTimelineForVersion(timeline));
+
+        // The entity-existence pre-check catches the missing timeline before any write is
+        // attempted, so no update is ever sent to Mongo.
+        verify(timelineCollection, never())
+                .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_a_version_hits_the_document_size_limit() {
+        mockSetupTimelineDocumentWithVersions();
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
+                .setId(42).setVersion("1.0.1")
+                .setTimeline(validJson).build();
+
+        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(timelineCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoTimelineStore.updateTimelineForVersion(timeline));
+        assertThat(exception.isCapacityExceeded(), is(true));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_updating_a_version() {
+        mockSetupTimelineDocumentWithVersions();
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
+                .setId(42).setVersion("1.0.1")
+                .setTimeline(validJson).build();
+
+        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(timelineCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoTimelineStore.updateTimelineForVersion(timeline));
+        assertThat(exception.isCapacityExceeded(), is(false));
     }
 
     @Test

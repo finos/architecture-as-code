@@ -19,6 +19,7 @@ import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -283,7 +284,10 @@ public class MongoAdrStore implements AdrStore {
             }
         } catch(MongoWriteException ex) {
             log.error("Failed to write ADR to mongo [{}]", adrMeta, ex);
-            throw new AdrPersistenceException();
+            // Both callers (updateAdrForNamespace/updateAdrStatus) already verify the ADR
+            // entity exists via retrieveAdrDoc/retrieveLatestRevision before reaching this
+            // write, so any MongoWriteException here is a genuine write failure.
+            throw MongoWriteFailures.toStorageWriteException(ex);
         } catch(JsonProcessingException e) {
             log.error("Could not write ADR Content to String", e);
             throw new AdrParseException();

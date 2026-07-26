@@ -12,6 +12,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.finos.calm.store.util.VersionKeySelector;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -234,7 +235,10 @@ public class MongoPatternStore implements PatternStore {
     }
 
     private void writePatternToMongo(Pattern pattern) throws PatternNotFoundException, NamespaceNotFoundException {
-        retrievePatternVersions(pattern);
+        // Verifies the namespace AND the specific pattern entity exist, so any
+        // MongoWriteException from the update below is a genuine write failure, not a
+        // disguised not-found.
+        getPatternVersions(pattern);
 
         Document patternDocument = Document.parse(pattern.getPatternJson());
         Document filter = new Document("namespace", pattern.getNamespace())
@@ -254,7 +258,7 @@ public class MongoPatternStore implements PatternStore {
             patternCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
             log.error("Failed to write pattern to mongo [{}]", pattern, ex);
-            throw new PatternNotFoundException();
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 

@@ -23,6 +23,7 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -508,22 +510,55 @@ public class TestMongoArchitectureStoreShould {
     }
 
     @Test
-    void throw_an_architecture_not_found_exception_when_creating_or_updating_a_version() {
+    void throw_an_architecture_not_found_exception_when_creating_or_updating_a_version_for_a_missing_architecture() {
         mockSetupArchitectureDocumentWithVersions();
         Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
                 .setId(50).setVersion("1.0.1")
                 .setArchitecture(validJson).build();
 
-        WriteError writeError = new WriteError(2, "The positional operator did not find the match needed from the query", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-
-        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
-
         assertThrows(ArchitectureNotFoundException.class,
                 () -> mongoArchitectureStore.createArchitectureForVersion(architecture));
         assertThrows(ArchitectureNotFoundException.class,
                 () -> mongoArchitectureStore.updateArchitectureForVersion(architecture));
+
+        // The entity-existence pre-check catches the missing architecture before any write is
+        // attempted, so no update is ever sent to Mongo.
+        verify(architectureCollection, never())
+                .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_a_version_hits_the_document_size_limit() {
+        mockSetupArchitectureDocumentWithVersions();
+        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
+                .setId(42).setVersion("1.0.1")
+                .setArchitecture(validJson).build();
+
+        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoArchitectureStore.updateArchitectureForVersion(architecture));
+        assertThat(exception.isCapacityExceeded(), is(true));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_updating_a_version() {
+        mockSetupArchitectureDocumentWithVersions();
+        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
+                .setId(42).setVersion("1.0.1")
+                .setArchitecture(validJson).build();
+
+        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoArchitectureStore.updateArchitectureForVersion(architecture));
+        assertThat(exception.isCapacityExceeded(), is(false));
     }
 
     @Test

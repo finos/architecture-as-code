@@ -10,6 +10,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.StandardStore;
@@ -298,6 +299,8 @@ public class TestStandardResourceShould {
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),
                 Arguments.of("valid", new StandardNotFoundException(), 404),
                 Arguments.of("valid", new StandardVersionExistsException(), 409),
+                Arguments.of("valid", StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of("valid", StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of("valid", null, 201)
         );
     }

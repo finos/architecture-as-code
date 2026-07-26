@@ -11,6 +11,7 @@ import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.finos.calm.store.util.VersionKeySelector;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
@@ -208,7 +209,10 @@ public class MongoFlowStore implements FlowStore {
     }
 
     private void writeFlowToMongo(Flow flow) throws FlowNotFoundException, NamespaceNotFoundException {
-        retrieveFlowVersions(flow);
+        // Verifies the namespace AND the specific flow entity exist, so any
+        // MongoWriteException from the update below is a genuine write failure, not a
+        // disguised not-found.
+        getFlowVersions(flow);
 
         Document filter = new Document("namespace", flow.getNamespace())
                 .append("flows.flowId", flow.getId());
@@ -218,7 +222,7 @@ public class MongoFlowStore implements FlowStore {
             flowCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
             log.error("Failed to write flow to mongo [{}]", flow, ex);
-            throw new FlowNotFoundException();
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 
