@@ -127,7 +127,7 @@ Renders relationships as Mermaid graph diagrams, showing connections between nod
 - **Interacts**: Actor-to-node interactions (e.g., "User[User] -- Interacts --> Frontend[Frontend App]")
 - **Connects**: Direct connections between services (e.g., "api[API] -- Connects --> db[Database]")
 - **Composed-of**: Container composition relationships (e.g., "sys[System] -- Composed Of --> svc[Service]")
-- **Deployed-in**: Deployment relationships (e.g., "cluster[Cluster] -- Deployed In --> svc[Service]")
+- **Deployed-in**: Deployment relationships (e.g., "svc[Service] -- Deployed In --> cluster[Cluster]")
 
 **Output behavior:**
 - **Node perspective**: When using `node-id`, shows the node highlighted with all its related connections
@@ -143,7 +143,7 @@ graph TD;
 load-balancer[Load Balancer]:::highlight;
 conference-website[Conference Website] -- Connects --> load-balancer[Load Balancer];
 load-balancer[Load Balancer] -- Connects --> attendees[Attendees Service];
-k8s-cluster[Kubernetes Cluster] -- Deployed In --> load-balancer[Load Balancer];
+load-balancer[Load Balancer] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
 classDef highlight fill:#f2bbae;
 ```
 
