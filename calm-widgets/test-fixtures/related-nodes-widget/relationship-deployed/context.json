@@ -1,13 +1,13 @@
 {
   "nodes": [
-    { "unique-id": "ClusterX", "name": "ClusterX" },
-    { "unique-id": "App1", "name": "App1" }
+    { "unique-id": "cluster-x", "name": "Cluster X Prod" },
+    { "unique-id": "app-1", "name": "Application One" }
   ],
   "relationships": [
     {
       "unique-id": "rel-deployed-1",
       "relationship-type": {
-        "deployed-in": { "container": "ClusterX", "nodes": ["App1"] }
+        "deployed-in": { "container": "cluster-x", "nodes": ["app-1"] }
       }
     }
   ]

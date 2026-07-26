@@ -1,5 +1,5 @@
 ```mermaid
 graph TD;
-App1 -- Deployed In --> ClusterX;
+app-1[Application One] -- Deployed In --> cluster-x[Cluster X Prod];
 classDef highlight fill:#f2bbae;
 ```

@@ -1,15 +1,15 @@
 {
   "nodes": [
-    { "unique-id": "ServiceA", "name": "ServiceA" },
-    { "unique-id": "ServiceB", "name": "ServiceB" }
+    { "unique-id": "svc-a", "name": "Service Alpha" },
+    { "unique-id": "svc-b", "name": "Service Beta" }
   ],
   "relationships": [
     {
       "unique-id": "rel-connects-1",
       "relationship-type": {
         "connects": {
-          "source": { "node": "ServiceA" },
-          "destination": { "node": "ServiceB" }
+          "source": { "node": "svc-a" },
+          "destination": { "node": "svc-b" }
         }
       }
     }

@@ -29,6 +29,13 @@ const mkRel = (
     controls: {},
 });
 
+const mkNode = (id: string, name: string): CalmNodeCanonicalModel => ({
+    'unique-id': id,
+    'node-type': 'service',
+    name,
+    description: '',
+});
+
 describe('RelatedNodesWidget', () => {
     describe('validateContext', () => {
         it('rejects null and non-architectures; accepts minimal CalmCoreCanonicalModel (nodes+relationships)', () => {
@@ -169,6 +176,42 @@ describe('RelatedNodesWidget', () => {
             ]);
             const vm = RelatedNodesWidget.transformToViewModel!(arch, { 'node-id': 'AnyNode' });
             expect(vm.relatedRelationships).toEqual([]);
+        });
+    });
+
+    describe('transformToViewModel – nodeNames', () => {
+        it('builds an id -> name map from context.nodes on the node-id path', () => {
+            const arch = mkArch(
+                [mkRel('r1', { connects: { source: { node: 'svc-a' }, destination: { node: 'svc-b' } } })],
+                [mkNode('svc-a', 'Service Alpha'), mkNode('svc-b', 'Service Beta')]
+            );
+            const vm = RelatedNodesWidget.transformToViewModel!(arch, { 'node-id': 'svc-a' });
+            expect(vm.nodeNames).toEqual({ 'svc-a': 'Service Alpha', 'svc-b': 'Service Beta' });
+        });
+
+        it('builds an id -> name map from context.nodes on the relationship-id path', () => {
+            const arch = mkArch(
+                [mkRel('r1', { connects: { source: { node: 'svc-a' }, destination: { node: 'svc-b' } } })],
+                [mkNode('svc-a', 'Service Alpha'), mkNode('svc-b', 'Service Beta')]
+            );
+            const vm = RelatedNodesWidget.transformToViewModel!(arch, { 'relationship-id': 'r1' });
+            expect(vm.nodeNames).toEqual({ 'svc-a': 'Service Alpha', 'svc-b': 'Service Beta' });
+        });
+
+        it('does not include a name for nodes that are referenced but not defined', () => {
+            const arch = mkArch(
+                [mkRel('r1', { interacts: { actor: 'User', nodes: ['svc-a'] } })],
+                [mkNode('svc-a', 'Service Alpha')]
+            );
+            const vm = RelatedNodesWidget.transformToViewModel!(arch, { 'node-id': 'svc-a' });
+            expect(vm.nodeNames).toEqual({ 'svc-a': 'Service Alpha' });
+            expect(vm.nodeNames?.['User']).toBeUndefined();
+        });
+
+        it('returns an empty map when context has no nodes', () => {
+            const arch = mkArch([mkRel('r1', { connects: { source: { node: 'A' }, destination: { node: 'B' } } })]);
+            const vm = RelatedNodesWidget.transformToViewModel!(arch, { 'node-id': 'A' });
+            expect(vm.nodeNames).toEqual({});
         });
     });
 

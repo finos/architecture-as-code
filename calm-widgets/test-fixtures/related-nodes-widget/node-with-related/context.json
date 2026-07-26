@@ -1,20 +1,20 @@
 {
   "nodes": [
-    { "unique-id": "ServiceA", "name": "ServiceA" },
-    { "unique-id": "ServiceB", "name": "ServiceB" },
-    { "unique-id": "SystemC", "name": "SystemC" }
+    { "unique-id": "svc-a", "name": "Service Alpha" },
+    { "unique-id": "svc-b", "name": "Service Beta" },
+    { "unique-id": "system-c", "name": "Backend System" }
   ],
   "relationships": [
     {
       "unique-id": "r1",
       "relationship-type": {
-        "connects": { "source": { "node": "ServiceA" }, "destination": { "node": "ServiceB" } }
+        "connects": { "source": { "node": "svc-a" }, "destination": { "node": "svc-b" } }
       }
     },
     {
       "unique-id": "r2",
       "relationship-type": {
-        "composed-of": { "container": "SystemC", "nodes": ["ServiceA"] }
+        "composed-of": { "container": "system-c", "nodes": ["svc-a"] }
       }
     }
   ]
