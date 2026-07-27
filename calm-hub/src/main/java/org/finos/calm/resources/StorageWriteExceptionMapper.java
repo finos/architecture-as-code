@@ -25,7 +25,9 @@ public class StorageWriteExceptionMapper implements ExceptionMapper<StorageWrite
 
     @Override
     public Response toResponse(StorageWriteException e) {
-        LOG.error("Storage write failed", e);
+        // The store layer already logs the underlying cause with its stack trace, so only a
+        // concise summary is logged here to avoid doubling it for every failure.
+        LOG.error("Storage write failed: {}", e.getMessage());
         if (e.isCapacityExceeded()) {
             return Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
                     .entity("This resource has reached the maximum storage size and cannot accept further versions")

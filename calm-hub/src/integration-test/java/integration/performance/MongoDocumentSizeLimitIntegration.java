@@ -76,16 +76,20 @@ public class MongoDocumentSizeLimitIntegration {
         // HTTP body-size limit.
         String largeArchitectureJson = OBJECT_MAPPER.writeValueAsString(Map.of("data", "A".repeat(2_000_000)));
 
+        // The request body is identical on every iteration (only the path's version differs),
+        // so serialize it once rather than re-serializing the ~2MB payload each time.
+        String requestBody = OBJECT_MAPPER.writeValueAsString(Map.of(
+                "name", "size-limit-test-architecture",
+                "description", "for document size limit test",
+                "architectureJson", largeArchitectureJson
+        ));
+
         Response lastResponse = null;
         int version = 2;
         for (; version < MAX_VERSION_ATTEMPTS; version++) {
             lastResponse = given()
                     .contentType(ContentType.JSON)
-                    .body(OBJECT_MAPPER.writeValueAsString(Map.of(
-                            "name", "size-limit-test-architecture",
-                            "description", "for document size limit test",
-                            "architectureJson", largeArchitectureJson
-                    )))
+                    .body(requestBody)
                     .when().put("/api/calm/namespaces/finos/architectures/" + architectureId + "/versions/" + version + ".0.0")
                     .thenReturn();
 
