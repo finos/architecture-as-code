@@ -82,6 +82,21 @@ describe('CalmHubClient', () => {
                 request: 'GET /api/calm/namespaces'
             });
         });
+
+        it('throws HubClientError instead of returning [] when the 200 body is not an object (e.g. an auth gateway login page)', async () => {
+            mock.onGet('/api/calm/namespaces').reply(200, '<html>please log in</html>');
+
+            await expect(client.listNamespaces()).rejects.toBeInstanceOf(HubClientError);
+            await expect(client.listNamespaces()).rejects.toMatchObject({
+                request: 'GET /api/calm/namespaces'
+            });
+        });
+
+        it('throws HubClientError instead of returning [] when the 200 body is a literal null', async () => {
+            mock.onGet('/api/calm/namespaces').reply(200, null);
+
+            await expect(client.listNamespaces()).rejects.toBeInstanceOf(HubClientError);
+        });
     });
 
     // ── auth plugin ──────────────────────────────────────────────────────────
@@ -138,6 +153,23 @@ describe('CalmHubClient', () => {
             const [, requestBody] = getAuthHeaders.mock.calls[0];
             expect(requestBody).toMatchObject(body);
         });
+
+        it('rejects (rather than resolving with []) when the auth plugin fails to produce credentials', async () => {
+            getAuthHeaders.mockRejectedValue(new Error('failed to refresh token'));
+            // No mock registered for the endpoint: if the failure were swallowed and the request
+            // went out anyway, axios-mock-adapter would 404 rather than the assertion catching it -
+            // asserting on the rejection itself is what proves the plugin failure surfaces.
+            await expect(authClient.listNamespaces()).rejects.toThrow('failed to refresh token');
+        });
+
+        it('surfaces a real 401 from the Hub as an error, not an empty result', async () => {
+            authMock.onGet('/api/calm/namespaces').reply(401, { error: 'Unauthorized' });
+
+            await expect(authClient.listNamespaces()).rejects.toMatchObject({
+                status: 401,
+                error: 'Unauthorized'
+            });
+        });
     });
 
     // ── createDomain ─────────────────────────────────────────────────────────
@@ -180,6 +212,11 @@ describe('CalmHubClient', () => {
             const result = await client.listDomains();
             expect(result).toEqual([]);
         });
+
+        it('throws HubClientError instead of returning [] when the 200 body is not an object', async () => {
+            mock.onGet('/calm/domains').reply(200, '<html>please log in</html>');
+            await expect(client.listDomains()).rejects.toBeInstanceOf(HubClientError);
+        });
     });
 
     // ── listControls ───────────────────────────────────────────────────────────
@@ -213,6 +250,11 @@ describe('CalmHubClient', () => {
                 request: 'GET /calm/domains/security/controls'
             });
         });
+
+        it('throws HubClientError instead of returning [] when the 200 body is not an object', async () => {
+            mock.onGet('/calm/domains/security/controls').reply(200, '<html>please log in</html>');
+            await expect(client.listControls('security')).rejects.toBeInstanceOf(HubClientError);
+        });
     });
 
     // ── listControlConfigurations ──────────────────────────────────────────────
@@ -231,6 +273,11 @@ describe('CalmHubClient', () => {
             mock.onGet('/calm/domains/security/controls/access-control/configurations').reply(200, {});
             const result = await client.listControlConfigurations('security', 'access-control');
             expect(result).toEqual([]);
+        });
+
+        it('throws HubClientError instead of returning [] when the 200 body is not an object', async () => {
+            mock.onGet('/calm/domains/security/controls/access-control/configurations').reply(200, '<html>please log in</html>');
+            await expect(client.listControlConfigurations('security', 'access-control')).rejects.toBeInstanceOf(HubClientError);
         });
     });
 
@@ -255,6 +302,16 @@ describe('CalmHubClient', () => {
                 status: 500,
                 request: `GET ${endpoint}`
             });
+        });
+
+        it('returns [] on a genuine 404 (requirement does not exist)', async () => {
+            mock.onGet(endpoint).reply(404, 'Not found');
+            expect(await client.getControlRequirementVersions('security', 'access-control')).toEqual([]);
+        });
+
+        it('throws HubClientError instead of returning [] when a 200 body is not an object', async () => {
+            mock.onGet(endpoint).reply(200, '<html>please log in</html>');
+            await expect(client.getControlRequirementVersions('security', 'access-control')).rejects.toBeInstanceOf(HubClientError);
         });
     });
 
@@ -318,6 +375,16 @@ describe('CalmHubClient', () => {
                 status: 500,
                 request: `GET ${endpoint}`
             });
+        });
+
+        it('returns [] on a genuine 404 (configuration does not exist)', async () => {
+            mock.onGet(endpoint).reply(404, 'Not found');
+            expect(await client.getControlConfigurationVersions('security', 'access-control', 'prod')).toEqual([]);
+        });
+
+        it('throws HubClientError instead of returning [] when a 200 body is not an object', async () => {
+            mock.onGet(endpoint).reply(200, '<html>please log in</html>');
+            await expect(client.getControlConfigurationVersions('security', 'access-control', 'prod')).rejects.toBeInstanceOf(HubClientError);
         });
     });
 
@@ -396,6 +463,11 @@ describe('CalmHubClient', () => {
                 request: 'GET /calm/namespaces/finos/architectures'
             });
         });
+
+        it('throws HubClientError instead of returning [] when the 200 body is not an object', async () => {
+            mock.onGet('/calm/namespaces/finos/architectures').reply(200, '<html>please log in</html>');
+            await expect(client.getNamespaceMappings('finos', 'architectures')).rejects.toBeInstanceOf(HubClientError);
+        });
     });
 
     // ── createNewMappedResource ───────────────────────────────────────────────
@@ -472,6 +544,16 @@ describe('CalmHubClient', () => {
                 status: 500,
                 request: 'GET /calm/namespaces/finos/architectures/my-arch/versions'
             });
+        });
+
+        it('returns [] on a genuine 404 (mapping does not exist)', async () => {
+            mock.onGet('/calm/namespaces/finos/architectures/my-arch/versions').reply(404, 'Not found');
+            expect(await client.getMappedResourceVersions('finos', 'my-arch', 'architectures')).toEqual([]);
+        });
+
+        it('throws HubClientError instead of returning [] when a 200 body is not an object', async () => {
+            mock.onGet('/calm/namespaces/finos/architectures/my-arch/versions').reply(200, '<html>please log in</html>');
+            await expect(client.getMappedResourceVersions('finos', 'my-arch', 'architectures')).rejects.toBeInstanceOf(HubClientError);
         });
     });
 
