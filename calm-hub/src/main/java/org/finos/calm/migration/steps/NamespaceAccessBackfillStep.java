@@ -27,15 +27,15 @@ import java.util.List;
  * so it works for both MongoDB and Nitrite backends without duplication.
  */
 @ApplicationScoped
-public class NamespaceMigrationService implements SchemaMigrationStep {
+public class NamespaceAccessBackfillStep implements SchemaMigrationStep {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NamespaceMigrationService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NamespaceAccessBackfillStep.class);
 
     private final NamespaceStore namespaceStore;
     private final UserAccessStore userAccessStore;
 
     @Inject
-    public NamespaceMigrationService(NamespaceStore namespaceStore, UserAccessStore userAccessStore) {
+    public NamespaceAccessBackfillStep(NamespaceStore namespaceStore, UserAccessStore userAccessStore) {
         this.namespaceStore = namespaceStore;
         this.userAccessStore = userAccessStore;
     }

@@ -42,7 +42,6 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * conflict and {@link org.finos.calm.domain.exception.AdrRevisionExistsException} is thrown
  * instead of silently overwriting the other writer's revision.
  *
- * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)

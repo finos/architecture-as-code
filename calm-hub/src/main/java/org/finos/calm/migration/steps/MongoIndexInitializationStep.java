@@ -71,16 +71,16 @@ import org.slf4j.LoggerFactory;
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
-public class MongoIndexInitializer implements SchemaMigrationStep {
+public class MongoIndexInitializationStep implements SchemaMigrationStep {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoIndexInitializer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MongoIndexInitializationStep.class);
 
     private final MongoDatabase database;
 
     @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
     String databaseMode;
 
-    public MongoIndexInitializer(MongoDatabase database) {
+    public MongoIndexInitializationStep(MongoDatabase database) {
         this.database = database;
     }
 

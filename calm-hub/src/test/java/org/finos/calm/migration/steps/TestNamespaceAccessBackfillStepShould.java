@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class TestNamespaceMigrationServiceShould {
+class TestNamespaceAccessBackfillStepShould {
 
     @Mock
     NamespaceStore mockNamespaceStore;
@@ -30,11 +30,11 @@ class TestNamespaceMigrationServiceShould {
     @Mock
     UserAccessStore mockUserAccessStore;
 
-    NamespaceMigrationService service;
+    NamespaceAccessBackfillStep service;
 
     @BeforeEach
     void setUp() {
-        service = new NamespaceMigrationService(mockNamespaceStore, mockUserAccessStore);
+        service = new NamespaceAccessBackfillStep(mockNamespaceStore, mockUserAccessStore);
     }
 
     @Test

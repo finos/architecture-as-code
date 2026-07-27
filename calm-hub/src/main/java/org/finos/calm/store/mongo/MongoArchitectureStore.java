@@ -34,7 +34,7 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  *
  * <h2>Document model</h2>
  * The {@code architectures} collection has <em>one document per namespace</em>, enforced by a
- * unique index on the {@code namespace} field (created by {@link MongoIndexInitializer}).
+ * unique index on the {@code namespace} field (created by {@code MongoIndexInitializationStep}).
  * Each document contains an {@code architectures} array where individual architecture
  * entries are stored as sub-documents with a unique {@code architectureId}, versioned
  * content, and metadata.
@@ -53,7 +53,6 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * and {@code matchedCount == 0} signals a conflict, throwing
  * {@link ArchitectureVersionExistsException}.
  *
- * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)

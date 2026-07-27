@@ -6,7 +6,7 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-import org.finos.calm.migration.steps.MongoIndexInitializer;
+import org.finos.calm.migration.steps.MongoIndexInitializationStep;
 import org.finos.calm.store.SchemaVersionStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ import java.util.function.LongConsumer;
  * Implement {@link SchemaMigrationStep} as a CDI bean (see that interface's javadoc for
  * the visibility requirement) declaring the next unused {@link SchemaMigrationStep#fromVersion()}.
  * It's picked up automatically — nothing here needs to change. A version with no registered
- * step (e.g. {@link MongoIndexInitializer} in standalone mode, where it isn't even a CDI
+ * step (e.g. {@link MongoIndexInitializationStep} in standalone mode, where it isn't even a CDI
  * bean) is treated as "not applicable" and the version advances anyway.
  *
  * <h2>Ordering and the latest version</h2>

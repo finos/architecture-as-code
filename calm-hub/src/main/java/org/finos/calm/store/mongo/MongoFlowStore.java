@@ -40,7 +40,6 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * {@code $exists: false} to prevent duplicate version creation under concurrency.
  * Unique flow IDs are generated atomically by {@link MongoCounterStore}.
  *
- * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)

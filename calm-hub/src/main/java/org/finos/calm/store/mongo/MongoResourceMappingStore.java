@@ -14,7 +14,6 @@ import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.DuplicateMappingException;
 import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.migration.steps.MongoIndexInitializer;
 import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +36,6 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * {@code (namespace, customId)} throws a {@link MongoWriteException} with
  * {@link ErrorCategory#DUPLICATE_KEY}, which is translated to {@link DuplicateMappingException}.
  *
- * @see MongoIndexInitializer
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped

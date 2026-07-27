@@ -39,7 +39,7 @@ import org.finos.calm.store.util.VersionKeySelector;
  *
  * <h2>Document model</h2>
  * The {@code controls} collection has <em>one document per domain</em>, enforced by a
- * unique index on the {@code domain} field (created by {@link MongoIndexInitializer}).
+ * unique index on the {@code domain} field (created by {@code MongoIndexInitializationStep}).
  * Each document contains a {@code controls} array of control sub-documents. Each control
  * in turn contains a {@code requirement} map (version → JSON) and a {@code configurations}
  * array of configuration sub-documents, each with its own versioned content.
@@ -61,7 +61,6 @@ import org.finos.calm.store.util.VersionKeySelector;
  * <p>This pattern ensures version writes are atomic and conflict-free without requiring
  * application-level locking.
  *
- * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)

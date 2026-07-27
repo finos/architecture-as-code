@@ -1,7 +1,7 @@
 package org.finos.calm.migration;
 
-import org.finos.calm.migration.steps.MongoIndexInitializer;
-import org.finos.calm.migration.steps.NamespaceMigrationService;
+import org.finos.calm.migration.steps.MongoIndexInitializationStep;
+import org.finos.calm.migration.steps.NamespaceAccessBackfillStep;
 import org.finos.calm.store.SchemaVersionStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,10 +37,10 @@ class TestSchemaMigrationRunnerShould {
     SchemaVersionStore schemaVersionStore;
 
     @Mock
-    MongoIndexInitializer mongoIndexInitializer;
+    MongoIndexInitializationStep mongoIndexInitializer;
 
     @Mock
-    NamespaceMigrationService namespaceMigrationService;
+    NamespaceAccessBackfillStep namespaceMigrationService;
 
     // A no-op sleeper so tests exercising onStart() don't pay the real lock-visibility delay.
     private static final LongConsumer NO_OP_SLEEPER = millis -> { };
