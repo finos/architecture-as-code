@@ -14,12 +14,13 @@ export default defineConfig({
     }),
   ],
   build: {
+    emptyOutDir: false, // ES build already wrote dist/
     lib: {
       entry: 'src/index.ts',
-      formats: ['es'],
-      fileName: () => 'calm-diagram.es.js',
+      name: 'CalmDiagram',
+      formats: ['iife'],
+      fileName: () => 'calm-diagram.iife.js',
     },
-    // Bundle everything — zero-dependency CDN use
     rollupOptions: {},
   },
 });

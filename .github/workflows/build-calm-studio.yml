@@ -49,6 +49,7 @@ jobs:
                   npm run build --if-present --workspace=@calmstudio/studio
                   npm run build --if-present --workspace=calmstudio
                   npm run build --if-present --workspace=@calmstudio/github-action
+                  npm run build --if-present --workspace=@finos/calm-docusaurus-plugin
 
             - name: Lint
               run: |
@@ -56,6 +57,7 @@ jobs:
                   npm run lint --if-present --workspace=@calmstudio/extensions
                   npm run lint --if-present --workspace=@calmstudio/mcp
                   npm run lint --if-present --workspace=@calmstudio/studio
+                  npm run lint --if-present --workspace=@finos/calm-docusaurus-plugin
 
             - name: Typecheck
               run: |
@@ -63,6 +65,7 @@ jobs:
                   npm run typecheck --if-present --workspace=@calmstudio/extensions
                   npm run typecheck --if-present --workspace=@calmstudio/mcp
                   npm run typecheck --if-present --workspace=@calmstudio/github-action
+                  npm run typecheck --if-present --workspace=@finos/calm-docusaurus-plugin
 
             - name: Test
               run: |
@@ -70,6 +73,8 @@ jobs:
                   npm run test --if-present --workspace=@calmstudio/extensions
                   npm run test --if-present --workspace=@calmstudio/mcp
                   npm run test --if-present --workspace=@calmstudio/studio
+                  npm run test --if-present --workspace=@calmstudio/diagram
+                  npm run test --if-present --workspace=@finos/calm-docusaurus-plugin
 
     e2e-tests:
         name: E2E Tests

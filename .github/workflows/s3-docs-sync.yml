@@ -23,7 +23,15 @@ jobs:
 
             - name: Install dependencies
               run: npm ci
-              
+
+            - name: Build CALM diagram packages (docs plugin deps)
+              run: |
+                  npm run build --if-present --workspace=@finos/calm-models
+                  npm run build --if-present --workspace=@calmstudio/calm-core
+                  npm run build --if-present --workspace=@calmstudio/extensions
+                  npm run build --if-present --workspace=@calmstudio/diagram
+                  npm run build --if-present --workspace=@finos/calm-docusaurus-plugin
+
             - name: Build website
               run: npm run build
               working-directory: "docs"

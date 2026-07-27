@@ -10,6 +10,7 @@ import type { CalmArchitecture } from '@calmstudio/calm-core';
 import { renderNodeSvg } from './nodeRenderer.js';
 import { renderEdgeSvg, renderEdgeMarkers } from './edgeRenderer.js';
 import { renderFlowOverlay, applyFlowDimming, getFlowNodeIds, type EdgeLayout } from './flowOverlay.js';
+import { relationshipToEdges, type DiagramEdge } from './relationshipEdges.js';
 
 // ---------------------------------------------------------------------------
 // ELK type helpers
@@ -63,8 +64,14 @@ export async function renderELKDiagram(
 ): Promise<string> {
   const { theme = 'light', direction = 'DOWN', flow: flowId } = options;
 
+  // CALM's meta-schema requires no top-level properties, so `nodes` and
+  // `relationships` may both be absent on a valid architecture document.
+  // Normalize once and use these locals throughout.
+  const nodes = arch.nodes ?? [];
+  const relationships = arch.relationships ?? [];
+
   // Handle empty architecture
-  if (arch.nodes.length === 0) {
+  if (nodes.length === 0) {
     const bgColor = theme === 'dark' ? '#1e1e1e' : '#f5f5f5';
     const textColor = theme === 'dark' ? '#ccc' : '#999';
     return (
@@ -73,6 +80,9 @@ export async function renderELKDiagram(
       `</svg>`
     );
   }
+
+  // Expand relationships (nested or legacy flat) into renderable edges
+  const diagramEdges: DiagramEdge[] = relationships.flatMap((r) => relationshipToEdges(r));
 
   // Build ELK graph
   const NODE_WIDTH = 180;
@@ -86,16 +96,16 @@ export async function renderELKDiagram(
       'elk.layered.spacing.nodeNodeBetweenLayers': '80',
       'elk.spacing.nodeNode': '60',
     },
-    children: arch.nodes.map((n) => ({
+    children: nodes.map((n) => ({
       id: n['unique-id'],
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
       labels: [{ text: n.name }],
     })),
-    edges: arch.relationships.map((r) => ({
-      id: r['unique-id'],
-      sources: [r.source],
-      targets: [r.destination],
+    edges: diagramEdges.map((e) => ({
+      id: e.id,
+      sources: [e.source],
+      targets: [e.target],
     })),
   };
 
@@ -105,14 +115,16 @@ export async function renderELKDiagram(
   // Build lookup maps
   const nodeTypeMap = new Map<string, string>();
   const nodeDescMap = new Map<string, string>();
-  for (const n of arch.nodes) {
+  for (const n of nodes) {
     nodeTypeMap.set(n['unique-id'], n['node-type']);
     nodeDescMap.set(n['unique-id'], n.description ?? '');
   }
 
   const relTypeMap = new Map<string, string>();
-  for (const r of arch.relationships) {
-    relTypeMap.set(r['unique-id'], r['relationship-type']);
+  const relIdByRenderId = new Map<string, string>();
+  for (const e of diagramEdges) {
+    relTypeMap.set(e.id, e.variant);
+    relIdByRenderId.set(e.id, e.relationshipId);
   }
 
   // Compute canvas dimensions
@@ -158,8 +170,9 @@ export async function renderELKDiagram(
     ? getFlowNodeIds(arch, activeFlow)
     : new Set<string>();
 
-  // Build edge layout map for flow overlay path rendering
-  const edgeLayouts = new Map<string, EdgeLayout>();
+  // Edge layouts grouped by source relationship id, so the flow overlay can
+  // animate every render edge a fanned-out relationship expands into.
+  const edgeLayoutsByRelationship = new Map<string, EdgeLayout[]>();
 
   // Draw edges first (behind nodes)
   for (const edge of layouted.edges ?? []) {
@@ -176,10 +189,15 @@ export async function renderELKDiagram(
       }
       if (points.length >= 2) {
         // Store layout for flow overlay before rendering edge
-        edgeLayouts.set(edge.id, { id: edge.id, points });
+        const relationshipId = relIdByRenderId.get(edge.id) ?? edge.id;
+        const layouts = edgeLayoutsByRelationship.get(relationshipId) ?? [];
+        layouts.push({ id: edge.id, points });
+        edgeLayoutsByRelationship.set(relationshipId, layouts);
 
         const relType = relTypeMap.get(edge.id);
-        const edgeOpacity = applyFlowDimming(edge.id, activeFlowEdgeIds, true);
+        // Flows reference the relationship's unique-id — match on that, not the
+        // render id, so fan-out edges (`uid__N`) dim and animate correctly.
+        const edgeOpacity = applyFlowDimming(relationshipId, activeFlowEdgeIds, true);
         const edgeSvg = renderEdgeSvg({
           id: edge.id,
           points,
@@ -234,7 +252,7 @@ export async function renderELKDiagram(
 
   // Append flow overlay ABOVE edges and nodes so animated dots are not dimmed
   if (activeFlow) {
-    parts.push(renderFlowOverlay(activeFlow, edgeLayouts));
+    parts.push(renderFlowOverlay(activeFlow, edgeLayoutsByRelationship));
   }
 
   parts.push('</svg>');
