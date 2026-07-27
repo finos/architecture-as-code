@@ -139,7 +139,10 @@ export async function renderELKDiagram(
       'elk.direction': direction,
       'elk.layered.spacing.nodeNodeBetweenLayers': '80',
       'elk.spacing.nodeNode': '60',
+      // edgeCoords ROOT: edge sections arrive root-relative, so the edge-drawing
+      // loop needs no offset math (node coords stay parent-relative — see placeNodes).
       'org.eclipse.elk.json.edgeCoords': 'ROOT',
+      // INCLUDE_CHILDREN: lets the layered algorithm route edges across hierarchy levels.
       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
     },
     children: topLevelIds.map(buildElkNode),
@@ -263,7 +266,7 @@ export async function renderELKDiagram(
     parts.push(nodeOpacity !== '1' ? `<g opacity="${nodeOpacity}">${containerSvg}</g>` : containerSvg);
   }
 
-  // Draw edges first (behind nodes)
+  // Draw edges above container boxes, below leaf nodes
   for (const edge of layouted.edges ?? []) {
     for (const section of edge.sections ?? []) {
       const points: Array<{ x: number; y: number }> = [];

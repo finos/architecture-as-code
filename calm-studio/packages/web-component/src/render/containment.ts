@@ -22,7 +22,7 @@ export interface ContainmentPlan {
   parentOf: Map<string, string>;
   /** Unsatisfiable claims, as dashed edges with fan-out id rules */
   fallbackEdges: DiagramEdge[];
-  /** Containment relationships fully represented by nesting (no edges at all) */
+  /** Containment relationships fully represented by nesting (no edges at all). Informational: the renderer filters containment relationships via isNestedContainment (a partially-fallen-back relationship must not fan out either), so it does not read this set; it exists for consumers that need to know which relationships are fully expressed by nesting. */
   consumedRelationshipIds: Set<string>;
 }
 

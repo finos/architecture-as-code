@@ -105,7 +105,7 @@ describe('planContainment', () => {
     ]);
   });
 
-  it('unknown member id falls back to an edge (renderer would drop it, but identity is preserved)', () => {
+  it('unknown member id falls back to an edge (a dangling ref later fails the render loudly)', () => {
     const plan = planContainment([composedOf('r1', 'sys', ['ghost'])], KNOWN);
     expect(plan.childrenOf.size).toBe(0);
     expect(plan.fallbackEdges).toEqual([
@@ -240,5 +240,47 @@ describe('renderELKDiagram nested containers (integration)', () => {
     const svg = await renderELKDiagram(arch, { theme: 'light', flow: 'f1' });
     expect((svg.match(/<animateMotion/g) ?? []).length).toBe(0);
     expect(svg).toContain('data-container-id="sys"');
+  });
+
+  it('renders 3-level nesting with each box inside its parent bounds', async () => {
+    const arch: CalmArchitecture = {
+      nodes: [
+        { 'unique-id': 'cluster', 'node-type': 'network', name: 'Cluster', description: 'c' },
+        { 'unique-id': 'sys', 'node-type': 'system', name: 'Sys', description: 's' },
+        { 'unique-id': 'svc', 'node-type': 'service', name: 'Svc', description: 'v' },
+      ],
+      relationships: [
+        { 'unique-id': 'r1', 'relationship-type': { 'composed-of': { container: 'sys', nodes: ['svc'] } } },
+        { 'unique-id': 'r2', 'relationship-type': { 'deployed-in': { container: 'cluster', nodes: ['sys'] } } },
+      ],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light', direction: 'RIGHT' });
+    const outer = /data-container-id="cluster"[^>]*data-bounds="([\d.,-]+)"/.exec(svg);
+    const inner = /data-container-id="sys"[^>]*data-bounds="([\d.,-]+)"/.exec(svg);
+    expect(outer).not.toBeNull();
+    expect(inner).not.toBeNull();
+    const [ox, oy, ow, oh] = (outer as RegExpExecArray)[1]!.split(',').map(Number) as [number, number, number, number];
+    const [ix, iy, iw, ih] = (inner as RegExpExecArray)[1]!.split(',').map(Number) as [number, number, number, number];
+    expect(ix).toBeGreaterThanOrEqual(ox);
+    expect(iy).toBeGreaterThanOrEqual(oy);
+    expect(ix + iw).toBeLessThanOrEqual(ox + ow);
+    expect(iy + ih).toBeLessThanOrEqual(oy + oh);
+  });
+
+  it('a container can be a connects endpoint (edge terminates at the box)', async () => {
+    const arch: CalmArchitecture = {
+      nodes: [
+        { 'unique-id': 'sys', 'node-type': 'system', name: 'Sys', description: 's' },
+        { 'unique-id': 'svc', 'node-type': 'service', name: 'Svc', description: 'v' },
+        { 'unique-id': 'db', 'node-type': 'database', name: 'DB', description: 'd' },
+      ],
+      relationships: [
+        { 'unique-id': 'r1', 'relationship-type': { 'composed-of': { container: 'sys', nodes: ['svc'] } } },
+        { 'unique-id': 'r2', 'relationship-type': { connects: { source: { node: 'sys' }, destination: { node: 'db' } } } },
+      ],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    expect(svg).toContain('data-container-id="sys"');
+    expect((svg.match(/<polyline/g) ?? []).length).toBe(1);
   });
 });
