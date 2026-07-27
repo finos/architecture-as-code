@@ -12,6 +12,7 @@ import org.bson.conversions.Bson;
 import org.finos.calm.domain.CalmInterface;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.store.InterfaceStore;
@@ -184,8 +185,14 @@ public class MongoInterfaceStore implements InterfaceStore {
                 .append("interfaces.$.description", interfaceRequest.getDescription())
                 .append("interfaces.$.versions." + mongoVersion, Document.parse(interfaceRequest.getInterfaceJson())));
 
-        if (interfaceCollection.updateOne(filter, update).getMatchedCount() == 0) {
-            throw new InterfaceVersionExistsException();
+        try {
+            if (interfaceCollection.updateOne(filter, update).getMatchedCount() == 0) {
+                throw new InterfaceVersionExistsException();
+            }
+        } catch (MongoWriteException ex) {
+            logger.error("Failed to write interface [namespace={}, id={}, version={}] to mongo",
+                    namespace, interfaceId, version, ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
 
         CalmInterface calmInterface = new CalmInterface(interfaceRequest);

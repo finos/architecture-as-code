@@ -12,6 +12,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.finos.calm.store.util.VersionKeySelector;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -167,6 +168,17 @@ public class MongoPatternStore implements PatternStore {
         return result;
     }
 
+    private void verifyPatternExists(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
+        Document result = retrievePatternVersions(pattern);
+        List<Document> patterns = result.getList("patterns", Document.class);
+        for (Document patternDoc : patterns) {
+            if (pattern.getId() == patternDoc.getInteger("patternId")) {
+                return;
+            }
+        }
+        throw new PatternNotFoundException();
+    }
+
     @Override
     public String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
         Document result = retrievePatternVersions(pattern);
@@ -182,7 +194,7 @@ public class MongoPatternStore implements PatternStore {
 
                 // Return the pattern JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(pattern.getMongoVersion());
-                log.info("VersionDoc: [{}], Mongo Version: [{}]", patternDoc.get("versions"), pattern.getMongoVersion());
+                log.info("Version [{}] found: {}", pattern.getMongoVersion(), versionDoc != null);
                 if(versionDoc == null) {
                     throw new PatternVersionNotFoundException();
                 }
@@ -234,7 +246,10 @@ public class MongoPatternStore implements PatternStore {
     }
 
     private void writePatternToMongo(Pattern pattern) throws PatternNotFoundException, NamespaceNotFoundException {
-        retrievePatternVersions(pattern);
+        // Verifies the namespace AND the specific pattern entity exist, so any
+        // MongoWriteException from the update below is a genuine write failure, not a
+        // disguised not-found.
+        verifyPatternExists(pattern);
 
         Document patternDocument = Document.parse(pattern.getPatternJson());
         Document filter = new Document("namespace", pattern.getNamespace())
@@ -253,8 +268,11 @@ public class MongoPatternStore implements PatternStore {
         try {
             patternCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
-            log.error("Failed to write pattern to mongo [{}]", pattern, ex);
-            throw new PatternNotFoundException();
+            // Log identifying fields only, not the full pattern object — its toString()
+            // includes the entire (potentially near-16MB) patternJson payload.
+            log.error("Failed to write pattern [namespace={}, id={}, version={}] to mongo",
+                    pattern.getNamespace(), pattern.getId(), pattern.getMongoVersion(), ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 

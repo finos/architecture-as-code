@@ -19,6 +19,7 @@ import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.TimelineStore;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,6 +151,17 @@ public class MongoTimelineStore implements TimelineStore {
         return result;
     }
 
+    private void verifyTimelineExists(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
+        Document result = retrieveTimelineVersions(timeline);
+        List<Document> timelines = result.getList("timelines", Document.class);
+        for (Document timelineDoc : timelines) {
+            if (timeline.getId() == timelineDoc.getInteger("timelineId")) {
+                return;
+            }
+        }
+        throw new TimelineNotFoundException();
+    }
+
     @Override
     public String getTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException {
         Document result = retrieveTimelineVersions(timeline);
@@ -165,7 +177,7 @@ public class MongoTimelineStore implements TimelineStore {
 
                 // Return the timeline JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(timeline.getMongoVersion());
-                log.info("VersionDoc: [{}], Mongo Version: [{}]", timelineDoc.get("versions"), timeline.getMongoVersion());
+                log.info("Version [{}] found: {}", timeline.getMongoVersion(), versionDoc != null);
                 if (versionDoc == null) {
                     throw new TimelineVersionNotFoundException();
                 }
@@ -206,7 +218,10 @@ public class MongoTimelineStore implements TimelineStore {
     }
 
     private void writeTimelineToMongo(Timeline timeline) throws TimelineNotFoundException, NamespaceNotFoundException {
-        retrieveTimelineVersions(timeline);
+        // Verifies the namespace AND the specific timeline entity exist, so any
+        // MongoWriteException from the update below is a genuine write failure, not a
+        // disguised not-found.
+        verifyTimelineExists(timeline);
 
         Document filter = new Document("namespace", timeline.getNamespace())
                 .append("timelines.timelineId", timeline.getId());
@@ -215,8 +230,11 @@ public class MongoTimelineStore implements TimelineStore {
         try {
             timelineCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
-            log.error("Failed to write timeline to mongo [{}]", timeline, ex);
-            throw new TimelineNotFoundException();
+            // Log identifying fields only, not the full timeline object — its toString()
+            // includes the entire (potentially near-16MB) timelineJson payload.
+            log.error("Failed to write timeline [namespace={}, id={}, version={}] to mongo",
+                    timeline.getNamespace(), timeline.getId(), timeline.getMongoVersion(), ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 

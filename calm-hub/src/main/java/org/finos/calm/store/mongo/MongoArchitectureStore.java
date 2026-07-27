@@ -10,6 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.finos.calm.store.util.VersionKeySelector;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Architecture;
@@ -178,6 +179,17 @@ public class MongoArchitectureStore implements ArchitectureStore {
         return result;
     }
 
+    private void verifyArchitectureExists(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        Document result = retrieveArchitectureVersions(architecture);
+        List<Document> architectures = result.getList("architectures", Document.class);
+        for (Document architectureDoc : architectures) {
+            if (architecture.getId() == architectureDoc.getInteger("architectureId")) {
+                return;
+            }
+        }
+        throw new ArchitectureNotFoundException();
+    }
+
     @Override
     public String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException {
         Document result = retrieveArchitectureVersions(architecture);
@@ -193,7 +205,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
                 // Return the pattern JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(architecture.getMongoVersion());
-                log.info("VersionDoc: [{}], Mongo Version: [{}]", architectureDoc.get("versions"), architecture.getMongoVersion());
+                log.info("Version [{}] found: {}", architecture.getMongoVersion(), versionDoc != null);
                 if (versionDoc == null) {
                     throw new ArchitectureVersionNotFoundException();
                 }
@@ -238,7 +250,10 @@ public class MongoArchitectureStore implements ArchitectureStore {
     }
 
     private void writeArchitectureToMongo(Architecture architecture) throws ArchitectureNotFoundException, NamespaceNotFoundException {
-        retrieveArchitectureVersions(architecture);
+        // Verifies the namespace AND the specific architecture entity exist, so any
+        // MongoWriteException from the update below is a genuine write failure, not a
+        // disguised not-found.
+        verifyArchitectureExists(architecture);
 
         Document filter = new Document("namespace", architecture.getNamespace())
                 .append("architectures.architectureId", architecture.getId());
@@ -251,8 +266,11 @@ public class MongoArchitectureStore implements ArchitectureStore {
         try {
             architectureCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
-            log.error("Failed to write architecture to mongo [{}]", architecture, ex);
-            throw new ArchitectureNotFoundException();
+            // Log identifying fields only, not the full architecture object — its toString()
+            // includes the entire (potentially near-16MB) architectureJson payload.
+            log.error("Failed to write architecture [namespace={}, id={}, version={}] to mongo",
+                    architecture.getNamespace(), architecture.getId(), architecture.getMongoVersion(), ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 

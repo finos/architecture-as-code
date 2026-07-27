@@ -217,7 +217,7 @@ public class NitriteTimelineStore implements TimelineStore {
                     // Return the timeline JSON blob for the specified version
                     String mongoVersion = timeline.getMongoVersion();
                     Object versionObj = versions.get(mongoVersion);
-                    LOG.info("VersionDoc: [{}], Mongo Version: [{}]", versions, mongoVersion);
+                    LOG.info("Version [{}] found: {}", mongoVersion, versionObj instanceof String);
 
                     if (!(versionObj instanceof String)) {
                         LOG.warn("Version '{}' not found for timeline {} in namespace '{}'",

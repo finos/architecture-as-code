@@ -453,6 +453,8 @@ public class TestControlResourceShould {
                 Arguments.of(new ControlNotFoundException(), 404),
                 Arguments.of(new ControlRequirementVersionExistsException(), 409),
                 Arguments.of(new JsonParseException(), 400),
+                Arguments.of(StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of(StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of(null, 201)
         );
     }
@@ -580,6 +582,8 @@ public class TestControlResourceShould {
                 Arguments.of(new ControlConfigurationNotFoundException(), 404),
                 Arguments.of(new ControlConfigurationVersionExistsException(), 409),
                 Arguments.of(new JsonParseException(), 400),
+                Arguments.of(StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of(StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of(null, 201)
         );
     }

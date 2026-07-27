@@ -19,6 +19,7 @@ import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,7 +155,7 @@ public class MongoAdrStore implements AdrStore {
 
         // Return the ADR JSON blob for the specified revision
         Document revisionDoc = (Document) revisionsDoc.get(String.valueOf(adrMeta.getRevision()));
-        log.info("RevisionDoc: [{}], Revision: [{}]", adrDoc.get("revisions"), adrMeta.getRevision());
+        log.info("Revision [{}] found: {}", adrMeta.getRevision(), revisionDoc != null);
         if(revisionDoc == null) {
             throw new AdrRevisionNotFoundException();
         }
@@ -248,7 +249,7 @@ public class MongoAdrStore implements AdrStore {
 
         // Return the ADR JSON blob for the specified revision
         Document revisionDoc = (Document) revisionsDoc.get(String.valueOf(latestRevision));
-        log.info("RevisionDoc: [{}], Revision: [{}]", revisionDoc, latestRevision);
+        log.info("Resolved latest revision: [{}]", latestRevision);
         try {
             return new AdrMeta.AdrMetaBuilder()
                     .setNamespace(adrMeta.getNamespace())
@@ -282,8 +283,14 @@ public class MongoAdrStore implements AdrStore {
                 throw new AdrRevisionExistsException();
             }
         } catch(MongoWriteException ex) {
-            log.error("Failed to write ADR to mongo [{}]", adrMeta, ex);
-            throw new AdrPersistenceException();
+            // Log identifying fields only, not the full adrMeta object — its toString()
+            // includes the entire nested ADR content.
+            // Both callers (updateAdrForNamespace/updateAdrStatus) already verify the ADR
+            // entity exists via retrieveAdrDoc/retrieveLatestRevision before reaching this
+            // write, so any MongoWriteException here is a genuine write failure.
+            log.error("Failed to write ADR [namespace={}, id={}, revision={}] to mongo",
+                    adrMeta.getNamespace(), adrMeta.getId(), adrMeta.getRevision(), ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         } catch(JsonProcessingException e) {
             log.error("Could not write ADR Content to String", e);
             throw new AdrParseException();

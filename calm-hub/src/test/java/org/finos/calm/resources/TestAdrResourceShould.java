@@ -137,6 +137,8 @@ public class TestAdrResourceShould {
                 Arguments.of("valid", new AdrParseException(), 500),
                 Arguments.of("valid", new AdrPersistenceException(), 500),
                 Arguments.of("valid", new AdrRevisionExistsException(), 409),
+                Arguments.of("valid", StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of("valid", StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of("valid", null, 201)
         );
     }
@@ -327,6 +329,8 @@ public class TestAdrResourceShould {
                 Arguments.of("valid", new AdrParseException(), 500),
                 Arguments.of("valid", new AdrPersistenceException(), 500),
                 Arguments.of("valid", new AdrRevisionExistsException(), 409),
+                Arguments.of("valid", StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of("valid", StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of("valid", null, 201)
         );
     }

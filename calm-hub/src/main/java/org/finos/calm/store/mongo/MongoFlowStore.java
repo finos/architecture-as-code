@@ -11,6 +11,7 @@ import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.store.util.MongoUpsertPush;
+import org.finos.calm.store.util.MongoWriteFailures;
 import org.finos.calm.store.util.VersionKeySelector;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
@@ -155,6 +156,17 @@ public class MongoFlowStore implements FlowStore {
         return result;
     }
 
+    private void verifyFlowExists(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
+        Document result = retrieveFlowVersions(flow);
+        List<Document> flows = result.getList("flows", Document.class);
+        for (Document flowDoc : flows) {
+            if (flow.getId() == flowDoc.getInteger("flowId")) {
+                return;
+            }
+        }
+        throw new FlowNotFoundException();
+    }
+
     @Override
     public String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
         Document result = retrieveFlowVersions(flow);
@@ -167,7 +179,7 @@ public class MongoFlowStore implements FlowStore {
 
                 // Return the flow JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(flow.getMongoVersion());
-                log.info("VersionDoc: [{}], Mongo Version: [{}]", flowDoc.get("versions"), flow.getMongoVersion());
+                log.info("Version [{}] found: {}", flow.getMongoVersion(), versionDoc != null);
                 if(versionDoc == null) {
                     throw new FlowVersionNotFoundException();
                 }
@@ -208,7 +220,10 @@ public class MongoFlowStore implements FlowStore {
     }
 
     private void writeFlowToMongo(Flow flow) throws FlowNotFoundException, NamespaceNotFoundException {
-        retrieveFlowVersions(flow);
+        // Verifies the namespace AND the specific flow entity exist, so any
+        // MongoWriteException from the update below is a genuine write failure, not a
+        // disguised not-found.
+        verifyFlowExists(flow);
 
         Document filter = new Document("namespace", flow.getNamespace())
                 .append("flows.flowId", flow.getId());
@@ -217,8 +232,11 @@ public class MongoFlowStore implements FlowStore {
         try {
             flowCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
-            log.error("Failed to write flow to mongo [{}]", flow, ex);
-            throw new FlowNotFoundException();
+            // Log identifying fields only, not the full flow object — its toString()
+            // includes the entire (potentially near-16MB) flowJson payload.
+            log.error("Failed to write flow [namespace={}, id={}, version={}] to mongo",
+                    flow.getNamespace(), flow.getId(), flow.getMongoVersion(), ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 

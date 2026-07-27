@@ -226,7 +226,7 @@ public class NitriteFlowStore implements FlowStore {
                     // Return the flow JSON blob for the specified version
                     String mongoVersion = flow.getMongoVersion();
                     Object versionObj = versions.get(mongoVersion);
-                    LOG.info("VersionDoc: [{}], Mongo Version: [{}]", versions, mongoVersion);
+                    LOG.info("Version [{}] found: {}", mongoVersion, versionObj != null);
 
                     if (versionObj == null) {
                         LOG.warn("Version '{}' not found for flow {} in namespace '{}'",

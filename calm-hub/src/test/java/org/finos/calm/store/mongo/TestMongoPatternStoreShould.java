@@ -22,6 +22,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
@@ -468,22 +469,57 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
-    void throw_a_pattern_not_found_exception_when_creating_or_updating_a_version() {
+    void throw_a_pattern_not_found_exception_when_creating_or_updating_a_version_for_a_missing_pattern() {
         mockSetupPatternDocumentWithVersions();
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
                 .setId(50).setVersion("1.0.1")
                 .setPattern(validJson).build();
 
-        WriteError writeError = new WriteError(2, "The positional operator did not find the match needed from the query", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-
-        when(patternCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
-
         assertThrows(PatternNotFoundException.class,
                 () -> mongoPatternStore.createPatternForVersion(pattern));
         assertThrows(PatternNotFoundException.class,
                 () -> mongoPatternStore.updatePatternForVersion(pattern));
+
+        // The entity-existence pre-check catches the missing pattern before any write is
+        // attempted, so no update is ever sent to Mongo (either overload).
+        verify(patternCollection, never())
+                .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(patternCollection, never())
+                .updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_a_version_hits_the_document_size_limit() {
+        mockSetupPatternDocumentWithVersions();
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
+                .setId(42).setVersion("1.0.1")
+                .setPattern(validJson).build();
+
+        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(patternCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoPatternStore.updatePatternForVersion(pattern));
+        assertThat(exception.isCapacityExceeded(), is(true));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_updating_a_version() {
+        mockSetupPatternDocumentWithVersions();
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
+                .setId(42).setVersion("1.0.1")
+                .setPattern(validJson).build();
+
+        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(patternCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoPatternStore.updatePatternForVersion(pattern));
+        assertThat(exception.isCapacityExceeded(), is(false));
     }
 
     @Test

@@ -7,6 +7,7 @@ import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.FlowStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,8 @@ public class TestFlowResourcePutEnabledShould {
         return Stream.of(
                 Arguments.of( new NamespaceNotFoundException(), 404),
                 Arguments.of( new FlowNotFoundException(), 404),
+                Arguments.of(StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of(StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of(null, 201)
         );
     }

@@ -21,6 +21,7 @@ import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
 import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.junit.jupiter.api.BeforeEach;
@@ -362,6 +363,34 @@ public class TestMongoInterfaceStoreShould {
                 .thenReturn(UpdateResult.acknowledged(0, 0L, null));
 
         assertThrows(InterfaceVersionExistsException.class, () -> mongoInterfaceStore.createInterfaceForVersion(interfaceRequest, "finos", 42, "1.0.0"));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_with_capacity_exceeded_when_creating_a_version_hits_the_document_size_limit() {
+        mockSetupInterfaceDocumentWithVersions();
+        CreateInterfaceRequest interfaceRequest = interfaceToStore();
+
+        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(interfaceCollection.updateOne(any(Bson.class), any(Bson.class))).thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoInterfaceStore.createInterfaceForVersion(interfaceRequest, "finos", 42, "1.0.1"));
+        assertThat(exception.isCapacityExceeded(), is(true));
+    }
+
+    @Test
+    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_creating_a_version() {
+        mockSetupInterfaceDocumentWithVersions();
+        CreateInterfaceRequest interfaceRequest = interfaceToStore();
+
+        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
+        when(interfaceCollection.updateOne(any(Bson.class), any(Bson.class))).thenThrow(mongoWriteException);
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> mongoInterfaceStore.createInterfaceForVersion(interfaceRequest, "finos", 42, "1.0.1"));
+        assertThat(exception.isCapacityExceeded(), is(false));
     }
 
     @Test
