@@ -143,3 +143,44 @@ export function renderNodeSvg(node: RenderNodeInput): string {
   parts.push(`</g>`);
   return parts.join('\n');
 }
+
+export interface RenderContainerInput {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  name: string;
+  nodeType: string;
+  description: string;
+  theme: 'light' | 'dark';
+}
+
+/** Convert a #rrggbb hex color to an rgba() string with the given alpha. */
+function hexToRgba(hex: string, alpha: number): string {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) return `rgba(127,127,127,${alpha})`;
+  const [, r, g, b] = m;
+  return `rgba(${parseInt(r as string, 16)},${parseInt(g as string, 16)},${parseInt(b as string, 16)},${alpha})`;
+}
+
+/**
+ * Render a container box (composed-of / deployed-in) with its member nodes
+ * drawn separately on top. Label strip pinned top-left; data attributes match
+ * leaf nodes so click-tooltips keep working (data-container-id marks it as a
+ * container for tests and styling).
+ */
+export function renderContainerSvg(input: RenderContainerInput): string {
+  const { id, x, y, width, height, name, nodeType, description, theme } = input;
+  const style = getNodeStyle(nodeType);
+  const fill = theme === 'dark' ? 'rgba(255,255,255,0.03)' : hexToRgba(style.fill, 0.06);
+  const labelColor = theme === 'dark' ? '#e5e5e5' : '#333';
+  const bounds = `${x},${y},${width},${height}`;
+  return [
+    `<g class="calm-container" data-container-id="${escapeXml(id)}" data-node-id="${escapeXml(id)}" data-description="${escapeXml(description)}" data-bounds="${bounds}">`,
+    `  <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="10" fill="${fill}" stroke="${style.fill}" stroke-width="1.5"/>`,
+    `  <text x="${x + 12}" y="${y + 20}" font-family="sans-serif" font-size="13" font-weight="bold" fill="${labelColor}">${escapeXml(name)}</text>`,
+    `  <text x="${x + 12}" y="${y + 34}" font-family="sans-serif" font-size="10" fill="${labelColor}" opacity="0.7">${escapeXml(nodeType)}</text>`,
+    `</g>`,
+  ].join('\n');
+}

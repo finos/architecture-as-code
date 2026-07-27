@@ -5,6 +5,8 @@
 import { describe, it, expect } from 'vitest';
 import { planContainment, isNestedContainment, emptyContainmentPlan } from './containment.js';
 import type { CalmRelationship } from '@calmstudio/calm-core';
+import { renderELKDiagram } from './elkRender.js';
+import type { CalmArchitecture } from '@calmstudio/calm-core';
 
 function composedOf(uid: string, container: string, nodes: string[]): CalmRelationship {
   return { 'unique-id': uid, 'relationship-type': { 'composed-of': { container, nodes } } };
@@ -138,5 +140,105 @@ describe('planContainment', () => {
     expect(plan.parentOf.size).toBe(0);
     expect(plan.fallbackEdges).toEqual([]);
     expect(plan.consumedRelationshipIds.size).toBe(0);
+  });
+});
+
+const nestedArch: CalmArchitecture = {
+  nodes: [
+    { 'unique-id': 'sys', 'node-type': 'system', name: 'Trading System', description: 'The system' },
+    { 'unique-id': 'svc-a', 'node-type': 'service', name: 'Service A', description: 'A' },
+    { 'unique-id': 'svc-b', 'node-type': 'service', name: 'Service B', description: 'B' },
+    { 'unique-id': 'db', 'node-type': 'database', name: 'Main DB', description: 'DB' },
+  ],
+  relationships: [
+    {
+      'unique-id': 'sys-contains',
+      'relationship-type': { 'composed-of': { container: 'sys', nodes: ['svc-a', 'svc-b'] } },
+    },
+    {
+      'unique-id': 'a-to-db',
+      'relationship-type': { connects: { source: { node: 'svc-a' }, destination: { node: 'db' } } },
+    },
+  ],
+};
+
+describe('renderELKDiagram nested containers (integration)', () => {
+  it('renders a container box with data attrs and NO containment arrow (default nested)', async () => {
+    const svg = await renderELKDiagram(nestedArch, { theme: 'light' });
+    expect(svg).toContain('data-container-id="sys"');
+    expect(svg).toContain('Trading System');
+    // Containment fully consumed: only the connects edge remains
+    const polylines = (svg.match(/<polyline/g) ?? []).length;
+    expect(polylines).toBe(1);
+  });
+
+  it('positions member nodes inside the container bounds', async () => {
+    const svg = await renderELKDiagram(nestedArch, { theme: 'light' });
+    const container = /data-container-id="sys"[^>]*data-bounds="([\d.,-]+)"/.exec(svg);
+    expect(container).not.toBeNull();
+    const boundsRaw = (container as RegExpExecArray)[1] as string;
+    const [cx, cy, cw, ch] = boundsRaw.split(',').map(Number) as [number, number, number, number];
+    // Each member node's x/y must fall inside the container bounds.
+    // NOTE FOR IMPLEMENTER: before finalizing this regex, inspect what
+    // renderNodeSvg actually emits (grep the node group markup for 'svc-a' in a
+    // console.log of the svg) — it may use a translate() transform OR x/y attrs
+    // on the group's <rect>. Adapt ONLY the coordinate-extraction regex to the
+    // real markup; keep these numeric containment assertions exactly as written.
+    for (const member of ['svc-a', 'svc-b']) {
+      const m = new RegExp(`data-node-id="${member}"[\\s\\S]{0,200}?<rect x="([\\d.]+)" y="([\\d.]+)"`).exec(svg);
+      expect(m).not.toBeNull();
+      const mx = Number((m as RegExpExecArray)[1]);
+      const my = Number((m as RegExpExecArray)[2]);
+      expect(mx).toBeGreaterThanOrEqual(cx);
+      expect(my).toBeGreaterThanOrEqual(cy);
+      expect(mx).toBeLessThanOrEqual(cx + cw);
+      expect(my).toBeLessThanOrEqual(cy + ch);
+    }
+  });
+
+  it("containers: 'edges' reproduces the arrow behavior with no container box", async () => {
+    const svg = await renderELKDiagram(nestedArch, { theme: 'light', containers: 'edges' });
+    expect(svg).not.toContain('data-container-id');
+    // composed-of fan-out (2 members) + connects = 3 polylines
+    const polylines = (svg.match(/<polyline/g) ?? []).length;
+    expect(polylines).toBe(3);
+  });
+
+  it('doubly-claimed node: one box plus one fallback arrow', async () => {
+    const arch: CalmArchitecture = {
+      nodes: [
+        { 'unique-id': 'sys', 'node-type': 'system', name: 'Sys', description: 's' },
+        { 'unique-id': 'cluster', 'node-type': 'network', name: 'Cluster', description: 'c' },
+        { 'unique-id': 'svc-a', 'node-type': 'service', name: 'Service A', description: 'a' },
+      ],
+      relationships: [
+        { 'unique-id': 'r1', 'relationship-type': { 'composed-of': { container: 'sys', nodes: ['svc-a'] } } },
+        { 'unique-id': 'r2', 'relationship-type': { 'deployed-in': { container: 'cluster', nodes: ['svc-a'] } } },
+      ],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    expect(svg).toContain('data-container-id="sys"');
+    // cluster keeps no members -> renders as a normal leaf node, with the fallback edge to svc-a
+    const polylines = (svg.match(/<polyline/g) ?? []).length;
+    expect(polylines).toBe(1);
+  });
+
+  it('flow referencing a consumed containment relationship renders no dot and does not crash', async () => {
+    const arch: CalmArchitecture = {
+      ...nestedArch,
+      flows: [
+        {
+          'unique-id': 'f1',
+          name: 'F',
+          description: 'd',
+          transitions: [
+            { 'relationship-unique-id': 'sys-contains', 'sequence-number': 1, summary: 's', direction: 'source-to-destination' },
+          ],
+        },
+      ],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light', flow: 'f1' });
+    expect((svg.match(/<animateMotion/g) ?? []).length).toBe(0);
+    expect(svg).toContain('data-container-id="sys"');
   });
 });
