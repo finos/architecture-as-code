@@ -121,8 +121,10 @@ export async function renderELKDiagram(
   }
 
   const relTypeMap = new Map<string, string>();
+  const relIdByRenderId = new Map<string, string>();
   for (const e of diagramEdges) {
     relTypeMap.set(e.id, e.variant);
+    relIdByRenderId.set(e.id, e.relationshipId);
   }
 
   // Compute canvas dimensions
@@ -168,8 +170,9 @@ export async function renderELKDiagram(
     ? getFlowNodeIds(arch, activeFlow)
     : new Set<string>();
 
-  // Build edge layout map for flow overlay path rendering
-  const edgeLayouts = new Map<string, EdgeLayout>();
+  // Edge layouts grouped by source relationship id, so the flow overlay can
+  // animate every render edge a fanned-out relationship expands into.
+  const edgeLayoutsByRelationship = new Map<string, EdgeLayout[]>();
 
   // Draw edges first (behind nodes)
   for (const edge of layouted.edges ?? []) {
@@ -186,10 +189,15 @@ export async function renderELKDiagram(
       }
       if (points.length >= 2) {
         // Store layout for flow overlay before rendering edge
-        edgeLayouts.set(edge.id, { id: edge.id, points });
+        const relationshipId = relIdByRenderId.get(edge.id) ?? edge.id;
+        const layouts = edgeLayoutsByRelationship.get(relationshipId) ?? [];
+        layouts.push({ id: edge.id, points });
+        edgeLayoutsByRelationship.set(relationshipId, layouts);
 
         const relType = relTypeMap.get(edge.id);
-        const edgeOpacity = applyFlowDimming(edge.id, activeFlowEdgeIds, true);
+        // Flows reference the relationship's unique-id — match on that, not the
+        // render id, so fan-out edges (`uid__N`) dim and animate correctly.
+        const edgeOpacity = applyFlowDimming(relationshipId, activeFlowEdgeIds, true);
         const edgeSvg = renderEdgeSvg({
           id: edge.id,
           points,
@@ -244,7 +252,7 @@ export async function renderELKDiagram(
 
   // Append flow overlay ABOVE edges and nodes so animated dots are not dimmed
   if (activeFlow) {
-    parts.push(renderFlowOverlay(activeFlow, edgeLayouts));
+    parts.push(renderFlowOverlay(activeFlow, edgeLayoutsByRelationship));
   }
 
   parts.push('</svg>');

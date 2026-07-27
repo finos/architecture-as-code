@@ -17,7 +17,7 @@ describe('relationshipToEdges', () => {
     } as unknown as CalmRelationship;
 
     const edges = relationshipToEdges(rel);
-    expect(edges).toEqual([{ id: 'rel-flat', source: 'a', target: 'b', variant: 'connects' }]);
+    expect(edges).toEqual([{ id: 'rel-flat', relationshipId: 'rel-flat', source: 'a', target: 'b', variant: 'connects' }]);
   });
 
   it('rule 2: nested connects produces one edge via getConnectsEndpoints', () => {
@@ -33,7 +33,7 @@ describe('relationshipToEdges', () => {
 
     const edges = relationshipToEdges(rel);
     expect(edges).toEqual([
-      { id: 'rel-connects', source: 'web', target: 'api', variant: 'connects' },
+      { id: 'rel-connects', relationshipId: 'rel-connects', source: 'web', target: 'api', variant: 'connects' },
     ]);
   });
 
@@ -50,8 +50,8 @@ describe('relationshipToEdges', () => {
 
     const edges = relationshipToEdges(rel);
     expect(edges).toEqual([
-      { id: 'rel-interacts__0', source: 'user', target: 'svc-a', variant: 'interacts' },
-      { id: 'rel-interacts__1', source: 'user', target: 'svc-b', variant: 'interacts' },
+      { id: 'rel-interacts__0', relationshipId: 'rel-interacts', source: 'user', target: 'svc-a', variant: 'interacts' },
+      { id: 'rel-interacts__1', relationshipId: 'rel-interacts', source: 'user', target: 'svc-b', variant: 'interacts' },
     ]);
   });
 
@@ -68,7 +68,7 @@ describe('relationshipToEdges', () => {
 
     const edges = relationshipToEdges(rel);
     expect(edges).toEqual([
-      { id: 'rel-interacts-single', source: 'user', target: 'svc-a', variant: 'interacts' },
+      { id: 'rel-interacts-single', relationshipId: 'rel-interacts-single', source: 'user', target: 'svc-a', variant: 'interacts' },
     ]);
   });
 
@@ -85,8 +85,8 @@ describe('relationshipToEdges', () => {
 
     const edges = relationshipToEdges(rel);
     expect(edges).toEqual([
-      { id: 'rel-composed__0', source: 'system', target: 'svc-a', variant: 'composed-of' },
-      { id: 'rel-composed__1', source: 'system', target: 'svc-b', variant: 'composed-of' },
+      { id: 'rel-composed__0', relationshipId: 'rel-composed', source: 'system', target: 'svc-a', variant: 'composed-of' },
+      { id: 'rel-composed__1', relationshipId: 'rel-composed', source: 'system', target: 'svc-b', variant: 'composed-of' },
     ]);
   });
 
@@ -103,7 +103,7 @@ describe('relationshipToEdges', () => {
 
     const edges = relationshipToEdges(rel);
     expect(edges).toEqual([
-      { id: 'rel-deployed', source: 'cluster', target: 'svc-a', variant: 'deployed-in' },
+      { id: 'rel-deployed', relationshipId: 'rel-deployed', source: 'cluster', target: 'svc-a', variant: 'deployed-in' },
     ]);
   });
 
@@ -138,8 +138,8 @@ describe('relationshipToEdges', () => {
 
     const edges = relationshipToEdges(rel);
     expect(edges).toEqual([
-      { id: 'rel-interacts-blank__0', source: 'user', target: 'svc-a', variant: 'interacts' },
-      { id: 'rel-interacts-blank__1', source: 'user', target: 'svc-b', variant: 'interacts' },
+      { id: 'rel-interacts-blank__0', relationshipId: 'rel-interacts-blank', source: 'user', target: 'svc-a', variant: 'interacts' },
+      { id: 'rel-interacts-blank__1', relationshipId: 'rel-interacts-blank', source: 'user', target: 'svc-b', variant: 'interacts' },
     ]);
     expect(edges.every((e) => e.target.length > 0)).toBe(true);
   });
@@ -185,5 +185,48 @@ describe('renderELKDiagram with nested relationship-type (integration)', () => {
     expect(svg).toContain('<svg');
     // The nested connects relationship must expand into an actual rendered edge.
     expect(svg).toContain('<polyline');
+  });
+
+  it('flow over a multi-node interacts relationship animates all fan-out edges undimmed', async () => {
+    const arch: CalmArchitecture = {
+      nodes: [
+        { 'unique-id': 'user', 'node-type': 'actor', name: 'User', description: 'End user' },
+        { 'unique-id': 'svc-a', 'node-type': 'service', name: 'Service A', description: 'A' },
+        { 'unique-id': 'svc-b', 'node-type': 'service', name: 'Service B', description: 'B' },
+      ],
+      relationships: [
+        {
+          'unique-id': 'user-uses',
+          'relationship-type': {
+            interacts: {
+              actor: 'user',
+              nodes: ['svc-a', 'svc-b'],
+            },
+          },
+        },
+      ],
+      flows: [
+        {
+          'unique-id': 'usage-flow',
+          name: 'Usage Flow',
+          description: 'User interacts with both services',
+          transitions: [
+            {
+              'relationship-unique-id': 'user-uses',
+              'sequence-number': 1,
+              summary: 'User calls both services',
+              direction: 'source-to-destination',
+            },
+          ],
+        },
+      ],
+    };
+
+    const svg = await renderELKDiagram(arch, { theme: 'light', flow: 'usage-flow' });
+    // Both fan-out edges (ids user-uses__0 / user-uses__1) must carry the animation...
+    const animCount = (svg.match(/<animateMotion/g) ?? []).length;
+    expect(animCount).toBe(2);
+    // ...and neither may be dimmed: the only relationship present IS the flow.
+    expect(svg).not.toContain('opacity="0.3"');
   });
 });

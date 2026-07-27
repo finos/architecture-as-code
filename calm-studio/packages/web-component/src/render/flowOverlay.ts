@@ -22,50 +22,61 @@ export interface EdgeLayout {
  * Returns SVG string to be appended AFTER edge and node layers so animated dots are
  * always on top and not subject to edge/node dimming.
  *
+ * A relationship that fans out to multiple render edges (multi-node interacts /
+ * composed-of / deployed-in) contributes one animated dot per edge, but a single
+ * sequence badge (placed on its first edge).
+ *
  * @param flow - The active CalmFlow to render
- * @param edgeLayouts - Map from relationship-unique-id to EdgeLayout (id + points array)
+ * @param edgeLayoutsByRelationship - Map from relationship-unique-id to the EdgeLayouts
+ *   of every render edge expanded from that relationship
  * @returns SVG group string containing animated dots and sequence badge circles
  */
 export function renderFlowOverlay(
   flow: CalmFlow,
-  edgeLayouts: Map<string, EdgeLayout>
+  edgeLayoutsByRelationship: Map<string, EdgeLayout[]>
 ): string {
   const parts: string[] = ['<g class="flow-overlay">'];
 
   for (const transition of flow.transitions) {
-    const edge = edgeLayouts.get(transition['relationship-unique-id']);
-    if (!edge || edge.points.length < 2) continue;
+    const layouts = (edgeLayoutsByRelationship.get(transition['relationship-unique-id']) ?? []).filter(
+      (l) => l.points.length >= 2
+    );
+    const badgeEdge = layouts[0];
+    if (badgeEdge === undefined) continue;
 
-    const pathId = `flow-path-${edge.id}`;
     const direction = transition.direction ?? 'source-to-destination';
     const keyPoints = direction === 'destination-to-source' ? '1;0' : '0;1';
 
-    // Build SVG path from edge points (M x,y L x,y L x,y ...)
-    const pathD = edge.points
-      .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`)
-      .join(' ');
+    for (const edge of layouts) {
+      const pathId = `flow-path-${edge.id}`;
 
-    // Hidden path for animateMotion reference
-    parts.push(
-      `<path id="${pathId}" d="${pathD}" fill="none" stroke="none"/>`
-    );
+      // Build SVG path from edge points (M x,y L x,y L x,y ...)
+      const pathD = edge.points
+        .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`)
+        .join(' ');
 
-    // Animated dot travelling along the edge path
-    parts.push(
-      `<circle r="5" fill="#3b82f6" stroke="#fff" stroke-width="1.5">`,
-      `  <animateMotion dur="1.8s" repeatCount="indefinite" keyPoints="${keyPoints}" keyTimes="0;1" calcMode="linear">`,
-      `    <mpath href="#${pathId}"/>`,
-      `  </animateMotion>`,
-      `</circle>`
-    );
+      // Hidden path for animateMotion reference
+      parts.push(
+        `<path id="${pathId}" d="${pathD}" fill="none" stroke="none"/>`
+      );
 
-    // Compute midpoint for badge placement
-    const midIdx = Math.floor(edge.points.length / 2);
-    const midPoint = edge.points[midIdx];
+      // Animated dot travelling along the edge path
+      parts.push(
+        `<circle r="5" fill="#3b82f6" stroke="#fff" stroke-width="1.5">`,
+        `  <animateMotion dur="1.8s" repeatCount="indefinite" keyPoints="${keyPoints}" keyTimes="0;1" calcMode="linear">`,
+        `    <mpath href="#${pathId}"/>`,
+        `  </animateMotion>`,
+        `</circle>`
+      );
+    }
+
+    // One sequence badge per transition, placed at the first edge's midpoint
+    const midIdx = Math.floor(badgeEdge.points.length / 2);
+    const midPoint = badgeEdge.points[midIdx] ?? badgeEdge.points[0];
+    if (midPoint === undefined) continue;
     const midX = midPoint.x;
     const midY = midPoint.y;
 
-    // Sequence badge (numbered circle with tooltip)
     parts.push(
       `<g class="flow-badge" data-summary="${escapeAttr(transition.summary)}">`,
       `  <circle cx="${midX}" cy="${midY}" r="10" fill="#3b82f6"/>`,

@@ -16,7 +16,10 @@ import {
  * `interacts` relationship with N nodes expands into N edges).
  */
 export interface DiagramEdge {
+  /** Unique render id for ELK/SVG (suffixed `__${index}` when a relationship fans out). */
   id: string;
+  /** The source relationship's `unique-id` — what flows reference. Identity survives fan-out. */
+  relationshipId: string;
   source: string;
   target: string;
   variant: string;
@@ -53,7 +56,7 @@ export function relationshipToEdges(rel: CalmRelationship): DiagramEdge[] {
     const raw = rel as unknown as Record<string, unknown>;
     const variant = raw['relationship-type'] as string;
     if (!rel.source || !rel.destination) return [];
-    return [{ id: uid, source: rel.source, target: rel.destination, variant }];
+    return [{ id: uid, relationshipId: uid, source: rel.source, target: rel.destination, variant }];
   }
 
   const rt = rel['relationship-type'];
@@ -63,7 +66,7 @@ export function relationshipToEdges(rel: CalmRelationship): DiagramEdge[] {
     case 'connects': {
       const endpoints = getConnectsEndpoints(rel);
       if (!endpoints || !endpoints.source || !endpoints.destination) return [];
-      return [{ id: uid, source: endpoints.source, target: endpoints.destination, variant }];
+      return [{ id: uid, relationshipId: uid, source: endpoints.source, target: endpoints.destination, variant }];
     }
     case 'interacts': {
       const actorAndNodes = getActorAndNodes(rel);
@@ -98,10 +101,11 @@ function buildFanOutEdges(
   if (validNodes.length === 0) return [];
   const [firstNode] = validNodes;
   if (validNodes.length === 1 && firstNode !== undefined) {
-    return [{ id: uid, source, target: firstNode, variant }];
+    return [{ id: uid, relationshipId: uid, source, target: firstNode, variant }];
   }
   return validNodes.map((target, index) => ({
     id: `${uid}__${index}`,
+    relationshipId: uid,
     source,
     target,
     variant,
