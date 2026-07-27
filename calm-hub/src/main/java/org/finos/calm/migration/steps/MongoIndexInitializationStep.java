@@ -13,6 +13,8 @@ import org.finos.calm.store.mongo.MongoNamespaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Creates unique indexes on MongoDB collections at application startup to enforce data integrity
  * and prevent duplicate entries caused by concurrent POST requests.
@@ -63,7 +65,13 @@ import org.slf4j.LoggerFactory;
  * If index creation fails (e.g. MongoDB is unreachable or the user lacks permissions),
  * the exception is caught and logged as a warning. The application will continue to start
  * but will <em>not</em> have duplicate-prevention guarantees until the indexes are created
- * (manually or on the next successful startup).
+ * (manually or on the next successful startup). Because this step also runs under
+ * {@code @QuarkusTest} (see {@link #runInTestMode()}), every operation on {@link #database} is
+ * scoped to a short client-side operation timeout ({@link #OPERATION_TIMEOUT_SECONDS}) rather
+ * than the driver's 30-second default — otherwise, in a test environment with no real MongoDB
+ * available, a single {@code createIndex} call blocking for the full default would turn into
+ * many minutes added to application startup (one per collection whose index attempt is the
+ * first to touch an unreachable server).
  *
  * @see MongoNamespaceStore
  * @see MongoDomainStore
@@ -75,13 +83,15 @@ public class MongoIndexInitializationStep implements SchemaMigrationStep {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoIndexInitializationStep.class);
 
+    private static final int OPERATION_TIMEOUT_SECONDS = 3;
+
     private final MongoDatabase database;
 
     @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
     String databaseMode;
 
     public MongoIndexInitializationStep(MongoDatabase database) {
-        this.database = database;
+        this.database = database.withTimeout(OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override

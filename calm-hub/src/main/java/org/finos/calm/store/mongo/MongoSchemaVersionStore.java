@@ -16,6 +16,7 @@ import org.bson.conversions.Bson;
 import org.finos.calm.store.SchemaVersionStore;
 
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
  * MongoDB-backed implementation of {@link SchemaVersionStore}.
@@ -25,6 +26,16 @@ import java.util.Date;
  * {@code migrationLock} (the cross-instance lock). Neither document exists
  * until first written — {@link #getSchemaVersion()} treats an absent
  * document as version {@code 0}.</p>
+ *
+ * <p>{@link #isMigrationLockHeld()} runs on (effectively) every request via
+ * {@code SchemaMigrationInProgressFilter}, which fails open — allows the
+ * request through — if the store call throws. The MongoDB driver's default
+ * {@code serverSelectionTimeoutMS} is 30 seconds, so without a tighter bound
+ * a Mongo outage would still stall every request for up to 30 seconds before
+ * degrading gracefully. All operations on {@link #calmCollection} are scoped
+ * to a short client-side operation timeout instead — bounding the entire
+ * operation, including server selection, not just query execution — so an
+ * outage degrades in {@link #OPERATION_TIMEOUT_SECONDS} seconds.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
@@ -38,10 +49,12 @@ public class MongoSchemaVersionStore implements SchemaVersionStore {
     private static final String HOLDER_FIELD = "holder";
     private static final String ACQUIRED_AT_FIELD = "acquiredAt";
 
+    private static final int OPERATION_TIMEOUT_SECONDS = 3;
+
     private final MongoCollection<Document> calmCollection;
 
     public MongoSchemaVersionStore(MongoDatabase database) {
-        this.calmCollection = database.getCollection("calm");
+        this.calmCollection = database.getCollection("calm").withTimeout(OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override

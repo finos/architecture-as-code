@@ -20,6 +20,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -33,6 +34,7 @@ class TestMongoSchemaVersionStoreShould {
     @InjectMock
     MongoDatabase mongoDatabase;
 
+    private MongoCollection<Document> rawCollection;
     private MongoCollection<Document> calmCollection;
     private MongoSchemaVersionStore store;
 
@@ -44,9 +46,16 @@ class TestMongoSchemaVersionStoreShould {
 
     @BeforeEach
     void setup() {
+        rawCollection = Mockito.mock(DocumentMongoCollection.class);
         calmCollection = Mockito.mock(DocumentMongoCollection.class);
-        when(mongoDatabase.getCollection("calm")).thenReturn(calmCollection);
+        when(mongoDatabase.getCollection("calm")).thenReturn(rawCollection);
+        when(rawCollection.withTimeout(3, TimeUnit.SECONDS)).thenReturn(calmCollection);
         store = new MongoSchemaVersionStore(mongoDatabase);
+    }
+
+    @Test
+    void scope_every_operation_to_a_short_client_side_timeout() {
+        verify(rawCollection).withTimeout(3, TimeUnit.SECONDS);
     }
 
     @Test

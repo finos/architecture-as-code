@@ -1,5 +1,6 @@
 package org.finos.calm.migration;
 
+import io.quarkus.runtime.LaunchMode;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -48,6 +49,17 @@ import java.util.function.LongSupplier;
  * worse than the graceful 503 this filter exists to provide). The failure isn't cached, so
  * the very next request retries the store rather than being stuck on a guessed answer for
  * the TTL.
+ *
+ * <h2>Test mode</h2>
+ * Under {@code @QuarkusTest} ({@code LaunchMode.TEST}) this filter is a no-op, matching
+ * {@link SchemaMigrationRunner}'s own test-mode skip. This is a {@code @PreMatching} filter
+ * registered application-wide, so it runs on every real HTTP request any {@code @QuarkusTest}
+ * makes (e.g. via RestAssured) — unlike the store interfaces most resource tests already
+ * mock, nothing in the existing test suite expects a request to also touch
+ * {@link SchemaVersionStore}'s backing Mongo/Nitrite store. Without this skip, any such test
+ * would hit a real (and in CI, absent) database on every request. The filter's own behaviour
+ * is still covered directly — its unit tests construct it outside CDI/{@code @QuarkusTest},
+ * so they never observe {@code LaunchMode.TEST} and exercise the real logic below.
  */
 @ApplicationScoped
 @Provider
@@ -75,6 +87,9 @@ public class SchemaMigrationInProgressFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) {
+        if (LaunchMode.current() == LaunchMode.TEST) {
+            return;
+        }
         if (!isMigrationLockHeld()) {
             return;
         }

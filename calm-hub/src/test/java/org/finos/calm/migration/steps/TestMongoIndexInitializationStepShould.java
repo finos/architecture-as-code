@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -23,32 +24,43 @@ class TestMongoIndexInitializationStepShould {
 
     @Test
     void report_zero_as_its_from_version() {
-        MongoIndexInitializationStep initializer = new MongoIndexInitializationStep(mock(MongoDatabase.class));
+        MongoIndexInitializationStep initializer = new MongoIndexInitializationStep(mock(MongoDatabase.class, org.mockito.Answers.RETURNS_SELF));
 
         assertThat(initializer.fromVersion(), is(0));
     }
 
     @Test
     void run_in_test_mode() {
-        MongoIndexInitializationStep initializer = new MongoIndexInitializationStep(mock(MongoDatabase.class));
+        MongoIndexInitializationStep initializer = new MongoIndexInitializationStep(mock(MongoDatabase.class, org.mockito.Answers.RETURNS_SELF));
 
         assertThat(initializer.runInTestMode(), is(true));
     }
 
     @Test
+    void scope_every_operation_to_a_short_client_side_timeout() {
+        MongoDatabase mockDatabase = mock(MongoDatabase.class, org.mockito.Answers.RETURNS_SELF);
+
+        new MongoIndexInitializationStep(mockDatabase);
+
+        verify(mockDatabase).withTimeout(3, TimeUnit.SECONDS);
+    }
+
+    @Test
     void skip_index_creation_when_database_mode_is_not_mongo() throws Exception {
-        MongoDatabase mockDatabase = mock(MongoDatabase.class);
+        // Not verifyNoInteractions: the constructor always calls withTimeout(...) regardless
+        // of mode, so the assertion here is specifically "no index-related calls happen".
+        MongoDatabase mockDatabase = mock(MongoDatabase.class, org.mockito.Answers.RETURNS_SELF);
         MongoIndexInitializationStep initializer = new MongoIndexInitializationStep(mockDatabase);
         setDatabaseMode(initializer, "nitrite");
 
         initializer.apply();
 
-        verifyNoInteractions(mockDatabase);
+        verify(mockDatabase, never()).getCollection(anyString());
     }
 
     @Test
     void create_all_unique_indexes_when_database_mode_is_mongo() throws Exception {
-        MongoDatabase mockDatabase = mock(MongoDatabase.class);
+        MongoDatabase mockDatabase = mock(MongoDatabase.class, org.mockito.Answers.RETURNS_SELF);
         MongoCollection<Document> mockCollection = mock(DocumentMongoCollection.class);
         when(mockDatabase.getCollection(anyString())).thenReturn(mockCollection);
         when(mockCollection.createIndex(any(Document.class), any(IndexOptions.class))).thenReturn("idx");
@@ -81,7 +93,7 @@ class TestMongoIndexInitializationStepShould {
 
     @Test
     void handle_exception_during_index_creation_gracefully() throws Exception {
-        MongoDatabase mockDatabase = mock(MongoDatabase.class);
+        MongoDatabase mockDatabase = mock(MongoDatabase.class, org.mockito.Answers.RETURNS_SELF);
         when(mockDatabase.getCollection(anyString())).thenThrow(new RuntimeException("MongoDB unavailable"));
         MongoIndexInitializationStep initializer = new MongoIndexInitializationStep(mockDatabase);
         setDatabaseMode(initializer, "mongo");
