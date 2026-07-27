@@ -104,4 +104,28 @@ class TestSchemaMigrationInProgressFilterShould {
 
         verify(requestContext, never()).abortWith(any());
     }
+
+    @Test
+    void allow_the_request_when_the_store_fails_instead_of_letting_the_exception_escape() {
+        when(schemaVersionStore.isMigrationLockHeld()).thenThrow(new RuntimeException("Mongo unavailable"));
+
+        filter.filter(requestContext);
+
+        verify(requestContext, never()).abortWith(any());
+    }
+
+    @Test
+    void not_cache_a_store_failure_so_the_next_request_retries() {
+        AtomicLong now = new AtomicLong(1_000_000L);
+        SchemaMigrationInProgressFilter cachingFilter = new SchemaMigrationInProgressFilter(schemaVersionStore, now::get);
+        when(schemaVersionStore.isMigrationLockHeld())
+                .thenThrow(new RuntimeException("Mongo unavailable"))
+                .thenReturn(true);
+
+        cachingFilter.filter(requestContext);
+        now.addAndGet(1);
+        cachingFilter.filter(requestContext);
+
+        verify(schemaVersionStore, times(2)).isMigrationLockHeld();
+    }
 }

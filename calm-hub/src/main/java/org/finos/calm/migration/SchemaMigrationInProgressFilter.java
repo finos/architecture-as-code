@@ -39,6 +39,15 @@ import java.util.function.LongSupplier;
  * javadoc for the full argument. Elapsed time for the TTL is measured with
  * {@link System#nanoTime()}, not wall-clock time, so an NTP correction or manual clock
  * change can't make a stale cache entry look artificially fresh.
+ *
+ * <h2>Store failures</h2>
+ * If the store read itself fails (e.g. a transient MongoDB blip), this filter fails open —
+ * logs a warning and lets the request through — rather than letting the exception escape
+ * uncaught (no {@code ExceptionMapper} exists in this codebase for a bare store exception,
+ * so it would otherwise surface as a raw 500 on every request for the outage's duration,
+ * worse than the graceful 503 this filter exists to provide). The failure isn't cached, so
+ * the very next request retries the store rather than being stuck on a guessed answer for
+ * the TTL.
  */
 @ApplicationScoped
 @Provider
@@ -84,7 +93,13 @@ public class SchemaMigrationInProgressFilter implements ContainerRequestFilter {
         if (current != null && now - current.checkedAtNanos() <= CACHE_TTL.toNanos()) {
             return current.held();
         }
-        boolean held = schemaVersionStore.isMigrationLockHeld();
+        boolean held;
+        try {
+            held = schemaVersionStore.isMigrationLockHeld();
+        } catch (RuntimeException e) {
+            LOG.warn("Failed to check the schema migration lock — allowing the request through", e);
+            return false;
+        }
         cache.set(new CacheEntry(held, now));
         return held;
     }
