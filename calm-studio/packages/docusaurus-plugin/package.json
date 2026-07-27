@@ -1,5 +1,5 @@
 {
-  "name": "@calmstudio/docusaurus-plugin",
+  "name": "@finos/calm-docusaurus-plugin",
   "version": "0.0.0",
   "private": false,
   "description": "Embed CALM architecture diagrams in Docusaurus MDX — build-time SVG with client-side interactive hydration",

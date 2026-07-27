@@ -16,7 +16,7 @@ export async function buildCalmModule(source: string, resourcePath: string): Pro
     architecture = JSON.parse(source);
   } catch (err) {
     throw new Error(
-      `[@calmstudio/docusaurus-plugin] Invalid JSON in ${resourcePath}: ${err instanceof Error ? err.message : String(err)}`
+      `[@finos/calm-docusaurus-plugin] Invalid JSON in ${resourcePath}: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 
@@ -25,7 +25,7 @@ export async function buildCalmModule(source: string, resourcePath: string): Pro
     bundle = await prerenderCalmSvg(architecture);
   } catch (err) {
     throw new Error(
-      `[@calmstudio/docusaurus-plugin] Failed to render ${resourcePath}: ${err instanceof Error ? err.message : String(err)}`
+      `[@finos/calm-docusaurus-plugin] Failed to render ${resourcePath}: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 

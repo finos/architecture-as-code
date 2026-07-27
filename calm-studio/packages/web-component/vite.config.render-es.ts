@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 // `render` is a Node-only (no DOM) entry point used by build-time tooling
-// (e.g. @calmstudio/docusaurus-plugin's remark/loader code, which imports it
+// (e.g. @finos/calm-docusaurus-plugin's remark/loader code, which imports it
 // as an ES module). Built as its own single-entry bundle so it does not share
 // a chunk with the main `calm-diagram.es.js` CDN bundle (see vite.config.ts).
 export default defineConfig({

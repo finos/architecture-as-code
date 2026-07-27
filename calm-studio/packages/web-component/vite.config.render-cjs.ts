@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 // `render` is a Node-only (no DOM) entry point used by build-time tooling
-// (e.g. @calmstudio/docusaurus-plugin's webpack loader, which is bundled as
+// (e.g. @finos/calm-docusaurus-plugin's webpack loader, which is bundled as
 // CJS). The default `vite.config.ts` only emits an ES module for `render`,
 // which is unreachable from a plain Node `require()` call. This config adds
 // a CJS build so consumers using `require('@calmstudio/diagram/render')`

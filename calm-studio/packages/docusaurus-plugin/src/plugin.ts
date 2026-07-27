@@ -12,14 +12,14 @@ import type { Plugin } from '@docusaurus/types';
  * webpack's enhanced-resolve against this package's `exports` map) so this
  * entry needs no Node built-ins and stays safe to import from MDX.
  *
- * Note: the remark plugin (`@calmstudio/docusaurus-plugin/remark`) must be
+ * Note: the remark plugin (`@finos/calm-docusaurus-plugin/remark`) must be
  * registered separately via `beforeDefaultRemarkPlugins` in the preset
  * config — Docusaurus has no API for one plugin to extend another plugin's
  * remark chain. See README.
  */
 export default function calmstudioDocusaurusPlugin(): Plugin<void> {
   return {
-    name: '@calmstudio/docusaurus-plugin',
+    name: '@finos/calm-docusaurus-plugin',
     configureWebpack() {
       return {
         module: {
@@ -27,7 +27,7 @@ export default function calmstudioDocusaurusPlugin(): Plugin<void> {
             {
               test: /\.calm\.json$/,
               type: 'javascript/auto',
-              use: '@calmstudio/docusaurus-plugin/loader',
+              use: '@finos/calm-docusaurus-plugin/loader',
             },
           ],
         },

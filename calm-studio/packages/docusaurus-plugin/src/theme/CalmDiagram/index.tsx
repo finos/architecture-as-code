@@ -38,7 +38,7 @@ export function CalmDiagram(props: CalmDiagramProps): React.ReactElement | null 
       })
       .catch((err: unknown) => {
         // Static SVG stays in place — degradation is graceful by construction.
-        console.error('[@calmstudio/docusaurus-plugin] failed to load interactive renderer:', err);
+        console.error('[@finos/calm-docusaurus-plugin] failed to load interactive renderer:', err);
       });
     return () => {
       cancelled = true;
@@ -58,7 +58,7 @@ export function CalmDiagram(props: CalmDiagramProps): React.ReactElement | null 
 
   if (!hasInput) {
     console.error(
-      '[@calmstudio/docusaurus-plugin] <CalmDiagram> needs `src` (relative .calm.json path or URL) or `data`.'
+      '[@finos/calm-docusaurus-plugin] <CalmDiagram> needs `src` (relative .calm.json path or URL) or `data`.'
     );
     if (process.env.NODE_ENV !== 'production') {
       return (

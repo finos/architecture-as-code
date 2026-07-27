@@ -1,4 +1,4 @@
-# @calmstudio/docusaurus-plugin
+# @finos/calm-docusaurus-plugin
 
 Embed [FINOS CALM](https://calm.finos.org) architecture diagrams in
 Docusaurus MDX pages — like Mermaid, but driven by your real, validatable
@@ -12,7 +12,7 @@ web component: zoom, pan, node tooltips, and animated flow highlighting.
 ## Install
 
 ```bash
-npm install @calmstudio/docusaurus-plugin
+npm install @finos/calm-docusaurus-plugin
 ```
 
 ## Configure
@@ -20,10 +20,10 @@ npm install @calmstudio/docusaurus-plugin
 `docusaurus.config.js`:
 
 ```js
-import calmRemark from '@calmstudio/docusaurus-plugin/remark';
+import calmRemark from '@finos/calm-docusaurus-plugin/remark';
 
 export default {
-  plugins: ['@calmstudio/docusaurus-plugin'],
+  plugins: ['@finos/calm-docusaurus-plugin'],
   presets: [
     [
       'classic',
@@ -38,7 +38,7 @@ export default {
 };
 ```
 
-(CJS configs: `beforeDefaultRemarkPlugins: [require('@calmstudio/docusaurus-plugin/remark')]` —
+(CJS configs: `beforeDefaultRemarkPlugins: [require('@finos/calm-docusaurus-plugin/remark')]` —
 add `.default` if your bundler surfaces the module namespace object.)
 
 The plugin registers a webpack loader that pre-renders `*.calm.json`
@@ -49,7 +49,7 @@ remark chain, hence the one extra config line.
 ## Use
 
 ```mdx
-import { CalmDiagram } from '@calmstudio/docusaurus-plugin'
+import { CalmDiagram } from '@finos/calm-docusaurus-plugin'
 
 # My System
 

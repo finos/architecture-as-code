@@ -30,7 +30,7 @@ jobs:
                   npm run build --if-present --workspace=@calmstudio/calm-core
                   npm run build --if-present --workspace=@calmstudio/extensions
                   npm run build --if-present --workspace=@calmstudio/diagram
-                  npm run build --if-present --workspace=@calmstudio/docusaurus-plugin
+                  npm run build --if-present --workspace=@finos/calm-docusaurus-plugin
 
             - name: Build website
               run: npm run build

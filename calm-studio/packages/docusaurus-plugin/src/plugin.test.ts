@@ -9,7 +9,7 @@ describe('calmstudioDocusaurusPlugin', () => {
   const plugin = calmstudioDocusaurusPlugin();
 
   it('declares its name', () => {
-    expect(plugin.name).toBe('@calmstudio/docusaurus-plugin');
+    expect(plugin.name).toBe('@finos/calm-docusaurus-plugin');
   });
 
   it('registers a webpack rule routing *.calm.json through the package loader', () => {
@@ -21,7 +21,7 @@ describe('calmstudioDocusaurusPlugin', () => {
     expect(rules[0].test.test('package.json')).toBe(false);
     expect(rules[0].test.test('demo.calm.json.bak')).toBe(false);
     expect(rules[0].type).toBe('javascript/auto');
-    expect(rules[0].use).toBe('@calmstudio/docusaurus-plugin/loader');
+    expect(rules[0].use).toBe('@finos/calm-docusaurus-plugin/loader');
   });
 
   it('ships its stylesheet as a client module', () => {
