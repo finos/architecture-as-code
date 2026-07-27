@@ -151,6 +151,17 @@ public class MongoTimelineStore implements TimelineStore {
         return result;
     }
 
+    private void verifyTimelineExists(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
+        Document result = retrieveTimelineVersions(timeline);
+        List<Document> timelines = result.getList("timelines", Document.class);
+        for (Document timelineDoc : timelines) {
+            if (timeline.getId() == timelineDoc.getInteger("timelineId")) {
+                return;
+            }
+        }
+        throw new TimelineNotFoundException();
+    }
+
     @Override
     public String getTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException {
         Document result = retrieveTimelineVersions(timeline);
@@ -210,7 +221,7 @@ public class MongoTimelineStore implements TimelineStore {
         // Verifies the namespace AND the specific timeline entity exist, so any
         // MongoWriteException from the update below is a genuine write failure, not a
         // disguised not-found.
-        getTimelineVersions(timeline);
+        verifyTimelineExists(timeline);
 
         Document filter = new Document("namespace", timeline.getNamespace())
                 .append("timelines.timelineId", timeline.getId());

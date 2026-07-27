@@ -179,6 +179,17 @@ public class MongoArchitectureStore implements ArchitectureStore {
         return result;
     }
 
+    private void verifyArchitectureExists(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        Document result = retrieveArchitectureVersions(architecture);
+        List<Document> architectures = result.getList("architectures", Document.class);
+        for (Document architectureDoc : architectures) {
+            if (architecture.getId() == architectureDoc.getInteger("architectureId")) {
+                return;
+            }
+        }
+        throw new ArchitectureNotFoundException();
+    }
+
     @Override
     public String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException {
         Document result = retrieveArchitectureVersions(architecture);
@@ -242,7 +253,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
         // Verifies the namespace AND the specific architecture entity exist, so any
         // MongoWriteException from the update below is a genuine write failure, not a
         // disguised not-found.
-        getArchitectureVersions(architecture);
+        verifyArchitectureExists(architecture);
 
         Document filter = new Document("namespace", architecture.getNamespace())
                 .append("architectures.architectureId", architecture.getId());

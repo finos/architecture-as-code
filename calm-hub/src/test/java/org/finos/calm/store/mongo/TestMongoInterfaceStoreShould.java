@@ -380,7 +380,7 @@ public class TestMongoInterfaceStoreShould {
     }
 
     @Test
-    void propagate_other_write_failures_raw_when_creating_a_version() {
+    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_creating_a_version() {
         mockSetupInterfaceDocumentWithVersions();
         CreateInterfaceRequest interfaceRequest = interfaceToStore();
 
@@ -388,8 +388,9 @@ public class TestMongoInterfaceStoreShould {
         MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
         when(interfaceCollection.updateOne(any(Bson.class), any(Bson.class))).thenThrow(mongoWriteException);
 
-        assertThrows(MongoWriteException.class,
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
                 () -> mongoInterfaceStore.createInterfaceForVersion(interfaceRequest, "finos", 42, "1.0.1"));
+        assertThat(exception.isCapacityExceeded(), is(false));
     }
 
     @Test

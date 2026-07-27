@@ -22,10 +22,11 @@ import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.util.MongoUpsertPush;
 import org.finos.calm.store.util.MongoWriteFailures;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,6 +69,7 @@ import org.finos.calm.store.util.VersionKeySelector;
 @Typed(MongoControlStore.class)
 public class MongoControlStore implements ControlStore {
 
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final MongoCollection<Document> controlCollection;
     private final MongoCounterStore counterStore;
     private final MongoDomainStore domainStore;
@@ -265,10 +267,9 @@ public class MongoControlStore implements ControlStore {
                 throw new ControlRequirementVersionExistsException();
             }
         } catch (MongoWriteException ex) {
-            if (MongoWriteFailures.isDocumentTooLarge(ex)) {
-                throw StorageWriteException.capacityExceeded(ex);
-            }
-            throw ex;
+            log.error("Failed to write control requirement [domain={}, controlId={}, version={}] to mongo",
+                    domain, controlId, version, ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 
@@ -336,10 +337,9 @@ public class MongoControlStore implements ControlStore {
                 throw new ControlConfigurationVersionExistsException();
             }
         } catch (MongoWriteException ex) {
-            if (MongoWriteFailures.isDocumentTooLarge(ex)) {
-                throw StorageWriteException.capacityExceeded(ex);
-            }
-            throw ex;
+            log.error("Failed to write control configuration [domain={}, controlId={}, configurationId={}, version={}] to mongo",
+                    domain, controlId, configurationId, version, ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
     }
 

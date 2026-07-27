@@ -156,6 +156,17 @@ public class MongoFlowStore implements FlowStore {
         return result;
     }
 
+    private void verifyFlowExists(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
+        Document result = retrieveFlowVersions(flow);
+        List<Document> flows = result.getList("flows", Document.class);
+        for (Document flowDoc : flows) {
+            if (flow.getId() == flowDoc.getInteger("flowId")) {
+                return;
+            }
+        }
+        throw new FlowNotFoundException();
+    }
+
     @Override
     public String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
         Document result = retrieveFlowVersions(flow);
@@ -212,7 +223,7 @@ public class MongoFlowStore implements FlowStore {
         // Verifies the namespace AND the specific flow entity exist, so any
         // MongoWriteException from the update below is a genuine write failure, not a
         // disguised not-found.
-        getFlowVersions(flow);
+        verifyFlowExists(flow);
 
         Document filter = new Document("namespace", flow.getNamespace())
                 .append("flows.flowId", flow.getId());

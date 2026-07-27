@@ -168,6 +168,17 @@ public class MongoPatternStore implements PatternStore {
         return result;
     }
 
+    private void verifyPatternExists(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
+        Document result = retrievePatternVersions(pattern);
+        List<Document> patterns = result.getList("patterns", Document.class);
+        for (Document patternDoc : patterns) {
+            if (pattern.getId() == patternDoc.getInteger("patternId")) {
+                return;
+            }
+        }
+        throw new PatternNotFoundException();
+    }
+
     @Override
     public String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
         Document result = retrievePatternVersions(pattern);
@@ -238,7 +249,7 @@ public class MongoPatternStore implements PatternStore {
         // Verifies the namespace AND the specific pattern entity exist, so any
         // MongoWriteException from the update below is a genuine write failure, not a
         // disguised not-found.
-        getPatternVersions(pattern);
+        verifyPatternExists(pattern);
 
         Document patternDocument = Document.parse(pattern.getPatternJson());
         Document filter = new Document("namespace", pattern.getNamespace())

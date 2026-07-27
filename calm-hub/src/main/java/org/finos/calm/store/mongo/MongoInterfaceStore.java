@@ -190,10 +190,9 @@ public class MongoInterfaceStore implements InterfaceStore {
                 throw new InterfaceVersionExistsException();
             }
         } catch (MongoWriteException ex) {
-            if (MongoWriteFailures.isDocumentTooLarge(ex)) {
-                throw StorageWriteException.capacityExceeded(ex);
-            }
-            throw ex;
+            logger.error("Failed to write interface [namespace={}, id={}, version={}] to mongo",
+                    namespace, interfaceId, version, ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
 
         CalmInterface calmInterface = new CalmInterface(interfaceRequest);

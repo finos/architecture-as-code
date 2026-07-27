@@ -17,6 +17,8 @@ import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.StandardStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,7 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 @Typed(MongoStandardStore.class)
 public class MongoStandardStore implements StandardStore {
 
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final MongoCounterStore counterStore;
     private final MongoNamespaceStore namespaceStore;
     private final MongoCollection<Document> standardCollection;
@@ -196,10 +199,9 @@ public class MongoStandardStore implements StandardStore {
                 throw new StandardVersionExistsException();
             }
         } catch (MongoWriteException ex) {
-            if (MongoWriteFailures.isDocumentTooLarge(ex)) {
-                throw StorageWriteException.capacityExceeded(ex);
-            }
-            throw ex;
+            log.error("Failed to write standard [namespace={}, id={}, version={}] to mongo",
+                    namespace, standardId, version, ex);
+            throw MongoWriteFailures.toStorageWriteException(ex);
         }
 
         Standard standard = new Standard(standardRequest);
