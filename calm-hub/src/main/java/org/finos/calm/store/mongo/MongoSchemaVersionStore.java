@@ -74,7 +74,19 @@ public class MongoSchemaVersionStore implements SchemaVersionStore {
                 throw e;
             }
             // Lost the race to create the lock document — it exists now, retry the conditional update once.
-            return tryAcquire(filter, update, options);
+            // Unlike a plain upsert-and-push, our filter has an anti-condition (holder must be absent), so
+            // if the winner already set holder, this retry's filter won't match either: the upsert path
+            // tries to insert a duplicate _id again and would throw a second time. That second collision
+            // unambiguously means someone else holds the lock now, so we report "not acquired" instead of
+            // letting the exception propagate.
+            try {
+                return tryAcquire(filter, update, options);
+            } catch (MongoWriteException retryException) {
+                if (retryException.getError().getCategory() != ErrorCategory.DUPLICATE_KEY) {
+                    throw retryException;
+                }
+                return false;
+            }
         }
     }
 

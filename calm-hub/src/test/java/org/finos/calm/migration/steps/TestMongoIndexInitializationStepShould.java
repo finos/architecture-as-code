@@ -29,6 +29,13 @@ class TestMongoIndexInitializationStepShould {
     }
 
     @Test
+    void run_in_test_mode() {
+        MongoIndexInitializationStep initializer = new MongoIndexInitializationStep(mock(MongoDatabase.class));
+
+        assertThat(initializer.runInTestMode(), is(true));
+    }
+
+    @Test
     void skip_index_creation_when_database_mode_is_not_mongo() throws Exception {
         MongoDatabase mockDatabase = mock(MongoDatabase.class);
         MongoIndexInitializationStep initializer = new MongoIndexInitializationStep(mockDatabase);

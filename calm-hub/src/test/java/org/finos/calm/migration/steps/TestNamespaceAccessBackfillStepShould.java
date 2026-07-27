@@ -42,6 +42,11 @@ class TestNamespaceAccessBackfillStepShould {
         assertThat(service.fromVersion(), is(1));
     }
 
+    @Test
+    void not_run_in_test_mode() {
+        assertThat(service.runInTestMode(), is(false));
+    }
+
     // --- backfillIfNeeded unit tests ---
 
     @Test

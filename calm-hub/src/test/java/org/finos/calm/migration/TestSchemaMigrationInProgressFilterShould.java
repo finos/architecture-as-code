@@ -72,7 +72,7 @@ class TestSchemaMigrationInProgressFilterShould {
         when(schemaVersionStore.isMigrationLockHeld()).thenReturn(true);
 
         cachingFilter.filter(requestContext);
-        now.addAndGet(SchemaMigrationInProgressFilter.CACHE_TTL.toMillis() - 1);
+        now.addAndGet(SchemaMigrationInProgressFilter.CACHE_TTL.toNanos() - 1);
         cachingFilter.filter(requestContext);
 
         verify(schemaVersionStore, times(1)).isMigrationLockHeld();
@@ -85,7 +85,7 @@ class TestSchemaMigrationInProgressFilterShould {
         when(schemaVersionStore.isMigrationLockHeld()).thenReturn(false);
 
         cachingFilter.filter(requestContext);
-        now.addAndGet(SchemaMigrationInProgressFilter.CACHE_TTL.toMillis() + 1);
+        now.addAndGet(SchemaMigrationInProgressFilter.CACHE_TTL.toNanos() + 1);
         cachingFilter.filter(requestContext);
 
         verify(schemaVersionStore, times(2)).isMigrationLockHeld();
@@ -99,7 +99,7 @@ class TestSchemaMigrationInProgressFilterShould {
         cachingFilter.filter(requestContext);
 
         when(schemaVersionStore.isMigrationLockHeld()).thenReturn(true);
-        now.addAndGet(SchemaMigrationInProgressFilter.CACHE_TTL.toMillis() - 1);
+        now.addAndGet(SchemaMigrationInProgressFilter.CACHE_TTL.toNanos() - 1);
         cachingFilter.filter(requestContext);
 
         verify(requestContext, never()).abortWith(any());

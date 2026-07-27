@@ -36,7 +36,9 @@ import java.util.function.LongSupplier;
  * longer than {@link #CACHE_TTL} after acquiring the lock before running any actual
  * migration step, which guarantees every instance's cache (including this one's) has
  * expired and been refreshed to "held" before real work starts — see that class's
- * javadoc for the full argument.
+ * javadoc for the full argument. Elapsed time for the TTL is measured with
+ * {@link System#nanoTime()}, not wall-clock time, so an NTP correction or manual clock
+ * change can't make a stale cache entry look artificially fresh.
  */
 @ApplicationScoped
 @Provider
@@ -49,17 +51,17 @@ public class SchemaMigrationInProgressFilter implements ContainerRequestFilter {
     static final Duration CACHE_TTL = Duration.ofSeconds(2);
 
     private final SchemaVersionStore schemaVersionStore;
-    private final LongSupplier clockMillis;
-    private final AtomicReference<CacheEntry> cache = new AtomicReference<>(new CacheEntry(false, 0L));
+    private final LongSupplier elapsedTimeNanosSource;
+    private final AtomicReference<CacheEntry> cache = new AtomicReference<>();
 
     @Inject
     public SchemaMigrationInProgressFilter(SchemaVersionStore schemaVersionStore) {
-        this(schemaVersionStore, System::currentTimeMillis);
+        this(schemaVersionStore, System::nanoTime);
     }
 
-    SchemaMigrationInProgressFilter(SchemaVersionStore schemaVersionStore, LongSupplier clockMillis) {
+    SchemaMigrationInProgressFilter(SchemaVersionStore schemaVersionStore, LongSupplier elapsedTimeNanosSource) {
         this.schemaVersionStore = schemaVersionStore;
-        this.clockMillis = clockMillis;
+        this.elapsedTimeNanosSource = elapsedTimeNanosSource;
     }
 
     @Override
@@ -77,9 +79,9 @@ public class SchemaMigrationInProgressFilter implements ContainerRequestFilter {
     }
 
     private boolean isMigrationLockHeld() {
-        long now = clockMillis.getAsLong();
+        long now = elapsedTimeNanosSource.getAsLong();
         CacheEntry current = cache.get();
-        if (now - current.checkedAtMillis() <= CACHE_TTL.toMillis()) {
+        if (current != null && now - current.checkedAtNanos() <= CACHE_TTL.toNanos()) {
             return current.held();
         }
         boolean held = schemaVersionStore.isMigrationLockHeld();
@@ -87,6 +89,6 @@ public class SchemaMigrationInProgressFilter implements ContainerRequestFilter {
         return held;
     }
 
-    private record CacheEntry(boolean held, long checkedAtMillis) {
+    private record CacheEntry(boolean held, long checkedAtNanos) {
     }
 }

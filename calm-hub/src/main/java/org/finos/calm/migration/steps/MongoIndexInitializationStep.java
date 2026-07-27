@@ -90,6 +90,19 @@ public class MongoIndexInitializationStep implements SchemaMigrationStep {
     }
 
     /**
+     * Runs in test mode too, matching this step's pre-migration-framework behaviour of
+     * creating indexes on every single application startup, {@code @QuarkusTest} included.
+     * Safe unconditionally: {@link #createUniqueIndexes()} and {@link #createAuditIndexes()}
+     * each catch their own failures rather than throwing (see their javadoc), so a
+     * {@code @QuarkusTest} with a mocked, unstubbed {@code MongoDatabase} just logs a warning
+     * instead of failing that test's startup.
+     */
+    @Override
+    public boolean runInTestMode() {
+        return true;
+    }
+
+    /**
      * Checks the configured database mode and creates unique indexes only when
      * running against MongoDB.
      */

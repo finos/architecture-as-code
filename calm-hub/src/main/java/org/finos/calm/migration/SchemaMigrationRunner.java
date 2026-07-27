@@ -63,7 +63,18 @@ import java.util.function.LongConsumer;
  * with 503 until an administrator investigates and manually clears the {@code holder}
  * field on the {@code migrationLock} document. The application itself is still allowed
  * to finish starting (it just won't serve traffic), so it remains inspectable (logs,
- * health/metrics endpoints not gated by the filter, etc.) while stuck.
+ * health/metrics endpoints not gated by the filter, etc.) while stuck. The same "leave the
+ * lock alone, log, and let startup continue" handling applies if the store itself fails
+ * unexpectedly (e.g. checking the version or acquiring the lock) — {@link #onStart} never
+ * lets an exception escape and abort Quarkus startup.
+ *
+ * <h2>Test mode</h2>
+ * Under {@code @QuarkusTest} ({@code LaunchMode.TEST}), the lock/version-store machinery
+ * above is skipped entirely — most test classes don't back {@link SchemaVersionStore} with
+ * a store that supports it. Only steps that opt in via
+ * {@link SchemaMigrationStep#runInTestMode()} still run (e.g. {@link MongoIndexInitializationStep},
+ * matching its pre-migration-framework behaviour of creating indexes on every startup,
+ * including real-MongoDB {@code -P integration} tests, which are {@code @QuarkusTest}s too).
  */
 @ApplicationScoped
 public class SchemaMigrationRunner {
@@ -116,9 +127,47 @@ public class SchemaMigrationRunner {
 
     void onStart(@Observes StartupEvent ev) {
         if (LaunchMode.current() == LaunchMode.TEST) {
-            LOG.debug("Schema migration skipped in test mode");
+            runTestModeSteps();
             return;
         }
+        try {
+            runWithLock();
+        } catch (RuntimeException e) {
+            // Anything unexpected here — a store failure acquiring the lock, checking the
+            // version, or recording progress — leaves us unsure whether the lock is actually
+            // held, so (consistent with a failed migration step) we do not attempt to release
+            // it. Letting this propagate would abort Quarkus startup entirely; logging and
+            // continuing keeps the instance inspectable instead.
+            LOG.error("Unexpected failure while checking/running schema migrations — the application will "
+                    + "continue starting, but may be unable to serve requests until this is investigated.", e);
+        }
+    }
+
+    /**
+     * In test mode, the lock/version-store machinery is skipped entirely — most
+     * {@code @QuarkusTest} classes don't back {@link SchemaVersionStore} with a store that
+     * supports it (a mocked, unstubbed {@code MongoDatabase}/{@code Nitrite} would NPE). Only
+     * steps that opt in via {@link SchemaMigrationStep#runInTestMode()} still run, each
+     * defensively isolated so one step's test-mode failure can't affect another's.
+     *
+     * <p>Package-private (not {@code private}) so tests can exercise this directly — {@code
+     * onStart} itself only reaches this branch under a real {@code LaunchMode.TEST}, which
+     * plain unit tests constructing this class directly don't run under.</p>
+     */
+    void runTestModeSteps() {
+        for (SchemaMigrationStep step : stepsByFromVersion.values()) {
+            if (!step.runInTestMode()) {
+                continue;
+            }
+            try {
+                step.apply();
+            } catch (RuntimeException e) {
+                LOG.warn("Schema migration step {} failed in test mode (ignored)", step.getClass().getSimpleName(), e);
+            }
+        }
+    }
+
+    private void runWithLock() {
         if (schemaVersionStore.getSchemaVersion() >= latestSchemaVersion) {
             LOG.debug("Schema already at latest version {} — no migration lock needed", latestSchemaVersion);
             return;

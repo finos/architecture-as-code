@@ -118,6 +118,38 @@ class TestMongoSchemaVersionStoreShould {
     }
 
     @Test
+    void return_false_instead_of_throwing_when_the_retry_also_collides_on_duplicate_key() {
+        // Both attempts race a concurrent instance that keeps winning: the retry's filter
+        // (holder must be absent) no longer matches once a holder is set, so its own upsert
+        // attempts another insert with the same _id and collides again.
+        MongoWriteException duplicateKey = new MongoWriteException(
+                new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of());
+        MongoWriteException duplicateKeyOnRetry = new MongoWriteException(
+                new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of());
+        when(calmCollection.updateOne(ArgumentMatchers.any(Bson.class), ArgumentMatchers.any(Bson.class),
+                ArgumentMatchers.any(UpdateOptions.class)))
+                .thenThrow(duplicateKey)
+                .thenThrow(duplicateKeyOnRetry);
+
+        assertThat(store.acquireMigrationLock("instance-a"), is(false));
+    }
+
+    @Test
+    void rethrow_a_non_duplicate_key_write_exception_from_the_retry() {
+        MongoWriteException duplicateKey = new MongoWriteException(
+                new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of());
+        MongoWriteException otherOnRetry = new MongoWriteException(
+                new WriteError(2, "some other error", new BsonDocument()), new ServerAddress(), List.of());
+        when(calmCollection.updateOne(ArgumentMatchers.any(Bson.class), ArgumentMatchers.any(Bson.class),
+                ArgumentMatchers.any(UpdateOptions.class)))
+                .thenThrow(duplicateKey)
+                .thenThrow(otherOnRetry);
+
+        org.junit.jupiter.api.Assertions.assertThrows(MongoWriteException.class,
+                () -> store.acquireMigrationLock("instance-a"));
+    }
+
+    @Test
     void rethrow_non_duplicate_key_write_exceptions_when_acquiring_the_lock() {
         MongoWriteException other = new MongoWriteException(
                 new WriteError(2, "some other error", new BsonDocument()), new ServerAddress(), List.of());
