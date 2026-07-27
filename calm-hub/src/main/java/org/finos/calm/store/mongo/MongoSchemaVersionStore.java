@@ -62,7 +62,15 @@ public class MongoSchemaVersionStore implements SchemaVersionStore {
     public boolean acquireMigrationLock(String instanceId) {
         // acquiredAt is diagnostic only (so a human investigating a stuck lock can see how
         // long it's been held) — it plays no part in acquisition, which never expires on its own.
-        Bson filter = Filters.and(Filters.eq("_id", LOCK_DOCUMENT_ID), Filters.exists(HOLDER_FIELD, false));
+        //
+        // holder absent OR explicitly null both count as "unlocked" — matching isMigrationLockHeld's
+        // check — so a human manually recovering a stuck lock with `$set: {holder: null}` instead of
+        // `$unset` doesn't leave the lock permanently unacquirable (the $exists:false-only filter this
+        // used to have would never match a present-but-null holder, so acquisition would keep colliding
+        // on the document's _id and always fail, even though isMigrationLockHeld() correctly reported
+        // "not held").
+        Bson filter = Filters.and(Filters.eq("_id", LOCK_DOCUMENT_ID),
+                Filters.or(Filters.exists(HOLDER_FIELD, false), Filters.eq(HOLDER_FIELD, null)));
         Bson update = Updates.combine(
                 Updates.set(HOLDER_FIELD, instanceId),
                 Updates.set(ACQUIRED_AT_FIELD, new Date()));
@@ -99,7 +107,7 @@ public class MongoSchemaVersionStore implements SchemaVersionStore {
     public void releaseMigrationLock(String instanceId) {
         calmCollection.updateOne(
                 Filters.and(Filters.eq("_id", LOCK_DOCUMENT_ID), Filters.eq(HOLDER_FIELD, instanceId)),
-                Updates.unset(HOLDER_FIELD));
+                Updates.combine(Updates.unset(HOLDER_FIELD), Updates.unset(ACQUIRED_AT_FIELD)));
     }
 
     @Override

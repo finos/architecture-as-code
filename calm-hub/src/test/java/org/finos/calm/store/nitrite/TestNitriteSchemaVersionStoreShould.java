@@ -142,6 +142,7 @@ class TestNitriteSchemaVersionStoreShould {
         store.releaseMigrationLock("instance-a");
 
         verify(doc).put("holder", null);
+        verify(doc).put("acquiredAt", null);
         verify(mockCollection).update(doc);
     }
 

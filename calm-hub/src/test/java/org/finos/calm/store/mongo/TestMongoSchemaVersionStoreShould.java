@@ -103,6 +103,32 @@ class TestMongoSchemaVersionStoreShould {
     }
 
     @Test
+    void build_a_filter_that_treats_an_absent_or_a_null_holder_as_unlocked() {
+        // A human recovering a stuck lock might run `$set: {holder: null}` instead of `$unset` —
+        // acquisition must still succeed against a present-but-null holder, not just an absent one,
+        // or the lock becomes permanently unacquirable despite isMigrationLockHeld() correctly
+        // reporting it as not held.
+        UpdateResult result = mock(UpdateResult.class);
+        when(result.getModifiedCount()).thenReturn(1L);
+        when(result.getUpsertedId()).thenReturn(null);
+        when(calmCollection.updateOne(ArgumentMatchers.any(Bson.class), ArgumentMatchers.any(Bson.class),
+                ArgumentMatchers.any(UpdateOptions.class))).thenReturn(result);
+
+        store.acquireMigrationLock("instance-a");
+
+        verify(calmCollection).updateOne(
+                ArgumentMatchers.<Bson>argThat(filter -> {
+                    BsonDocument and = filter.toBsonDocument().getArray("$and").get(1).asDocument();
+                    return and.containsKey("$or")
+                            && and.getArray("$or").stream()
+                                    .anyMatch(clause -> clause.asDocument().containsKey("holder")
+                                            && clause.asDocument().get("holder").isNull());
+                }),
+                ArgumentMatchers.any(Bson.class),
+                ArgumentMatchers.any(UpdateOptions.class));
+    }
+
+    @Test
     void retry_once_after_losing_the_race_to_create_the_lock_document() {
         MongoWriteException duplicateKey = new MongoWriteException(
                 new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of());
@@ -169,7 +195,10 @@ class TestMongoSchemaVersionStoreShould {
                     BsonDocument and = filter.toBsonDocument().getArray("$and").get(1).asDocument();
                     return "instance-a".equals(and.getString("holder").getValue());
                 }),
-                ArgumentMatchers.<Bson>argThat(update -> update.toBsonDocument().getDocument("$unset").containsKey("holder")));
+                ArgumentMatchers.<Bson>argThat(update -> {
+                    BsonDocument unset = update.toBsonDocument().getDocument("$unset");
+                    return unset.containsKey("holder") && unset.containsKey("acquiredAt");
+                }));
     }
 
     @Test
@@ -186,6 +215,15 @@ class TestMongoSchemaVersionStoreShould {
         DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
         when(calmCollection.find(ArgumentMatchers.any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(new Document("_id", "migrationLock"));
+
+        assertThat(store.isMigrationLockHeld(), is(false));
+    }
+
+    @Test
+    void report_the_lock_as_not_held_when_the_holder_field_is_explicitly_null() {
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        when(calmCollection.find(ArgumentMatchers.any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(new Document("_id", "migrationLock").append("holder", null));
 
         assertThat(store.isMigrationLockHeld(), is(false));
     }

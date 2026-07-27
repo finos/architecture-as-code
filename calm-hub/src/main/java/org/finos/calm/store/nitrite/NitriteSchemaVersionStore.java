@@ -119,6 +119,7 @@ public class NitriteSchemaVersionStore implements SchemaVersionStore {
             Document doc = findDocument(LOCK_DOCUMENT_ID);
             if (doc != null && instanceId.equals(doc.get(HOLDER_FIELD, String.class))) {
                 doc.put(HOLDER_FIELD, null);
+                doc.put(ACQUIRED_AT_FIELD, null);
                 calmCollection.update(doc);
             }
         } finally {
