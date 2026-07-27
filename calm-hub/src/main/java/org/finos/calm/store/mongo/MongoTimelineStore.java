@@ -166,8 +166,6 @@ public class MongoTimelineStore implements TimelineStore {
 
                 // Return the timeline JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(timeline.getMongoVersion());
-                // Pre-existing bug: this used to log the entire versions map (every version's
-                // full content) rather than just the requested one — log identifying info only.
                 log.info("Version [{}] found: {}", timeline.getMongoVersion(), versionDoc != null);
                 if (versionDoc == null) {
                     throw new TimelineVersionNotFoundException();

@@ -168,8 +168,6 @@ public class MongoFlowStore implements FlowStore {
 
                 // Return the flow JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(flow.getMongoVersion());
-                // Pre-existing bug: this used to log the entire versions map (every version's
-                // full content) rather than just the requested one — log identifying info only.
                 log.info("Version [{}] found: {}", flow.getMongoVersion(), versionDoc != null);
                 if(versionDoc == null) {
                     throw new FlowVersionNotFoundException();

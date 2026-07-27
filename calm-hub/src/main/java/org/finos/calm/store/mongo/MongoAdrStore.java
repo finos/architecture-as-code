@@ -155,8 +155,6 @@ public class MongoAdrStore implements AdrStore {
 
         // Return the ADR JSON blob for the specified revision
         Document revisionDoc = (Document) revisionsDoc.get(String.valueOf(adrMeta.getRevision()));
-        // Pre-existing bug: this used to log the entire revisions map (every revision's full
-        // content) rather than just the requested one — log identifying info only.
         log.info("Revision [{}] found: {}", adrMeta.getRevision(), revisionDoc != null);
         if(revisionDoc == null) {
             throw new AdrRevisionNotFoundException();
@@ -251,8 +249,6 @@ public class MongoAdrStore implements AdrStore {
 
         // Return the ADR JSON blob for the specified revision
         Document revisionDoc = (Document) revisionsDoc.get(String.valueOf(latestRevision));
-        // Pre-existing bug: this used to log the full revision content rather than just
-        // identifying it — log the revision number only.
         log.info("Resolved latest revision: [{}]", latestRevision);
         try {
             return new AdrMeta.AdrMetaBuilder()

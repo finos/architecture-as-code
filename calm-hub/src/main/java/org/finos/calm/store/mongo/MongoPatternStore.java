@@ -183,8 +183,6 @@ public class MongoPatternStore implements PatternStore {
 
                 // Return the pattern JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(pattern.getMongoVersion());
-                // Pre-existing bug: this used to log the entire versions map (every version's
-                // full content) rather than just the requested one — log identifying info only.
                 log.info("Version [{}] found: {}", pattern.getMongoVersion(), versionDoc != null);
                 if(versionDoc == null) {
                     throw new PatternVersionNotFoundException();
