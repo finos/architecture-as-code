@@ -1,4 +1,4 @@
-package org.finos.calm.services;
+package org.finos.calm.migration.steps;
 
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -35,6 +35,11 @@ class TestNamespaceMigrationServiceShould {
     @BeforeEach
     void setUp() {
         service = new NamespaceMigrationService(mockNamespaceStore, mockUserAccessStore);
+    }
+
+    @Test
+    void report_one_as_its_from_version() {
+        assertThat(service.fromVersion(), is(1));
     }
 
     // --- backfillIfNeeded unit tests ---
@@ -111,7 +116,7 @@ class TestNamespaceMigrationServiceShould {
         assertFalse(result);
     }
 
-    // --- onStart integration of backfillIfNeeded ---
+    // --- apply() integration of backfillIfNeeded ---
 
     @Test
     void backfills_multiple_namespaces_on_startup() throws Exception {
@@ -122,7 +127,7 @@ class TestNamespaceMigrationServiceShould {
         when(mockUserAccessStore.getUserAccessForNamespace(any()))
                 .thenReturn(List.of());
 
-        service.onStart(null);
+        service.apply();
 
         verify(mockUserAccessStore, times(2)).createUserAccessForNamespace(any());
     }
@@ -133,7 +138,7 @@ class TestNamespaceMigrationServiceShould {
         when(mockNamespaceStore.getNamespaces()).thenReturn(List.of(new NamespaceInfo("org", "")));
         when(mockUserAccessStore.getUserAccessForNamespace("org")).thenReturn(List.of(existing));
 
-        service.onStart(null);
+        service.apply();
 
         verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
     }
@@ -146,8 +151,8 @@ class TestNamespaceMigrationServiceShould {
                 .thenReturn(List.of())
                 .thenReturn(List.of(new UserAccess("*", UserAccess.Permission.read, "org")));
 
-        service.onStart(null);
-        service.onStart(null);
+        service.apply();
+        service.apply();
 
         // Grant inserted exactly once across both runs
         verify(mockUserAccessStore, times(1)).createUserAccessForNamespace(any());

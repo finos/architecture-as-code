@@ -14,6 +14,7 @@ import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.DuplicateMappingException;
 import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.migration.steps.MongoIndexInitializer;
 import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

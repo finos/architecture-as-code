@@ -1,9 +1,8 @@
-package org.finos.calm.store.mongo;
+package org.finos.calm.migration.steps;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
-import io.quarkus.runtime.StartupEvent;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +10,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -21,12 +22,19 @@ class TestMongoIndexInitializerShould {
     private interface DocumentMongoCollection extends MongoCollection<Document> {}
 
     @Test
+    void report_zero_as_its_from_version() {
+        MongoIndexInitializer initializer = new MongoIndexInitializer(mock(MongoDatabase.class));
+
+        assertThat(initializer.fromVersion(), is(0));
+    }
+
+    @Test
     void skip_index_creation_when_database_mode_is_not_mongo() throws Exception {
         MongoDatabase mockDatabase = mock(MongoDatabase.class);
         MongoIndexInitializer initializer = new MongoIndexInitializer(mockDatabase);
         setDatabaseMode(initializer, "nitrite");
 
-        initializer.onStart(mock(StartupEvent.class));
+        initializer.apply();
 
         verifyNoInteractions(mockDatabase);
     }
@@ -42,7 +50,7 @@ class TestMongoIndexInitializerShould {
         MongoIndexInitializer initializer = new MongoIndexInitializer(mockDatabase);
         setDatabaseMode(initializer, "mongo");
 
-        initializer.onStart(mock(StartupEvent.class));
+        initializer.apply();
 
         // Top-level collections: namespaces, domains, schemas
         verify(mockDatabase).getCollection("namespaces");
@@ -71,7 +79,7 @@ class TestMongoIndexInitializerShould {
         MongoIndexInitializer initializer = new MongoIndexInitializer(mockDatabase);
         setDatabaseMode(initializer, "mongo");
 
-        initializer.onStart(mock(StartupEvent.class));
+        initializer.apply();
 
         verify(mockDatabase).getCollection("namespaces");
     }

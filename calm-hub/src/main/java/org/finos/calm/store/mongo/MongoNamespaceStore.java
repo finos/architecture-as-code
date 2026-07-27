@@ -14,6 +14,7 @@ import org.bson.Document;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
+import org.finos.calm.migration.steps.MongoIndexInitializer;
 import org.finos.calm.store.NamespaceStore;
 
 import java.util.ArrayList;

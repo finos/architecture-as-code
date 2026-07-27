@@ -1,13 +1,15 @@
-package org.finos.calm.store.mongo;
+package org.finos.calm.migration.steps;
 
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
 import io.quarkus.arc.lookup.LookupIfProperty;
-import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Observes;
 import org.bson.Document;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.migration.SchemaMigrationStep;
+import org.finos.calm.store.mongo.MongoArchitectureStore;
+import org.finos.calm.store.mongo.MongoDomainStore;
+import org.finos.calm.store.mongo.MongoNamespaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,10 +25,10 @@ import org.slf4j.LoggerFactory;
  * (e.g. {@code NamespaceAlreadyExistsException}).
  *
  * <h2>Lifecycle</h2>
- * This bean observes the Quarkus {@link io.quarkus.runtime.StartupEvent}, so indexes are
- * created (or confirmed) exactly once during application bootstrap. MongoDB's
- * {@code createIndex} is idempotent — if the index already exists with the same definition,
- * the call is a no-op.
+ * This is a {@link SchemaMigrationStep}, run once by
+ * {@code org.finos.calm.migration.SchemaMigrationRunner} as part of the version 0 → 1
+ * schema migration. MongoDB's {@code createIndex} is idempotent — if the index already
+ * exists with the same definition, the call is a no-op.
  *
  * <h2>Conditional execution</h2>
  * Index creation only runs when {@code calm.database.mode} is {@code "mongo"} (the default).
@@ -69,7 +71,7 @@ import org.slf4j.LoggerFactory;
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
-public class MongoIndexInitializer {
+public class MongoIndexInitializer implements SchemaMigrationStep {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoIndexInitializer.class);
 
@@ -82,12 +84,17 @@ public class MongoIndexInitializer {
         this.database = database;
     }
 
+    @Override
+    public int fromVersion() {
+        return 0;
+    }
+
     /**
-     * Quarkus lifecycle callback — invoked once during application startup.
      * Checks the configured database mode and creates unique indexes only when
      * running against MongoDB.
      */
-    void onStart(@Observes StartupEvent ev) {
+    @Override
+    public void apply() {
         if (!"mongo".equals(databaseMode)) {
             LOG.info("Skipping MongoDB index creation (database mode: {})", databaseMode);
             return;
