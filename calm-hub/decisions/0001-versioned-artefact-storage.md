@@ -65,10 +65,10 @@ done in-memory after loading the full array.
 ### Scope
 
 - **In scope**: Mongo store code (`store/mongo/`), Nitrite store code
-  (`store/nitrite/`), database initialization/seed scripts
-  (`MongoIndexInitializationStep`, `nitrite/init-nitrite.sh`,
-  `nitrite/seed-readonly.sh`), and a migration pathway for existing
-  production data in both backends.
+  (`store/nitrite/`), the `mongo/init-mongo.js` seed script (it hand-writes
+  documents in the storage shape, so it has to change with it), new
+  `SchemaMigrationStep`s, and a migration pathway for existing production
+  data in both backends.
 - **Out of scope**: the domain interfaces (`ArchitectureStore` etc. stay
   unchanged — REST/service layers untouched). Controls and Decorators are
   deliberately deferred, not addressed by this ADR — see
@@ -76,6 +76,13 @@ done in-memory after loading the full array.
   of scope for an unrelated reason: the `domains` collection isn't a
   versioned artefact at all, just a grouping mechanism, so it doesn't have
   the growth problem this ADR addresses.
+- **Also out of scope, for reasons worth stating** so nobody re-adds them:
+  the Nitrite seed scripts (`nitrite/init-nitrite.sh`,
+  `nitrite/seed-readonly.sh`) seed exclusively over the REST API against a
+  writable instance, so they follow the storage shape automatically and need
+  no changes (see *Migration and rollback*); and
+  `MongoIndexInitializationStep` cannot be touched at all, because a
+  committed migration step is immutable (same section).
 
 ### Shape: two collections per artefact type, one document per version
 
@@ -267,11 +274,23 @@ discriminator**:
   `{namespace: 1, <type>Id: 1, version: 1}` on `<type>Versions`, before
   fanning out the data. Dropping must tolerate the index already being
   absent, to preserve the idempotency `SchemaMigrationStep` asks for.
-- Read-only pre-seeded Nitrite images (`build-readonly-image.sh`,
-  `seed-readonly.sh`) bake the `.db` file at image-build time — the seed
-  scripts themselves need updating to produce the new shape directly, not
-  just a runtime migration path (there's no "runtime" for a read-only image
-  opened with `readOnly(true)`).
+- Read-only pre-seeded Nitrite images bake the `.db` file at image-build
+  time, and a database opened with `readOnly(true)` genuinely has no runtime
+  migration path. **Despite that, the seed scripts need no changes.**
+  `seed-readonly.sh` boots the real application in standalone *writable*
+  mode and then runs `init-nitrite.sh`, which populates it purely over
+  HTTP — there are no direct `.db` or database writes in either script. The
+  seeders therefore emit whatever shape the store layer writes at that
+  commit, with no knowledge of document shape and nothing to keep in step.
+  This also means there's no ordering constraint against the rest of the
+  migration: a partially-migrated codebase bakes an image consistent with
+  the code that will read it.
+- What *does* need checking for read-only images: the baked `.db` must
+  record the latest schema version, so that at runtime
+  `SchemaMigrationRunner` sees `version == latest` and skips acquiring the
+  migration lock rather than attempting a write against a read-only
+  database. The runner's javadoc states it already handles this case —
+  worth verifying against a built image, not designing for.
 - **Rollback story: database backup, not an additive/non-destructive
   migration with a burn-in period.** CalmHub is pre-1.0 — no public
   stability guarantee is broken by a migration that isn't reversible
