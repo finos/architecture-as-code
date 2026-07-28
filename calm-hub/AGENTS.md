@@ -594,6 +594,10 @@ trail in this iteration — read it via direct DB access or ops tooling.
 - `src/main/resources/application-secure.properties` - Secure (OIDC/Keycloak) profile config
 - `src/main/resources/application-proxy-auth.properties` - Proxy-auth profile config (proxy-injected `Remote-User` header)
 - `PERMISSIONS.md` - Per-namespace permission model reference
+- `decisions/` - Architecture Decision Records for calm-hub's own backend
+  design (not the CALM ADR resource type). See `decisions/README.md` for
+  the format; check each ADR's `Status` field before assuming it describes
+  current behaviour rather than a proposed/pending design.
 
 ## Dependencies on Other Packages
 
