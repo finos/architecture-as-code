@@ -84,13 +84,38 @@ shape but would be wrong under the new one).
 
 ### Nitrite
 
-Same two-collection shape and the same operation set. Whether the existing
-store-instance-wide `ReentrantReadWriteLock` (currently coarse: one lock
-per store, not per-namespace or per-resource) can be narrowed under the new
-shape is a real question — smaller, more numerous documents plausibly
-reduce lock hold times and contention — but it's a performance question,
-not a correctness one, and isn't resolved by this ADR. Left as a follow-up
-to revisit if profiling after implementation shows it matters.
+Same two-collection shape and the same operation set, but **uniqueness
+cannot be delegated to the database the way the Mongo helper delegates it
+to a unique index**. CalmHub creates no Nitrite indexes at all — checked
+across `store/nitrite/` and `config/`, there is not a single `createIndex`
+call, and `MongoIndexInitializationStep`'s javadoc says so outright: *"In
+standalone/Nitrite mode the indexes are irrelevant — Nitrite stores use
+`ReentrantLock` for concurrency control instead."*
+
+So `NitriteVersionDocumentStore` must perform its own
+check-then-write for duplicate rejection (does this
+`(namespace, resourceId, version)` already exist?) **inside** the store's
+existing write lock. That is genuinely safe here rather than a
+check-then-act race, because Nitrite is single-process embedded and the
+lock serialises every write to the store — unlike Mongo, where concurrent
+application instances share one database and only a DB-level constraint can
+arbitrate.
+
+The practical consequence is that the two helpers are not symmetric:
+`createVersion` on the Mongo side can insert optimistically and translate a
+`DUPLICATE_KEY` error, while the Nitrite side must look first. Both present
+the same result to callers.
+
+Whether the existing store-instance-wide `ReentrantReadWriteLock`
+(currently coarse: one lock per store, not per-namespace or per-resource)
+can be narrowed under the new shape is a separate, still-open question —
+smaller, more numerous documents plausibly reduce lock hold times and
+contention — but it's a performance question, not a correctness one, and
+isn't resolved by this ADR. Note that narrowing it would interact with the
+check-then-write above: any narrower lock must still serialise writes to
+the same `(namespace, resourceId, version)`, or uniqueness stops holding.
+Left as a follow-up to revisit if profiling after implementation shows it
+matters.
 
 ## Consequences
 

@@ -38,14 +38,36 @@ dead code once no store uses version as a map key.
   replace, or double-converting) across all 7 versioned stores.
 - Simplifies every store: no encode-on-write/decode-on-read step, and the
   field value handed to Mongo queries is the same string the API received.
-- The version-comparison logic in `VersionKeySelector.latestVersionKey()`
-  (currently splitting on `"-"`) needs to split on `"."` instead, or be
-  made separator-agnostic if any transitional dash-encoded data must still
-  be read (see migration note below).
+- **`VersionKeySelector` needs no change at all** — neither a switch to
+  `"."` nor a separator-agnostic rewrite, both of which an earlier draft of
+  this ADR called for. Its two methods turn out to have completely disjoint
+  callers:
+  - `latestVersionKey()` — the only separator-sensitive part (it splits on
+    `"-"`) — is called **only** by `MongoControlStore` and
+    `NitriteControlStore`. Control deliberately keeps the old shape and its
+    dash-encoded keys (see
+    [ADR 0004](0004-defer-control-and-decorator-storage.md)), so this method
+    must be **left alone**: "fixing" it to split on `"."` would break the
+    one thing still using it. It retires with Control, whenever that's
+    redesigned.
+  - `versionCount()` is called by the migrating types
+    (Architecture/Pattern/Flow/Standard, both backends) and **never parses
+    separators** — it is just `keys.size()`. Those call sites disappear as
+    each type migrates, because `versionCount` becomes a stored field on the
+    header (ADR 0001). Once Control is the only caller left of the class,
+    `versionCount()` has none and can be deleted.
+  - Ordering versions in the new shape is therefore **new code alongside**,
+    not a modification or a fork of this class — nothing that parses `"-"`
+    is used by a migrating type, and nothing a migrating type uses cares
+    about the separator.
 - **Migration cost**: the `SchemaMigrationStep` that fans out old
   documents into new version documents (ADR 0001) must convert each dash
   key to dot form during the fan-out (`"1-0-0".replace('-', '.')`) —
-  trivial, one-time, contained entirely within that migration step. No
-  ongoing dual-format handling is needed once migration has run, since
-  CalmHub's rollback story (ADR 0001) is backup-based rather than
-  additive/dual-write.
+  trivial, one-time, contained entirely within that migration step.
+- Dash-encoded keys do **not** disappear from the database entirely — the
+  `controls` collection keeps them for as long as Control keeps the old
+  shape (ADR 0004). What this ADR removes is any *shared* code path having
+  to handle both formats: dot-separated keys live in the new
+  `<type>Versions` collections read by the new helper, dash-encoded keys
+  live in `controls` read by `MongoControlStore`/`NitriteControlStore`, and
+  the two never meet.
