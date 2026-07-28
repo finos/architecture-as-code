@@ -7,13 +7,9 @@
 ## Context
 
 ADR 0001 gives each of the 7 versioned types a header collection (reusing
-the existing collection name) plus a new `<type>Versions` collection. Per
-ADR 0001's "no shared base class" convention (each of the 8 existing stores
-duplicates read/write/version logic independently today), the new shape
-needs equivalent code reuse via a shared *helper*, not shared storage or
-inheritance — the same pattern as the existing `MongoUpsertPush`
-(push+upsert-with-duplicate-retry) and `MongoResourceSlice` (`$slice`
-pagination) static helpers.
+the existing collection name) plus a new `<type>Versions` collection. Each
+of the 8 existing stores hand-rolls its own read/write/version logic, so the
+new shape needs somewhere for that logic to live once.
 
 Looked at the current implementation in detail —
 `MongoArchitectureStore`/`NitriteArchitectureStore` plus both existing
@@ -24,10 +20,10 @@ exists), and force-write a version (upsert regardless).
 
 ## Decision
 
-Two helper classes, mirroring the existing per-backend split (no shared
-base class across backends): `MongoVersionDocumentStore` and a Nitrite
-counterpart. Each exposes the primitive operations every store needs
-against its `(header collection, version collection)` pair:
+Two helper classes that each store **composes**, one per backend:
+`MongoVersionDocumentStore` and `NitriteVersionDocumentStore`. Each exposes
+the primitive operations every store needs against its
+`(header collection, version collection)` pair:
 
 - `headerExists(namespace, resourceId) -> boolean`
 - `createHeader(namespace, resourceId, name, description)`
@@ -38,6 +34,33 @@ against its `(header collection, version collection)` pair:
 - `getVersion(namespace, resourceId, version) -> content or not-found`
 - `listVersions(namespace, resourceId) -> List<String>`
 - `listSummariesPaged(namespace, page) -> List<NamespaceResourceSummary>`
+
+### Why composition rather than a shared base class
+
+Not simply because the codebase has no base class today — it doesn't, but
+what it has instead is duplication, which is no argument for anything. The
+reason is that a base class can't actually express what these stores have
+in common:
+
+- **Every store implements a different interface, with differently-named
+  methods and different checked exception types.**
+  `ArchitectureStore.getArchitectureVersions` throws
+  `ArchitectureNotFoundException`; `PatternStore.getPatternVersions` throws
+  `PatternNotFoundException`. A shared superclass method can't declare the
+  right exception per subclass without generic exception parameters plus a
+  per-type exception factory to construct them — more machinery than the
+  one-line delegation it would replace, and it still wouldn't unify the
+  method names the interfaces demand.
+- **Two backends mean two hierarchies.** Mongo and Nitrite share no storage
+  API, so a base class helps within a backend at best, and the
+  cross-backend duplication (the part actually worth removing) stays.
+- **The stores are CDI beans** selected by `@LookupIfProperty` and narrowed
+  with `@Typed`. Keeping them plain implementors of their interface, each
+  holding a helper, avoids entangling that wiring with an inheritance chain.
+
+Composition also keeps the seam honest: the helper knows about documents and
+collections, the store knows about domain objects and exceptions, and
+neither leaks into the other.
 
 ### Two of the three existing shared helpers retire
 
