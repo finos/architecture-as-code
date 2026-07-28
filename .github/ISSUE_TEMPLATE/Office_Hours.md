@@ -2,7 +2,7 @@
 name: 🏢 Architecture as Code Office Hours
 about: Track Office Hours meetings
 type: Meeting
-labels: meeting, office-hours
+labels: office-hours
 ---
 
 ## Date
