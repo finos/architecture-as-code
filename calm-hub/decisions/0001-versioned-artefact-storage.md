@@ -205,15 +205,21 @@ The full architecture JSON now lives in `content`; the header no longer
 holds a `versions` field at all once migration has run.
 
 **Why reuse the existing collection name instead of `architectureHeaders`
-etc.**: it turns the migration into "add one new collection, then shrink
-the existing documents in place" (extract each `versions` entry into
-`architectureVersions`, then `$unset` the `versions` field from the
-`architectures` doc) rather than "create two new collections, backfill
-both, drop the old one" — smaller, lower-risk migration, and every existing
-index/ops reference to the collection name stays valid throughout. Accepted
-tradeoff: `architectures` no longer holds full content post-migration, just
-headers — mildly misleading to anyone running a raw
+etc.**: only one new collection has to be introduced (`architectureVersions`)
+rather than two, and every existing index/ops reference to `architectures`
+stays valid throughout — no cutover to a differently-named collection.
+Accepted tradeoff: `architectures` no longer holds full content
+post-migration, just headers — mildly misleading to anyone running a raw
 `db.architectures.findOne()` without knowing about this ADR.
+
+Note this is **not** an in-place shrink of each existing document. The
+old-shape document is one per *namespace* holding an **array** of
+architectures, each with its own embedded `versions` map — so the migration
+is a genuine **1 → N fan-out**: one namespace document becomes N header
+documents (one per architecture) plus M version documents, and the original
+namespace document is replaced rather than edited down. Reusing the
+collection name is about avoiding a second new collection and keeping the
+name stable, not about making the rewrite smaller.
 
 **Why per-type collections instead of a single shared
 `versionedArtifactHeaders`/`versionedArtifacts` pair with a `resourceType`
@@ -239,9 +245,28 @@ discriminator**:
   mechanism (`SchemaVersionStore` + `SchemaMigrationRunner` +
   `SchemaMigrationStep`, both backends, with a distributed lock) — what's
   needed is a `SchemaMigrationStep` implementation that does the
-  old-shape → new-shape fan-out: read every old-shape namespace document,
-  write it out as version documents + a header doc, verify no version data
-  lost/reordered.
+  old-shape → new-shape fan-out: read every old-shape namespace document
+  and, for each entry in its resource array, write one header document plus
+  one version document per entry in that resource's `versions` map, then
+  verify no version data was lost or reordered.
+- **A new step per resource type, never an edit to an existing one.** A
+  committed `SchemaMigrationStep` is immutable: `SchemaMigrationRunner`
+  records the schema version in `SchemaVersionStore` and runs each step
+  once, so a deployment already past version N never re-runs step N.
+  Editing a shipped step would therefore change behaviour only on *fresh*
+  deployments, silently diverging them from existing ones with nothing to
+  catch it.
+- **Each new step must also transition its collection's indexes.**
+  `MongoIndexInitializationStep` created a unique index on `namespace`
+  *alone* for every entity collection — that enforces exactly one document
+  per namespace, which is the old shape and directly contradicts the header
+  collection's one-document-per-`(namespace, resourceId)`. Since that step
+  is immutable (above), each per-type migration step drops the old
+  `{namespace: 1}` unique index on its own collection and creates
+  `{namespace: 1, <type>Id: 1}` on the header collection and
+  `{namespace: 1, <type>Id: 1, version: 1}` on `<type>Versions`, before
+  fanning out the data. Dropping must tolerate the index already being
+  absent, to preserve the idempotency `SchemaMigrationStep` asks for.
 - Read-only pre-seeded Nitrite images (`build-readonly-image.sh`,
   `seed-readonly.sh`) bake the `.db` file at image-build time — the seed
   scripts themselves need updating to produce the new shape directly, not
