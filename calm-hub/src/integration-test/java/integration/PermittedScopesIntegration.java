@@ -54,7 +54,7 @@ public class PermittedScopesIntegration {
                 );
             }
 
-            // Guard on the specific grant, not collection existence: MongoIndexInitializer's
+            // Guard on the specific grant, not collection existence: MongoIndexInitializationStep's
             // startup index creation on userAccess implicitly creates the (empty) collection
             // before this ever runs, so "does the collection exist" is never a useful check here.
             boolean grantExists = database.getCollection("userAccess").find(Filters.and(

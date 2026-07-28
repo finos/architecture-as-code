@@ -74,7 +74,7 @@ canWrite(username, namespace):
 | `NitriteUserAccessStore` | Nitrite implementation of `getGrantsForUser` |
 | `UserAccessValidator` | `getReadableNamespaces(username)` — exact ancestor-chain filter used by search |
 | `NamespaceService` | Orchestrates namespace creation + automatic `* read` grant insertion |
-| `NamespaceMigrationService` | StartupEvent observer; backfills `* read` grants on pre-existing namespaces |
+| `NamespaceAccessBackfillStep` | Schema migration step; backfills `* read` grants on pre-existing namespaces |
 
 ---
 

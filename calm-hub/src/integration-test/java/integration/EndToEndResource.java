@@ -1,6 +1,10 @@
 package integration;
 
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.finos.calm.migration.steps.MongoIndexInitializationStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.MongoDBContainer;
@@ -24,6 +28,18 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
         String connectionString = mongoDBContainer.getReplicaSetUrl();
         logger.info("MongoDB container started at {}", connectionString);
         String databaseName = connectionString.substring(connectionString.lastIndexOf("/")+1);
+
+        // MongoIndexInitializationStep no longer runs itself under @QuarkusTest (LaunchMode.TEST
+        // can't distinguish "real Mongo, via this container" from "no Mongo at all", which is
+        // the common case for the rest of the test suite) — so integration tests that rely on
+        // unique-index enforcement (duplicate-key rejection etc.) need it created here, against
+        // the real container, before the Quarkus application under test even starts.
+        try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+            MongoDatabase database = mongoClient.getDatabase(databaseName);
+            new MongoIndexInitializationStep(database).createIndexes();
+            logger.info("Ensured MongoDB indexes for integration tests");
+        }
+
         return Map.of(
                 "quarkus.mongodb.connection-string", connectionString,
                 "quarkus.mongodb.database", databaseName
@@ -35,4 +51,3 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
         mongoDBContainer.stop();
     }
 }
-

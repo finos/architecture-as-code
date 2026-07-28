@@ -36,7 +36,6 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * {@code (namespace, customId)} throws a {@link MongoWriteException} with
  * {@link ErrorCategory#DUPLICATE_KEY}, which is translated to {@link DuplicateMappingException}.
  *
- * @see MongoIndexInitializer
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
