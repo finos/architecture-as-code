@@ -14,7 +14,7 @@ here is how the code works today.
 
 | ADR | Title | Status |
 |---|---|---|
-| [0001](0001-versioned-artifact-storage.md) | Versioned artifact storage redesign | Proposed |
+| [0001](0001-versioned-artefact-storage.md) | Versioned artefact storage redesign | Proposed |
 | [0002](0002-version-key-encoding.md) | Version field encoding — dots, not dashes | Proposed |
 | [0003](0003-shared-version-store-helper.md) | Shared header/version store helper | Proposed |
 | [0004](0004-defer-control-and-decorator-storage.md) | Defer Control and Decorator storage redesign | Accepted |

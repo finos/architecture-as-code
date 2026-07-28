@@ -1,4 +1,4 @@
-# ADR 0001: Versioned artifact storage redesign
+# ADR 0001: Versioned artefact storage redesign
 
 **Status**: Proposed — not yet implemented. Tracked in
 [#2884](https://github.com/finos/architecture-as-code/issues/2884).

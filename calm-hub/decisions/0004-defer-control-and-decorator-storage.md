@@ -23,7 +23,7 @@ an explicit, deliberate sequencing decision rather than a silent gap.
 ## Decision
 
 Defer designing a storage approach for Controls and Decorators. Implement
-[ADR 0001](0001-versioned-artifact-storage.md),
+[ADR 0001](0001-versioned-artefact-storage.md),
 [ADR 0002](0002-version-key-encoding.md), and
 [ADR 0003](0003-shared-version-store-helper.md) first — the 7-type
 versioned redesign, version-key encoding, and shared helper — and only

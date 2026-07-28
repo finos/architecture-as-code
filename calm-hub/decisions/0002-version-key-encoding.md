@@ -1,7 +1,7 @@
 # ADR 0002: Version field encoding — dots, not dashes
 
 **Status**: Proposed — not yet implemented. Depends on
-[ADR 0001](0001-versioned-artifact-storage.md).
+[ADR 0001](0001-versioned-artefact-storage.md).
 
 ## Context
 

@@ -1,7 +1,7 @@
 # ADR 0003: Shared header/version store helper
 
 **Status**: Proposed — not yet implemented. Depends on
-[ADR 0001](0001-versioned-artifact-storage.md) and
+[ADR 0001](0001-versioned-artefact-storage.md) and
 [ADR 0002](0002-version-key-encoding.md).
 
 ## Context
