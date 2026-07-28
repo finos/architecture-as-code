@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useMigrationError } from './use-migration-store.js';
 import { migrationStore } from './migration-store.js';
 
@@ -25,14 +25,16 @@ describe('useMigrationError', () => {
         expect(result.current).toBe('migrating');
     });
 
-    it('stops updating after unmount', () => {
-        const { result, unmount } = renderHook(() => useMigrationError());
+    it('unsubscribes from the store on unmount', () => {
+        const unsubscribe = vi.fn();
+        const subscribeSpy = vi.spyOn(migrationStore, 'subscribe').mockReturnValue(unsubscribe);
+
+        const { unmount } = renderHook(() => useMigrationError());
+        expect(unsubscribe).not.toHaveBeenCalled();
+
         unmount();
 
-        act(() => {
-            migrationStore.setMigrationError('migrating');
-        });
-
-        expect(result.current).toBeNull();
+        expect(unsubscribe).toHaveBeenCalledTimes(1);
+        subscribeSpy.mockRestore();
     });
 });

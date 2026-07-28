@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAuthError } from './use-auth-store.js';
 import { authStore } from './auth-store.js';
 
@@ -25,14 +25,16 @@ describe('useAuthError', () => {
         expect(result.current).toBe(403);
     });
 
-    it('stops updating after unmount', () => {
-        const { result, unmount } = renderHook(() => useAuthError());
+    it('unsubscribes from the store on unmount', () => {
+        const unsubscribe = vi.fn();
+        const subscribeSpy = vi.spyOn(authStore, 'subscribe').mockReturnValue(unsubscribe);
+
+        const { unmount } = renderHook(() => useAuthError());
+        expect(unsubscribe).not.toHaveBeenCalled();
+
         unmount();
 
-        act(() => {
-            authStore.setAuthError(401);
-        });
-
-        expect(result.current).toBeNull();
+        expect(unsubscribe).toHaveBeenCalledTimes(1);
+        subscribeSpy.mockRestore();
     });
 });
