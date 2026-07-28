@@ -170,33 +170,6 @@ class TestSchemaMigrationRunnerShould {
     }
 
     @Test
-    void only_run_steps_that_opt_into_test_mode() {
-        when(mongoIndexInitializer.runInTestMode()).thenReturn(true);
-        when(namespaceMigrationService.runInTestMode()).thenReturn(false);
-        SchemaMigrationRunner runner = newRunner(List.of(mongoIndexInitializer, namespaceMigrationService));
-
-        runner.runTestModeSteps();
-
-        verify(mongoIndexInitializer).apply();
-        verify(namespaceMigrationService, never()).apply();
-        verify(schemaVersionStore, never()).acquireMigrationLock(anyString());
-        verify(schemaVersionStore, never()).getSchemaVersion();
-        verify(schemaVersionStore, never()).setSchemaVersion(anyInt());
-    }
-
-    @Test
-    void isolate_a_test_mode_step_failure_from_other_test_mode_steps() {
-        when(mongoIndexInitializer.runInTestMode()).thenReturn(true);
-        when(namespaceMigrationService.runInTestMode()).thenReturn(true);
-        doThrow(new RuntimeException("boom")).when(mongoIndexInitializer).apply();
-        SchemaMigrationRunner runner = newRunner(List.of(mongoIndexInitializer, namespaceMigrationService));
-
-        runner.runTestModeSteps();
-
-        verify(namespaceMigrationService).apply();
-    }
-
-    @Test
     void not_let_an_unexpected_store_failure_escape_onStart_or_release_the_lock() {
         when(schemaVersionStore.getSchemaVersion()).thenThrow(new RuntimeException("Mongo unavailable"));
         SchemaMigrationRunner runner = newRunner(List.of(mongoIndexInitializer, namespaceMigrationService));

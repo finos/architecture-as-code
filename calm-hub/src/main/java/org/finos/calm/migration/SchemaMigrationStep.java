@@ -34,20 +34,4 @@ public interface SchemaMigrationStep {
      * this step, so it will be retried next startup.
      */
     void apply();
-
-    /**
-     * Whether {@link SchemaMigrationRunner} should still run this step under
-     * {@code @QuarkusTest} (i.e. {@code LaunchMode.TEST}), where the runner otherwise skips
-     * everything — including its own lock/version-store calls, since most test classes don't
-     * back {@code SchemaVersionStore} with a real or fully-stubbed store.
-     *
-     * <p>Defaults to {@code false}. Only override to {@code true} if {@link #apply()} is
-     * safe to run unconditionally against whatever backend a {@code @QuarkusTest} happens to
-     * wire up — in particular, it must swallow its own failures rather than throwing, since a
-     * step run this way is invoked directly, outside the runner's normal try/catch around
-     * {@link #apply()}.</p>
-     */
-    default boolean runInTestMode() {
-        return false;
-    }
 }

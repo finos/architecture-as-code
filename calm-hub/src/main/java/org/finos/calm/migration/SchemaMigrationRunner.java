@@ -69,12 +69,17 @@ import java.util.function.LongConsumer;
  * lets an exception escape and abort Quarkus startup.
  *
  * <h2>Test mode</h2>
- * Under {@code @QuarkusTest} ({@code LaunchMode.TEST}), the lock/version-store machinery
- * above is skipped entirely — most test classes don't back {@link SchemaVersionStore} with
- * a store that supports it. Only steps that opt in via
- * {@link SchemaMigrationStep#runInTestMode()} still run (e.g. {@link MongoIndexInitializationStep},
- * matching its pre-migration-framework behaviour of creating indexes on every startup,
- * including real-MongoDB {@code -P integration} tests, which are {@code @QuarkusTest}s too).
+ * Under {@code @QuarkusTest} ({@code LaunchMode.TEST}), this runner is a no-op — most test
+ * classes don't back {@link SchemaVersionStore} with a store that supports the lock/version
+ * machinery (a mocked, unstubbed {@code MongoDatabase}/{@code Nitrite} would fail on first
+ * real use), and {@code LaunchMode.TEST} can't distinguish those from the real-MongoDB
+ * {@code -P integration} tests that could support it. Steps that genuinely need to run
+ * against a real backend in an integration test (e.g. {@link MongoIndexInitializationStep}
+ * creating the unique indexes {@code MongoDomainIntegration} and similar depend on) are
+ * applied directly by that test's own setup instead — see
+ * {@code src/integration-test/java/integration/EndToEndResource.java}, which has a genuine,
+ * live container to run them against before this runner (or anything else in the app) even
+ * starts.
  */
 @ApplicationScoped
 public class SchemaMigrationRunner {
@@ -127,7 +132,7 @@ public class SchemaMigrationRunner {
 
     void onStart(@Observes StartupEvent ev) {
         if (LaunchMode.current() == LaunchMode.TEST) {
-            runTestModeSteps();
+            LOG.debug("Schema migration skipped in test mode");
             return;
         }
         try {
@@ -140,30 +145,6 @@ public class SchemaMigrationRunner {
             // continuing keeps the instance inspectable instead.
             LOG.error("Unexpected failure while checking/running schema migrations — the application will "
                     + "continue starting, but may be unable to serve requests until this is investigated.", e);
-        }
-    }
-
-    /**
-     * In test mode, the lock/version-store machinery is skipped entirely — most
-     * {@code @QuarkusTest} classes don't back {@link SchemaVersionStore} with a store that
-     * supports it (a mocked, unstubbed {@code MongoDatabase}/{@code Nitrite} would NPE). Only
-     * steps that opt in via {@link SchemaMigrationStep#runInTestMode()} still run, each
-     * defensively isolated so one step's test-mode failure can't affect another's.
-     *
-     * <p>Package-private (not {@code private}) so tests can exercise this directly — {@code
-     * onStart} itself only reaches this branch under a real {@code LaunchMode.TEST}, which
-     * plain unit tests constructing this class directly don't run under.</p>
-     */
-    void runTestModeSteps() {
-        for (SchemaMigrationStep step : stepsByFromVersion.values()) {
-            if (!step.runInTestMode()) {
-                continue;
-            }
-            try {
-                step.apply();
-            } catch (RuntimeException e) {
-                LOG.warn("Schema migration step {} failed in test mode (ignored)", step.getClass().getSimpleName(), e);
-            }
         }
     }
 

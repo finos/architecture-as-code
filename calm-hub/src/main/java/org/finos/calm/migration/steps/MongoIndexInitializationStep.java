@@ -13,8 +13,6 @@ import org.finos.calm.store.mongo.MongoNamespaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * Creates unique indexes on MongoDB collections at application startup to enforce data integrity
  * and prevent duplicate entries caused by concurrent POST requests.
@@ -62,16 +60,23 @@ import java.util.concurrent.TimeUnit;
  * </ul>
  *
  * <h2>Failure behaviour</h2>
- * If index creation fails (e.g. MongoDB is unreachable or the user lacks permissions),
- * the exception is caught and logged as a warning. The application will continue to start
- * but will <em>not</em> have duplicate-prevention guarantees until the indexes are created
- * (manually or on the next successful startup). Because this step also runs under
- * {@code @QuarkusTest} (see {@link #runInTestMode()}), every operation on {@link #database} is
- * scoped to a short client-side operation timeout ({@link #OPERATION_TIMEOUT_SECONDS}) rather
- * than the driver's 30-second default — otherwise, in a test environment with no real MongoDB
- * available, a single {@code createIndex} call blocking for the full default would turn into
- * many minutes added to application startup (one per collection whose index attempt is the
- * first to touch an unreachable server).
+ * If index creation fails (e.g. MongoDB is unreachable, the operation times out, or the user
+ * lacks permissions), the exception is <em>not</em> caught here — it propagates out of
+ * {@link #apply()} to {@code SchemaMigrationRunner}, which is what actually decides what
+ * "failed" means for a migration step (see that class's javadoc): the schema version isn't
+ * advanced and the migration lock is left held, so this step is retried on the next startup
+ * instead of the migration being silently marked successful with indexes that were never
+ * created. Swallowing the exception here would mean that a single transient failure could
+ * permanently and silently disable duplicate-prevention for a deployment's entire lifetime,
+ * since {@code fromVersion() == 0} only ever runs once.
+ *
+ * <h2>Not run under {@code @QuarkusTest}</h2>
+ * This step does not run in test mode (see {@code SchemaMigrationRunner}'s javadoc on why
+ * {@code LaunchMode.TEST} can't be used to decide that here). The handful of real-MongoDB
+ * {@code -P integration} tests that need these indexes to exist (e.g. {@code MongoDomainIntegration}
+ * testing duplicate-key rejection) call {@link #createIndexes()} directly against their own
+ * TestContainers-provisioned database, before the Quarkus application under test even starts
+ * — see {@code src/integration-test/java/integration/EndToEndResource.java}.
  *
  * @see MongoNamespaceStore
  * @see MongoDomainStore
@@ -83,33 +88,18 @@ public class MongoIndexInitializationStep implements SchemaMigrationStep {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoIndexInitializationStep.class);
 
-    private static final int OPERATION_TIMEOUT_SECONDS = 3;
-
     private final MongoDatabase database;
 
     @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
     String databaseMode;
 
     public MongoIndexInitializationStep(MongoDatabase database) {
-        this.database = database.withTimeout(OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        this.database = database;
     }
 
     @Override
     public int fromVersion() {
         return 0;
-    }
-
-    /**
-     * Runs in test mode too, matching this step's pre-migration-framework behaviour of
-     * creating indexes on every single application startup, {@code @QuarkusTest} included.
-     * Safe unconditionally: {@link #createUniqueIndexes()} and {@link #createAuditIndexes()}
-     * each catch their own failures rather than throwing (see their javadoc), so a
-     * {@code @QuarkusTest} with a mocked, unstubbed {@code MongoDatabase} just logs a warning
-     * instead of failing that test's startup.
-     */
-    @Override
-    public boolean runInTestMode() {
-        return true;
     }
 
     /**
@@ -122,6 +112,16 @@ public class MongoIndexInitializationStep implements SchemaMigrationStep {
             LOG.info("Skipping MongoDB index creation (database mode: {})", databaseMode);
             return;
         }
+        createIndexes();
+    }
+
+    /**
+     * Creates every index this step manages, unconditionally — no {@code databaseMode} check.
+     * Public (unlike the two methods it delegates to) specifically so integration-test
+     * infrastructure with a known-real MongoDB container can call it directly, without needing
+     * to fake the CDI-injected {@link #databaseMode} field the way {@link #apply()} requires.
+     */
+    public void createIndexes() {
         createUniqueIndexes();
         createAuditIndexes();
     }
@@ -139,62 +139,60 @@ public class MongoIndexInitializationStep implements SchemaMigrationStep {
      *   <li><b>Domain-scoped collection</b> (controls) — ensure exactly one document per
      *       domain, following the same nested-array pattern.</li>
      * </ol>
+     * Throws (rather than catching internally) on the first failure — see the class javadoc's
+     * "Failure behaviour" section for why.
      */
     private void createUniqueIndexes() {
         IndexOptions uniqueIndex = new IndexOptions().unique(true);
 
-        try {
-            // Top-level entity collections — prevent duplicate names/versions
-            database.getCollection("namespaces")
-                    .createIndex(new Document("name", 1), uniqueIndex);
-            LOG.info("Ensured unique index on namespaces.name");
+        // Top-level entity collections — prevent duplicate names/versions
+        database.getCollection("namespaces")
+                .createIndex(new Document("name", 1), uniqueIndex);
+        LOG.info("Ensured unique index on namespaces.name");
 
-            database.getCollection("domains")
-                    .createIndex(new Document("name", 1), uniqueIndex);
-            LOG.info("Ensured unique index on domains.name");
+        database.getCollection("domains")
+                .createIndex(new Document("name", 1), uniqueIndex);
+        LOG.info("Ensured unique index on domains.name");
 
-            database.getCollection("schemas")
-                    .createIndex(new Document("version", 1), uniqueIndex);
-            LOG.info("Ensured unique index on schemas.version");
+        database.getCollection("schemas")
+                .createIndex(new Document("version", 1), uniqueIndex);
+        LOG.info("Ensured unique index on schemas.version");
 
-            // Namespace-scoped collections — one document per namespace
-            for (String collection : new String[]{"architectures", "patterns", "flows", "timelines", "standards", "interfaces", "adrs", "decorators"}) {
-                database.getCollection(collection)
-                        .createIndex(new Document("namespace", 1), uniqueIndex);
-                LOG.info("Ensured unique index on {}.namespace", collection);
-            }
-
-            // Domain-scoped collection — one document per domain
-            database.getCollection("controls")
-                    .createIndex(new Document("domain", 1), uniqueIndex);
-            LOG.info("Ensured unique index on controls.domain");
-
-            // Resource mappings — unique (namespace, customId) and reverse lookup index
-            database.getCollection("resource_mappings")
-                    .createIndex(new Document("namespace", 1).append("customId", 1), uniqueIndex);
-            LOG.info("Ensured unique index on resource_mappings.(namespace, customId)");
-
-            database.getCollection("resource_mappings")
-                    .createIndex(new Document("namespace", 1).append("resourceType", 1).append("numericId", 1));
-            LOG.info("Ensured index on resource_mappings.(namespace, resourceType, numericId)");
-
-            // userAccess grants — partial unique indexes so identical concurrent grants dedupe.
-            // Two partials (not one compound index) because namespace-scoped and domain-scoped
-            // grant documents don't share a discriminating field.
-            database.getCollection("userAccess").createIndex(
-                    new Document("username", 1).append("namespace", 1).append("permission", 1),
-                    new IndexOptions().unique(true)
-                            .partialFilterExpression(new Document("namespace", new Document("$exists", true))));
-            LOG.info("Ensured unique partial index on userAccess.(username, namespace, permission)");
-
-            database.getCollection("userAccess").createIndex(
-                    new Document("username", 1).append("domain", 1).append("permission", 1),
-                    new IndexOptions().unique(true)
-                            .partialFilterExpression(new Document("domain", new Document("$exists", true))));
-            LOG.info("Ensured unique partial index on userAccess.(username, domain, permission)");
-        } catch (Exception e) {
-            LOG.warn("Failed to create MongoDB indexes — indexes may already exist or MongoDB is unavailable", e);
+        // Namespace-scoped collections — one document per namespace
+        for (String collection : new String[]{"architectures", "patterns", "flows", "timelines", "standards", "interfaces", "adrs", "decorators"}) {
+            database.getCollection(collection)
+                    .createIndex(new Document("namespace", 1), uniqueIndex);
+            LOG.info("Ensured unique index on {}.namespace", collection);
         }
+
+        // Domain-scoped collection — one document per domain
+        database.getCollection("controls")
+                .createIndex(new Document("domain", 1), uniqueIndex);
+        LOG.info("Ensured unique index on controls.domain");
+
+        // Resource mappings — unique (namespace, customId) and reverse lookup index
+        database.getCollection("resource_mappings")
+                .createIndex(new Document("namespace", 1).append("customId", 1), uniqueIndex);
+        LOG.info("Ensured unique index on resource_mappings.(namespace, customId)");
+
+        database.getCollection("resource_mappings")
+                .createIndex(new Document("namespace", 1).append("resourceType", 1).append("numericId", 1));
+        LOG.info("Ensured index on resource_mappings.(namespace, resourceType, numericId)");
+
+        // userAccess grants — partial unique indexes so identical concurrent grants dedupe.
+        // Two partials (not one compound index) because namespace-scoped and domain-scoped
+        // grant documents don't share a discriminating field.
+        database.getCollection("userAccess").createIndex(
+                new Document("username", 1).append("namespace", 1).append("permission", 1),
+                new IndexOptions().unique(true)
+                        .partialFilterExpression(new Document("namespace", new Document("$exists", true))));
+        LOG.info("Ensured unique partial index on userAccess.(username, namespace, permission)");
+
+        database.getCollection("userAccess").createIndex(
+                new Document("username", 1).append("domain", 1).append("permission", 1),
+                new IndexOptions().unique(true)
+                        .partialFilterExpression(new Document("domain", new Document("$exists", true))));
+        LOG.info("Ensured unique partial index on userAccess.(username, domain, permission)");
     }
 
     /**
@@ -204,28 +202,26 @@ public class MongoIndexInitializationStep implements SchemaMigrationStep {
      * audit trail is append-only and every record is independent, so there is no
      * duplicate-prevention concern here. These indexes only support efficient lookups
      * for {@link org.finos.calm.store.AuditLogStore}'s internal {@code query()} method.
+     * Throws (rather than catching internally) on the first failure — see the class javadoc's
+     * "Failure behaviour" section for why.
      */
     private void createAuditIndexes() {
-        try {
-            database.getCollection("auditLogs")
-                    .createIndex(new Document("namespace", 1).append("entityType", 1)
-                            .append("entityId", 1).append("timestamp", -1));
-            LOG.info("Ensured index on auditLogs.(namespace, entityType, entityId, timestamp)");
+        database.getCollection("auditLogs")
+                .createIndex(new Document("namespace", 1).append("entityType", 1)
+                        .append("entityId", 1).append("timestamp", -1));
+        LOG.info("Ensured index on auditLogs.(namespace, entityType, entityId, timestamp)");
 
-            database.getCollection("auditLogs")
-                    .createIndex(new Document("domain", 1).append("entityType", 1)
-                            .append("entityId", 1).append("timestamp", -1));
-            LOG.info("Ensured index on auditLogs.(domain, entityType, entityId, timestamp)");
+        database.getCollection("auditLogs")
+                .createIndex(new Document("domain", 1).append("entityType", 1)
+                        .append("entityId", 1).append("timestamp", -1));
+        LOG.info("Ensured index on auditLogs.(domain, entityType, entityId, timestamp)");
 
-            database.getCollection("auditLogs")
-                    .createIndex(new Document("actor", 1).append("timestamp", -1));
-            LOG.info("Ensured index on auditLogs.(actor, timestamp)");
+        database.getCollection("auditLogs")
+                .createIndex(new Document("actor", 1).append("timestamp", -1));
+        LOG.info("Ensured index on auditLogs.(actor, timestamp)");
 
-            database.getCollection("auditLogs")
-                    .createIndex(new Document("timestamp", -1));
-            LOG.info("Ensured index on auditLogs.timestamp");
-        } catch (Exception e) {
-            LOG.warn("Failed to create MongoDB audit indexes — indexes may already exist or MongoDB is unavailable", e);
-        }
+        database.getCollection("auditLogs")
+                .createIndex(new Document("timestamp", -1));
+        LOG.info("Ensured index on auditLogs.timestamp");
     }
 }
