@@ -26,7 +26,7 @@ export function MigrationErrorModal() {
                 </div>
             </div>
             <form method="dialog" className="modal-backdrop">
-                <button onClick={handleClose}>close</button>
+                <button type="button" onClick={handleClose}>close</button>
             </form>
         </dialog>
     );
