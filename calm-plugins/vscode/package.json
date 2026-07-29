@@ -1,214 +1,136 @@
 {
-    "name": "calm-vscode-plugin",
-    "displayName": "CALM Tools",
-    "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.7.0",
-    "publisher": "FINOS",
-    "homepage": "https://calm.finos.org",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/finos/architecture-as-code.git"
-    },
-    "engines": {
-        "vscode": "^1.88.0"
-    },
-    "categories": [
-        "Programming Languages",
-        "Visualization"
-    ],
-    "keywords": [
-        "calm",
-        "architecture-as-code",
-        "architecture",
-        "modeling",
-        "documentation",
-        "finos"
-    ],
-    "icon": "media/icon.png",
-    "main": "dist/extension.js",
-    "activationEvents": [
-        "onStartupFinished"
-    ],
-    "contributes": {
-        "commands": [
-            {
-                "command": "calm.openPreview",
-                "title": "CALM: Open Preview"
-            },
-            {
-                "command": "calm.searchTreeView",
-                "title": "Search Model Elements",
-                "icon": "$(search)"
-            },
-            {
-                "command": "calm.clearTreeViewSearch",
-                "title": "Clear Search",
-                "icon": "$(clear-all)"
-            },
-            {
-                "command": "calm.createWebsite",
-                "title": "CALM: Create Documentation Website"
-            }
-        ],
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "calm",
-                    "title": "CALM",
-                    "icon": "media/icon.png"
-                }
-            ]
-        },
-        "views": {
-            "calm": [
-                {
-                    "id": "calmSidebar",
-                    "name": "Model Elements",
-                    "canSelectMany": false,
-                    "visibility": "visible"
-                }
-            ]
-        },
-        "configuration": {
-            "title": "CALM",
-            "properties": {
-                "calm.cli.path": {
-                    "type": "string",
-                    "default": "./cli",
-                    "markdownDescription": "Path to the CALM CLI entry. If not available, the extension will fall back to internal validation."
-                },
-                "calm.files.globs": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "default": [
-                        "calm/**/*.json",
-                        "calm/**/*.y?(a)ml"
-                    ],
-                    "markdownDescription": "Glob patterns for CALM model files in the workspace."
-                },
-                "calm.template.globs": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "default": [
-                        "**/*.md",
-                        "**/*.markdown",
-                        "**/*.hbs",
-                        "**/*.handlebars"
-                    ],
-                    "markdownDescription": "Glob patterns for template files that may reference CALM architecture files."
-                },
-                "calm.docify.theme": {
-                    "type": "string",
-                    "enum": [
-                        "light",
-                        "dark",
-                        "high-contrast-light",
-                        "high-contrast-dark",
-                        "auto"
-                    ],
-                    "default": "auto",
-                    "description": "Default theme for CALM diagrams."
-                },
-                "calm.preview.layout": {
-                    "type": "string",
-                    "enum": [
-                        "dagre",
-                        "elk"
-                    ],
-                    "default": "elk",
-                    "markdownDescription": "Mermaid layout engine for architecture diagrams. **ELK** provides better automatic layout for complex diagrams with improved edge routing."
-                },
-                "calm.urlMapping": {
-                    "type": "string",
-                    "description": "Path to a JSON file mapping URLs to local file paths for detailed-architecture navigation.",
-                    "default": ""
-                },
-                "calm.schemas.additionalFolders": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "default": [],
-                    "markdownDescription": "Additional folders containing CALM schemas for validation. Useful for schema developers testing local schema changes. Paths are relative to the workspace root."
-                }
-            }
-        },
-        "keybindings": [
-            {
-                "command": "calm.openPreview",
-                "key": "ctrl+shift+c",
-                "mac": "cmd+shift+c",
-                "when": "editorTextFocus"
-            }
-        ],
-        "menus": {
-            "view/title": [
-                {
-                    "command": "calm.searchTreeView",
-                    "when": "view == calmSidebar",
-                    "group": "navigation"
-                },
-                {
-                    "command": "calm.clearTreeViewSearch",
-                    "when": "view == calmSidebar",
-                    "group": "navigation"
-                }
-            ],
-            "editor/context": [
-                {
-                    "command": "calm.openPreview",
-                    "group": "navigation@9"
-                },
-                {
-                    "command": "calm.createWebsite",
-                    "group": "navigation@10"
-                }
-            ]
+  "name": "calm-vscode-plugin",
+  "displayName": "CALM Canvas",
+  "description": "Visual architecture editor for CALM models using ReactFlow",
+  "version": "1.0.0",
+  "publisher": "FINOS",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/finos/architecture-as-code.git",
+    "directory": "calm-plugins/vscode"
+  },
+  "engines": {
+    "vscode": "^1.88.0"
+  },
+  "icon": "media/icon.png",
+  "categories": [
+    "Programming Languages",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/*.calm.json",
+    "workspaceContains:**/*.architecture.json",
+    "workspaceContains:**/*.template.json",
+    "workspaceContains:**/*.solution.json",
+    "workspaceContains:**/*.standard.json",
+    "workspaceContains:**/*.guideline.json"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "calm.openCanvas",
+        "title": "View in CALM Canvas",
+        "category": "CALM",
+        "icon": {
+          "light": "media/calm-canvas.svg",
+          "dark": "media/calm-canvas.svg"
         }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "calm.openCanvas",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "resourceFilename =~ /\\.(calm|architecture|template|solution|standard|guideline)\\.json$/"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "calm.openCanvas",
+          "when": "resourceFilename =~ /\\.(calm|architecture|template|solution|standard|guideline)\\.json$/",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "calm.openCanvas",
+          "when": "resourceFilename =~ /\\.(calm|architecture|template|solution|standard|guideline)\\.json$/",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "calm.openCanvas",
+          "when": "resourceFilename =~ /\\.(calm|architecture|template|solution|standard|guideline)\\.json$/",
+          "group": "navigation"
+        }
+      ]
     },
-    "scripts": {
-        "build": "tsup",
-        "postbuild": "node ./scripts/copy-calm-assets.js && copyfiles \"../../calm/release/**/meta/*\" \"../../calm/draft/**/meta/*\" dist/calm/ --up 3",
-        "watch": "tsup --watch",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "test:coverage": "vitest run --coverage",
-        "test:integration:compile": "tsc -p test/integration",
-        "test:integration": "npm run build && npm run test:integration:compile && node ./out/integration/runTest.js",
-        "lint": "eslint src",
-        "lint-fix": "eslint src --fix",
-        "package": "npm run build && npx @vscode/vsce package --no-dependencies",
-        "vscode:prepublish": "npm run build"
-    },
-    "devDependencies": {
-        "@types/markdown-it": "^14.1.2",
-        "@types/mocha": "^10.0.6",
-        "@types/svg-pan-zoom": "^3.3.0",
-        "@types/vscode": "^1.88.0",
-        "@vscode/dts": "^0.4.1",
-        "@vscode/test-electron": "^2.3.9",
-        "@vscode/vsce": "^3.7.1",
-        "copyfiles": "^2.4.1",
-        "eslint-plugin-import": "^2.32.0",
-        "glob": "^10.3.10",
-        "mocha": "^10.2.0",
-        "tsup": "^8.4.0"
-    },
-    "dependencies": {
-        "@finos/calm-models": "file:../../calm-models",
-        "@finos/calm-shared": "file:../../shared",
-        "@mermaid-js/layout-elk": "^0.2.0",
-        "elkjs": "^0.11.0",
-        "jsdom": "^26.1.0",
-        "lodash": "^4.18.1",
-        "markdown-it": "^14.1.1",
-        "mermaid": "^11.15.0",
-        "svg-pan-zoom": "^3.6.2",
-        "yaml": "^2.8.3",
-        "zustand": "^5.0.8"
+    "configuration": {
+      "title": "CALM Canvas",
+      "properties": {
+        "calm.externalAssetsPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to an external folder containing shared `nodes/`, `standards/`, `patterns/`, and `templates/` folders."
+        },
+        "calm.packs.enabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "List of extension pack IDs to show in the palette (e.g. `[\"aws\", \"k8s\"]`). Leave empty to show all packs. Available packs: `core`, `fluxnova`, `ai`, `aws`, `gcp`, `azure`, `k8s`, `messaging`, `identity`, `opengris`."
+        },
+        "calm.packs.excludeNodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "List of node type IDs to hide from the palette (e.g. `[\"core:ldap\", \"aws:s3\"]`). Use the `packId:nodeType` format."
+        }
+      }
     }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs && npx vite build --config vite.webview.config.ts",
+    "build:extension": "node esbuild.mjs",
+    "build:webview": "npx vite build --config vite.webview.config.ts",
+    "watch": "node esbuild.mjs --watch",
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@finos/calm-models": "file:../../calm-models",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "reactflow": "^11.11.4",
+    "html-to-image": "1.11.13",
+    "yaml": "^2.7.0",
+    "@dagrejs/dagre": "^1.1.4",
+    "elkjs": "^0.9.0",
+    "zustand": "^5.0.0",
+    "lucide-react": "^0.577.0",
+    "ajv": "^8.17.0",
+    "ajv-formats": "^3.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "tailwindcss": "^4.1.0",
+    "esbuild": "^0.25.0",
+    "@types/vscode": "^1.88.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.0",
+    "@vscode/vsce": "^3.0.0"
+  }
 }
