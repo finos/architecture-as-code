@@ -29,6 +29,7 @@
 #   GET    /api/calm/namespaces/workshop/architectures       -> 200 + body contains "name","description"
 #   GET    /api/calm/namespaces/finos.traderx/architectures  -> 200 + body contains "name"
 #   GET    /api/calm/namespaces/finos.fluxnova/architectures -> 200 + body contains all six "FluxNova: *" names
+#   GET    /calm/namespaces/finos.fluxnova/architectures/fluxnova-platform/versions/1.0.0 -> 200 (slug mapping)
 #   Conference Signup Pattern: versions list contains "1.0.0" and "2.0.0" (uses jq)
 #   GET    /calm/search?q=conference                        -> 200 + body contains "architectures","Conference Signup Pattern"
 #   POST   /api/calm/namespaces                             -> 405  (blocked by ReadOnlyRequestFilter)
@@ -152,14 +153,36 @@ if [[ "${MODE}" == "readonly" ]]; then
     assert GET /api/calm/namespaces/finos.traderx/architectures 200
     assert_body_contains GET /api/calm/namespaces/finos.traderx/architectures '"name"'
 
-    # finos.fluxnova — all six FluxNova example architectures must be present
-    assert GET /api/calm/namespaces/finos.fluxnova/architectures 200
-    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: Platform"'
-    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: Microservices Orchestration"'
-    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: KYC Onboarding"'
-    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: Post-Trade Settlement"'
-    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: Flash Risk Management"'
-    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: AI Agent Orchestration"'
+    # finos.fluxnova — all six FluxNova example architectures must be present.
+    # Fetched once (status + body in a single request) and asserted against the
+    # captured body, rather than one curl per assertion.
+    fluxnova_response=$(curl -s -w '\n%{http_code}' "${BASE_URL}/api/calm/namespaces/finos.fluxnova/architectures")
+    fluxnova_code=${fluxnova_response##*$'\n'}
+    fluxnova_body=${fluxnova_response%$'\n'*}
+    if [[ "${fluxnova_code}" == "200" ]]; then
+        echo "[smoke] OK   GET /api/calm/namespaces/finos.fluxnova/architectures -> ${fluxnova_code}"
+    else
+        echo "[smoke] FAIL GET /api/calm/namespaces/finos.fluxnova/architectures -> ${fluxnova_code} (expected 200)" >&2
+        exit 1
+    fi
+    for fluxnova_name in \
+        "FluxNova: Platform" \
+        "FluxNova: Microservices Orchestration" \
+        "FluxNova: KYC Onboarding" \
+        "FluxNova: Post-Trade Settlement" \
+        "FluxNova: Flash Risk Management" \
+        "FluxNova: AI Agent Orchestration"; do
+        if [[ "${fluxnova_body}" == *"\"${fluxnova_name}\""* ]]; then
+            echo "[smoke] OK   GET /api/calm/namespaces/finos.fluxnova/architectures body contains '\"${fluxnova_name}\"'"
+        else
+            echo "[smoke] FAIL GET /api/calm/namespaces/finos.fluxnova/architectures body missing '\"${fluxnova_name}\"' -> ${fluxnova_body}" >&2
+            exit 1
+        fi
+    done
+
+    # Slug mappings must be baked into the read-only image (the fluxnova seeds go
+    # through the name-based API): resolve one architecture by its customId.
+    assert GET /calm/namespaces/finos.fluxnova/architectures/fluxnova-platform/versions/1.0.0 200
 
     # Conference Signup Pattern must have both v1.0.0 (always seeded) and v2.0.0
     # (only seeds when post_pattern_version sends the correct {name,patternJson} envelope).

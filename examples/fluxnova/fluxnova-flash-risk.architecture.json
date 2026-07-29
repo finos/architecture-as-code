@@ -20,8 +20,13 @@
           "description": "All risk calculation dispatches, results, and exceptions are recorded in an immutable audit log",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All risk calculation dispatches, results, and exceptions are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
             }
           ]
         }
@@ -103,8 +108,13 @@
           "description": "Risk computation results are classified Confidential — position data, P&L, and risk factors must not leave the secure perimeter",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Risk computation results are classified Confidential — position data, P&L, and risk factors must not leave the secure perimeter",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+              }
             }
           ]
         }
@@ -128,8 +138,13 @@
           "description": "Cloud risk computations handle Confidential position data — encryption in transit and at rest is mandatory",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Cloud risk computations handle Confidential position data — encryption in transit and at rest is mandatory",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+              }
             }
           ]
         },
@@ -137,8 +152,13 @@
           "description": "All position data sent to cloud compute is encrypted in transit using TLS 1.3 minimum",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#cloud-encryption",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#cloud-encryption/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All position data sent to cloud compute is encrypted in transit using TLS 1.3 minimum",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#cloud-encryption"
+              }
             }
           ]
         }

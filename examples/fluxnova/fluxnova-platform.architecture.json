@@ -20,8 +20,13 @@
           "description": "All process execution events, variable changes, and task assignments are recorded in an immutable audit log",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All process execution events, variable changes, and task assignments are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
             }
           ]
         }
@@ -113,8 +118,13 @@
           "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              }
             }
           ]
         }

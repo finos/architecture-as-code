@@ -20,8 +20,13 @@
           "description": "All settlement process events, trade state transitions, and regulatory submissions are recorded in an immutable audit log",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All settlement process events, trade state transitions, and regulatory submissions are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
             }
           ]
         }
@@ -102,8 +107,13 @@
           "description": "All counterparty communications use mTLS to authenticate both parties and encrypt trade confirmation data",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#counterparty-auth",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#counterparty-auth/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All counterparty communications use mTLS to authenticate both parties and encrypt trade confirmation data",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#counterparty-auth"
+              }
             }
           ]
         },
@@ -111,8 +121,13 @@
           "description": "All inbound and outbound counterparty messages are logged with timestamps for regulatory audit trails",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All inbound and outbound counterparty messages are logged with timestamps for regulatory audit trails",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
             }
           ]
         }
@@ -135,8 +150,13 @@
           "description": "Clearing house connectivity uses leased line or dedicated VPN with TLS for trade submission integrity",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#ccp-connectivity",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#ccp-connectivity/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Clearing house connectivity uses leased line or dedicated VPN with TLS for trade submission integrity",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#ccp-connectivity"
+              }
             }
           ]
         }
@@ -159,8 +179,13 @@
           "description": "All trade reports are validated against ESMA and CFTC schemas before submission; submission receipts are archived for 7 years",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/regulatory-reporting",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/regulatory-reporting/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-regulatory-compliance",
+                "name": "Regulatory Compliance",
+                "description": "All trade reports are validated against ESMA and CFTC schemas before submission; submission receipts are archived for 7 years",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/regulatory-reporting"
+              }
             }
           ]
         }
@@ -183,8 +208,13 @@
           "description": "All connections to the settlement database use TLS-encrypted JDBC",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All connections to the settlement database use TLS-encrypted JDBC",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              }
             }
           ]
         }

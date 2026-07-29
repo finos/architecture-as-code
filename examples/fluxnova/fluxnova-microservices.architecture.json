@@ -20,8 +20,13 @@
           "description": "All worker task assignments, completions, and failures are recorded in an immutable audit log for payment traceability",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All worker task assignments, completions, and failures are recorded in an immutable audit log for payment traceability",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
             }
           ]
         }
@@ -154,8 +159,13 @@
           "description": "All external client connections terminate TLS at the API gateway — internal traffic uses mTLS on the service mesh",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/security#api-gateway",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/security#api-gateway/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All external client connections terminate TLS at the API gateway — internal traffic uses mTLS on the service mesh",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#api-gateway"
+              }
             }
           ]
         }

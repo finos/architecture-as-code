@@ -20,8 +20,13 @@
           "description": "All AI agent task dispatches, LLM calls, guardrail verdicts, and tool invocations are recorded in an immutable audit log",
           "requirements": [
             {
-              "requirement-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log",
-              "config-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All AI agent task dispatches, LLM calls, guardrail verdicts, and tool invocations are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
             }
           ]
         }
@@ -102,8 +107,13 @@
           "description": "AI agent operates with least-privilege tool access — only tools explicitly granted per process definition are callable",
           "requirements": [
             {
-              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-18",
-              "config-url": "https://air-governance-framework.finos.org/mitigations/mi-18/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-agent-least-privilege",
+                "name": "Agent Least Privilege",
+                "description": "AI agent operates with least-privilege tool access — only tools explicitly granted per process definition are callable",
+                "reference-url": "https://air-governance-framework.finos.org/mitigations/mi-18"
+              }
             }
           ]
         }
@@ -119,8 +129,13 @@
           "description": "LLM model version is pinned to a specific checkpoint — no automatic model upgrades without governance review and regression testing",
           "requirements": [
             {
-              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-10",
-              "config-url": "https://air-governance-framework.finos.org/mitigations/mi-10/config.json"
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-model-version-pinning",
+                "name": "Model Version Pinning",
+                "description": "LLM model version is pinned to a specific checkpoint — no automatic model upgrades without governance review and regression testing",
+                "reference-url": "https://air-governance-framework.finos.org/mitigations/mi-10"
+              }
             }
           ]
         }
