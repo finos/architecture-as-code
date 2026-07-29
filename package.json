@@ -82,6 +82,7 @@
     "overrides": {
         "@babel/plugin-transform-modules-systemjs": "^7.29.4",
         "@docusaurus/plugin-content-docs": "3.10.1",
+        "@hono/node-server": "^2.0.5",
         "@types/node": "^26",
         "axios": "^1.15.2",
         "brace-expansion@^1.0.0": "^1.1.16",
