@@ -1,6 +1,9 @@
 # ADR 0003: Shared header/version store helper
 
-**Status**: Proposed — not yet implemented. Depends on
+**Status**: Accepted — partially implemented. The helpers themselves exist
+(`MongoVersionDocumentStore`, `NitriteVersionDocumentStore`,
+`SemanticVersionOrder`), but no store calls them yet, so nothing in running
+CALM Hub uses this design. Depends on
 [ADR 0001](0001-versioned-artefact-storage.md) and
 [ADR 0002](0002-version-key-encoding.md).
 

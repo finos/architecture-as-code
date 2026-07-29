@@ -1,6 +1,7 @@
 # ADR 0001: Versioned artefact storage redesign
 
-**Status**: Proposed — not yet implemented. Tracked in
+**Status**: Accepted — not yet implemented. No store uses this shape yet, so
+this describes the target design rather than current behaviour. Tracked in
 [#2884](https://github.com/finos/architecture-as-code/issues/2884).
 
 ## Context
