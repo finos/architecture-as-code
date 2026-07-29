@@ -6288,7 +6288,7 @@ if (db.adrs.countDocuments() === 0) {
                                 rationale: 'A dedicated load balancer provides health checking and automatic failover which are critical for ensuring availability during peak conference registration periods.',
                             },
                             links: [
-                                { rel: 'Conference Signup Architecture', href: '/calm/namespaces/workshop/architectures/1/versions/1-0-0' },
+                                { rel: 'Conference Signup Architecture', href: '/calm/namespaces/workshop/architectures/2/versions/1-0-0' },
                             ],
                         },
                     },
@@ -6416,7 +6416,7 @@ if (db.decorators.countDocuments() === 0) {
                         "unique-id": "workshop-conference-deployment",
                         "type": "deployment",
                         "target": [
-                            "/calm/namespaces/workshop/architectures/1/versions/1-0-0"
+                            "/calm/namespaces/workshop/architectures/2/versions/1-0-0"
                         ],
                         "target-type": [
                             "architecture"
@@ -6441,7 +6441,7 @@ if (db.decorators.countDocuments() === 0) {
                         "unique-id": "workshop-conference-monitoring",
                         "type": "observability",
                         "target": [
-                            "/calm/namespaces/workshop/architectures/1/versions/1-0-0"
+                            "/calm/namespaces/workshop/architectures/2/versions/1-0-0"
                         ],
                         "target-type": [
                             "architecture"
