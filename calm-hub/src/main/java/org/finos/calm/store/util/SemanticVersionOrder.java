@@ -1,10 +1,11 @@
 package org.finos.calm.store.util;
 
+import org.finos.calm.domain.Semver;
+
 import java.util.Comparator;
 
 /**
- * Orders dot-separated version strings ({@code "1.0.0"}) numerically by
- * major, then minor, then patch.
+ * Orders version strings numerically by major, then minor, then patch.
  *
  * <h2>Why not a plain string sort</h2>
  * Lexicographic ordering puts {@code "1.10.0"} before {@code "1.9.0"}, which is
@@ -13,24 +14,32 @@ import java.util.Comparator;
  * impose one — this is it.
  *
  * <h2>Why this is not {@link VersionKeySelector}</h2>
- * {@code VersionKeySelector.latestVersionKey} parses the <em>dash</em>-encoded
- * keys ({@code "1-0-0"}) used by the pre-redesign document shape, where the
- * version was a Mongo field name and therefore couldn't contain {@code '.'}.
- * Its only remaining callers are the Control stores, which deliberately keep
- * that shape, so it must keep parsing dashes. This class is the dot-separated
- * equivalent for the new shape — deliberately separate, so neither has to
- * handle both formats. See {@code calm-hub/decisions/0002-version-key-encoding.md}.
+ * {@code VersionKeySelector.latestVersionKey} exists to pick a single winner out
+ * of the dash-encoded {@code versions} <em>map</em> used by the pre-redesign
+ * document shape. Its only remaining callers are the Control stores, which
+ * deliberately keep that shape, so it is left alone. This class is the ordering
+ * for the new one-document-per-version shape, where version is a field value.
+ * See {@code calm-hub/decisions/0002-version-key-encoding.md}.
+ *
+ * <h2>Separators</h2>
+ * Parsing is delegated to {@link Semver#tryParse}, so both the canonical
+ * dot-separated form and the dash-encoded form order identically. ADR 0002 has
+ * the new {@code <type>Versions} collections storing dots only, so dashes should
+ * never reach here — but {@code VERSION_REGEX} accepts either from the API, and a
+ * comparator silently demoting {@code "1-10-0"} to {@code 0.0.0} would be a
+ * confusing way to find that out. Accepting both costs nothing and keeps this
+ * consistent with every other version comparison in the codebase, all of which
+ * already go through {@code Semver}.
  *
  * <h2>Malformed input</h2>
- * A version that isn't three numeric segments sorts as {@code 0.0.0} rather than
- * throwing, matching {@link VersionKeySelector}'s existing leniency — stored data
- * predating validation shouldn't make a listing endpoint fail. Ties (including
- * between two malformed values) fall back to a plain string comparison so the
- * order is always total and therefore stable.
+ * A version that isn't three numeric segments — including {@code null} — sorts as
+ * {@code 0.0.0} rather than throwing: stored data predating validation shouldn't
+ * make a listing endpoint fail, and {@code listVersions} reads the version field
+ * straight out of a document, so an absent field arrives here as {@code null}.
+ * Ties (including between two malformed values) fall back to a plain string
+ * comparison so the order is always total and therefore stable.
  */
 public final class SemanticVersionOrder {
-
-    private static final int SEGMENTS = 3;
 
     /** Ascending: {@code 1.0.0}, {@code 1.9.0}, {@code 1.10.0}, {@code 2.0.0}. */
     public static final Comparator<String> ASCENDING = SemanticVersionOrder::compare;
@@ -39,37 +48,22 @@ public final class SemanticVersionOrder {
     }
 
     private static int compare(String left, String right) {
-        int[] leftParts = parse(left);
-        int[] rightParts = parse(right);
-        for (int i = 0; i < SEGMENTS; i++) {
-            int comparison = Integer.compare(leftParts[i], rightParts[i]);
-            if (comparison != 0) {
-                return comparison;
-            }
+        String leftVersion = orEmpty(left);
+        String rightVersion = orEmpty(right);
+        int comparison = Semver.tryParse(leftVersion).compareTo(Semver.tryParse(rightVersion));
+        if (comparison != 0) {
+            return comparison;
         }
         // Total-order tiebreak so equal-ranking values (e.g. two unparseable
         // strings, both 0.0.0) still sort deterministically.
-        return left.compareTo(right);
+        return leftVersion.compareTo(rightVersion);
     }
 
     /**
-     * Splits a version into its three numeric segments. Compares segment by segment
-     * rather than packing them into a single integer, so a large major/minor/patch
-     * can't overflow into the neighbouring segment's range.
+     * Maps {@code null} onto a value {@link Semver#tryParse} treats as malformed, so a
+     * missing version field sorts with the other unparseable values instead of throwing.
      */
-    private static int[] parse(String version) {
-        int[] parts = new int[SEGMENTS];
-        String[] segments = version.split("\\.");
-        if (segments.length != SEGMENTS) {
-            return parts;
-        }
-        for (int i = 0; i < SEGMENTS; i++) {
-            try {
-                parts[i] = Integer.parseInt(segments[i]);
-            } catch (NumberFormatException e) {
-                return new int[SEGMENTS];
-            }
-        }
-        return parts;
+    private static String orEmpty(String version) {
+        return version == null ? "" : version;
     }
 }

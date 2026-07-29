@@ -3,6 +3,7 @@ package org.finos.calm.store.util;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -11,8 +12,10 @@ import static org.hamcrest.Matchers.is;
 
 class TestSemanticVersionOrderShould {
 
+    // Arrays.asList rather than List.of: the latter rejects null elements, and a null
+    // version is one of the malformed inputs this comparator has to survive.
     private static List<String> sorted(String... versions) {
-        List<String> sorted = new ArrayList<>(List.of(versions));
+        List<String> sorted = new ArrayList<>(Arrays.asList(versions));
         sorted.sort(SemanticVersionOrder.ASCENDING);
         return sorted;
     }
@@ -42,6 +45,23 @@ class TestSemanticVersionOrderShould {
         // would let a big patch number overflow into the minor version's range.
         assertThat(sorted("1.1.0", "1.0.999999"),
                 contains("1.0.999999", "1.1.0"));
+    }
+
+    @Test
+    void order_dash_encoded_versions_numerically_too() {
+        // VERSION_REGEX accepts dashes from the API, so they can reach a store even though
+        // ADR 0002 has the new collections storing dots. Treating "1-10-0" as malformed
+        // would silently sort it below every real version.
+        assertThat(sorted("1-10-0", "1-9-0", "1-2-0"),
+                contains("1-2-0", "1-9-0", "1-10-0"));
+    }
+
+    @Test
+    void rank_the_two_separators_as_the_same_version() {
+        // Same version, two spellings: they must rank equally rather than one being
+        // demoted to 0.0.0. Only the string tiebreak then separates them.
+        assertThat(sorted("1.0.0", "2-0-0", "1-0-0", "2.0.0"),
+                contains("1-0-0", "1.0.0", "2-0-0", "2.0.0"));
     }
 
     @Test
@@ -80,5 +100,18 @@ class TestSemanticVersionOrderShould {
     @Test
     void treat_identical_versions_as_equal() {
         assertThat(SemanticVersionOrder.ASCENDING.compare("1.2.3", "1.2.3"), is(0));
+    }
+
+    @Test
+    void sort_a_null_version_first_rather_than_throwing() {
+        // listVersions reads the version field straight out of a stored document, so a
+        // document missing that field arrives here as null. One malformed row must not
+        // fail the whole listing.
+        assertThat(sorted("1.0.0", null), contains(null, "1.0.0"));
+    }
+
+    @Test
+    void treat_two_null_versions_as_equal() {
+        assertThat(SemanticVersionOrder.ASCENDING.compare(null, null), is(0));
     }
 }
