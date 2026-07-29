@@ -20,7 +20,7 @@
 #
 # Readonly mode assertions (curated hosted-hub dataset):
 #   GET    /api/calm/namespaces                              -> 200  (reads work)
-#   GET    /api/calm/namespaces                              body contains "finos.calm","finos.traderx","workshop"
+#   GET    /api/calm/namespaces                              body contains "finos.calm","finos.traderx","workshop","finos.fluxnova"
 #   GET    /api/calm/namespaces/finos.calm/standards         -> 200 + body contains "name"
 #   GET    /api/calm/namespaces/finos.calm/interfaces        -> 200 + body contains "name"
 #   GET    /api/calm/domains/counts                          -> 200 + body contains "controlCount","finos-ai-governance"
@@ -28,6 +28,7 @@
 #   GET    /api/calm/namespaces/workshop/patterns            -> 200 + body contains "Conference Signup Pattern"
 #   GET    /api/calm/namespaces/workshop/architectures       -> 200 + body contains "name","description"
 #   GET    /api/calm/namespaces/finos.traderx/architectures  -> 200 + body contains "name"
+#   GET    /api/calm/namespaces/finos.fluxnova/architectures -> 200 + body contains all six "FluxNova: *" names
 #   Conference Signup Pattern: versions list contains "1.0.0" and "2.0.0" (uses jq)
 #   GET    /calm/search?q=conference                        -> 200 + body contains "architectures","Conference Signup Pattern"
 #   POST   /api/calm/namespaces                             -> 405  (blocked by ReadOnlyRequestFilter)
@@ -117,6 +118,7 @@ if [[ "${MODE}" == "readonly" ]]; then
     assert_body_contains GET /api/calm/namespaces '"finos.calm"'
     assert_body_contains GET /api/calm/namespaces '"finos.traderx"'
     assert_body_contains GET /api/calm/namespaces '"workshop"'
+    assert_body_contains GET /api/calm/namespaces '"finos.fluxnova"'
 
     # finos.calm — deployment standard and interfaces must be present
     assert GET /api/calm/namespaces/finos.calm/standards 200
@@ -149,6 +151,15 @@ if [[ "${MODE}" == "readonly" ]]; then
     # finos.traderx — TraderX architecture must be present
     assert GET /api/calm/namespaces/finos.traderx/architectures 200
     assert_body_contains GET /api/calm/namespaces/finos.traderx/architectures '"name"'
+
+    # finos.fluxnova — all six FluxNova example architectures must be present
+    assert GET /api/calm/namespaces/finos.fluxnova/architectures 200
+    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: Platform"'
+    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: Microservices Orchestration"'
+    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: KYC Onboarding"'
+    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: Post-Trade Settlement"'
+    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: Flash Risk Management"'
+    assert_body_contains GET /api/calm/namespaces/finos.fluxnova/architectures '"FluxNova: AI Agent Orchestration"'
 
     # Conference Signup Pattern must have both v1.0.0 (always seeded) and v2.0.0
     # (only seeds when post_pattern_version sends the correct {name,patternJson} envelope).
