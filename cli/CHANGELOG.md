@@ -5,6 +5,46 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.0] - 2026-07-29
+
+## [1.51.0](https://github.com/finos/architecture-as-code/compare/cli-v1.50.1...cli-v1.51.0) (2026-07-29)
+
+### chore
+
+* **calm-hub-ui:** remove dead postcss resolutions pin (#2892) ([](https://github.com/finos/architecture-as-code/commit/9fd0131ae27a6b582a2ff7b2281bf52290bdbad6)), closes [#2892](https://github.com/finos/architecture-as-code/issues/2892) [#2890](https://github.com/finos/architecture-as-code/issues/2890)
+* **deps:** bump the npm_and_yarn group across 1 directory with 1 update ([](https://github.com/finos/architecture-as-code/commit/4f3e853b2397362d97b9e72df89c8c30d45fb006))
+* **deps:** bump the npm_and_yarn group across 1 directory with 1 update ([](https://github.com/finos/architecture-as-code/commit/9894323ce2d5d6a16ee859cef35438cd16453c47))
+* **deps:** patch npm security vulnerabilities — postcss and brace-expansion ([](https://github.com/finos/architecture-as-code/commit/2e82e2ad6596d2fe7bf12fb5d70cc1a70cb39962))
+* **deps:** patch npm security vulnerabilities — postcss and brace-expansion ([](https://github.com/finos/architecture-as-code/commit/ea89bd2a48756115c281facff7a9cf24d86449bd))
+
+### feat
+
+* **calm-hub-ui:** show a Keep CALM modal on 503 responses ([](https://github.com/finos/architecture-as-code/commit/21ff17b937b06a0b99c7e186fe4bbcf1cfc3373b))
+* **calm-hub-ui:** show a Keep CALM modal on 503 responses ([](https://github.com/finos/architecture-as-code/commit/85d4f9b8fa60c6d1d0a3b0ad7b3493309d0812c9))
+* **calm-hub:** add calm collection with startup schema migration runner ([](https://github.com/finos/architecture-as-code/commit/ce0cc21931ffb447069210535279d1e32fceea7d))
+* **calm-hub:** add calm collection with startup schema migration runner ([](https://github.com/finos/architecture-as-code/commit/d25d694c8ef23620ac0f930dac15fa2705cefc75))
+
+### fix
+
+* **calm-hub-ui:** make modal backdrop dismiss buttons explicit type=button ([](https://github.com/finos/architecture-as-code/commit/fbda400f6732bb4eace4b10d39ac9cb82c7c119a))
+* **calm-hub:** bound Mongo timeouts and skip the migration filter in tests ([](https://github.com/finos/architecture-as-code/commit/0e0e4bef9fc5a4238725d9f22fba88a9a8d6ff8f))
+* **calm-hub:** fail open on migration-lock check failures, fix stale doc ([](https://github.com/finos/architecture-as-code/commit/7c706ee83535b2965bfa505d273374769468b4b7))
+* **calm-hub:** map Mongo write failures honestly instead of a false 404 (#2885) ([](https://github.com/finos/architecture-as-code/commit/f3708bfd2c0e39e883754f57df8943a3350a29f6)), closes [#2885](https://github.com/finos/architecture-as-code/issues/2885) [#2884](https://github.com/finos/architecture-as-code/issues/2884) [#2885](https://github.com/finos/architecture-as-code/issues/2885) [#2885](https://github.com/finos/architecture-as-code/issues/2885)
+* **calm-hub:** resolve code-review findings in the schema migration runner ([](https://github.com/finos/architecture-as-code/commit/8b4f92cd4828cfb733165bbf19a8ac97074253e4))
+* **calm-hub:** stop silently losing MongoDB indexes on migration failure ([](https://github.com/finos/architecture-as-code/commit/26963b022e39908a6a20e786627c5552725e05c9))
+* **calm-hub:** treat a null lock holder as unlocked, clear acquiredAt on release ([](https://github.com/finos/architecture-as-code/commit/89bcc3056835d9245ebb6695581c67e2b87bf942))
+* **shared:** don't swallow malformed 200 bodies into [] in calm-hub-client ([](https://github.com/finos/architecture-as-code/commit/96cd5301dff9c3500dc47578eba4a347cf0473ef))
+* **shared:** don't swallow malformed 200 bodies into [] in calm-hub-client ([](https://github.com/finos/architecture-as-code/commit/4fa90ec24d682d7ca2d3c32242080a37a63c5242)), closes [#2861](https://github.com/finos/architecture-as-code/issues/2861)
+* **shared:** treat a null 200 body as malformed in extractValues ([](https://github.com/finos/architecture-as-code/commit/4ab40aa007e629c05f734d203a55be89eaa86656)), closes [#2861](https://github.com/finos/architecture-as-code/issues/2861)
+* **templates:** drop stale 'meeting' label from meeting issue template ([](https://github.com/finos/architecture-as-code/commit/6cc50668b3e1bcbd8962d27bbd8749c834bf9b41))
+* **templates:** drop stale 'meeting' label from office hours template ([](https://github.com/finos/architecture-as-code/commit/b3f5996bb105e640902097ab6aade106a6a8b716)), closes [#2851](https://github.com/finos/architecture-as-code/issues/2851)
+* **templates:** remove dead 'meeting' label from meeting issue templates ([](https://github.com/finos/architecture-as-code/commit/6873e3b1988bc8dfdd5c36803840016bff465c3e))
+
+### refactor
+
+* **calm-hub-ui:** migrate store hooks to useSyncExternalStore (#2902) ([](https://github.com/finos/architecture-as-code/commit/efdee7a673fb0c2d57d42f8ae64caddd2f37dc96)), closes [#2902](https://github.com/finos/architecture-as-code/issues/2902)
+* **calm-hub:** rename migration steps to match SchemaMigrationStep ([](https://github.com/finos/architecture-as-code/commit/c84e50d54dbec4cbf303f035a4c755bcf2ba0b6f))
+
 ## [1.50.1] - 2026-07-27
 
 ## [1.50.1](https://github.com/finos/architecture-as-code/compare/cli-v1.50.0...cli-v1.50.1) (2026-07-27)
