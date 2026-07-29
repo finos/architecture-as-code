@@ -20,7 +20,7 @@ function isRemoteUrl(value: string | undefined): value is string {
  * in for zoom/pan/tooltips/flow animation, unless interactive={false}.
  */
 export function CalmDiagram(props: CalmDiagramProps): React.ReactElement | null {
-  const { src, data, theme, flow, interactive = true, __bundle } = props;
+  const { src, data, theme, flow, containers, interactive = true, __bundle } = props;
   const [upgraded, setUpgraded] = useState(false);
   const [domTheme, setDomTheme] = useState<'light' | 'dark'>('light');
 
@@ -80,6 +80,7 @@ export function CalmDiagram(props: CalmDiagramProps): React.ReactElement | null 
           src={remote ? src : undefined}
           theme={effectiveTheme}
           flow={flow || undefined}
+          containers={containers === 'edges' ? 'edges' : undefined}
         />
       </div>
     );

@@ -64,6 +64,7 @@ import { CalmDiagram } from '@finos/calm-docusaurus-plugin'
 | `data` | `object` | — | Inline CALM architecture. Client-rendered only. |
 | `theme` | `'light' \| 'dark'` | follows `html[data-theme]` | Force a theme. |
 | `flow` | `string` | — | Flow `unique-id` to highlight (applied after hydration). |
+| `containers` | `'nested' \| 'edges'` | `'nested'` | How `composed-of`/`deployed-in` render: nested boxes or dashed arrows. Non-default values apply after hydration (build-time SVG uses the default). |
 | `interactive` | `boolean` | `true` | `false` keeps the static SVG and skips the client-side JavaScript entirely. |
 
 ## Error behavior

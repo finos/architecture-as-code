@@ -7,6 +7,7 @@
       data: { type: 'String', attribute: 'data' },
       theme: { type: 'String', attribute: 'theme', reflect: true },
       flow: { type: 'String', attribute: 'flow' },
+      containers: { type: 'String', attribute: 'containers' },
     },
   }}
 />
@@ -20,7 +21,8 @@
     data = '',
     theme = 'light' as 'light' | 'dark',
     flow = '',
-  }: { src?: string; data?: string; theme?: 'light' | 'dark'; flow?: string } = $props();
+    containers = 'nested' as 'nested' | 'edges',
+  }: { src?: string; data?: string; theme?: 'light' | 'dark'; flow?: string; containers?: 'nested' | 'edges' } = $props();
 
   let svgContent = $state('');
   let error = $state('');
@@ -44,6 +46,7 @@
     const currentData = data;
     const currentTheme = theme;
     const currentFlow = flow;
+    const currentContainers = containers;
 
     void (async () => {
       error = '';
@@ -66,7 +69,7 @@
           return;
         }
 
-        svgContent = await renderELKDiagram(arch, { theme: currentTheme, flow: currentFlow || undefined });
+        svgContent = await renderELKDiagram(arch, { theme: currentTheme, flow: currentFlow || undefined, containers: currentContainers });
       } catch (err) {
         error = err instanceof Error ? err.message : String(err);
       } finally {
