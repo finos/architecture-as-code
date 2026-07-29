@@ -85,7 +85,12 @@ export async function renderELKDiagram(
   }
 
   const knownNodeIds = new Set(nodes.map((n) => n['unique-id']));
-  const plan = containers === 'nested'
+  // The 'nested' | 'edges' union is not enforced at the DOM-attribute boundary
+  // (the custom element passes attributes through as strings), so normalize
+  // once: anything that is not exactly 'edges' renders nested. Both the plan
+  // and the edge filter below must agree, or containment silently vanishes.
+  const containersMode: 'nested' | 'edges' = containers === 'edges' ? 'edges' : 'nested';
+  const plan = containersMode === 'nested'
     ? planContainment(relationships, knownNodeIds)
     : emptyContainmentPlan();
 
@@ -94,7 +99,7 @@ export async function renderELKDiagram(
   // must not also expand into fan-out edges.
   const diagramEdges: DiagramEdge[] = [
     ...relationships
-      .filter((r) => containers === 'edges' || !isNestedContainment(r))
+      .filter((r) => containersMode === 'edges' || !isNestedContainment(r))
       .flatMap((r) => relationshipToEdges(r)),
     ...plan.fallbackEdges,
   ];

@@ -178,12 +178,7 @@ describe('renderELKDiagram nested containers (integration)', () => {
     expect(container).not.toBeNull();
     const boundsRaw = (container as RegExpExecArray)[1] as string;
     const [cx, cy, cw, ch] = boundsRaw.split(',').map(Number) as [number, number, number, number];
-    // Each member node's x/y must fall inside the container bounds.
-    // NOTE FOR IMPLEMENTER: before finalizing this regex, inspect what
-    // renderNodeSvg actually emits (grep the node group markup for 'svc-a' in a
-    // console.log of the svg) — it may use a translate() transform OR x/y attrs
-    // on the group's <rect>. Adapt ONLY the coordinate-extraction regex to the
-    // real markup; keep these numeric containment assertions exactly as written.
+    // Each member node's x/y (from its <rect>) must fall inside the container bounds.
     for (const member of ['svc-a', 'svc-b']) {
       const m = new RegExp(`data-node-id="${member}"[\\s\\S]{0,200}?<rect x="([\\d.]+)" y="([\\d.]+)"`).exec(svg);
       expect(m).not.toBeNull();
@@ -202,6 +197,19 @@ describe('renderELKDiagram nested containers (integration)', () => {
     // composed-of fan-out (2 members) + connects = 3 polylines
     const polylines = (svg.match(/<polyline/g) ?? []).length;
     expect(polylines).toBe(3);
+  });
+
+  it('an unrecognized containers value falls back to nested (never a silent drop)', async () => {
+    // The 'nested' | 'edges' union is not enforced at the DOM-attribute
+    // boundary, so a typo'd attribute must not make containment vanish.
+    const svg = await renderELKDiagram(nestedArch, {
+      theme: 'light',
+      containers: 'banana' as unknown as 'nested',
+    });
+    expect(svg).toContain('data-container-id="sys"');
+    // connects edge still present; no silent drop of the containment relationship
+    const polylines = (svg.match(/<polyline/g) ?? []).length;
+    expect(polylines).toBe(1);
   });
 
   it('doubly-claimed node: one box plus one fallback arrow', async () => {
