@@ -110,6 +110,33 @@ assert_body_contains() {
     fi
 }
 
+# assert_body_contains_all METHOD PATH NEEDLE...
+# Single-fetch variant of assert + assert_body_contains: requests PATH once
+# (status and body in the same round-trip), asserts HTTP 200, then asserts the
+# body contains every NEEDLE. Use when checking many substrings of one response.
+assert_body_contains_all() {
+    local method="$1" path="$2"
+    shift 2
+    local response code body needle
+    response=$(curl -s -w '\n%{http_code}' -X "${method}" "${BASE_URL}${path}")
+    code=${response##*$'\n'}
+    body=${response%$'\n'*}
+    if [[ "${code}" == "200" ]]; then
+        echo "[smoke] OK   ${method} ${path} -> ${code}"
+    else
+        echo "[smoke] FAIL ${method} ${path} -> ${code} (expected 200)" >&2
+        exit 1
+    fi
+    for needle in "$@"; do
+        if [[ "${body}" == *"${needle}"* ]]; then
+            echo "[smoke] OK   ${method} ${path} body contains '${needle}'"
+        else
+            echo "[smoke] FAIL ${method} ${path} body missing '${needle}' -> ${body}" >&2
+            exit 1
+        fi
+    done
+}
+
 # ── Assertions ────────────────────────────────────────────────────────────────
 echo "[smoke] Running assertions (mode: ${MODE})..."
 
@@ -153,32 +180,14 @@ if [[ "${MODE}" == "readonly" ]]; then
     assert GET /api/calm/namespaces/finos.traderx/architectures 200
     assert_body_contains GET /api/calm/namespaces/finos.traderx/architectures '"name"'
 
-    # finos.fluxnova — all six FluxNova example architectures must be present.
-    # Fetched once (status + body in a single request) and asserted against the
-    # captured body, rather than one curl per assertion.
-    fluxnova_response=$(curl -s -w '\n%{http_code}' "${BASE_URL}/api/calm/namespaces/finos.fluxnova/architectures")
-    fluxnova_code=${fluxnova_response##*$'\n'}
-    fluxnova_body=${fluxnova_response%$'\n'*}
-    if [[ "${fluxnova_code}" == "200" ]]; then
-        echo "[smoke] OK   GET /api/calm/namespaces/finos.fluxnova/architectures -> ${fluxnova_code}"
-    else
-        echo "[smoke] FAIL GET /api/calm/namespaces/finos.fluxnova/architectures -> ${fluxnova_code} (expected 200)" >&2
-        exit 1
-    fi
-    for fluxnova_name in \
-        "FluxNova: Platform" \
-        "FluxNova: Microservices Orchestration" \
-        "FluxNova: KYC Onboarding" \
-        "FluxNova: Post-Trade Settlement" \
-        "FluxNova: Flash Risk Management" \
-        "FluxNova: AI Agent Orchestration"; do
-        if [[ "${fluxnova_body}" == *"\"${fluxnova_name}\""* ]]; then
-            echo "[smoke] OK   GET /api/calm/namespaces/finos.fluxnova/architectures body contains '\"${fluxnova_name}\"'"
-        else
-            echo "[smoke] FAIL GET /api/calm/namespaces/finos.fluxnova/architectures body missing '\"${fluxnova_name}\"' -> ${fluxnova_body}" >&2
-            exit 1
-        fi
-    done
+    # finos.fluxnova — all six FluxNova example architectures must be present
+    assert_body_contains_all GET /api/calm/namespaces/finos.fluxnova/architectures \
+        '"FluxNova: Platform"' \
+        '"FluxNova: Microservices Orchestration"' \
+        '"FluxNova: KYC Onboarding"' \
+        '"FluxNova: Post-Trade Settlement"' \
+        '"FluxNova: Flash Risk Management"' \
+        '"FluxNova: AI Agent Orchestration"'
 
     # Slug mappings must be baked into the read-only image (the fluxnova seeds go
     # through the name-based API): resolve one architecture by its customId.

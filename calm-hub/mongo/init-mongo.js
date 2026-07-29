@@ -51,18 +51,18 @@ if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 0) {
 if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "architectureStoreCounter",
-        sequence_value: 6
+        sequence_value: 11
     });
-    logSuccess("Initialized architectureStoreCounter with sequence_value 6");
+    logSuccess("Initialized architectureStoreCounter with sequence_value 11");
 } else {
     const architectureUpgrade = db.counters.updateOne(
-        { _id: "architectureStoreCounter", sequence_value: { $lt: 6 } },
-        { $set: { sequence_value: 6 } }
+        { _id: "architectureStoreCounter", sequence_value: { $lt: 11 } },
+        { $set: { sequence_value: 11 } }
     );
     if (architectureUpgrade.modifiedCount > 0) {
-        logSuccess("Upgraded architectureStoreCounter to sequence_value 6 (was below minimum)");
+        logSuccess("Upgraded architectureStoreCounter to sequence_value 11 (was below minimum)");
     } else {
-        logSkip("architectureStoreCounter already exists with sequence_value >= 6, no update needed");
+        logSkip("architectureStoreCounter already exists with sequence_value >= 11, no update needed");
     }
 }
 
@@ -1912,7 +1912,7 @@ if (db.architectures.countDocuments() === 0) {
             namespace: "workshop",
             architectures: [
                 {
-                    architectureId: NumberInt(1),
+                    architectureId: NumberInt(2),
                     name: "Conference Signup Architecture",
                     description: "Conference signup system with load-balanced services and Kubernetes deployment",
                     versions:
@@ -2065,7 +2065,7 @@ if (db.architectures.countDocuments() === 0) {
         {
             namespace: "traderx",
             architectures: [{
-                architectureId: NumberInt(1),
+                architectureId: NumberInt(3),
                 name: "TraderX",
                 description: "Simple Trading System architecture",
                 versions:
@@ -2533,7 +2533,7 @@ if (db.architectures.countDocuments() === 0) {
         {
             namespace: "ai-governance-v2",
             architectures: [{
-                architectureId: NumberInt(2),
+                architectureId: NumberInt(4),
                 name: "mcp-api-pipeline",
                 description: "User → MCP Server (cloud-hosted) → API Service → Database. FINOS AIR AI Governance controls applied directly on nodes and relationships.",
                 versions: {
@@ -2980,7 +2980,7 @@ if (db.architectures.countDocuments() === 0) {
         {
             namespace: "qcon",
             architectures: [{
-                architectureId: NumberInt(1),
+                architectureId: NumberInt(5),
                 name: "Trades API and MCP Architecture (Conforming)",
                 description: "Conforming architecture with all required controls: micro-segmentation on cluster, permitted connections on all relationships, and MCP guardrail on MCP server",
                 versions: {
@@ -3121,7 +3121,7 @@ if (db.architectures.countDocuments() === 0) {
             namespace: "finos.fluxnova",
             architectures: [
                 {
-                    architectureId: NumberInt(1),
+                    architectureId: NumberInt(6),
                     name: "FluxNova: Platform",
                     description: "Base FluxNova BPM platform deployment topology with engine, web apps, REST API, and process database",
                     versions: {
@@ -3394,7 +3394,7 @@ if (db.architectures.countDocuments() === 0) {
                     }
                 },
                 {
-                    architectureId: NumberInt(2),
+                    architectureId: NumberInt(7),
                     name: "FluxNova: Microservices Orchestration",
                     description: "FluxNova BPM orchestrating microservices via the external task worker pattern — payment, notification, and fraud-check workers with an async event bus and API gateway",
                     versions: {
@@ -3822,7 +3822,7 @@ if (db.architectures.countDocuments() === 0) {
                     }
                 },
                 {
-                    architectureId: NumberInt(3),
+                    architectureId: NumberInt(8),
                     name: "FluxNova: KYC Onboarding",
                     description: "Pre-trade KYC onboarding architecture with identity verification, sanctions screening, risk scoring, and compliance review built on FluxNova BPM platform",
                     versions: {
@@ -4792,7 +4792,7 @@ if (db.architectures.countDocuments() === 0) {
                     }
                 },
                 {
-                    architectureId: NumberInt(4),
+                    architectureId: NumberInt(9),
                     name: "FluxNova: Post-Trade Settlement",
                     description: "Post-trade settlement blueprint with counterparty gateway, clearing house connector, regulatory reporting, and settlement database built on FluxNova BPM platform",
                     versions: {
@@ -5254,7 +5254,7 @@ if (db.architectures.countDocuments() === 0) {
                     }
                 },
                 {
-                    architectureId: NumberInt(5),
+                    architectureId: NumberInt(10),
                     name: "FluxNova: Flash Risk Management",
                     description: "Real-time flash risk management blueprint with on-premise and cloud compute, aggregation, and auto-provisioning for latency-sensitive financial risk calculations",
                     versions: {
@@ -5701,7 +5701,7 @@ if (db.architectures.countDocuments() === 0) {
                     }
                 },
                 {
-                    architectureId: NumberInt(6),
+                    architectureId: NumberInt(11),
                     name: "FluxNova: AI Agent Orchestration",
                     description: "FluxNova BPM platform orchestrating autonomous AI agents with LLM inference, guardrails, and callable tools — AIGF governance controls pre-applied",
                     versions: {
@@ -6555,18 +6555,18 @@ if (db.resource_mappings.countDocuments() === 0) {
         { namespace: "finos", customId: "sample-architecture", resourceType: "ARCHITECTURE", numericId: NumberInt(1) },
         { namespace: "traderx", customId: "add-update-account", resourceType: "FLOW", numericId: NumberInt(1) },
         { namespace: "traderx", customId: "load-list-of-accounts", resourceType: "FLOW", numericId: NumberInt(2) },
-        { namespace: "traderx", customId: "traderx", resourceType: "ARCHITECTURE", numericId: NumberInt(1) },
+        { namespace: "traderx", customId: "traderx", resourceType: "ARCHITECTURE", numericId: NumberInt(3) },
         { namespace: "workshop", customId: "conference-signup-pattern", resourceType: "PATTERN", numericId: NumberInt(1) },
         { namespace: "workshop", customId: "conference-secure-signup-pattern", resourceType: "PATTERN", numericId: NumberInt(2) },
-        { namespace: "workshop", customId: "conference-signup-architecture", resourceType: "ARCHITECTURE", numericId: NumberInt(1) },
+        { namespace: "workshop", customId: "conference-signup-architecture", resourceType: "ARCHITECTURE", numericId: NumberInt(2) },
         { namespace: "qcon", customId: "trades-api-and-mcp", resourceType: "PATTERN", numericId: NumberInt(1) },
-        { namespace: "qcon", customId: "trades-api-and-mcp-conforming-architecture", resourceType: "ARCHITECTURE", numericId: NumberInt(1) },
-        { namespace: "finos.fluxnova", customId: "fluxnova-platform", resourceType: "ARCHITECTURE", numericId: NumberInt(1) },
-        { namespace: "finos.fluxnova", customId: "fluxnova-microservices", resourceType: "ARCHITECTURE", numericId: NumberInt(2) },
-        { namespace: "finos.fluxnova", customId: "fluxnova-kyc-onboarding", resourceType: "ARCHITECTURE", numericId: NumberInt(3) },
-        { namespace: "finos.fluxnova", customId: "fluxnova-settlement", resourceType: "ARCHITECTURE", numericId: NumberInt(4) },
-        { namespace: "finos.fluxnova", customId: "fluxnova-flash-risk", resourceType: "ARCHITECTURE", numericId: NumberInt(5) },
-        { namespace: "finos.fluxnova", customId: "fluxnova-ai-agent", resourceType: "ARCHITECTURE", numericId: NumberInt(6) }
+        { namespace: "qcon", customId: "trades-api-and-mcp-conforming-architecture", resourceType: "ARCHITECTURE", numericId: NumberInt(5) },
+        { namespace: "finos.fluxnova", customId: "fluxnova-platform", resourceType: "ARCHITECTURE", numericId: NumberInt(6) },
+        { namespace: "finos.fluxnova", customId: "fluxnova-microservices", resourceType: "ARCHITECTURE", numericId: NumberInt(7) },
+        { namespace: "finos.fluxnova", customId: "fluxnova-kyc-onboarding", resourceType: "ARCHITECTURE", numericId: NumberInt(8) },
+        { namespace: "finos.fluxnova", customId: "fluxnova-settlement", resourceType: "ARCHITECTURE", numericId: NumberInt(9) },
+        { namespace: "finos.fluxnova", customId: "fluxnova-flash-risk", resourceType: "ARCHITECTURE", numericId: NumberInt(10) },
+        { namespace: "finos.fluxnova", customId: "fluxnova-ai-agent", resourceType: "ARCHITECTURE", numericId: NumberInt(11) }
     ]);
     logSuccess("Initialized resource_mappings with seed data");
 } else {
