@@ -1,5 +1,6 @@
 package org.finos.calm.store.util;
 
+import com.mongodb.MongoTimeoutException;
 import com.mongodb.MongoWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteError;
@@ -31,6 +32,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -195,6 +197,29 @@ class TestMongoVersionDocumentStoreShould {
         assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()), is(true));
     }
 
+    @Test
+    void still_succeed_when_the_count_update_itself_fails_after_creating_a_version() {
+        // The version document is durably stored by the time the count is touched. Failing
+        // here would report failure for a write that succeeded, and a caller retrying that
+        // "failure" would then be told the version already exists. ADR 0001 accepts an
+        // understated count as the cost.
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(writeError(10107, "not master"));
+
+        assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()), is(true));
+        verify(versionCollection).insertOne(any(Document.class));
+    }
+
+    @Test
+    void still_succeed_when_the_count_update_fails_with_a_non_write_driver_error() {
+        // Not every driver failure is a MongoWriteException — a timeout or socket error
+        // reaching the header collection must be tolerated the same way.
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(new MongoTimeoutException("timed out selecting a server"));
+
+        assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()), is(true));
+    }
+
     // --- upsertVersion ---
 
     @Test
@@ -206,6 +231,18 @@ class TestMongoVersionDocumentStoreShould {
         store.upsertVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document());
 
         verify(headerCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void still_succeed_when_the_count_update_fails_after_an_upsert_inserts() {
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(acknowledged(0, new BsonObjectId(new ObjectId())));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(writeError(10107, "not master"));
+
+        // Same reasoning as createVersion: the version is stored, so the count is
+        // follow-up work and must not turn a successful write into a failure.
+        assertDoesNotThrow(() -> store.upsertVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()));
     }
 
     @Test

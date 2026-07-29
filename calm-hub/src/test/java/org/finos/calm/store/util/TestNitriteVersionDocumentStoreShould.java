@@ -3,6 +3,7 @@ package org.finos.calm.store.util;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.exceptions.NitriteException;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
@@ -155,6 +156,19 @@ class TestNitriteVersionDocumentStoreShould {
         // The version content is already stored, so an orphaned count is not worth failing over.
         assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", CONTENT), is(true));
         verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    void still_succeed_when_the_count_update_itself_fails_after_creating_a_version() {
+        stubFind(versionCollection, List.of());
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "name", "description", 1)));
+        when(headerCollection.update(any(Filter.class), any(Document.class)))
+                .thenThrow(new NitriteException("store is closed"));
+
+        // Matches the Mongo helper: the version is stored, so a failed count write must
+        // not report failure for a write that succeeded (ADR 0003).
+        assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", CONTENT), is(true));
+        verify(versionCollection).insert(any(Document.class));
     }
 
     // --- upsertVersion ---

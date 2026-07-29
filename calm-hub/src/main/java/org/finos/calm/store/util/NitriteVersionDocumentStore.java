@@ -2,6 +2,7 @@ package org.finos.calm.store.util;
 
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.exceptions.NitriteException;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
@@ -235,21 +236,30 @@ public class NitriteVersionDocumentStore {
 
     /**
      * Keeps the header's denormalised {@code versionCount} in step with the version
-     * collection. Always called with the write lock already held. A missing header
-     * means the header is gone while its versions aren't — worth surfacing, but not
-     * worth failing an otherwise-successful write over.
+     * collection. Always called with the write lock already held, and always
+     * <em>after</em> the version document is stored.
+     *
+     * <p>Best-effort by design, matching {@code MongoVersionDocumentStore}: neither a
+     * missing header nor a failure of the count write itself is worth failing an
+     * otherwise-successful write over, since the version content is already stored.
+     * Both leave the count understated until corrected — the drift ADR 0001 accepts.</p>
      */
     private void incrementVersionCount(String namespace, int resourceId) {
-        Filter filter = headerFilter(namespace, resourceId);
-        Document header = headerCollection.find(filter).firstOrNull();
-        if (header == null) {
-            LOG.warn("Wrote a version with no matching header to count it [namespace={}, {}={}] — "
-                    + "versionCount for this resource is now understated", namespace, idField, resourceId);
-            return;
+        try {
+            Filter filter = headerFilter(namespace, resourceId);
+            Document header = headerCollection.find(filter).firstOrNull();
+            if (header == null) {
+                LOG.warn("Wrote a version with no matching header to count it [namespace={}, {}={}] — "
+                        + "versionCount for this resource is now understated", namespace, idField, resourceId);
+                return;
+            }
+            Integer current = header.get(VERSION_COUNT_FIELD, Integer.class);
+            header.put(VERSION_COUNT_FIELD, (current == null ? 0 : current) + 1);
+            headerCollection.update(filter, header);
+        } catch (NitriteException e) {
+            LOG.warn("Failed to increment versionCount after writing a version [namespace={}, {}={}] — "
+                    + "versionCount for this resource is now understated", namespace, idField, resourceId, e);
         }
-        Integer current = header.get(VERSION_COUNT_FIELD, Integer.class);
-        header.put(VERSION_COUNT_FIELD, (current == null ? 0 : current) + 1);
-        headerCollection.update(filter, header);
     }
 
     private Filter headerFilter(String namespace, int resourceId) {

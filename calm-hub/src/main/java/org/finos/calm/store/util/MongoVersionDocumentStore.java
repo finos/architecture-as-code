@@ -1,6 +1,7 @@
 package org.finos.calm.store.util;
 
 import com.mongodb.ErrorCategory;
+import com.mongodb.MongoException;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -164,16 +165,20 @@ public class MongoVersionDocumentStore {
         Bson update = Updates.combine(
                 Updates.set(CONTENT_FIELD, content),
                 Updates.setOnInsert(METADATA_FIELD, new Document()));
+        boolean inserted;
         try {
             UpdateResult result = versionCollection.updateOne(
                     versionFilter(namespace, resourceId, version), update, new UpdateOptions().upsert(true));
-            if (result.getUpsertedId() != null) {
-                incrementVersionCount(namespace, resourceId);
-            }
+            inserted = result.getUpsertedId() != null;
         } catch (MongoWriteException e) {
             LOG.error("Failed to write version [namespace={}, {}={}, version={}]",
                     namespace, idField, resourceId, version, e);
             throw MongoWriteFailures.toStorageWriteException(e);
+        }
+        // Outside the try, matching createVersion: the count is best-effort follow-up
+        // work once the version is stored, not part of the write being translated above.
+        if (inserted) {
+            incrementVersionCount(namespace, resourceId);
         }
     }
 
@@ -236,16 +241,32 @@ public class MongoVersionDocumentStore {
 
     /**
      * Keeps the header's denormalised {@code versionCount} in step with the version
-     * collection. A miss means the header is gone while its versions aren't — a real
-     * inconsistency worth surfacing, but not worth failing an otherwise-successful
-     * write over, since the version content is already safely stored.
+     * collection. Best-effort by design: it is always called <em>after</em> the version
+     * document is durably stored, so neither a miss nor a failed write is worth failing
+     * the caller's write over.
+     *
+     * <p>A miss means the header is gone while its versions aren't — a real inconsistency
+     * worth surfacing. A driver failure means the count write itself didn't land. Both
+     * leave the same footprint ADR 0001 already accepts for a crash between the two
+     * writes: the count is understated until corrected, which is a display number off by
+     * one rather than lost or corrupted content.</p>
+     *
+     * <p>Deliberately swallows {@link MongoException} rather than translating it like the
+     * version writes do. Propagating it — classified or not — would report failure for a
+     * version that <em>was</em> written, and a caller retrying that "failure" would then
+     * be told the version already exists.</p>
      */
     private void incrementVersionCount(String namespace, int resourceId) {
-        UpdateResult result = headerCollection.updateOne(
-                headerFilter(namespace, resourceId), Updates.inc(VERSION_COUNT_FIELD, 1));
-        if (result.getMatchedCount() == 0) {
-            LOG.warn("Wrote a version with no matching header to count it [namespace={}, {}={}] — "
-                    + "versionCount for this resource is now understated", namespace, idField, resourceId);
+        try {
+            UpdateResult result = headerCollection.updateOne(
+                    headerFilter(namespace, resourceId), Updates.inc(VERSION_COUNT_FIELD, 1));
+            if (result.getMatchedCount() == 0) {
+                LOG.warn("Wrote a version with no matching header to count it [namespace={}, {}={}] — "
+                        + "versionCount for this resource is now understated", namespace, idField, resourceId);
+            }
+        } catch (MongoException e) {
+            LOG.warn("Failed to increment versionCount after writing a version [namespace={}, {}={}] — "
+                    + "versionCount for this resource is now understated", namespace, idField, resourceId, e);
         }
     }
 

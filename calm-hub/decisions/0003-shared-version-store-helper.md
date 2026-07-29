@@ -30,8 +30,13 @@ the primitive operations every store needs against its
 
 - `headerExists(namespace, resourceId) -> boolean`
 - `createHeader(namespace, resourceId, name, description)`
-- `createVersion(namespace, resourceId, version, content)` — throws if the
-  version already exists
+- `createVersion(namespace, resourceId, version, content) -> boolean` —
+  never overwrites; returns `false` if the version already exists rather
+  than throwing. The helper has no way to construct the right exception:
+  each store's interface declares its own type
+  (`ArchitectureVersionExistsException`, `PatternVersionExistsException`,
+  and so on), so choosing the domain meaning of "already there" stays with
+  the caller. Genuine write failures still throw `StorageWriteException`.
 - `upsertVersion(namespace, resourceId, version, content)` — force-write,
   used by the update-in-place path
 - `getVersion(namespace, resourceId, version) -> content or not-found`
@@ -95,6 +100,17 @@ header (not computed via aggregation). `createVersion` therefore performs
 two writes: insert the version document, then an atomic `$inc` on the
 header's `versionCount`. See ADR 0001's *Decision* section for the accepted
 drift risk if a crash lands between the two.
+
+The count write is **best-effort, and never fails the version write**. It
+runs only after the version document is durably stored, so a failure there
+— whether the header is missing or the write itself errors — is logged at
+`WARN` and swallowed rather than propagated. Propagating it would report
+failure for a version that was in fact written, and a caller retrying that
+"failure" would then be told the version already exists: strictly worse
+than the understated count ADR 0001 already accepts, since that costs a
+display number off by one rather than a wrong answer. `upsertVersion`
+maintains the count on the same terms, incrementing only when it actually
+inserted.
 
 ### Existence checking must use the header, not the version list
 
