@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -83,6 +84,14 @@ class TestMongoVersionDocumentStoreShould {
             return null;
         }).when(iterable).forEach(any());
         return iterable;
+    }
+
+    /**
+     * Renders a captured filter as JSON, so assertions about what it matches on don't
+     * depend on how {@code Filters.and(...)} happens to nest its operands.
+     */
+    private static String asJson(Bson filter) {
+        return filter.toBsonDocument().toJson();
     }
 
     private static MongoWriteException writeError(int code, String message) {
@@ -164,6 +173,20 @@ class TestMongoVersionDocumentStoreShould {
         assertThat(inserted.get("content", Document.class), is(new Document("nodes", List.of())));
         assertThat(inserted.get("metadata", Document.class), is(new Document()));
         verify(headerCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void store_a_dash_spelled_version_under_its_canonical_form() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        // 1-0-0 and 1.0.0 are both accepted by VERSION_REGEX. The old shape folded them
+        // together via replace('.', '-') on the map key; storing the version as a field
+        // value means they have to be folded here or the same version gets two documents.
+        store.createVersion(NAMESPACE, RESOURCE_ID, "1-0-0", new Document());
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(captor.capture());
+        assertThat(captor.getValue().getString("version"), is("1.0.0"));
     }
 
     @Test
@@ -256,6 +279,21 @@ class TestMongoVersionDocumentStoreShould {
     }
 
     @Test
+    void address_the_canonical_document_when_upserting_a_dash_spelled_version() {
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(acknowledged(1, null));
+
+        store.upsertVersion(NAMESPACE, RESOURCE_ID, "1-0-0", new Document());
+
+        // The upsert filter has to carry the canonical form: on insert, Mongo derives the
+        // new document's fields from the filter's equality conditions, so a dash-spelled
+        // filter would both miss the existing document and create a duplicate.
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(versionCollection).updateOne(filterCaptor.capture(), any(Bson.class), any(UpdateOptions.class));
+        assertThat(asJson(filterCaptor.getValue()), containsString("1.0.0"));
+    }
+
+    @Test
     void translate_a_write_failure_when_upserting_a_version() {
         when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
                 .thenThrow(writeError(10334, "object to insert too large"));
@@ -279,6 +317,20 @@ class TestMongoVersionDocumentStoreShould {
         stubFind(versionCollection, List.of());
 
         assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "9.9.9"), is(nullValue()));
+    }
+
+    @Test
+    void look_up_a_dash_spelled_version_by_its_canonical_form() {
+        Document content = new Document("title", "My Architecture");
+        stubFind(versionCollection, List.of(new Document("version", "1.0.0").append("content", content)));
+
+        // Reads have to canonicalise too, or a version written as 1.0.0 would be
+        // unreadable via the equally-valid 1-0-0 spelling of the same path.
+        assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "1-0-0"), is(content));
+
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(versionCollection).find(filterCaptor.capture());
+        assertThat(asJson(filterCaptor.getValue()), containsString("1.0.0"));
     }
 
     // --- listVersions ---

@@ -43,6 +43,13 @@ import static org.dizitart.no2.filters.FluentFilter.where;
  * that any narrower lock must still serialise writes to the same
  * {@code (namespace, resourceId, version)}, or the uniqueness guarantee above stops
  * holding.
+ *
+ * <h2>Version spelling</h2>
+ * Every method taking a {@code version} canonicalises it on entry via
+ * {@link CanonicalVersion}, so the several spellings the API accepts address one
+ * document rather than one each. Any method added here that takes a version must do
+ * the same — and it matters more here than in the Mongo helper, since there is no
+ * unique index to fall back on at all.
  */
 public class NitriteVersionDocumentStore {
 
@@ -118,15 +125,16 @@ public class NitriteVersionDocumentStore {
      * @return {@code false} if that version is already present. Never overwrites.
      */
     public boolean createVersion(String namespace, int resourceId, String version, String content) {
+        String canonicalVersion = CanonicalVersion.of(version);
         lock.writeLock().lock();
         try {
-            if (versionCollection.find(versionFilter(namespace, resourceId, version)).firstOrNull() != null) {
+            if (versionCollection.find(versionFilter(namespace, resourceId, canonicalVersion)).firstOrNull() != null) {
                 return false;
             }
             versionCollection.insert(Document.createDocument()
                     .put(NAMESPACE_FIELD, namespace)
                     .put(idField, resourceId)
-                    .put(VERSION_FIELD, version)
+                    .put(VERSION_FIELD, canonicalVersion)
                     .put(CONTENT_FIELD, content)
                     .put(METADATA_FIELD, Document.createDocument()));
             incrementVersionCount(namespace, resourceId);
@@ -146,15 +154,16 @@ public class NitriteVersionDocumentStore {
      * as well as overwrite.</p>
      */
     public void upsertVersion(String namespace, int resourceId, String version, String content) {
+        String canonicalVersion = CanonicalVersion.of(version);
         lock.writeLock().lock();
         try {
-            Filter filter = versionFilter(namespace, resourceId, version);
+            Filter filter = versionFilter(namespace, resourceId, canonicalVersion);
             Document existing = versionCollection.find(filter).firstOrNull();
             if (existing == null) {
                 versionCollection.insert(Document.createDocument()
                         .put(NAMESPACE_FIELD, namespace)
                         .put(idField, resourceId)
-                        .put(VERSION_FIELD, version)
+                        .put(VERSION_FIELD, canonicalVersion)
                         .put(CONTENT_FIELD, content)
                         .put(METADATA_FIELD, Document.createDocument()));
                 incrementVersionCount(namespace, resourceId);
@@ -174,7 +183,8 @@ public class NitriteVersionDocumentStore {
     public String getVersion(String namespace, int resourceId, String version) {
         lock.readLock().lock();
         try {
-            Document versionDocument = versionCollection.find(versionFilter(namespace, resourceId, version)).firstOrNull();
+            Document versionDocument = versionCollection
+                    .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).firstOrNull();
             return versionDocument == null ? null : versionDocument.get(CONTENT_FIELD, String.class);
         } finally {
             lock.readLock().unlock();

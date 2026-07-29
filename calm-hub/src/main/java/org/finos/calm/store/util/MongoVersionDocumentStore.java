@@ -51,6 +51,13 @@ import java.util.List;
  * writer fail with {@code DUPLICATE_KEY}, which {@link #createVersion} reports as
  * {@code false}. Those indexes are created by the per-type schema migration step,
  * not by this class.
+ *
+ * <h2>Version spelling</h2>
+ * Every method taking a {@code version} canonicalises it on entry via
+ * {@link CanonicalVersion}, so the several spellings the API accepts address one
+ * document rather than one each. Any method added here that takes a version must do
+ * the same — the database's uniqueness guarantee is per stored string, so it cannot
+ * catch a spelling that slipped through uncanonicalised.
  */
 public class MongoVersionDocumentStore {
 
@@ -129,9 +136,10 @@ public class MongoVersionDocumentStore {
      * which domain exception that means. Never overwrites.
      */
     public boolean createVersion(String namespace, int resourceId, String version, Document content) {
+        String canonicalVersion = CanonicalVersion.of(version);
         Document versionDocument = new Document(NAMESPACE_FIELD, namespace)
                 .append(idField, resourceId)
-                .append(VERSION_FIELD, version)
+                .append(VERSION_FIELD, canonicalVersion)
                 .append(CONTENT_FIELD, content)
                 .append(METADATA_FIELD, new Document());
         try {
@@ -142,7 +150,7 @@ public class MongoVersionDocumentStore {
             }
             // Log identifying fields only — the content can be megabytes.
             LOG.error("Failed to create version [namespace={}, {}={}, version={}]",
-                    namespace, idField, resourceId, version, e);
+                    namespace, idField, resourceId, canonicalVersion, e);
             throw MongoWriteFailures.toStorageWriteException(e);
         }
         incrementVersionCount(namespace, resourceId);
@@ -162,17 +170,20 @@ public class MongoVersionDocumentStore {
      * inserted; otherwise the count would drift permanently low.</p>
      */
     public void upsertVersion(String namespace, int resourceId, String version, Document content) {
+        // Canonical before the filter is built, so an upsert-insert derives its stored
+        // version field from the canonical form via the filter's equality conditions.
+        String canonicalVersion = CanonicalVersion.of(version);
         Bson update = Updates.combine(
                 Updates.set(CONTENT_FIELD, content),
                 Updates.setOnInsert(METADATA_FIELD, new Document()));
         boolean inserted;
         try {
             UpdateResult result = versionCollection.updateOne(
-                    versionFilter(namespace, resourceId, version), update, new UpdateOptions().upsert(true));
+                    versionFilter(namespace, resourceId, canonicalVersion), update, new UpdateOptions().upsert(true));
             inserted = result.getUpsertedId() != null;
         } catch (MongoWriteException e) {
             LOG.error("Failed to write version [namespace={}, {}={}, version={}]",
-                    namespace, idField, resourceId, version, e);
+                    namespace, idField, resourceId, canonicalVersion, e);
             throw MongoWriteFailures.toStorageWriteException(e);
         }
         // Outside the try, matching createVersion: the count is best-effort follow-up
@@ -187,7 +198,8 @@ public class MongoVersionDocumentStore {
      * (or the resource) doesn't exist.
      */
     public Document getVersion(String namespace, int resourceId, String version) {
-        Document versionDocument = versionCollection.find(versionFilter(namespace, resourceId, version)).first();
+        Document versionDocument = versionCollection
+                .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).first();
         return versionDocument == null ? null : versionDocument.get(CONTENT_FIELD, Document.class);
     }
 

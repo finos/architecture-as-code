@@ -137,6 +137,21 @@ class TestNitriteVersionDocumentStoreShould {
     }
 
     @Test
+    void store_a_dash_spelled_version_under_its_canonical_form() {
+        stubFind(versionCollection, List.of());
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "name", "description", 1)));
+
+        // Both spellings are accepted by VERSION_REGEX. It matters more here than in the
+        // Mongo helper: Nitrite has no unique index at all, so an uncanonicalised spelling
+        // would sail past the check-then-insert and become a second document silently.
+        store.createVersion(NAMESPACE, RESOURCE_ID, "1-0-0", CONTENT);
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(captor.capture());
+        assertThat(captor.getValue().get("version", String.class), is("1.0.0"));
+    }
+
+    @Test
     void treat_a_missing_version_count_as_zero_when_incrementing() {
         stubFind(versionCollection, List.of());
         stubFind(headerCollection, List.of(header(RESOURCE_ID, "name", "description", null)));
@@ -182,6 +197,18 @@ class TestNitriteVersionDocumentStoreShould {
 
         verify(versionCollection).insert(any(Document.class));
         verify(headerCollection).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    void store_the_canonical_form_when_an_upsert_inserts_a_dash_spelled_version() {
+        stubFind(versionCollection, List.of());
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "name", "description", 1)));
+
+        store.upsertVersion(NAMESPACE, RESOURCE_ID, "2-0-0", CONTENT);
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(captor.capture());
+        assertThat(captor.getValue().get("version", String.class), is("2.0.0"));
     }
 
     @Test
