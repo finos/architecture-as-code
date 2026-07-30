@@ -2,7 +2,7 @@
   "name": "calm-vscode-plugin",
   "displayName": "CALM Canvas",
   "description": "Visual architecture editor for CALM models using ReactFlow",
-  "version": "1.0.0",
+  "version": "1.0.0-beta",
   "publisher": "FINOS",
   "license": "Apache-2.0",
   "repository": {

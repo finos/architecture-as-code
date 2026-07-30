@@ -145,7 +145,9 @@ function CanvasApp() {
             setNodes(layoutedNodes);
             setEdges(parsedEdges);
             lastEmittedJson.current = json;
-        } catch { /* invalid JSON */ }
+        } catch (err) {
+            console.error('[CALM Canvas] Failed to load architecture:', err);
+        }
     }, [setNodes, setEdges]);
 
     // --- Bridge setup ---
