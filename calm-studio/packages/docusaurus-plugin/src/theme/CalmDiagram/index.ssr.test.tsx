@@ -46,4 +46,11 @@ describe('CalmDiagram SSR', () => {
     expect(html).toContain('calm-diagram-error');
     expect(html).toContain('no architecture provided');
   });
+
+  it('passes containers prop through to the custom element markup contract', () => {
+    // SSR renders static SVG regardless; the containers prop must be accepted
+    // by the component type and not break SSR output.
+    const html = renderToString(<CalmDiagram __bundle={bundle} containers="edges" />);
+    expect(html).toContain('calm-diagram-static-light');
+  });
 });

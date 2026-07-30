@@ -8,6 +8,10 @@ set -e
 
 # Configuration
 CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
+# Base URL used to build document $id values for the name-based API. Must equal
+# the server's calm.hub.base-url config property (default http://localhost:8080),
+# which is not necessarily the URL this script reaches the hub on.
+CALM_HUB_BASE_URL="${CALM_HUB_BASE_URL:-$CALM_HUB_URL}"
 CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-}"
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH:-}"
 CONTENT_TYPE="Content-Type: application/json"
@@ -49,12 +53,18 @@ create_namespaces() {
     print_status "Creating namespaces..."
     
     # Create required namespaces (the API requires both a name and a description)
-    for namespace in finos finos.calm finos.traderx workshop; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova; do
         print_status "Creating namespace: $namespace"
+        local description
+        case "$namespace" in
+            # Keep in sync with the namespace descriptions in calm-hub/mongo/init-mongo.js
+            finos.fluxnova) description="FluxNova BPM example architectures" ;;
+            *) description="$namespace namespace" ;;
+        esac
         local http_code
         http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces" \
             -H "$CONTENT_TYPE" \
-            -d "{\"name\": \"$namespace\", \"description\": \"$namespace namespace\"}")
+            -d "{\"name\": \"$namespace\", \"description\": \"$description\"}")
         if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
             print_status "Created namespace $namespace"
         elif [[ "$http_code" == "409" ]]; then
@@ -181,6 +191,42 @@ post_document() {
         print_warning "$resource '$name' in namespace $namespace already exists, skipping"
     else
         print_warning "Failed to create $resource '$name' in namespace $namespace (HTTP $http_code)"
+    fi
+}
+
+# post_named_document <namespace> <type-plural> <slug> <version> <document-json>
+# Seeds a document through the name-based API (/calm/...), which creates the
+# resource_mappings slug entry as well as the document itself (the numeric-ID
+# API creates no mapping). The document's $id is rewritten to the canonical hub
+# URL the server requires and is stripped again before persistence; the stored
+# name/description come from the document's title/description fields. Failures
+# are fatal: a systematic $id mismatch would otherwise bake a read-only image
+# with an empty namespace.
+post_named_document() {
+    local namespace="$1"
+    local resource="$2"
+    local slug="$3"
+    local version="$4"
+    local doc="$5"
+
+    local canonical="${CALM_HUB_BASE_URL}/calm/namespaces/${namespace}/${resource}/${slug}/versions/${version}"
+    local payload
+    payload=$(printf '%s' "$doc" | jq --arg id "$canonical" '. + {"$id": $id}')
+
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        "$CALM_HUB_URL/calm/namespaces/$namespace/$resource/$slug/versions/$version" \
+        -H "$CONTENT_TYPE" \
+        -d "$payload")
+
+    if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+        print_status "Created $resource '$slug' version $version in namespace $namespace"
+    elif [[ "$http_code" == "409" ]]; then
+        print_warning "$resource '$slug' version $version in namespace $namespace already exists, skipping"
+    else
+        print_error "Failed to create $resource '$slug' version $version in namespace $namespace (HTTP $http_code)"
+        print_error "  \$id sent: $canonical"
+        exit 1
     fi
 }
 
@@ -2123,6 +2169,2958 @@ CALMDOC
 CALMDOC
 )
     post_document "finos.traderx" "architectures" "architectureJson" "TraderX Architecture" "TraderX simple trading system architecture" "$doc"
+
+    # FluxNova architectures
+    # Source of truth: examples/fluxnova/*.architecture.json — keep these heredocs in sync
+    # with those files (and with the equivalent inserts in calm-hub/mongo/init-mongo.js).
+    # Seeded via the name-based API so each architecture gets a stable slug mapping.
+
+    print_status "Creating FluxNova: Platform architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-platform.architecture.json",
+  "title": "FluxNova: Platform",
+  "description": "Base FluxNova BPM platform deployment topology with engine, web apps, REST API, and process database",
+  "nodes": [
+    {
+      "unique-id": "fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment comprising engine, web applications, REST API, and process database"
+    },
+    {
+      "unique-id": "fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 process execution engine responsible for orchestrating workflows, managing process state, and executing service tasks",
+      "controls": {
+        "audit-logging": {
+          "description": "All process execution events, variable changes, and task assignments are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All process execution events, variable changes, and task assignments are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing 200+ endpoints for process deployment, task management, variable access, and external system integration (OpenAPI documented)",
+      "interfaces": [
+        {
+          "unique-id": "rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring and operations dashboard providing real-time visibility into running process instances, incidents, and batch operations",
+      "interfaces": [
+        {
+          "unique-id": "cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for user, group, and tenant administration, authorization configuration, and system settings",
+      "interfaces": [
+        {
+          "unique-id": "admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task assignment and lifecycle management UI enabling human task claiming, completion, and delegation within BPMN workflows",
+      "interfaces": [
+        {
+          "unique-id": "tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing process definitions, runtime state, history, job executor data, and audit logs",
+      "interfaces": [
+        {
+          "unique-id": "process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-engine"
+          },
+          "destination": {
+            "node": "fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists process state, history, and audit data to the process database",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries process instances, incidents, and deployments via the REST API"
+    },
+    {
+      "unique-id": "admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-admin"
+          },
+          "destination": {
+            "node": "fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages users, groups, authorizations, and system configuration via the REST API"
+    },
+    {
+      "unique-id": "tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human tasks via the REST API"
+    },
+    {
+      "unique-id": "platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-platform" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: Microservices Orchestration architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-microservices.architecture.json",
+  "title": "FluxNova: Microservices Orchestration",
+  "description": "FluxNova BPM orchestrating microservices via the external task worker pattern — payment, notification, and fraud-check workers with an async event bus and API gateway",
+  "nodes": [
+    {
+      "unique-id": "ms-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the microservices orchestration process"
+    },
+    {
+      "unique-id": "ms-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating microservice workers via the external task pattern — coordinates payment, notification, and fraud-check service tasks",
+      "controls": {
+        "audit-logging": {
+          "description": "All worker task assignments, completions, and failures are recorded in an immutable audit log for payment traceability",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All worker task assignments, completions, and failures are recorded in an immutable audit log for payment traceability",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ms-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing external task fetch-and-lock, complete, and failure endpoints for worker microservices",
+      "interfaces": [
+        {
+          "unique-id": "ms-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard for payment process instances, worker throughput, queue depths, and failed tasks",
+      "interfaces": [
+        {
+          "unique-id": "ms-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for worker registration, user administration, and payment platform configuration",
+      "interfaces": [
+        {
+          "unique-id": "ms-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Human task UI for payment exception handling, fraud review escalations, and manual approval workflows",
+      "interfaces": [
+        {
+          "unique-id": "ms-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing payment process definitions, runtime state, external task queues, and audit logs",
+      "interfaces": [
+        {
+          "unique-id": "ms-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-payment-worker",
+      "node-type": "fluxnova:external-task-worker",
+      "name": "Payment Worker",
+      "description": "External task worker microservice that processes payment transaction tasks — polls the FluxNova engine for tasks, executes payment settlement, and reports completion",
+      "interfaces": [
+        {
+          "unique-id": "ms-payment-worker-endpoint",
+          "type": "url",
+          "value": "https://payment-worker.internal/health"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-notification-worker",
+      "node-type": "fluxnova:external-task-worker",
+      "name": "Notification Worker",
+      "description": "External task worker microservice that handles notification delivery tasks — sends SMS, email, and push notifications based on process variables",
+      "interfaces": [
+        {
+          "unique-id": "ms-notification-worker-endpoint",
+          "type": "url",
+          "value": "https://notification-worker.internal/health"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fraud-check-worker",
+      "node-type": "fluxnova:external-task-worker",
+      "name": "Fraud Check Worker",
+      "description": "External task worker microservice that executes fraud detection tasks — scores transactions via ML models, returns risk scores to the process engine",
+      "interfaces": [
+        {
+          "unique-id": "ms-fraud-check-worker-endpoint",
+          "type": "url",
+          "value": "https://fraud-check-worker.internal/health"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-message-broker",
+      "node-type": "service",
+      "name": "Message Broker",
+      "description": "Async event bus for worker-to-worker communication and domain event publishing — decouples workers from direct coupling and enables event-driven scaling",
+      "interfaces": [
+        {
+          "unique-id": "ms-message-broker-endpoint",
+          "type": "host-port",
+          "value": "message-broker:5672"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-api-gateway",
+      "node-type": "service",
+      "name": "API Gateway",
+      "description": "Entry point gateway for external API consumers — handles authentication, rate limiting, TLS termination, and request routing to the FluxNova REST API",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "All external client connections terminate TLS at the API gateway — internal traffic uses mTLS on the service mesh",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All external client connections terminate TLS at the API gateway — internal traffic uses mTLS on the service mesh",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#api-gateway"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "ms-api-gateway-endpoint",
+          "type": "url",
+          "value": "https://api-gateway.internal/v1"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ms-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-engine"
+          },
+          "destination": {
+            "node": "ms-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists payment process state, external task queues, and audit data to the process database"
+    },
+    {
+      "unique-id": "ms-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "ms-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "ms-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries payment process instances and worker metrics via the REST API"
+    },
+    {
+      "unique-id": "ms-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-admin"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages worker registration, users, and payment platform configuration via the REST API"
+    },
+    {
+      "unique-id": "ms-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human escalation and exception tasks via the REST API"
+    },
+    {
+      "unique-id": "ms-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "ms-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "ms-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "ms-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "ms-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "ms-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "ms-payment-worker-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-payment-worker"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Payment worker polls FluxNova REST API for external tasks, locks them for execution, and submits completion or failure results"
+    },
+    {
+      "unique-id": "ms-notification-worker-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-notification-worker"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Notification worker polls FluxNova REST API for notification tasks, executes delivery, and reports back"
+    },
+    {
+      "unique-id": "ms-fraud-check-worker-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fraud-check-worker"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Fraud check worker polls FluxNova REST API for fraud scoring tasks, runs ML inference, and reports risk scores"
+    },
+    {
+      "unique-id": "ms-payment-worker-to-broker",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-payment-worker"
+          },
+          "destination": {
+            "node": "ms-message-broker"
+          }
+        }
+      },
+      "protocol": "AMQP",
+      "description": "Payment worker publishes domain events (payment-completed, payment-failed) to the message broker for downstream consumption"
+    },
+    {
+      "unique-id": "ms-notification-worker-to-broker",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-notification-worker"
+          },
+          "destination": {
+            "node": "ms-message-broker"
+          }
+        }
+      },
+      "protocol": "AMQP",
+      "description": "Notification worker subscribes to payment events from the message broker to trigger customer notifications asynchronously"
+    },
+    {
+      "unique-id": "ms-api-gateway-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-api-gateway"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "API gateway proxies authenticated external requests to the FluxNova REST API after TLS termination and rate-limit checks"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-microservices" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: KYC Onboarding architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-kyc-onboarding.architecture.json",
+  "title": "FluxNova: KYC Onboarding",
+  "description": "Pre-trade KYC onboarding architecture with identity verification, sanctions screening, risk scoring, and compliance review built on FluxNova BPM platform",
+  "nodes": [
+    {
+      "unique-id": "kyc-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the KYC onboarding process"
+    },
+    {
+      "unique-id": "kyc-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine executing the Client Onboarding KYC process (Process_ClientOnboardingKYC) with boundary timers, escalation gateways, and DMN risk scoring",
+      "controls": {
+        "audit-logging": {
+          "description": "All process execution events, variable changes, task assignments, and decision outcomes are recorded in an immutable audit log for regulatory compliance",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All process execution events, variable changes, task assignments, and decision outcomes are recorded in an immutable audit log for regulatory compliance",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing endpoints for KYC process deployment, task management, and external task worker integration",
+      "interfaces": [
+        {
+          "unique-id": "kyc-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard for KYC onboarding — tracks in-flight applications, SLA breaches, and escalation incidents",
+      "interfaces": [
+        {
+          "unique-id": "kyc-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for KYC user roles, group assignments, and authorization policies",
+      "interfaces": [
+        {
+          "unique-id": "kyc-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task UI for compliance officers and operations staff to claim and complete KYC review tasks, remediation tasks, and enhanced due diligence assessments",
+      "interfaces": [
+        {
+          "unique-id": "kyc-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing KYC process definitions, runtime state, decision audit history, and escalation records",
+      "interfaces": [
+        {
+          "unique-id": "kyc-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-customer",
+      "node-type": "actor",
+      "name": "Customer",
+      "description": "Prospective client submitting a KYC onboarding application, providing identity documents, proof of address, and corporate documentation"
+    },
+    {
+      "unique-id": "kyc-compliance-officer",
+      "node-type": "actor",
+      "name": "Compliance Officer",
+      "description": "Reviews medium-risk KYC applications, conducts compliance investigations on sanctions matches, and makes approval/rejection decisions"
+    },
+    {
+      "unique-id": "kyc-senior-compliance",
+      "node-type": "actor",
+      "name": "Senior Compliance Officer",
+      "description": "Conducts enhanced due diligence for high-risk KYC applications and handles escalated compliance decisions"
+    },
+    {
+      "unique-id": "kyc-ops-manager",
+      "node-type": "actor",
+      "name": "Operations Manager",
+      "description": "Receives escalations when document verification SLA (48 hours) is breached and manages operational remediation"
+    },
+    {
+      "unique-id": "kyc-identity-verification-svc",
+      "node-type": "service",
+      "name": "Identity Verification Service",
+      "description": "External task worker performing OCR, biometric verification, and identity document validation via third-party IDV provider (topic: doc-verification)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-idv-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/verify"
+        }
+      ],
+      "data-classification": "PII",
+      "controls": {
+        "data-classification": {
+          "description": "Processes personally identifiable information including identity documents, biometric data, and government IDs — classified as PII",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Processes personally identifiable information including identity documents, biometric data, and government IDs — classified as PII",
+                "reference-url": "https://calm.finos.org/core-concepts/data-classification"
+              }
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "All verification requests, results, and third-party API calls are logged for regulatory audit trail",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All verification requests, results, and third-party API calls are logged for regulatory audit trail",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-sanctions-screening-svc",
+      "node-type": "service",
+      "name": "Sanctions & PEP Screening Service",
+      "description": "External task worker querying OFAC, UN, EU sanctions lists and PEP databases for compliance checks (topic: sanctions-screen)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-sanctions-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/sanctions"
+        }
+      ],
+      "controls": {
+        "audit-logging": {
+          "description": "All sanctions and PEP screening queries, match results, and investigation outcomes are logged for regulatory compliance",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All sanctions and PEP screening queries, match results, and investigation outcomes are logged for regulatory compliance",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-risk-scoring-svc",
+      "node-type": "service",
+      "name": "AML/KYC Risk Scoring Service",
+      "description": "DMN decision table evaluating client type, jurisdiction, transaction profile, PEP status, sanctions results, and beneficial ownership to produce a risk category (Low/Medium/High)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-risk-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/risk-assessment"
+        }
+      ],
+      "controls": {
+        "audit-logging": {
+          "description": "All risk scoring inputs, decision table evaluations, and output categories are logged with full decision rationale",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All risk scoring inputs, decision table evaluations, and output categories are logged with full decision rationale",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-document-mgmt-svc",
+      "node-type": "service",
+      "name": "Document Management Service",
+      "description": "External task worker handling secure storage and retrieval of identity documents, proof of address, and corporate documentation (topic: document-management)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-docmgmt-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/documents"
+        }
+      ],
+      "data-classification": "PII",
+      "controls": {
+        "data-classification": {
+          "description": "Stores and manages personally identifiable documents including passports, driving licenses, and proof of address — classified as PII",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Stores and manages personally identifiable documents including passports, driving licenses, and proof of address — classified as PII",
+                "reference-url": "https://calm.finos.org/core-concepts/data-classification"
+              }
+            }
+          ]
+        },
+        "encryption-at-rest": {
+          "description": "All stored documents are encrypted at rest using AES-256 to protect PII",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-at-rest",
+                "name": "Encryption At Rest",
+                "description": "All stored documents are encrypted at rest using AES-256 to protect PII",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-notification-svc",
+      "node-type": "service",
+      "name": "Notification Service",
+      "description": "External task worker sending email and push notifications to customers, sales teams, and compliance staff for onboarding status updates (topic: notifications)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-notify-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/notifications"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-crm-sync-svc",
+      "node-type": "service",
+      "name": "CRM Sync Service",
+      "description": "External task worker persisting client data to the CRM and provisioning accounts in trading and custodian systems upon approval (topic: crm-sync, account-provisioning)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-crm-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/crm"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-kyc-database",
+      "node-type": "database",
+      "name": "KYC Database",
+      "description": "Dedicated database storing customer PII, verification results, sanctions screening outcomes, risk assessments, and compliance decisions",
+      "interfaces": [
+        {
+          "unique-id": "kyc-kyc-db-port",
+          "type": "host-port",
+          "value": "kyc-db:5432"
+        }
+      ],
+      "data-classification": "PII",
+      "controls": {
+        "data-classification": {
+          "description": "Contains personally identifiable information including customer identity data, verification results, and compliance decisions — classified as PII",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Contains personally identifiable information including customer identity data, verification results, and compliance decisions — classified as PII",
+                "reference-url": "https://calm.finos.org/core-concepts/data-classification"
+              }
+            }
+          ]
+        },
+        "encryption-at-rest": {
+          "description": "All PII data is encrypted at rest using AES-256 with key management via HSM",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-at-rest",
+                "name": "Encryption At Rest",
+                "description": "All PII data is encrypted at rest using AES-256 with key management via HSM",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        },
+        "access-control": {
+          "description": "Database access restricted to authorized KYC services only via role-based access control and network segmentation",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-access-control",
+                "name": "Access Control",
+                "description": "Database access restricted to authorized KYC services only via role-based access control and network segmentation",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-watchlist-provider",
+      "node-type": "system",
+      "name": "Watchlist Data Provider",
+      "description": "External system providing OFAC, UN, EU sanctions lists and PEP databases for compliance screening"
+    },
+    {
+      "unique-id": "kyc-idv-provider",
+      "node-type": "system",
+      "name": "Identity Verification Provider",
+      "description": "External third-party identity verification provider performing OCR, biometric matching, and document authenticity checks"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "kyc-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists KYC process state, history, decision audit data, and escalation records",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "kyc-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries KYC process instances, SLA breach incidents, and escalation status"
+    },
+    {
+      "unique-id": "kyc-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-admin"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages KYC user roles, compliance group assignments, and authorization policies"
+    },
+    {
+      "unique-id": "kyc-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist enables compliance officers and ops staff to claim and complete KYC review tasks"
+    },
+    {
+      "unique-id": "kyc-customer-to-tasklist",
+      "relationship-type": {
+        "interacts": {
+          "actor": "kyc-customer",
+          "nodes": [
+            "kyc-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "Customer submits onboarding application and uploads identity documents via the client portal"
+    },
+    {
+      "unique-id": "kyc-compliance-officer-to-tasklist",
+      "relationship-type": {
+        "interacts": {
+          "actor": "kyc-compliance-officer",
+          "nodes": [
+            "kyc-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "Compliance officer claims and completes medium-risk review tasks, sanctions investigation tasks, and approval decisions"
+    },
+    {
+      "unique-id": "kyc-senior-compliance-to-tasklist",
+      "relationship-type": {
+        "interacts": {
+          "actor": "kyc-senior-compliance",
+          "nodes": [
+            "kyc-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "Senior compliance officer conducts enhanced due diligence tasks for high-risk applications"
+    },
+    {
+      "unique-id": "kyc-ops-manager-to-cockpit",
+      "relationship-type": {
+        "interacts": {
+          "actor": "kyc-ops-manager",
+          "nodes": [
+            "kyc-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "Operations manager monitors SLA compliance and receives escalation alerts for document verification delays"
+    },
+    {
+      "unique-id": "kyc-engine-to-idv-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-identity-verification-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches document verification external tasks (ServiceTask_VerifyDocuments) with 48-hour SLA boundary timer",
+      "controls": {
+        "audit-logging": {
+          "description": "All verification task dispatches, completions, and SLA breach escalations are audit-logged",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All verification task dispatches, completions, and SLA breach escalations are audit-logged",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-engine-to-sanctions-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-sanctions-screening-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches sanctions and PEP screening external tasks (ServiceTask_SanctionsPEP) after document verification passes",
+      "controls": {
+        "audit-logging": {
+          "description": "All screening task dispatches, match results, and routing decisions are audit-logged",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All screening task dispatches, match results, and routing decisions are audit-logged",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-engine-to-risk-scoring",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-risk-scoring-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine invokes DMN risk assessment (BusinessRule_RiskAssessment) with 24-hour SLA boundary timer, producing Low/Medium/High risk category",
+      "controls": {
+        "audit-logging": {
+          "description": "All risk scoring inputs, DMN decision table evaluations, and category outputs are audit-logged with full rationale",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All risk scoring inputs, DMN decision table evaluations, and category outputs are audit-logged with full rationale",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-engine-to-doc-mgmt",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-document-mgmt-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches document storage tasks (ServiceTask_StoreDocuments) for uploaded identity documents and corporate documentation",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "PII document transfers use TLS 1.3 encryption in transit",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "PII document transfers use TLS 1.3 encryption in transit",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-engine-to-notification",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-notification-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches notification tasks (ServiceTask_NotifySalesClient) for onboarding status updates and approval/rejection notices"
+    },
+    {
+      "unique-id": "kyc-engine-to-crm-sync",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-crm-sync-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches CRM sync tasks (ServiceTask_PersistClientData) and account provisioning tasks (ServiceTask_AccountOpening) for approved clients",
+      "controls": {
+        "audit-logging": {
+          "description": "All client data persistence and account provisioning events are audit-logged",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All client data persistence and account provisioning events are audit-logged",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-idv-svc-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-identity-verification-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Persists identity verification results, document metadata, and biometric match scores",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "PII data transfers to database use TLS-encrypted JDBC",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "PII data transfers to database use TLS-encrypted JDBC",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-sanctions-svc-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-sanctions-screening-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Persists sanctions screening results, PEP match data, and investigation outcomes",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "Screening result transfers to database use TLS-encrypted JDBC",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Screening result transfers to database use TLS-encrypted JDBC",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-risk-scoring-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-risk-scoring-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Persists risk assessment inputs, DMN decision outputs, and risk category assignments"
+    },
+    {
+      "unique-id": "kyc-doc-mgmt-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-document-mgmt-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Persists document metadata, storage references, and verification linkages",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "PII document metadata transfers to database use TLS-encrypted JDBC",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "PII document metadata transfers to database use TLS-encrypted JDBC",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-crm-sync-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-crm-sync-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Reads approved client data for CRM synchronization and account provisioning"
+    },
+    {
+      "unique-id": "kyc-idv-svc-to-idv-provider",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-identity-verification-svc"
+          },
+          "destination": {
+            "node": "kyc-idv-provider"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Calls external IDV provider API for OCR, biometric matching, and document authenticity verification",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "External API calls carrying PII use mTLS for mutual authentication and encryption",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "External API calls carrying PII use mTLS for mutual authentication and encryption",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "All external IDV API calls and responses are logged for compliance audit trail",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All external IDV API calls and responses are logged for compliance audit trail",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-sanctions-svc-to-watchlist",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-sanctions-screening-svc"
+          },
+          "destination": {
+            "node": "kyc-watchlist-provider"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Queries OFAC, UN, EU sanctions lists and PEP databases for compliance screening",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "External watchlist API calls use TLS 1.3 encryption for data protection",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "External watchlist API calls use TLS 1.3 encryption for data protection",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "All sanctions screening queries and results are logged for regulatory compliance",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All sanctions screening queries and results are logged for regulatory compliance",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "kyc-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "kyc-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "kyc-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "kyc-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "kyc-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-kyc-onboarding" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: Post-Trade Settlement architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-settlement.architecture.json",
+  "title": "FluxNova: Post-Trade Settlement",
+  "description": "Post-trade settlement blueprint with counterparty gateway, clearing house connector, regulatory reporting, and settlement database built on FluxNova BPM platform",
+  "nodes": [
+    {
+      "unique-id": "st-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the post-trade settlement process"
+    },
+    {
+      "unique-id": "st-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating trade confirmation, netting, novation, and settlement lifecycle workflows",
+      "controls": {
+        "audit-logging": {
+          "description": "All settlement process events, trade state transitions, and regulatory submissions are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All settlement process events, trade state transitions, and regulatory submissions are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "st-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer for trade submission, settlement status queries, and external task worker integration",
+      "interfaces": [
+        {
+          "unique-id": "st-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard providing real-time visibility into settlement process instances, failed trades, and regulatory deadlines",
+      "interfaces": [
+        {
+          "unique-id": "st-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for counterparty onboarding, user administration, and settlement platform configuration",
+      "interfaces": [
+        {
+          "unique-id": "st-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task management UI for trade exception handling, manual matching, and compliance review tasks in the settlement workflow",
+      "interfaces": [
+        {
+          "unique-id": "st-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing settlement process definitions, runtime state, trade history, and compliance audit logs",
+      "interfaces": [
+        {
+          "unique-id": "st-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-counterparty-gateway",
+      "node-type": "service",
+      "name": "Counterparty Gateway",
+      "description": "Secure gateway for counterparty trade confirmations and matching via FIX, FpML, and SWIFT message protocols",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "All counterparty communications use mTLS to authenticate both parties and encrypt trade confirmation data",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All counterparty communications use mTLS to authenticate both parties and encrypt trade confirmation data",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#counterparty-auth"
+              }
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "All inbound and outbound counterparty messages are logged with timestamps for regulatory audit trails",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All inbound and outbound counterparty messages are logged with timestamps for regulatory audit trails",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "st-counterparty-gateway-endpoint",
+          "type": "url",
+          "value": "https://counterparty-gateway.internal/confirm"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-clearing-house-connector",
+      "node-type": "service",
+      "name": "Clearing House Connector",
+      "description": "Connector to central clearing house (CCP) for trade novation, netting, and multilateral settlement instruction submission",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "Clearing house connectivity uses leased line or dedicated VPN with TLS for trade submission integrity",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Clearing house connectivity uses leased line or dedicated VPN with TLS for trade submission integrity",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#ccp-connectivity"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "st-clearing-house-endpoint",
+          "type": "url",
+          "value": "https://ccp-connector.internal/submit"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-regulatory-reporting-svc",
+      "node-type": "service",
+      "name": "Regulatory Reporting Service",
+      "description": "Automated regulatory reporting service generating EMIR, MiFIR, and Dodd-Frank trade reports with real-time submission to trade repositories",
+      "controls": {
+        "regulatory-compliance": {
+          "description": "All trade reports are validated against ESMA and CFTC schemas before submission; submission receipts are archived for 7 years",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-regulatory-compliance",
+                "name": "Regulatory Compliance",
+                "description": "All trade reports are validated against ESMA and CFTC schemas before submission; submission receipts are archived for 7 years",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/regulatory-reporting"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "st-regulatory-reporting-endpoint",
+          "type": "url",
+          "value": "https://regulatory-reporting.internal/submit"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-settlement-db",
+      "node-type": "database",
+      "name": "Settlement Database",
+      "description": "Settlement positions, obligations, and trade lifecycle data store — source of truth for net settlement positions and regulatory reporting",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "All connections to the settlement database use TLS-encrypted JDBC",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All connections to the settlement database use TLS-encrypted JDBC",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "st-settlement-db-port",
+          "type": "host-port",
+          "value": "settlement-db:5432"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "st-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists settlement process state, history, and audit data to the process database"
+    },
+    {
+      "unique-id": "st-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "st-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "st-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "st-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries settlement process instances and compliance deadlines via the REST API"
+    },
+    {
+      "unique-id": "st-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-admin"
+          },
+          "destination": {
+            "node": "st-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages counterparty onboarding, users, and platform configuration via the REST API"
+    },
+    {
+      "unique-id": "st-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "st-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes trade exception and compliance review tasks via the REST API"
+    },
+    {
+      "unique-id": "st-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "st-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "st-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "st-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "st-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "st-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "st-engine-to-counterparty-gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-counterparty-gateway"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine invokes the counterparty gateway for trade confirmation matching and settlement instruction exchange"
+    },
+    {
+      "unique-id": "st-engine-to-clearing-house",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-clearing-house-connector"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine submits cleared trades for novation and netting via the clearing house connector"
+    },
+    {
+      "unique-id": "st-engine-to-regulatory-reporting",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-regulatory-reporting-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine triggers regulatory report generation after trade confirmation and settlement instruction creation"
+    },
+    {
+      "unique-id": "st-engine-to-settlement-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-settlement-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine reads and writes settlement positions and obligations to the settlement database during workflow execution"
+    },
+    {
+      "unique-id": "st-regulatory-reporting-to-settlement-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-regulatory-reporting-svc"
+          },
+          "destination": {
+            "node": "st-settlement-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Regulatory reporting service reads consolidated settlement positions from the settlement database for report generation"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-settlement" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: Flash Risk Management architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-flash-risk.architecture.json",
+  "title": "FluxNova: Flash Risk Management",
+  "description": "Real-time flash risk management blueprint with on-premise and cloud compute, aggregation, and auto-provisioning for latency-sensitive financial risk calculations",
+  "nodes": [
+    {
+      "unique-id": "fr-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the flash risk orchestration process"
+    },
+    {
+      "unique-id": "fr-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating the flash risk calculation workflow, dispatching tasks to on-premise and cloud compute nodes",
+      "controls": {
+        "audit-logging": {
+          "description": "All risk calculation dispatches, results, and exceptions are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All risk calculation dispatches, results, and exceptions are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "fr-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing endpoints for risk process deployment, external task worker integration, and risk result retrieval",
+      "interfaces": [
+        {
+          "unique-id": "fr-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard providing real-time visibility into risk calculation instances, incidents, and batch operations",
+      "interfaces": [
+        {
+          "unique-id": "fr-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for user, group, and tenant administration for the risk management platform",
+      "interfaces": [
+        {
+          "unique-id": "fr-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task assignment UI for human review and exception handling in risk calculation workflows",
+      "interfaces": [
+        {
+          "unique-id": "fr-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing risk process definitions, runtime state, history, and audit logs",
+      "interfaces": [
+        {
+          "unique-id": "fr-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-risk-compute-onprem",
+      "node-type": "service",
+      "name": "On-Premise Risk Engine",
+      "description": "On-premise risk computation engine for latency-sensitive calculations requiring sub-millisecond response times and access to co-located market data feeds",
+      "data-classification": "Confidential",
+      "controls": {
+        "data-classification": {
+          "description": "Risk computation results are classified Confidential — position data, P&L, and risk factors must not leave the secure perimeter",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Risk computation results are classified Confidential — position data, P&L, and risk factors must not leave the secure perimeter",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "fr-onprem-compute-endpoint",
+          "type": "host-port",
+          "value": "risk-compute-onprem:8080"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-risk-compute-cloud",
+      "node-type": "service",
+      "name": "Cloud Risk Engine",
+      "description": "Cloud-based risk computation engine for burst capacity scaling during high-volatility market events when on-premise capacity is exhausted",
+      "data-classification": "Confidential",
+      "controls": {
+        "data-classification": {
+          "description": "Cloud risk computations handle Confidential position data — encryption in transit and at rest is mandatory",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Cloud risk computations handle Confidential position data — encryption in transit and at rest is mandatory",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+              }
+            }
+          ]
+        },
+        "encryption-in-transit": {
+          "description": "All position data sent to cloud compute is encrypted in transit using TLS 1.3 minimum",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All position data sent to cloud compute is encrypted in transit using TLS 1.3 minimum",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#cloud-encryption"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "fr-cloud-compute-endpoint",
+          "type": "url",
+          "value": "https://risk-compute-cloud.internal/compute"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-risk-aggregation-svc",
+      "node-type": "service",
+      "name": "Risk Aggregation Service",
+      "description": "Aggregates risk results from on-premise and cloud compute nodes, merges partial risk vectors, and produces consolidated real-time risk reports",
+      "interfaces": [
+        {
+          "unique-id": "fr-aggregation-endpoint",
+          "type": "host-port",
+          "value": "risk-aggregation-svc:8081"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-cloud-provisioner",
+      "node-type": "service",
+      "name": "Cloud Provisioner",
+      "description": "Auto-provisions cloud compute instances based on market volatility signals, scaling out when VIX or realized volatility exceeds configured thresholds",
+      "interfaces": [
+        {
+          "unique-id": "fr-provisioner-endpoint",
+          "type": "url",
+          "value": "https://cloud-provisioner.internal/provision"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "fr-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-engine"
+          },
+          "destination": {
+            "node": "fr-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists risk process state, history, and audit data to the process database"
+    },
+    {
+      "unique-id": "fr-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "fr-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "fr-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "fr-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries risk process instances and incidents via the REST API"
+    },
+    {
+      "unique-id": "fr-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-admin"
+          },
+          "destination": {
+            "node": "fr-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages users, authorizations, and risk platform configuration via the REST API"
+    },
+    {
+      "unique-id": "fr-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "fr-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human exception-handling tasks via the REST API"
+    },
+    {
+      "unique-id": "fr-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "fr-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "fr-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "fr-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "fr-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "fr-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "fr-engine-to-onprem-compute",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-engine"
+          },
+          "destination": {
+            "node": "fr-risk-compute-onprem"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches risk calculation tasks to the on-premise compute engine for low-latency position risk calculations"
+    },
+    {
+      "unique-id": "fr-engine-to-cloud-compute",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-engine"
+          },
+          "destination": {
+            "node": "fr-risk-compute-cloud"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches burst risk calculation tasks to the cloud compute engine when on-premise capacity is exceeded"
+    },
+    {
+      "unique-id": "fr-onprem-to-aggregation",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-risk-compute-onprem"
+          },
+          "destination": {
+            "node": "fr-risk-aggregation-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "On-premise compute pushes partial risk vectors to the aggregation service for consolidation"
+    },
+    {
+      "unique-id": "fr-cloud-to-aggregation",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-risk-compute-cloud"
+          },
+          "destination": {
+            "node": "fr-risk-aggregation-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cloud compute pushes burst risk results to the aggregation service for consolidation"
+    },
+    {
+      "unique-id": "fr-provisioner-to-cloud-compute",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-cloud-provisioner"
+          },
+          "destination": {
+            "node": "fr-risk-compute-cloud"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Provisioner scales cloud compute instances up or down based on real-time volatility signals"
+    },
+    {
+      "unique-id": "fr-engine-to-provisioner",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-engine"
+          },
+          "destination": {
+            "node": "fr-cloud-provisioner"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine signals the provisioner to scale cloud capacity when market volatility triggers burst mode"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-flash-risk" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: AI Agent Orchestration architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-ai-agent.architecture.json",
+  "title": "FluxNova: AI Agent Orchestration",
+  "description": "FluxNova BPM platform orchestrating autonomous AI agents with LLM inference, guardrails, and callable tools — AIGF governance controls pre-applied",
+  "nodes": [
+    {
+      "unique-id": "ai-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the AI agent orchestration process"
+    },
+    {
+      "unique-id": "ai-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating AI agent task dispatch, monitoring, and human-in-the-loop escalation workflows",
+      "controls": {
+        "audit-logging": {
+          "description": "All AI agent task dispatches, LLM calls, guardrail verdicts, and tool invocations are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All AI agent task dispatches, LLM calls, guardrail verdicts, and tool invocations are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer for AI process deployment, agent task polling, and result submission",
+      "interfaces": [
+        {
+          "unique-id": "ai-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard for AI agent task instances, LLM latency, guardrail rejection rates, and escalation incidents",
+      "interfaces": [
+        {
+          "unique-id": "ai-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for AI agent configuration, LLM model version management, and guardrail policy administration",
+      "interfaces": [
+        {
+          "unique-id": "ai-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Human-in-the-loop task UI for reviewing AI agent decisions, approving high-risk actions, and resolving guardrail rejections",
+      "interfaces": [
+        {
+          "unique-id": "ai-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing AI agent process definitions, runtime state, LLM interaction history, and AIGF audit logs",
+      "interfaces": [
+        {
+          "unique-id": "ai-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-agent",
+      "node-type": "ai:agent",
+      "name": "AI Agent",
+      "description": "Autonomous AI agent executing tasks assigned by the FluxNova process engine — uses LLM for reasoning, tools for action, and guardrails for safety",
+      "controls": {
+        "agent-least-privilege": {
+          "description": "AI agent operates with least-privilege tool access — only tools explicitly granted per process definition are callable",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-agent-least-privilege",
+                "name": "Agent Least Privilege",
+                "description": "AI agent operates with least-privilege tool access — only tools explicitly granted per process definition are callable",
+                "reference-url": "https://air-governance-framework.finos.org/mitigations/mi-18"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-llm",
+      "node-type": "ai:llm",
+      "name": "Large Language Model",
+      "description": "Large language model providing inference and reasoning capabilities for AI agent decisions — version-pinned for reproducible behaviour",
+      "controls": {
+        "model-version-pinning": {
+          "description": "LLM model version is pinned to a specific checkpoint — no automatic model upgrades without governance review and regression testing",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-model-version-pinning",
+                "name": "Model Version Pinning",
+                "description": "LLM model version is pinned to a specific checkpoint — no automatic model upgrades without governance review and regression testing",
+                "reference-url": "https://air-governance-framework.finos.org/mitigations/mi-10"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-guardrail",
+      "node-type": "ai:guardrail",
+      "name": "AI Guardrail",
+      "description": "Safety filter validating AI agent inputs and outputs against policy — rejects hallucinations, PII leakage, prompt injections, and policy violations before action"
+    },
+    {
+      "unique-id": "ai-tool",
+      "node-type": "ai:tool",
+      "name": "AI Tool",
+      "description": "Callable function exposed to the AI agent for structured external actions — wraps downstream APIs, databases, and services with typed schemas and access controls"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ai-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-engine"
+          },
+          "destination": {
+            "node": "ai-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists AI agent process state, LLM interaction history, and audit data to the process database"
+    },
+    {
+      "unique-id": "ai-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "ai-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "ai-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "ai-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries AI agent process instances and LLM performance metrics via the REST API"
+    },
+    {
+      "unique-id": "ai-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-admin"
+          },
+          "destination": {
+            "node": "ai-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages AI agent configuration, model versions, and guardrail policies via the REST API"
+    },
+    {
+      "unique-id": "ai-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "ai-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human-in-the-loop review and escalation tasks via the REST API"
+    },
+    {
+      "unique-id": "ai-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "ai-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "ai-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "ai-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "ai-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "ai-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "ai-engine-to-agent",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-engine"
+          },
+          "destination": {
+            "node": "ai-agent"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches AI agent tasks via the external task worker pattern — agent polls for tasks, executes, and submits results"
+    },
+    {
+      "unique-id": "ai-agent-to-llm",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent"
+          },
+          "destination": {
+            "node": "ai-llm"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "AI agent sends prompts and context to the LLM for reasoning and decision generation"
+    },
+    {
+      "unique-id": "ai-guardrail-to-agent",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-guardrail"
+          },
+          "destination": {
+            "node": "ai-agent"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Guardrail validates agent inputs before LLM invocation and agent outputs before tool execution — acts as a safety filter in the critical path"
+    },
+    {
+      "unique-id": "ai-agent-to-tool",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent"
+          },
+          "destination": {
+            "node": "ai-tool"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "AI agent invokes callable tools for structured external actions after guardrail approval"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-ai-agent" "1.0.0" "$doc"
 }
 
 # Function to create user access (if endpoint exists)
@@ -2130,7 +5128,7 @@ create_user_access() {
     print_status "Creating user access entries..."
     
     # Create sample user access for different namespaces
-    for namespace in finos finos.calm finos.traderx workshop; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova; do
         print_status "Creating user access for namespace: $namespace"
         curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/user-access" \
             -H "$CONTENT_TYPE" \

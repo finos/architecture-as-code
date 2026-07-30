@@ -41,6 +41,7 @@ architecture-as-code/
 │   └── calm-guard/            #   Next.js continuous-compliance platform (CALMGuard)
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
+├── examples/                  # Example CALM documents — source of truth for the CALM Hub seed scripts
 ├── experimental/              # Experimental features
 ├── template-bundles/          # Reusable Handlebars template bundles
 ├── conferences/               # Conference/workshop material
