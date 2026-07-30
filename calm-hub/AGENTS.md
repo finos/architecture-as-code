@@ -593,6 +593,15 @@ trail in this iteration — read it via direct DB access or ops tooling.
 - `src/main/resources/application-no-auth.properties` - No-auth profile (local testing only, no IdP)
 - `src/main/resources/application-secure.properties` - Secure (OIDC/Keycloak) profile config
 - `src/main/resources/application-proxy-auth.properties` - Proxy-auth profile config (proxy-injected `Remote-User` header)
+
+**Do not add a second `application.properties` under `src/test/resources`.** One
+used to exist and, depending on the machine, either it or the main file won
+wholesale rather than merging per-property — so tests silently lost either the
+audit-disable settings (writing to whatever MongoDB the developer had running) or
+the auth and security-header settings (7 failures that passed in isolation). All
+test-only configuration lives in the `%test.` block of
+`src/main/resources/application.properties`; add new test settings there.
+
 - `PERMISSIONS.md` - Per-namespace permission model reference
 - `decisions/` - Architecture Decision Records for calm-hub's own backend
   design (not the CALM ADR resource type). See `decisions/README.md` for
