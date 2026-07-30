@@ -1,0 +1,347 @@
+package org.finos.calm.store.util;
+
+import com.mongodb.MongoTimeoutException;
+import com.mongodb.MongoWriteException;
+import com.mongodb.ServerAddress;
+import com.mongodb.WriteError;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
+import org.bson.BsonDocument;
+import org.bson.BsonObjectId;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
+import org.finos.calm.domain.exception.StorageWriteException;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.store.PageRequest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import java.util.List;
+import java.util.function.Consumer;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class TestMongoVersionDocumentStoreShould {
+
+    private static final String NAMESPACE = "finos";
+    private static final int RESOURCE_ID = 42;
+    private static final String ID_FIELD = "architectureId";
+    private static final String LABEL = "Architecture";
+
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
+    }
+
+    private interface DocumentFindIterable extends FindIterable<Document> {
+    }
+
+    private MongoCollection<Document> headerCollection;
+    private MongoCollection<Document> versionCollection;
+    private MongoVersionDocumentStore store;
+
+    @BeforeEach
+    void setup() {
+        headerCollection = mock(DocumentMongoCollection.class);
+        versionCollection = mock(DocumentMongoCollection.class);
+        store = new MongoVersionDocumentStore(headerCollection, versionCollection, ID_FIELD, LABEL);
+    }
+
+    /** A find(...) chain that yields the given documents when iterated, and the first on first(). */
+    private FindIterable<Document> stubFind(MongoCollection<Document> collection, List<Document> documents) {
+        FindIterable<Document> iterable = mock(DocumentFindIterable.class);
+        when(collection.find(any(Bson.class))).thenReturn(iterable);
+        when(iterable.projection(any())).thenReturn(iterable);
+        when(iterable.sort(any())).thenReturn(iterable);
+        when(iterable.skip(anyInt())).thenReturn(iterable);
+        when(iterable.limit(anyInt())).thenReturn(iterable);
+        when(iterable.first()).thenReturn(documents.isEmpty() ? null : documents.get(0));
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            documents.forEach(consumer);
+            return null;
+        }).when(iterable).forEach(any());
+        return iterable;
+    }
+
+    private static MongoWriteException writeError(int code, String message) {
+        return new MongoWriteException(new WriteError(code, message, new BsonDocument()), new ServerAddress(), List.of());
+    }
+
+    private static Document header(Integer id, String name, String description, Integer versionCount) {
+        Document header = new Document(ID_FIELD, id);
+        if (name != null) header.append("name", name);
+        if (description != null) header.append("description", description);
+        if (versionCount != null) header.append("versionCount", versionCount);
+        return header;
+    }
+
+    /**
+     * A real {@link UpdateResult} rather than a mock — building one inside a
+     * {@code when(...)} argument would nest stubbing and fail.
+     */
+    private static UpdateResult acknowledged(int matched, BsonObjectId upsertedId) {
+        return UpdateResult.acknowledged(matched, (long) matched, upsertedId);
+    }
+
+    // --- headerExists ---
+
+    @Test
+    void report_a_resource_exists_when_its_header_is_present() {
+        stubFind(headerCollection, List.of(new Document("_id", new ObjectId())));
+
+        assertThat(store.headerExists(NAMESPACE, RESOURCE_ID), is(true));
+    }
+
+    @Test
+    void report_a_resource_does_not_exist_when_no_header_is_present() {
+        stubFind(headerCollection, List.of());
+
+        assertThat(store.headerExists(NAMESPACE, RESOURCE_ID), is(false));
+    }
+
+    // --- createHeader ---
+
+    @Test
+    void create_a_header_with_a_zero_version_count_and_empty_metadata() {
+        store.createHeader(NAMESPACE, RESOURCE_ID, "My Architecture", "A description");
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insertOne(captor.capture());
+        Document inserted = captor.getValue();
+        assertThat(inserted.getString("namespace"), is(NAMESPACE));
+        assertThat(inserted.getInteger(ID_FIELD), is(RESOURCE_ID));
+        assertThat(inserted.getString("name"), is("My Architecture"));
+        assertThat(inserted.getString("description"), is("A description"));
+        assertThat(inserted.getInteger("versionCount"), is(0));
+        assertThat(inserted.get("metadata", Document.class), is(new Document()));
+    }
+
+    @Test
+    void translate_a_write_failure_when_creating_a_header() {
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(headerCollection).insertOne(any(Document.class));
+
+        assertThrows(StorageWriteException.class,
+                () -> store.createHeader(NAMESPACE, RESOURCE_ID, "name", "description"));
+    }
+
+    // --- createVersion ---
+
+    @Test
+    void create_a_version_and_increment_the_header_count() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        boolean created = store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document("nodes", List.of()));
+
+        assertThat(created, is(true));
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(captor.capture());
+        Document inserted = captor.getValue();
+        assertThat(inserted.getString("version"), is("1.0.0"));
+        assertThat(inserted.get("content", Document.class), is(new Document("nodes", List.of())));
+        assertThat(inserted.get("metadata", Document.class), is(new Document()));
+        verify(headerCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void report_a_version_already_exists_rather_than_overwriting_it() {
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        boolean created = store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document());
+
+        assertThat(created, is(false));
+        // The count must not move when nothing was written.
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void translate_a_non_duplicate_write_failure_when_creating_a_version() {
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        assertThrows(StorageWriteException.class,
+                () -> store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()));
+    }
+
+    @Test
+    void warn_but_still_succeed_when_a_version_has_no_header_to_count_it() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(0, null));
+
+        // The version content is already stored, so an orphaned count is not worth failing over.
+        assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()), is(true));
+    }
+
+    @Test
+    void still_succeed_when_the_count_update_itself_fails_after_creating_a_version() {
+        // The version document is durably stored by the time the count is touched. Failing
+        // here would report failure for a write that succeeded, and a caller retrying that
+        // "failure" would then be told the version already exists. ADR 0001 accepts an
+        // understated count as the cost.
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(writeError(10107, "not master"));
+
+        assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()), is(true));
+        verify(versionCollection).insertOne(any(Document.class));
+    }
+
+    @Test
+    void still_succeed_when_the_count_update_fails_with_a_non_write_driver_error() {
+        // Not every driver failure is a MongoWriteException — a timeout or socket error
+        // reaching the header collection must be tolerated the same way.
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(new MongoTimeoutException("timed out selecting a server"));
+
+        assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()), is(true));
+    }
+
+    // --- upsertVersion ---
+
+    @Test
+    void increment_the_version_count_when_an_upsert_inserts_a_new_version() {
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(acknowledged(0, new BsonObjectId(new ObjectId())));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        store.upsertVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document());
+
+        verify(headerCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void still_succeed_when_the_count_update_fails_after_an_upsert_inserts() {
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(acknowledged(0, new BsonObjectId(new ObjectId())));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(writeError(10107, "not master"));
+
+        // Same reasoning as createVersion: the version is stored, so the count is
+        // follow-up work and must not turn a successful write into a failure.
+        assertDoesNotThrow(() -> store.upsertVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()));
+    }
+
+    @Test
+    void not_increment_the_version_count_when_an_upsert_replaces_an_existing_version() {
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(acknowledged(1, null));
+
+        store.upsertVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document());
+
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void translate_a_write_failure_when_upserting_a_version() {
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(writeError(10334, "object to insert too large"));
+
+        assertThrows(StorageWriteException.class,
+                () -> store.upsertVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()));
+    }
+
+    // --- getVersion ---
+
+    @Test
+    void return_the_content_of_a_stored_version() {
+        Document content = new Document("title", "My Architecture");
+        stubFind(versionCollection, List.of(new Document("version", "1.0.0").append("content", content)));
+
+        assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "1.0.0"), is(content));
+    }
+
+    @Test
+    void return_null_when_a_version_is_not_stored() {
+        stubFind(versionCollection, List.of());
+
+        assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "9.9.9"), is(nullValue()));
+    }
+
+    // --- listVersions ---
+
+    @Test
+    void list_versions_in_semantic_order_rather_than_stored_order() {
+        stubFind(versionCollection, List.of(
+                new Document("version", "1.10.0"),
+                new Document("version", "1.9.0"),
+                new Document("version", "1.0.0")));
+
+        assertThat(store.listVersions(NAMESPACE, RESOURCE_ID), contains("1.0.0", "1.9.0", "1.10.0"));
+    }
+
+    @Test
+    void return_no_versions_for_a_resource_that_has_none() {
+        stubFind(versionCollection, List.of());
+
+        // Empty means "no versions", never "no such resource" — that's headerExists' job.
+        assertThat(store.listVersions(NAMESPACE, RESOURCE_ID), is(empty()));
+    }
+
+    // --- listSummariesPaged ---
+
+    @Test
+    void list_summaries_for_a_namespace() {
+        stubFind(headerCollection, List.of(
+                header(1, "First", "First description", 2),
+                header(2, "Second", "Second description", 0)));
+
+        List<NamespaceResourceSummary> summaries = store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED);
+
+        assertThat(summaries, contains(
+                new NamespaceResourceSummary("First", "First description", 1, 2),
+                new NamespaceResourceSummary("Second", "Second description", 2, 0)));
+    }
+
+    @Test
+    void push_the_paging_window_down_to_the_database() {
+        FindIterable<Document> iterable = stubFind(headerCollection, List.of(header(2, "Second", "d", 1)));
+
+        store.listSummariesPaged(NAMESPACE, new PageRequest(1, 1));
+
+        verify(iterable).skip(1);
+        verify(iterable).limit(1);
+    }
+
+    @Test
+    void not_apply_a_paging_window_when_unpaged() {
+        FindIterable<Document> iterable = stubFind(headerCollection, List.of(header(1, "First", "d", 1)));
+
+        store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED);
+
+        verify(iterable, never()).skip(anyInt());
+        verify(iterable, never()).limit(anyInt());
+    }
+
+    @Test
+    void fall_back_to_a_generated_name_and_blank_description_when_a_header_has_neither() {
+        // Headers migrated from the old shape can lack both, which must not produce nulls.
+        stubFind(headerCollection, List.of(header(7, null, null, null)));
+
+        assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED),
+                contains(new NamespaceResourceSummary("Architecture 7", "", 7, 0)));
+    }
+}
