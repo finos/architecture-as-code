@@ -1,7 +1,11 @@
 # ADR 0001: Versioned artefact storage redesign
 
-**Status**: Accepted — not yet implemented. No store uses this shape yet, so
-this describes the target design rather than current behaviour. Tracked in
+**Status**: Accepted — partially implemented. Architecture uses this shape on
+both backends; the other six versioned types still use the old one, which is
+the incremental rollout this ADR describes rather than a divergence from it.
+**No migration step exists yet**, so an existing deployment's data has not
+moved and the ported code would not find it — that lands with the rest of the
+Architecture work. Tracked in
 [#2884](https://github.com/finos/architecture-as-code/issues/2884).
 
 ## Context

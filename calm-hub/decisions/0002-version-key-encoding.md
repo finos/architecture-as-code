@@ -1,7 +1,12 @@
 # ADR 0002: Version field encoding — dots, not dashes
 
-**Status**: Accepted — not yet implemented. Stored versions are still
-dash-encoded everywhere today. Depends on
+**Status**: Accepted — partially implemented. Architecture stores
+dot-separated versions; the other six types are still dash-encoded. Note the
+implementation needed more than "write a dot instead of a dash":
+`VERSION_REGEX` makes both separators optional, so six spellings denote the
+same version and the old map-key encoding folded only some of them together.
+`CanonicalVersion` now folds all six at the version-store helpers' entry
+points — see [ADR 0003](0003-shared-version-store-helper.md). Depends on
 [ADR 0001](0001-versioned-artefact-storage.md).
 
 ## Context

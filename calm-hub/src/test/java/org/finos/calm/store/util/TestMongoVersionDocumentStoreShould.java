@@ -302,6 +302,54 @@ class TestMongoVersionDocumentStoreShould {
                 () -> store.upsertVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()));
     }
 
+    // --- updateHeaderDetails ---
+
+    @Test
+    void overwrite_the_headers_name_and_description() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "A new description");
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).updateOne(any(Bson.class), updateCaptor.capture());
+        String update = asJson(updateCaptor.getValue());
+        assertThat(update, containsString("Renamed"));
+        assertThat(update, containsString("A new description"));
+    }
+
+    @Test
+    void let_a_null_name_overwrite_a_stored_one() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        // Faithful to the old shape, which $set both fields unconditionally: a version
+        // write carrying no name wipes the display name. ArchitectureRequest validates
+        // neither field, so this is reachable from the API — logged as a known bug rather
+        // than quietly fixed here, since fixing it is a behaviour change, not a port.
+        store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, null, null);
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).updateOne(any(Bson.class), updateCaptor.capture());
+        assertThat(asJson(updateCaptor.getValue()), containsString("null"));
+    }
+
+    @Test
+    void warn_rather_than_throw_when_there_is_no_header_to_update_details_on() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(0, null));
+
+        assertDoesNotThrow(() -> store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d"));
+    }
+
+    @Test
+    void translate_a_write_failure_when_updating_header_details() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(writeError(10334, "object to insert too large"));
+
+        // Unlike the versionCount write, this is user-supplied data — dropping a rename
+        // silently would be a wrong answer, not a stale display number.
+        assertThrows(StorageWriteException.class,
+                () -> store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d"));
+    }
+
     // --- getVersion ---
 
     @Test

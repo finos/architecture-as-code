@@ -239,6 +239,44 @@ class TestNitriteVersionDocumentStoreShould {
         verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
     }
 
+    // --- updateHeaderDetails ---
+
+    @Test
+    void overwrite_the_headers_name_and_description() {
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "Old name", "Old description", 2)));
+
+        store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "A new description");
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).update(any(Filter.class), captor.capture());
+        assertThat(captor.getValue().get("name", String.class), is("Renamed"));
+        assertThat(captor.getValue().get("description", String.class), is("A new description"));
+        // The count must survive a rename — it lives on the same document.
+        assertThat(captor.getValue().get("versionCount", Integer.class), is(2));
+    }
+
+    @Test
+    void let_a_null_name_overwrite_a_stored_one() {
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "Old name", "Old description", 1)));
+
+        // Faithful to the old shape: a version write carrying no name wipes the display
+        // name. Known bug, preserved deliberately rather than fixed during a port.
+        store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, null, null);
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).update(any(Filter.class), captor.capture());
+        assertThat(captor.getValue().get("name", String.class), is(nullValue()));
+    }
+
+    @Test
+    void warn_rather_than_throw_when_there_is_no_header_to_update_details_on() {
+        stubFind(headerCollection, List.of());
+
+        store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d");
+
+        verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
     // --- getVersion ---
 
     @Test

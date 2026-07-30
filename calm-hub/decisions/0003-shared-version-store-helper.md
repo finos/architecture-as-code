@@ -1,9 +1,10 @@
 # ADR 0003: Shared header/version store helper
 
-**Status**: Accepted — partially implemented. The helpers themselves exist
+**Status**: Accepted — partially implemented. The helpers exist
 (`MongoVersionDocumentStore`, `NitriteVersionDocumentStore`,
-`SemanticVersionOrder`), but no store calls them yet, so nothing in running
-CALM Hub uses this design. Depends on
+`SemanticVersionOrder`, `CanonicalVersion`) and `MongoArchitectureStore` /
+`NitriteArchitectureStore` now compose them. The other six versioned types
+still hand-roll their own logic. Depends on
 [ADR 0001](0001-versioned-artefact-storage.md) and
 [ADR 0002](0002-version-key-encoding.md).
 
@@ -42,6 +43,32 @@ the primitive operations every store needs against its
 - `getVersion(namespace, resourceId, version) -> content or not-found`
 - `listVersions(namespace, resourceId) -> List<String>`
 - `listSummariesPaged(namespace, page) -> List<NamespaceResourceSummary>`
+- `updateHeaderDetails(namespace, resourceId, name, description)` — added
+  while porting Architecture, having been missed when this list was first
+  derived. Writing a version also *renames* the resource: the old shape
+  `$set` the entity's `name` and `description` in the same atomic update
+  that wrote the version content, so both version-write paths change the
+  display name. Without this operation that behaviour would have been
+  dropped silently.
+
+  Two consequences of the split worth stating, because neither is
+  reversible by the caller:
+
+  - **It must be called only after the version write succeeds.** Under the
+    old shape a rejected create — the version already exists — matched
+    nothing and so left the name untouched. Calling it first would rename
+    on a request that then fails with a 409.
+  - **The old shape's atomicity is genuinely gone.** A failure here reports
+    an error for a version that was in fact stored. It is still translated
+    and thrown rather than swallowed the way the `versionCount` write is:
+    that field is a derived counter whose drift ADR 0001 accepts, whereas
+    these are user-supplied values, and dropping a rename silently is a
+    wrong answer rather than a display number off by one.
+
+  Note this faithfully preserves a bug: a `null` name overwrites a stored
+  one, and `ArchitectureRequest` validates neither field, so a version
+  write carrying only `architectureJson` wipes the display name. Preserved
+  deliberately — fixing it is a behaviour change, not part of a port.
 
 ### Why composition rather than a shared base class
 

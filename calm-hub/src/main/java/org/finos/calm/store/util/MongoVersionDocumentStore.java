@@ -194,6 +194,39 @@ public class MongoVersionDocumentStore {
     }
 
     /**
+     * Overwrites the header's {@code name} and {@code description}.
+     *
+     * <p>Exists because writing a version also renames the resource: the old shape set
+     * both fields in the same atomic update that wrote the version content, so the API
+     * lets a version write change the display name. Preserved deliberately, including
+     * the fact that a {@code null} name overwrites a real one — see the bug noted
+     * against {@code ArchitectureRequest}, which validates neither field.</p>
+     *
+     * <p><b>Call this after the version write succeeds, never before.</b> The old shape
+     * did both in one update, so a rejected create — the version already exists — left
+     * the name untouched. Calling this first would rename on a request that then fails
+     * with a 409, which no caller expects.</p>
+     *
+     * <p>Unlike {@link #incrementVersionCount}, a failure here is translated and thrown
+     * rather than swallowed: this is user-supplied data, not a derived counter, so
+     * silently dropping a rename is a wrong answer rather than a stale display number.
+     * The cost is that the atomicity the old shape had is genuinely gone — a failure
+     * here reports an error for a version that was in fact stored.</p>
+     */
+    public void updateHeaderDetails(String namespace, int resourceId, String name, String description) {
+        try {
+            UpdateResult result = headerCollection.updateOne(headerFilter(namespace, resourceId),
+                    Updates.combine(Updates.set(NAME_FIELD, name), Updates.set(DESCRIPTION_FIELD, description)));
+            if (result.getMatchedCount() == 0) {
+                LOG.warn("No header to update details on [namespace={}, {}={}]", namespace, idField, resourceId);
+            }
+        } catch (MongoWriteException e) {
+            LOG.error("Failed to update header details [namespace={}, {}={}]", namespace, idField, resourceId, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
+        }
+    }
+
+    /**
      * @return the stored content for one version, or {@code null} if that version
      * (or the resource) doesn't exist.
      */

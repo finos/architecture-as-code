@@ -177,6 +177,29 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
+     * Overwrites the header's {@code name} and {@code description}. See
+     * {@link MongoVersionDocumentStore#updateHeaderDetails} for why this operation
+     * exists, why a {@code null} is allowed to overwrite a real value, and why it must
+     * be called only after the version write succeeds.
+     */
+    public void updateHeaderDetails(String namespace, int resourceId, String name, String description) {
+        lock.writeLock().lock();
+        try {
+            Filter filter = headerFilter(namespace, resourceId);
+            Document header = headerCollection.find(filter).firstOrNull();
+            if (header == null) {
+                LOG.warn("No header to update details on [namespace={}, {}={}]", namespace, idField, resourceId);
+                return;
+            }
+            header.put(NAME_FIELD, name);
+            header.put(DESCRIPTION_FIELD, description);
+            headerCollection.update(filter, header);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
      * @return the stored content for one version, or {@code null} if that version
      * (or the resource) doesn't exist.
      */
