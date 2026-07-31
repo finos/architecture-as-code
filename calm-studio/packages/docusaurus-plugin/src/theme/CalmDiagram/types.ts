@@ -19,6 +19,8 @@ export interface CalmDiagramProps {
   theme?: 'light' | 'dark';
   /** Flow unique-id to highlight (applied after hydration). */
   flow?: string;
+  /** Containment rendering: nested boxes (default) or legacy dashed edges. Non-default values apply client-side. */
+  containers?: 'nested' | 'edges';
   /** Set false to keep the static SVG and skip loading the interactive web component. */
   interactive?: boolean;
   /** Injected by the remark plugin — do not set manually. */
@@ -33,6 +35,7 @@ declare module 'react' {
         data?: string;
         theme?: string;
         flow?: string;
+        containers?: string;
       };
     }
   }

@@ -38,7 +38,6 @@ import java.util.Set;
  * {@code $elemMatch} / {@code $exists: false} to prevent duplicate version creation under
  * concurrency. Unique timeline IDs are generated atomically by {@link MongoCounterStore}.
  *
- * @see MongoIndexInitializer
  * @see MongoCounterStore
  */
 @ApplicationScoped

@@ -72,7 +72,7 @@ public class UserAccessGrantsIntegration {
 
             // test-user has admin access on finos, so they can manage grants there.
             // Guarded on the specific grant (not collection existence, since
-            // MongoIndexInitializer's startup index creation on userAccess implicitly
+            // MongoIndexInitializationStep's startup index creation on userAccess implicitly
             // creates the collection before this ever runs) — this @BeforeEach runs before
             // every test in this class, so without the guard the second test's insert
             // collides with the first test's leftover document.

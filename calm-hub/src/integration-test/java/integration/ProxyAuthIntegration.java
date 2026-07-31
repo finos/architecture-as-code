@@ -94,7 +94,7 @@ public class ProxyAuthIntegration {
                 );
             }
 
-            // Guard on a specific grant, not collection existence: MongoIndexInitializer's
+            // Guard on a specific grant, not collection existence: MongoIndexInitializationStep's
             // startup index creation on userAccess implicitly creates the (empty) collection
             // before this ever runs, so "does the collection exist" is never a useful check here.
             boolean grantsExist = database.getCollection("userAccess").find(Filters.and(

@@ -12,6 +12,13 @@ vi.mock('./auth-store.js', () => ({
     },
 }));
 
+const mockSetMigrationError = vi.fn();
+vi.mock('./migration-store.js', () => ({
+    migrationStore: {
+        setMigrationError: mockSetMigrationError,
+    },
+}));
+
 describe('apiClient interceptor', () => {
     let mock: AxiosMockAdapter;
 
@@ -57,5 +64,31 @@ describe('apiClient interceptor', () => {
         const res = await apiClient.get('/test');
         expect(res.data).toEqual({ ok: true });
         expect(mockSetAuthError).not.toHaveBeenCalled();
+    });
+
+    it('calls setMigrationError with the backend-provided message on 503', async () => {
+        const { apiClient } = await import('./api-client.js');
+        mock.onGet('/test').reply(503, 'CalmHub is applying a schema migration and cannot serve requests right now.');
+
+        await expect(apiClient.get('/test')).rejects.toThrow();
+        expect(mockSetMigrationError).toHaveBeenCalledWith(
+            'CalmHub is applying a schema migration and cannot serve requests right now.'
+        );
+    });
+
+    it('falls back to a default message on 503 when the body is not usable text', async () => {
+        const { apiClient } = await import('./api-client.js');
+        mock.onGet('/test').reply(503, { unexpected: 'shape' });
+
+        await expect(apiClient.get('/test')).rejects.toThrow();
+        expect(mockSetMigrationError).toHaveBeenCalledWith('CalmHub is temporarily unavailable. Please try again shortly.');
+    });
+
+    it('does not call setMigrationError for other errors', async () => {
+        const { apiClient } = await import('./api-client.js');
+        mock.onGet('/test').reply(500);
+
+        await expect(apiClient.get('/test')).rejects.toThrow();
+        expect(mockSetMigrationError).not.toHaveBeenCalled();
     });
 });

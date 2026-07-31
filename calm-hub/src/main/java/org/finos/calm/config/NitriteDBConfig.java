@@ -108,6 +108,7 @@ public class NitriteDBConfig {
         db.getCollection("schemas");
         db.getCollection("counters");
         db.getCollection("decorators");
+        db.getCollection("calm");
     }
 
     /**
