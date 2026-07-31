@@ -23,6 +23,15 @@ function connects(uid: string, source: string, destination: string): CalmRelatio
 
 const KNOWN = new Set(['sys', 'svc-a', 'svc-b', 'cluster', 'db']);
 
+/** data-bounds value from the open tag carrying data-container-id="<id>", or null. */
+function containerBounds(svg: string, id: string): string | null {
+  const at = svg.indexOf(`data-container-id="${id}"`);
+  if (at === -1) return null;
+  const end = svg.indexOf('>', at);
+  const m = /data-bounds="([\d.,-]+)"/.exec(svg.slice(at, end === -1 ? undefined : end));
+  return m?.[1] ?? null;
+}
+
 describe('isNestedContainment', () => {
   it('true for nested composed-of and deployed-in', () => {
     expect(isNestedContainment(composedOf('r', 'sys', ['svc-a']))).toBe(true);
@@ -174,10 +183,9 @@ describe('renderELKDiagram nested containers (integration)', () => {
 
   it('positions member nodes inside the container bounds', async () => {
     const svg = await renderELKDiagram(nestedArch, { theme: 'light' });
-    const container = /data-container-id="sys"[^>]*data-bounds="([\d.,-]+)"/.exec(svg);
-    expect(container).not.toBeNull();
-    const boundsRaw = (container as RegExpExecArray)[1] as string;
-    const [cx, cy, cw, ch] = boundsRaw.split(',').map(Number) as [number, number, number, number];
+    const boundsRaw = containerBounds(svg, 'sys');
+    expect(boundsRaw).not.toBeNull();
+    const [cx, cy, cw, ch] = (boundsRaw as string).split(',').map(Number) as [number, number, number, number];
     // Each member node's x/y (from its <rect>) must fall inside the container bounds.
     for (const member of ['svc-a', 'svc-b']) {
       const m = new RegExp(`data-node-id="${member}"[\\s\\S]{0,200}?<rect x="([\\d.]+)" y="([\\d.]+)"`).exec(svg);
@@ -263,12 +271,12 @@ describe('renderELKDiagram nested containers (integration)', () => {
       ],
     };
     const svg = await renderELKDiagram(arch, { theme: 'light', direction: 'RIGHT' });
-    const outer = /data-container-id="cluster"[^>]*data-bounds="([\d.,-]+)"/.exec(svg);
-    const inner = /data-container-id="sys"[^>]*data-bounds="([\d.,-]+)"/.exec(svg);
+    const outer = containerBounds(svg, 'cluster');
+    const inner = containerBounds(svg, 'sys');
     expect(outer).not.toBeNull();
     expect(inner).not.toBeNull();
-    const [ox, oy, ow, oh] = (outer as RegExpExecArray)[1]!.split(',').map(Number) as [number, number, number, number];
-    const [ix, iy, iw, ih] = (inner as RegExpExecArray)[1]!.split(',').map(Number) as [number, number, number, number];
+    const [ox, oy, ow, oh] = (outer as string).split(',').map(Number) as [number, number, number, number];
+    const [ix, iy, iw, ih] = (inner as string).split(',').map(Number) as [number, number, number, number];
     expect(ix).toBeGreaterThanOrEqual(ox);
     expect(iy).toBeGreaterThanOrEqual(oy);
     expect(ix + iw).toBeLessThanOrEqual(ox + ow);
