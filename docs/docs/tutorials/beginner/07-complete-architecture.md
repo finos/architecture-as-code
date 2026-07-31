@@ -4,6 +4,9 @@ title: "Build a Complete Architecture"
 sidebar_position: 7
 ---
 
+import { CalmDiagram } from '@finos/calm-docusaurus-plugin'
+
+
 # Build a Complete E-Commerce Microservice Architecture
 
 🟢 **Difficulty:** Beginner | ⏱️ **Time:** 45-60 minutes
@@ -549,6 +552,14 @@ calm validate -a architectures/ecommerce-platform.json
 ```
 You should see no errors and no warnings.
 :::
+
+## See What You Built
+
+This is the architecture you have been building through this tutorial, rendered live from the same kind of `.calm.json` file you just wrote. It is generated at build time from [`ecommerce-platform.calm.json`](./architectures/ecommerce-platform.calm.json) — zoom, pan, and click nodes for details. Notice the platform boundary drawn as a box: that is the `composed-of` relationship, rendered as real containment.
+
+<CalmDiagram src="./architectures/ecommerce-platform.calm.json" />
+
+If your file validates, it will render exactly like this. A broken file fails the site build — architecture diagrams in docs can never silently drift from the model.
 
 ## Resources
 

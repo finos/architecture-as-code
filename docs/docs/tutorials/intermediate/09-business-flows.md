@@ -4,6 +4,9 @@ title: "Model Business Flows"
 sidebar_position: 3
 ---
 
+import { CalmDiagram } from '@finos/calm-docusaurus-plugin'
+
+
 # Model Business Flows
 
 🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 30-45 minutes
@@ -162,6 +165,14 @@ The same relationship can appear multiple times in a flow with different directi
 - Impact analysis ("which services are in my order flow?")
 - Generating sequence diagrams for documentation
 - Attaching compliance controls to a specific process
+
+## See the Flow Live
+
+Here is the order-processing flow you just modelled, animated over the e-commerce architecture. The moving dots trace each transition in sequence — including the reverse `destination-to-source` transition for the payment confirmation. Nodes and connections outside the flow are dimmed.
+
+<CalmDiagram src="./architectures/ecommerce-platform-with-flow.calm.json" flow="order-processing-flow" />
+
+The diagram is rendered from [`ecommerce-platform-with-flow.calm.json`](./architectures/ecommerce-platform-with-flow.calm.json), the same architecture from the beginner track with the `flows` array added exactly as described above.
 
 ## Resources
 
