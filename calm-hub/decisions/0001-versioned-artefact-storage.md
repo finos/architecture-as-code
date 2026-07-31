@@ -70,10 +70,46 @@ done in-memory after loading the full array.
 ### Scope
 
 - **In scope**: Mongo store code (`store/mongo/`), Nitrite store code
-  (`store/nitrite/`), the `mongo/init-mongo.js` seed script (it hand-writes
-  documents in the storage shape, so it has to change with it), new
-  `SchemaMigrationStep`s, and a migration pathway for existing production
-  data in both backends.
+  (`store/nitrite/`), new `SchemaMigrationStep`s, and a migration pathway
+  for existing production data in both backends.
+- **`mongo/init-mongo.js` seeds the new shape and declares the schema
+  already migrated.** It hand-writes documents in the storage shape, so it
+  changes with it — but changing the documents alone is not enough, and the
+  reason is worth stating because it is not obvious and it bites hard.
+
+  A fresh database starts at schema version 0, so `SchemaMigrationRunner`
+  would run every step on first startup. Step 0
+  (`MongoIndexInitializationStep`) creates a *unique* index on
+  `<type>.namespace`, permitting one document per namespace — which
+  new-shape seed data violates before any migration reaches the collection
+  (`finos.fluxnova` alone seeds six architectures). Step 0 would throw, the
+  runner would leave the migration lock held, and CalmHub would refuse
+  every request until an administrator cleared it by hand. Not a
+  degradation: the stack does not come up. Step 0 is a committed step and
+  therefore immutable, so it cannot be taught to skip that index.
+
+  So the seed script also writes the `schemaVersion` marker at the latest
+  version, and the runner returns before taking the lock. The cost is that
+  skipping step 0 skips *all* the indexes it creates, not just the
+  problematic one, so the seed script now creates them itself — including
+  for the six types that have not migrated. **That inventory is duplicated
+  and must be kept in step with `MongoIndexInitializationStep` and with
+  each new migration step.** When a type migrates, three things move
+  together: its seed documents, its entry in the seed's index list, and
+  `LATEST_SCHEMA_VERSION`.
+
+  This was chosen over the alternative of seeding the old shape and letting
+  the migration convert it on first startup, which would have kept the
+  index inventory in one place at the cost of a seed script permanently
+  expressing a shape the application cannot read.
+- **Also in scope, and easy to miss**: `MongoSearchStore` /
+  `NitriteSearchStore`. They read each entity collection directly rather
+  than through its store interface, so a type that migrates without its
+  search path moving too fails *silently* — the array lookup returns null
+  for a header document, the loop skips every document, and that type
+  returns no search results at all, with nothing logged. Both stores now
+  carry an array-shaped and a header-shaped path, since the two coexist
+  until all seven types have moved.
 - **Out of scope**: the domain interfaces (`ArchitectureStore` etc. stay
   unchanged — REST/service layers untouched). Controls and Decorators are
   deliberately deferred, not addressed by this ADR — see

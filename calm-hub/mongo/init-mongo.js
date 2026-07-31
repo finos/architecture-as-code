@@ -22,6 +22,63 @@ function logFail(message) {
     print(`  ❌ ${message}`);
 }
 
+// Mirror of CanonicalVersion.java, which folds every spelling the API accepts
+// ("1.0.0", "1-0-0", "100", ...) onto one form. The seed data below is already written
+// dot-separated, so this is a guard rather than a conversion: a version stored under any
+// other spelling would be invisible to the store, which canonicalizes the version it
+// looks for before querying. Keep the pattern identical to
+// ResourceValidationConstants.VERSION_REGEX.
+function canonicalVersion(version) {
+    const match = /^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$/.exec(version);
+    return match ? `${match[1]}.${match[2]}.${match[3]}` : version;
+}
+
+// Writes a versioned resource type in the header/version shape of
+// calm-hub/decisions/0001-versioned-artefact-storage.md: one header document per resource
+// in its own collection, plus one document per version in a sibling <type>Versions
+// collection.
+//
+// The seed data itself stays grouped by namespace because that reads far better than two
+// flat lists with the parent-child relationship left implicit — so what is written here is
+// deliberately NOT the literal shape of the source below. Change this function, not the
+// data, if the storage shape changes again.
+function seedVersionedResource(groupedByNamespace, headerCollection, versionCollection, arrayField, idField) {
+    const headers = [];
+    const versions = [];
+
+    for (const namespaceDocument of groupedByNamespace) {
+        for (const entry of namespaceDocument[arrayField]) {
+            const storedVersions = entry.versions || {};
+            headers.push({
+                namespace: namespaceDocument.namespace,
+                [idField]: entry[idField],
+                name: entry.name,
+                description: entry.description,
+                // NumberInt, not a plain JS number: a double here reads back as a Double and
+                // the store's getInteger call fails on it.
+                versionCount: NumberInt(Object.keys(storedVersions).length),
+                metadata: {}
+            });
+
+            for (const storedKey of Object.keys(storedVersions)) {
+                versions.push({
+                    namespace: namespaceDocument.namespace,
+                    [idField]: entry[idField],
+                    version: canonicalVersion(storedKey),
+                    content: storedVersions[storedKey],
+                    metadata: {}
+                });
+            }
+        }
+    }
+
+    db[headerCollection].insertMany(headers);
+    if (versions.length > 0) {
+        db[versionCollection].insertMany(versions);
+    }
+    return { headers: headers.length, versions: versions.length };
+}
+
 const dbName = (typeof process !== 'undefined' && process.env.CALM_DB_NAME)
     ? process.env.CALM_DB_NAME
     : 'calmSchemas';
@@ -1890,7 +1947,9 @@ if (db.flows.countDocuments() === 0) {
 
 logSection("Architectures");
 if (db.architectures.countDocuments() === 0) {
-    db.architectures.insertMany([
+    // Grouped by namespace for readability only — seedVersionedResource fans this out into
+    // one header document per architecture plus one document per version.
+    const architecturesByNamespace = [
         {
             namespace: "finos",
             architectures: [{
@@ -1899,7 +1958,7 @@ if (db.architectures.countDocuments() === 0) {
                 description: "This is a non-compliant arch document. Just creating something to simulate",
                 versions:
                 {
-                    "1-0-0": {
+                    "1.0.0": {
                         "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
                         "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/arch-1",
                         "title": "Architecture 1",
@@ -1917,7 +1976,7 @@ if (db.architectures.countDocuments() === 0) {
                     description: "Conference signup system with load-balanced services and Kubernetes deployment",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "nodes": [
                                 {
                                     "unique-id": "conference-website",
@@ -2070,7 +2129,7 @@ if (db.architectures.countDocuments() === 0) {
                 description: "Simple Trading System architecture",
                 versions:
                 {
-                    "1-0-0": {
+                    "1.0.0": {
                         "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
                         "nodes": [
                             {
@@ -2537,7 +2596,7 @@ if (db.architectures.countDocuments() === 0) {
                 name: "mcp-api-pipeline",
                 description: "User → MCP Server (cloud-hosted) → API Service → Database. FINOS AIR AI Governance controls applied directly on nodes and relationships.",
                 versions: {
-                    "1-0-0": {
+                    "1.0.0": {
                         "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
                         "unique-id": "mcp-api-pipeline",
                         "name": "MCP Server API Pipeline",
@@ -2984,7 +3043,7 @@ if (db.architectures.countDocuments() === 0) {
                 name: "Trades API and MCP Architecture (Conforming)",
                 description: "Conforming architecture with all required controls: micro-segmentation on cluster, permitted connections on all relationships, and MCP guardrail on MCP server",
                 versions: {
-                    "1-0-0": {
+                    "1.0.0": {
                         "$schema": "https://calm.finos.org/calm/namespaces/qcon/patterns/trades-api-and-mcp/versions/1.0.0",
                         "$id": "https://calm.finos.org/calm/namespaces/qcon/architectures/trades-api-and-mcp-conforming/versions/1.0.0",
                         "title": "Trades API and MCP Architecture (Conforming)",
@@ -3125,7 +3184,7 @@ if (db.architectures.countDocuments() === 0) {
                     name: "FluxNova: Platform",
                     description: "Base FluxNova BPM platform deployment topology with engine, web apps, REST API, and process database",
                     versions: {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-platform.architecture.json",
                             "title": "FluxNova: Platform",
@@ -3398,7 +3457,7 @@ if (db.architectures.countDocuments() === 0) {
                     name: "FluxNova: Microservices Orchestration",
                     description: "FluxNova BPM orchestrating microservices via the external task worker pattern — payment, notification, and fraud-check workers with an async event bus and API gateway",
                     versions: {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-microservices.architecture.json",
                             "title": "FluxNova: Microservices Orchestration",
@@ -3826,7 +3885,7 @@ if (db.architectures.countDocuments() === 0) {
                     name: "FluxNova: KYC Onboarding",
                     description: "Pre-trade KYC onboarding architecture with identity verification, sanctions screening, risk scoring, and compliance review built on FluxNova BPM platform",
                     versions: {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-kyc-onboarding.architecture.json",
                             "title": "FluxNova: KYC Onboarding",
@@ -4796,7 +4855,7 @@ if (db.architectures.countDocuments() === 0) {
                     name: "FluxNova: Post-Trade Settlement",
                     description: "Post-trade settlement blueprint with counterparty gateway, clearing house connector, regulatory reporting, and settlement database built on FluxNova BPM platform",
                     versions: {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-settlement.architecture.json",
                             "title": "FluxNova: Post-Trade Settlement",
@@ -5258,7 +5317,7 @@ if (db.architectures.countDocuments() === 0) {
                     name: "FluxNova: Flash Risk Management",
                     description: "Real-time flash risk management blueprint with on-premise and cloud compute, aggregation, and auto-provisioning for latency-sensitive financial risk calculations",
                     versions: {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-flash-risk.architecture.json",
                             "title": "FluxNova: Flash Risk Management",
@@ -5705,7 +5764,7 @@ if (db.architectures.countDocuments() === 0) {
                     name: "FluxNova: AI Agent Orchestration",
                     description: "FluxNova BPM platform orchestrating autonomous AI agents with LLM inference, guardrails, and callable tools — AIGF governance controls pre-applied",
                     versions: {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-ai-agent.architecture.json",
                             "title": "FluxNova: AI Agent Orchestration",
@@ -6075,8 +6134,10 @@ if (db.architectures.countDocuments() === 0) {
                 }
             ]
         }
-    ]);
-    logSuccess("Initialized architectures for finos, workshop, traderx, ai-governance-v2, qcon, and finos.fluxnova namespaces");
+    ];
+    const seededArchitectures = seedVersionedResource(
+        architecturesByNamespace, "architectures", "architectureVersions", "architectures", "architectureId");
+    logSuccess(`Initialized ${seededArchitectures.headers} architectures and ${seededArchitectures.versions} versions for finos, workshop, traderx, ai-governance-v2, qcon, and finos.fluxnova namespaces`);
 } else {
     logSkip("Architectures already initialized, skipping...");
 }
@@ -6572,5 +6633,67 @@ if (db.resource_mappings.countDocuments() === 0) {
 } else {
     logSkip("Resource mappings already exist, no initialization needed");
 }
+
+logSection("Indexes");
+// Normally created by MongoIndexInitializationStep, the version 0 -> 1 migration step.
+// This script pins the schema version to LATEST_SCHEMA_VERSION below, so that step — and
+// every other — is skipped on first startup and these indexes would otherwise never
+// exist, silently losing the duplicate-prevention the stores rely on for concurrent POSTs.
+//
+// MUST be kept in step with MongoIndexInitializationStep. Two deliberate differences,
+// both because architectures have moved to the header/version shape (ADR 0001):
+//   - architectures gets a unique (namespace, architectureId) instead of (namespace),
+//     which is what allows more than one architecture per namespace at all
+//   - architectureVersions gets a unique (namespace, architectureId, version)
+// The other six versioned types keep the one-document-per-namespace index until they
+// migrate, at which point their entry here moves the same way.
+//
+// createIndex is idempotent, so this is safe to re-run over an already-seeded database.
+const unique = { unique: true };
+
+db.namespaces.createIndex({ name: 1 }, unique);
+db.domains.createIndex({ name: 1 }, unique);
+db.schemas.createIndex({ version: 1 }, unique);
+
+db.architectures.createIndex({ namespace: 1, architectureId: 1 }, unique);
+db.architectureVersions.createIndex({ namespace: 1, architectureId: 1, version: 1 }, unique);
+
+for (const collection of ["patterns", "flows", "timelines", "standards", "interfaces", "adrs", "decorators"]) {
+    db[collection].createIndex({ namespace: 1 }, unique);
+}
+db.controls.createIndex({ domain: 1 }, unique);
+
+// Two partial indexes rather than one compound: namespace-scoped and domain-scoped grant
+// documents share no discriminating field.
+db.userAccess.createIndex({ username: 1, namespace: 1, permission: 1 },
+    { unique: true, partialFilterExpression: { namespace: { $exists: true } } });
+db.userAccess.createIndex({ username: 1, domain: 1, permission: 1 },
+    { unique: true, partialFilterExpression: { domain: { $exists: true } } });
+
+// Non-unique: the audit trail is append-only with no uniqueness invariant, so these only
+// support AuditLogStore's lookup shapes.
+db.auditLogs.createIndex({ namespace: 1, entityType: 1, entityId: 1, timestamp: -1 });
+db.auditLogs.createIndex({ domain: 1, entityType: 1, entityId: 1, timestamp: -1 });
+db.auditLogs.createIndex({ actor: 1, timestamp: -1 });
+db.auditLogs.createIndex({ timestamp: -1 });
+logSuccess("Created indexes (mirroring MongoIndexInitializationStep, with architectures in the header/version shape)");
+
+logSection("Schema version");
+// Everything this script writes is already in the shape the current code reads, so record
+// the schema as fully migrated. SchemaMigrationRunner then returns before taking the
+// migration lock instead of running steps that have nothing to do — and, in step 0's case,
+// would actively fail: its unique index on architectures.namespace permits one document
+// per namespace, which new-shape seed data violates (finos.fluxnova seeds six). A failed
+// step leaves the lock held and CalmHub refusing every request.
+//
+// Raise this whenever a migration step is added, and seed that step's target shape above.
+// Document shape must match MongoSchemaVersionStore: _id "schemaVersion", int version, in
+// the calm collection.
+const LATEST_SCHEMA_VERSION = 3;
+db.calm.updateOne(
+    { _id: "schemaVersion" },
+    { $set: { version: NumberInt(LATEST_SCHEMA_VERSION) } },
+    { upsert: true });
+logSuccess(`Recorded schema version ${LATEST_SCHEMA_VERSION} — startup migrations will be skipped`);
 
 logSection("Initialization complete");
