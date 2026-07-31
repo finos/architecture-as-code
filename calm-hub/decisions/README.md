@@ -7,14 +7,17 @@ about *their own* architectures via the API.
 
 Format: lightweight MADR-style — Status, Context, Decision, Consequences.
 `Status` is one of `Proposed`, `Accepted`, `Implemented`, `Superseded by
-ADR-000N`. A `Proposed` ADR records a decision that's been made about the
-target design before implementation starts — it is not a description of
-current behaviour; check the `Status` field before assuming what's written
-here is how the code works today.
+ADR-000N`.
+
+**Only `Implemented` means the code works this way today.** `Proposed` and
+`Accepted` both describe a target design: `Proposed` is still up for debate,
+`Accepted` has been agreed but may not be built yet. Check the `Status` line —
+it also carries a note on how much of the ADR has actually landed — before
+assuming anything here reflects current behaviour.
 
 | ADR | Title | Status |
 |---|---|---|
-| [0001](0001-versioned-artefact-storage.md) | Versioned artefact storage redesign | Proposed |
-| [0002](0002-version-key-encoding.md) | Version field encoding — dots, not dashes | Proposed |
-| [0003](0003-shared-version-store-helper.md) | Shared header/version store helper | Proposed |
+| [0001](0001-versioned-artefact-storage.md) | Versioned artefact storage redesign | Accepted |
+| [0002](0002-version-key-encoding.md) | Version field encoding — dots, not dashes | Accepted |
+| [0003](0003-shared-version-store-helper.md) | Shared header/version store helper | Accepted |
 | [0004](0004-defer-control-and-decorator-storage.md) | Defer Control and Decorator storage redesign | Accepted |

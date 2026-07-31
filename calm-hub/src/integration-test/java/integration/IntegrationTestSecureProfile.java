@@ -28,9 +28,10 @@ public class IntegrationTestSecureProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         // override the following secure profile's properties to start the application container with http
         //
-        // calm.audit.* re-enables audit logging, which src/test/resources/application.properties
-        // disables for the general unit-test suite — see IntegrationTestProfile for why, and
-        // MongoAuditLogDeniedIntegration for the test that needs this on here.
+        // calm.audit.* re-enables audit logging, which the %test. block in
+        // src/main/resources/application.properties disables for the general unit-test
+        // suite — see IntegrationTestProfile for why, and MongoAuditLogDeniedIntegration
+        // for the test that needs this on here.
         return Map.of(
                 "quarkus.profile", "secure",
                 "quarkus.http.ssl-port", "0",
