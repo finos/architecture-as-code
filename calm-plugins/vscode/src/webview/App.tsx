@@ -112,7 +112,9 @@ function CanvasApp() {
                 if (undoStack.current.length > 50) undoStack.current.shift();
                 redoStack.current = [];
             }
-            const arch = flowToCalm(nodes, edges, store.documentControls);
+            const currentNodes = reactFlowInstance.getNodes();
+            const currentEdges = reactFlowInstance.getEdges();
+            const arch = flowToCalm(currentNodes, currentEdges, store.documentControls);
             const json = JSON.stringify(arch, null, 2);
             lastEmittedJson.current = json;
             notifyCanvasChanged(json);
@@ -121,7 +123,7 @@ function CanvasApp() {
 
         if (immediate) flush();
         else debounceTimer.current = setTimeout(flush, 300);
-    }, [nodes, edges, store.documentControls, store.readonlyMode]);
+    }, [reactFlowInstance, store.documentControls, store.readonlyMode]);
 
     // --- Load architecture ---
     const loadArchitecture = useCallback((json: string) => {
@@ -232,13 +234,16 @@ function CanvasApp() {
             positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
             return;
         }
-        if (structural) emitChange(true);
+        if (structural) setTimeout(() => emitChange(true), 0);
     }, [onNodesChangeBase, emitChange, store.readonlyMode]);
 
     const onEdgesChange = useCallback((changes: EdgeChange[]) => {
         if (store.readonlyMode) return;
         onEdgesChangeBase(changes);
-        if (changes.some((c) => c.type === 'remove')) emitChange(true);
+        if (changes.some((c) => c.type === 'remove')) {
+            // Delay emit to allow ReactFlow's internal store to sync the removal
+            setTimeout(() => emitChange(true), 0);
+        }
     }, [onEdgesChangeBase, emitChange, store.readonlyMode]);
 
     // --- Connect ---
@@ -254,7 +259,7 @@ function CanvasApp() {
             style: { stroke: '#94a3b8', strokeWidth: 1.5 },
             data: { calmRelId: id, calmVariant: 'connects', protocol: '', description: '', direction: 'source-to-target', lineStyle: 'solid' },
         }, eds));
-        emitChange(true);
+        setTimeout(() => emitChange(true), 0);
     }, [setEdges, emitChange, store.readonlyMode]);
 
     // --- Delete (reactflow v11 fires onNodesDelete after removal) ---
@@ -277,7 +282,7 @@ function CanvasApp() {
             return updated.filter((n) => !deletedIds.has(n.id));
         });
         setEdges((eds) => eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target)));
-        emitChange(true);
+        setTimeout(() => emitChange(true), 0);
     }, [setNodes, setEdges, emitChange, store.readonlyMode]);
 
     // --- Node click (select) ---
@@ -325,7 +330,7 @@ function CanvasApp() {
     const handleNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
         if (store.readonlyMode) return;
         if (draggedNode.type === 'container' || draggedNode.parentId) {
-            emitChange(true);
+            setTimeout(() => emitChange(true), 0);
             return;
         }
 
@@ -348,13 +353,13 @@ function CanvasApp() {
             }
             return nds;
         });
-        emitChange(true);
+        setTimeout(() => emitChange(true), 0);
     }, [setNodes, emitChange, store.readonlyMode]);
 
     // --- Unparent ---
     const unparentNode = useCallback((nodeId: string) => {
         setNodes((nds) => removeContainment(nodeId, nds));
-        emitChange(true);
+        setTimeout(() => emitChange(true), 0);
     }, [setNodes, emitChange]);
 
     // --- Node update (from properties panel) ---
@@ -376,7 +381,7 @@ function CanvasApp() {
             setSelectedNode(updated);
             return updated;
         }));
-        emitChange(field !== 'name' && field !== 'description');
+        setTimeout(() => emitChange(field !== 'name' && field !== 'description'), 0);
     }, [setNodes, emitChange]);
 
     // --- Drop from palette ---
@@ -492,7 +497,7 @@ function CanvasApp() {
 
                         return updatedNodes;
                     });
-                    emitChange(true);
+                    setTimeout(() => emitChange(true), 0);
                     return;
                 }
                 // No target (or no controls to apply) — fall through to place a standalone marker.
@@ -514,7 +519,7 @@ function CanvasApp() {
                 },
             };
             setNodes((nds) => [...nds, newNode]);
-            emitChange(true);
+            setTimeout(() => emitChange(true), 0);
             return;
         }
 
@@ -532,7 +537,7 @@ function CanvasApp() {
                 data: { label: nodeLabel || nodeType, calmId: id, calmType: nodeType, description: '', interfaces: [], metadata: {} },
             }]);
         }
-        emitChange(true);
+        setTimeout(() => emitChange(true), 0);
     }, [nodes, setNodes, setEdges, emitChange, reactFlowInstance, store.readonlyMode, store.buildingBlocks]);
 
     // --- Validate ---
@@ -601,7 +606,7 @@ function CanvasApp() {
             if (!arch?.nodes?.length) return;
             const { nodes: laid, edges: parsedEdges } = parseCALMData(arch, direction);
             setNodes(laid); setEdges(parsedEdges);
-            emitChange(false);
+            setTimeout(() => emitChange(true), 0);
         } catch { /* */ }
     }, [setNodes, setEdges, emitChange]);
 
@@ -706,14 +711,14 @@ function CanvasApp() {
             setSelectedEdge(updated);
             return updated;
         }));
-        emitChange(field === 'calmVariant');
+        setTimeout(() => emitChange(true), 0);
     }, [setEdges, emitChange]);
 
     // --- Edge reconnect (drag a wire endpoint onto a different handle to re-route) ---
     const handleEdgeReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
         if (store.readonlyMode) return;
         setEdges((els) => updateEdge(oldEdge, newConnection, els));
-        emitChange(true);
+        setTimeout(() => emitChange(true), 0);
     }, [setEdges, emitChange, store.readonlyMode]);
 
     // --- Pattern/Template handlers ---
