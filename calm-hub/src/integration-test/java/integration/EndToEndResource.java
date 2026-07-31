@@ -4,6 +4,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.finos.calm.migration.steps.MongoArchitectureVersionSplitStep;
 import org.finos.calm.migration.steps.MongoIndexInitializationStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,12 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
         try (MongoClient mongoClient = MongoClients.create(connectionString)) {
             MongoDatabase database = mongoClient.getDatabase(databaseName);
             new MongoIndexInitializationStep(database).createIndexes();
+            // That step creates a unique index on architectures.namespace alone, which
+            // enforces the pre-migration one-document-per-namespace shape and would make
+            // a second architecture in a namespace impossible. Architecture has since
+            // moved to the header/version shape, so its indexes have to be transitioned
+            // here too — the same swap the version 2 -> 3 migration performs.
+            new MongoArchitectureVersionSplitStep(database).transitionIndexes();
             logger.info("Ensured MongoDB indexes for integration tests");
         }
 
