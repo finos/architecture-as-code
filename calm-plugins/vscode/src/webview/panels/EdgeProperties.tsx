@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Edge } from 'reactflow';
-import type { EdgeDirection, EdgeLineStyle } from '../canvas/edges/TooltipEdge';
+import type { EdgeDirection, EdgeLineStyle, EdgeRouting } from '../canvas/edges/TooltipEdge';
 import { CustomMetadata } from './CustomMetadata';
 
 const RELATIONSHIP_TYPES = ['connects', 'interacts', 'deployed-in', 'composed-of', 'options'] as const;
@@ -17,6 +17,12 @@ const LINE_STYLE_OPTIONS: { value: EdgeLineStyle; label: string }[] = [
     { value: 'solid', label: 'Solid ———' },
     { value: 'dashed', label: 'Dashed - - -' },
     { value: 'dotted', label: 'Dotted · · ·' },
+];
+
+const ROUTING_OPTIONS: { value: EdgeRouting; label: string }[] = [
+    { value: 'bezier', label: 'Curve' },
+    { value: 'smoothstep', label: 'Elbow' },
+    { value: 'straight', label: 'Straight' },
 ];
 
 interface EdgePropertiesProps {
@@ -39,6 +45,7 @@ export function EdgeProperties({ edge, readonlyMode = false, onEdgeUpdate }: Edg
 
     const direction = (data.direction as EdgeDirection) ?? 'source-to-target';
     const lineStyle = (data.lineStyle as EdgeLineStyle) ?? 'solid';
+    const routing = (data.routing as EdgeRouting) ?? 'bezier';
 
     useEffect(() => {
         if (edge.id !== lastEdgeId.current) {
@@ -74,6 +81,14 @@ export function EdgeProperties({ edge, readonlyMode = false, onEdgeUpdate }: Edg
                 {readonlyMode ? <span style={{ fontSize: '12px' }}>{LINE_STYLE_OPTIONS.find(o => o.value === lineStyle)?.label}</span> : (
                     <select value={lineStyle} onChange={(e) => onEdgeUpdate?.(edge.id, 'lineStyle', e.target.value)} style={selectStyle}>
                         {LINE_STYLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                )}
+            </Field>
+
+            <Field label="Routing">
+                {readonlyMode ? <span style={{ fontSize: '12px' }}>{ROUTING_OPTIONS.find(o => o.value === routing)?.label}</span> : (
+                    <select value={routing} onChange={(e) => onEdgeUpdate?.(edge.id, 'routing', e.target.value)} style={selectStyle}>
+                        {ROUTING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 )}
             </Field>

@@ -253,7 +253,7 @@ function CanvasApp() {
         setEdges((eds) => addEdge({
             ...connection,
             id,
-            type: 'smoothstep',
+            type: 'tooltip',
             label: '',
             markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
             style: { stroke: '#94a3b8', strokeWidth: 1.5 },
@@ -697,6 +697,7 @@ function CanvasApp() {
                 case 'controls': data.controls = value; break;
                 case 'direction': data.direction = value; break;
                 case 'lineStyle': data.lineStyle = value; break;
+                case 'routing': data.routing = value; break;
                 case 'edgeMetadata': data.edgeMetadata = value; break;
             }
             const label = (data.protocol as string) || (data.description as string) || '';

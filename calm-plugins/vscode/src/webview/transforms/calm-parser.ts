@@ -118,7 +118,7 @@ export function parseCALMData(
     }
 
     // Build edges from non-containment relationships
-    interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; edgeMetadata: Record<string, unknown> }
+    interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; edgeMetadata: Record<string, unknown> }
     const connectsList: ConnectsEntry[] = [];
     for (const rel of arch.relationships ?? []) {
         const rt = rel['relationship-type'] as
@@ -144,17 +144,19 @@ export function parseCALMData(
                     | undefined;
                 const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
                 const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
+                const routing = (relMeta?.['routing'] as string) ?? 'bezier';
                 const edgeMetadata: Record<string, unknown> = {};
-                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style') edgeMetadata[k] = v; } }
-                connectsList.push({ relId, src, dst, protocol, description, controls: (rel as any).controls, lineStyle, edgeMetadata });
+                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
+                connectsList.push({ relId, src, dst, protocol, description, controls: (rel as any).controls, lineStyle, routing, edgeMetadata });
             }
         } else if (interacts) {
             const actor = interacts.actor;
             const description = (rel as any).description as string | undefined;
             const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
             const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
+            const routing = (relMeta?.['routing'] as string) ?? 'bezier';
             const edgeMetadata: Record<string, unknown> = {};
-            if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style') edgeMetadata[k] = v; } }
+            if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
             for (const target of interacts.nodes ?? []) {
                 if (actor && target) {
                     edges.push({
@@ -168,6 +170,7 @@ export function parseCALMData(
                             description,
                             direction: 'source-to-target',
                             lineStyle,
+                            routing,
                             edgeMetadata,
                         },
                         type: 'tooltip',
@@ -208,6 +211,7 @@ export function parseCALMData(
                 controls: entry.controls,
                 direction: directionValue,
                 lineStyle: entry.lineStyle,
+                routing: entry.routing,
                 edgeMetadata: entry.edgeMetadata,
             },
             type: 'tooltip',

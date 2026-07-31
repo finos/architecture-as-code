@@ -103,9 +103,11 @@ export function flowToCalm(
         const relId = (data.calmRelId as string) ?? edge.id;
         const direction = (data.direction as string) ?? 'source-to-target';
         const lineStyle = (data.lineStyle as string) ?? 'solid';
+        const routing = (data.routing as string) ?? 'bezier';
         const edgeMetadata = (data.edgeMetadata as Record<string, unknown>) ?? {};
         const meta: Record<string, unknown> = { ...edgeMetadata };
         if (lineStyle && lineStyle !== 'solid') meta['line-style'] = lineStyle;
+        if (routing && routing !== 'bezier') meta['routing'] = routing;
         const hasMeta = Object.keys(meta).length > 0;
 
         const rel: Record<string, unknown> = {

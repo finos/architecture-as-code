@@ -1,8 +1,9 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from 'reactflow';
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, getStraightPath, type EdgeProps } from 'reactflow';
 
 export type EdgeDirection = 'source-to-target' | 'bidirectional' | 'none';
 export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
+export type EdgeRouting = 'bezier' | 'smoothstep' | 'straight';
 
 function strokeDasharray(lineStyle: EdgeLineStyle | undefined): string | undefined {
     switch (lineStyle) {
@@ -28,12 +29,16 @@ export function TooltipEdge({
         hideTimer.current = setTimeout(() => setHovered(false), 200);
     }, []);
 
-    const [edgePath, labelX, labelY] = getBezierPath({
-        sourceX, sourceY, sourcePosition,
-        targetX, targetY, targetPosition,
-    });
-
     const edgeData = (data ?? {}) as Record<string, unknown>;
+    const routing = (edgeData.routing as EdgeRouting) ?? 'bezier';
+
+    const pathParams = { sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition };
+    const [edgePath, labelX, labelY] = routing === 'smoothstep'
+        ? getSmoothStepPath(pathParams)
+        : routing === 'straight'
+            ? getStraightPath(pathParams)
+            : getBezierPath(pathParams);
+
     const description = edgeData.description as string | undefined;
     const protocol = edgeData.protocol as string | undefined;
     const variant = edgeData.calmVariant as string | undefined;
