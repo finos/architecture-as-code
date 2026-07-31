@@ -224,8 +224,10 @@ function CanvasApp() {
 
         let structural = false;
         let positionOnly = true;
+        let hasDimensions = false;
         for (const c of changes) {
             if (c.type === 'remove') structural = true;
+            if (c.type === 'dimensions') hasDimensions = true;
             if (c.type !== 'position') positionOnly = false;
         }
 
@@ -235,6 +237,10 @@ function CanvasApp() {
             return;
         }
         if (structural) setTimeout(() => emitChange(true), 0);
+        else if (hasDimensions) {
+            if (positionDebounceTimer.current) clearTimeout(positionDebounceTimer.current);
+            positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
+        }
     }, [onNodesChangeBase, emitChange, store.readonlyMode]);
 
     const onEdgesChange = useCallback((changes: EdgeChange[]) => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Handle, Position, type NodeProps } from 'reactflow';
+import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
 import { getNodeStyleOverride } from '../../utils/building-block-style';
 
 export function ContainerNode({ id, data, selected }: NodeProps) {
@@ -8,6 +8,13 @@ export function ContainerNode({ id, data, selected }: NodeProps) {
 
     return (
         <>
+            <NodeResizer
+                isVisible={selected}
+                minWidth={180}
+                minHeight={120}
+                lineStyle={{ borderColor: '#6366f1' }}
+                handleStyle={{ width: '8px', height: '8px', background: '#6366f1', borderRadius: '2px' }}
+            />
             <Handle type="target" position={Position.Top} style={handleStyle} />
             <Handle type="source" position={Position.Bottom} style={handleStyle} />
             <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
