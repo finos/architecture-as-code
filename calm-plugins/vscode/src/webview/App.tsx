@@ -98,6 +98,7 @@ function CanvasApp() {
     const suppressFileUpdatesUntil = useRef(0);
     const syncingRef = useRef(false);
     const undoingOrRedoing = useRef(false);
+    const loadGeneration = useRef(0);
 
 
     // --- Core: emit change ---
@@ -105,7 +106,10 @@ function CanvasApp() {
         if (syncingRef.current || store.readonlyMode || undoingOrRedoing.current) return;
         if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
+        const generation = loadGeneration.current;
         const flush = () => {
+            if (generation !== loadGeneration.current) return;
+            if (useCanvasStore.getState().readonlyMode) return;
             // Push undo state
             if (lastEmittedJson.current !== null) {
                 undoStack.current.push(lastEmittedJson.current);
@@ -127,6 +131,12 @@ function CanvasApp() {
 
     // --- Load architecture ---
     const loadArchitecture = useCallback((json: string) => {
+        // Invalidate any in-flight setTimeout callbacks from prior interactions
+        loadGeneration.current++;
+        // Cancel any pending emit timers to prevent stale data from overwriting the file
+        if (debounceTimer.current) { clearTimeout(debounceTimer.current); debounceTimer.current = null; }
+        if (positionDebounceTimer.current) { clearTimeout(positionDebounceTimer.current); positionDebounceTimer.current = null; }
+
         // A blank/whitespace file means "no architecture" — clear the canvas instead of
         // keeping the previously loaded diagram (JSON.parse('') would otherwise throw and the
         // stale nodes would linger).
