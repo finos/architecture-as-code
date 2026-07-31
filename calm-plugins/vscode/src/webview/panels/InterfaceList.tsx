@@ -48,6 +48,16 @@ export function InterfaceList({ interfaces = [], onUpdate, readonly = false }: I
         onUpdate(updated);
     };
 
+    const handleNestedChange = (idx: number, parentKey: string, obj: Record<string, unknown>) => {
+        const key = `${idx}-${parentKey}`;
+        clearTimeout(timers.current[key]);
+        timers.current[key] = setTimeout(() => {
+            const updated = [...interfaces];
+            updated[idx] = { ...updated[idx], [parentKey]: obj };
+            onUpdate(updated);
+        }, 300);
+    };
+
     const handleDelete = (idx: number) => {
         setExpandedIdx(null);
         onUpdate(interfaces.filter((_, i) => i !== idx));
@@ -102,26 +112,16 @@ export function InterfaceList({ interfaces = [], onUpdate, readonly = false }: I
                                         </div>
 
                                         {extraProps.map(([key, value]) => (
-                                            <div key={key} style={rowStyle}>
-                                                <input style={{ ...inputStyle, flex: '0 0 80px', fontSize: '10px', fontWeight: 600 }}
-                                                    type="text" defaultValue={key} readOnly={readonly}
-                                                    onBlur={(e) => handlePropertyKeyRename(idx, key, e.target.value)} />
-                                                {typeof value === 'object' && value !== null ? (
-                                                    <input style={{ ...inputStyle, flex: 1, fontSize: '10px', fontStyle: 'italic' }}
-                                                        type="text" defaultValue={JSON.stringify(value)} readOnly={readonly}
-                                                        onChange={(e) => {
-                                                            try { handleFieldChange(idx, key, JSON.parse(e.target.value)); }
-                                                            catch { handleFieldChange(idx, key, e.target.value); }
-                                                        }} />
-                                                ) : (
-                                                    <input style={{ ...inputStyle, flex: 1, fontSize: '10px' }}
-                                                        type="text" defaultValue={String(value ?? '')} readOnly={readonly}
-                                                        onChange={(e) => handleFieldChange(idx, key, e.target.value)} />
-                                                )}
-                                                {!readonly && (
-                                                    <button onClick={() => handlePropertyDelete(idx, key)} style={propDeleteBtnStyle}>&times;</button>
-                                                )}
-                                            </div>
+                                            <PropertyRow
+                                                key={key}
+                                                propKey={key}
+                                                value={value}
+                                                readonly={readonly}
+                                                onKeyRename={(newKey) => handlePropertyKeyRename(idx, key, newKey)}
+                                                onValueChange={(val) => handleFieldChange(idx, key, val)}
+                                                onNestedChange={(obj) => handleNestedChange(idx, key, obj)}
+                                                onDelete={() => handlePropertyDelete(idx, key)}
+                                            />
                                         ))}
 
                                         {!readonly && (
@@ -142,17 +142,95 @@ export function InterfaceList({ interfaces = [], onUpdate, readonly = false }: I
     );
 }
 
+interface PropertyRowProps {
+    propKey: string;
+    value: unknown;
+    readonly: boolean;
+    onKeyRename: (newKey: string) => void;
+    onValueChange: (value: unknown) => void;
+    onNestedChange: (obj: Record<string, unknown>) => void;
+    onDelete: () => void;
+    depth?: number;
+}
+
+function PropertyRow({ propKey, value, readonly, onKeyRename, onValueChange, onNestedChange, onDelete, depth = 0 }: PropertyRowProps) {
+    const [expanded, setExpanded] = useState(true);
+    const isObject = typeof value === 'object' && value !== null && !Array.isArray(value);
+    const obj = isObject ? value as Record<string, unknown> : null;
+
+    if (isObject && obj) {
+        const entries = Object.entries(obj);
+        return (
+            <div style={{ marginBottom: '4px', marginLeft: depth > 0 ? '12px' : 0 }}>
+                <div style={{ ...rowStyle, marginBottom: '2px' }}>
+                    <span style={nestedChevronStyle} onClick={() => setExpanded(!expanded)}>{expanded ? '▾' : '▸'}</span>
+                    <input style={{ ...inputStyle, flex: '0 0 80px', fontSize: '10px', fontWeight: 600 }}
+                        type="text" defaultValue={propKey} readOnly={readonly}
+                        onBlur={(e) => onKeyRename(e.target.value)} />
+                    <span style={{ fontSize: '9px', color: 'var(--calm-fg-muted)' }}>{`{${entries.length}}`}</span>
+                    {!readonly && <button onClick={onDelete} style={propDeleteBtnStyle}>&times;</button>}
+                </div>
+                {expanded && (
+                    <div style={nestedContainerStyle}>
+                        {entries.map(([childKey, childVal]) => (
+                            <PropertyRow
+                                key={childKey}
+                                propKey={childKey}
+                                value={childVal}
+                                readonly={readonly}
+                                depth={depth + 1}
+                                onKeyRename={(newKey) => {
+                                    if (newKey === childKey || !newKey) return;
+                                    const updated = { ...obj };
+                                    const v = updated[childKey];
+                                    delete updated[childKey];
+                                    updated[newKey] = v;
+                                    onNestedChange(updated);
+                                }}
+                                onValueChange={(val) => onNestedChange({ ...obj, [childKey]: val })}
+                                onNestedChange={(nested) => onNestedChange({ ...obj, [childKey]: nested })}
+                                onDelete={() => {
+                                    const updated = { ...obj };
+                                    delete updated[childKey];
+                                    onNestedChange(updated);
+                                }}
+                            />
+                        ))}
+                        {!readonly && (
+                            <button onClick={() => onNestedChange({ ...obj, [`field-${Date.now()}`]: '' })} style={{ ...addPropBtnStyle, marginLeft: '18px' }}>+ Add</button>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ ...rowStyle, marginLeft: depth > 0 ? '12px' : 0 }}>
+            <input style={{ ...inputStyle, flex: '0 0 80px', fontSize: '10px', fontWeight: 600 }}
+                type="text" defaultValue={propKey} readOnly={readonly}
+                onBlur={(e) => onKeyRename(e.target.value)} />
+            <input style={{ ...inputStyle, flex: 1, fontSize: '10px' }}
+                type="text" defaultValue={String(value ?? '')} readOnly={readonly}
+                onChange={(e) => onValueChange(e.target.value)} />
+            {!readonly && <button onClick={onDelete} style={propDeleteBtnStyle}>&times;</button>}
+        </div>
+    );
+}
+
 const sectionStyle: React.CSSProperties = { padding: '10px 14px', borderTop: '1px solid var(--calm-border)' };
 const labelStyle: React.CSSProperties = { fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', color: 'var(--calm-fg-muted)' };
 const badgeStyle: React.CSSProperties = { minWidth: '18px', height: '18px', padding: '0 5px', borderRadius: '9px', fontSize: '10px', fontWeight: 600, background: 'var(--calm-badge-bg)', color: 'var(--calm-badge-fg)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
 const cardStyle: React.CSSProperties = { borderRadius: '4px', border: '1px solid var(--calm-border)', overflow: 'hidden' };
 const cardHeaderStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', cursor: 'pointer', background: 'var(--calm-bg-secondary)' };
 const chevronStyle: React.CSSProperties = { fontSize: '9px', color: 'var(--calm-fg-muted)', flexShrink: 0, width: '10px' };
+const nestedChevronStyle: React.CSSProperties = { ...chevronStyle, cursor: 'pointer' };
 const idStyle: React.CSSProperties = { fontSize: '10px', fontWeight: 600, color: 'var(--calm-fg)', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 };
 const summaryStyle: React.CSSProperties = { fontSize: '10px', color: 'var(--calm-fg-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const cardBodyStyle: React.CSSProperties = { padding: '8px 10px', borderTop: '1px solid var(--calm-border)' };
 const rowStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' };
 const rowLabelStyle: React.CSSProperties = { fontSize: '9px', fontWeight: 600, color: 'var(--calm-fg-muted)', flexShrink: 0, width: '70px' };
+const nestedContainerStyle: React.CSSProperties = { paddingLeft: '6px', borderLeft: '2px solid var(--calm-border)', marginLeft: '4px', marginBottom: '4px' };
 const inputStyle: React.CSSProperties = { padding: '3px 6px', fontSize: '11px', color: 'var(--calm-fg)', background: 'var(--calm-bg-input)', border: '1px solid var(--calm-border-input)', borderRadius: '3px', outline: 'none' };
 const deleteBtnStyle: React.CSSProperties = { width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg-muted)', fontSize: '13px', flexShrink: 0 };
 const propDeleteBtnStyle: React.CSSProperties = { ...deleteBtnStyle, width: '16px', height: '16px', fontSize: '12px' };
