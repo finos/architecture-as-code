@@ -65,6 +65,7 @@ const sidebars = {
         'working-with-calm/cli',
         'working-with-calm/validation-server',
         'working-with-calm/voice-mode',
+        'working-with-calm/visualizing-architectures',
       ],
     },
   ],
