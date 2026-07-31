@@ -83,6 +83,9 @@ export function InterfaceList({ interfaces = [], onUpdate, readonly = false }: I
                                             <select style={selectStyle} value={iface.type ?? ''} onChange={(e) => handleFieldChange(idx, 'type', e.target.value)}>
                                                 <option value="">— None —</option>
                                                 {INTERFACE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                                                {iface.type && !INTERFACE_TYPES.includes(iface.type as any) && (
+                                                    <option key={iface.type} value={iface.type}>{iface.type}</option>
+                                                )}
                                             </select>
                                         )}
                                     </Row>
