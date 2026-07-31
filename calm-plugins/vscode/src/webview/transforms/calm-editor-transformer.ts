@@ -51,13 +51,15 @@ export function flowToCalm(
     const calmNodes: Array<Record<string, unknown>> = [];
     const calmRelationships: Array<Record<string, unknown>> = [];
 
-    // Reconstruct containment from parentId
+    // Reconstruct containment from parentId, including empty containers
     const containerChildren = new Map<string, string[]>();
     for (const n of nodes) {
+        if (n.type === 'container') {
+            if (!containerChildren.has(n.id)) containerChildren.set(n.id, []);
+        }
         if (n.parentId) {
-            const pid = n.parentId;
-            if (!containerChildren.has(pid)) containerChildren.set(pid, []);
-            containerChildren.get(pid)!.push(n.id);
+            if (!containerChildren.has(n.parentId)) containerChildren.set(n.parentId, []);
+            containerChildren.get(n.parentId)!.push(n.id);
         }
     }
 
