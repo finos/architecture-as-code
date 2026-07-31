@@ -2,8 +2,6 @@ import React, { useRef, useState } from 'react';
 
 interface CalmInterface { 'unique-id': string; type?: string; value?: string; url?: string; host?: string; port?: number; path?: string; protocol?: string; 'definition-url'?: string; config?: Record<string, unknown>; [key: string]: unknown }
 
-const INTERFACE_TYPES = ['url', 'host-port', 'grpc', 'websocket', 'tcp', 'custom'] as const;
-
 interface InterfaceListProps {
     interfaces: CalmInterface[];
     onUpdate: (interfaces: CalmInterface[]) => void;
@@ -77,17 +75,9 @@ export function InterfaceList({ interfaces = [], onUpdate, readonly = false }: I
                                             onChange={(e) => handleFieldChange(idx, 'unique-id', e.target.value)} readOnly={readonly} />
                                     </Row>
                                     <Row label="Type">
-                                        {readonly ? (
-                                            <span style={{ fontSize: '11px' }}>{iface.type ?? '—'}</span>
-                                        ) : (
-                                            <select style={selectStyle} value={iface.type ?? ''} onChange={(e) => handleFieldChange(idx, 'type', e.target.value)}>
-                                                <option value="">— None —</option>
-                                                {INTERFACE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                                                {iface.type && !INTERFACE_TYPES.includes(iface.type as any) && (
-                                                    <option key={iface.type} value={iface.type}>{iface.type}</option>
-                                                )}
-                                            </select>
-                                        )}
+                                        <input style={inputStyle} type="text" defaultValue={iface.type ?? ''}
+                                            onChange={(e) => handleFieldChange(idx, 'type', e.target.value)}
+                                            placeholder="e.g. url, host-port" readOnly={readonly} />
                                     </Row>
                                     <Row label="Value">
                                         <input style={inputStyle} type="text" defaultValue={iface.value ?? iface.url ?? ''}
@@ -148,6 +138,5 @@ const summaryStyle: React.CSSProperties = { fontSize: '10px', color: 'var(--calm
 const cardBodyStyle: React.CSSProperties = { padding: '8px 10px', borderTop: '1px solid var(--calm-border)' };
 const rowLabelStyle: React.CSSProperties = { fontSize: '9px', fontWeight: 600, color: 'var(--calm-fg-muted)', textTransform: 'uppercase', width: '50px', flexShrink: 0 };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '3px 6px', fontSize: '11px', color: 'var(--calm-fg)', background: 'var(--calm-bg-input)', border: '1px solid var(--calm-border-input)', borderRadius: '3px', outline: 'none' };
-const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' };
 const deleteBtnStyle: React.CSSProperties = { width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg-muted)', fontSize: '13px', flexShrink: 0 };
 const addBtnStyle: React.CSSProperties = { fontSize: '10px', fontWeight: 500, color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' };
