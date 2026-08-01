@@ -1,6 +1,7 @@
 import {describe, it, expect, vi, beforeEach, Mock} from 'vitest';
 import * as fs from 'fs';
 import { instantiate } from './instantiate'; // replace with actual relative path
+import { CalmChoice, selectChoices } from './options';
 import { SchemaDirectory } from '../../../schema-directory';
 import { DocumentLoader } from '../../../document-loader/document-loader';
 
@@ -292,6 +293,96 @@ describe('instantiate', () => {
         expect(result['mixed-property']).toEqual({
             'nested-const': 'nested-value',
             'nested-placeholder': '[[ NESTED_PLACEHOLDER ]]'
+        });
+    });
+
+    describe('items catalog (open oneOf/anyOf) support', () => {
+        function catalogNode(id: string, description: string) {
+            return {
+                $ref: 'schema#/defs/node',
+                properties: {
+                    'unique-id': { const: id },
+                    'description': { const: description },
+                    'details': {
+                        type: 'object',
+                        properties: { arch: { type: 'string' } }
+                    }
+                },
+                required: ['unique-id', 'details']
+            };
+        }
+
+        const patternWithItemsCatalog = {
+            $schema: 'schema#',
+            $id: 'test-pattern-items-catalog',
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            $ref: 'schema#/defs/node',
+                            properties: {
+                                'unique-id': { const: 'webapp' },
+                                'description': { const: 'the web app' },
+                                'details': { type: 'object', properties: { arch: { type: 'string' } } }
+                            },
+                            required: ['unique-id', 'details']
+                        }
+                    ],
+                    items: {
+                        oneOf: [
+                            catalogNode('cache', 'an optional cache'),
+                            catalogNode('queue', 'an optional queue'),
+                        ]
+                    }
+                },
+                relationships: {
+                    type: 'array',
+                    prefixItems: []
+                }
+            }
+        };
+
+        it('instantiates an architecture containing exactly the chosen items-catalog nodes', async () => {
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+            const selected = selectChoices(patternWithItemsCatalog, [cacheChoice]);
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = await instantiate(selected, true, new SchemaDirectory({} as any)) as TestInstantiatedPattern;
+
+            const nodeIds = result.nodes.map((n) => n['unique-id']);
+            expect(nodeIds).toEqual(['webapp', 'cache']);
+        });
+
+        it('yields only the mandatory nodes when no items-catalog candidates are selected', async () => {
+            const selected = selectChoices(patternWithItemsCatalog, []);
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = await instantiate(selected, true, new SchemaDirectory({} as any)) as TestInstantiatedPattern;
+
+            const nodeIds = result.nodes.map((n) => n['unique-id']);
+            expect(nodeIds).toEqual(['webapp']);
+        });
+
+        it('does not throw for a nodes array with only an items catalog and no prefixItems', async () => {
+            const catalogOnlyPattern = {
+                $schema: 'schema#',
+                $id: 'catalog-only-pattern',
+                properties: {
+                    nodes: {
+                        type: 'array',
+                        items: { oneOf: [catalogNode('cache', 'an optional cache')] }
+                    },
+                    relationships: { type: 'array', prefixItems: [] }
+                }
+            };
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+            const selected = selectChoices(catalogOnlyPattern, [cacheChoice]);
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = await instantiate(selected, true, new SchemaDirectory({} as any)) as TestInstantiatedPattern;
+
+            expect(result.nodes.map((n) => n['unique-id'])).toEqual(['cache']);
         });
     });
 });

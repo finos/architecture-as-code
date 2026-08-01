@@ -126,6 +126,27 @@ function buildPattern(nodes: object[], relationships: object[]) {
     };
 }
 
+// Builds a pattern with mandatory prefixItems plus an open items.oneOf/anyOf catalog
+function buildPatternWithItemsCatalog(
+    mandatoryNodes: object[],
+    catalogNodes: object[],
+    relationships: object[] = [],
+    catalogRelationships: object[] = []
+) {
+    return {
+        'properties': {
+            'nodes': {
+                'prefixItems': mandatoryNodes,
+                ...(catalogNodes.length > 0 && { 'items': { 'oneOf': catalogNodes } }),
+            },
+            'relationships': {
+                'prefixItems': relationships,
+                ...(catalogRelationships.length > 0 && { 'items': { 'oneOf': catalogRelationships } }),
+            },
+        },
+    };
+}
+
 describe('Pattern Options', () => {
     describe('optionsFor', () => {
         it('should return a oneOf option from a spec', () => {
@@ -298,6 +319,53 @@ describe('Pattern Options', () => {
             selectChoices(pattern, [applicationAtoC]);
 
             expect(pattern).toEqual(patternBeforeSelection);
+        });
+
+        it('should move selected items-catalog candidates into prefixItems', () => {
+            const webapp = buildNode('webapp');
+            const cache = buildNode('cache');
+            const queue = buildNode('queue');
+
+            const pattern = buildPatternWithItemsCatalog([webapp], [cache, queue]);
+
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [cacheChoice]) as any;
+
+            expect(result.properties.nodes.prefixItems).toEqual([webapp, cache]);
+            expect(result.properties.nodes.items).toBeUndefined();
+        });
+
+        it('should keep only the mandatory nodes when no items-catalog candidates are selected', () => {
+            const webapp = buildNode('webapp');
+            const cache = buildNode('cache');
+            const queue = buildNode('queue');
+
+            const pattern = buildPatternWithItemsCatalog([webapp], [cache, queue]);
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, []) as any;
+
+            expect(result.properties.nodes.prefixItems).toEqual([webapp]);
+        });
+
+        it('should not throw when a calmType has only an items catalog and no prefixItems', () => {
+            const cache = buildNode('cache');
+            const pattern = {
+                'properties': {
+                    'nodes': { 'items': { 'oneOf': [cache] } },
+                    'relationships': { 'prefixItems': [] },
+                },
+            };
+
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+
+            expect(() => selectChoices(pattern, [cacheChoice])).not.toThrow();
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [cacheChoice]) as any;
+            expect(result.properties.nodes.prefixItems).toEqual([cache]);
         });
 
         it('should not affect a normal pattern', () => {

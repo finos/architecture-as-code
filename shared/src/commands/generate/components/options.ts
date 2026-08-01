@@ -119,12 +119,35 @@ function flattenOneOfAndAnyOf(item: Item, selectionPredicate: (item: SchemaNode)
         .filter((x: SchemaNode) => selectionPredicate(x));
 }
 
+/**
+ * Flattens the prefixItems slots (positional "pick exactly one" decisions) and,
+ * if present, the `items.oneOf`/`items.anyOf` open catalog (zero-or-more
+ * selections) for a given calmType down to the concrete set of chosen entries.
+ *
+ * The selected catalog candidates are appended onto `prefixItems` so that
+ * `instantiate()` - which only understands `prefixItems` - materializes them
+ * the same way it already does for the rest of the array. `items` is then
+ * cleared, since the pattern's array is now fully expressed via `prefixItems`.
+ */
 function flattenCalmItems(pattern: SchemaNode, calmType: 'nodes' | 'relationships', ids: string[]): void {
-    const calmItems = pattern['properties'][calmType]['prefixItems'];
+    const calmProps: SchemaNode = pattern['properties']?.[calmType];
+    if (!calmProps) return;
 
     const selectionPredicate = (x: SchemaNode) => ids.includes(x['properties']['unique-id']['const']);
-    pattern['properties'][calmType]['prefixItems'] = calmItems
+
+    const prefixItems: SchemaNode[] = calmProps['prefixItems'] ?? [];
+    const flattenedPrefixItems = prefixItems
         .flatMap((item: Item) => flattenOneOfAndAnyOf(item, selectionPredicate));
+
+    const itemsCatalog: Item | undefined = calmProps['items'];
+    const catalogAlternatives: SchemaNode[] = itemsCatalog?.oneOf ?? itemsCatalog?.anyOf ?? [];
+    const selectedCatalogItems = catalogAlternatives.filter(selectionPredicate);
+
+    calmProps['prefixItems'] = [...flattenedPrefixItems, ...selectedCatalogItems];
+
+    if (itemsCatalog !== undefined) {
+        delete calmProps['items'];
+    }
 }
 
 function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoice[]): SchemaNode {

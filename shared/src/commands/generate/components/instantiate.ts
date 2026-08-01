@@ -99,6 +99,11 @@ async function instantiateFromProperties(
     for (const [key, def] of Object.entries(properties)) {
         const resolvedDef = await resolveSchema(def as JsonSchema, schemaDir);
 
+        // Arrays declaring an `items.oneOf`/`items.anyOf` open catalog (in addition
+        // to `prefixItems`) are normalized down to a single `prefixItems` array by
+        // `selectChoices()` before `instantiate()` runs, so no separate `items`
+        // handling is needed here - the selected catalog entries are materialized
+        // via the same `prefixItems` path below.
         if (resolvedDef.type === 'array' && resolvedDef.prefixItems) {
             output[key] = await Promise.all(
                 resolvedDef.prefixItems.map(async (itemDef, idx) => {

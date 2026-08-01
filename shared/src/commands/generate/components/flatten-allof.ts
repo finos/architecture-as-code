@@ -41,6 +41,11 @@ function deepMergeSchemas(
                 value as unknown[]
             );
         } else {
+            // `items` (the open oneOf/anyOf catalog) falls through here and is not
+            // deep-merged the way `prefixItems` is above - a later allOf branch's
+            // `items` simply replaces an earlier one. Realistic CALM patterns declare
+            // the catalog once per array, so this is not expected to matter in
+            // practice; revisit if patterns start composing `items` across allOf.
             result[key] = value;
         }
     }
