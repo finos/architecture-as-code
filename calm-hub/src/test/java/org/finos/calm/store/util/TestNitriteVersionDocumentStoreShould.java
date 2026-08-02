@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -101,6 +102,23 @@ class TestNitriteVersionDocumentStoreShould {
         assertThat(inserted.get("description", String.class), is("A description"));
         assertThat(inserted.get("versionCount", Integer.class), is(0));
         assertThat(inserted.get("metadata", Document.class), is(Document.createDocument()));
+    }
+
+    // --- deleteHeader ---
+
+    @Test
+    void delete_a_header_by_namespace_and_id() {
+        store.deleteHeader(NAMESPACE, RESOURCE_ID);
+
+        verify(headerCollection).remove(any(Filter.class));
+    }
+
+    @Test
+    void swallow_a_failure_to_delete_a_header() {
+        when(headerCollection.remove(any(Filter.class))).thenThrow(new NitriteException("store is closed"));
+
+        // Matches the Mongo helper: the caller is already failing a create.
+        assertDoesNotThrow(() -> store.deleteHeader(NAMESPACE, RESOURCE_ID));
     }
 
     // --- createVersion ---

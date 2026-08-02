@@ -116,6 +116,23 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
+     * Removes a header, used to compensate a resource creation whose first version write
+     * failed. See {@link MongoVersionDocumentStore#deleteHeader} for why this exists.
+     */
+    public void deleteHeader(String namespace, int resourceId) {
+        lock.writeLock().lock();
+        try {
+            headerCollection.remove(headerFilter(namespace, resourceId));
+        } catch (NitriteException e) {
+            LOG.warn("Failed to remove the header after a failed first version write "
+                    + "[namespace={}, {}={}] — it may be left with no versions",
+                    namespace, idField, resourceId, e);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
      * Writes a version that must not already exist.
      *
      * <p>The existence check and the insert both happen under the write lock, so no

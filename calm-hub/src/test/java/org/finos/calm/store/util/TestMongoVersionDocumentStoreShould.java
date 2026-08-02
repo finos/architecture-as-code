@@ -157,6 +157,26 @@ class TestMongoVersionDocumentStoreShould {
                 () -> store.createHeader(NAMESPACE, RESOURCE_ID, "name", "description"));
     }
 
+    // --- deleteHeader ---
+
+    @Test
+    void delete_a_header_by_namespace_and_id() {
+        store.deleteHeader(NAMESPACE, RESOURCE_ID);
+
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).deleteOne(filterCaptor.capture());
+        assertThat(asJson(filterCaptor.getValue()), containsString(NAMESPACE));
+    }
+
+    @Test
+    void swallow_a_failure_to_delete_a_header() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenThrow(new MongoTimeoutException("no server"));
+
+        // The only caller is already failing a create. Propagating this would replace the
+        // real write failure with a misleading one about the cleanup.
+        assertDoesNotThrow(() -> store.deleteHeader(NAMESPACE, RESOURCE_ID));
+    }
+
     // --- createVersion ---
 
     @Test

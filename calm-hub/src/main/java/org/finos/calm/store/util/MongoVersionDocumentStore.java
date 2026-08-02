@@ -130,6 +130,31 @@ public class MongoVersionDocumentStore {
     }
 
     /**
+     * Removes a header, used to compensate a resource creation whose first version write
+     * failed.
+     *
+     * <p>The old shape pushed the resource and its first version in one document write, so
+     * a failure left nothing behind. Splitting them means a failed version write can strand
+     * a header that no API can remove — there is no delete endpoint for these types — and it
+     * would show up in listings and search with {@code versionCount: 0} forever.</p>
+     *
+     * <p>Not a general-purpose delete: nothing else calls this, and it deliberately does not
+     * touch the version collection, because the only caller has just failed to write the
+     * one version that could exist.</p>
+     */
+    public void deleteHeader(String namespace, int resourceId) {
+        try {
+            headerCollection.deleteOne(headerFilter(namespace, resourceId));
+        } catch (MongoException e) {
+            // Best-effort: the caller is already failing, and reporting this instead would
+            // replace a real write failure with a misleading one.
+            LOG.warn("Failed to remove the header after a failed first version write "
+                    + "[namespace={}, {}={}] — it may be left with no versions",
+                    namespace, idField, resourceId, e);
+        }
+    }
+
+    /**
      * Writes a version that must not already exist.
      *
      * @return {@code false} if that version is already present — the caller decides

@@ -12,6 +12,7 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
@@ -85,7 +86,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
 
         int id = counterStore.getNextArchitectureSequenceValue();
         documentStore.createHeader(architecture.getNamespace(), id, architecture.getName(), architecture.getDescription());
-        documentStore.createVersion(architecture.getNamespace(), id, INITIAL_VERSION, architecture.getArchitectureJson());
+        createInitialVersion(architecture.getNamespace(), id, architecture.getArchitectureJson());
 
         LOG.info("Created architecture with ID {} for namespace '{}'", id, architecture.getNamespace());
         return new Architecture.ArchitectureBuilder()
@@ -170,6 +171,27 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             // Rethrow the original so the parse failure's stack trace is preserved for observability
             LOG.error("Invalid JSON format for architecture: {}", e.getMessage());
             throw e;
+        }
+    }
+
+    /**
+     * Writes the first version of a newly created architecture, removing the header again
+     * if that fails. See {@code MongoArchitectureStore.createInitialVersion} for why the
+     * compensation is needed — a header with no versions cannot be removed through the API.
+     */
+    private void createInitialVersion(String namespace, int id, String content) {
+        boolean created;
+        try {
+            created = documentStore.createVersion(namespace, id, INITIAL_VERSION, content);
+        } catch (RuntimeException e) {
+            documentStore.deleteHeader(namespace, id);
+            throw e;
+        }
+        if (!created) {
+            documentStore.deleteHeader(namespace, id);
+            throw StorageWriteException.writeFailed(new IllegalStateException(
+                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
+                            + ID_FIELD + " " + id + " in namespace " + namespace));
         }
     }
 

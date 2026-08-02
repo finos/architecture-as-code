@@ -65,14 +65,35 @@ class TestMongoArchitectureVersionSplitStepShould {
         stubOldDocuments(List.of());
     }
 
+    /**
+     * Models the step's two-pass read: one scan projecting {@code _id} only, then a
+     * re-read of each document by that id. A single shared iterable would return the same
+     * document for every id, hiding any per-document mistake, so lookups resolve against
+     * the filter.
+     */
     private void stubOldDocuments(List<Document> documents) {
-        FindIterable<Document> iterable = mock(DocumentFindIterable.class);
-        when(headers.find(any(Bson.class))).thenReturn(iterable);
-        doAnswer(invocation -> {
-            Consumer<Document> consumer = invocation.getArgument(0);
-            documents.forEach(consumer);
-            return null;
-        }).when(iterable).forEach(any());
+        when(headers.find(any(Bson.class))).thenAnswer(invocation -> {
+            String filter = ((Bson) invocation.getArgument(0)).toBsonDocument().toJson();
+            FindIterable<Document> iterable = mock(DocumentFindIterable.class);
+            when(iterable.projection(any())).thenReturn(iterable);
+
+            if (filter.contains("architectures")) {
+                // The exists() scan — the step only reads _id off these.
+                doAnswer(scan -> {
+                    Consumer<Document> consumer = scan.getArgument(0);
+                    documents.forEach(consumer);
+                    return null;
+                }).when(iterable).forEach(any());
+                return iterable;
+            }
+
+            Document match = documents.stream()
+                    .filter(document -> filter.contains(String.valueOf(document.get("_id"))))
+                    .findFirst()
+                    .orElse(null);
+            when(iterable.first()).thenReturn(match);
+            return iterable;
+        });
     }
 
     /** One old-shape namespace document holding one architecture with two versions. */
@@ -179,6 +200,45 @@ class TestMongoArchitectureVersionSplitStepShould {
                 .replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
         // A crash before this point leaves the source intact and the namespace is redone.
         order.verify(headers).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void collapse_two_old_keys_that_mean_the_same_version_into_one_document() {
+        // The old shape wrote keys via replace('.', '-'), which folded 1.0.0 and 1-0-0
+        // together but left 100 — also accepted by VERSION_REGEX — as a key of its own.
+        // Both canonicalise to 1.0.0 and only one document can exist per version.
+        stubOldDocuments(List.of(new Document("_id", "abc")
+                .append("namespace", "finos")
+                .append("architectures", List.of(new Document("architectureId", 1)
+                        .append("versions", new Document("1-0-0", new Document("keep", true))
+                                .append("100", new Document("discard", true)))))));
+
+        step.apply();
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versions).replaceOne(any(Bson.class), versionCaptor.capture(), any(ReplaceOptions.class));
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.0"));
+        // First key wins; writing both in turn would let the second silently overwrite it.
+        assertThat(versionCaptor.getValue().get("content", Document.class),
+                is(new Document("keep", true)));
+    }
+
+    @Test
+    void count_collapsed_versions_once_on_the_header() {
+        stubOldDocuments(List.of(new Document("_id", "abc")
+                .append("namespace", "finos")
+                .append("architectures", List.of(new Document("architectureId", 1)
+                        .append("versions", new Document("1-0-0", new Document())
+                                .append("100", new Document())
+                                .append("2-0-0", new Document()))))));
+
+        step.apply();
+
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headers).replaceOne(any(Bson.class), headerCaptor.capture(), any(ReplaceOptions.class));
+        // Three keys, two versions. Counting keys would leave the header advertising a
+        // version that has no document — the exact drift the stored counter exists to avoid.
+        assertThat(headerCaptor.getValue().getInteger("versionCount"), is(2));
     }
 
     @Test

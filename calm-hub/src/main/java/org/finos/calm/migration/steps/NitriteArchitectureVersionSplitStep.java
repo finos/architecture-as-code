@@ -15,7 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -108,7 +110,7 @@ public class NitriteArchitectureVersionSplitStep implements SchemaMigrationStep 
     private int writeOneArchitecture(String namespace, Document entry) {
         Integer resourceId = entry.get(ID_FIELD, Integer.class);
         Document storedVersions = entry.get(VERSIONS_FIELD, Document.class);
-        int versionCount = storedVersions == null ? 0 : storedVersions.getFields().size();
+        Map<String, String> keysByCanonicalVersion = collapseToCanonicalVersions(storedVersions, namespace, resourceId);
 
         Filter headerFilter = Filter.and(where(NAMESPACE_FIELD).eq(namespace), where(ID_FIELD).eq(resourceId));
         headerCollection.remove(headerFilter);
@@ -117,25 +119,47 @@ public class NitriteArchitectureVersionSplitStep implements SchemaMigrationStep 
                 .put(ID_FIELD, resourceId)
                 .put("name", entry.get("name", String.class))
                 .put("description", entry.get("description", String.class))
-                .put("versionCount", versionCount)
+                // The collapsed count, not the raw key count — see collapseToCanonicalVersions.
+                .put("versionCount", keysByCanonicalVersion.size())
                 .put("metadata", Document.createDocument()));
 
+        for (Map.Entry<String, String> version : keysByCanonicalVersion.entrySet()) {
+            versionCollection.remove(Filter.and(where(NAMESPACE_FIELD).eq(namespace),
+                    where(ID_FIELD).eq(resourceId), where("version").eq(version.getKey())));
+            versionCollection.insert(Document.createDocument()
+                    .put(NAMESPACE_FIELD, namespace)
+                    .put(ID_FIELD, resourceId)
+                    .put("version", version.getKey())
+                    .put("content", storedVersions.get(version.getValue(), String.class))
+                    .put("metadata", Document.createDocument()));
+        }
+        return keysByCanonicalVersion.size();
+    }
+
+    /**
+     * Maps each canonical version to the stored key it came from, keeping the first when
+     * several collapse onto one. See
+     * {@code MongoArchitectureVersionSplitStep.collapseToCanonicalVersions} for why the
+     * old shape can hold several keys meaning one version, and why the collapse is logged
+     * rather than left to a silent overwrite.
+     */
+    private Map<String, String> collapseToCanonicalVersions(Document storedVersions, String namespace, Integer resourceId) {
+        Map<String, String> keysByCanonicalVersion = new LinkedHashMap<>();
         if (storedVersions == null) {
-            return 0;
+            return keysByCanonicalVersion;
         }
         for (String storedKey : storedVersions.getFields()) {
             // Same conversion the write path uses, so migrated data is addressable by
             // exactly the spelling the new store looks for.
             String version = CanonicalVersion.of(storedKey);
-            versionCollection.remove(Filter.and(where(NAMESPACE_FIELD).eq(namespace),
-                    where(ID_FIELD).eq(resourceId), where("version").eq(version)));
-            versionCollection.insert(Document.createDocument()
-                    .put(NAMESPACE_FIELD, namespace)
-                    .put(ID_FIELD, resourceId)
-                    .put("version", version)
-                    .put("content", storedVersions.get(storedKey, String.class))
-                    .put("metadata", Document.createDocument()));
+            String alreadyMapped = keysByCanonicalVersion.putIfAbsent(version, storedKey);
+            if (alreadyMapped != null) {
+                LOG.warn("Discarding version key '{}' [namespace={}, {}={}] — it means the same "
+                                + "version as '{}' ({}), which the new shape stores once. The "
+                                + "discarded content is only recoverable from a backup.",
+                        storedKey, namespace, ID_FIELD, resourceId, alreadyMapped, version);
+            }
         }
-        return storedVersions.getFields().size();
+        return keysByCanonicalVersion;
     }
 }

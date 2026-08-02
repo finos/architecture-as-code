@@ -213,6 +213,39 @@ public class TestMongoArchitectureStoreShould {
         assertThat(versionCaptor.getValue().getString("version"), is("1.0.0"));
     }
 
+    @Test
+    void remove_the_header_again_when_the_first_version_write_fails() {
+        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // The old shape pushed the architecture and its first version in one document
+        // write, so a failure left nothing behind. Without compensating, a >16MB payload
+        // strands a header that no endpoint can delete, showing up in listings and search
+        // with versionCount 0 forever.
+        assertThrows(StorageWriteException.class,
+                () -> store.createArchitectureForNamespace(architecture(null)));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void fail_rather_than_report_success_when_the_initial_version_already_exists() {
+        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // A version document already present for an id the counter just issued is a storage
+        // inconsistency, not a normal "already exists". Returning the caller's payload with
+        // a 201 would report success for content that was never stored.
+        assertThrows(StorageWriteException.class,
+                () -> store.createArchitectureForNamespace(architecture(null)));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
     // --- getArchitectureVersions ---
 
     @Test

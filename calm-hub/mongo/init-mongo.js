@@ -6651,12 +6651,29 @@ logSection("Indexes");
 // createIndex is idempotent, so this is safe to re-run over an already-seeded database.
 const unique = { unique: true };
 
+// Every data block above is guarded by countDocuments() === 0, so running this script
+// against a database that already holds PRE-MIGRATION architectures skips the seeding but
+// would still reach the index and schema-version work below. Stamping the version then
+// tells SchemaMigrationRunner there is nothing to migrate, the split step never runs, and
+// the old-shape documents stay put while the store queries for the new shape — every
+// architecture silently disappears from listings, search and counts. So detect that case
+// and leave both the architecture indexes and the version marker alone, which lets the
+// migration do its job on next startup.
+const preMigrationArchitectures = db.architectures.countDocuments({ architectures: { $exists: true } });
+const architecturesAreMigrated = preMigrationArchitectures === 0;
+
 db.namespaces.createIndex({ name: 1 }, unique);
 db.domains.createIndex({ name: 1 }, unique);
 db.schemas.createIndex({ version: 1 }, unique);
 
-db.architectures.createIndex({ namespace: 1, architectureId: 1 }, unique);
-db.architectureVersions.createIndex({ namespace: 1, architectureId: 1, version: 1 }, unique);
+if (architecturesAreMigrated) {
+    db.architectures.createIndex({ namespace: 1, architectureId: 1 }, unique);
+    db.architectureVersions.createIndex({ namespace: 1, architectureId: 1, version: 1 }, unique);
+} else {
+    // The old {namespace: 1} unique index still applies to this data and is the migration
+    // step's to drop, not this script's.
+    logSkip(`Found ${preMigrationArchitectures} pre-migration architecture document(s) — leaving architecture indexes to the migration`);
+}
 
 for (const collection of ["patterns", "flows", "timelines", "standards", "interfaces", "adrs", "decorators"]) {
     db[collection].createIndex({ namespace: 1 }, unique);
@@ -6690,10 +6707,18 @@ logSection("Schema version");
 // Document shape must match MongoSchemaVersionStore: _id "schemaVersion", int version, in
 // the calm collection.
 const LATEST_SCHEMA_VERSION = 3;
-db.calm.updateOne(
-    { _id: "schemaVersion" },
-    { $set: { version: NumberInt(LATEST_SCHEMA_VERSION) } },
-    { upsert: true });
-logSuccess(`Recorded schema version ${LATEST_SCHEMA_VERSION} — startup migrations will be skipped`);
+if (architecturesAreMigrated) {
+    db.calm.updateOne(
+        { _id: "schemaVersion" },
+        { $set: { version: NumberInt(LATEST_SCHEMA_VERSION) } },
+        { upsert: true });
+    logSuccess(`Recorded schema version ${LATEST_SCHEMA_VERSION} — startup migrations will be skipped`);
+} else {
+    // Deliberately loud: the alternative is a database that looks fine and serves no
+    // architectures at all.
+    logFail(`Not recording schema version — this database still holds ${preMigrationArchitectures} `
+        + `pre-migration architecture document(s). Start CalmHub and let the migration convert them; `
+        + `stamping version ${LATEST_SCHEMA_VERSION} here would skip it and hide every architecture.`);
+}
 
 logSection("Initialization complete");

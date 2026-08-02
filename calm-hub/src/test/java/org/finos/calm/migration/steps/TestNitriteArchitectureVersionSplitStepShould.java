@@ -117,6 +117,31 @@ class TestNitriteArchitectureVersionSplitStepShould {
     }
 
     @Test
+    void collapse_two_old_keys_that_mean_the_same_version_and_count_them_once() {
+        // 1-0-0 and 100 are both accepted by VERSION_REGEX and both canonicalise to 1.0.0,
+        // so the new shape can only store one of them.
+        stubCollectionContents(List.of(Document.createDocument()
+                .put("namespace", "finos")
+                .put("architectures", List.of(Document.createDocument()
+                        .put("architectureId", 1)
+                        .put("versions", Document.createDocument()
+                                .put("1-0-0", CONTENT_1_0_0)
+                                .put("100", CONTENT_1_1_0))))));
+
+        step.apply();
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versions).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0"));
+        // First key wins rather than the last silently overwriting it.
+        assertThat(versionCaptor.getValue().get("content", String.class), is(CONTENT_1_0_0));
+
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headers).insert(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().get("versionCount", Integer.class), is(1));
+    }
+
+    @Test
     void write_a_header_but_no_versions_for_an_architecture_that_has_none() {
         stubCollectionContents(List.of(Document.createDocument()
                 .put("namespace", "finos")

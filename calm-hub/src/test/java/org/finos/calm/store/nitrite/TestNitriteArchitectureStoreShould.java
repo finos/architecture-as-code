@@ -4,6 +4,7 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.exceptions.NitriteException;
 import org.dizitart.no2.filters.Filter;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Architecture;
@@ -12,6 +13,7 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -211,6 +213,35 @@ public class TestNitriteArchitectureStoreShould {
         assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0"));
         // Content stays a JSON string in this backend rather than a parsed document.
         assertThat(versionCaptor.getValue().get("content", String.class), is(VALID_JSON));
+    }
+
+    @Test
+    public void remove_the_header_again_when_the_first_version_write_fails() {
+        when(mockCounterStore.getNextArchitectureSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of());
+        stubFind(versionCollection, List.of());
+        when(versionCollection.insert(any(Document.class)))
+                .thenThrow(new NitriteException("store is closed"));
+
+        // Matches the Mongo store: a header with no versions cannot be removed through the
+        // API, so a failed first version write must not leave one behind.
+        assertThrows(NitriteException.class,
+                () -> store.createArchitectureForNamespace(architecture(null)));
+
+        verify(headerCollection).remove(any(Filter.class));
+    }
+
+    @Test
+    public void fail_rather_than_report_success_when_the_initial_version_already_exists() {
+        when(mockCounterStore.getNextArchitectureSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of());
+        // A version document already present for a freshly allocated id.
+        stubFind(versionCollection, List.of(Document.createDocument().put("version", "1.0.0")));
+
+        assertThrows(StorageWriteException.class,
+                () -> store.createArchitectureForNamespace(architecture(null)));
+
+        verify(headerCollection).remove(any(Filter.class));
     }
 
     // --- getArchitectureVersions ---
