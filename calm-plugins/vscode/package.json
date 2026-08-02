@@ -102,7 +102,8 @@
     "build:extension": "node esbuild.mjs",
     "build:webview": "npx vite build --config vite.webview.config.ts",
     "watch": "node esbuild.mjs --watch",
-    "package": "npx @vscode/vsce package --no-dependencies",
+    "package": "npm run build && npx @vscode/vsce package --no-dependencies",
+    "vscode:prepublish": "npm run build",
     "test": "vitest run",
     "lint": "eslint src/"
   },
