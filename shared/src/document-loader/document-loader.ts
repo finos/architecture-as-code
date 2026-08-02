@@ -9,12 +9,6 @@ import { WorkspaceDocumentLoader } from './workspace-document-loader';
 import { AuthPlugin } from '..';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
-export {
-    CALM_DOCUMENT_TYPES_LIST,
-    isValidCalmDocumentType,
-    type CalmDocumentType
-} from '@finos/calm-models/types';
-
 export const CALM_HUB_PROTOS = ['http:', 'https:', 'calm:'];
 
 export interface DocumentLoader {

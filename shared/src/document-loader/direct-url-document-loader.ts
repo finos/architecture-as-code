@@ -1,8 +1,9 @@
 import axios, { Axios } from 'axios';
 import { isIP } from 'net';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
+import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { Logger, initLogger } from '../logger';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 
 const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
 
