@@ -10,6 +10,7 @@ const CONCEPTS = [
     {to: '/core-concepts/interfaces', title: 'Interfaces', desc: 'How nodes expose interaction points.'},
     {to: '/core-concepts/controls', title: 'Controls', desc: 'Apply domain controls to your architecture.'},
     {to: '/core-concepts/standards', title: 'Standards', desc: 'Extend CALM components with organizational requirements.'},
+    {to: '/core-concepts/flows', title: 'Flows', desc: 'Trace business processes through the relationships in your architecture.'},
     {to: '/core-concepts/timelines', title: 'Timelines', desc: 'Track how your architecture evolves over time.'},
     {to: '/core-concepts/decorators', title: 'Decorators', desc: 'Attach deployment, security and business metadata.'},
     {to: '/core-concepts/metadata', title: 'Metadata', desc: 'Enrich your architecture with additional information.'},
