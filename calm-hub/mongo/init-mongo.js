@@ -48,24 +48,41 @@ function seedVersionedResource(groupedByNamespace, headerCollection, versionColl
 
     for (const namespaceDocument of groupedByNamespace) {
         for (const entry of namespaceDocument[arrayField]) {
-            const storedVersions = entry.versions || {};
+            // Collapse first: two source keys can canonicalise to one version (canonicalVersion
+            // accepts "1-0-0" and "100" as the same thing), and only one document can exist per
+            // (namespace, id, version). Counting raw keys and writing one document each would
+            // insert duplicates that the unique index — created further down, after these
+            // inserts — then refuses, aborting the script before it records the schema version.
+            // Mirrors collapseToCanonicalVersions in the two migration steps.
+            const contentByCanonicalVersion = new Map();
+            for (const storedKey of Object.keys(entry.versions || {})) {
+                const version = canonicalVersion(storedKey);
+                if (contentByCanonicalVersion.has(version)) {
+                    logFail(`Seed data has two keys meaning version ${version} for `
+                        + `${namespaceDocument.namespace}/${entry[idField]} — keeping the first, dropping '${storedKey}'`);
+                    continue;
+                }
+                contentByCanonicalVersion.set(version, entry.versions[storedKey]);
+            }
+
             headers.push({
                 namespace: namespaceDocument.namespace,
                 [idField]: entry[idField],
                 name: entry.name,
                 description: entry.description,
                 // NumberInt, not a plain JS number: a double here reads back as a Double and
-                // the store's getInteger call fails on it.
-                versionCount: NumberInt(Object.keys(storedVersions).length),
+                // the store's getInteger call fails on it. Counts the collapsed set, so the
+                // header can never advertise more versions than there are documents.
+                versionCount: NumberInt(contentByCanonicalVersion.size),
                 metadata: {}
             });
 
-            for (const storedKey of Object.keys(storedVersions)) {
+            for (const [version, content] of contentByCanonicalVersion) {
                 versions.push({
                     namespace: namespaceDocument.namespace,
                     [idField]: entry[idField],
-                    version: canonicalVersion(storedKey),
-                    content: storedVersions[storedKey],
+                    version: version,
+                    content: content,
                     metadata: {}
                 });
             }
