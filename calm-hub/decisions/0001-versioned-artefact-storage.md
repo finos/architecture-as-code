@@ -1,11 +1,11 @@
 # ADR 0001: Versioned artefact storage redesign
 
 **Status**: Accepted — partially implemented. Architecture uses this shape on
-both backends; the other six versioned types still use the old one, which is
-the incremental rollout this ADR describes rather than a divergence from it.
-**No migration step exists yet**, so an existing deployment's data has not
-moved and the ported code would not find it — that lands with the rest of the
-Architecture work. Tracked in
+both backends, complete with its version 2 → 3 migration
+(`MongoArchitectureVersionSplitStep` / `NitriteArchitectureVersionSplitStep`),
+so an existing deployment's data moves on first startup after upgrading. The
+other six versioned types still use the old shape, which is the incremental
+rollout this ADR describes rather than a divergence from it. Tracked in
 [#2884](https://github.com/finos/architecture-as-code/issues/2884).
 
 ## Context
@@ -349,14 +349,18 @@ discriminator**:
   (`Mongo<X>Integration.java`) need updating plus a new migration-specific
   integration test. JaCoCo's 90%-per-class gate applies to new
   migration/helper code as usual.
-- Need a real "approaching/exceeding 16MB" regression test — currently zero
-  tests reference document size limits anywhere in the codebase. The only
-  suite hitting a real Mongo instance today is
-  `MongoConcurrencyIntegration.java` (via `../mvnw -P integration verify`,
-  TestContainers) — natural home for this, since mocked unit tests can only
-  simulate `MongoWriteException`, not trigger Mongo's real enforcement.
+- A real "approaching/exceeding 16MB" regression test now exists, in
+  `integration/performance/MongoDocumentSizeLimitIntegration.java` (via
+  `../mvnw -P integration verify`, TestContainers). It has to run against a
+  real Mongo because mocked unit tests can only simulate
+  `MongoWriteException`, never trigger the actual enforcement. It asserts
+  both halves of this ADR's claim with the same ~2MB payload: **Pattern**,
+  still one document per namespace, accumulates history until a write is
+  rejected and must surface an honest `413`; **Architecture**, now one
+  document per version, accepts ~24MB of history without any write failing.
+  When Pattern migrates, the `413` half moves to a type that hasn't yet.
 
-### Open questions (not yet decided)
+### Open questions (all now resolved)
 
 - ~~Keep dash-encoded version keys as a document field, or make version a
   proper indexed field now that it's not a map key?~~ Resolved: see
