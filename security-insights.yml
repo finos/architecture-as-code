@@ -123,7 +123,7 @@ repository:
       primary: false
   documentation:
     contributing-guide: https://github.com/finos/architecture-as-code/blob/main/CONTRIBUTING.md
-    governance: https://github.com/finos/architecture-as-code/blob/main/Governance.md
+    governance: https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md
     security-policy: https://github.com/finos/architecture-as-code/security
   license:
     url: https://github.com/finos/architecture-as-code/blob/main/LICENSE
