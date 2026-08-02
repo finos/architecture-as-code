@@ -1,5 +1,8 @@
 name: "Release Parent POM to Maven Central"
 
+permissions:
+    contents: read
+
 on:
     workflow_dispatch:
 
