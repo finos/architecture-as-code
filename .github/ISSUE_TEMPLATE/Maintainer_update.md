@@ -75,7 +75,7 @@ about: Propose adding a new maintainer or removing an existing maintainer
 - Confirm the maintainer has had no commits AND no involvement in issues/PRs for **3+ months**
 - Specify the period of inactivity (e.g., "no activity since [DATE]")
 - Note: This removal proposal does NOT reflect negatively on the individual, but rather acknowledges changes in their ability to contribute
-- Explain why having the README.md reflect active maintainers is important for the project
+- Explain why having the project's Maintainer roster reflect active maintainers is important for the project
 
 ### Notice Period:
 
@@ -99,7 +99,7 @@ about: Propose adding a new maintainer or removing an existing maintainer
 
 ## Voting Process
 
-As per [Governance.md](https://github.com/finos/architecture-as-code/blob/main/Governance.md):
+As per [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md) in the project's governance repository:
 
 - All members of **@finos/architecture-as-code-maintainers** are eligible to participate
 - Please register your vote by commenting with:
@@ -131,14 +131,18 @@ Unless consensus is reached earlier, this issue will remain open for voting and 
 
 **For Additions:**
 - [ ] Add maintainer to the GitHub team: `@finos/architecture-as-code-maintainers`
-- [ ] Update `README.md` to list the new maintainer
+- [ ] Raise a PR against [MAINTAINERS.md in finos/calm-governance](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md) to add them to the project roster, linking this issue as the vote record
+- [ ] Update the [Projects table in `README.md`](https://github.com/finos/architecture-as-code#projects) if they will be maintaining a specific subproject
 - [ ] Update `.github/CODEOWNERS` if they will be owning specific components
+- [ ] Email **help@finos.org** to notify FINOS of the maintainership change
 - [ ] Welcome the new maintainer in the project channels
 
 **For Removals:**
 - [ ] Remove maintainer from the GitHub team: `@finos/architecture-as-code-maintainers`
-- [ ] Update `README.md` to remove the maintainer from the list
+- [ ] Raise a PR against [MAINTAINERS.md in finos/calm-governance](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md) to remove them from the project roster, linking this issue as the vote record
+- [ ] Update the [Projects table in `README.md`](https://github.com/finos/architecture-as-code#projects) to remove them from any subproject they maintained
 - [ ] Update `.github/CODEOWNERS` to reassign their owned components
+- [ ] Email **help@finos.org** to notify FINOS of the maintainership change
 - [ ] Thank the maintainer for their contributions in the project channels (if appropriate)
 
 ---
