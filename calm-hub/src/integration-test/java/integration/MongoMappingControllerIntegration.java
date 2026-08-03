@@ -40,7 +40,7 @@ public class MongoMappingControllerIntegration {
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("patterns")) {
                 database.createCollection("patterns");
-// Collection only — no per-namespace document. That priming belonged to the old
+                // Collection only — no per-namespace document. That priming belonged to the old
                 // one-document-per-namespace shape; under the header/version shape it has no id
                 // field, so the header reader surfaces it as a resource named "<Type> null".
             }
