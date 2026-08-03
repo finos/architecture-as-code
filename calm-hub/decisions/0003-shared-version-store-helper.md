@@ -1,11 +1,32 @@
 # ADR 0003: Shared header/version store helper
 
-**Status**: Accepted — partially implemented. The helpers exist
-(`MongoVersionDocumentStore`, `NitriteVersionDocumentStore`,
-`SemanticVersionOrder`, `CanonicalVersion`) and the Architecture and Pattern
-stores now compose them on both backends. The other five versioned types
-still hand-roll their own logic. Depends on
-[ADR 0001](0001-versioned-artefact-storage.md) and
+**Status**: Implemented. All fourteen store implementations — seven types, two
+backends — compose `MongoVersionDocumentStore` / `NitriteVersionDocumentStore`
+rather than hand-rolling their own read/write/version logic.
+
+The operation list below grew five times during the rollout, each time
+because a type's existing behaviour could not otherwise be preserved. Worth
+reading as a record of what the original design missed:
+
+- `updateHeaderDetails` — a version write also renames the resource.
+- `updatePresentHeaderDetails` — Pattern, Flow and Timeline guard those
+  fields on blank where Architecture, Standard and Interface overwrite
+  unconditionally. That is a real difference between the types, not an
+  inconsistency to tidy, so both operations exist.
+- `deleteHeader` — compensation for a failed first version write, which the
+  old shape's single atomic push made impossible.
+- `createFirstVersion` — that compensation used correctly, which every store
+  had been repeating. Not a new primitive; it exists because getting it wrong
+  strands a header no endpoint can remove.
+- `getLatestVersion` / `getLatestVersionContent` and a pluggable version
+  comparator — both for ADR, whose revisions are integers and whose summary
+  is built from the latest revision's content rather than from the entity.
+  Neither reinstates the `latestVersion` header pointer ADR 0001 rejected;
+  they recompute.
+
+`MongoVersionSplitMigration` / `NitriteVersionSplitMigration` were extracted
+when Pattern became the second type to need the fan-out, and are shared by
+all seven. Depends on [ADR 0001](0001-versioned-artefact-storage.md) and
 [ADR 0002](0002-version-key-encoding.md).
 
 ## Context
