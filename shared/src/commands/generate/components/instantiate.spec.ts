@@ -385,6 +385,26 @@ describe('instantiate', () => {
             expect(result.nodes.map((n) => n['unique-id'])).toEqual(['cache']);
         });
 
+        it('materializes an array-typed property that carries a const rather than emptying it to []', async () => {
+            // Guards branch ordering in instantiateFromProperties: the const check must
+            // run before the bare-array fallback, or an array carrying a const would be
+            // wrongly emitted as [].
+            const patternWithConstArray = {
+                $schema: 'schema#',
+                $id: 'const-array-pattern',
+                properties: {
+                    nodes: { type: 'array', prefixItems: [] },
+                    relationships: { type: 'array', prefixItems: [] },
+                    'some-array': { type: 'array', const: ['a', 'b'] }
+                }
+            };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = await instantiate(patternWithConstArray, true, new SchemaDirectory({} as any)) as TestInstantiatedPattern;
+
+            expect(result['some-array']).toEqual(['a', 'b']);
+        });
+
         it('emits an empty array (not an object) for an all-optional catalog generated with no selections', async () => {
             // Regression guard: a nodes array declared entirely through an items
             // catalog (no prefixItems) that is instantiated WITHOUT selectChoices

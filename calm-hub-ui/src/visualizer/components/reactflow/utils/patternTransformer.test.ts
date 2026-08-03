@@ -182,6 +182,34 @@ describe('parsePatternData', () => {
         expect(groupNodes[0].data.decisionType).toBe('anyOf');
     });
 
+    it('creates a decision group box for an items catalog with no options relationship', () => {
+        // An items.oneOf catalog with no decision referencing it still renders as a
+        // oneOf-labelled group box (no prompt), exercising the extract-but-never-folded path.
+        const pattern = {
+            properties: {
+                nodes: {
+                    items: {
+                        oneOf: [
+                            schemaNode('cache', 'Cache', 'service'),
+                            schemaNode('queue', 'Queue', 'service'),
+                        ],
+                    },
+                },
+                relationships: { prefixItems: [] },
+            },
+        };
+        const result = parsePatternData(pattern);
+
+        const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groupNodes).toHaveLength(1);
+        expect(groupNodes[0].data.decisionType).toBe('oneOf');
+        expect(groupNodes[0].data.prompt).toBeUndefined();
+
+        const regularNodes = result.nodes.filter((n) => n.type === 'custom');
+        expect(regularNodes).toHaveLength(2);
+        expect(regularNodes.every((n) => n.parentId === groupNodes[0].id)).toBe(true);
+    });
+
     it('creates edges from connects relationships', () => {
         const pattern = makePattern(
             [

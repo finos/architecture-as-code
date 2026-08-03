@@ -147,6 +147,30 @@ describe('idsAreUnique', () => {
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: cache, path: /properties/nodes/items/oneOf/1/properties/unique-id/const');
     });
 
+    it('should return messages for duplicate IDs within relationships.items.oneOf', () => {
+        const input = {};
+        const context = {
+            document: {
+                data: {
+                    properties: {
+                        relationships: {
+                            items: {
+                                oneOf: [
+                                    {'properties': {'unique-id': {'const': 'edge'}}},
+                                    {'properties': {'unique-id': {'const': 'edge'}}}
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        const result = idsAreUnique(input, null, asContext(context));
+        expect(result.length).toBeGreaterThan(0);
+        expect(result[0].message).toContain('Duplicate unique-id detected. ID: edge, path: /properties/relationships/items/oneOf/1/properties/unique-id/const');
+    });
+
     it('should return messages for duplicate IDs across a prefixItems node and an items.oneOf node', () => {
         const input = {};
         const context = {

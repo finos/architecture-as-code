@@ -114,6 +114,11 @@ async function instantiateFromProperties(
                     return await instantiateObject(resolvedItem, schemaDir, [key, `${idx}`]);
                 })
             );
+        } else if (resolvedDef.const !== undefined) {
+            // const value at the top level. Checked before the bare-array fallback
+            // below so an array schema that carries a `const` still materializes its
+            // const value rather than being emptied to [].
+            output[key] = resolvedDef.const;
         } else if (resolvedDef.type === 'array') {
             // An array with no `prefixItems` to materialize - e.g. a nodes array
             // whose entries are declared entirely through an `items.oneOf`/`anyOf`
@@ -124,9 +129,6 @@ async function instantiateFromProperties(
             // producing a structurally invalid architecture (an object where an
             // array is required).
             output[key] = [];
-        } else if (resolvedDef.const !== undefined) {
-            // const value at the top level
-            output[key] = resolvedDef.const;
         } else {
             output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
         }
