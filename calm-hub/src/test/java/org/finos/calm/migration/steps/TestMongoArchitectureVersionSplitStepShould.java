@@ -268,6 +268,17 @@ class TestMongoArchitectureVersionSplitStepShould {
     }
 
     @Test
+    void transition_indexes_without_fanning_anything_out() {
+        // The entry point EndToEndResource uses to bring a test database's indexes to the
+        // new shape when it has no old-shape data to migrate. Covered directly because the
+        // fan-out path reaches the shared migration's method, not this class's delegate.
+        step.transitionIndexes();
+
+        verify(headers).createIndex(eq(new Document("namespace", 1).append("architectureId", 1)), any());
+        verify(headers, never()).deleteOne(any(Bson.class));
+    }
+
+    @Test
     void skip_the_whole_step_when_not_running_against_mongo() {
         step.databaseMode = "standalone";
 
