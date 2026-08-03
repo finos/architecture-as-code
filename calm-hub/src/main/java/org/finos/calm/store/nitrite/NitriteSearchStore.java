@@ -10,6 +10,8 @@ import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
+import org.finos.calm.store.util.NitriteVersionDocumentStore;
+import org.finos.calm.store.util.NumericVersionOrder;
 import org.finos.calm.store.util.SearchTextMatcher;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
@@ -45,6 +47,7 @@ public class NitriteSearchStore implements SearchStore {
     private final NitriteCollection interfaceCollection;
     private final NitriteCollection controlCollection;
     private final NitriteCollection adrCollection;
+    private final NitriteVersionDocumentStore adrDocuments;
 
     @Inject
     public NitriteSearchStore(@StandaloneQualifier Nitrite db) {
@@ -55,6 +58,8 @@ public class NitriteSearchStore implements SearchStore {
         this.interfaceCollection = db.getCollection("interfaces");
         this.controlCollection = db.getCollection("controls");
         this.adrCollection = db.getCollection("adrs");
+        this.adrDocuments = new NitriteVersionDocumentStore(adrCollection,
+                db.getCollection("adrVersions"), "adrId", "ADR", NumericVersionOrder.ASCENDING);
         LOG.info("NitriteSearchStore initialized");
     }
 
@@ -141,48 +146,50 @@ public class NitriteSearchStore implements SearchStore {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * ADR searches on the latest revision's title. See
+     * {@code MongoSearchStore.searchAdrCollection} for why this goes through the helper.
+     */
     private List<SearchResult> searchAdrCollection(String lowerQuery, Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
-        for (Document namespaceDoc : adrCollection.find()) {
-            String namespace = namespaceDoc.get("namespace", String.class);
+        for (Document header : adrCollection.find()) {
+            if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                return results;
+            }
+            String namespace = header.get("namespace", String.class);
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
-            TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
-            List<Document> adrs = wrapper.getList("adrs");
-            if (adrs == null) {
-                continue;
+            Integer adrId = header.get("adrId", Integer.class);
+            String title = "ADR " + adrId;
+
+            String latest = adrDocuments.getLatestVersionContent(namespace, adrId);
+            if (latest != null) {
+                String documentTitle = titleOf(latest);
+                if (documentTitle != null) {
+                    title = documentTitle;
+                }
             }
-            for (Document adr : adrs) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                Integer adrId = adr.get("adrId", Integer.class);
-                String title = "ADR " + adrId;
 
-                Map<String, Object> revisions = (Map<String, Object>) adr.get("revisions");
-                if (revisions != null && !revisions.isEmpty()) {
-                    int latestRevision = revisions.keySet().stream()
-                            .map(Integer::parseInt)
-                            .mapToInt(i -> i)
-                            .max()
-                            .getAsInt();
-                    Object revObj = revisions.get(String.valueOf(latestRevision));
-                    if (revObj instanceof Document revisionDoc) {
-                        String docTitle = revisionDoc.get("title", String.class);
-                        if (docTitle != null) {
-                            title = docTitle;
-                        }
-                    }
-                }
-
-                if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
-                    results.add(new SearchResult(namespace, adrId, title, ""));
-                }
+            if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
+                results.add(new SearchResult(namespace, adrId, title, ""));
             }
         }
 
         return results;
+    }
+
+    /**
+     * @return the title from a stored ADR revision, or {@code null} if it cannot be read.
+     * Content is a JSON string in this backend, so the field has to be parsed out; a search
+     * must not fail because one ADR's content is unreadable.
+     */
+    private String titleOf(String content) {
+        try {
+            return org.bson.Document.parse(content).getString("title");
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 }

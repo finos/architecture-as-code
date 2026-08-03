@@ -42,7 +42,9 @@ function canonicalVersion(version) {
 // flat lists with the parent-child relationship left implicit — so what is written here is
 // deliberately NOT the literal shape of the source below. Change this function, not the
 // data, if the storage shape changes again.
-function seedVersionedResource(groupedByNamespace, headerCollection, versionCollection, arrayField, idField) {
+function seedVersionedResource(groupedByNamespace, headerCollection, versionCollection, arrayField, idField, versionsField) {
+    // "versions" for every type but ADR, whose map is called "revisions".
+    const versionsKey = versionsField || "versions";
     const headers = [];
     const versions = [];
 
@@ -55,14 +57,14 @@ function seedVersionedResource(groupedByNamespace, headerCollection, versionColl
             // inserts — then refuses, aborting the script before it records the schema version.
             // Mirrors collapseToCanonicalVersions in the two migration steps.
             const contentByCanonicalVersion = new Map();
-            for (const storedKey of Object.keys(entry.versions || {})) {
+            for (const storedKey of Object.keys(entry[versionsKey] || {})) {
                 const version = canonicalVersion(storedKey);
                 if (contentByCanonicalVersion.has(version)) {
                     logFail(`Seed data has two keys meaning version ${version} for `
                         + `${namespaceDocument.namespace}/${entry[idField]} — keeping the first, dropping '${storedKey}'`);
                     continue;
                 }
-                contentByCanonicalVersion.set(version, entry.versions[storedKey]);
+                contentByCanonicalVersion.set(version, entry[versionsKey][storedKey]);
             }
 
             headers.push({
@@ -134,7 +136,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 8;
+const LATEST_SCHEMA_VERSION = 9;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -175,12 +177,14 @@ if (isEmptyDatabase) {
     // shape the store reads, since pinning the version skips the migration that creates them.
     db.timelines.createIndex({ namespace: 1, timelineId: 1 }, unique);
     db.timelineVersions.createIndex({ namespace: 1, timelineId: 1, version: 1 }, unique);
+    db.adrs.createIndex({ namespace: 1, adrId: 1 }, unique);
+    db.adrVersions.createIndex({ namespace: 1, adrId: 1, version: 1 }, unique);
 
     // Still one document per namespace until each of these migrates, at which point its
     // entry moves up alongside architectures and patterns.
-    // ADR and Decorator keep the one-document-per-namespace shape: ADR has not migrated
-    // yet, and Decorator is not versioned at all (ADR 0004).
-    for (const collection of ["adrs", "decorators"]) {
+    // Decorator is the only namespaced collection left on the one-document-per-namespace
+    // shape — it is not versioned at all, so this redesign does not touch it (ADR 0004).
+    for (const collection of ["decorators"]) {
         db[collection].createIndex({ namespace: 1 }, unique);
     }
     db.controls.createIndex({ domain: 1 }, unique);
@@ -6372,8 +6376,11 @@ if (db.userAccess.countDocuments() === 0) {
 }
 
 logSection("ADRs");
-if (db.adrs.countDocuments() === 0) {
-    db.adrs.insertMany([
+// Gated on the database being empty, like the other migrated types.
+if (isEmptyDatabase && db.adrs.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out.
+    // ADR keys its map "revisions", by integer, so the field name is passed explicitly.
+    const adrsByNamespace = [
         {
             namespace: 'finos',
             adrs: [
@@ -6504,8 +6511,13 @@ if (db.adrs.countDocuments() === 0) {
                 },
             ],
         },
-    ]);
-    logSuccess("Initialized ADRs for finos and workshop namespaces");
+    ];
+    const seededAdrs = seedVersionedResource(
+        adrsByNamespace, "adrs", "adrVersions", "adrs", "adrId", "revisions");
+    logSuccess(`Initialized ${seededAdrs.headers} ADRs and ${seededAdrs.versions} revisions`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding ADRs; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("ADRs already initialized, skipping...");
 }

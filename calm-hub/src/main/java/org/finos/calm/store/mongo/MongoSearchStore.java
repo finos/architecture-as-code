@@ -8,6 +8,8 @@ import org.bson.Document;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
+import org.finos.calm.store.util.MongoVersionDocumentStore;
+import org.finos.calm.store.util.NumericVersionOrder;
 import org.finos.calm.store.util.SearchTextMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,7 @@ public class MongoSearchStore implements SearchStore {
     private final MongoCollection<Document> interfaceCollection;
     private final MongoCollection<Document> controlCollection;
     private final MongoCollection<Document> adrCollection;
+    private final MongoVersionDocumentStore adrDocuments;
 
     public MongoSearchStore(MongoDatabase database) {
         this.architectureCollection = database.getCollection("architectures");
@@ -50,6 +53,8 @@ public class MongoSearchStore implements SearchStore {
         this.interfaceCollection = database.getCollection("interfaces");
         this.controlCollection = database.getCollection("controls");
         this.adrCollection = database.getCollection("adrs");
+        this.adrDocuments = new MongoVersionDocumentStore(adrCollection,
+                database.getCollection("adrVersions"), "adrId", "ADR", NumericVersionOrder.ASCENDING);
     }
 
     @Override
@@ -137,44 +142,34 @@ public class MongoSearchStore implements SearchStore {
         return results;
     }
 
+    /**
+     * ADR searches on the latest revision's title, so unlike every other type this cannot be
+     * answered from the header alone — the header carries no name. The latest revision is
+     * resolved through the same helper the ADR store uses, which is also what keeps the
+     * integer ordering correct: ranking revisions as strings would make 2 the latest once an
+     * ADR passed revision 9.
+     */
     private List<SearchResult> searchAdrCollection(String lowerQuery, Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
-        for (Document namespaceDoc : adrCollection.find()) {
-            String namespace = namespaceDoc.getString("namespace");
+        for (Document header : adrCollection.find()) {
+            if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                return results;
+            }
+            String namespace = header.getString("namespace");
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
-            List<Document> adrs = namespaceDoc.getList("adrs", Document.class);
-            if (adrs == null) {
-                continue;
+            Integer adrId = header.getInteger("adrId");
+            String title = "ADR " + adrId;
+
+            Document latest = adrDocuments.getLatestVersionContent(namespace, adrId);
+            if (latest != null && latest.getString("title") != null) {
+                title = latest.getString("title");
             }
-            for (Document adr : adrs) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                int adrId = adr.getInteger("adrId");
-                String title = "ADR " + adrId;
 
-                Document revisions = (Document) adr.get("revisions");
-                if (revisions != null && !revisions.isEmpty()) {
-                    int latestRevision = revisions.keySet().stream()
-                            .map(Integer::parseInt)
-                            .mapToInt(i -> i)
-                            .max()
-                            .getAsInt();
-                    Document revisionDoc = (Document) revisions.get(String.valueOf(latestRevision));
-                    if (revisionDoc != null) {
-                        String docTitle = revisionDoc.getString("title");
-                        if (docTitle != null) {
-                            title = docTitle;
-                        }
-                    }
-                }
-
-                if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
-                    results.add(new SearchResult(namespace, adrId, title, ""));
-                }
+            if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
+                results.add(new SearchResult(namespace, adrId, title, ""));
             }
         }
 
