@@ -65,7 +65,7 @@ public class NitriteSearchStore implements SearchStore {
         return new GroupedSearchResults(
                 searchHeaderCollection(architectureCollection, "architectureId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(patternCollection, "patternId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),

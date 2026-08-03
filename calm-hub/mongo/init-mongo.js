@@ -134,7 +134,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 4;
+const LATEST_SCHEMA_VERSION = 5;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -163,10 +163,12 @@ if (isEmptyDatabase) {
     db.architectureVersions.createIndex({ namespace: 1, architectureId: 1, version: 1 }, unique);
     db.patterns.createIndex({ namespace: 1, patternId: 1 }, unique);
     db.patternVersions.createIndex({ namespace: 1, patternId: 1, version: 1 }, unique);
+    db.flows.createIndex({ namespace: 1, flowId: 1 }, unique);
+    db.flowVersions.createIndex({ namespace: 1, flowId: 1, version: 1 }, unique);
 
     // Still one document per namespace until each of these migrates, at which point its
     // entry moves up alongside architectures and patterns.
-    for (const collection of ["flows", "timelines", "standards", "interfaces", "adrs", "decorators"]) {
+    for (const collection of ["timelines", "standards", "interfaces", "adrs", "decorators"]) {
         db[collection].createIndex({ namespace: 1 }, unique);
     }
     db.controls.createIndex({ domain: 1 }, unique);
@@ -1928,8 +1930,11 @@ if (isEmptyDatabase && db.patterns.countDocuments() === 0) {
 }
 
 logSection("Flows");
-if (db.flows.countDocuments() === 0) {
-    db.flows.insertMany([
+// Gated on the database being empty, like the other migrated types — the new shape
+// depends on the index swap the schema baseline performs.
+if (isEmptyDatabase && db.flows.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out.
+    const flowsByNamespace = [
         {
             namespace: "finos",
             flows: [
@@ -1939,7 +1944,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "This is a non-compliant flow document. Just creating something to simulate",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-1",
                             "title": "Flow 1",
@@ -1953,7 +1958,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "This is a non-compliant flow document. Just creating something to simulate",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-2",
                             "title": "Flow 2",
@@ -1974,7 +1979,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "Flow for adding or updating account information in the database",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
                             "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
                             "unique-id": "flow-add-update-account",
@@ -2019,7 +2024,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
                             "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
                             "unique-id": "flow-load-list-of-accounts",
@@ -2055,9 +2060,14 @@ if (db.flows.countDocuments() === 0) {
                 }
             ]
         }
-    ]
-    );
-    logSuccess("Initialized flows for finos and traderx namespaces");
+    ];
+
+    const seededFlows = seedVersionedResource(
+        flowsByNamespace, "flows", "flowVersions", "flows", "flowId");
+    logSuccess(`Initialized ${seededFlows.headers} flows and ${seededFlows.versions} versions for finos and traderx namespaces`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding flows; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("Flows already initialized, skipping...");
 }

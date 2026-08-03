@@ -5,35 +5,36 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.json.JsonParseException;
 import org.dizitart.no2.Nitrite;
-import org.dizitart.no2.collection.Document;
-import org.dizitart.no2.collection.NitriteCollection;
-import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.FlowStore;
-import org.finos.calm.store.util.TypeSafeNitriteDocument;
-import org.finos.calm.store.util.VersionKeySelector;
+import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.util.NitriteVersionDocumentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static org.dizitart.no2.filters.FluentFilter.where;
 import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
- * Implementation of the FlowStore interface using NitriteDB.
- * This implementation is used when the application is running in standalone mode.
+ * NitriteDB-backed implementation of {@link FlowStore}, used in standalone mode.
+ *
+ * <h2>Document model</h2>
+ * One <em>header</em> document per flow in {@code flows}, and one <em>version</em> document
+ * per version in {@code flowVersions}, mirroring {@link org.finos.calm.store.mongo.MongoFlowStore}.
+ * All document handling and locking live in {@link NitriteVersionDocumentStore}.
+ *
+ * <p>As with the other Nitrite stores, content is held as a JSON string rather than a parsed
+ * document, and JSON is validated up front — before the flow's existence is checked, where
+ * Mongo reports the missing flow first.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
@@ -41,317 +42,157 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 public class NitriteFlowStore implements FlowStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(NitriteFlowStore.class);
-    private static final String COLLECTION_NAME = "flows";
-    private static final String NAMESPACE_FIELD = "namespace";
-    private static final String FLOWS_FIELD = "flows";
-    private static final String FLOW_ID_FIELD = "flowId";
-    private static final String VERSIONS_FIELD = "versions";
-    private static final String NAME_FIELD = "name";
-    private static final String DESCRIPTION_FIELD = "description";
+    private static final String HEADER_COLLECTION = "flows";
+    private static final String VERSION_COLLECTION = "flowVersions";
+    private static final String ID_FIELD = "flowId";
+    private static final String RESOURCE_LABEL = "Flow";
+    private static final String INITIAL_VERSION = "1.0.0";
 
-    private final NitriteCollection flowCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final NitriteVersionDocumentStore documentStore;
 
     @Inject
     public NitriteFlowStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
-        this.flowCollection = db.getCollection(COLLECTION_NAME);
         this.namespaceStore = namespaceStore;
         this.counterStore = counterStore;
-        LOG.info("NitriteFlowStore initialized with collection: {}", COLLECTION_NAME);
+        this.documentStore = new NitriteVersionDocumentStore(
+                db.getCollection(HEADER_COLLECTION),
+                db.getCollection(VERSION_COLLECTION),
+                ID_FIELD,
+                RESOURCE_LABEL);
+        LOG.info("NitriteFlowStore initialized with collections: {} / {}", HEADER_COLLECTION, VERSION_COLLECTION);
     }
 
     @Override
     public List<NamespaceResourceSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found when retrieving flows", namespace);
-            throw new NamespaceNotFoundException();
-        }
-
-        lock.readLock().lock();
-        try {
-            Filter filter = where(NAMESPACE_FIELD).eq(namespace);
-            Document namespaceDoc = flowCollection.find(filter).firstOrNull();
-
-            if (namespaceDoc == null) {
-                LOG.warn("No flows found for namespace '{}'", namespace);
-                return List.of();
-            }
-
-            List<Document> flows = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class).getList(FLOWS_FIELD);
-            if (flows == null || flows.isEmpty()) {
-                return List.of();
-            }
-
-            List<NamespaceResourceSummary> flowSummaries = new ArrayList<>();
-            for (Document flow : flows) {
-                Integer flowId = flow.get(FLOW_ID_FIELD, Integer.class);
-                String name = flow.get(NAME_FIELD, String.class);
-                String description = flow.get(DESCRIPTION_FIELD, String.class);
-                if (name == null) name = "Flow " + flowId;
-                if (description == null) description = "";
-                // Count versions from the already-in-memory sub-document (O(1), no extra query).
-                Object rawVersions = flow.get(VERSIONS_FIELD);
-                int versionCount = VersionKeySelector.versionCount(rawVersions instanceof Document d ? d.getFields() : null);
-                flowSummaries.add(new NamespaceResourceSummary(name, description, flowId, versionCount));
-            }
-
-            return flowSummaries;
-        } finally {
-            lock.readLock().unlock();
-        }
+        requireNamespace(namespace);
+        return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED);
     }
 
     @Override
     public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found when creating flow", namespace);
-            throw new NamespaceNotFoundException();
-        }
+        requireNamespace(namespace);
+        validateFlowJson(flowRequest.getFlowJson());
 
-        // Validate JSON
-        try {
-            // Use org.bson.Document to validate JSON
-            org.bson.Document.parse(flowRequest.getFlowJson());
-        } catch (Exception e) {
-            LOG.error("Invalid JSON format for flow: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
-        }
-
-        lock.writeLock().lock();
-        try {
-            int id = counterStore.getNextFlowSequenceValue();
-            Document flowDocument = Document.createDocument()
-                .put(FLOW_ID_FIELD, id)
-                .put(NAME_FIELD, flowRequest.getName())
-                .put(DESCRIPTION_FIELD, flowRequest.getDescription())
-                .put(VERSIONS_FIELD, Document.createDocument()
-                        .put("1-0-0", flowRequest.getFlowJson()));
-
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
-        Document namespaceDoc = flowCollection.find(filter).firstOrNull();
-
-        if (namespaceDoc == null) {
-            // Create a new namespace document with the flow
-            namespaceDoc = Document.createDocument()
-                    .put(NAMESPACE_FIELD, namespace)
-                    .put(FLOWS_FIELD, List.of(flowDocument));
-            flowCollection.insert(namespaceDoc);
-        } else {
-            // Add the flow to the existing namespace document
-            List<Document> flows = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class).getList(FLOWS_FIELD);
-            if (flows == null) {
-                flows = new ArrayList<>();
-            } else {
-                flows = new ArrayList<>(flows); // Make a mutable copy
-            }
-            flows.add(flowDocument);
-            namespaceDoc.put(FLOWS_FIELD, flows);
-            flowCollection.update(filter, namespaceDoc);
-        }
+        int id = counterStore.getNextFlowSequenceValue();
+        documentStore.createHeader(namespace, id, flowRequest.getName(), flowRequest.getDescription());
+        createInitialVersion(namespace, id, flowRequest.getFlowJson());
 
         LOG.info("Created flow with ID {} for namespace '{}'", id, namespace);
-
-            return new Flow.FlowBuilder()
-                    .setId(id)
-                    .setVersion("1.0.0")
-                    .setNamespace(namespace)
-                    .setFlow(flowRequest.getFlowJson())
-                    .build();
-        } finally {
-            lock.writeLock().unlock();
-        }
+        return new Flow.FlowBuilder()
+                .setId(id)
+                .setVersion(INITIAL_VERSION)
+                .setNamespace(namespace)
+                .setFlow(flowRequest.getFlowJson())
+                .build();
     }
 
     @Override
     public List<String> getFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        lock.readLock().lock();
-        try {
-            Document result = retrieveFlowVersions(flow);
-
-            List<Document> flows = new TypeSafeNitriteDocument<>(result, Document.class).getList(FLOWS_FIELD);
-            for (Document flowDoc : flows) {
-                if (flow.getId() == flowDoc.get(FLOW_ID_FIELD, Integer.class)) {
-                    // Extract the versions map from the matching flow
-                    Document versions = flowDoc.get(VERSIONS_FIELD, Document.class);
-
-                    // Convert from Nitrite representation
-                    List<String> resourceVersions = new ArrayList<>();
-                    if (versions != null) {
-                        Set<String> versionKeys = versions.getFields();
-                        for (String versionKey : versionKeys) {
-                            resourceVersions.add(versionKey.replace('-', '.'));
-                        }
-                    }
-                    return resourceVersions;  // Return the list of version keys
-                }
-            }
-
-            throw new FlowNotFoundException();
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    private Document retrieveFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        if (!namespaceStore.namespaceExists(flow.getNamespace())) {
-            LOG.warn("Namespace '{}' not found when retrieving flow versions", flow.getNamespace());
-            throw new NamespaceNotFoundException();
-        }
-
-        Filter filter = where(NAMESPACE_FIELD).eq(flow.getNamespace());
-        Document result = flowCollection.find(filter).firstOrNull();
-
-        if (result == null) {
-            LOG.warn("No flows found for namespace '{}'", flow.getNamespace());
-            throw new FlowNotFoundException();
-        }
-
-        return result;
+        requireFlow(flow);
+        return documentStore.listVersions(flow.getNamespace(), flow.getId());
     }
 
     @Override
     public String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
-        lock.readLock().lock();
-        try {
-            Document result = retrieveFlowVersions(flow);
+        requireFlow(flow);
 
-            List<Document> flows = new TypeSafeNitriteDocument<>(result, Document.class).getList(FLOWS_FIELD);
-            for (Document flowDoc : flows) {
-                if (flow.getId() == flowDoc.get(FLOW_ID_FIELD, Integer.class)) {
-                    // Retrieve the versions map from the matching flow
-                    Document versions = flowDoc.get(VERSIONS_FIELD, Document.class);
-
-                    // Return the flow JSON blob for the specified version
-                    String mongoVersion = flow.getMongoVersion();
-                    Object versionObj = versions.get(mongoVersion);
-                    LOG.info("Version [{}] found: {}", mongoVersion, versionObj != null);
-
-                    if (versionObj == null) {
-                        LOG.warn("Version '{}' not found for flow {} in namespace '{}'",
-                                flow.getDotVersion(), flow.getId(), flow.getNamespace());
-                        throw new FlowVersionNotFoundException();
-                    }
-
-                    // In NitriteDB, we're storing the JSON as a string directly
-                    // No need to convert to JSON string
-                    return (String) versionObj;
-                }
-            }
-
-            // Flows is empty, no version to find
-            LOG.warn("Flow with ID {} not found in namespace '{}'", flow.getId(), flow.getNamespace());
+        String content = documentStore.getVersion(flow.getNamespace(), flow.getId(), flow.getDotVersion());
+        if (content == null) {
+            LOG.warn("Version '{}' not found for flow {} in namespace '{}'",
+                    flow.getDotVersion(), flow.getId(), flow.getNamespace());
             throw new FlowVersionNotFoundException();
-        } finally {
-            lock.readLock().unlock();
         }
+        return content;
     }
 
     @Override
     public Flow createFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionExistsException {
-        if (!namespaceStore.namespaceExists(flow.getNamespace())) {
-            LOG.warn("Namespace '{}' not found when creating flow version", flow.getNamespace());
-            throw new NamespaceNotFoundException();
+        requireNamespace(flow.getNamespace());
+        validateFlowJson(flow.getFlowJson());
+        requireFlowExists(flow);
+
+        if (!documentStore.createVersion(flow.getNamespace(), flow.getId(), flow.getDotVersion(), flow.getFlowJson())) {
+            LOG.warn("Version '{}' already exists for flow {} in namespace '{}'",
+                    flow.getDotVersion(), flow.getId(), flow.getNamespace());
+            throw new FlowVersionExistsException();
         }
 
-        lock.writeLock().lock();
-        try {
-            if (versionExists(flow)) {
-                LOG.warn("Version '{}' already exists for flow {} in namespace '{}'",
-                        flow.getDotVersion(), flow.getId(), flow.getNamespace());
-                throw new FlowVersionExistsException();
-            }
-
-            writeFlowToNitrite(flow);
-        } finally {
-            lock.writeLock().unlock();
-        }
+        updateHeaderDetails(flow);
         return flow;
     }
 
     @Override
     public Flow updateFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        if (!namespaceStore.namespaceExists(flow.getNamespace())) {
-            LOG.warn("Namespace '{}' not found when updating flow version", flow.getNamespace());
-            throw new NamespaceNotFoundException();
-        }
+        requireNamespace(flow.getNamespace());
+        validateFlowJson(flow.getFlowJson());
+        requireFlowExists(flow);
 
-        lock.writeLock().lock();
-        try {
-            writeFlowToNitrite(flow);
-        } finally {
-            lock.writeLock().unlock();
-        }
-        LOG.info("Updated version '{}' for flow {} in namespace '{}'",
-                flow.getDotVersion(), flow.getId(), flow.getNamespace());
+        documentStore.upsertVersion(flow.getNamespace(), flow.getId(), flow.getDotVersion(), flow.getFlowJson());
+
+        updateHeaderDetails(flow);
         return flow;
     }
 
-    private void writeFlowToNitrite(Flow flow) throws FlowNotFoundException, NamespaceNotFoundException {
-        // First verify the flow exists
-        retrieveFlowVersions(flow);
-
-        // Find the namespace document
-        Filter filter = where(NAMESPACE_FIELD).eq(flow.getNamespace());
-        Document namespaceDoc = flowCollection.find(filter).firstOrNull();
-
-        if (namespaceDoc != null) {
-            List<Document> flows = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class).getList(FLOWS_FIELD);
-            if (flows != null) {
-                // Create a mutable copy of the list
-                flows = new ArrayList<>(flows);
-                boolean found = false;
-                for (int i = 0; i < flows.size(); i++) {
-                    Document flowDoc = flows.get(i);
-                    if (flowDoc.get(FLOW_ID_FIELD, Integer.class) == flow.getId()) {
-                        // Found the flow, update its version
-                        Document versions = flowDoc.get(VERSIONS_FIELD, Document.class);
-                        versions.put(flow.getMongoVersion(), flow.getFlowJson());
-                        flowDoc.put(VERSIONS_FIELD, versions);
-                        // Defensive: the REST layer enforces @NotBlank on name/description via CreateFlowRequest,
-                        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
-                        if (flow.getName() != null && !flow.getName().isBlank()) {
-                            flowDoc.put(NAME_FIELD, flow.getName());
-                        }
-                        if (flow.getDescription() != null && !flow.getDescription().isBlank()) {
-                            flowDoc.put(DESCRIPTION_FIELD, flow.getDescription());
-                        }
-                        flows.set(i, flowDoc);
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (found) {
-                    namespaceDoc.put(FLOWS_FIELD, flows);
-                    flowCollection.update(filter, namespaceDoc);
-                    return;
-                }
-            }
+    /**
+     * Validates that the supplied flow JSON is parseable, throwing {@link JsonParseException}
+     * if not so the REST layer can surface a 400.
+     */
+    private void validateFlowJson(String flowJson) {
+        if (flowJson == null) {
+            LOG.error("Flow JSON must not be null");
+            throw new JsonParseException("Flow JSON must not be null");
         }
-
-        LOG.warn("Flow with ID {} not found in namespace '{}'", flow.getId(), flow.getNamespace());
-        throw new FlowNotFoundException();
+        try {
+            org.bson.Document.parse(flowJson);
+        } catch (Exception e) {
+            LOG.error("Invalid JSON format for flow: {}", e.getMessage());
+            throw new JsonParseException(e.getMessage());
+        }
     }
 
-    private boolean versionExists(Flow flow) {
+    /**
+     * Writes the first version of a newly created flow, removing the header again if that
+     * fails — a header with no versions cannot be removed through the API.
+     */
+    private void createInitialVersion(String namespace, int id, String content) {
+        boolean created;
         try {
-            Document result = retrieveFlowVersions(flow);
-
-            List<Document> flows = new TypeSafeNitriteDocument<>(result, Document.class).getList(FLOWS_FIELD);
-            for (Document flowDoc : flows) {
-                if (flow.getId() == flowDoc.get(FLOW_ID_FIELD, Integer.class)) {
-                    Document versions = flowDoc.get(VERSIONS_FIELD, Document.class);
-                    if (versions != null && versions.containsKey(flow.getMongoVersion())) {
-                        return true;  // The version already exists
-                    }
-                }
-            }
-        } catch (NamespaceNotFoundException | FlowNotFoundException e) {
-            return false;
+            created = documentStore.createVersion(namespace, id, INITIAL_VERSION, content);
+        } catch (RuntimeException e) {
+            documentStore.deleteHeader(namespace, id);
+            throw e;
         }
+        if (!created) {
+            documentStore.deleteHeader(namespace, id);
+            throw StorageWriteException.writeFailed(new IllegalStateException(
+                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
+                            + ID_FIELD + " " + id + " in namespace " + namespace));
+        }
+    }
 
-        return false;
+    private void updateHeaderDetails(Flow flow) {
+        documentStore.updatePresentHeaderDetails(flow.getNamespace(), flow.getId(),
+                flow.getName(), flow.getDescription());
+    }
+
+    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
+        if (!namespaceStore.namespaceExists(namespace)) {
+            LOG.warn("Namespace '{}' not found", namespace);
+            throw new NamespaceNotFoundException();
+        }
+    }
+
+    private void requireFlowExists(Flow flow) throws FlowNotFoundException {
+        if (!documentStore.headerExists(flow.getNamespace(), flow.getId())) {
+            LOG.warn("Flow with ID {} not found in namespace '{}'", flow.getId(), flow.getNamespace());
+            throw new FlowNotFoundException();
+        }
+    }
+
+    private void requireFlow(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
+        requireNamespace(flow.getNamespace());
+        requireFlowExists(flow);
     }
 }

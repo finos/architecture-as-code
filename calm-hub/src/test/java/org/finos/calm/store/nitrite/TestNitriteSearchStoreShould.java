@@ -207,14 +207,13 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void handle_null_entries_array_gracefully() {
-        // Uses a flow: only the array-shaped types can have a null entries array at all, so
-        // this covers the branch where it still exists. It moves to another unmigrated type
-        // each time one migrates — it was on architectures, then patterns.
+        // Uses a standard: only the array-shaped types can have a null entries array at all,
+        // so this covers the branch where it still exists. Moves as each type migrates.
         Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("flows", null);
+                .put("standards", null);
 
-        mockCollectionFind(flowCollection, List.of(namespaceDoc));
-        mockEmptyCollections(architectureCollection, patternCollection, standardCollection,
+        mockCollectionFind(standardCollection, List.of(namespaceDoc));
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
@@ -240,21 +239,28 @@ class TestNitriteSearchStoreShould {
     void return_results_from_multiple_collections() {
         Document archDoc = architectureHeader(1, "Demo Architecture", "demo");
 
-        Document flowEntry = Document.createDocument("flowId", 3)
+        Document flowDoc = Document.createDocument("namespace", "finos")
+                .put("flowId", 3)
                 .put("name", "Demo Flow")
                 .put("description", "demo");
-        Document flowDoc = Document.createDocument("namespace", "finos")
-                .put("flows", List.of(flowEntry));
+
+        // A standard, still array-shaped, so both search paths run in one search while the
+        // rollout is part-done. Moves to another unmigrated type as each one migrates.
+        Document standardDoc = Document.createDocument("namespace", "finos")
+                .put("standards", List.of(Document.createDocument("standardId", 4)
+                        .put("name", "Demo Standard")
+                        .put("description", "demo")));
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(flowCollection, List.of(flowDoc));
-        mockEmptyCollections(patternCollection, standardCollection,
-                interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(standardCollection, List.of(standardDoc));
+        mockEmptyCollections(patternCollection, interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("demo");
 
         assertEquals(1, results.getArchitectures().size());
         assertEquals(1, results.getFlows().size());
+        assertEquals(1, results.getStandards().size());
     }
 
     @Test

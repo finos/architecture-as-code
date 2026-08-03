@@ -6,6 +6,7 @@ import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.finos.calm.migration.steps.MongoArchitectureVersionSplitStep;
 import org.finos.calm.migration.steps.MongoIndexInitializationStep;
+import org.finos.calm.migration.steps.MongoFlowVersionSplitStep;
 import org.finos.calm.migration.steps.MongoPatternVersionSplitStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,7 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             // second resource in a namespace.
             new MongoArchitectureVersionSplitStep(database).transitionIndexes();
             new MongoPatternVersionSplitStep(database).transitionIndexes();
+            new MongoFlowVersionSplitStep(database).transitionIndexes();
             logger.info("Ensured MongoDB indexes for integration tests");
         }
 
