@@ -42,21 +42,31 @@ public class NitriteVersionSplitMigration {
     private static final Logger LOG = LoggerFactory.getLogger(NitriteVersionSplitMigration.class);
 
     private static final String NAMESPACE_FIELD = "namespace";
-    private static final String VERSIONS_FIELD = "versions";
     private static final String VERSION_FIELD = "version";
 
     private final NitriteCollection headerCollection;
     private final NitriteCollection versionCollection;
     private final String idField;
     private final String arrayField;
+    private final String versionsField;
     private final String resourceLabel;
 
     public NitriteVersionSplitMigration(Nitrite db, String headerCollection, String versionCollection,
                                         String idField, String arrayField, String resourceLabel) {
+        this(db, headerCollection, versionCollection, idField, arrayField, "versions", resourceLabel);
+    }
+
+    /**
+     * @param versionsField the field holding the version map on each old-shape entry.
+     *                      "versions" for every type but ADR, whose map is named "revisions".
+     */
+    public NitriteVersionSplitMigration(Nitrite db, String headerCollection, String versionCollection,
+                                      String idField, String arrayField, String versionsField, String resourceLabel) {
         this.headerCollection = db.getCollection(headerCollection);
         this.versionCollection = db.getCollection(versionCollection);
         this.idField = idField;
         this.arrayField = arrayField;
+        this.versionsField = versionsField;
         this.resourceLabel = resourceLabel;
     }
 
@@ -105,7 +115,7 @@ public class NitriteVersionSplitMigration {
      */
     private int writeOneResource(String namespace, Document entry) {
         Integer resourceId = entry.get(idField, Integer.class);
-        Document storedVersions = entry.get(VERSIONS_FIELD, Document.class);
+        Document storedVersions = entry.get(versionsField, Document.class);
         Map<String, String> keysByCanonicalVersion = collapseToCanonicalVersions(storedVersions, namespace, resourceId);
 
         Filter headerFilter = Filter.and(where(NAMESPACE_FIELD).eq(namespace), where(idField).eq(resourceId));

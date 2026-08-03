@@ -72,6 +72,7 @@ public class NitriteVersionDocumentStore {
     private final NitriteCollection versionCollection;
     private final String idField;
     private final String resourceLabel;
+    private final Comparator<String> versionOrder;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
@@ -85,10 +86,24 @@ public class NitriteVersionDocumentStore {
                                        NitriteCollection versionCollection,
                                        String idField,
                                        String resourceLabel) {
+        this(headerCollection, versionCollection, idField, resourceLabel, SemanticVersionOrder.ASCENDING);
+    }
+
+    /**
+     * @param versionOrder how this type's versions rank. See
+     *                     {@link MongoVersionDocumentStore} for why ADR needs
+     *                     {@link NumericVersionOrder} rather than the semantic one.
+     */
+    public NitriteVersionDocumentStore(NitriteCollection headerCollection,
+                                       NitriteCollection versionCollection,
+                                       String idField,
+                                       String resourceLabel,
+                                       Comparator<String> versionOrder) {
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
         this.idField = idField;
         this.resourceLabel = resourceLabel;
+        this.versionOrder = versionOrder;
     }
 
     /**
@@ -310,7 +325,7 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
-     * @return every version of one resource, ordered by {@link SemanticVersionOrder}.
+     * @return every version of one resource, ordered by this store's version comparator.
      * Empty means "no versions written" — <em>not</em> "no such resource"; ask
      * {@link #headerExists} to tell those apart.
      */
@@ -321,11 +336,29 @@ public class NitriteVersionDocumentStore {
             for (Document versionDocument : versionCollection.find(headerFilter(namespace, resourceId))) {
                 versions.add(versionDocument.get(VERSION_FIELD, String.class));
             }
-            versions.sort(SemanticVersionOrder.ASCENDING);
+            versions.sort(versionOrder);
             return versions;
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    /**
+     * @return the highest-ranking version of one resource, or {@code null} if it has none.
+     * See {@link MongoVersionDocumentStore#getLatestVersion} for why this ranks in memory.
+     */
+    public String getLatestVersion(String namespace, int resourceId) {
+        List<String> versions = listVersions(namespace, resourceId);
+        return versions.isEmpty() ? null : versions.get(versions.size() - 1);
+    }
+
+    /**
+     * @return the content of the highest-ranking version, or {@code null} if the resource has
+     * no versions.
+     */
+    public String getLatestVersionContent(String namespace, int resourceId) {
+        String latest = getLatestVersion(namespace, resourceId);
+        return latest == null ? null : getVersion(namespace, resourceId, latest);
     }
 
     /**

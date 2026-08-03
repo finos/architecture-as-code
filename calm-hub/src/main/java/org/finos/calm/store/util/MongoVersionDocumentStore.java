@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -80,6 +81,7 @@ public class MongoVersionDocumentStore {
     private final MongoCollection<Document> versionCollection;
     private final String idField;
     private final String resourceLabel;
+    private final Comparator<String> versionOrder;
 
     /**
      * @param headerCollection  the existing per-type collection, now holding headers
@@ -94,10 +96,25 @@ public class MongoVersionDocumentStore {
                                      MongoCollection<Document> versionCollection,
                                      String idField,
                                      String resourceLabel) {
+        this(headerCollection, versionCollection, idField, resourceLabel, SemanticVersionOrder.ASCENDING);
+    }
+
+    /**
+     * @param versionOrder how this type's versions rank. Every type but ADR uses
+     *                     {@link SemanticVersionOrder}; ADR's revisions are integers, which
+     *                     that comparator would order {@code 1, 10, 2} — see
+     *                     {@link NumericVersionOrder}.
+     */
+    public MongoVersionDocumentStore(MongoCollection<Document> headerCollection,
+                                     MongoCollection<Document> versionCollection,
+                                     String idField,
+                                     String resourceLabel,
+                                     Comparator<String> versionOrder) {
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
         this.idField = idField;
         this.resourceLabel = resourceLabel;
+        this.versionOrder = versionOrder;
     }
 
     /**
@@ -339,7 +356,7 @@ public class MongoVersionDocumentStore {
     }
 
     /**
-     * @return every version of one resource, ordered by {@link SemanticVersionOrder}.
+     * @return every version of one resource, ordered by this store's version comparator.
      * Empty means "no versions written" — <em>not</em> "no such resource"; ask
      * {@link #headerExists} to tell those apart. Sorted in memory rather than by the
      * database because semantic ordering isn't expressible as a Mongo sort, which is
@@ -350,8 +367,35 @@ public class MongoVersionDocumentStore {
         versionCollection.find(headerFilter(namespace, resourceId))
                 .projection(Projections.include(VERSION_FIELD))
                 .forEach(document -> versions.add(document.getString(VERSION_FIELD)));
-        versions.sort(SemanticVersionOrder.ASCENDING);
+        versions.sort(versionOrder);
         return versions;
+    }
+
+    /**
+     * @return the highest-ranking version of one resource, or {@code null} if it has none.
+     *
+     * <p>Resolved by listing and ranking in memory rather than by a database sort, because
+     * the ordering is type-specific and not expressible as a Mongo sort — the stored values
+     * are strings, so the database would rank {@code 10} below {@code 2}. Only the version
+     * field is projected, so the cost is bounded by the number of versions, not their
+     * content.</p>
+     *
+     * <p>Exists for ADR, whose summary and read paths are defined in terms of the latest
+     * revision. ADR 0001 decided against caching a latest-version pointer on the header, so
+     * this recomputes it; that decision is unchanged.</p>
+     */
+    public String getLatestVersion(String namespace, int resourceId) {
+        List<String> versions = listVersions(namespace, resourceId);
+        return versions.isEmpty() ? null : versions.get(versions.size() - 1);
+    }
+
+    /**
+     * @return the content of the highest-ranking version, or {@code null} if the resource has
+     * no versions. Two reads: one to rank the versions, one to fetch the winner's content.
+     */
+    public Document getLatestVersionContent(String namespace, int resourceId) {
+        String latest = getLatestVersion(namespace, resourceId);
+        return latest == null ? null : getVersion(namespace, resourceId, latest);
     }
 
     /**

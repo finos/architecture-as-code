@@ -413,6 +413,45 @@ class TestNitriteVersionDocumentStoreShould {
         assertThat(store.listVersions(NAMESPACE, RESOURCE_ID), is(empty()));
     }
 
+    // --- getLatestVersion / getLatestVersionContent ---
+
+    @Test
+    void resolve_the_latest_version_by_the_stores_own_ordering() {
+        stubFind(versionCollection, List.of(versionDocument("1.10.0"), versionDocument("1.9.0")));
+
+        assertThat(store.getLatestVersion(NAMESPACE, RESOURCE_ID), is("1.10.0"));
+    }
+
+    @Test
+    void resolve_the_latest_version_numerically_when_told_to() {
+        NitriteVersionDocumentStore numericStore = new NitriteVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, NumericVersionOrder.ASCENDING);
+        stubFind(versionCollection, List.of(versionDocument("2"), versionDocument("10")));
+
+        assertThat(numericStore.getLatestVersion(NAMESPACE, RESOURCE_ID), is("10"));
+    }
+
+    @Test
+    void return_no_latest_version_for_a_resource_with_none() {
+        stubFind(versionCollection, List.of());
+
+        assertThat(store.getLatestVersion(NAMESPACE, RESOURCE_ID), is(nullValue()));
+    }
+
+    @Test
+    void return_the_content_of_the_latest_version() {
+        stubFind(versionCollection, List.of(versionDocument("2.0.0").put("content", CONTENT)));
+
+        assertThat(store.getLatestVersionContent(NAMESPACE, RESOURCE_ID), is(CONTENT));
+    }
+
+    @Test
+    void return_no_latest_content_for_a_resource_with_no_versions() {
+        stubFind(versionCollection, List.of());
+
+        assertThat(store.getLatestVersionContent(NAMESPACE, RESOURCE_ID), is(nullValue()));
+    }
+
     // --- listSummariesPaged ---
 
     @Test
