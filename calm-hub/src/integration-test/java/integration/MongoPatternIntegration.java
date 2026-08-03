@@ -34,8 +34,11 @@ public class MongoPatternIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            // Drop patterns and resource_mappings to ensure clean state regardless of test ordering
+            // Drop patterns and resource_mappings to ensure clean state regardless of test ordering.
+            // patternVersions goes too — version documents now live outside the header
+            // collection, so dropping only that would leave them behind for the next test.
             database.getCollection("patterns").drop();
+            database.getCollection("patternVersions").drop();
             database.getCollection("resource_mappings").drop();
 
             // Reset pattern counter to 0
@@ -60,11 +63,14 @@ public class MongoPatternIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
+            // The collection used to be primed with an empty one-document-per-namespace
+            // document, because that shape needed one to exist before anything could be
+            // pushed into it. Under the header/version shape there is no per-namespace
+            // document at all, and priming one is actively harmful: it has no patternId, so
+            // the header reader surfaces it as a pattern named "Pattern null" with zero
+            // versions. Creating the empty collection is all that is needed.
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("patterns")) {
                 database.createCollection("patterns");
-                database.getCollection("patterns").insertOne(
-                        new Document("namespace", "finos").append("patterns", new ArrayList<>())
-                );
             }
 
             counterSetup(database);

@@ -27,18 +27,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The two halves of issue #2884's document-size story, one per storage shape.
  *
- * <p><b>Pattern</b> still uses the one-document-per-namespace shape, where every version's
- * full content accumulates in a single document. Growing its history eventually crosses
- * MongoDB's 16MB BSON ceiling, and that failure must surface as an honest {@code 413} via
+ * <p><b>Flow</b> still uses the one-document-per-namespace shape, where every version's full
+ * content accumulates in a single document. Growing its history eventually crosses MongoDB's
+ * 16MB BSON ceiling, and that failure must surface as an honest {@code 413} via
  * {@link org.finos.calm.domain.exception.StorageWriteException} — not the misleading
- * {@code 404} the stores used to throw for any {@code MongoWriteException}. This is the
- * original regression test, repointed from Architecture when Architecture migrated.</p>
+ * {@code 404} the stores used to throw for any {@code MongoWriteException}.</p>
  *
- * <p><b>Architecture</b> has moved to the header/version shape, where each version is its
- * own document bounded by its own size. The same history that breaks Pattern must now be
- * writable, which is the whole point of the redesign. Keeping both in one class means the
- * ceiling and its removal are asserted against the same real MongoDB, with the same payload
- * size, rather than being argued about.</p>
+ * <p><b>Architecture and Pattern</b> have moved to the header/version shape, where each
+ * version is its own document bounded by its own size. The same history that breaks Flow
+ * must now be writable, which is the whole point of the redesign. Keeping both halves in one
+ * class means the ceiling and its removal are asserted against the same real MongoDB, with
+ * the same payload size, rather than being argued about.</p>
+ *
+ * <p><b>This test relocates each time a type migrates.</b> It began on Architecture, moved to
+ * Pattern when Architecture migrated, and is now on Flow. When Flow migrates it must move
+ * again — Timeline, Interface, Standard and ADR are the remaining candidates, and Control
+ * keeps the old shape permanently (ADR 0004). A failure here reading "expected a write to
+ * fail" usually means the type under test has just been migrated, not that the 413 mapping
+ * broke.</p>
  */
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
@@ -103,13 +109,13 @@ public class MongoDocumentSizeLimitIntegration {
 
     @Test
     void return_413_when_a_version_write_exceeds_the_document_size_limit() throws Exception {
-        int patternId = createResource("patterns", "patternJson", "size-limit-test-pattern");
-        String requestBody = largeBody("patternJson", "size-limit-test-pattern");
+        int flowId = createResource("flows", "flowJson", "size-limit-test-flow");
+        String requestBody = largeBody("flowJson", "size-limit-test-flow");
 
         Response lastResponse = null;
         int version = 2;
         for (; version < MAX_VERSION_ATTEMPTS; version++) {
-            lastResponse = putVersion("patterns", patternId, version, requestBody);
+            lastResponse = putVersion("flows", flowId, version, requestBody);
             if (lastResponse.getStatusCode() != 201) {
                 break;
             }
@@ -117,8 +123,9 @@ public class MongoDocumentSizeLimitIntegration {
 
         assertTrue(version < MAX_VERSION_ATTEMPTS,
                 "Expected a write to fail with document-too-large before " + MAX_VERSION_ATTEMPTS
-                        + " versions were written. Patterns still accumulate every version's content into "
-                        + "one document per namespace, so this ceiling should still exist for them.");
+                        + " versions were written. Flows still accumulate every version's content into "
+                        + "one document per namespace, so this ceiling should still exist for them. If Flow "
+                        + "has just been migrated, this test needs to move to a type that has not.");
         assertEquals(413, lastResponse.getStatusCode(),
                 "Expected 413 (capacity exceeded) once the document exceeds MongoDB's 16MB limit, got: "
                         + lastResponse.getStatusCode() + " body=" + lastResponse.getBody().asString());
