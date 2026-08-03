@@ -471,8 +471,28 @@ function createReactFlowNodes(
     const groupNodes: Node[] = [];
     const { containerNodeIds, parentMap } = containerInfo;
 
-    // Create decision group parent nodes
+    // Determine each non-container node's parent. A container (deployed-in /
+    // composed-of) takes precedence over a decision group: a node that is both an
+    // optional decision candidate AND a container child renders inside its
+    // container, not in the choice box. Track which decision groups actually keep
+    // at least one child after that precedence is applied.
+    const effectiveParent = new Map<string, string>();
+    const usedDecisionGroupIds = new Set<string>();
+    extractedNodes.forEach((node) => {
+        if (containerNodeIds.has(node.uniqueId)) return;
+        const parentId = parentMap.get(node.uniqueId) || node.decisionGroupId;
+        if (!parentId) return;
+        effectiveParent.set(node.uniqueId, parentId);
+        if (parentId === node.decisionGroupId) {
+            usedDecisionGroupIds.add(node.decisionGroupId);
+        }
+    });
+
+    // Create decision group parent nodes — but only for groups that still have at
+    // least one child after container precedence is applied, so a group whose every
+    // member was pulled into a container does not render as an empty box.
     decisionGroups.forEach((group) => {
+        if (!usedDecisionGroupIds.has(group.groupId)) return;
         const optionsMeta = groupOptionsMap?.get(group.groupId);
         groupNodes.push({
             id: group.groupId,
@@ -526,8 +546,7 @@ function createReactFlowNodes(
     extractedNodes.forEach((node) => {
         if (containerNodeIds.has(node.uniqueId)) return; // already a group node
 
-        // Determine parent: decision group takes precedence, then container
-        const parentId = node.decisionGroupId || parentMap.get(node.uniqueId);
+        const parentId = effectiveParent.get(node.uniqueId);
 
         regularNodes.push({
             id: node.uniqueId,

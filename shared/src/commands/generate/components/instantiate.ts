@@ -114,13 +114,21 @@ async function instantiateFromProperties(
                     return await instantiateObject(resolvedItem, schemaDir, [key, `${idx}`]);
                 })
             );
+        } else if (resolvedDef.type === 'array') {
+            // An array with no `prefixItems` to materialize - e.g. a nodes array
+            // whose entries are declared entirely through an `items.oneOf`/`anyOf`
+            // open catalog, generated with no choices selected (so `selectChoices()`
+            // never ran to move any chosen candidates into `prefixItems`). The
+            // correct instance is an empty array. Without this branch the value
+            // would fall through to `instantiateObject` and be emitted as `{}`,
+            // producing a structurally invalid architecture (an object where an
+            // array is required).
+            output[key] = [];
+        } else if (resolvedDef.const !== undefined) {
+            // const value at the top level
+            output[key] = resolvedDef.const;
         } else {
-            // Check for const values at the top level
-            if (resolvedDef.const !== undefined) {
-                output[key] = resolvedDef.const;
-            } else {
-                output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
-            }
+            output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
         }
     }
 

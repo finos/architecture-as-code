@@ -455,6 +455,70 @@ describe('parsePatternData', () => {
         expect(groupNode?.data.choices[1].description).toBe('Use Option B');
     });
 
+    it('renders a decision candidate that is also a container child inside the container, not the choice box', () => {
+        // opt-a is both a oneOf decision candidate AND deployed inside the k8s
+        // container. The container must win: opt-a's parent is k8s. opt-b, which is
+        // not in any container, stays in the decision group.
+        const pattern = makePattern(
+            [
+                schemaNode('k8s', 'Kubernetes', 'system'),
+                {
+                    oneOf: [
+                        schemaNode('opt-a', 'Option A', 'service'),
+                        schemaNode('opt-b', 'Option B', 'service'),
+                    ],
+                },
+            ],
+            [
+                {
+                    properties: {
+                        'unique-id': { const: 'deploy-a' },
+                        'relationship-type': {
+                            const: { 'deployed-in': { container: 'k8s', nodes: ['opt-a'] } },
+                        },
+                    },
+                },
+            ]
+        );
+        const result = parsePatternData(pattern);
+
+        expect(result.nodes.find((n) => n.id === 'opt-a')?.parentId).toBe('k8s');
+        const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groupNodes).toHaveLength(1);
+        expect(result.nodes.find((n) => n.id === 'opt-b')?.parentId).toBe(groupNodes[0].id);
+    });
+
+    it('does not render an empty decision box when every candidate is pulled into a container', () => {
+        // Both oneOf candidates are deployed inside k8s, so the decision group is
+        // emptied by container precedence and must not be drawn as an empty box.
+        const pattern = makePattern(
+            [
+                schemaNode('k8s', 'Kubernetes', 'system'),
+                {
+                    oneOf: [
+                        schemaNode('opt-a', 'Option A', 'service'),
+                        schemaNode('opt-b', 'Option B', 'service'),
+                    ],
+                },
+            ],
+            [
+                {
+                    properties: {
+                        'unique-id': { const: 'deploy-both' },
+                        'relationship-type': {
+                            const: { 'deployed-in': { container: 'k8s', nodes: ['opt-a', 'opt-b'] } },
+                        },
+                    },
+                },
+            ]
+        );
+        const result = parsePatternData(pattern);
+
+        expect(result.nodes.filter((n) => n.type === 'decisionGroup')).toHaveLength(0);
+        expect(result.nodes.find((n) => n.id === 'opt-a')?.parentId).toBe('k8s');
+        expect(result.nodes.find((n) => n.id === 'opt-b')?.parentId).toBe('k8s');
+    });
+
     it('sets protocol on edges', () => {
         const pattern = makePattern(
             [

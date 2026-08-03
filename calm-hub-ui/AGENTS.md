@@ -67,6 +67,13 @@ The `visualizer/contracts/*-contracts.ts` files hold the typed interfaces shared
 across the visualiser (nodes, edges, decorators, panels, etc.); add new
 visualiser-facing types there rather than inline.
 
+Pattern **decision/options** rendering lives in
+`visualizer/components/reactflow/utils/patternTransformer.ts`. The same decision
+construct is also validated and generated in the `shared` package, and the three
+consumers do not share code — read
+[`docs/PATTERNS_OPTIONS_AND_DECISIONS.md`](../docs/PATTERNS_OPTIONS_AND_DECISIONS.md)
+before changing how decisions are drawn.
+
 ## Conventions
 
 ### Service Pattern

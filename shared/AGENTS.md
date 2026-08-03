@@ -45,6 +45,7 @@ npx vitest run ${TEST FILE}
   - `validate()` - Main validation function (`commands/validate/validate.ts`) used by CLI and VSCode
   - `enrichWithDocumentPositions()` - Adds precise line/character positions to validation output using `@stoplight/json`
   - `parseDocumentWithPositions()` - Parses JSON/YAML with position tracking for error location
+  - Pattern **options/decisions** (`prefixItems` vs `items` catalogs) are validated here, generated in `commands/generate/`, and drawn in `calm-hub-ui`. All three read the same construct independently — see [`docs/PATTERNS_OPTIONS_AND_DECISIONS.md`](../docs/PATTERNS_OPTIONS_AND_DECISIONS.md) before changing decision handling.
 - **Schema Directory** (`schema-directory.ts`): Registry of bundled CALM schemas, used for lookup by schema URL (`getSchema`).
 - **Docify** (`docify/`): Documentation generator (`docifier`) with C4/relationship graphing (`docify/graphing`) and template bundles (`docify/template-bundles`, e.g. `ants`, `docusaurus`).
 - **Resolver** (`resolver/`): CALM reference resolver plus the network-addressable extractor and validator.

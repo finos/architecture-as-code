@@ -384,5 +384,30 @@ describe('instantiate', () => {
 
             expect(result.nodes.map((n) => n['unique-id'])).toEqual(['cache']);
         });
+
+        it('emits an empty array (not an object) for an all-optional catalog generated with no selections', async () => {
+            // Regression guard: a nodes array declared entirely through an items
+            // catalog (no prefixItems) that is instantiated WITHOUT selectChoices
+            // ever running - i.e. `calm generate` with no choices made. There are
+            // no chosen candidates to move into prefixItems, so the array is empty.
+            // It must materialize as `[]`, not `{}`, or the architecture is invalid.
+            const catalogOnlyPattern = {
+                $schema: 'schema#',
+                $id: 'catalog-only-pattern-no-selection',
+                properties: {
+                    nodes: {
+                        type: 'array',
+                        items: { oneOf: [catalogNode('cache', 'an optional cache')] }
+                    },
+                    relationships: { type: 'array', prefixItems: [] }
+                }
+            };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = await instantiate(catalogOnlyPattern, true, new SchemaDirectory({} as any)) as TestInstantiatedPattern;
+
+            expect(Array.isArray(result.nodes)).toBe(true);
+            expect(result.nodes).toEqual([]);
+        });
     });
 });
