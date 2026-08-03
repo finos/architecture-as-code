@@ -66,15 +66,26 @@ class TestNitriteSearchStoreShould {
         searchStore = new NitriteSearchStore(db);
     }
 
+    /**
+     * Architecture has moved to the header/version shape, so each of its documents is one
+     * architecture rather than a namespace-wide array of them. The other namespaced types
+     * still use the array shape, which is why both fixtures appear in this class.
+     */
+    private static Document architectureHeader(int id, String name, String description) {
+        return architectureHeader("finos", id, name, description);
+    }
+
+    private static Document architectureHeader(String namespace, int id, String name, String description) {
+        return Document.createDocument("namespace", namespace)
+                .put("architectureId", id)
+                .put("name", name)
+                .put("description", description);
+    }
+
     @Test
     void return_matching_architecture_results() {
-        Document archEntry = Document.createDocument("architectureId", 1)
-                .put("name", "Payment Architecture")
-                .put("description", "Handles payments");
-        Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection,
+                List.of(architectureHeader(1, "Payment Architecture", "Handles payments")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -89,13 +100,8 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void return_matching_results_case_insensitive() {
-        Document archEntry = Document.createDocument("architectureId", 1)
-                .put("name", "Payment Architecture")
-                .put("description", "desc");
-        Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection,
+                List.of(architectureHeader(1, "Payment Architecture", "desc")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -106,13 +112,8 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void return_empty_results_when_no_matches() {
-        Document archEntry = Document.createDocument("architectureId", 1)
-                .put("name", "Payment Architecture")
-                .put("description", "desc");
-        Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection,
+                List.of(architectureHeader(1, "Payment Architecture", "desc")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -123,13 +124,8 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void return_matching_results_from_description() {
-        Document archEntry = Document.createDocument("architectureId", 1)
-                .put("name", "Some Architecture")
-                .put("description", "Handles payment processing");
-        Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection,
+                List.of(architectureHeader(1, "Some Architecture", "Handles payment processing")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -211,11 +207,13 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void handle_null_entries_array_gracefully() {
+        // Uses a pattern rather than an architecture: only the array-shaped types can have a
+        // null entries array at all, so this covers the branch where it still exists.
         Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("architectures", null);
+                .put("patterns", null);
 
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockCollectionFind(patternCollection, List.of(namespaceDoc));
+        mockEmptyCollections(architectureCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
@@ -225,13 +223,8 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void match_literal_special_characters_in_query() {
-        Document archEntry = Document.createDocument("architectureId", 1)
-                .put("name", "test.arch")
-                .put("description", "desc");
-        Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection,
+                List.of(architectureHeader(1, "test.arch", "desc")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -244,11 +237,7 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void return_results_from_multiple_collections() {
-        Document archEntry = Document.createDocument("architectureId", 1)
-                .put("name", "Demo Architecture")
-                .put("description", "demo");
-        Document archDoc = Document.createDocument("namespace", "finos")
-                .put("architectures", List.of(archEntry));
+        Document archDoc = architectureHeader(1, "Demo Architecture", "demo");
 
         Document flowEntry = Document.createDocument("flowId", 3)
                 .put("name", "Demo Flow")
@@ -269,16 +258,14 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void cap_results_at_max_per_type() {
-        List<Document> entries = new ArrayList<>();
+        List<Document> headers = new ArrayList<>();
         for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
-            entries.add(Document.createDocument("architectureId", i)
-                    .put("name", "Match " + i)
-                    .put("description", "desc"));
+            headers.add(architectureHeader(i, "Match " + i, "desc"));
         }
-        Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("architectures", entries);
 
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        // One document per architecture now, so the cap has to be applied across documents
+        // rather than within a single document's array.
+        mockCollectionFind(architectureCollection, headers);
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -295,24 +282,16 @@ class TestNitriteSearchStoreShould {
      */
     @Test
     void filter_namespaced_results_by_readable_namespaces_before_cap() {
-        // First namespace document is "secret-ns" and contains MAX+10 matches the
-        // user is NOT allowed to read; second is "finos" with one allowed match.
-        List<Document> secretEntries = new ArrayList<>();
+        // MAX+10 headers in "secret-ns" the user is NOT allowed to read, then one allowed
+        // match in "finos" — ordered last, so a cap applied before the namespace filter
+        // would drop it.
+        List<Document> headers = new ArrayList<>();
         for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
-            secretEntries.add(Document.createDocument("architectureId", i)
-                    .put("name", "Match " + i)
-                    .put("description", "desc"));
+            headers.add(architectureHeader("secret-ns", i, "Match " + i, "desc"));
         }
-        Document secretNs = Document.createDocument("namespace", "secret-ns")
-                .put("architectures", secretEntries);
+        headers.add(architectureHeader(999, "Allowed Match", "desc"));
 
-        Document allowedEntry = Document.createDocument("architectureId", 999)
-                .put("name", "Allowed Match")
-                .put("description", "desc");
-        Document allowedNs = Document.createDocument("namespace", "finos")
-                .put("architectures", List.of(allowedEntry));
-
-        mockCollectionFind(architectureCollection, List.of(secretNs, allowedNs));
+        mockCollectionFind(architectureCollection, headers);
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 

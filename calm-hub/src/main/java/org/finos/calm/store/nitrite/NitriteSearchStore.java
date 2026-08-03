@@ -63,7 +63,7 @@ public class NitriteSearchStore implements SearchStore {
         String lowerQuery = query.toLowerCase();
 
         return new GroupedSearchResults(
-                searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(architectureCollection, "architectureId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
@@ -71,6 +71,42 @@ public class NitriteSearchStore implements SearchStore {
                 searchControlCollection(lowerQuery),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
+    }
+
+    /**
+     * Searches a collection in the header/version shape, where each document <em>is</em> one
+     * resource rather than a namespace-wide array of them. See
+     * {@code MongoSearchStore.searchHeaderCollection} for why both shapes have to be
+     * supported at once, and for the silent failure mode if a migrated type is left on the
+     * array-shaped method.
+     */
+    private List<SearchResult> searchHeaderCollection(NitriteCollection collection,
+                                                      String idField,
+                                                      String lowerQuery,
+                                                      Optional<Set<String>> readableNamespaces) {
+        List<SearchResult> results = new ArrayList<>();
+
+        for (Document header : collection.find()) {
+            if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                return results;
+            }
+            String namespace = header.get("namespace", String.class);
+            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
+                continue;
+            }
+            String name = header.get("name", String.class);
+            String description = header.get("description", String.class);
+            if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
+                results.add(new SearchResult(
+                        namespace,
+                        header.get(idField, Integer.class),
+                        SearchTextMatcher.nullToEmpty(name),
+                        SearchTextMatcher.nullToEmpty(description)
+                ));
+            }
+        }
+
+        return results;
     }
 
     private List<SearchResult> searchNamespacedCollection(NitriteCollection collection,

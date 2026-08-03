@@ -51,6 +51,13 @@ import java.util.List;
  * writer fail with {@code DUPLICATE_KEY}, which {@link #createVersion} reports as
  * {@code false}. Those indexes are created by the per-type schema migration step,
  * not by this class.
+ *
+ * <h2>Version spelling</h2>
+ * Every method taking a {@code version} canonicalises it on entry via
+ * {@link CanonicalVersion}, so the several spellings the API accepts address one
+ * document rather than one each. Any method added here that takes a version must do
+ * the same — the database's uniqueness guarantee is per stored string, so it cannot
+ * catch a spelling that slipped through uncanonicalised.
  */
 public class MongoVersionDocumentStore {
 
@@ -123,15 +130,41 @@ public class MongoVersionDocumentStore {
     }
 
     /**
+     * Removes a header, used to compensate a resource creation whose first version write
+     * failed.
+     *
+     * <p>The old shape pushed the resource and its first version in one document write, so
+     * a failure left nothing behind. Splitting them means a failed version write can strand
+     * a header that no API can remove — there is no delete endpoint for these types — and it
+     * would show up in listings and search with {@code versionCount: 0} forever.</p>
+     *
+     * <p>Not a general-purpose delete: nothing else calls this, and it deliberately does not
+     * touch the version collection, because the only caller has just failed to write the
+     * one version that could exist.</p>
+     */
+    public void deleteHeader(String namespace, int resourceId) {
+        try {
+            headerCollection.deleteOne(headerFilter(namespace, resourceId));
+        } catch (MongoException e) {
+            // Best-effort: the caller is already failing, and reporting this instead would
+            // replace a real write failure with a misleading one.
+            LOG.warn("Failed to remove the header after a failed first version write "
+                    + "[namespace={}, {}={}] — it may be left with no versions",
+                    namespace, idField, resourceId, e);
+        }
+    }
+
+    /**
      * Writes a version that must not already exist.
      *
      * @return {@code false} if that version is already present — the caller decides
      * which domain exception that means. Never overwrites.
      */
     public boolean createVersion(String namespace, int resourceId, String version, Document content) {
+        String canonicalVersion = CanonicalVersion.of(version);
         Document versionDocument = new Document(NAMESPACE_FIELD, namespace)
                 .append(idField, resourceId)
-                .append(VERSION_FIELD, version)
+                .append(VERSION_FIELD, canonicalVersion)
                 .append(CONTENT_FIELD, content)
                 .append(METADATA_FIELD, new Document());
         try {
@@ -142,7 +175,7 @@ public class MongoVersionDocumentStore {
             }
             // Log identifying fields only — the content can be megabytes.
             LOG.error("Failed to create version [namespace={}, {}={}, version={}]",
-                    namespace, idField, resourceId, version, e);
+                    namespace, idField, resourceId, canonicalVersion, e);
             throw MongoWriteFailures.toStorageWriteException(e);
         }
         incrementVersionCount(namespace, resourceId);
@@ -162,17 +195,20 @@ public class MongoVersionDocumentStore {
      * inserted; otherwise the count would drift permanently low.</p>
      */
     public void upsertVersion(String namespace, int resourceId, String version, Document content) {
+        // Canonical before the filter is built, so an upsert-insert derives its stored
+        // version field from the canonical form via the filter's equality conditions.
+        String canonicalVersion = CanonicalVersion.of(version);
         Bson update = Updates.combine(
                 Updates.set(CONTENT_FIELD, content),
                 Updates.setOnInsert(METADATA_FIELD, new Document()));
         boolean inserted;
         try {
             UpdateResult result = versionCollection.updateOne(
-                    versionFilter(namespace, resourceId, version), update, new UpdateOptions().upsert(true));
+                    versionFilter(namespace, resourceId, canonicalVersion), update, new UpdateOptions().upsert(true));
             inserted = result.getUpsertedId() != null;
         } catch (MongoWriteException e) {
             LOG.error("Failed to write version [namespace={}, {}={}, version={}]",
-                    namespace, idField, resourceId, version, e);
+                    namespace, idField, resourceId, canonicalVersion, e);
             throw MongoWriteFailures.toStorageWriteException(e);
         }
         // Outside the try, matching createVersion: the count is best-effort follow-up
@@ -183,11 +219,45 @@ public class MongoVersionDocumentStore {
     }
 
     /**
+     * Overwrites the header's {@code name} and {@code description}.
+     *
+     * <p>Exists because writing a version also renames the resource: the old shape set
+     * both fields in the same atomic update that wrote the version content, so the API
+     * lets a version write change the display name. Preserved deliberately, including
+     * the fact that a {@code null} name overwrites a real one — see the bug noted
+     * against {@code ArchitectureRequest}, which validates neither field.</p>
+     *
+     * <p><b>Call this after the version write succeeds, never before.</b> The old shape
+     * did both in one update, so a rejected create — the version already exists — left
+     * the name untouched. Calling this first would rename on a request that then fails
+     * with a 409, which no caller expects.</p>
+     *
+     * <p>Unlike {@link #incrementVersionCount}, a failure here is translated and thrown
+     * rather than swallowed: this is user-supplied data, not a derived counter, so
+     * silently dropping a rename is a wrong answer rather than a stale display number.
+     * The cost is that the atomicity the old shape had is genuinely gone — a failure
+     * here reports an error for a version that was in fact stored.</p>
+     */
+    public void updateHeaderDetails(String namespace, int resourceId, String name, String description) {
+        try {
+            UpdateResult result = headerCollection.updateOne(headerFilter(namespace, resourceId),
+                    Updates.combine(Updates.set(NAME_FIELD, name), Updates.set(DESCRIPTION_FIELD, description)));
+            if (result.getMatchedCount() == 0) {
+                LOG.warn("No header to update details on [namespace={}, {}={}]", namespace, idField, resourceId);
+            }
+        } catch (MongoWriteException e) {
+            LOG.error("Failed to update header details [namespace={}, {}={}]", namespace, idField, resourceId, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
+        }
+    }
+
+    /**
      * @return the stored content for one version, or {@code null} if that version
      * (or the resource) doesn't exist.
      */
     public Document getVersion(String namespace, int resourceId, String version) {
-        Document versionDocument = versionCollection.find(versionFilter(namespace, resourceId, version)).first();
+        Document versionDocument = versionCollection
+                .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).first();
         return versionDocument == null ? null : versionDocument.get(CONTENT_FIELD, Document.class);
     }
 

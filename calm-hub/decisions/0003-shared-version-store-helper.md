@@ -1,9 +1,10 @@
 # ADR 0003: Shared header/version store helper
 
-**Status**: Accepted — partially implemented. The helpers themselves exist
+**Status**: Accepted — partially implemented. The helpers exist
 (`MongoVersionDocumentStore`, `NitriteVersionDocumentStore`,
-`SemanticVersionOrder`), but no store calls them yet, so nothing in running
-CALM Hub uses this design. Depends on
+`SemanticVersionOrder`, `CanonicalVersion`) and `MongoArchitectureStore` /
+`NitriteArchitectureStore` now compose them. The other six versioned types
+still hand-roll their own logic. Depends on
 [ADR 0001](0001-versioned-artefact-storage.md) and
 [ADR 0002](0002-version-key-encoding.md).
 
@@ -42,6 +43,69 @@ the primitive operations every store needs against its
 - `getVersion(namespace, resourceId, version) -> content or not-found`
 - `listVersions(namespace, resourceId) -> List<String>`
 - `listSummariesPaged(namespace, page) -> List<NamespaceResourceSummary>`
+- `updateHeaderDetails(namespace, resourceId, name, description)` — added
+  while porting Architecture, having been missed when this list was first
+  derived. Writing a version also *renames* the resource: the old shape
+  `$set` the entity's `name` and `description` in the same atomic update
+  that wrote the version content, so both version-write paths change the
+  display name. Without this operation that behaviour would have been
+  dropped silently.
+
+  Two consequences of the split worth stating, because neither is
+  reversible by the caller:
+
+  - **It must be called only after the version write succeeds.** Under the
+    old shape a rejected create — the version already exists — matched
+    nothing and so left the name untouched. Calling it first would rename
+    on a request that then fails with a 409.
+  - **The old shape's atomicity is genuinely gone.** A failure here reports
+    an error for a version that was in fact stored. It is still translated
+    and thrown rather than swallowed the way the `versionCount` write is:
+    that field is a derived counter whose drift ADR 0001 accepts, whereas
+    these are user-supplied values, and dropping a rename silently is a
+    wrong answer rather than a display number off by one.
+
+  Note this faithfully preserves a bug: a `null` name overwrites a stored
+  one, and `ArchitectureRequest` validates neither field, so a version
+  write carrying only `architectureJson` wipes the display name. Preserved
+  deliberately — fixing it is a behaviour change, not part of a port.
+
+### Two supporting classes the helpers own
+
+Both are small, stateless, and shared by the two backends so the shape's
+rules can't drift apart between them.
+
+- **`SemanticVersionOrder`** — the comparator `listVersions` sorts with. An
+  unsorted Mongo query has no defined order and a plain string sort puts
+  `1.10.0` before `1.9.0`, so ordering had to become explicit once versions
+  were rows rather than map keys. Deliberately *not* a change to
+  `VersionKeySelector`, which keeps parsing dashes for Control — see
+  [ADR 0002](0002-version-key-encoding.md). It delegates to the existing
+  `Semver` record rather than parsing versions a second time.
+- **`CanonicalVersion`** — folds every accepted spelling of a version onto
+  one stored form, applied at every helper entry point that takes a version.
+  This is the part of [ADR 0002](0002-version-key-encoding.md) that turned
+  out to need more than writing a dot instead of a dash.
+  `VERSION_REGEX` makes *both* separators optional, so `1.0.0`, `1-0-0`,
+  `1.0-0`, `1-0.0`, `1.00` and `100` are six spellings of one version and
+  the API accepts all of them. The old shape wrote the version as a map key
+  via `replace('.', '-')`, which folded four of the six together and left
+  `100` and `1.00` as keys of their own — one logical version already stored
+  under three different keys. Storing the version as a *field value* without
+  canonicalising would have made each spelling its own document, invisible
+  to a read using any of the other five. Neither backend can catch that:
+  Mongo's unique index is per stored string, and Nitrite has no index at
+  all. Ordering can't fix it either — `SemanticVersionOrder` ranks the
+  spellings equally but cannot merge them.
+
+  It reuses `ResourceValidationConstants.VERSION_REGEX` rather than
+  restating the pattern, which points from the store layer at the resource
+  layer. That coupling is deliberate: the set of spellings to fold is
+  exactly the set the API accepts, so a second copy would be a bug waiting
+  on the two to drift. Input the regex rejects passes through untouched —
+  validation belongs to the resource layer, and a store that rewrote
+  unrecognised input would turn a rejectable request into a document stored
+  under a version nobody asked for.
 
 ### Why composition rather than a shared base class
 
@@ -83,8 +147,16 @@ neither leaks into the other.
   It exists to page into an array field on one shared document. Headers
   are now one document per resource, so `listSummariesPaged` is ordinary
   `skip()`/`limit()` on the header collection.
-- Both helpers stay in place for `MongoControlStore`, which keeps the old
-  shape (ADR 0001 excludes Control from this redesign).
+- Neither helper is deleted, and "retire" means only that the *migrated*
+  types stop calling them — an earlier draft of this ADR said both stay
+  solely for `MongoControlStore`, which was never accurate. As of
+  Architecture: `MongoUpsertPush` still has eight callers (Pattern, ADR,
+  Flow, Standard, Interface, Timeline, Decorator, Control), and
+  `MongoResourceSlice` has exactly one — `MongoPatternStore` — because it
+  only ever served Architecture and Pattern. So `MongoResourceSlice` is
+  deletable the moment Pattern migrates, while `MongoUpsertPush` outlives
+  the whole redesign: Decorator and Control both keep the old shape
+  permanently (ADR 0004).
 - `VersionKeySelector` (version-count/latest-version comparison) is
   unaffected — `versionCount` is now a stored field (see below), not
   computed from a loaded map, so its `versionCount()` method's callers
@@ -119,8 +191,8 @@ splitting header from version — see ADR 0001). So `listVersions` returning
 an empty list is **not** evidence the resource doesn't exist — callers that
 need to distinguish "exists with 0 versions" from "doesn't exist" must call
 `headerExists` explicitly, not infer non-existence from an empty version
-list the way `getArchitectureVersions` does today (its `ArchitectureDoc ==
-null` check conflates "namespace has no matching architecture array entry"
+list the way `getArchitectureVersions` used to (its `ArchitectureDoc ==
+null` check conflated "namespace has no matching architecture array entry"
 with "architecture not found," which happened to be safe under the old
 shape but would be wrong under the new one).
 

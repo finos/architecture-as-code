@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -83,6 +84,14 @@ class TestMongoVersionDocumentStoreShould {
             return null;
         }).when(iterable).forEach(any());
         return iterable;
+    }
+
+    /**
+     * Renders a captured filter as JSON, so assertions about what it matches on don't
+     * depend on how {@code Filters.and(...)} happens to nest its operands.
+     */
+    private static String asJson(Bson filter) {
+        return filter.toBsonDocument().toJson();
     }
 
     private static MongoWriteException writeError(int code, String message) {
@@ -148,6 +157,26 @@ class TestMongoVersionDocumentStoreShould {
                 () -> store.createHeader(NAMESPACE, RESOURCE_ID, "name", "description"));
     }
 
+    // --- deleteHeader ---
+
+    @Test
+    void delete_a_header_by_namespace_and_id() {
+        store.deleteHeader(NAMESPACE, RESOURCE_ID);
+
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).deleteOne(filterCaptor.capture());
+        assertThat(asJson(filterCaptor.getValue()), containsString(NAMESPACE));
+    }
+
+    @Test
+    void swallow_a_failure_to_delete_a_header() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenThrow(new MongoTimeoutException("no server"));
+
+        // The only caller is already failing a create. Propagating this would replace the
+        // real write failure with a misleading one about the cleanup.
+        assertDoesNotThrow(() -> store.deleteHeader(NAMESPACE, RESOURCE_ID));
+    }
+
     // --- createVersion ---
 
     @Test
@@ -164,6 +193,20 @@ class TestMongoVersionDocumentStoreShould {
         assertThat(inserted.get("content", Document.class), is(new Document("nodes", List.of())));
         assertThat(inserted.get("metadata", Document.class), is(new Document()));
         verify(headerCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void store_a_dash_spelled_version_under_its_canonical_form() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        // 1-0-0 and 1.0.0 are both accepted by VERSION_REGEX. The old shape folded them
+        // together via replace('.', '-') on the map key; storing the version as a field
+        // value means they have to be folded here or the same version gets two documents.
+        store.createVersion(NAMESPACE, RESOURCE_ID, "1-0-0", new Document());
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(captor.capture());
+        assertThat(captor.getValue().getString("version"), is("1.0.0"));
     }
 
     @Test
@@ -256,12 +299,75 @@ class TestMongoVersionDocumentStoreShould {
     }
 
     @Test
+    void address_the_canonical_document_when_upserting_a_dash_spelled_version() {
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(acknowledged(1, null));
+
+        store.upsertVersion(NAMESPACE, RESOURCE_ID, "1-0-0", new Document());
+
+        // The upsert filter has to carry the canonical form: on insert, Mongo derives the
+        // new document's fields from the filter's equality conditions, so a dash-spelled
+        // filter would both miss the existing document and create a duplicate.
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(versionCollection).updateOne(filterCaptor.capture(), any(Bson.class), any(UpdateOptions.class));
+        assertThat(asJson(filterCaptor.getValue()), containsString("1.0.0"));
+    }
+
+    @Test
     void translate_a_write_failure_when_upserting_a_version() {
         when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
                 .thenThrow(writeError(10334, "object to insert too large"));
 
         assertThrows(StorageWriteException.class,
                 () -> store.upsertVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()));
+    }
+
+    // --- updateHeaderDetails ---
+
+    @Test
+    void overwrite_the_headers_name_and_description() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "A new description");
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).updateOne(any(Bson.class), updateCaptor.capture());
+        String update = asJson(updateCaptor.getValue());
+        assertThat(update, containsString("Renamed"));
+        assertThat(update, containsString("A new description"));
+    }
+
+    @Test
+    void let_a_null_name_overwrite_a_stored_one() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        // Faithful to the old shape, which $set both fields unconditionally: a version
+        // write carrying no name wipes the display name. ArchitectureRequest validates
+        // neither field, so this is reachable from the API — logged as a known bug rather
+        // than quietly fixed here, since fixing it is a behaviour change, not a port.
+        store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, null, null);
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).updateOne(any(Bson.class), updateCaptor.capture());
+        assertThat(asJson(updateCaptor.getValue()), containsString("null"));
+    }
+
+    @Test
+    void warn_rather_than_throw_when_there_is_no_header_to_update_details_on() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(0, null));
+
+        assertDoesNotThrow(() -> store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d"));
+    }
+
+    @Test
+    void translate_a_write_failure_when_updating_header_details() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(writeError(10334, "object to insert too large"));
+
+        // Unlike the versionCount write, this is user-supplied data — dropping a rename
+        // silently would be a wrong answer, not a stale display number.
+        assertThrows(StorageWriteException.class,
+                () -> store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d"));
     }
 
     // --- getVersion ---
@@ -279,6 +385,20 @@ class TestMongoVersionDocumentStoreShould {
         stubFind(versionCollection, List.of());
 
         assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "9.9.9"), is(nullValue()));
+    }
+
+    @Test
+    void look_up_a_dash_spelled_version_by_its_canonical_form() {
+        Document content = new Document("title", "My Architecture");
+        stubFind(versionCollection, List.of(new Document("version", "1.0.0").append("content", content)));
+
+        // Reads have to canonicalise too, or a version written as 1.0.0 would be
+        // unreadable via the equally-valid 1-0-0 spelling of the same path.
+        assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "1-0-0"), is(content));
+
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(versionCollection).find(filterCaptor.capture());
+        assertThat(asJson(filterCaptor.getValue()), containsString("1.0.0"));
     }
 
     // --- listVersions ---

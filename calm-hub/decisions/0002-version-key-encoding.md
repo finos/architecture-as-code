@@ -1,7 +1,12 @@
 # ADR 0002: Version field encoding — dots, not dashes
 
-**Status**: Accepted — not yet implemented. Stored versions are still
-dash-encoded everywhere today. Depends on
+**Status**: Accepted — partially implemented. Architecture stores
+dot-separated versions; the other six types are still dash-encoded. Note the
+implementation needed more than "write a dot instead of a dash":
+`VERSION_REGEX` makes both separators optional, so six spellings denote the
+same version and the old map-key encoding folded only some of them together.
+`CanonicalVersion` now folds all six at the version-store helpers' entry
+points — see [ADR 0003](0003-shared-version-store-helper.md). Depends on
 [ADR 0001](0001-versioned-artefact-storage.md).
 
 ## Context
@@ -51,20 +56,26 @@ dead code once no store uses version as a map key.
     must be **left alone**: "fixing" it to split on `"."` would break the
     one thing still using it. It retires with Control, whenever that's
     redesigned.
-  - `versionCount()` is called by the migrating types
-    (Architecture/Pattern/Flow/Standard, both backends) and **never parses
+  - `versionCount()` is called by the migrating types and **never parses
     separators** — it is just `keys.size()`. Those call sites disappear as
     each type migrates, because `versionCount` becomes a stored field on the
-    header (ADR 0001). Once Control is the only caller left of the class,
-    `versionCount()` has none and can be deleted.
+    header (ADR 0001). Architecture's have already gone; Pattern, Flow and
+    Standard still call it on both backends. Once Control is the only caller
+    left of the class, `versionCount()` has none and can be deleted.
   - Ordering versions in the new shape is therefore **new code alongside**,
     not a modification or a fork of this class — nothing that parses `"-"`
     is used by a migrating type, and nothing a migrating type uses cares
     about the separator.
-- **Migration cost**: the `SchemaMigrationStep` that fans out old
-  documents into new version documents (ADR 0001) must convert each dash
-  key to dot form during the fan-out (`"1-0-0".replace('-', '.')`) —
-  trivial, one-time, contained entirely within that migration step.
+- **Migration cost**: the `SchemaMigrationStep` that fans out old documents
+  into new version documents (ADR 0001) must convert each dash key to dot
+  form during the fan-out — one-time, contained entirely within that step.
+  In practice it calls `CanonicalVersion.of(key)` rather than a local
+  `replace('-', '.')`, which an earlier draft of this ADR assumed. Two
+  reasons the shared helper is the right one: it is the same conversion the
+  write path applies, so migrated data is addressable by exactly the
+  spelling the store looks for; and it leaves anything the version regex
+  doesn't recognise untouched instead of mangling it into a new key, where
+  a blind character replace would silently invent one.
 - Dash-encoded keys do **not** disappear from the database entirely — the
   `controls` collection keeps them for as long as Control keeps the old
   shape (ADR 0004). What this ADR removes is any *shared* code path having

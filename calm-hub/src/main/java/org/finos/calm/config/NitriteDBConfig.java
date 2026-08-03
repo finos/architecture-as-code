@@ -101,6 +101,10 @@ public class NitriteDBConfig {
     private void initializeDatabase() throws IOException, JsonParseException {
         // Create collections - just getting the collection creates it if it doesn't exist
         db.getCollection("architectures");
+        // Architecture's version documents live in a sibling collection (ADR 0001). The
+        // store creates it on demand too, but it belongs in this list so the set of
+        // collections a fresh standalone database starts with stays honest.
+        db.getCollection("architectureVersions");
         db.getCollection("patterns");
         db.getCollection("namespaces");
         db.getCollection("domains");

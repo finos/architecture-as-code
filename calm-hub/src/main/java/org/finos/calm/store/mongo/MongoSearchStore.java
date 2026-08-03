@@ -57,7 +57,7 @@ public class MongoSearchStore implements SearchStore {
         String lowerQuery = query.toLowerCase();
 
         return new GroupedSearchResults(
-                searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(architectureCollection, "architectureId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
@@ -65,6 +65,46 @@ public class MongoSearchStore implements SearchStore {
                 searchControlCollection(lowerQuery),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
+    }
+
+    /**
+     * Searches a collection in the header/version shape, where each document <em>is</em> one
+     * resource rather than a namespace-wide array of them.
+     *
+     * <p>Separate from {@link #searchNamespacedCollection} rather than replacing it because
+     * the two shapes coexist: ADR 0001 migrates one resource type at a time, so Architecture
+     * reads this way while patterns, flows, standards and interfaces still read the other.
+     * Note the failure mode if a migrated type is left on the old method — {@code getList}
+     * returns null for a header document, so the loop skips every document and the type
+     * silently returns no results at all, with nothing logged.</p>
+     */
+    private List<SearchResult> searchHeaderCollection(MongoCollection<Document> collection,
+                                                      String idField,
+                                                      String lowerQuery,
+                                                      Optional<Set<String>> readableNamespaces) {
+        List<SearchResult> results = new ArrayList<>();
+
+        for (Document header : collection.find()) {
+            if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                return results;
+            }
+            String namespace = header.getString("namespace");
+            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
+                continue;
+            }
+            String name = header.getString("name");
+            String description = header.getString("description");
+            if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
+                results.add(new SearchResult(
+                        namespace,
+                        header.getInteger(idField),
+                        SearchTextMatcher.nullToEmpty(name),
+                        SearchTextMatcher.nullToEmpty(description)
+                ));
+            }
+        }
+
+        return results;
     }
 
     private List<SearchResult> searchNamespacedCollection(MongoCollection<Document> collection,

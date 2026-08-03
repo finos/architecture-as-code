@@ -43,6 +43,13 @@ import static org.dizitart.no2.filters.FluentFilter.where;
  * that any narrower lock must still serialise writes to the same
  * {@code (namespace, resourceId, version)}, or the uniqueness guarantee above stops
  * holding.
+ *
+ * <h2>Version spelling</h2>
+ * Every method taking a {@code version} canonicalises it on entry via
+ * {@link CanonicalVersion}, so the several spellings the API accepts address one
+ * document rather than one each. Any method added here that takes a version must do
+ * the same — and it matters more here than in the Mongo helper, since there is no
+ * unique index to fall back on at all.
  */
 public class NitriteVersionDocumentStore {
 
@@ -109,6 +116,23 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
+     * Removes a header, used to compensate a resource creation whose first version write
+     * failed. See {@link MongoVersionDocumentStore#deleteHeader} for why this exists.
+     */
+    public void deleteHeader(String namespace, int resourceId) {
+        lock.writeLock().lock();
+        try {
+            headerCollection.remove(headerFilter(namespace, resourceId));
+        } catch (NitriteException e) {
+            LOG.warn("Failed to remove the header after a failed first version write "
+                    + "[namespace={}, {}={}] — it may be left with no versions",
+                    namespace, idField, resourceId, e);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
      * Writes a version that must not already exist.
      *
      * <p>The existence check and the insert both happen under the write lock, so no
@@ -118,15 +142,16 @@ public class NitriteVersionDocumentStore {
      * @return {@code false} if that version is already present. Never overwrites.
      */
     public boolean createVersion(String namespace, int resourceId, String version, String content) {
+        String canonicalVersion = CanonicalVersion.of(version);
         lock.writeLock().lock();
         try {
-            if (versionCollection.find(versionFilter(namespace, resourceId, version)).firstOrNull() != null) {
+            if (versionCollection.find(versionFilter(namespace, resourceId, canonicalVersion)).firstOrNull() != null) {
                 return false;
             }
             versionCollection.insert(Document.createDocument()
                     .put(NAMESPACE_FIELD, namespace)
                     .put(idField, resourceId)
-                    .put(VERSION_FIELD, version)
+                    .put(VERSION_FIELD, canonicalVersion)
                     .put(CONTENT_FIELD, content)
                     .put(METADATA_FIELD, Document.createDocument()));
             incrementVersionCount(namespace, resourceId);
@@ -146,15 +171,16 @@ public class NitriteVersionDocumentStore {
      * as well as overwrite.</p>
      */
     public void upsertVersion(String namespace, int resourceId, String version, String content) {
+        String canonicalVersion = CanonicalVersion.of(version);
         lock.writeLock().lock();
         try {
-            Filter filter = versionFilter(namespace, resourceId, version);
+            Filter filter = versionFilter(namespace, resourceId, canonicalVersion);
             Document existing = versionCollection.find(filter).firstOrNull();
             if (existing == null) {
                 versionCollection.insert(Document.createDocument()
                         .put(NAMESPACE_FIELD, namespace)
                         .put(idField, resourceId)
-                        .put(VERSION_FIELD, version)
+                        .put(VERSION_FIELD, canonicalVersion)
                         .put(CONTENT_FIELD, content)
                         .put(METADATA_FIELD, Document.createDocument()));
                 incrementVersionCount(namespace, resourceId);
@@ -168,13 +194,37 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
+     * Overwrites the header's {@code name} and {@code description}. See
+     * {@link MongoVersionDocumentStore#updateHeaderDetails} for why this operation
+     * exists, why a {@code null} is allowed to overwrite a real value, and why it must
+     * be called only after the version write succeeds.
+     */
+    public void updateHeaderDetails(String namespace, int resourceId, String name, String description) {
+        lock.writeLock().lock();
+        try {
+            Filter filter = headerFilter(namespace, resourceId);
+            Document header = headerCollection.find(filter).firstOrNull();
+            if (header == null) {
+                LOG.warn("No header to update details on [namespace={}, {}={}]", namespace, idField, resourceId);
+                return;
+            }
+            header.put(NAME_FIELD, name);
+            header.put(DESCRIPTION_FIELD, description);
+            headerCollection.update(filter, header);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
      * @return the stored content for one version, or {@code null} if that version
      * (or the resource) doesn't exist.
      */
     public String getVersion(String namespace, int resourceId, String version) {
         lock.readLock().lock();
         try {
-            Document versionDocument = versionCollection.find(versionFilter(namespace, resourceId, version)).firstOrNull();
+            Document versionDocument = versionCollection
+                    .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).firstOrNull();
             return versionDocument == null ? null : versionDocument.get(CONTENT_FIELD, String.class);
         } finally {
             lock.readLock().unlock();

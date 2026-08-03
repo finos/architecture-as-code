@@ -17,7 +17,10 @@ assuming anything here reflects current behaviour.
 
 | ADR | Title | Status |
 |---|---|---|
-| [0001](0001-versioned-artefact-storage.md) | Versioned artefact storage redesign | Accepted |
-| [0002](0002-version-key-encoding.md) | Version field encoding — dots, not dashes | Accepted |
-| [0003](0003-shared-version-store-helper.md) | Shared header/version store helper | Accepted |
-| [0004](0004-defer-control-and-decorator-storage.md) | Defer Control and Decorator storage redesign | Accepted |
+| [0001](0001-versioned-artefact-storage.md) | Versioned artefact storage redesign | Accepted — partially implemented (Architecture only) |
+| [0002](0002-version-key-encoding.md) | Version field encoding — dots, not dashes | Accepted — partially implemented (Architecture only) |
+| [0003](0003-shared-version-store-helper.md) | Shared header/version store helper | Accepted — partially implemented (Architecture only) |
+| [0004](0004-defer-control-and-decorator-storage.md) | Defer Control and Decorator storage redesign | Accepted (no code of its own) |
+
+0001–0003 become `Implemented` when all seven versioned types have moved,
+not when the first one has.
