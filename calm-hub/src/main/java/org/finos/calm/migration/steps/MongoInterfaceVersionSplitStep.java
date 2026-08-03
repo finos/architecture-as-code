@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * <em>header</em> document per interface plus one <em>version</em> document per version in the
  * new {@code interfaceVersions} collection.
  *
- * <p>Version 3 → 4 of the schema, and the Interface slice of
+ * <p>Version 6 → 7 of the schema, and the Interface slice of
  * {@code calm-hub/decisions/0001-versioned-artefact-storage.md}. A separate step from
  * Architecture's rather than an edit to it, because a committed {@code SchemaMigrationStep}
  * is immutable: a deployment already past version 6 never re-runs it, so changing it would

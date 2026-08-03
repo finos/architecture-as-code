@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * <em>header</em> document per standard plus one <em>version</em> document per version in the
  * new {@code standardVersions} collection.
  *
- * <p>Version 3 → 4 of the schema, and the Standard slice of
+ * <p>Version 5 → 6 of the schema, and the Standard slice of
  * {@code calm-hub/decisions/0001-versioned-artefact-storage.md}. A separate step from
  * Architecture's rather than an edit to it, because a committed {@code SchemaMigrationStep}
  * is immutable: a deployment already past version 5 never re-runs it, so changing it would

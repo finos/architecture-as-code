@@ -208,7 +208,7 @@ class TestNitriteSearchStoreShould {
         assertTrue(results.getArchitectures().isEmpty());
         assertTrue(results.getPatterns().isEmpty());
         assertTrue(results.getFlows().isEmpty());
-        assertTrue(results.getInterfaces().isEmpty());
+        assertTrue(results.getStandards().isEmpty());
         assertTrue(results.getInterfaces().isEmpty());
         assertTrue(results.getControls().isEmpty());
         assertTrue(results.getAdrs().isEmpty());

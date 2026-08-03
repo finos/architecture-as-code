@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * <em>header</em> document per flow plus one <em>version</em> document per version in the
  * new {@code flowVersions} collection.
  *
- * <p>Version 3 → 4 of the schema, and the Flow slice of
+ * <p>Version 4 → 5 of the schema, and the Flow slice of
  * {@code calm-hub/decisions/0001-versioned-artefact-storage.md}. A separate step from
  * Architecture's rather than an edit to it, because a committed {@code SchemaMigrationStep}
  * is immutable: a deployment already past version 4 never re-runs it, so changing it would

@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * <em>header</em> document per adr plus one <em>version</em> document per version in the
  * new {@code adrVersions} collection.
  *
- * <p>Version 3 → 4 of the schema, and the Adr slice of
+ * <p>Version 8 → 9 of the schema, and the ADR slice of
  * {@code calm-hub/decisions/0001-versioned-artefact-storage.md}. A separate step from
  * Architecture's rather than an edit to it, because a committed {@code SchemaMigrationStep}
  * is immutable: a deployment already past version 8 never re-runs it, so changing it would
@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * {@code revisions}, keyed by an integer rather than a semantic version. The shared
  * migration takes that field name as a parameter for exactly this case; the revision keys
  * themselves pass through canonicalisation untouched, since the version regex does not
- * recognise a bare integer.</p></p>
+ * recognise a bare integer.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
