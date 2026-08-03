@@ -244,12 +244,12 @@ class TestNitriteSearchStoreShould {
                 .put("name", "Demo Flow")
                 .put("description", "demo");
 
-        // An interface, still array-shaped, so both search paths run in one search while the
-        // rollout is part-done. Moves to another unmigrated type as each one migrates.
+        // Every namespaced type now reads the header shape — the array-shaped path was
+        // retired with Interface, its last caller.
         Document interfaceDoc = Document.createDocument("namespace", "finos")
-                .put("interfaces", List.of(Document.createDocument("interfaceId", 5)
-                        .put("name", "Demo Interface")
-                        .put("description", "demo")));
+                .put("interfaceId", 5)
+                .put("name", "Demo Interface")
+                .put("description", "demo");
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(flowCollection, List.of(flowDoc));

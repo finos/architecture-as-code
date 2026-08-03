@@ -67,7 +67,7 @@ public class NitriteSearchStore implements SearchStore {
                 searchHeaderCollection(patternCollection, "patternId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(interfaceCollection, "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
@@ -109,42 +109,6 @@ public class NitriteSearchStore implements SearchStore {
         return results;
     }
 
-    private List<SearchResult> searchNamespacedCollection(NitriteCollection collection,
-                                                          String arrayField,
-                                                          String idField,
-                                                          String lowerQuery,
-                                                          Optional<Set<String>> readableNamespaces) {
-        List<SearchResult> results = new ArrayList<>();
-
-        for (Document namespaceDoc : collection.find()) {
-            String namespace = namespaceDoc.get("namespace", String.class);
-            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
-                continue;
-            }
-            TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
-            List<Document> entries = wrapper.getList(arrayField);
-            if (entries == null) {
-                continue;
-            }
-            for (Document entry : entries) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                String name = entry.get("name", String.class);
-                String description = entry.get("description", String.class);
-                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
-                    results.add(new SearchResult(
-                            namespace,
-                            entry.get(idField, Integer.class),
-                            SearchTextMatcher.nullToEmpty(name),
-                            SearchTextMatcher.nullToEmpty(description)
-                    ));
-                }
-            }
-        }
-
-        return results;
-    }
 
     private List<SearchResult> searchControlCollection(String lowerQuery) {
         List<SearchResult> results = new ArrayList<>();

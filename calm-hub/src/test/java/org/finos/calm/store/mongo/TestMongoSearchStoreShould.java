@@ -148,13 +148,12 @@ class TestMongoSearchStoreShould {
                 .append("name", "Demo Flow")
                 .append("description", "demo");
 
-        // An interface, still in the array shape, alongside four header-shaped types — the
-        // point being that both paths run in the same search while the rollout is part-done.
-        // This fixture moves to another unmigrated type each time one migrates.
+        // Every namespaced type now reads the header shape — the array-shaped path was
+        // retired with Interface, its last caller.
         Document interfaceDoc = new Document("namespace", "finos")
-                .append("interfaces", List.of(new Document("interfaceId", 5)
-                        .append("name", "Demo Interface")
-                        .append("description", "demo")));
+                .append("interfaceId", 5)
+                .append("name", "Demo Interface")
+                .append("description", "demo");
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(patternCollection, List.of(patternDoc));
@@ -230,22 +229,6 @@ class TestMongoSearchStoreShould {
         assertEquals("New Title", results.getAdrs().get(0).getName());
     }
 
-    @Test
-    void handle_null_entries_array_gracefully() {
-        // Uses an interface: only the array-shaped types can have a null entries array at
-        // all, so this covers the branch where it still exists. It moves to another
-        // unmigrated type each time one migrates — architectures, patterns, flows, standards.
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("interfaces", null);
-
-        mockCollectionFind(interfaceCollection, List.of(namespaceDoc));
-        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
-                standardCollection, controlCollection, adrCollection);
-
-        GroupedSearchResults results = searchStore.search("test");
-
-        assertTrue(results.getInterfaces().isEmpty());
-    }
 
     @Test
     void handle_empty_collections_gracefully() {

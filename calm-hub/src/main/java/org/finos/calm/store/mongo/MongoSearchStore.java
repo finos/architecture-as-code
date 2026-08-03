@@ -61,7 +61,7 @@ public class MongoSearchStore implements SearchStore {
                 searchHeaderCollection(patternCollection, "patternId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(interfaceCollection, "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
@@ -71,12 +71,12 @@ public class MongoSearchStore implements SearchStore {
      * Searches a collection in the header/version shape, where each document <em>is</em> one
      * resource rather than a namespace-wide array of them.
      *
-     * <p>Separate from {@link #searchNamespacedCollection} rather than replacing it because
-     * the two shapes coexist: ADR 0001 migrates one resource type at a time, so Architecture
-     * reads this way while patterns, flows, standards and interfaces still read the other.
-     * Note the failure mode if a migrated type is left on the old method — {@code getList}
-     * returns null for a header document, so the loop skips every document and the type
-     * silently returns no results at all, with nothing logged.</p>
+     * <p>This was one of two search paths while ADR 0001's rollout was part-done: the other
+     * read a namespace-wide array of entries and was retired once Interface — the last of the
+     * five namespaced types — moved to this shape. The failure mode it guarded against is
+     * worth remembering for any type still to migrate: leave one on an array-shaped read and
+     * {@code getList} returns null for a header document, so every document is skipped and
+     * the type silently returns no results at all, with nothing logged.</p>
      */
     private List<SearchResult> searchHeaderCollection(MongoCollection<Document> collection,
                                                       String idField,
@@ -107,41 +107,6 @@ public class MongoSearchStore implements SearchStore {
         return results;
     }
 
-    private List<SearchResult> searchNamespacedCollection(MongoCollection<Document> collection,
-                                                          String arrayField,
-                                                          String idField,
-                                                          String lowerQuery,
-                                                          Optional<Set<String>> readableNamespaces) {
-        List<SearchResult> results = new ArrayList<>();
-
-        for (Document namespaceDoc : collection.find()) {
-            String namespace = namespaceDoc.getString("namespace");
-            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
-                continue;
-            }
-            List<Document> entries = namespaceDoc.getList(arrayField, Document.class);
-            if (entries == null) {
-                continue;
-            }
-            for (Document entry : entries) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                String name = entry.getString("name");
-                String description = entry.getString("description");
-                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
-                    results.add(new SearchResult(
-                            namespace,
-                            entry.getInteger(idField),
-                            SearchTextMatcher.nullToEmpty(name),
-                            SearchTextMatcher.nullToEmpty(description)
-                    ));
-                }
-            }
-        }
-
-        return results;
-    }
 
     private List<SearchResult> searchControlCollection(String lowerQuery) {
         List<SearchResult> results = new ArrayList<>();

@@ -134,7 +134,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 6;
+const LATEST_SCHEMA_VERSION = 7;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -169,10 +169,12 @@ if (isEmptyDatabase) {
     // shape the store reads, since pinning the version skips the migration that creates them.
     db.standards.createIndex({ namespace: 1, standardId: 1 }, unique);
     db.standardVersions.createIndex({ namespace: 1, standardId: 1, version: 1 }, unique);
+    db.interfaces.createIndex({ namespace: 1, interfaceId: 1 }, unique);
+    db.interfaceVersions.createIndex({ namespace: 1, interfaceId: 1, version: 1 }, unique);
 
     // Still one document per namespace until each of these migrates, at which point its
     // entry moves up alongside architectures and patterns.
-    for (const collection of ["timelines", "interfaces", "adrs", "decorators"]) {
+    for (const collection of ["timelines", "adrs", "decorators"]) {
         db[collection].createIndex({ namespace: 1 }, unique);
     }
     db.controls.createIndex({ domain: 1 }, unique);
@@ -6666,8 +6668,10 @@ if (db.decorators.countDocuments() === 0) {
 
 logSection("Interfaces");
 // Insert a sample Host Port interface for the finos namespace
-if (db.interfaces.countDocuments() === 0) {
-    db.interfaces.insertOne({
+// Gated on the database being empty, like the other migrated types.
+if (isEmptyDatabase && db.interfaces.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out.
+    const interfacesByNamespace = [{
         namespace: "finos",
         interfaces: [
             {
@@ -6675,7 +6679,7 @@ if (db.interfaces.countDocuments() === 0) {
                 name: "Host Port Interface",
                 description: "A standard host and port interface definition for network-accessible services",
                 versions: {
-                    "1-0-0": {
+                    "1.0.0": {
                         "$schema": "https://json-schema.org/draft/2020-12/schema",
                         "$id": "https://calm.finos.org/calm/namespaces/finos/interfaces/1/versions/1.0.0",
                         "title": "Host Port Interface",
@@ -6737,8 +6741,13 @@ if (db.interfaces.countDocuments() === 0) {
                 }
             }
         ]
-    });
-    logSuccess("Initialized interfaces for finos namespace");
+    }];
+    const seededInterfaces = seedVersionedResource(
+        interfacesByNamespace, "interfaces", "interfaceVersions", "interfaces", "interfaceId");
+    logSuccess(`Initialized ${seededInterfaces.headers} interfaces and ${seededInterfaces.versions} versions for finos namespace`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding interfaces; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("Interfaces already initialized, skipping...");
 }
