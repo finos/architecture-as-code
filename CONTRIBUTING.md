@@ -2,6 +2,16 @@
 
 Thank you for your interest in contributing to the Architecture as Code project! This guide will help you understand our development workflow and contribution standards.
 
+> **Project-wide guidance lives in [finos/calm-governance](https://github.com/finos/calm-governance).**
+> The Architecture as Code project (also known as CALM) spans several repositories. Its
+> [governance policies](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md),
+> [contribution guidelines](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md)
+> (DCO sign-off, raising issues, pull request etiquette, and the responsible use of AI coding
+> assistants), [Code of Conduct](https://github.com/finos/calm-governance/blob/main/CODE_OF_CONDUCT.md)
+> and [Maintainer roster](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md)
+> apply to every repository in the project and are maintained there. This document covers what is
+> specific to *this* repository: our commit conventions and release process.
+
 ## 🚀 Why We Use Semantic Release
 
 We use [Semantic Release](https://semantic-release.gitbook.io/) to automate our release process for the **CLI module**, with plans to expand to other modules in the future. This ensures:
@@ -111,51 +121,11 @@ For complete details on our commit message rules, see our [`commitlint.config.js
 
 ## Responsible Use of AI Coding Assistants
 
-This project welcomes the responsible use of AI coding assistants. They can accelerate learning, improve productivity, and help contributors understand the codebase, but AI-generated output should be treated as a draft, not a finished contribution. Contributors remain responsible for every change they submit.
+AI coding assistants are welcome, but their output must be treated as draft input. Before submitting a PR, contributors must understand and be able to explain all changes, validate behaviour with the project's required checks, and review the full diff for correctness, security, privacy, licensing, and dependency impact.
 
-### Understand Before You Submit
+Do not share credentials, confidential information, or private data with AI services unless authorized. Contributors remain responsible for the entire submission, including any AI-assisted portions.
 
-Do not submit code you cannot explain. Before opening a pull request, ensure you understand why the change is needed, how it works, its impact on the project, and how you verified that it behaves correctly.
-
-### Use AI as an Assistant, Not an Authority
-
-Treat AI suggestions like code from any unfamiliar contributor. Review and validate them against the project's architecture, coding conventions, documentation, and testing practices rather than assuming they are correct because they compile or appear plausible.
-
-### Start With the Problem
-
-Take time to understand the issue before asking AI to generate code. Focused prompts based on a clear understanding of the problem consistently produce better contributions than asking AI to implement an entire feature from scratch.
-
-### Keep Contributions Focused
-
-AI assistants often generate broader solutions than necessary. Keep pull requests narrowly focused on the problem being solved, minimize unrelated changes, and avoid introducing new abstractions or dependencies unless they are clearly justified.
-
-### Validate Every Change
-
-AI-generated code requires the same level of review and testing as any other contribution. Carefully review the complete diff, run the project's required validation steps, and ensure the implementation and tests accurately solve the intended problem.
-
-### Protect Sensitive Information
-
-Do not share credentials, confidential information, private repository content, or other sensitive data with AI services unless you are authorized to do so. Contributors are responsible for understanding the privacy and data-retention policies of the tools they use.
-
-### Verify, Don't Assume
-
-AI assistants can produce incorrect code, invent APIs, misinterpret project conventions, or generate flawed tests. Verify technical claims using authoritative sources and your own testing rather than relying solely on AI-generated responses.
-
-### Own Your Contribution
-
-AI can help draft code, but it cannot take responsibility for it. Be prepared to explain your design decisions, respond thoughtfully to maintainer feedback, and revise your implementation based on code review.
-
-### Contributor Responsibility
-
-By submitting a contribution, you confirm that you:
-
-1. Reviewed the complete change.
-2. Understand and can explain the implementation.
-3. Verified the change using the project's required validation steps.
-4. Considered security, privacy, licensing, and dependency implications.
-5. Accept responsibility for the entire contribution, including any AI-assisted portions.
-
-Maintainers may reject contributions that appear to be AI-generated but are not sufficiently understood, reviewed, or validated by the contributor.
+The full policy is project-wide and is maintained in [calm-governance/CONTRIBUTING.md](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md#responsible-use-of-ai-coding-assistants).
 
 ## 🚫 What Not to Do
 

@@ -65,15 +65,26 @@ class TestMongoSearchStoreShould {
         searchStore = new MongoSearchStore(database);
     }
 
+    /**
+     * Architecture has moved to the header/version shape, so each of its documents is one
+     * architecture rather than a namespace-wide array of them. The other namespaced types
+     * still use the array shape, which is why both fixtures appear in this class.
+     */
+    private static Document architectureHeader(int id, String name, String description) {
+        return architectureHeader("finos", id, name, description);
+    }
+
+    private static Document architectureHeader(String namespace, int id, String name, String description) {
+        return new Document("namespace", namespace)
+                .append("architectureId", id)
+                .append("name", name)
+                .append("description", description);
+    }
+
     @Test
     void return_matching_architecture_results() {
-        Document archEntry = new Document("architectureId", 1)
-                .append("name", "Payment Architecture")
-                .append("description", "Handles payments");
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection,
+                List.of(architectureHeader(1, "Payment Architecture", "Handles payments")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -89,13 +100,8 @@ class TestMongoSearchStoreShould {
 
     @Test
     void return_matching_results_case_insensitive() {
-        Document archEntry = new Document("architectureId", 1)
-                .append("name", "Payment Architecture")
-                .append("description", "desc");
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection,
+                List.of(architectureHeader(1, "Payment Architecture", "desc")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -106,13 +112,8 @@ class TestMongoSearchStoreShould {
 
     @Test
     void return_matching_results_from_description() {
-        Document archEntry = new Document("architectureId", 1)
-                .append("name", "Some Architecture")
-                .append("description", "Handles payment processing");
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection,
+                List.of(architectureHeader(1, "Some Architecture", "Handles payment processing")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -123,13 +124,8 @@ class TestMongoSearchStoreShould {
 
     @Test
     void return_empty_results_when_no_matches() {
-        Document archEntry = new Document("architectureId", 1)
-                .append("name", "Payment Architecture")
-                .append("description", "desc");
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection,
+                List.of(architectureHeader(1, "Payment Architecture", "desc")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -140,11 +136,7 @@ class TestMongoSearchStoreShould {
 
     @Test
     void return_results_from_multiple_collections() {
-        Document archEntry = new Document("architectureId", 1)
-                .append("name", "Demo Architecture")
-                .append("description", "demo");
-        Document archDoc = new Document("namespace", "finos")
-                .append("architectures", List.of(archEntry));
+        Document archDoc = architectureHeader(1, "Demo Architecture", "demo");
 
         Document patternEntry = new Document("patternId", 2)
                 .append("name", "Demo Pattern")
@@ -223,16 +215,18 @@ class TestMongoSearchStoreShould {
 
     @Test
     void handle_null_entries_array_gracefully() {
+        // Uses a pattern rather than an architecture: only the array-shaped types can have a
+        // null entries array at all, so this covers the branch where it still exists.
         Document namespaceDoc = new Document("namespace", "finos")
-                .append("architectures", null);
+                .append("patterns", null);
 
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
-        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+        mockCollectionFind(patternCollection, List.of(namespaceDoc));
+        mockEmptyCollections(architectureCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
 
-        assertTrue(results.getArchitectures().isEmpty());
+        assertTrue(results.getPatterns().isEmpty());
     }
 
     @Test
@@ -253,13 +247,7 @@ class TestMongoSearchStoreShould {
 
     @Test
     void match_literal_special_characters_in_query() {
-        Document archEntry = new Document("architectureId", 1)
-                .append("name", "test.arch")
-                .append("description", "desc");
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("architectures", List.of(archEntry));
-
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        mockCollectionFind(architectureCollection, List.of(architectureHeader(1, "test.arch", "desc")));
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -274,16 +262,14 @@ class TestMongoSearchStoreShould {
 
     @Test
     void cap_results_at_max_per_type() {
-        List<Document> entries = new ArrayList<>();
+        List<Document> headers = new ArrayList<>();
         for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
-            entries.add(new Document("architectureId", i)
-                    .append("name", "Match " + i)
-                    .append("description", "desc"));
+            headers.add(architectureHeader(i, "Match " + i, "desc"));
         }
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("architectures", entries);
 
-        mockCollectionFind(architectureCollection, List.of(namespaceDoc));
+        // One document per architecture now, so the cap has to be applied across documents
+        // rather than within a single document's array.
+        mockCollectionFind(architectureCollection, headers);
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
@@ -300,22 +286,15 @@ class TestMongoSearchStoreShould {
      */
     @Test
     void filter_namespaced_results_by_readable_namespaces_before_cap() {
-        List<Document> secretEntries = new ArrayList<>();
+        List<Document> headers = new ArrayList<>();
         for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
-            secretEntries.add(new Document("architectureId", i)
-                    .append("name", "Match " + i)
-                    .append("description", "desc"));
+            headers.add(architectureHeader("secret-ns", i, "Match " + i, "desc"));
         }
-        Document secretNs = new Document("namespace", "secret-ns")
-                .append("architectures", secretEntries);
+        // Ordered after the unreadable ones, so a cap applied before the namespace filter
+        // would drop it.
+        headers.add(architectureHeader(999, "Allowed Match", "desc"));
 
-        Document allowedEntry = new Document("architectureId", 999)
-                .append("name", "Allowed Match")
-                .append("description", "desc");
-        Document allowedNs = new Document("namespace", "finos")
-                .append("architectures", List.of(allowedEntry));
-
-        mockCollectionFind(architectureCollection, List.of(secretNs, allowedNs));
+        mockCollectionFind(architectureCollection, headers);
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 

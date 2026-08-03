@@ -16,6 +16,7 @@
         "dependency-check": "dependency-check --project 'calm-docs' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
     },
     "dependencies": {
+        "@finos/calm-docusaurus-plugin": "*",
         "@docusaurus/core": "3.10.1",
         "@docusaurus/preset-classic": "3.10.1",
         "@docusaurus/react-loadable": "6.0.0",

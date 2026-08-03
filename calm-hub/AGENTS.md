@@ -602,6 +602,16 @@ the auth and security-header settings (7 failures that passed in isolation). All
 test-only configuration lives in the `%test.` block of
 `src/main/resources/application.properties`; add new test settings there.
 
+**When you add a `SchemaMigrationStep`, update `mongo/init-mongo.js` in the same change.**
+That script seeds a fresh database directly in the current storage shape and pins
+`LATEST_SCHEMA_VERSION`, so `SchemaMigrationRunner` skips every step on first startup.
+Two consequences: the seed data must already be in the shape your new step produces, and
+because step 0 is skipped along with the rest, the script creates the whole index
+inventory itself — a duplicate of `MongoIndexInitializationStep` that has to be kept in
+step. Miss the version bump and the seeded stack runs migrations it does not need; miss
+the index list and duplicate-prevention silently disappears. See
+[ADR 0001](decisions/0001-versioned-artefact-storage.md).
+
 - `PERMISSIONS.md` - Per-namespace permission model reference
 - `decisions/` - Architecture Decision Records for calm-hub's own backend
   design (not the CALM ADR resource type). See `decisions/README.md` for
