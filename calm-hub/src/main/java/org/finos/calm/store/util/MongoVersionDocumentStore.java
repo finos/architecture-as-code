@@ -252,6 +252,46 @@ public class MongoVersionDocumentStore {
     }
 
     /**
+     * Updates the header's {@code name} and {@code description}, ignoring either that is
+     * {@code null} or blank.
+     *
+     * <p>The counterpart to {@link #updateHeaderDetails}, and the difference between them
+     * is a real behavioural difference between resource types rather than a style choice.
+     * Architecture's old shape {@code $set} both fields unconditionally, so a version write
+     * carrying no name wiped the stored one; Pattern's guarded them, so it never had that
+     * bug. Both are preserved exactly, which needs two operations.</p>
+     *
+     * <p>If both values are absent this writes nothing at all, rather than issuing an
+     * update that would set two fields to the values they already hold.</p>
+     */
+    public void updatePresentHeaderDetails(String namespace, int resourceId, String name, String description) {
+        List<Bson> updates = new ArrayList<>();
+        if (isPresent(name)) {
+            updates.add(Updates.set(NAME_FIELD, name));
+        }
+        if (isPresent(description)) {
+            updates.add(Updates.set(DESCRIPTION_FIELD, description));
+        }
+        if (updates.isEmpty()) {
+            return;
+        }
+        try {
+            UpdateResult result = headerCollection.updateOne(
+                    headerFilter(namespace, resourceId), Updates.combine(updates));
+            if (result.getMatchedCount() == 0) {
+                LOG.warn("No header to update details on [namespace={}, {}={}]", namespace, idField, resourceId);
+            }
+        } catch (MongoWriteException e) {
+            LOG.error("Failed to update header details [namespace={}, {}={}]", namespace, idField, resourceId, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
+        }
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    /**
      * @return the stored content for one version, or {@code null} if that version
      * (or the resource) doesn't exist.
      */

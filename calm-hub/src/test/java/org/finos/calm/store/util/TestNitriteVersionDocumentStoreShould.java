@@ -295,6 +295,37 @@ class TestNitriteVersionDocumentStoreShould {
         verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
     }
 
+    // --- updatePresentHeaderDetails ---
+
+    @Test
+    void update_only_the_header_details_that_are_present() {
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "Old name", "Old description", 2)));
+
+        store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "   ");
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).update(any(Filter.class), captor.capture());
+        assertThat(captor.getValue().get("name", String.class), is("Renamed"));
+        // A blank description leaves the stored one alone.
+        assertThat(captor.getValue().get("description", String.class), is("Old description"));
+    }
+
+    @Test
+    void write_nothing_when_no_header_details_are_present() {
+        store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, null, "");
+
+        verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    void warn_rather_than_throw_when_there_is_no_header_to_update_present_details_on() {
+        stubFind(headerCollection, List.of());
+
+        store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d");
+
+        verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
     // --- getVersion ---
 
     @Test

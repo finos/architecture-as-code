@@ -4,6 +4,7 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.collection.NitriteId;
 import org.dizitart.no2.filters.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,10 +50,22 @@ class TestNitriteArchitectureVersionSplitStepShould {
         stubCollectionContents(List.of());
     }
 
+    /**
+     * Models the step's two-pass read: a scan that keeps only ids, then a re-read of each
+     * document by id. Resolving the second pass against the id rather than returning a
+     * fixed document keeps per-document mistakes visible.
+     */
     private void stubCollectionContents(List<Document> documents) {
         DocumentCursor cursor = mock(DocumentCursor.class);
         when(headers.find()).thenReturn(cursor);
         when(cursor.iterator()).thenAnswer(invocation -> documents.iterator());
+        when(headers.getById(any(NitriteId.class))).thenAnswer(invocation -> {
+            NitriteId id = invocation.getArgument(0);
+            return documents.stream()
+                    .filter(document -> id.equals(document.getId()))
+                    .findFirst()
+                    .orElse(null);
+        });
     }
 
     /** One old-shape namespace document holding one architecture with two versions. */

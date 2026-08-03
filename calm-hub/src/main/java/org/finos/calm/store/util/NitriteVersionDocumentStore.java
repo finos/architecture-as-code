@@ -217,6 +217,39 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
+     * Updates the header's {@code name} and {@code description}, ignoring either that is
+     * {@code null} or blank. See {@link MongoVersionDocumentStore#updatePresentHeaderDetails}
+     * for why this exists alongside {@link #updateHeaderDetails}.
+     */
+    public void updatePresentHeaderDetails(String namespace, int resourceId, String name, String description) {
+        if (!isPresent(name) && !isPresent(description)) {
+            return;
+        }
+        lock.writeLock().lock();
+        try {
+            Filter filter = headerFilter(namespace, resourceId);
+            Document header = headerCollection.find(filter).firstOrNull();
+            if (header == null) {
+                LOG.warn("No header to update details on [namespace={}, {}={}]", namespace, idField, resourceId);
+                return;
+            }
+            if (isPresent(name)) {
+                header.put(NAME_FIELD, name);
+            }
+            if (isPresent(description)) {
+                header.put(DESCRIPTION_FIELD, description);
+            }
+            headerCollection.update(filter, header);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    /**
      * @return the stored content for one version, or {@code null} if that version
      * (or the resource) doesn't exist.
      */

@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.collection.NitriteId;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.migration.SchemaMigrationStep;
@@ -74,18 +75,29 @@ public class NitriteArchitectureVersionSplitStep implements SchemaMigrationStep 
 
     @Override
     public void apply() {
-        List<Document> oldDocuments = new ArrayList<>();
+        // Ids only, matching the Mongo step. These are precisely the documents this
+        // migration exists to break up — each holding every version of every architecture
+        // in a namespace — so retaining them all as parsed Documents is how a hub with a
+        // few large namespaces exhausts the heap. An OOM is not a clean failure either:
+        // the step throws and the runner leaves the migration lock held. An earlier
+        // comment here claimed the collection was small enough for that not to matter,
+        // which is the assumption the Mongo change disproved.
+        List<NitriteId> oldDocumentIds = new ArrayList<>();
         for (Document document : headerCollection.find()) {
-            // Nitrite has no "field exists" filter as convenient as Mongo's, and the
-            // collection is small enough that checking in memory costs nothing.
+            // Nitrite has no "field exists" filter as convenient as Mongo's, so old-shape
+            // documents are told apart in memory — but only their ids are kept.
             if (document.get(ARRAY_FIELD) != null) {
-                oldDocuments.add(document);
+                oldDocumentIds.add(document.getId());
             }
         }
 
         int migratedArchitectures = 0;
         int migratedVersions = 0;
-        for (Document oldDocument : oldDocuments) {
+        for (NitriteId oldDocumentId : oldDocumentIds) {
+            Document oldDocument = headerCollection.getById(oldDocumentId);
+            if (oldDocument == null) {
+                continue;
+            }
             String namespace = oldDocument.get(NAMESPACE_FIELD, String.class);
             List<Document> entries = new TypeSafeNitriteDocument<>(oldDocument, Document.class).getList(ARRAY_FIELD);
             if (entries != null) {
@@ -101,7 +113,7 @@ public class NitriteArchitectureVersionSplitStep implements SchemaMigrationStep 
 
         LOG.info("Architecture version split complete: {} namespace document(s) fanned out into "
                         + "{} header(s) and {} version document(s)",
-                oldDocuments.size(), migratedArchitectures, migratedVersions);
+                oldDocumentIds.size(), migratedArchitectures, migratedVersions);
     }
 
     /**
