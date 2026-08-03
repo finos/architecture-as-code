@@ -28,20 +28,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The two halves of issue #2884's document-size story, one per storage shape.
  *
- * <p><b>Standard</b> still uses the one-document-per-namespace shape, where every version's full
+ * <p><b>Timeline</b> still uses the one-document-per-namespace shape, where every version's full
  * content accumulates in a single document. Growing its history eventually crosses MongoDB's
  * 16MB BSON ceiling, and that failure must surface as an honest {@code 413} via
  * {@link org.finos.calm.domain.exception.StorageWriteException} — not the misleading
  * {@code 404} the stores used to throw for any {@code MongoWriteException}.</p>
  *
  * <p><b>Architecture and Pattern</b> have moved to the header/version shape, where each
- * version is its own document bounded by its own size. The same history that breaks Standard
+ * version is its own document bounded by its own size. The same history that breaks Timeline
  * must now be writable, which is the whole point of the redesign. Keeping both halves in one
  * class means the ceiling and its removal are asserted against the same real MongoDB, with
  * the same payload size, rather than being argued about.</p>
  *
  * <p><b>This test relocates each time a type migrates.</b> It began on Architecture, moved to
- * Pattern when Architecture migrated, then Flow, and is now on Standard. Once all seven
+ * Pattern when Architecture migrated, then Flow, then Standard, and is now on Timeline. Once all seven
  * versioned types have migrated the only old-shape resource left is Control, which keeps
  * that shape permanently (ADR 0004) — so this test's final home is Control, or the 413 half
  * retires with a note explaining why nothing can reach the ceiling any more. A failure here reading "expected a write to
@@ -136,13 +136,13 @@ public class MongoDocumentSizeLimitIntegration {
 
     @Test
     void return_413_when_a_version_write_exceeds_the_document_size_limit() throws Exception {
-        int standardId = createResource("standards", "standardJson", "size-limit-test-standard");
-        String requestBody = largeBody("standardJson", "size-limit-test-standard");
+        int timelineId = createResource("timelines", "timelineJson", "size-limit-test-timeline");
+        String requestBody = largeBody("timelineJson", "size-limit-test-timeline");
 
         Response lastResponse = null;
         int version = 2;
         for (; version < MAX_VERSION_ATTEMPTS; version++) {
-            lastResponse = putVersion("standards", standardId, version, requestBody);
+            lastResponse = putVersion("timelines", timelineId, version, requestBody);
             if (lastResponse.getStatusCode() != 201) {
                 break;
             }
@@ -150,8 +150,8 @@ public class MongoDocumentSizeLimitIntegration {
 
         assertTrue(version < MAX_VERSION_ATTEMPTS,
                 "Expected a write to fail with document-too-large before " + MAX_VERSION_ATTEMPTS
-                        + " versions were written. Standards still accumulate every version's content into "
-                        + "one document per namespace, so this ceiling should still exist for them. If Standard "
+                        + " versions were written. Timelines still accumulate every version's content into "
+                        + "one document per namespace, so this ceiling should still exist for them. If Timeline "
                         + "has just been migrated, this test needs to move to a type that has not.");
         assertEquals(413, lastResponse.getStatusCode(),
                 "Expected 413 (capacity exceeded) once the document exceeds MongoDB's 16MB limit, got: "

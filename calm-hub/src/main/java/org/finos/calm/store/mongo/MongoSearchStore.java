@@ -60,7 +60,7 @@ public class MongoSearchStore implements SearchStore {
                 searchHeaderCollection(architectureCollection, "architectureId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(patternCollection, "patternId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
                 searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),
                 searchAdrCollection(lowerQuery, readableNamespaces)

@@ -134,7 +134,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 5;
+const LATEST_SCHEMA_VERSION = 6;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -165,10 +165,14 @@ if (isEmptyDatabase) {
     db.patternVersions.createIndex({ namespace: 1, patternId: 1, version: 1 }, unique);
     db.flows.createIndex({ namespace: 1, flowId: 1 }, unique);
     db.flowVersions.createIndex({ namespace: 1, flowId: 1, version: 1 }, unique);
+    // Standards are not seeded by this script, but the indexes still have to match the
+    // shape the store reads, since pinning the version skips the migration that creates them.
+    db.standards.createIndex({ namespace: 1, standardId: 1 }, unique);
+    db.standardVersions.createIndex({ namespace: 1, standardId: 1, version: 1 }, unique);
 
     // Still one document per namespace until each of these migrates, at which point its
     // entry moves up alongside architectures and patterns.
-    for (const collection of ["timelines", "standards", "interfaces", "adrs", "decorators"]) {
+    for (const collection of ["timelines", "interfaces", "adrs", "decorators"]) {
         db[collection].createIndex({ namespace: 1 }, unique);
     }
     db.controls.createIndex({ domain: 1 }, unique);

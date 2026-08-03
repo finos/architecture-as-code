@@ -199,7 +199,7 @@ class TestNitriteSearchStoreShould {
         assertTrue(results.getArchitectures().isEmpty());
         assertTrue(results.getPatterns().isEmpty());
         assertTrue(results.getFlows().isEmpty());
-        assertTrue(results.getStandards().isEmpty());
+        assertTrue(results.getInterfaces().isEmpty());
         assertTrue(results.getInterfaces().isEmpty());
         assertTrue(results.getControls().isEmpty());
         assertTrue(results.getAdrs().isEmpty());
@@ -207,14 +207,14 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void handle_null_entries_array_gracefully() {
-        // Uses a standard: only the array-shaped types can have a null entries array at all,
-        // so this covers the branch where it still exists. Moves as each type migrates.
+        // Uses an interface: only the array-shaped types can have a null entries array at
+        // all, so this covers the branch where it still exists. Moves as each type migrates.
         Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("standards", null);
+                .put("interfaces", null);
 
-        mockCollectionFind(standardCollection, List.of(namespaceDoc));
+        mockCollectionFind(interfaceCollection, List.of(namespaceDoc));
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
-                interfaceCollection, controlCollection, adrCollection);
+                standardCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
 
@@ -244,23 +244,23 @@ class TestNitriteSearchStoreShould {
                 .put("name", "Demo Flow")
                 .put("description", "demo");
 
-        // A standard, still array-shaped, so both search paths run in one search while the
+        // An interface, still array-shaped, so both search paths run in one search while the
         // rollout is part-done. Moves to another unmigrated type as each one migrates.
-        Document standardDoc = Document.createDocument("namespace", "finos")
-                .put("standards", List.of(Document.createDocument("standardId", 4)
-                        .put("name", "Demo Standard")
+        Document interfaceDoc = Document.createDocument("namespace", "finos")
+                .put("interfaces", List.of(Document.createDocument("interfaceId", 5)
+                        .put("name", "Demo Interface")
                         .put("description", "demo")));
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(flowCollection, List.of(flowDoc));
-        mockCollectionFind(standardCollection, List.of(standardDoc));
-        mockEmptyCollections(patternCollection, interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(interfaceCollection, List.of(interfaceDoc));
+        mockEmptyCollections(patternCollection, standardCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("demo");
 
         assertEquals(1, results.getArchitectures().size());
         assertEquals(1, results.getFlows().size());
-        assertEquals(1, results.getStandards().size());
+        assertEquals(1, results.getInterfaces().size());
     }
 
     @Test

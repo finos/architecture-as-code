@@ -148,19 +148,19 @@ class TestMongoSearchStoreShould {
                 .append("name", "Demo Flow")
                 .append("description", "demo");
 
-        // A standard, still in the array shape, alongside three header-shaped types — the
+        // An interface, still in the array shape, alongside four header-shaped types — the
         // point being that both paths run in the same search while the rollout is part-done.
         // This fixture moves to another unmigrated type each time one migrates.
-        Document standardDoc = new Document("namespace", "finos")
-                .append("standards", List.of(new Document("standardId", 4)
-                        .append("name", "Demo Standard")
+        Document interfaceDoc = new Document("namespace", "finos")
+                .append("interfaces", List.of(new Document("interfaceId", 5)
+                        .append("name", "Demo Interface")
                         .append("description", "demo")));
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(patternCollection, List.of(patternDoc));
         mockCollectionFind(flowCollection, List.of(flowDoc));
-        mockCollectionFind(standardCollection, List.of(standardDoc));
-        mockEmptyCollections(interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(interfaceCollection, List.of(interfaceDoc));
+        mockEmptyCollections(standardCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("demo");
 
@@ -169,8 +169,8 @@ class TestMongoSearchStoreShould {
         assertEquals("Demo Pattern", results.getPatterns().get(0).getName());
         assertEquals(1, results.getFlows().size());
         assertEquals("Demo Flow", results.getFlows().get(0).getName());
-        assertEquals(1, results.getStandards().size());
-        assertEquals("Demo Standard", results.getStandards().get(0).getName());
+        assertEquals(1, results.getInterfaces().size());
+        assertEquals("Demo Interface", results.getInterfaces().get(0).getName());
     }
 
     @Test
@@ -232,19 +232,19 @@ class TestMongoSearchStoreShould {
 
     @Test
     void handle_null_entries_array_gracefully() {
-        // Uses a standard: only the array-shaped types can have a null entries array at all,
-        // so this covers the branch where it still exists. It moves to another unmigrated
-        // type each time one migrates — architectures, then patterns, then flows.
+        // Uses an interface: only the array-shaped types can have a null entries array at
+        // all, so this covers the branch where it still exists. It moves to another
+        // unmigrated type each time one migrates — architectures, patterns, flows, standards.
         Document namespaceDoc = new Document("namespace", "finos")
-                .append("standards", null);
+                .append("interfaces", null);
 
-        mockCollectionFind(standardCollection, List.of(namespaceDoc));
+        mockCollectionFind(interfaceCollection, List.of(namespaceDoc));
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
-                interfaceCollection, controlCollection, adrCollection);
+                standardCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
 
-        assertTrue(results.getStandards().isEmpty());
+        assertTrue(results.getInterfaces().isEmpty());
     }
 
     @Test
