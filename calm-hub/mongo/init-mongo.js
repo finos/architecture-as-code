@@ -102,6 +102,91 @@ const dbName = (typeof process !== 'undefined' && process.env.CALM_DB_NAME)
 logSuccess(`Using database: ${dbName}`);
 db = db.getSiblingDB(dbName);
 
+logSection("Schema baseline");
+// Runs BEFORE any data is written, and this ordering is load-bearing.
+//
+// This script seeds documents in the shape the current code reads, so on a database it
+// created there is nothing for SchemaMigrationRunner to do — and step 0 would actively
+// fail, because its unique index on architectures.namespace permits one document per
+// namespace while the new shape seeds several (finos.fluxnova alone has six). A failed
+// step leaves the migration lock held and CalmHub refusing every request. So the schema
+// version is pinned and the indexes step 0 would have created are created here instead.
+//
+// Two failure modes drive the ordering and the guard, both found reviewing #2923:
+//
+//   Pinning last meant a seed that died partway — the container killed, a disk full —
+//   left new-shape headers with no version marker. Startup then ran step 0, its index
+//   build failed on the duplicate namespaces, and the hub was bricked behind the held
+//   lock with no way back short of clearing migrationLock by hand. Nothing re-runs this
+//   script either: docker-entrypoint-initdb.d only fires on an empty data directory.
+//   Writing the marker and the indexes first means an interrupted seed leaves a
+//   startable hub with incomplete data instead of an unstartable one.
+//
+//   Guarding only on "no pre-migration architecture documents" was too narrow, because
+//   the pin suppresses EVERY step, not just the architecture split. A database with
+//   existing namespaces but no architectures passed that guard, so pinning silently
+//   skipped NamespaceAccessBackfillStep (version 1 -> 2) and those namespaces never
+//   received their `* read` grant — going dark once entitlements are enforced.
+//
+// Hence: pin only on a genuinely empty database, which is the only case this was ever
+// meant for. Anything else keeps version 0 and lets the real migrations run.
+//
+// Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
+// target shape below. Document shape must match MongoSchemaVersionStore: _id
+// "schemaVersion", int version, in the calm collection.
+const LATEST_SCHEMA_VERSION = 3;
+const unique = { unique: true };
+
+const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
+const isEmptyDatabase = existingSchemaVersion === null
+    && db.namespaces.countDocuments() === 0
+    && db.architectures.countDocuments() === 0;
+
+if (isEmptyDatabase) {
+    db.calm.updateOne(
+        { _id: "schemaVersion" },
+        { $set: { version: NumberInt(LATEST_SCHEMA_VERSION) } },
+        { upsert: true });
+
+    // Mirrors MongoIndexInitializationStep, which the pin above skips. Keep the two in
+    // step. Two deliberate differences, both because architectures have moved to the
+    // header/version shape (ADR 0001): architectures gets a unique
+    // (namespace, architectureId) instead of (namespace), which is what allows more than
+    // one architecture per namespace at all; and architectureVersions gets a unique
+    // (namespace, architectureId, version). The other six versioned types keep the
+    // one-document-per-namespace index until they migrate.
+    db.namespaces.createIndex({ name: 1 }, unique);
+    db.domains.createIndex({ name: 1 }, unique);
+    db.schemas.createIndex({ version: 1 }, unique);
+
+    db.architectures.createIndex({ namespace: 1, architectureId: 1 }, unique);
+    db.architectureVersions.createIndex({ namespace: 1, architectureId: 1, version: 1 }, unique);
+
+    for (const collection of ["patterns", "flows", "timelines", "standards", "interfaces", "adrs", "decorators"]) {
+        db[collection].createIndex({ namespace: 1 }, unique);
+    }
+    db.controls.createIndex({ domain: 1 }, unique);
+
+    // Two partial indexes rather than one compound: namespace-scoped and domain-scoped
+    // grant documents share no discriminating field.
+    db.userAccess.createIndex({ username: 1, namespace: 1, permission: 1 },
+        { unique: true, partialFilterExpression: { namespace: { $exists: true } } });
+    db.userAccess.createIndex({ username: 1, domain: 1, permission: 1 },
+        { unique: true, partialFilterExpression: { domain: { $exists: true } } });
+
+    // Non-unique: the audit trail is append-only with no uniqueness invariant, so these
+    // only support AuditLogStore's lookup shapes.
+    db.auditLogs.createIndex({ namespace: 1, entityType: 1, entityId: 1, timestamp: -1 });
+    db.auditLogs.createIndex({ domain: 1, entityType: 1, entityId: 1, timestamp: -1 });
+    db.auditLogs.createIndex({ actor: 1, timestamp: -1 });
+    db.auditLogs.createIndex({ timestamp: -1 });
+
+    logSuccess(`Recorded schema version ${LATEST_SCHEMA_VERSION} and created indexes — startup migrations will be skipped`);
+} else {
+    logSkip("Existing database — leaving the schema version and indexes to SchemaMigrationRunner. "
+        + "Any data seeded below is additive; the migrations will bring the rest of the database up to date.");
+}
+
 logSection("Counters");
 // Insert the initial counter document if it doesn't exist
 if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 0) {
@@ -1963,7 +2048,13 @@ if (db.flows.countDocuments() === 0) {
 }
 
 logSection("Architectures");
-if (db.architectures.countDocuments() === 0) {
+// Gated on the database being empty, unlike the other types. Architecture is the only one
+// seeded in the header/version shape, which needs the unique index swap above to permit
+// several documents per namespace. On a database this script did not create, that swap is
+// deliberately left to the migration — so seeding the new shape here anyway would leave
+// documents that step 0's index build then chokes on, bricking startup behind the
+// migration lock. The other types are seeded in the shape step 0's indexes already expect.
+if (isEmptyDatabase && db.architectures.countDocuments() === 0) {
     // Grouped by namespace for readability only — seedVersionedResource fans this out into
     // one header document per architecture plus one document per version.
     const architecturesByNamespace = [
@@ -6155,6 +6246,9 @@ if (db.architectures.countDocuments() === 0) {
     const seededArchitectures = seedVersionedResource(
         architecturesByNamespace, "architectures", "architectureVersions", "architectures", "architectureId");
     logSuccess(`Initialized ${seededArchitectures.headers} architectures and ${seededArchitectures.versions} versions for finos, workshop, traderx, ai-governance-v2, qcon, and finos.fluxnova namespaces`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding architectures; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("Architectures already initialized, skipping...");
 }
@@ -6649,93 +6743,6 @@ if (db.resource_mappings.countDocuments() === 0) {
     logSuccess("Initialized resource_mappings with seed data");
 } else {
     logSkip("Resource mappings already exist, no initialization needed");
-}
-
-logSection("Indexes");
-// Normally created by MongoIndexInitializationStep, the version 0 -> 1 migration step.
-// This script pins the schema version to LATEST_SCHEMA_VERSION below, so that step — and
-// every other — is skipped on first startup and these indexes would otherwise never
-// exist, silently losing the duplicate-prevention the stores rely on for concurrent POSTs.
-//
-// MUST be kept in step with MongoIndexInitializationStep. Two deliberate differences,
-// both because architectures have moved to the header/version shape (ADR 0001):
-//   - architectures gets a unique (namespace, architectureId) instead of (namespace),
-//     which is what allows more than one architecture per namespace at all
-//   - architectureVersions gets a unique (namespace, architectureId, version)
-// The other six versioned types keep the one-document-per-namespace index until they
-// migrate, at which point their entry here moves the same way.
-//
-// createIndex is idempotent, so this is safe to re-run over an already-seeded database.
-const unique = { unique: true };
-
-// Every data block above is guarded by countDocuments() === 0, so running this script
-// against a database that already holds PRE-MIGRATION architectures skips the seeding but
-// would still reach the index and schema-version work below. Stamping the version then
-// tells SchemaMigrationRunner there is nothing to migrate, the split step never runs, and
-// the old-shape documents stay put while the store queries for the new shape — every
-// architecture silently disappears from listings, search and counts. So detect that case
-// and leave both the architecture indexes and the version marker alone, which lets the
-// migration do its job on next startup.
-const preMigrationArchitectures = db.architectures.countDocuments({ architectures: { $exists: true } });
-const architecturesAreMigrated = preMigrationArchitectures === 0;
-
-db.namespaces.createIndex({ name: 1 }, unique);
-db.domains.createIndex({ name: 1 }, unique);
-db.schemas.createIndex({ version: 1 }, unique);
-
-if (architecturesAreMigrated) {
-    db.architectures.createIndex({ namespace: 1, architectureId: 1 }, unique);
-    db.architectureVersions.createIndex({ namespace: 1, architectureId: 1, version: 1 }, unique);
-} else {
-    // The old {namespace: 1} unique index still applies to this data and is the migration
-    // step's to drop, not this script's.
-    logSkip(`Found ${preMigrationArchitectures} pre-migration architecture document(s) — leaving architecture indexes to the migration`);
-}
-
-for (const collection of ["patterns", "flows", "timelines", "standards", "interfaces", "adrs", "decorators"]) {
-    db[collection].createIndex({ namespace: 1 }, unique);
-}
-db.controls.createIndex({ domain: 1 }, unique);
-
-// Two partial indexes rather than one compound: namespace-scoped and domain-scoped grant
-// documents share no discriminating field.
-db.userAccess.createIndex({ username: 1, namespace: 1, permission: 1 },
-    { unique: true, partialFilterExpression: { namespace: { $exists: true } } });
-db.userAccess.createIndex({ username: 1, domain: 1, permission: 1 },
-    { unique: true, partialFilterExpression: { domain: { $exists: true } } });
-
-// Non-unique: the audit trail is append-only with no uniqueness invariant, so these only
-// support AuditLogStore's lookup shapes.
-db.auditLogs.createIndex({ namespace: 1, entityType: 1, entityId: 1, timestamp: -1 });
-db.auditLogs.createIndex({ domain: 1, entityType: 1, entityId: 1, timestamp: -1 });
-db.auditLogs.createIndex({ actor: 1, timestamp: -1 });
-db.auditLogs.createIndex({ timestamp: -1 });
-logSuccess("Created indexes (mirroring MongoIndexInitializationStep, with architectures in the header/version shape)");
-
-logSection("Schema version");
-// Everything this script writes is already in the shape the current code reads, so record
-// the schema as fully migrated. SchemaMigrationRunner then returns before taking the
-// migration lock instead of running steps that have nothing to do — and, in step 0's case,
-// would actively fail: its unique index on architectures.namespace permits one document
-// per namespace, which new-shape seed data violates (finos.fluxnova seeds six). A failed
-// step leaves the lock held and CalmHub refusing every request.
-//
-// Raise this whenever a migration step is added, and seed that step's target shape above.
-// Document shape must match MongoSchemaVersionStore: _id "schemaVersion", int version, in
-// the calm collection.
-const LATEST_SCHEMA_VERSION = 3;
-if (architecturesAreMigrated) {
-    db.calm.updateOne(
-        { _id: "schemaVersion" },
-        { $set: { version: NumberInt(LATEST_SCHEMA_VERSION) } },
-        { upsert: true });
-    logSuccess(`Recorded schema version ${LATEST_SCHEMA_VERSION} — startup migrations will be skipped`);
-} else {
-    // Deliberately loud: the alternative is a database that looks fine and serves no
-    // architectures at all.
-    logFail(`Not recording schema version — this database still holds ${preMigrationArchitectures} `
-        + `pre-migration architecture document(s). Start CalmHub and let the migration convert them; `
-        + `stamping version ${LATEST_SCHEMA_VERSION} here would skip it and hide every architecture.`);
 }
 
 logSection("Initialization complete");
