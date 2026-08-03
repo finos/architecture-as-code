@@ -140,12 +140,16 @@ function flattenCalmItems(pattern: SchemaNode, calmType: 'nodes' | 'relationship
         .flatMap((item: Item) => flattenOneOfAndAnyOf(item, selectionPredicate));
 
     const itemsCatalog: Item | undefined = calmProps['items'];
-    const catalogAlternatives: SchemaNode[] = itemsCatalog?.oneOf ?? itemsCatalog?.anyOf ?? [];
+    // Only treat `items` as a decision catalog when it is a oneOf/anyOf of candidates. A plain
+    // `items` schema (or `items: false` closing a tuple) is not part of the decision mechanism and
+    // must be left untouched rather than stripped.
+    const isCatalog = Array.isArray(itemsCatalog?.oneOf) || Array.isArray(itemsCatalog?.anyOf);
+    const catalogAlternatives: SchemaNode[] = isCatalog ? (itemsCatalog!.oneOf ?? itemsCatalog!.anyOf ?? []) : [];
     const selectedCatalogItems = catalogAlternatives.filter(selectionPredicate);
 
     calmProps['prefixItems'] = [...flattenedPrefixItems, ...selectedCatalogItems];
 
-    if (itemsCatalog !== undefined) {
+    if (isCatalog) {
         delete calmProps['items'];
     }
 }

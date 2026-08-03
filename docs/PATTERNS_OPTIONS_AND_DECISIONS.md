@@ -153,8 +153,20 @@ candidates were not *rejected* — they were genuinely *invisible*. If you gave 
 and the queue the same id, the "ids must be unique" rule sailed past it, because the
 rule only looked in the `prefixItems` neighbourhood and the duplicate was in the
 `items` neighbourhood. The fix was mechanical: add parallel address strings that also
-walk `items.oneOf`/`items.anyOf`, so the existing rules now visit both neighbourhoods
-(`ids-are-unique.ts`, and the `pattern-nodes-must-be-referenced` rule's `given`).
+walk `items.oneOf`/`items.anyOf`, so the existing rules now visit both neighbourhoods.
+
+That mechanical fix had to be applied to *every* validation helper that resolves an id
+against the node/relationship arrays, not just one — this is exactly the "fix one
+consumer, forget the rest" trap this document warns about, and it is easy to miss a
+call site. The helpers updated are: `ids-are-unique.ts` (duplicate detection), the
+`pattern-nodes-must-be-referenced` rule's `given` (unused-node warning),
+`node-id-exists.ts` (does a referenced node exist — used by the `connects`,
+`deployed-in`/`composed-of`, and actor/container rules, and by decision `nodes.const`
+references), and `interface-id-exists-on-node.ts` (does a referenced interface exist on
+the node). `is-defined-in-oneof-or-anyof.ts` was deliberately left unchanged: its check
+only fires when an id is *also* present as a plain `prefixItems` name, which a
+catalog-only id never is, so it correctly no-ops for catalog candidates rather than
+false-positiving.
 
 ### 4b. Generation — pattern + human choices → concrete architecture
 
@@ -231,6 +243,18 @@ person is not surprised.
    boxes (labelling only one) and the new code draws one unified box. This is arguably
    more correct — a single decision should be a single box — but it is a visible
    change, so mention it in review when it first occurs.
+
+2b. **Two decisions drawing from one shared `items` catalog merge into a single box.**
+   `extractNodesFromPattern` assigns every candidate in a nodes `items` catalog to a
+   single decision group (`node-decision-items`) at extraction time. If two *separate*
+   options relationships reference disjoint subsets of that one catalog (e.g. a "pick a
+   cache" decision and a "pick a queue" decision both drawn from one catalog), both fold
+   into that single group, so the visualiser draws one merged box and only the
+   last-processed decision's prompt/choices survive. The nodes are still all drawn; only
+   the grouping/labelling is wrong. Rendering a single catalog as multiple independent
+   decisions needs per-decision group keying and is tracked with the decision-group
+   rework in the visual-nesting follow-up. The one-catalog-one-decision case (the common
+   shape) is unaffected.
 
 3. **(Fixed) A catalog node that is also a container child draws inside the container.**
    If a node is both an optional pick *and* declared to live inside a container (via

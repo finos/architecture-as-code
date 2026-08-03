@@ -24,6 +24,10 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
 
     const nodeId = input.node;
     const nodes: object[] = JSONPath({ path: '$.properties.nodes.prefixItems[*]', json: context.document.data as object });
+    // Nodes may also be declared in an `items.oneOf`/`items.anyOf` open catalog; each catalog
+    // alternative is itself a node schema, so include them in the node lookup.
+    nodes.push(...JSONPath({ path: '$.properties.nodes.items.oneOf[*]', json: context.document.data as object }));
+    nodes.push(...JSONPath({ path: '$.properties.nodes.items.anyOf[*]', json: context.document.data as object }));
     const node = nodes.find((node) => {
         const uniqueId: string[] = JSONPath({ path: '$.properties.unique-id.const', json: node });
         uniqueId.push(...JSONPath({ path: '$.oneOf[*].properties.unique-id.const', json: node }));
