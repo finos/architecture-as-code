@@ -134,7 +134,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 7;
+const LATEST_SCHEMA_VERSION = 8;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -171,10 +171,16 @@ if (isEmptyDatabase) {
     db.standardVersions.createIndex({ namespace: 1, standardId: 1, version: 1 }, unique);
     db.interfaces.createIndex({ namespace: 1, interfaceId: 1 }, unique);
     db.interfaceVersions.createIndex({ namespace: 1, interfaceId: 1, version: 1 }, unique);
+    // Timelines are not seeded by this script, but the indexes still have to match the
+    // shape the store reads, since pinning the version skips the migration that creates them.
+    db.timelines.createIndex({ namespace: 1, timelineId: 1 }, unique);
+    db.timelineVersions.createIndex({ namespace: 1, timelineId: 1, version: 1 }, unique);
 
     // Still one document per namespace until each of these migrates, at which point its
     // entry moves up alongside architectures and patterns.
-    for (const collection of ["timelines", "adrs", "decorators"]) {
+    // ADR and Decorator keep the one-document-per-namespace shape: ADR has not migrated
+    // yet, and Decorator is not versioned at all (ADR 0004).
+    for (const collection of ["adrs", "decorators"]) {
         db[collection].createIndex({ namespace: 1 }, unique);
     }
     db.controls.createIndex({ domain: 1 }, unique);
