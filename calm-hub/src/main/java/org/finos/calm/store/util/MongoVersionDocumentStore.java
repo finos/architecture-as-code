@@ -34,8 +34,9 @@ import java.util.List;
  *
  * <h2>Not a base class</h2>
  * Each resource type's store composes one of these rather than extending it,
- * matching the codebase's existing static-helper convention ({@link MongoUpsertPush},
- * {@code MongoResourceSlice}). The type-specific parts — the id field name, the
+ * matching the codebase's existing static-helper convention ({@link MongoUpsertPush};
+ * {@code MongoResourceSlice} was the other, and was deleted once Pattern migrated and
+ * left it with no callers). The type-specific parts — the id field name, the
  * label used when a stored {@code name} is missing — are constructor arguments, so
  * one instance serves exactly one resource type.
  *
