@@ -320,22 +320,57 @@
         {
           "relationship-unique-id": "gateway-to-orders",
           "sequence-number": 2,
-          "description": "Gateway routes the order to the order service",
-          "summary": "Gateway routes the order to the order service",
+          "description": "API Gateway routes order to Order Service",
+          "summary": "API Gateway routes order to Order Service",
           "direction": "source-to-destination"
         },
         {
           "relationship-unique-id": "orders-to-payment",
           "sequence-number": 3,
-          "description": "Order service requests payment authorisation",
-          "summary": "Order service requests payment authorisation",
+          "description": "Order Service initiates payment processing",
+          "summary": "Order Service initiates payment processing",
+          "direction": "source-to-destination"
+        }
+      ]
+    },
+    {
+      "unique-id": "inventory-check-flow",
+      "name": "Inventory Stock Check",
+      "description": "Admin checks and updates inventory stock levels",
+      "transitions": [
+        {
+          "relationship-unique-id": "admin-to-gateway",
+          "sequence-number": 1,
+          "description": "Admin requests inventory status",
+          "summary": "Admin requests inventory status",
           "direction": "source-to-destination"
         },
         {
-          "relationship-unique-id": "orders-to-payment",
+          "relationship-unique-id": "gateway-to-inventory",
+          "sequence-number": 2,
+          "description": "Route to inventory service",
+          "summary": "Route to inventory service",
+          "direction": "source-to-destination"
+        },
+        {
+          "relationship-unique-id": "inventory-to-database",
+          "sequence-number": 3,
+          "description": "Query current stock levels",
+          "summary": "Query current stock levels",
+          "direction": "source-to-destination"
+        },
+        {
+          "relationship-unique-id": "inventory-to-database",
           "sequence-number": 4,
-          "description": "Payment service returns confirmation",
-          "summary": "Payment service returns confirmation",
+          "description": "Return stock data",
+          "summary": "Return stock data",
+          "direction": "destination-to-source"
+        },
+        {
+          "relationship-unique-id": "gateway-to-inventory",
+          "sequence-number": 5,
+          "description": "Return inventory report",
+          "summary": "Return inventory report",
           "direction": "destination-to-source"
         }
       ]
