@@ -17,7 +17,7 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
-import org.finos.calm.store.util.NumericVersionOrder;
+import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,8 +31,9 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  *
  * <p>Mirrors {@link org.finos.calm.store.mongo.MongoAdrStore}, including the two things that
  * make ADR different from every other versioned type — integer revisions, which need
- * {@link NumericVersionOrder}, and a summary built from the latest revision's content rather
- * than from the entity. See that class for why both matter.</p>
+ * {@link VersionScheme#NUMERIC} so they are ordered numerically and stored verbatim, and a
+ * summary built from the latest revision's content rather than from the entity. See that
+ * class for why both matter.</p>
  *
  * <p>As with the other Nitrite stores, revision content is held as a JSON string rather than
  * a parsed document.</p>
@@ -62,7 +63,7 @@ public class NitriteAdrStore implements AdrStore {
                 db.getCollection(VERSION_COLLECTION),
                 ID_FIELD,
                 RESOURCE_LABEL,
-                NumericVersionOrder.ASCENDING);
+                VersionScheme.NUMERIC);
         this.objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         LOG.info("NitriteAdrStore initialized with collections: {} / {}", HEADER_COLLECTION, VERSION_COLLECTION);

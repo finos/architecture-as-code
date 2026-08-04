@@ -423,9 +423,25 @@ class TestNitriteVersionDocumentStoreShould {
     }
 
     @Test
+    void store_a_numeric_revision_verbatim_rather_than_canonicalising_it() {
+        NitriteVersionDocumentStore numericStore = new NitriteVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        stubFind(versionCollection, List.of());
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "name", "description", 0)));
+
+        // See the Mongo twin: "100" is an accepted spelling of 1.0.0, so canonicalising ADR
+        // revisions rewrites revision 100 and makes it sort below 99.
+        numericStore.createVersion(NAMESPACE, RESOURCE_ID, "100", CONTENT);
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(captor.capture());
+        assertThat(captor.getValue().get("version", String.class), is("100"));
+    }
+
+    @Test
     void resolve_the_latest_version_numerically_when_told_to() {
         NitriteVersionDocumentStore numericStore = new NitriteVersionDocumentStore(
-                headerCollection, versionCollection, ID_FIELD, LABEL, NumericVersionOrder.ASCENDING);
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
         stubFind(versionCollection, List.of(versionDocument("2"), versionDocument("10")));
 
         assertThat(numericStore.getLatestVersion(NAMESPACE, RESOURCE_ID), is("10"));

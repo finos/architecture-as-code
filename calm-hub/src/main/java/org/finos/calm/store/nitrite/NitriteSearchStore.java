@@ -11,7 +11,7 @@ import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
-import org.finos.calm.store.util.NumericVersionOrder;
+import org.finos.calm.store.util.VersionScheme;
 import org.finos.calm.store.util.SearchTextMatcher;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
@@ -59,7 +59,7 @@ public class NitriteSearchStore implements SearchStore {
         this.controlCollection = db.getCollection("controls");
         this.adrCollection = db.getCollection("adrs");
         this.adrDocuments = new NitriteVersionDocumentStore(adrCollection,
-                db.getCollection("adrVersions"), "adrId", "ADR", NumericVersionOrder.ASCENDING);
+                db.getCollection("adrVersions"), "adrId", "ADR", VersionScheme.NUMERIC);
         LOG.info("NitriteSearchStore initialized");
     }
 

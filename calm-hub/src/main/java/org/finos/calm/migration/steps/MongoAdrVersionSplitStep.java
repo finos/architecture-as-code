@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.migration.SchemaMigrationStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.finos.calm.store.util.VersionScheme;
 
 /**
  * Splits the {@code adrs} collection from one document per namespace into one
@@ -42,7 +43,7 @@ public class MongoAdrVersionSplitStep implements SchemaMigrationStep {
 
     public MongoAdrVersionSplitStep(MongoDatabase database) {
         this.migration = new MongoVersionSplitMigration(
-                database, "adrs", "adrVersions", "adrId", "adrs", "revisions", "ADR");
+                database, "adrs", "adrVersions", "adrId", "adrs", "revisions", "ADR", VersionScheme.NUMERIC);
     }
 
     @Override

@@ -9,7 +9,7 @@ import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
-import org.finos.calm.store.util.NumericVersionOrder;
+import org.finos.calm.store.util.VersionScheme;
 import org.finos.calm.store.util.SearchTextMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +54,7 @@ public class MongoSearchStore implements SearchStore {
         this.controlCollection = database.getCollection("controls");
         this.adrCollection = database.getCollection("adrs");
         this.adrDocuments = new MongoVersionDocumentStore(adrCollection,
-                database.getCollection("adrVersions"), "adrId", "ADR", NumericVersionOrder.ASCENDING);
+                database.getCollection("adrVersions"), "adrId", "ADR", VersionScheme.NUMERIC);
     }
 
     @Override

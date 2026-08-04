@@ -529,9 +529,39 @@ class TestMongoVersionDocumentStoreShould {
     }
 
     @Test
+    void store_a_numeric_revision_verbatim_rather_than_canonicalising_it() {
+        MongoVersionDocumentStore numericStore = new MongoVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        // VERSION_REGEX makes both separators optional, so "100" is one of the six accepted
+        // spellings of 1.0.0. Canonicalising it would store ADR revision 100 as "1.0.0",
+        // which NumericVersionOrder then sorts BELOW 99 — the latest-revision read every ADR
+        // goes through would return revision 99's content while 100 exists — and which
+        // MongoAdrStore.getAdrRevisions cannot Integer.parseInt. Revisions 1-99 are
+        // unaffected, which is exactly why this went unnoticed.
+        numericStore.createVersion(NAMESPACE, RESOURCE_ID, "100", new Document());
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(captor.capture());
+        assertThat(captor.getValue().getString("version"), is("100"));
+    }
+
+    @Test
+    void rank_a_numeric_revision_above_a_smaller_one_that_is_three_digits() {
+        MongoVersionDocumentStore numericStore = new MongoVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        stubFind(versionCollection, List.of(
+                new Document("version", "99"),
+                new Document("version", "100")));
+
+        assertThat(numericStore.getLatestVersion(NAMESPACE, RESOURCE_ID), is("100"));
+    }
+
+    @Test
     void resolve_the_latest_version_numerically_when_told_to() {
         MongoVersionDocumentStore numericStore = new MongoVersionDocumentStore(
-                headerCollection, versionCollection, ID_FIELD, LABEL, NumericVersionOrder.ASCENDING);
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
         stubFind(versionCollection, List.of(
                 new Document("version", "2"),
                 new Document("version", "10")));

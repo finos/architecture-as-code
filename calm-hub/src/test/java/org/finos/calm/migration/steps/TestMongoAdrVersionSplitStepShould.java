@@ -104,7 +104,7 @@ class TestMongoAdrVersionSplitStepShould {
                 .append("adrs", List.of(new Document("adrId", 1)
                         .append("name", "Sample")
                         .append("description", "A description")
-                        .append("revisions", new Document("1-0-0", new Document("nodes", List.of())))))));
+                        .append("revisions", new Document("1", new Document("nodes", List.of())))))));
 
         step.apply();
 
@@ -115,9 +115,28 @@ class TestMongoAdrVersionSplitStepShould {
 
         ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
         verify(versions).replaceOne(any(Bson.class), versionCaptor.capture(), any(ReplaceOptions.class));
-        assertThat(versionCaptor.getValue().getString("version"), is("1.0.0"));
+        // An integer revision, which is the only kind ADR has — the old fixture used a
+        // semantic key copied from the architecture test, a shape ADR never stored.
+        assertThat(versionCaptor.getValue().getString("version"), is("1"));
 
         verify(headers).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void migrate_a_three_digit_revision_without_rewriting_it() {
+        stubOldDocuments(List.of(new Document("_id", "abc")
+                .append("namespace", "finos")
+                .append("adrs", List.of(new Document("adrId", 1)
+                        .append("revisions", new Document("100", new Document("nodes", List.of())))))));
+
+        step.apply();
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versions).replaceOne(any(Bson.class), versionCaptor.capture(), any(ReplaceOptions.class));
+        // VERSION_REGEX also reads "100" as a spelling of 1.0.0. Canonicalising here wrote
+        // the corruption permanently into the migrated data, where it sorts below revision
+        // 99 and cannot be Integer.parseInt by the ADR store.
+        assertThat(versionCaptor.getValue().getString("version"), is("100"));
     }
 
     @Test

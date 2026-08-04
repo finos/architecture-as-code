@@ -73,7 +73,7 @@ class TestNitriteAdrVersionSplitStepShould {
                 .put("adrs", List.of(Document.createDocument()
                         .put("adrId", 1)
                         .put("name", "Sample")
-                        .put("revisions", Document.createDocument().put("1-0-0", "{\"nodes\":[]}"))))));
+                        .put("revisions", Document.createDocument().put("1", "{\"nodes\":[]}"))))));
 
         step.apply();
 
@@ -84,8 +84,27 @@ class TestNitriteAdrVersionSplitStepShould {
 
         ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
         verify(versions).insert(versionCaptor.capture());
-        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0"));
+        // An integer revision, the only kind ADR has — the old fixture used a semantic
+        // key copied from the architecture test, a shape ADR never stored.
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1"));
         // Content stays a JSON string in this backend.
         assertThat(versionCaptor.getValue().get("content", String.class), is("{\"nodes\":[]}"));
+    }
+
+    @Test
+    void migrate_a_three_digit_revision_without_rewriting_it() {
+        stubCollectionContents(List.of(Document.createDocument()
+                .put("namespace", "finos")
+                .put("adrs", List.of(Document.createDocument()
+                        .put("adrId", 1)
+                        .put("revisions", Document.createDocument().put("100", "{\"nodes\":[]}"))))));
+
+        step.apply();
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versions).insert(versionCaptor.capture());
+        // See the Mongo twin: "100" is also an accepted spelling of 1.0.0, and canonicalising
+        // it here wrote the corruption permanently into the migrated data.
+        assertThat(versionCaptor.getValue().get("version", String.class), is("100"));
     }
 }

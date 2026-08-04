@@ -16,7 +16,7 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
-import org.finos.calm.store.util.NumericVersionOrder;
+import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,10 +36,16 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * Two things set it apart from the other six, and both are load-bearing:
  * <ul>
  *   <li><b>Revisions are integers, not semantic versions.</b> The helper is built with
- *       {@link NumericVersionOrder}; the default comparator maps every non-semver value to
- *       {@code 0.0.0} and falls back to a string sort, which would rank {@code 10} below
- *       {@code 2} and make every "latest revision" read silently return stale content once an
- *       ADR reached double figures.</li>
+ *       {@link VersionScheme#NUMERIC}, which governs both how revisions are <em>ordered</em>
+ *       and how they are <em>spelled</em>. Ordering, because the semantic comparator maps
+ *       every non-semver value to {@code 0.0.0} and falls back to a string sort, ranking
+ *       {@code 10} below {@code 2} and making every "latest revision" read return stale
+ *       content once an ADR reached double figures. Spelling, because {@code VERSION_REGEX}
+ *       treats {@code "100"} as a spelling of {@code 1.0.0}: canonicalising revisions would
+ *       have rewritten revision 100 to {@code "1.0.0"}, which then sorts below {@code 99} and
+ *       breaks the {@code Integer.parseInt} in {@link #getAdrRevisions}. Both halves have to
+ *       agree, which is why the scheme carries them together rather than the store choosing a
+ *       comparator and separately remembering a spelling rule.</li>
  *   <li><b>The summary is built from content, not from the entity.</b> Every other type reads
  *       {@code name}/{@code description}/{@code versionCount} straight off the header;
  *       {@link NamespaceAdrSummary} carries the <em>latest revision's</em> title and status.
@@ -76,7 +82,7 @@ public class MongoAdrStore implements AdrStore {
                 database.getCollection(VERSION_COLLECTION),
                 ID_FIELD,
                 RESOURCE_LABEL,
-                NumericVersionOrder.ASCENDING);
+                VersionScheme.NUMERIC);
         this.objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
     }

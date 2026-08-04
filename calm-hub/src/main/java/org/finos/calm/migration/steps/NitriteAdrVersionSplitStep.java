@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import org.dizitart.no2.Nitrite;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.migration.SchemaMigrationStep;
+import org.finos.calm.store.util.VersionScheme;
 
 /**
  * NitriteDB counterpart to {@link MongoAdrVersionSplitStep}: the same version 8 → 9
@@ -28,7 +29,7 @@ public class NitriteAdrVersionSplitStep implements SchemaMigrationStep {
     @Inject
     public NitriteAdrVersionSplitStep(@StandaloneQualifier Nitrite db) {
         this.migration = new NitriteVersionSplitMigration(
-                db, "adrs", "adrVersions", "adrId", "adrs", "revisions", "ADR");
+                db, "adrs", "adrVersions", "adrId", "adrs", "revisions", "ADR", VersionScheme.NUMERIC);
     }
 
     @Override

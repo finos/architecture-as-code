@@ -81,7 +81,7 @@ public class MongoVersionDocumentStore {
     private final MongoCollection<Document> versionCollection;
     private final String idField;
     private final String resourceLabel;
-    private final Comparator<String> versionOrder;
+    private final VersionScheme versionScheme;
 
     /**
      * @param headerCollection  the existing per-type collection, now holding headers
@@ -96,25 +96,25 @@ public class MongoVersionDocumentStore {
                                      MongoCollection<Document> versionCollection,
                                      String idField,
                                      String resourceLabel) {
-        this(headerCollection, versionCollection, idField, resourceLabel, SemanticVersionOrder.ASCENDING);
+        this(headerCollection, versionCollection, idField, resourceLabel, VersionScheme.SEMANTIC);
     }
 
     /**
-     * @param versionOrder how this type's versions rank. Every type but ADR uses
-     *                     {@link SemanticVersionOrder}; ADR's revisions are integers, which
-     *                     that comparator would order {@code 1, 10, 2} — see
-     *                     {@link NumericVersionOrder}.
+     * @param versionScheme how this type spells and ranks its versions. Every type but
+     *                      ADR uses {@link VersionScheme#SEMANTIC}; ADR's revisions are
+     *                      integers, which must be stored verbatim and ordered numerically
+     *                      — see {@link VersionScheme}.
      */
     public MongoVersionDocumentStore(MongoCollection<Document> headerCollection,
                                      MongoCollection<Document> versionCollection,
                                      String idField,
                                      String resourceLabel,
-                                     Comparator<String> versionOrder) {
+                                     VersionScheme versionScheme) {
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
         this.idField = idField;
         this.resourceLabel = resourceLabel;
-        this.versionOrder = versionOrder;
+        this.versionScheme = versionScheme;
     }
 
     /**
@@ -215,7 +215,7 @@ public class MongoVersionDocumentStore {
      * which domain exception that means. Never overwrites.
      */
     public boolean createVersion(String namespace, int resourceId, String version, Document content) {
-        String canonicalVersion = CanonicalVersion.of(version);
+        String canonicalVersion = versionScheme.canonicalise(version);
         Document versionDocument = new Document(NAMESPACE_FIELD, namespace)
                 .append(idField, resourceId)
                 .append(VERSION_FIELD, canonicalVersion)
@@ -251,7 +251,7 @@ public class MongoVersionDocumentStore {
     public void upsertVersion(String namespace, int resourceId, String version, Document content) {
         // Canonical before the filter is built, so an upsert-insert derives its stored
         // version field from the canonical form via the filter's equality conditions.
-        String canonicalVersion = CanonicalVersion.of(version);
+        String canonicalVersion = versionScheme.canonicalise(version);
         Bson update = Updates.combine(
                 Updates.set(CONTENT_FIELD, content),
                 Updates.setOnInsert(METADATA_FIELD, new Document()));
@@ -351,7 +351,7 @@ public class MongoVersionDocumentStore {
      */
     public Document getVersion(String namespace, int resourceId, String version) {
         Document versionDocument = versionCollection
-                .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).first();
+                .find(versionFilter(namespace, resourceId, versionScheme.canonicalise(version))).first();
         return versionDocument == null ? null : versionDocument.get(CONTENT_FIELD, Document.class);
     }
 
@@ -367,7 +367,7 @@ public class MongoVersionDocumentStore {
         versionCollection.find(headerFilter(namespace, resourceId))
                 .projection(Projections.include(VERSION_FIELD))
                 .forEach(document -> versions.add(document.getString(VERSION_FIELD)));
-        versions.sort(versionOrder);
+        versions.sort(versionScheme.order());
         return versions;
     }
 

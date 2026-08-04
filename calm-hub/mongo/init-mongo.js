@@ -42,9 +42,14 @@ function canonicalVersion(version) {
 // flat lists with the parent-child relationship left implicit — so what is written here is
 // deliberately NOT the literal shape of the source below. Change this function, not the
 // data, if the storage shape changes again.
-function seedVersionedResource(groupedByNamespace, headerCollection, versionCollection, arrayField, idField, versionsField) {
+function seedVersionedResource(groupedByNamespace, headerCollection, versionCollection, arrayField, idField, versionsField, versionScheme) {
     // "versions" for every type but ADR, whose map is called "revisions".
     const versionsKey = versionsField || "versions";
+    // "semantic" for every type but ADR, whose revisions are integers and must be stored
+    // verbatim: VERSION_REGEX makes both separators optional, so canonicalVersion reads
+    // "100" as a spelling of 1.0.0 and would store revision 100 as "1.0.0". Mirrors
+    // VersionScheme on the Java side — see calm-hub/decisions/0003.
+    const canonicalise = versionScheme !== "numeric";
     const headers = [];
     const versions = [];
 
@@ -58,7 +63,7 @@ function seedVersionedResource(groupedByNamespace, headerCollection, versionColl
             // Mirrors collapseToCanonicalVersions in the two migration steps.
             const contentByCanonicalVersion = new Map();
             for (const storedKey of Object.keys(entry[versionsKey] || {})) {
-                const version = canonicalVersion(storedKey);
+                const version = canonicalise ? canonicalVersion(storedKey) : storedKey;
                 if (contentByCanonicalVersion.has(version)) {
                     logFail(`Seed data has two keys meaning version ${version} for `
                         + `${namespaceDocument.namespace}/${entry[idField]} — keeping the first, dropping '${storedKey}'`);
@@ -6513,7 +6518,7 @@ if (isEmptyDatabase && db.adrs.countDocuments() === 0) {
         },
     ];
     const seededAdrs = seedVersionedResource(
-        adrsByNamespace, "adrs", "adrVersions", "adrs", "adrId", "revisions");
+        adrsByNamespace, "adrs", "adrVersions", "adrs", "adrId", "revisions", "numeric");
     logSuccess(`Initialized ${seededAdrs.headers} ADRs and ${seededAdrs.versions} revisions`);
 } else if (!isEmptyDatabase) {
     logSkip("Existing database — not seeding ADRs; the new shape needs the index swap "

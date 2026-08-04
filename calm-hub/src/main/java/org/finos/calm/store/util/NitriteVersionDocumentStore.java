@@ -72,7 +72,7 @@ public class NitriteVersionDocumentStore {
     private final NitriteCollection versionCollection;
     private final String idField;
     private final String resourceLabel;
-    private final Comparator<String> versionOrder;
+    private final VersionScheme versionScheme;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
@@ -86,24 +86,23 @@ public class NitriteVersionDocumentStore {
                                        NitriteCollection versionCollection,
                                        String idField,
                                        String resourceLabel) {
-        this(headerCollection, versionCollection, idField, resourceLabel, SemanticVersionOrder.ASCENDING);
+        this(headerCollection, versionCollection, idField, resourceLabel, VersionScheme.SEMANTIC);
     }
 
     /**
-     * @param versionOrder how this type's versions rank. See
-     *                     {@link MongoVersionDocumentStore} for why ADR needs
-     *                     {@link NumericVersionOrder} rather than the semantic one.
+     * @param versionScheme how this type spells and ranks its versions. See
+     *                      {@link VersionScheme}.
      */
     public NitriteVersionDocumentStore(NitriteCollection headerCollection,
                                        NitriteCollection versionCollection,
                                        String idField,
                                        String resourceLabel,
-                                       Comparator<String> versionOrder) {
+                                       VersionScheme versionScheme) {
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
         this.idField = idField;
         this.resourceLabel = resourceLabel;
-        this.versionOrder = versionOrder;
+        this.versionScheme = versionScheme;
     }
 
     /**
@@ -189,7 +188,7 @@ public class NitriteVersionDocumentStore {
      * @return {@code false} if that version is already present. Never overwrites.
      */
     public boolean createVersion(String namespace, int resourceId, String version, String content) {
-        String canonicalVersion = CanonicalVersion.of(version);
+        String canonicalVersion = versionScheme.canonicalise(version);
         lock.writeLock().lock();
         try {
             if (versionCollection.find(versionFilter(namespace, resourceId, canonicalVersion)).firstOrNull() != null) {
@@ -218,7 +217,7 @@ public class NitriteVersionDocumentStore {
      * as well as overwrite.</p>
      */
     public void upsertVersion(String namespace, int resourceId, String version, String content) {
-        String canonicalVersion = CanonicalVersion.of(version);
+        String canonicalVersion = versionScheme.canonicalise(version);
         lock.writeLock().lock();
         try {
             Filter filter = versionFilter(namespace, resourceId, canonicalVersion);
@@ -313,7 +312,7 @@ public class NitriteVersionDocumentStore {
         lock.readLock().lock();
         try {
             Document versionDocument = versionCollection
-                    .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).firstOrNull();
+                    .find(versionFilter(namespace, resourceId, versionScheme.canonicalise(version))).firstOrNull();
             if (versionDocument == null) {
                 return null;
             }
@@ -336,7 +335,7 @@ public class NitriteVersionDocumentStore {
             for (Document versionDocument : versionCollection.find(headerFilter(namespace, resourceId))) {
                 versions.add(versionDocument.get(VERSION_FIELD, String.class));
             }
-            versions.sort(versionOrder);
+            versions.sort(versionScheme.order());
             return versions;
         } finally {
             lock.readLock().unlock();

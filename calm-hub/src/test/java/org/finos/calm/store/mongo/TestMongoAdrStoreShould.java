@@ -227,6 +227,28 @@ public class TestMongoAdrStoreShould {
     }
 
     @Test
+    void resolve_a_three_digit_revision_as_the_latest() throws Exception {
+        adrExists();
+        stubRevisions(List.of("99", "100"), contentOf("Latest", Status.accepted));
+
+        // Revision 100 is the first that VERSION_REGEX also reads as a spelling of 1.0.0.
+        // While the helper canonicalised it, it was stored as "1.0.0", which
+        // NumericVersionOrder sorts below "99" — so this returned revision 99's content
+        // while 100 existed, with no error anywhere.
+        assertThat(store.getAdr(adrMeta(1, null)).getRevision(), is(100));
+    }
+
+    @Test
+    void list_three_digit_revisions_without_failing_to_parse_them() throws Exception {
+        adrExists();
+        stubRevisions(List.of("99", "100"), null);
+
+        // getAdrRevisions maps these through Integer.parseInt; a canonicalised "1.0.0"
+        // threw NumberFormatException straight out of the store.
+        assertThat(store.getAdrRevisions(adrMeta(1, null)), contains(99, 100));
+    }
+
+    @Test
     void throw_a_revision_exception_when_an_adr_has_no_revisions() {
         adrExists();
         stubRevisions(List.of(), null);
