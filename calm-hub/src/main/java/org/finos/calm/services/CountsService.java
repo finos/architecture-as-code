@@ -184,7 +184,6 @@ public class CountsService {
         return value;
     }
 
-    /** Supplier of a namespace-scoped store list that may report the namespace as missing. */
     /**
      * Counts a resource type directly, with the same failure policy as {@link #sizeOrZero}.
      *
@@ -205,6 +204,7 @@ public class CountsService {
         }
     }
 
+    /** Supplier of a namespace-scoped store list that may report the namespace as missing. */
     @FunctionalInterface
     private interface NamespaceListSupplier {
         List<?> get() throws NamespaceNotFoundException;
