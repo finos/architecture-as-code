@@ -134,7 +134,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 3;
+const LATEST_SCHEMA_VERSION = 4;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -161,8 +161,12 @@ if (isEmptyDatabase) {
 
     db.architectures.createIndex({ namespace: 1, architectureId: 1 }, unique);
     db.architectureVersions.createIndex({ namespace: 1, architectureId: 1, version: 1 }, unique);
+    db.patterns.createIndex({ namespace: 1, patternId: 1 }, unique);
+    db.patternVersions.createIndex({ namespace: 1, patternId: 1, version: 1 }, unique);
 
-    for (const collection of ["patterns", "flows", "timelines", "standards", "interfaces", "adrs", "decorators"]) {
+    // Still one document per namespace until each of these migrates, at which point its
+    // entry moves up alongside architectures and patterns.
+    for (const collection of ["flows", "timelines", "standards", "interfaces", "adrs", "decorators"]) {
         db[collection].createIndex({ namespace: 1 }, unique);
     }
     db.controls.createIndex({ domain: 1 }, unique);
@@ -575,8 +579,14 @@ if (db.controls.countDocuments() === 0) {
 
 
 logSection("Patterns");
-if (db.patterns.countDocuments() === 0) {
-    db.patterns.insertMany([
+// Gated on the database being empty for the same reason as architectures: Pattern is
+// now seeded in the header/version shape, which needs the index swap the schema
+// baseline performs. On a database this script did not create, that swap is left to
+// the migration, so seeding the new shape here would leave documents step 0 chokes on.
+if (isEmptyDatabase && db.patterns.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out
+    // into one header document per pattern plus one document per version.
+    const patternsByNamespace = [
         {
             namespace: "finos",
             patterns: [
@@ -586,7 +596,7 @@ if (db.patterns.countDocuments() === 0) {
                     description: "A pattern for securing and routing API traffic through a gateway with identity provider integration",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
                             "$id": "https://calm.finos.org/calm/namespaces/finos/patterns/1/versions/1.0.0",
                             "title": "API Gateway Pattern",
@@ -843,7 +853,7 @@ if (db.patterns.countDocuments() === 0) {
                     description: "A reusable architecture pattern for conference signup systems with Kubernetes deployment",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
                             "$id": "https://calm.finos.org/calm/namespaces/workshop/patterns/1/versions/1.0.0",
                             "type": "object",
@@ -1160,7 +1170,7 @@ if (db.patterns.countDocuments() === 0) {
                     description: "A secure reusable architecture pattern for conference signup systems with Kubernetes deployment",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
                             "$id": "https://calm.finos.org/calm/namespaces/workshop/patterns/2/versions/1.0.0",
                             "type": "object",
@@ -1605,7 +1615,7 @@ if (db.patterns.countDocuments() === 0) {
                     name: "Trades API and MCP Pattern",
                     description: "A pattern for an MCP-based architecture with enforced network segmentation and connection controls. The Kubernetes cluster must have micro-segmentation enabled, and all connections must be explicitly permitted through controls.",
                     versions: {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
                             "$id": "https://calm.finos.org/calm/namespaces/qcon/patterns/trades-api-and-mcp/versions/1.0.0",
                             "title": "Secure Trades API and MCP Pattern with Network Controls",
@@ -1906,8 +1916,13 @@ if (db.patterns.countDocuments() === 0) {
                 }
             ]
         }
-    ]);
-    logSuccess("Initialized patterns for finos, workshop, and qcon namespaces");
+    ];
+    const seededPatterns = seedVersionedResource(
+        patternsByNamespace, "patterns", "patternVersions", "patterns", "patternId");
+    logSuccess(`Initialized ${seededPatterns.headers} patterns and ${seededPatterns.versions} versions for finos, workshop, and qcon namespaces`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding patterns; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("Patterns already initialized, skipping...");
 }

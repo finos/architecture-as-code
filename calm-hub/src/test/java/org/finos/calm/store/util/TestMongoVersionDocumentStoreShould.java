@@ -32,6 +32,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -263,6 +264,49 @@ class TestMongoVersionDocumentStoreShould {
         assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()), is(true));
     }
 
+    // --- createFirstVersion ---
+
+    @Test
+    void create_the_first_version_of_a_new_resource() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        store.createFirstVersion(NAMESPACE, RESOURCE_ID, new Document("nodes", List.of()));
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(captor.capture());
+        assertThat(captor.getValue().getString("version"), is("1.0.0"));
+        verify(headerCollection, never()).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void remove_the_header_again_when_the_first_version_write_fails() {
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // No endpoint can delete a header, so one stranded by a failed first version write
+        // would show up in listings and search with versionCount 0 forever.
+        assertThrows(StorageWriteException.class,
+                () -> store.createFirstVersion(NAMESPACE, RESOURCE_ID, new Document()));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void fail_rather_than_report_success_when_the_first_version_already_exists() {
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // createVersion reports a duplicate as false. For an id the counter has just issued
+        // that is a storage inconsistency rather than a normal conflict, and reporting
+        // success would return 201 for content that was never stored.
+        assertThrows(StorageWriteException.class,
+                () -> store.createFirstVersion(NAMESPACE, RESOURCE_ID, new Document()));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
     // --- upsertVersion ---
 
     @Test
@@ -368,6 +412,49 @@ class TestMongoVersionDocumentStoreShould {
         // silently would be a wrong answer, not a stale display number.
         assertThrows(StorageWriteException.class,
                 () -> store.updateHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d"));
+    }
+
+    // --- updatePresentHeaderDetails ---
+
+    @Test
+    void update_only_the_header_details_that_are_present() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        // Pattern guarded these fields where Architecture overwrote them unconditionally,
+        // so both behaviours have to exist — see the javadoc on why that is a real
+        // difference between the types rather than a style choice.
+        store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "   ");
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).updateOne(any(Bson.class), updateCaptor.capture());
+        String update = asJson(updateCaptor.getValue());
+        assertThat(update, containsString("Renamed"));
+        // A blank description must not reach the document.
+        assertThat(update, not(containsString("description")));
+    }
+
+    @Test
+    void write_nothing_when_no_header_details_are_present() {
+        store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, null, null);
+
+        // Not merely a no-op update: issuing one would touch the document for no reason.
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void warn_rather_than_throw_when_there_is_no_header_to_update_present_details_on() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(0, null));
+
+        assertDoesNotThrow(() -> store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d"));
+    }
+
+    @Test
+    void translate_a_write_failure_when_updating_present_header_details() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(writeError(10334, "object to insert too large"));
+
+        assertThrows(StorageWriteException.class,
+                () -> store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d"));
     }
 
     // --- getVersion ---

@@ -7,6 +7,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.finos.calm.migration.steps.MongoPatternVersionSplitStep;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +35,22 @@ public class MongoPatternIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            // Drop patterns and resource_mappings to ensure clean state regardless of test ordering
+            // Drop patterns and resource_mappings to ensure clean state regardless of test ordering.
+            // patternVersions goes too — version documents now live outside the header
+            // collection, so dropping only that would leave them behind for the next test.
             database.getCollection("patterns").drop();
+            database.getCollection("patternVersions").drop();
             database.getCollection("resource_mappings").drop();
+
+            // A drop takes the collection's indexes with it, and EndToEndResource creates
+            // them once per container — so without this the rest of the JVM runs with no
+            // unique index on patternVersions. That is newly load-bearing: the old store
+            // rejected duplicate versions with an $elemMatch/$exists conditional update and
+            // needed no index, whereas createVersion now reports duplicates by catching
+            // DUPLICATE_KEY. With the index gone it never fires, so re-POSTing an existing
+            // version returns 201 and writes a second document instead of 409 — and every
+            // later class touching patterns runs with the constraint silently absent.
+            new MongoPatternVersionSplitStep(database).transitionIndexes();
 
             // Reset pattern counter to 0
             database.getCollection("counters").updateOne(
@@ -60,11 +74,14 @@ public class MongoPatternIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
+            // The collection used to be primed with an empty one-document-per-namespace
+            // document, because that shape needed one to exist before anything could be
+            // pushed into it. Under the header/version shape there is no per-namespace
+            // document at all, and priming one is actively harmful: it has no patternId, so
+            // the header reader surfaces it as a pattern named "Pattern null" with zero
+            // versions. Creating the empty collection is all that is needed.
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("patterns")) {
                 database.createCollection("patterns");
-                database.getCollection("patterns").insertOne(
-                        new Document("namespace", "finos").append("patterns", new ArrayList<>())
-                );
             }
 
             counterSetup(database);

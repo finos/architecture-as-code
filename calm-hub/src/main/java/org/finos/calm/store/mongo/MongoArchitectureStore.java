@@ -10,7 +10,6 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
@@ -18,6 +17,8 @@ import org.finos.calm.store.util.MongoVersionDocumentStore;
 import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
+
+import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
 
 /**
  * MongoDB-backed implementation of {@link ArchitectureStore}.
@@ -50,7 +51,6 @@ public class MongoArchitectureStore implements ArchitectureStore {
     private static final String VERSION_COLLECTION = "architectureVersions";
     private static final String ID_FIELD = "architectureId";
     private static final String RESOURCE_LABEL = "Architecture";
-    private static final String INITIAL_VERSION = "1.0.0";
 
     private final MongoCounterStore counterStore;
     private final MongoNamespaceStore namespaceStore;
@@ -82,7 +82,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
         int id = counterStore.getNextArchitectureSequenceValue();
         documentStore.createHeader(architecture.getNamespace(), id, architecture.getName(), architecture.getDescription());
-        createInitialVersion(architecture.getNamespace(), id, content);
+        documentStore.createFirstVersion(architecture.getNamespace(), id, content);
 
         return new Architecture.ArchitectureBuilder()
                 .setId(id)
@@ -139,37 +139,6 @@ public class MongoArchitectureStore implements ArchitectureStore {
         return architecture;
     }
 
-    /**
-     * Writes the first version of a newly created architecture, removing the header again
-     * if that fails.
-     *
-     * <p>The old shape wrote the architecture and its first version in a single document
-     * push, so a failure left nothing behind. Two writes can fail between the two, and a
-     * header with no versions cannot be removed through the API — there is no delete
-     * endpoint — so it would sit in listings and search reporting
-     * {@code versionCount: 0} indefinitely. The compensating delete keeps the failure
-     * looking like the old all-or-nothing one.</p>
-     *
-     * <p>A {@code false} return means a version document already exists for an id the
-     * counter just issued, which is a storage inconsistency rather than a normal
-     * "already exists" outcome — returning the caller's payload as though it had been
-     * stored would report success for content that was never written.</p>
-     */
-    private void createInitialVersion(String namespace, int id, Document content) {
-        boolean created;
-        try {
-            created = documentStore.createVersion(namespace, id, INITIAL_VERSION, content);
-        } catch (RuntimeException e) {
-            documentStore.deleteHeader(namespace, id);
-            throw e;
-        }
-        if (!created) {
-            documentStore.deleteHeader(namespace, id);
-            throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
-                            + ID_FIELD + " " + id + " in namespace " + namespace));
-        }
-    }
 
     /**
      * Applies the name and description that came with a version write. Called only

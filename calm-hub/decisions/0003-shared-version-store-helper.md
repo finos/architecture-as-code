@@ -2,8 +2,8 @@
 
 **Status**: Accepted — partially implemented. The helpers exist
 (`MongoVersionDocumentStore`, `NitriteVersionDocumentStore`,
-`SemanticVersionOrder`, `CanonicalVersion`) and `MongoArchitectureStore` /
-`NitriteArchitectureStore` now compose them. The other six versioned types
+`SemanticVersionOrder`, `CanonicalVersion`) and the Architecture and Pattern
+stores now compose them on both backends. The other five versioned types
 still hand-roll their own logic. Depends on
 [ADR 0001](0001-versioned-artefact-storage.md) and
 [ADR 0002](0002-version-key-encoding.md).
@@ -69,6 +69,28 @@ the primitive operations every store needs against its
   one, and `ArchitectureRequest` validates neither field, so a version
   write carrying only `architectureJson` wipes the display name. Preserved
   deliberately — fixing it is a behaviour change, not part of a port.
+- `createFirstVersion(namespace, resourceId, content)` — added while porting
+  Pattern, when the routine it replaces reached its fourth identical copy.
+
+  It is not a new primitive but `createVersion` plus `deleteHeader` used
+  correctly: writing the first version of a just-created resource and, if
+  that fails, removing the header again. The split shape makes that
+  compensation necessary — the old shape wrote the resource and its first
+  version in one document write, so a failure left nothing behind — and
+  there is no delete endpoint for any of these types, so a header stranded
+  with `versionCount: 0` stays visible in listings and search permanently.
+
+  That is why it belongs here rather than in each store. A per-store copy
+  is a correctness routine duplicated once per type per backend, fourteen
+  times at full rollout, with nothing to flag a fix applied to one and
+  missed in another. It depends on nothing type-specific: the helper
+  already knows its own id field, and `INITIAL_VERSION` moved with it.
+
+  The "version already exists" branch looks unreachable and is still
+  treated as a failure: the id has just come from the counter, so nothing
+  should hold its `1.0.0`. If something does — a rewound counter, a
+  restored database — reporting success would return 201 for content that
+  was never stored.
 
 ### Two supporting classes the helpers own
 

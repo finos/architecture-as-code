@@ -16,7 +16,9 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.util.List;
+import org.finos.calm.domain.exception.StorageWriteException;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -204,6 +206,46 @@ class TestNitriteVersionDocumentStoreShould {
         verify(versionCollection).insert(any(Document.class));
     }
 
+    // --- createFirstVersion ---
+
+    @Test
+    void create_the_first_version_of_a_new_resource() {
+        stubFind(versionCollection, List.of());
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "name", "description", 0)));
+
+        store.createFirstVersion(NAMESPACE, RESOURCE_ID, CONTENT);
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(captor.capture());
+        assertThat(captor.getValue().get("version", String.class), is("1.0.0"));
+        verify(headerCollection, never()).remove(any(Filter.class));
+    }
+
+    @Test
+    void remove_the_header_again_when_the_first_version_write_fails() {
+        stubFind(versionCollection, List.of());
+        when(versionCollection.insert(any(Document.class))).thenThrow(new NitriteException("store is closed"));
+
+        // Matches the Mongo helper: no endpoint can delete a header, so one stranded by a
+        // failed first version write would stay visible with versionCount 0 forever.
+        assertThrows(NitriteException.class,
+                () -> store.createFirstVersion(NAMESPACE, RESOURCE_ID, CONTENT));
+
+        verify(headerCollection).remove(any(Filter.class));
+    }
+
+    @Test
+    void fail_rather_than_report_success_when_the_first_version_already_exists() {
+        stubFind(versionCollection, List.of(versionDocument("1.0.0")));
+
+        // For an id the counter has just issued this is a storage inconsistency rather than
+        // a normal conflict, and reporting success would return 201 for unstored content.
+        assertThrows(StorageWriteException.class,
+                () -> store.createFirstVersion(NAMESPACE, RESOURCE_ID, CONTENT));
+
+        verify(headerCollection).remove(any(Filter.class));
+    }
+
     // --- upsertVersion ---
 
     @Test
@@ -295,6 +337,37 @@ class TestNitriteVersionDocumentStoreShould {
         verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
     }
 
+    // --- updatePresentHeaderDetails ---
+
+    @Test
+    void update_only_the_header_details_that_are_present() {
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "Old name", "Old description", 2)));
+
+        store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "   ");
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).update(any(Filter.class), captor.capture());
+        assertThat(captor.getValue().get("name", String.class), is("Renamed"));
+        // A blank description leaves the stored one alone.
+        assertThat(captor.getValue().get("description", String.class), is("Old description"));
+    }
+
+    @Test
+    void write_nothing_when_no_header_details_are_present() {
+        store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, null, "");
+
+        verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    void warn_rather_than_throw_when_there_is_no_header_to_update_present_details_on() {
+        stubFind(headerCollection, List.of());
+
+        store.updatePresentHeaderDetails(NAMESPACE, RESOURCE_ID, "Renamed", "d");
+
+        verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
     // --- getVersion ---
 
     @Test
@@ -309,6 +382,17 @@ class TestNitriteVersionDocumentStoreShould {
         stubFind(versionCollection, List.of());
 
         assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "9.9.9"), is(nullValue()));
+    }
+
+    @Test
+    void treat_content_that_is_not_a_string_as_a_version_that_cannot_be_read() {
+        // Nitrite's typed accessor casts rather than returning null, so a document whose
+        // content is not a String would throw out of the store and surface as a 500. The
+        // per-type stores guarded this with instanceof and returned not-found, giving a
+        // 404; reachable from a hand-repaired database or odd pre-migration data.
+        stubFind(versionCollection, List.of(versionDocument("1.0.0").put("content", 42)));
+
+        assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "1.0.0"), is(nullValue()));
     }
 
     // --- listVersions ---
@@ -361,5 +445,19 @@ class TestNitriteVersionDocumentStoreShould {
 
         assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED),
                 contains(new NamespaceResourceSummary("Architecture 7", "", 7, 0)));
+    }
+
+    @Test
+    void sort_headers_that_have_no_id_last_rather_than_failing_the_listing() {
+        // Comparing ids with Integer.compare unboxes, so a single id-less header would NPE
+        // the whole namespace listing into a 500 — where Mongo, which sorts database-side,
+        // returns 200 with the row included. The backends have to agree.
+        stubFind(headerCollection, List.of(
+                header(null, "No id", "d", 0),
+                header(1, "First", "d", 1)));
+
+        assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED), contains(
+                new NamespaceResourceSummary("First", "d", 1, 1),
+                new NamespaceResourceSummary("No id", "d", null, 0)));
     }
 }
