@@ -435,4 +435,17 @@ class TestNitriteVersionDocumentStoreShould {
         assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED),
                 contains(new NamespaceResourceSummary("Architecture 7", "", 7, 0)));
     }
+    @Test
+    void sort_headers_that_have_no_id_last_rather_than_failing_the_listing() {
+        // Comparing ids with Integer.compare unboxes, so a single id-less header would NPE
+        // the whole namespace listing into a 500 — where Mongo, which sorts database-side,
+        // returns 200 with the row included. The backends have to agree.
+        stubFind(headerCollection, List.of(
+                header(null, "No id", "d", 0),
+                header(1, "First", "d", 1)));
+
+        assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED), contains(
+                new NamespaceResourceSummary("First", "d", 1, 1),
+                new NamespaceResourceSummary("No id", "d", null, 0)));
+    }
 }

@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -329,7 +330,14 @@ public class NitriteVersionDocumentStore {
             for (Document header : headerCollection.find(where(NAMESPACE_FIELD).eq(namespace))) {
                 summaries.add(toSummary(header));
             }
-            summaries.sort((left, right) -> Integer.compare(left.getId(), right.getId()));
+            // Null-safe because the id is read straight off the stored header and a header
+            // missing its id field yields a null one. Comparing with Integer.compare unboxes,
+            // so a single such document would NPE the whole listing into a 500 — where Mongo,
+            // which sorts database-side, returns 200 with that row included. Sorting nulls
+            // last keeps the two backends agreeing; toSummary already renders the row itself
+            // ("<Type> null"), which is the honest representation of a malformed header.
+            summaries.sort(Comparator.comparing(NamespaceResourceSummary::getId,
+                    Comparator.nullsLast(Comparator.naturalOrder())));
             return page.apply(summaries);
         } finally {
             lock.readLock().unlock();
