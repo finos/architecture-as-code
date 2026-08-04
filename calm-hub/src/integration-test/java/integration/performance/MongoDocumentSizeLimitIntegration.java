@@ -9,6 +9,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import integration.IntegrationTestProfile;
+import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,6 +67,24 @@ public class MongoDocumentSizeLimitIntegration {
     /** Roughly 2MB, large enough to cross the ceiling in a handful of writes. */
     private static final String LARGE_CONTENT = "A".repeat(2_000_000);
 
+    /**
+     * Both tests run against their own namespace rather than {@code finos}, because neither
+     * of them can clean up after itself.
+     *
+     * <p>The 413 test deliberately drives the flows document <i>past</i> the 16MB ceiling and
+     * leaves it there — that is the state it asserts on. Nothing drops {@code flows} between
+     * classes ({@code MongoFlowIntegration} creates the collection only when absent), so under
+     * {@code finos} that wedged document would outlive this class: {@code
+     * end_to_end_get_with_no_flow} would find a flow, and every later flow write in the
+     * namespace would fail with 413 rather than 201. Today that is masked only by the order
+     * failsafe happens to run these classes in, which is not a guarantee.</p>
+     *
+     * <p>The same applies to the header/version half, for a less destructive reason: it leaves
+     * roughly 24MB of version documents behind, which would otherwise show up in any later
+     * listing of {@code finos} architectures.</p>
+     */
+    private static final String NAMESPACE = "size-limit";
+
     @BeforeEach
     public void setup() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
@@ -76,6 +95,13 @@ public class MongoDocumentSizeLimitIntegration {
             namespaceSetup(database);
             domainSetup(database);
             counterSetup(database);
+
+            // namespaceSetup only seeds when the collection is empty, so the dedicated
+            // namespace has to be inserted on its own terms.
+            if (database.getCollection("namespaces").countDocuments(new Document("name", NAMESPACE)) == 0) {
+                database.getCollection("namespaces").insertOne(
+                        new Document("name", NAMESPACE).append("description", "document size limit test namespace"));
+            }
         }
     }
 
@@ -93,7 +119,7 @@ public class MongoDocumentSizeLimitIntegration {
                         "name", name,
                         "description", "for document size limit test",
                         jsonField, "{\"v\":\"1.0.0\"}")))
-                .when().post("/api/calm/namespaces/finos/" + path)
+                .when().post("/api/calm/namespaces/" + NAMESPACE + "/" + path)
                 .thenReturn();
         assertEquals(201, response.getStatusCode());
         return extractIdsFromLocations(List.of(response), path + "/(\\d+)").get(0);
@@ -103,7 +129,7 @@ public class MongoDocumentSizeLimitIntegration {
         return given()
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/api/calm/namespaces/finos/" + path + "/" + id + "/versions/" + major + ".0.0")
+                .when().put("/api/calm/namespaces/" + NAMESPACE + "/" + path + "/" + id + "/versions/" + major + ".0.0")
                 .thenReturn();
     }
 
@@ -148,7 +174,7 @@ public class MongoDocumentSizeLimitIntegration {
         // Roughly 24MB of history, against a 16MB per-document limit — proof the accumulated
         // total is no longer what any single write is measured against.
         assertEquals(VERSIONS_BEYOND_OLD_CEILING + 1,
-                given().when().get("/api/calm/namespaces/finos/architectures/" + architectureId + "/versions")
+                given().when().get("/api/calm/namespaces/" + NAMESPACE + "/architectures/" + architectureId + "/versions")
                         .then().statusCode(200).extract().jsonPath().getList("values").size());
     }
 }
