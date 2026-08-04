@@ -168,6 +168,18 @@ class TestNitriteSearchStoreShould {
     }
 
     @Test
+    void skip_an_adr_header_with_no_id_rather_than_failing_the_search() {
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+        mockCollectionFind(adrCollection, List.of(
+                Document.createDocument("namespace", "finos").put("adrId", null)));
+
+        // See the Mongo twin: unboxing an absent adrId would 500 the whole /search request,
+        // for every resource type rather than just ADR.
+        assertEquals(0, searchStore.search("event").getAdrs().size());
+    }
+
+    @Test
     void search_adr_by_latest_revision_title() {
         // ADR reads its title from the latest revision's content, held here as a JSON string.
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,

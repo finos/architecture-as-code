@@ -88,6 +88,15 @@ public class NitriteAdrStore implements AdrStore {
         String title = "ADR " + adrId;
         String status = "unknown";
 
+        // A header carrying no adrId is malformed rather than missing, and
+        // listSummariesPaged deliberately renders it instead of failing — it sorts null ids
+        // last for exactly that reason. Resolving its latest revision would unbox this null
+        // and undo that tolerance, turning one bad document into a 500 for every ADR in the
+        // namespace. Render the placeholder and move on, which is what the row is worth.
+        if (adrId == null) {
+            return new NamespaceAdrSummary(title, status, null);
+        }
+
         String latest = documentStore.getLatestVersionContent(namespace, adrId);
         if (latest != null) {
             try {

@@ -144,7 +144,6 @@ public class NitriteSearchStore implements SearchStore {
         return results;
     }
 
-    @SuppressWarnings("unchecked")
     /**
      * ADR searches on the latest revision's title. See
      * {@code MongoSearchStore.searchAdrCollection} for why this goes through the helper.
@@ -161,6 +160,11 @@ public class NitriteSearchStore implements SearchStore {
                 continue;
             }
             Integer adrId = header.get("adrId", Integer.class);
+            if (adrId == null) {
+                // SearchResult takes a primitive id, and resolving the latest revision would
+                // unbox this too. An ADR with no id is not addressable, so it is not a result.
+                continue;
+            }
             String title = "ADR " + adrId;
 
             String latest = adrDocuments.getLatestVersionContent(namespace, adrId);

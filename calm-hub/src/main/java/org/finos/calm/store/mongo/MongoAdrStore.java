@@ -20,6 +20,7 @@ import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import io.quarkus.arc.lookup.LookupIfProperty;
 
@@ -91,7 +92,7 @@ public class MongoAdrStore implements AdrStore {
     public List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
         requireNamespace(namespace);
 
-        List<NamespaceAdrSummary> summaries = new java.util.ArrayList<>();
+        List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (NamespaceResourceSummary header : documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED)) {
             summaries.add(toAdrSummary(namespace, header.getId()));
         }
@@ -106,6 +107,15 @@ public class MongoAdrStore implements AdrStore {
         String title = "ADR " + adrId;
         String status = "unknown";
 
+        if (adrId == null) {
+            return new NamespaceAdrSummary(title, status, null);
+        }
+
+        // A header carrying no adrId is malformed rather than missing, and
+        // listSummariesPaged deliberately renders it instead of failing — it sorts null ids
+        // last for exactly that reason. Resolving its latest revision would unbox this null
+        // and undo that tolerance, turning one bad document into a 500 for every ADR in the
+        // namespace. Render the placeholder and move on, which is what the row is worth.
         Document latest = documentStore.getLatestVersionContent(namespace, adrId);
         if (latest != null) {
             String documentTitle = latest.getString("title");

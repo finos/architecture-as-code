@@ -217,6 +217,17 @@ class TestMongoSearchStoreShould {
     }
 
     @Test
+    void skip_an_adr_header_with_no_id_rather_than_failing_the_search() {
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+        mockCollectionFind(adrCollection, List.of(new Document("namespace", "finos").append("adrId", null)));
+
+        // SearchResult takes a primitive id and resolving the latest revision unboxes too, so
+        // one id-less header would 500 the entire /search request — every type, not just ADR.
+        assertEquals(0, searchStore.search("event").getAdrs().size());
+    }
+
+    @Test
     void search_adr_by_latest_revision_title() {
         // ADR reads its title from the latest revision's content, so the fixture needs a
         // header and a revision document rather than one namespace-wide document.

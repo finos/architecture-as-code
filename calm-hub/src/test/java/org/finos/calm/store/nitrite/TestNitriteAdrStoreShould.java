@@ -166,6 +166,16 @@ public class TestNitriteAdrStoreShould {
                 contains(new NamespaceAdrSummary("ADR 7", "unknown", 7)));
     }
 
+    @Test
+    public void render_a_header_with_no_id_rather_than_failing_the_whole_listing() throws Exception {
+        stubFind(headerCollection, List.of(Document.createDocument().put("adrId", null)));
+
+        // The helper sorts null ids last so one malformed header does not fail the listing;
+        // resolving its latest revision unboxes that null into an int parameter.
+        assertThat(store.getAdrsForNamespace(NAMESPACE),
+                contains(new NamespaceAdrSummary("ADR null", "unknown", null)));
+    }
+
     // --- createAdrForNamespace ---
 
     @Test

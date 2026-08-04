@@ -176,6 +176,17 @@ public class TestMongoAdrStoreShould {
                 contains(new NamespaceAdrSummary("ADR 7", "unknown", 7)));
     }
 
+    @Test
+    void render_a_header_with_no_id_rather_than_failing_the_whole_listing() throws Exception {
+        stubFind(headerCollection, List.of(new Document("adrId", null)));
+
+        // listSummariesPaged sorts null ids last precisely so one malformed header does not
+        // fail the listing. Resolving its latest revision unboxes the null into the helper's
+        // int parameter, which would turn that tolerance back into a 500 for the namespace.
+        assertThat(store.getAdrsForNamespace(NAMESPACE),
+                contains(new NamespaceAdrSummary("ADR null", "unknown", null)));
+    }
+
     // --- createAdrForNamespace ---
 
     @Test
