@@ -97,12 +97,21 @@ public class MongoSearchStore implements SearchStore {
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
+            Integer id = header.getInteger(idField);
+            if (id == null) {
+                // Same reason the ADR branch below skips these: SearchResult takes a
+                // primitive id, so a header missing its id field unboxes to a
+                // NullPointerException thrown out of search() — which builds every type's
+                // results eagerly, so one malformed document fails the whole request rather
+                // than one resource type. A resource with no id is not addressable anyway.
+                continue;
+            }
             String name = header.getString("name");
             String description = header.getString("description");
             if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                 results.add(new SearchResult(
                         namespace,
-                        header.getInteger(idField),
+                        id,
                         SearchTextMatcher.nullToEmpty(name),
                         SearchTextMatcher.nullToEmpty(description)
                 ));

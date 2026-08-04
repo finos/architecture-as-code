@@ -113,15 +113,15 @@ public class MongoAdrStore implements AdrStore {
         String title = "ADR " + adrId;
         String status = "unknown";
 
+        // A header carrying no adrId is malformed rather than missing, and
+        // listSummariesPaged deliberately renders it instead of failing — it sorts null ids
+        // first for exactly that reason. Resolving its latest revision would unbox this null
+        // and undo that tolerance, turning one bad document into a 500 for every ADR in the
+        // namespace. Render the placeholder and move on, which is what the row is worth.
         if (adrId == null) {
             return new NamespaceAdrSummary(title, status, null);
         }
 
-        // A header carrying no adrId is malformed rather than missing, and
-        // listSummariesPaged deliberately renders it instead of failing — it sorts null ids
-        // last for exactly that reason. Resolving its latest revision would unbox this null
-        // and undo that tolerance, turning one bad document into a 500 for every ADR in the
-        // namespace. Render the placeholder and move on, which is what the row is worth.
         Document latest = documentStore.getLatestVersionContent(namespace, adrId);
         if (latest != null) {
             String documentTitle = latest.getString("title");
@@ -145,7 +145,8 @@ public class MongoAdrStore implements AdrStore {
         int id = counterStore.getNextAdrSequenceValue();
         // ADRs carry no name or description of their own — both live in the revision content.
         documentStore.createHeader(adrMeta.getNamespace(), id, null, null);
-        createFirstRevision(adrMeta, id, content);
+        documentStore.createFirstVersion(adrMeta.getNamespace(), id,
+                String.valueOf(adrMeta.getRevision()), content);
 
         return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).build();
     }
@@ -241,26 +242,6 @@ public class MongoAdrStore implements AdrStore {
                 .build();
     }
 
-    /**
-     * Writes the first revision of a newly created ADR, removing the header again if that
-     * fails — a header with no revisions cannot be removed through the API.
-     */
-    private void createFirstRevision(AdrMeta adrMeta, int id, Document content) {
-        boolean created;
-        try {
-            created = documentStore.createVersion(
-                    adrMeta.getNamespace(), id, String.valueOf(adrMeta.getRevision()), content);
-        } catch (RuntimeException e) {
-            documentStore.deleteHeader(adrMeta.getNamespace(), id);
-            throw e;
-        }
-        if (!created) {
-            documentStore.deleteHeader(adrMeta.getNamespace(), id);
-            throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Revision " + adrMeta.getRevision() + " already exists for newly allocated "
-                            + ID_FIELD + " " + id + " in namespace " + adrMeta.getNamespace()));
-        }
-    }
 
     /**
      * Writes a new revision, rejecting one that already exists.

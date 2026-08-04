@@ -217,6 +217,19 @@ class TestMongoSearchStoreShould {
     }
 
     @Test
+    void skip_a_header_with_no_id_rather_than_failing_the_search() {
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(architectureCollection, List.of(
+                new Document("namespace", "finos").append("name", "event thing").append("description", "d")));
+
+        // No architectureId. SearchResult takes a primitive id, so unboxing would throw out
+        // of search() — which builds every type's results eagerly, failing the whole request
+        // rather than one type.
+        assertEquals(0, searchStore.search("event").getArchitectures().size());
+    }
+
+    @Test
     void skip_an_adr_header_with_no_id_rather_than_failing_the_search() {
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);

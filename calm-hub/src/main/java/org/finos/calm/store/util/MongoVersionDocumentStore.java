@@ -192,9 +192,18 @@ public class MongoVersionDocumentStore {
      * database — reporting success would return 201 for content that was never stored.</p>
      */
     public void createFirstVersion(String namespace, int resourceId, Document content) {
+        createFirstVersion(namespace, resourceId, INITIAL_VERSION, content);
+    }
+
+    /**
+     * As {@link #createFirstVersion(String, int, Document)}, for a type whose first version is not
+     * {@code 1.0.0}. ADR numbers its revisions from an integer supplied by the caller, so it
+     * needs the same compensation with a different version string — not a second copy of it.
+     */
+    public void createFirstVersion(String namespace, int resourceId, String version, Document content) {
         boolean created;
         try {
-            created = createVersion(namespace, resourceId, INITIAL_VERSION, content);
+            created = createVersion(namespace, resourceId, version, content);
         } catch (RuntimeException e) {
             deleteHeader(namespace, resourceId);
             throw e;
@@ -202,7 +211,7 @@ public class MongoVersionDocumentStore {
         if (!created) {
             deleteHeader(namespace, resourceId);
             throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
+                    "Version " + version + " already exists for newly allocated "
                             + idField + " " + resourceId + " in namespace " + namespace));
         }
     }

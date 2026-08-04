@@ -93,6 +93,33 @@ class TestNamespaceContentServiceShould {
     }
 
     @Test
+    void return_true_when_only_the_adr_store_has_content() throws Exception {
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(3);
+
+        // ADR is checked by count rather than by listing, so its true path needs its own
+        // cover — this gates an irreversible namespace delete.
+        assertThat(service.hasContent(NAMESPACE), is(true));
+    }
+
+    @Test
+    void treat_namespace_not_found_from_the_adr_store_as_empty() throws Exception {
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
+                .thenThrow(new NamespaceNotFoundException());
+
+        assertThat(service.hasContent(NAMESPACE), is(false));
+    }
+
+    @Test
+    void propagate_a_runtime_failure_from_the_adr_store_instead_of_treating_it_as_empty() throws Exception {
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
+                .thenThrow(new RuntimeException("store unavailable"));
+
+        // Deliberately unlike CountsService: reporting "no content" for content that was
+        // never confirmed absent would let the delete proceed.
+        assertThrows(RuntimeException.class, () -> service.hasContent(NAMESPACE));
+    }
+
+    @Test
     void treat_namespace_not_found_from_a_store_as_empty() throws Exception {
         when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE))
                 .thenThrow(new NamespaceNotFoundException());

@@ -156,12 +156,12 @@ if (isEmptyDatabase) {
         { upsert: true });
 
     // Mirrors MongoIndexInitializationStep, which the pin above skips. Keep the two in
-    // step. Two deliberate differences, both because architectures have moved to the
-    // header/version shape (ADR 0001): architectures gets a unique
-    // (namespace, architectureId) instead of (namespace), which is what allows more than
-    // one architecture per namespace at all; and architectureVersions gets a unique
-    // (namespace, architectureId, version). The other six versioned types keep the
-    // one-document-per-namespace index until they migrate.
+    // step. All seven versioned types now use the header/version shape (ADR 0001), so each
+    // gets a unique (namespace, <type>Id) instead of the old unique (namespace) — which is
+    // what allows more than one resource of a type per namespace at all — plus a unique
+    // (namespace, <type>Id, version) on its sibling versions collection. Controls and
+    // decorators keep the one-document-per-namespace index, by ADR 0004 rather than
+    // pending migration.
     db.namespaces.createIndex({ name: 1 }, unique);
     db.domains.createIndex({ name: 1 }, unique);
     db.schemas.createIndex({ version: 1 }, unique);

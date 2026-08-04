@@ -40,8 +40,11 @@ class TestNumericVersionOrderShould {
     }
 
     @Test
-    void tolerate_surrounding_whitespace() {
-        assertThat(sorted(" 2 ", "1"), contains("1", " 2 "));
+    void treat_a_whitespace_padded_revision_as_unparseable() {
+        // Not tolerance for its own sake: Integer.parseInt rejects " 2 ", and every caller
+        // that turns a revision string back into a number uses it. Ranking " 2 " as a real
+        // revision would let it sort as the latest and then throw when read.
+        assertThat(sorted(" 2 ", "1"), contains(" 2 ", "1"));
     }
 
     @Test

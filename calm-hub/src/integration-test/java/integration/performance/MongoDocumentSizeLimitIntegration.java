@@ -23,7 +23,6 @@ import static integration.MongoSetup.namespaceSetup;
 import static integration.performance.ConcurrencyTestHelper.extractIdsFromLocations;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What issue #2884 set out to remove: MongoDB's 16MB per-document ceiling, reachable because

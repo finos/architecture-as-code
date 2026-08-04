@@ -96,7 +96,7 @@ public class NitriteAdrStore implements AdrStore {
 
         // A header carrying no adrId is malformed rather than missing, and
         // listSummariesPaged deliberately renders it instead of failing — it sorts null ids
-        // last for exactly that reason. Resolving its latest revision would unbox this null
+        // first for exactly that reason. Resolving its latest revision would unbox this null
         // and undo that tolerance, turning one bad document into a 500 for every ADR in the
         // namespace. Render the placeholder and move on, which is what the row is worth.
         if (adrId == null) {
@@ -131,7 +131,8 @@ public class NitriteAdrStore implements AdrStore {
         int id = counterStore.getNextAdrSequenceValue();
         // ADRs carry no name or description of their own — both live in the revision content.
         documentStore.createHeader(adrMeta.getNamespace(), id, null, null);
-        createFirstRevision(adrMeta, id, content);
+        documentStore.createFirstVersion(adrMeta.getNamespace(), id,
+                String.valueOf(adrMeta.getRevision()), content);
 
         LOG.info("Created ADR with ID {} for namespace '{}'", id, adrMeta.getNamespace());
         return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).build();
@@ -220,26 +221,6 @@ public class NitriteAdrStore implements AdrStore {
                 .build();
     }
 
-    /**
-     * Writes the first revision of a newly created ADR, removing the header again if that
-     * fails — a header with no revisions cannot be removed through the API.
-     */
-    private void createFirstRevision(AdrMeta adrMeta, int id, String content) {
-        boolean created;
-        try {
-            created = documentStore.createVersion(
-                    adrMeta.getNamespace(), id, String.valueOf(adrMeta.getRevision()), content);
-        } catch (RuntimeException e) {
-            documentStore.deleteHeader(adrMeta.getNamespace(), id);
-            throw e;
-        }
-        if (!created) {
-            documentStore.deleteHeader(adrMeta.getNamespace(), id);
-            throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Revision " + adrMeta.getRevision() + " already exists for newly allocated "
-                            + ID_FIELD + " " + id + " in namespace " + adrMeta.getNamespace()));
-        }
-    }
 
     /**
      * Writes a new revision, rejecting one that already exists — both callers compute
@@ -253,6 +234,13 @@ public class NitriteAdrStore implements AdrStore {
         }
     }
 
+    /**
+     * ADR has no {@code validate<Type>Json} guard like its siblings, and does not need one:
+     * they validate a user-supplied JSON <em>string</em>, whereas an ADR arrives as a typed
+     * {@code Adr} that Jackson serialises here. The old store parsed the serialiser's own
+     * output with {@code org.bson.Document.parse} as a second check; that could only fail
+     * for output Jackson itself produced, so it is not carried across.
+     */
     private String toContent(AdrMeta adrMeta) throws AdrParseException {
         try {
             return objectMapper.writeValueAsString(adrMeta.getAdr());

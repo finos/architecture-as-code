@@ -1,7 +1,6 @@
 package org.finos.calm.services;
 
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
-import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.DomainControlCount;
 import org.finos.calm.domain.exception.DomainNotFoundException;
@@ -316,6 +315,44 @@ class TestCountsServiceShould {
         // A store-level failure is counted as zero rather than 500-ing the whole endpoint.
         assertThat(result, hasSize(1));
         assertThat(result.get(0).getArchitectures(), is(0));
+    }
+
+    @Test
+    void count_adrs_as_zero_when_the_adr_store_throws_at_runtime() throws Exception {
+        when(mockNamespaceStore.getNamespaces())
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "FINOS namespace")));
+        when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
+                .thenThrow(new RuntimeException("store unavailable"));
+        when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
+
+        List<NamespaceCounts> result = service.getNamespaceCounts(ALL_ACCESS);
+
+        // ADR counts through its own path now, so it needs its own proof that a store
+        // failure is an undercount rather than a 500 for the whole endpoint.
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getAdrs(), is(0));
+    }
+
+    @Test
+    void count_adrs_as_zero_when_the_namespace_is_missing_from_the_adr_store() throws Exception {
+        when(mockNamespaceStore.getNamespaces())
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "FINOS namespace")));
+        when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
+                .thenThrow(new NamespaceNotFoundException());
+        when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
+
+        List<NamespaceCounts> result = service.getNamespaceCounts(ALL_ACCESS);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getAdrs(), is(0));
     }
 
     @Test

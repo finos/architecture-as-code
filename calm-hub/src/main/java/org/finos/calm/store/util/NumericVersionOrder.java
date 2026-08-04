@@ -42,12 +42,20 @@ public final class NumericVersionOrder {
         return leftValue == null ? -1 : 1;
     }
 
+    /**
+     * Deliberately does not trim. Every consumer of a revision string parses it with a plain
+     * {@code Integer.parseInt} — {@code getAdrRevisions} and the latest-revision read on both
+     * backends — and those reject surrounding whitespace. Accepting it here would rank a key
+     * like {@code " 2 "} as a real revision, so it could sort as the latest and then throw
+     * when the caller parsed it, which is the opposite of what ranking unparseable values
+     * first is for.
+     */
     private static Integer parseOrNull(String version) {
         if (version == null) {
             return null;
         }
         try {
-            return Integer.valueOf(version.trim());
+            return Integer.valueOf(version);
         } catch (NumberFormatException e) {
             return null;
         }

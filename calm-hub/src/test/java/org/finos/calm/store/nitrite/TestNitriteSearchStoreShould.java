@@ -168,6 +168,17 @@ class TestNitriteSearchStoreShould {
     }
 
     @Test
+    void skip_a_header_with_no_id_rather_than_failing_the_search() {
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(architectureCollection, List.of(
+                Document.createDocument("namespace", "finos").put("name", "event thing").put("description", "d")));
+
+        // See the Mongo twin: one id-less header would 500 the entire /search request.
+        assertEquals(0, searchStore.search("event").getArchitectures().size());
+    }
+
+    @Test
     void skip_an_adr_header_with_no_id_rather_than_failing_the_search() {
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);

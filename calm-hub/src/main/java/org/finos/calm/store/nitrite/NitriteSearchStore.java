@@ -1,5 +1,8 @@
 package org.finos.calm.store.nitrite;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -47,6 +50,7 @@ public class NitriteSearchStore implements SearchStore {
     private final NitriteCollection controlCollection;
     private final NitriteCollection adrCollection;
     private final NitriteVersionDocumentStore adrDocuments;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Inject
     public NitriteSearchStore(@StandaloneQualifier Nitrite db) {
@@ -79,10 +83,10 @@ public class NitriteSearchStore implements SearchStore {
 
     /**
      * Searches a collection in the header/version shape, where each document <em>is</em> one
-     * resource rather than a namespace-wide array of them. See
-     * {@code MongoSearchStore.searchHeaderCollection} for why both shapes have to be
-     * supported at once, and for the silent failure mode if a migrated type is left on the
-     * array-shaped method.
+     * resource rather than a namespace-wide array of them. The array-shaped path this once
+     * sat beside was retired when Interface, the last of the namespaced types, migrated —
+     * see {@code MongoSearchStore.searchHeaderCollection} for the silent failure mode it
+     * guarded against, which is worth remembering rather than the method itself.
      */
     private List<SearchResult> searchHeaderCollection(NitriteCollection collection,
                                                       String idField,
@@ -98,12 +102,21 @@ public class NitriteSearchStore implements SearchStore {
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
+            Integer id = header.get(idField, Integer.class);
+            if (id == null) {
+                // Same reason the ADR branch below skips these: SearchResult takes a
+                // primitive id, so a header missing its id field unboxes to a
+                // NullPointerException thrown out of search() — which builds every type's
+                // results eagerly, so one malformed document fails the whole request rather
+                // than one resource type. A resource with no id is not addressable anyway.
+                continue;
+            }
             String name = header.get("name", String.class);
             String description = header.get("description", String.class);
             if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                 results.add(new SearchResult(
                         namespace,
-                        header.get(idField, Integer.class),
+                        id,
                         SearchTextMatcher.nullToEmpty(name),
                         SearchTextMatcher.nullToEmpty(description)
                 ));
@@ -188,10 +201,19 @@ public class NitriteSearchStore implements SearchStore {
      * Content is a JSON string in this backend, so the field has to be parsed out; a search
      * must not fail because one ADR's content is unreadable.
      */
+    /**
+     * Reads an ADR revision's title with the same parser {@code NitriteAdrStore} uses.
+     *
+     * <p>Deliberately Jackson rather than {@code org.bson.Document.parse}: the two disagree
+     * about what is readable, so a BSON-only parse here would show a title in the ADR
+     * listing and a bare "ADR n" in search results for the same document. BSON also has no
+     * business in the Nitrite path, which stores content as a plain JSON string.</p>
+     */
     private String titleOf(String content) {
         try {
-            return org.bson.Document.parse(content).getString("title");
-        } catch (RuntimeException e) {
+            JsonNode title = objectMapper.readTree(content).get("title");
+            return title == null || !title.isTextual() ? null : title.asText();
+        } catch (JsonProcessingException | RuntimeException e) {
             return null;
         }
     }

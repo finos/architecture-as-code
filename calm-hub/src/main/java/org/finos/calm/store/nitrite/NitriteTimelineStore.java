@@ -153,10 +153,15 @@ public class NitriteTimelineStore implements TimelineStore {
             throw new JsonParseException("Timeline JSON must not be null");
         }
         try {
+            // Use org.bson.Document to validate JSON
             org.bson.Document.parse(timelineJson);
-        } catch (Exception e) {
+        } catch (JsonParseException e) {
+            // Rethrow the original so the parse failure's stack trace is preserved for
+            // observability. Flow, Standard and Interface wrap instead — that is a real
+            // pre-existing difference between the types, not an inconsistency to tidy, and
+            // this port exists to preserve each one's behaviour rather than pick a winner.
             LOG.error("Invalid JSON format for timeline: {}", e.getMessage());
-            throw new JsonParseException(e.getMessage());
+            throw e;
         }
     }
 
