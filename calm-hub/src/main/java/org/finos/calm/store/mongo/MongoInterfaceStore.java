@@ -9,7 +9,6 @@ import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
 import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
@@ -20,6 +19,8 @@ import org.finos.calm.store.util.MongoVersionDocumentStore;
 import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
+
+import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
 
 /**
  * MongoDB-backed implementation of {@link InterfaceStore}.
@@ -44,7 +45,6 @@ public class MongoInterfaceStore implements InterfaceStore {
     private static final String VERSION_COLLECTION = "interfaceVersions";
     private static final String ID_FIELD = "interfaceId";
     private static final String RESOURCE_LABEL = "Interface";
-    private static final String INITIAL_VERSION = "1.0.0";
 
     private final MongoCounterStore counterStore;
     private final MongoNamespaceStore namespaceStore;
@@ -82,7 +82,7 @@ public class MongoInterfaceStore implements InterfaceStore {
 
         int id = counterStore.getNextInterfaceSequenceValue();
         documentStore.createHeader(namespace, id, interfaceRequest.getName(), interfaceRequest.getDescription());
-        createInitialVersion(namespace, id, content);
+        documentStore.createFirstVersion(namespace, id, content);
 
         createdInterface.setId(id);
         createdInterface.setVersion(INITIAL_VERSION);
@@ -125,25 +125,6 @@ public class MongoInterfaceStore implements InterfaceStore {
         return calmInterface;
     }
 
-    /**
-     * Writes the first version of a newly created interface, removing the header again if
-     * that fails — a header with no versions cannot be removed through the API.
-     */
-    private void createInitialVersion(String namespace, int id, Document content) {
-        boolean created;
-        try {
-            created = documentStore.createVersion(namespace, id, INITIAL_VERSION, content);
-        } catch (RuntimeException e) {
-            documentStore.deleteHeader(namespace, id);
-            throw e;
-        }
-        if (!created) {
-            documentStore.deleteHeader(namespace, id);
-            throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
-                            + ID_FIELD + " " + id + " in namespace " + namespace));
-        }
-    }
 
     private void requireNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {

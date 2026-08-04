@@ -11,7 +11,6 @@ import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.exception.TimelineVersionExistsException;
 import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.timeline.CreateTimelineRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
@@ -24,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
+
+import static org.finos.calm.store.util.NitriteVersionDocumentStore.INITIAL_VERSION;
 
 /**
  * NitriteDB-backed implementation of {@link TimelineStore}, used in standalone mode.
@@ -47,7 +48,6 @@ public class NitriteTimelineStore implements TimelineStore {
     private static final String VERSION_COLLECTION = "timelineVersions";
     private static final String ID_FIELD = "timelineId";
     private static final String RESOURCE_LABEL = "Timeline";
-    private static final String INITIAL_VERSION = "1.0.0";
 
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
@@ -85,7 +85,7 @@ public class NitriteTimelineStore implements TimelineStore {
 
         int id = counterStore.getNextTimelineSequenceValue();
         documentStore.createHeader(namespace, id, timelineRequest.getName(), timelineRequest.getDescription());
-        createInitialVersion(namespace, id, timelineRequest.getTimelineJson());
+        documentStore.createFirstVersion(namespace, id, timelineRequest.getTimelineJson());
 
         LOG.info("Created timeline with ID {} for namespace '{}'", id, namespace);
         return new Timeline.TimelineBuilder()
@@ -160,25 +160,6 @@ public class NitriteTimelineStore implements TimelineStore {
         }
     }
 
-    /**
-     * Writes the first version of a newly created timeline, removing the header again if that
-     * fails — a header with no versions cannot be removed through the API.
-     */
-    private void createInitialVersion(String namespace, int id, String content) {
-        boolean created;
-        try {
-            created = documentStore.createVersion(namespace, id, INITIAL_VERSION, content);
-        } catch (RuntimeException e) {
-            documentStore.deleteHeader(namespace, id);
-            throw e;
-        }
-        if (!created) {
-            documentStore.deleteHeader(namespace, id);
-            throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
-                            + ID_FIELD + " " + id + " in namespace " + namespace));
-        }
-    }
 
     private void updateHeaderDetails(Timeline timeline) {
         documentStore.updatePresentHeaderDetails(timeline.getNamespace(), timeline.getId(),

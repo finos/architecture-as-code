@@ -11,7 +11,6 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
@@ -23,6 +22,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
+
+import static org.finos.calm.store.util.NitriteVersionDocumentStore.INITIAL_VERSION;
 
 /**
  * NitriteDB-backed implementation of {@link StandardStore}, used in standalone mode.
@@ -44,7 +45,6 @@ public class NitriteStandardStore implements StandardStore {
     private static final String VERSION_COLLECTION = "standardVersions";
     private static final String ID_FIELD = "standardId";
     private static final String RESOURCE_LABEL = "Standard";
-    private static final String INITIAL_VERSION = "1.0.0";
 
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
@@ -76,7 +76,7 @@ public class NitriteStandardStore implements StandardStore {
 
         int id = counterStore.getNextStandardSequenceValue();
         documentStore.createHeader(namespace, id, createStandardRequest.getName(), createStandardRequest.getDescription());
-        createInitialVersion(namespace, id, createStandardRequest.getStandardJson());
+        documentStore.createFirstVersion(namespace, id, createStandardRequest.getStandardJson());
 
         LOG.info("Created standard with ID {} for namespace '{}'", id, namespace);
         createdStandard.setId(id);
@@ -142,25 +142,6 @@ public class NitriteStandardStore implements StandardStore {
         }
     }
 
-    /**
-     * Writes the first version of a newly created standard, removing the header again if
-     * that fails — a header with no versions cannot be removed through the API.
-     */
-    private void createInitialVersion(String namespace, int id, String content) {
-        boolean created;
-        try {
-            created = documentStore.createVersion(namespace, id, INITIAL_VERSION, content);
-        } catch (RuntimeException e) {
-            documentStore.deleteHeader(namespace, id);
-            throw e;
-        }
-        if (!created) {
-            documentStore.deleteHeader(namespace, id);
-            throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
-                            + ID_FIELD + " " + id + " in namespace " + namespace));
-        }
-    }
 
     private void requireNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
