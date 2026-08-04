@@ -248,6 +248,13 @@ public class TestNitritePatternStoreShould {
     // --- getPatternVersions ---
 
     @Test
+    public void throw_a_namespace_exception_when_listing_versions_for_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getPatternVersions(pattern(null)));
+    }
+
+    @Test
     public void throw_a_pattern_exception_when_listing_versions_for_a_missing_pattern() {
         patternDoesNotExist();
 
@@ -276,6 +283,13 @@ public class TestNitritePatternStoreShould {
     // --- getPatternForVersion ---
 
     @Test
+    public void throw_a_namespace_exception_when_getting_a_version_from_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getPatternForVersion(pattern("1.0.0")));
+    }
+
+    @Test
     public void throw_a_pattern_exception_when_getting_a_version_of_a_missing_pattern() {
         patternDoesNotExist();
 
@@ -300,6 +314,14 @@ public class TestNitritePatternStoreShould {
     }
 
     // --- createPatternForVersion ---
+
+    @Test
+    public void throw_a_namespace_exception_when_creating_a_version_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.createPatternForVersion(pattern("1.0.1")));
+    }
 
     @Test
     public void reject_invalid_json_before_checking_the_pattern_exists() {
@@ -367,6 +389,14 @@ public class TestNitritePatternStoreShould {
     }
 
     // --- updatePatternForVersion ---
+
+    @Test
+    public void throw_a_namespace_exception_when_updating_a_version_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.updatePatternForVersion(pattern("1.0.1")));
+    }
 
     @Test
     public void throw_a_pattern_exception_when_updating_a_version_for_a_missing_pattern() {

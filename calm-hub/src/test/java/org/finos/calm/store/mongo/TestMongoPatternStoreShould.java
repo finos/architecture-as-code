@@ -243,6 +243,22 @@ public class TestMongoPatternStoreShould {
         verify(headerCollection).deleteOne(any(Bson.class));
     }
 
+    @Test
+    void fail_rather_than_report_success_when_the_initial_version_already_exists() {
+        when(counterStore.getNextPatternSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // A version document already present for an id the counter just issued is a storage
+        // inconsistency, not a normal "already exists". Returning the caller's payload with
+        // a 201 would report success for content that was never stored.
+        assertThrows(StorageWriteException.class,
+                () -> store.createPatternForNamespace(createRequest(), NAMESPACE));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
     // --- getPatternVersions ---
 
     @Test
@@ -283,6 +299,13 @@ public class TestMongoPatternStoreShould {
     // --- getPatternForVersion ---
 
     @Test
+    void throw_a_namespace_exception_when_getting_a_version_from_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getPatternForVersion(pattern("1.0.0")));
+    }
+
+    @Test
     void throw_a_pattern_exception_when_getting_a_version_of_a_missing_pattern() {
         patternDoesNotExist();
 
@@ -307,6 +330,14 @@ public class TestMongoPatternStoreShould {
     }
 
     // --- createPatternForVersion ---
+
+    @Test
+    void throw_a_namespace_exception_when_creating_a_version_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.createPatternForVersion(pattern("1.0.1")));
+    }
 
     @Test
     void throw_a_pattern_exception_when_creating_a_version_for_a_missing_pattern() {
@@ -378,6 +409,14 @@ public class TestMongoPatternStoreShould {
     }
 
     // --- updatePatternForVersion ---
+
+    @Test
+    void throw_a_namespace_exception_when_updating_a_version_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.updatePatternForVersion(pattern("1.0.1")));
+    }
 
     @Test
     void throw_a_pattern_exception_when_updating_a_version_for_a_missing_pattern() {
