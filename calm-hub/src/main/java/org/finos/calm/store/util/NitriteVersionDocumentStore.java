@@ -284,13 +284,26 @@ public class NitriteVersionDocumentStore {
     /**
      * @return the stored content for one version, or {@code null} if that version
      * (or the resource) doesn't exist.
+     *
+     * <p>Content that is present but not a string is reported the same way as absent
+     * content. The typed accessor {@code get(key, String.class)} casts, so reading a
+     * document whose {@code content} is a number or a nested document would throw a
+     * {@code ClassCastException} out of the store and surface as a 500. The old
+     * per-type stores guarded this with an {@code instanceof String} check and
+     * returned their version-not-found exception, giving a 404; that guard was
+     * dropped in the port and is restored here. A malformed stored document is not a
+     * version the caller can read, and 404 says so without claiming the server broke.</p>
      */
     public String getVersion(String namespace, int resourceId, String version) {
         lock.readLock().lock();
         try {
             Document versionDocument = versionCollection
                     .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).firstOrNull();
-            return versionDocument == null ? null : versionDocument.get(CONTENT_FIELD, String.class);
+            if (versionDocument == null) {
+                return null;
+            }
+            Object content = versionDocument.get(CONTENT_FIELD);
+            return content instanceof String stored ? stored : null;
         } finally {
             lock.readLock().unlock();
         }

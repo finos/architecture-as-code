@@ -195,7 +195,7 @@ public class MongoVersionSplitMigration {
             Document versionDocument = new Document(NAMESPACE_FIELD, namespace)
                     .append(idField, resourceId)
                     .append(VERSION_FIELD, version.getKey())
-                    .append("content", storedVersions.get(version.getValue(), Document.class))
+                    .append("content", contentOf(storedVersions, version.getValue(), namespace, resourceId))
                     .append("metadata", new Document());
             versions.replaceOne(
                     Filters.and(Filters.eq(NAMESPACE_FIELD, namespace),
@@ -204,6 +204,30 @@ public class MongoVersionSplitMigration {
                     versionDocument, upsert);
         }
         return keysByCanonicalVersion.size();
+    }
+
+    /**
+     * Reads one version's stored content, preserving whatever is there rather than casting.
+     *
+     * <p>The old shape's content is expected to be a parsed document, and the typed accessor
+     * would throw {@code ClassCastException} on anything else — out of the migration, which
+     * would abort the run with the schema lock still held and leave the whole hub refusing
+     * requests over a single malformed document.</p>
+     *
+     * <p>The value is carried across unchanged rather than dropped or coerced: a migration is
+     * the wrong place to discard data, and an operator can repair the document afterwards.
+     * The warning is what tells them to.</p>
+     */
+    private Object contentOf(Document storedVersions, String key, String namespace, Integer resourceId) {
+        Object content = storedVersions.get(key);
+        if (!(content instanceof Document)) {
+            LOG.warn("Version [{}] of {} [namespace={}, {}={}] holds content of type [{}] rather than a "
+                            + "document. Migrating it unchanged so nothing is lost; repair the document "
+                            + "if reads of that version do not behave.",
+                    key, resourceLabel, namespace, idField, resourceId,
+                    content == null ? "null" : content.getClass().getName());
+        }
+        return content;
     }
 
     /**

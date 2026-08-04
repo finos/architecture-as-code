@@ -242,6 +242,23 @@ class TestMongoArchitectureVersionSplitStepShould {
     }
 
     @Test
+    void migrate_content_that_is_not_a_document_rather_than_aborting_the_run() {
+        // The typed accessor would cast and throw out of the migration, aborting it with the
+        // schema lock still held — the whole hub then refuses requests over one malformed
+        // document. Carrying the value across unchanged keeps the run going and loses nothing.
+        stubOldDocuments(List.of(new Document("_id", "abc")
+                .append("namespace", "finos")
+                .append("architectures", List.of(new Document("architectureId", 1)
+                        .append("versions", new Document("1-0-0", "a bare string"))))));
+
+        step.apply();
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versions).replaceOne(any(Bson.class), versionCaptor.capture(), any(ReplaceOptions.class));
+        assertThat(versionCaptor.getValue().get("content"), is("a bare string"));
+    }
+
+    @Test
     void write_a_header_but_no_versions_for_an_architecture_that_has_none() {
         stubOldDocuments(List.of(new Document("_id", "abc")
                 .append("namespace", "finos")

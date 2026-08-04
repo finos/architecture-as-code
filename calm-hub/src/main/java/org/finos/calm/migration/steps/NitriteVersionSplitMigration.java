@@ -126,10 +126,35 @@ public class NitriteVersionSplitMigration {
                     .put(NAMESPACE_FIELD, namespace)
                     .put(idField, resourceId)
                     .put(VERSION_FIELD, version.getKey())
-                    .put("content", storedVersions.get(version.getValue(), String.class))
+                    .put("content", contentOf(storedVersions, version.getValue(), namespace, resourceId))
                     .put("metadata", Document.createDocument()));
         }
         return keysByCanonicalVersion.size();
+    }
+
+    /**
+     * Reads one version's stored content, preserving whatever is there rather than casting.
+     *
+     * <p>The old shape's content is expected to be a JSON string, and the typed accessor
+     * would throw {@code ClassCastException} on anything else — out of the migration, which
+     * would abort the run with the schema lock still held and leave the whole hub refusing
+     * requests over a single malformed document.</p>
+     *
+     * <p>The value is carried across unchanged rather than dropped or coerced: a migration
+     * is the wrong place to discard data, and the read path now reports unreadable content
+     * as not-found rather than failing, so the resource stays serviceable and an operator
+     * can repair the document afterwards. The warning is what tells them to.</p>
+     */
+    private Object contentOf(Document storedVersions, String key, String namespace, Integer resourceId) {
+        Object content = storedVersions.get(key);
+        if (!(content instanceof String)) {
+            LOG.warn("Version [{}] of {} [namespace={}, {}={}] holds content of type [{}] rather than a "
+                            + "string. Migrating it unchanged; reads of it will report the version as "
+                            + "not found until the document is repaired.",
+                    key, resourceLabel, namespace, idField, resourceId,
+                    content == null ? "null" : content.getClass().getName());
+        }
+        return content;
     }
 
     /**

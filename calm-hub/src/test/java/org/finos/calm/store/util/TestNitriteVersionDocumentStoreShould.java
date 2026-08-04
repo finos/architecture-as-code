@@ -6,7 +6,6 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.exceptions.NitriteException;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,14 +16,15 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.util.List;
+import org.finos.calm.domain.exception.StorageWriteException;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -384,6 +384,17 @@ class TestNitriteVersionDocumentStoreShould {
         assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "9.9.9"), is(nullValue()));
     }
 
+    @Test
+    void treat_content_that_is_not_a_string_as_a_version_that_cannot_be_read() {
+        // Nitrite's typed accessor casts rather than returning null, so a document whose
+        // content is not a String would throw out of the store and surface as a 500. The
+        // per-type stores guarded this with instanceof and returned not-found, giving a
+        // 404; reachable from a hand-repaired database or odd pre-migration data.
+        stubFind(versionCollection, List.of(versionDocument("1.0.0").put("content", 42)));
+
+        assertThat(store.getVersion(NAMESPACE, RESOURCE_ID, "1.0.0"), is(nullValue()));
+    }
+
     // --- listVersions ---
 
     @Test
@@ -435,6 +446,7 @@ class TestNitriteVersionDocumentStoreShould {
         assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED),
                 contains(new NamespaceResourceSummary("Architecture 7", "", 7, 0)));
     }
+
     @Test
     void sort_headers_that_have_no_id_last_rather_than_failing_the_listing() {
         // Comparing ids with Integer.compare unboxes, so a single id-less header would NPE

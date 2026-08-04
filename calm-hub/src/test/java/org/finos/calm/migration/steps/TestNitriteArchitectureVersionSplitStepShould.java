@@ -155,6 +155,27 @@ class TestNitriteArchitectureVersionSplitStepShould {
     }
 
     @Test
+    void migrate_content_that_is_not_a_string_rather_than_aborting_the_run() {
+        // The typed accessor would cast and throw out of the migration, aborting it with the
+        // schema lock still held — the whole hub then refuses requests over one malformed
+        // document. Carrying the value across unchanged keeps the run going and loses
+        // nothing; the read path reports it as not found until it is repaired.
+        stubCollectionContents(List.of(Document.createDocument()
+                .put("namespace", "finos")
+                .put("architectures", List.of(Document.createDocument()
+                        .put("architectureId", 1)
+                        .put("versions", Document.createDocument()
+                                .put("1-0-0", 42))))));
+
+        step.apply();
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versions).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0"));
+        assertThat(versionCaptor.getValue().get("content"), is(42));
+    }
+
+    @Test
     void write_a_header_but_no_versions_for_an_architecture_that_has_none() {
         stubCollectionContents(List.of(Document.createDocument()
                 .put("namespace", "finos")
