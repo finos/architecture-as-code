@@ -1,0 +1,261 @@
+{
+  "nodes": [
+    {
+      "unique-id": "actor-1784654671109",
+      "node-type": "actor",
+      "name": "Actor",
+      "description": ""
+    },
+    {
+      "unique-id": "database-1784654678206",
+      "node-type": "database",
+      "name": "Database",
+      "description": ""
+    },
+    {
+      "unique-id": "service-1784746705981",
+      "node-type": "service",
+      "name": "Fidelity Microservice",
+      "description": "",
+      "interfaces": [],
+      "controls": {
+        "api-gateway": {
+          "description": "All microservices must be fronted by Stratum (Fidelity Enterprise API Gateway) for edge routing, rate limiting, and OAuth2 validation",
+          "requirements": [
+            {
+              "requirement-url": "standards/integration-services/api-gateway.md",
+              "config": {
+                "value": "Stratum"
+              }
+            }
+          ],
+          "metadata": {
+            "validation": {
+              "allowed-values": [
+                "Stratum",
+                "AWS API GW",
+                "Azure API GW"
+              ]
+            }
+          }
+        },
+        "api-security": {
+          "description": "Service must implement API authentication and authorization",
+          "requirements": [
+            {
+              "requirement-url": "standards/cybersecurity-services/api-security.md",
+              "config": {
+                "value": "OAuth2"
+              }
+            }
+          ],
+          "metadata": {
+            "validation": {
+              "allowed-values": [
+                "OAuth2",
+                "mTLS"
+              ]
+            }
+          }
+        },
+        "health-api": {
+          "description": "Service must expose a health check endpoint for liveness and readiness probes",
+          "requirements": [
+            {
+              "requirement-url": "standards/application-software-delivery/health-api.md",
+              "config": {
+                "value": "/health"
+              }
+            }
+          ],
+          "metadata": {
+            "validation": {
+              "pattern": "^/[a-z][a-z0-9/-]*$",
+              "example": "/actuator/health"
+            }
+          }
+        },
+        "caching-strategy": {
+          "description": "Service must define a caching strategy for performance and resilience",
+          "requirements": [
+            {
+              "requirement-url": "standards/application-software-delivery/caching-strategy.md",
+              "config": {
+                "value": "Valkey"
+              }
+            }
+          ],
+          "metadata": {
+            "validation": {
+              "allowed-values": [
+                "Valkey",
+                "In-Memory",
+                "None"
+              ]
+            }
+          }
+        },
+        "technology-stack": {
+          "description": "Service must use an approved technology runtime",
+          "requirements": [
+            {
+              "requirement-url": "standards/application-software-delivery/technology-stack.md",
+              "config": {
+                "value": "Java"
+              }
+            }
+          ],
+          "metadata": {
+            "validation": {
+              "allowed-values": [
+                "Java",
+                "Node.js",
+                "Golang",
+                "Python",
+                ".NET",
+                "Rust"
+              ]
+            }
+          }
+        },
+        "observability": {
+          "description": "All microservices must use OpenTelemetry (OTel) for distributed tracing, structured logging, and metrics collection",
+          "requirements": [
+            {
+              "requirement-url": "standards/application-software-delivery/observability.md",
+              "config": {
+                "value": "OpenTelemetry"
+              }
+            }
+          ],
+          "metadata": {
+            "validation": {
+              "allowed-values": [
+                "OpenTelemetry"
+              ]
+            }
+          }
+        }
+      },
+      "metadata": {
+        "source-fidelity-node": "Fidelity_Microservice"
+      }
+    },
+    {
+      "unique-id": "standard-1784749417153",
+      "node-type": "standard",
+      "name": "STD100002 Fidelity Application Software Delivery Standard",
+      "description": "",
+      "interfaces": [],
+      "controls": {
+        "app-id": {
+          "description": "Application ID",
+          "requirements": [
+            {
+              "requirement-url": "standards/application-software-delivery/STD100002-fidelity-application-software-delivery-standard.md",
+              "config": {
+                "value": "AP187183"
+              }
+            }
+          ],
+          "metadata": {
+            "validation": {
+              "pattern": "^AP\\d+$",
+              "example": "AP187183"
+            }
+          }
+        }
+      },
+      "metadata": {
+        "source-fidelity-node": "standards:STD100002-fidelity-application-software-delivery-standard"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "rel-1784746708886",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "actor-1784654671109"
+          },
+          "destination": {
+            "node": "service-1784746705981"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "metadata": {
+        "line-style": "dashed"
+      }
+    },
+    {
+      "unique-id": "rel-1784746710612",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "service-1784746705981"
+          },
+          "destination": {
+            "node": "database-1784654678206"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "rel-1785160067822",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "actor-1784654671109"
+          },
+          "destination": {
+            "node": "service-1784746705981"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "rel-1785160072029",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "actor-1784654671109"
+          },
+          "destination": {
+            "node": "service-1784746705981"
+          }
+        }
+      }
+    }
+  ],
+  "$schema": "https://calm.finos.org/release/1.2/meta/core.json",
+  "metadata": {
+    "_layout": {
+      "actor-1784654671109": {
+        "x": 438,
+        "y": -89,
+        "w": 44,
+        "h": 63
+      },
+      "database-1784654678206": {
+        "x": 431,
+        "y": 205,
+        "w": 56,
+        "h": 63
+      },
+      "service-1784746705981": {
+        "x": 386,
+        "y": 67,
+        "w": 149,
+        "h": 33
+      },
+      "standard-1784749417153": {
+        "x": 500,
+        "y": -149,
+        "w": 345,
+        "h": 33
+      }
+    }
+  }
+}

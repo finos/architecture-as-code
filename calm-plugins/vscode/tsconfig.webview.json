@@ -1,0 +1,15 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "types": []
+    },
+    "include": ["src/webview/**/*.ts", "src/webview/**/*.tsx", "src/core/**/*.ts", "src/extensions/**/*.ts"],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "src/test/**"
+    ]
+}
