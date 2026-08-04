@@ -18,11 +18,19 @@ reading as a record of what the original design missed:
 - `createFirstVersion` — that compensation used correctly, which every store
   had been repeating. Not a new primitive; it exists because getting it wrong
   strands a header no endpoint can remove.
-- `getLatestVersion` / `getLatestVersionContent` and a pluggable version
-  comparator — both for ADR, whose revisions are integers and whose summary
-  is built from the latest revision's content rather than from the entity.
-  Neither reinstates the `latestVersion` header pointer ADR 0001 rejected;
-  they recompute.
+- `getLatestVersion` / `getLatestVersionContent` and a pluggable
+  `VersionScheme` — both for ADR, whose revisions are integers and whose
+  summary is built from the latest revision's content rather than from the
+  entity. Neither reinstates the `latestVersion` header pointer ADR 0001
+  rejected; they recompute.
+
+  The scheme started as a pluggable *comparator* alone, and that was a bug:
+  canonicalisation stayed hard-wired, so ADR got numeric ordering but
+  semantic spelling, and revision 100 was stored as `1.0.0` — sorting below
+  99 and making every "latest revision" read return stale content. Spelling
+  and ordering are one decision and are now one type. Worth remembering the
+  next time a per-type behaviour is made pluggable: the question is not just
+  what varies, but what has to vary *with* it.
 
 `MongoVersionSplitMigration` / `NitriteVersionSplitMigration` were extracted
 when Pattern became the second type to need the fan-out, and are shared by
@@ -126,7 +134,12 @@ rules can't drift apart between them.
   [ADR 0002](0002-version-key-encoding.md). It delegates to the existing
   `Semver` record rather than parsing versions a second time.
 - **`CanonicalVersion`** — folds every accepted spelling of a version onto
-  one stored form, applied at every helper entry point that takes a version.
+  one stored form, applied at every helper entry point that takes a version
+  *for the semantically-versioned types*. Reached through `VersionScheme`
+  rather than called directly: ADR's integer revisions must be stored
+  verbatim, since `100` is one of the accepted spellings of `1.0.0` and
+  folding it stored revision 100 as `1.0.0`, below revision 99 in numeric
+  order and unparseable by the ADR store.
   This is the part of [ADR 0002](0002-version-key-encoding.md) that turned
   out to need more than writing a dot instead of a dash.
   `VERSION_REGEX` makes *both* separators optional, so `1.0.0`, `1-0-0`,
