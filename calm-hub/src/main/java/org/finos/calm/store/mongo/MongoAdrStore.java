@@ -99,6 +99,12 @@ public class MongoAdrStore implements AdrStore {
         return summaries;
     }
 
+    @Override
+    public int countAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
+        requireNamespace(namespace);
+        return documentStore.countHeaders(namespace);
+    }
+
     /**
      * Builds a summary from the latest revision's content, falling back to the same
      * placeholders the old shape used when an ADR has no readable revision.

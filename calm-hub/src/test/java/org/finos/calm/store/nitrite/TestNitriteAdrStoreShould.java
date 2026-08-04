@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -80,6 +81,7 @@ public class TestNitriteAdrStoreShould {
         when(collection.find(any(Filter.class))).thenReturn(cursor);
         when(cursor.firstOrNull()).thenReturn(documents.isEmpty() ? null : documents.get(0));
         when(cursor.iterator()).thenAnswer(invocation -> documents.iterator());
+        when(cursor.size()).thenReturn((long) documents.size());
         when(collection.find()).thenReturn(cursor);
     }
 
@@ -174,6 +176,23 @@ public class TestNitriteAdrStoreShould {
         // resolving its latest revision unboxes that null into an int parameter.
         assertThat(store.getAdrsForNamespace(NAMESPACE),
                 contains(new NamespaceAdrSummary("ADR null", "unknown", null)));
+    }
+
+    @Test
+    public void count_adrs_without_resolving_any_revision() throws Exception {
+        stubFind(headerCollection, List.of(
+                Document.createDocument().put("adrId", 1),
+                Document.createDocument().put("adrId", 2)));
+
+        assertThat(store.countAdrsForNamespace(NAMESPACE), is(2));
+        verifyNoInteractions(versionCollection);
+    }
+
+    @Test
+    public void throw_a_namespace_exception_when_counting_adrs_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.countAdrsForNamespace(NAMESPACE));
     }
 
     // --- createAdrForNamespace ---

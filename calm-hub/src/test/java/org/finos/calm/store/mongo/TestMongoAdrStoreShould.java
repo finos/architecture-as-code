@@ -40,6 +40,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -185,6 +186,23 @@ public class TestMongoAdrStoreShould {
         // int parameter, which would turn that tolerance back into a 500 for the namespace.
         assertThat(store.getAdrsForNamespace(NAMESPACE),
                 contains(new NamespaceAdrSummary("ADR null", "unknown", null)));
+    }
+
+    @Test
+    void count_adrs_without_resolving_any_revision() throws Exception {
+        when(headerCollection.countDocuments(any(Bson.class))).thenReturn(4L);
+
+        assertThat(store.countAdrsForNamespace(NAMESPACE), is(4));
+        // The whole point: sizing getAdrsForNamespace would read and parse every ADR's
+        // latest revision to produce this number.
+        verifyNoInteractions(versionCollection);
+    }
+
+    @Test
+    void throw_a_namespace_exception_when_counting_adrs_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.countAdrsForNamespace(NAMESPACE));
     }
 
     // --- createAdrForNamespace ---

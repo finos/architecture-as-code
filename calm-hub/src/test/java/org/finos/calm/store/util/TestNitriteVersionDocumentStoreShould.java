@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,6 +59,7 @@ class TestNitriteVersionDocumentStoreShould {
         when(collection.find(any(Filter.class))).thenReturn(cursor);
         when(cursor.firstOrNull()).thenReturn(documents.isEmpty() ? null : documents.get(0));
         when(cursor.iterator()).thenAnswer(invocation -> documents.iterator());
+        when(cursor.size()).thenReturn((long) documents.size());
         when(collection.find()).thenReturn(cursor);
     }
 
@@ -466,6 +468,16 @@ class TestNitriteVersionDocumentStoreShould {
         stubFind(versionCollection, List.of());
 
         assertThat(store.getLatestVersionContent(NAMESPACE, RESOURCE_ID), is(nullValue()));
+    }
+
+    // --- countHeaders ---
+
+    @Test
+    void count_headers_without_reading_any_version_documents() {
+        stubFind(headerCollection, List.of(header(1, "First", "d", 1), header(2, "Second", "d", 0)));
+
+        assertThat(store.countHeaders(NAMESPACE), is(2));
+        verifyNoInteractions(versionCollection);
     }
 
     // --- listSummariesPaged ---

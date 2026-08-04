@@ -42,6 +42,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -584,6 +585,17 @@ class TestMongoVersionDocumentStoreShould {
                 new Document("version", "2.0.0").append("content", content)));
 
         assertThat(store.getLatestVersionContent(NAMESPACE, RESOURCE_ID), is(content));
+    }
+
+    // --- countHeaders ---
+
+    @Test
+    void count_headers_without_reading_any_version_documents() {
+        when(headerCollection.countDocuments(any(Bson.class))).thenReturn(3L);
+
+        assertThat(store.countHeaders(NAMESPACE), is(3));
+        // The point of the method: no version collection traffic at all.
+        verifyNoInteractions(versionCollection);
     }
 
     // --- listSummariesPaged ---

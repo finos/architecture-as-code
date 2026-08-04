@@ -398,6 +398,22 @@ public class MongoVersionDocumentStore {
     }
 
     /**
+     * @return how many resources of this type exist in a namespace.
+     *
+     * <p>Counts header documents and nothing else. Every other type's summary is built
+     * entirely from its header, so a caller wanting only a count can size the summary list
+     * for free — but ADR's summary carries the latest revision's title and status, which
+     * costs two further reads and a parse per resource. Callers that want a number rather
+     * than a list should not pay that, and this is how they avoid it.</p>
+     *
+     * <p>{@code namespace} is the prefix of the unique {@code (namespace, id)} index the
+     * migration creates, so this is answered from the index without fetching documents.</p>
+     */
+    public int countHeaders(String namespace) {
+        return (int) headerCollection.countDocuments(Filters.eq(NAMESPACE_FIELD, namespace));
+    }
+
+    /**
      * Lists resource summaries for a namespace, applying the paging window at the
      * database with {@code skip}/{@code limit}.
      *

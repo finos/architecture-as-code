@@ -99,10 +99,10 @@ class TestCountsServiceShould {
                         new NamespaceResourceSummary("f3", "desc", 3, 0)));
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceResourceSummary("s1", "desc", 1, 0)));
-        when(mockAdrStore.getAdrsForNamespace(NAMESPACE))
-                .thenReturn(List.of(
-                        new NamespaceAdrSummary("adr1", "draft", 1),
-                        new NamespaceAdrSummary("adr2", "accepted", 2)));
+        // ADR is counted rather than listed: its summary carries the latest revision's title
+        // and status, so building the list costs two reads and a parse per ADR for a number
+        // that discards all of it.
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(2);
         when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceInterfaceSummary("i1", "desc", 1)));
 
@@ -132,7 +132,7 @@ class TestCountsServiceShould {
                 .thenThrow(new NamespaceNotFoundException());
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE))
                 .thenThrow(new NamespaceNotFoundException());
-        when(mockAdrStore.getAdrsForNamespace(NAMESPACE))
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
                 .thenThrow(new NamespaceNotFoundException());
         when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE))
                 .thenThrow(new NamespaceNotFoundException());
@@ -275,7 +275,7 @@ class TestCountsServiceShould {
         when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
-        when(mockAdrStore.getAdrsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(0);
         when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
 
         service.getNamespaceCounts(ALL_ACCESS);
@@ -308,7 +308,7 @@ class TestCountsServiceShould {
         when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
-        when(mockAdrStore.getAdrsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(0);
         when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
 
         List<NamespaceCounts> result = service.getNamespaceCounts(ALL_ACCESS);

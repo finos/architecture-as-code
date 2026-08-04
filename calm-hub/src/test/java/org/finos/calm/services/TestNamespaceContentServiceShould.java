@@ -64,7 +64,7 @@ class TestNamespaceContentServiceShould {
         verify(mockPatternStore).getPatternsForNamespace(NAMESPACE);
         verify(mockFlowStore).getFlowsForNamespace(NAMESPACE);
         verify(mockStandardStore).getStandardsForNamespace(NAMESPACE);
-        verify(mockAdrStore).getAdrsForNamespace(NAMESPACE);
+        verify(mockAdrStore).countAdrsForNamespace(NAMESPACE);
         verify(mockInterfaceStore).getInterfacesForNamespace(NAMESPACE);
         verify(mockTimelineStore).getTimelinesForNamespace(NAMESPACE);
         verify(mockDecoratorStore).getDecoratorsForNamespace(NAMESPACE, null, null);

@@ -361,6 +361,23 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
+     * @return how many resources of this type exist in a namespace. See
+     * {@link MongoVersionDocumentStore#countHeaders} for why this exists.
+     *
+     * <p>A scan rather than an index count — CalmHub creates no Nitrite indexes — but it
+     * reads only the small header documents, where sizing an ADR summary list would read
+     * and parse every ADR's latest revision content.</p>
+     */
+    public int countHeaders(String namespace) {
+        lock.readLock().lock();
+        try {
+            return (int) headerCollection.find(where(NAMESPACE_FIELD).eq(namespace)).size();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
      * Lists resource summaries for a namespace.
      *
      * <p>Nitrite has no server-side paging equivalent, so the window is applied in
