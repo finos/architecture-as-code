@@ -4,6 +4,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.exceptions.NitriteException;
 import org.dizitart.no2.filters.Filter;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
 import org.slf4j.Logger;
@@ -62,6 +63,9 @@ public class NitriteVersionDocumentStore {
     static final String DESCRIPTION_FIELD = "description";
     static final String VERSION_COUNT_FIELD = "versionCount";
     static final String METADATA_FIELD = "metadata";
+
+    /** The version every resource is created with. */
+    public static final String INITIAL_VERSION = "1.0.0";
 
     private final NitriteCollection headerCollection;
     private final NitriteCollection versionCollection;
@@ -129,6 +133,33 @@ public class NitriteVersionDocumentStore {
                     namespace, idField, resourceId, e);
         } finally {
             lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Writes the first version of a newly created resource, removing the header again if
+     * that fails. See {@link MongoVersionDocumentStore#createFirstVersion} — the reasoning
+     * for owning this here, and for treating {@code !created} as a real failure, is the
+     * same on both backends.
+     *
+     * <p>Deliberately not held under a single write lock across both steps. Each call it
+     * makes takes the lock itself, and widening that would mean holding the store-wide
+     * write lock across a compensating delete for no gain: the resource id has just been
+     * allocated and is not yet visible to any other caller.</p>
+     */
+    public void createFirstVersion(String namespace, int resourceId, String content) {
+        boolean created;
+        try {
+            created = createVersion(namespace, resourceId, INITIAL_VERSION, content);
+        } catch (RuntimeException e) {
+            deleteHeader(namespace, resourceId);
+            throw e;
+        }
+        if (!created) {
+            deleteHeader(namespace, resourceId);
+            throw StorageWriteException.writeFailed(new IllegalStateException(
+                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
+                            + idField + " " + resourceId + " in namespace " + namespace));
         }
     }
 

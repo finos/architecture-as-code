@@ -12,7 +12,6 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
@@ -22,6 +21,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
+
+import static org.finos.calm.store.util.NitriteVersionDocumentStore.INITIAL_VERSION;
 
 /**
  * NitriteDB-backed implementation of {@link ArchitectureStore}, used in standalone mode.
@@ -55,7 +56,6 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     private static final String VERSION_COLLECTION = "architectureVersions";
     private static final String ID_FIELD = "architectureId";
     private static final String RESOURCE_LABEL = "Architecture";
-    private static final String INITIAL_VERSION = "1.0.0";
 
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
@@ -86,7 +86,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
 
         int id = counterStore.getNextArchitectureSequenceValue();
         documentStore.createHeader(architecture.getNamespace(), id, architecture.getName(), architecture.getDescription());
-        createInitialVersion(architecture.getNamespace(), id, architecture.getArchitectureJson());
+        documentStore.createFirstVersion(architecture.getNamespace(), id, architecture.getArchitectureJson());
 
         LOG.info("Created architecture with ID {} for namespace '{}'", id, architecture.getNamespace());
         return new Architecture.ArchitectureBuilder()
@@ -174,26 +174,6 @@ public class NitriteArchitectureStore implements ArchitectureStore {
         }
     }
 
-    /**
-     * Writes the first version of a newly created architecture, removing the header again
-     * if that fails. See {@code MongoArchitectureStore.createInitialVersion} for why the
-     * compensation is needed — a header with no versions cannot be removed through the API.
-     */
-    private void createInitialVersion(String namespace, int id, String content) {
-        boolean created;
-        try {
-            created = documentStore.createVersion(namespace, id, INITIAL_VERSION, content);
-        } catch (RuntimeException e) {
-            documentStore.deleteHeader(namespace, id);
-            throw e;
-        }
-        if (!created) {
-            documentStore.deleteHeader(namespace, id);
-            throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
-                            + ID_FIELD + " " + id + " in namespace " + namespace));
-        }
-    }
 
     /**
      * Applies the name and description that came with a version write. Called only

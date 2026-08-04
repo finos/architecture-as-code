@@ -6,6 +6,7 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.exceptions.NitriteException;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -202,6 +204,46 @@ class TestNitriteVersionDocumentStoreShould {
         // not report failure for a write that succeeded (ADR 0003).
         assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", CONTENT), is(true));
         verify(versionCollection).insert(any(Document.class));
+    }
+
+    // --- createFirstVersion ---
+
+    @Test
+    void create_the_first_version_of_a_new_resource() {
+        stubFind(versionCollection, List.of());
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "name", "description", 0)));
+
+        store.createFirstVersion(NAMESPACE, RESOURCE_ID, CONTENT);
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(captor.capture());
+        assertThat(captor.getValue().get("version", String.class), is("1.0.0"));
+        verify(headerCollection, never()).remove(any(Filter.class));
+    }
+
+    @Test
+    void remove_the_header_again_when_the_first_version_write_fails() {
+        stubFind(versionCollection, List.of());
+        when(versionCollection.insert(any(Document.class))).thenThrow(new NitriteException("store is closed"));
+
+        // Matches the Mongo helper: no endpoint can delete a header, so one stranded by a
+        // failed first version write would stay visible with versionCount 0 forever.
+        assertThrows(NitriteException.class,
+                () -> store.createFirstVersion(NAMESPACE, RESOURCE_ID, CONTENT));
+
+        verify(headerCollection).remove(any(Filter.class));
+    }
+
+    @Test
+    void fail_rather_than_report_success_when_the_first_version_already_exists() {
+        stubFind(versionCollection, List.of(versionDocument("1.0.0")));
+
+        // For an id the counter has just issued this is a storage inconsistency rather than
+        // a normal conflict, and reporting success would return 201 for unstored content.
+        assertThrows(StorageWriteException.class,
+                () -> store.createFirstVersion(NAMESPACE, RESOURCE_ID, CONTENT));
+
+        verify(headerCollection).remove(any(Filter.class));
     }
 
     // --- upsertVersion ---

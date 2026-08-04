@@ -13,6 +13,7 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
 import org.slf4j.Logger;
@@ -71,6 +72,9 @@ public class MongoVersionDocumentStore {
     static final String DESCRIPTION_FIELD = "description";
     static final String VERSION_COUNT_FIELD = "versionCount";
     static final String METADATA_FIELD = "metadata";
+
+    /** The version every resource is created with. */
+    public static final String INITIAL_VERSION = "1.0.0";
 
     private final MongoCollection<Document> headerCollection;
     private final MongoCollection<Document> versionCollection;
@@ -152,6 +156,38 @@ public class MongoVersionDocumentStore {
             LOG.warn("Failed to remove the header after a failed first version write "
                     + "[namespace={}, {}={}] — it may be left with no versions",
                     namespace, idField, resourceId, e);
+        }
+    }
+
+    /**
+     * Writes the first version of a newly created resource, removing the header again if
+     * that fails, so a half-created resource never survives the request.
+     *
+     * <p>This lives here rather than in each store because it is the {@link #createVersion}
+     * / {@link #deleteHeader} pair used correctly, and getting it wrong is not recoverable:
+     * there is no delete endpoint for any of these types, so a header stranded with
+     * {@code versionCount: 0} stays visible in listings and search permanently. Each store
+     * having its own copy meant a fix applied to one and missed in another, with nothing to
+     * flag the difference.</p>
+     *
+     * <p>The {@code !created} branch looks impossible and is treated as a genuine failure
+     * anyway: {@code resourceId} has just been allocated from the counter, so nothing should
+     * already hold its version 1.0.0. If something does — a rewound counter, a restored
+     * database — reporting success would return 201 for content that was never stored.</p>
+     */
+    public void createFirstVersion(String namespace, int resourceId, Document content) {
+        boolean created;
+        try {
+            created = createVersion(namespace, resourceId, INITIAL_VERSION, content);
+        } catch (RuntimeException e) {
+            deleteHeader(namespace, resourceId);
+            throw e;
+        }
+        if (!created) {
+            deleteHeader(namespace, resourceId);
+            throw StorageWriteException.writeFailed(new IllegalStateException(
+                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
+                            + idField + " " + resourceId + " in namespace " + namespace));
         }
     }
 

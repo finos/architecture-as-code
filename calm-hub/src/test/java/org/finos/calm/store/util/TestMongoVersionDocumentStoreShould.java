@@ -264,6 +264,49 @@ class TestMongoVersionDocumentStoreShould {
         assertThat(store.createVersion(NAMESPACE, RESOURCE_ID, "1.0.0", new Document()), is(true));
     }
 
+    // --- createFirstVersion ---
+
+    @Test
+    void create_the_first_version_of_a_new_resource() {
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        store.createFirstVersion(NAMESPACE, RESOURCE_ID, new Document("nodes", List.of()));
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(captor.capture());
+        assertThat(captor.getValue().getString("version"), is("1.0.0"));
+        verify(headerCollection, never()).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void remove_the_header_again_when_the_first_version_write_fails() {
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // No endpoint can delete a header, so one stranded by a failed first version write
+        // would show up in listings and search with versionCount 0 forever.
+        assertThrows(StorageWriteException.class,
+                () -> store.createFirstVersion(NAMESPACE, RESOURCE_ID, new Document()));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void fail_rather_than_report_success_when_the_first_version_already_exists() {
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // createVersion reports a duplicate as false. For an id the counter has just issued
+        // that is a storage inconsistency rather than a normal conflict, and reporting
+        // success would return 201 for content that was never stored.
+        assertThrows(StorageWriteException.class,
+                () -> store.createFirstVersion(NAMESPACE, RESOURCE_ID, new Document()));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
     // --- upsertVersion ---
 
     @Test
