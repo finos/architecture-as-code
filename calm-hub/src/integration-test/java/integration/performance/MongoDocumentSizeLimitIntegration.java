@@ -67,20 +67,15 @@ public class MongoDocumentSizeLimitIntegration {
     private static final String LARGE_CONTENT = "A".repeat(2_000_000);
 
     /**
-     * Both tests run against their own namespace rather than {@code finos}, because neither
-     * of them can clean up after itself.
+     * Runs against its own namespace rather than {@code finos}, because it cannot clean up
+     * after itself: it leaves roughly 24MB of version documents behind, which would otherwise
+     * turn up in any later listing of {@code finos} architectures.
      *
-     * <p>The 413 test deliberately drives the flows document <i>past</i> the 16MB ceiling and
-     * leaves it there — that is the state it asserts on. Nothing drops {@code flows} between
-     * classes ({@code MongoFlowIntegration} creates the collection only when absent), so under
-     * {@code finos} that wedged document would outlive this class: {@code
-     * end_to_end_get_with_no_flow} would find a flow, and every later flow write in the
-     * namespace would fail with 413 rather than 201. Today that is masked only by the order
-     * failsafe happens to run these classes in, which is not a guarantee.</p>
-     *
-     * <p>The same applies to the header/version half, for a less destructive reason: it leaves
-     * roughly 24MB of version documents behind, which would otherwise show up in any later
-     * listing of {@code finos} architectures.</p>
+     * <p>This mattered more while the 413 half still existed — that one wedged the shared
+     * {@code flows} document past the ceiling and left it there, so every later flow write in
+     * the namespace failed with 413 rather than 201, masked only by the order failsafe
+     * happened to run these classes in. Isolation is cheap enough to keep now that the
+     * surviving test's leftovers are merely noisy rather than destructive.</p>
      */
     private static final String NAMESPACE = "size-limit";
 
