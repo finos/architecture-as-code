@@ -84,8 +84,15 @@ describe('CLI Integration Tests', () => {
                     topLevelDir: '.github/agents',
                     mainPromptFile: '.github/agents/CALM.agent.md',
                     skillPromptsDir: '.github/agents/calm-prompts',
-                    frontmatterContains: ['description:', 'tools:'],
-                    frontmatterNotContains: ['model:'],
+                    frontmatterContains: [
+                        'description:',
+                        'tools:',
+                        'search/codebase',
+                        'edit/editFiles',
+                        'web/fetch',
+                        'execute/runInTerminal',
+                    ],
+                    frontmatterNotContains: ['tools: [\'codebase\'', 'model:'],
                 },
                 kiro: {
                     topLevelDir: '.kiro',
