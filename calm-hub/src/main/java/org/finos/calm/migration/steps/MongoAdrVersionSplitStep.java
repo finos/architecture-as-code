@@ -22,13 +22,21 @@ import org.finos.calm.store.util.VersionScheme;
  *
  * <p>The fan-out itself lives in {@link MongoVersionSplitMigration}, shared with every other
  * versioned type; this class supplies the collection and field names and the version it
- * applies at.
+ * applies at.</p>
  *
  * <p>ADR is the only type whose version map is not called {@code versions} — it stores
  * {@code revisions}, keyed by an integer rather than a semantic version. The shared
- * migration takes that field name as a parameter for exactly this case; the revision keys
- * themselves pass through canonicalisation untouched, since the version regex does not
- * recognise a bare integer.</p>
+ * migration takes that field name as a parameter for exactly this case.</p>
+ *
+ * <p><strong>Revision keys survive because of the {@link VersionScheme#NUMERIC} argument
+ * below, not because the regex ignores them.</strong> {@code VERSION_REGEX} makes both
+ * separators optional, so {@code "100"} is an accepted spelling of {@code 1.0.0}:
+ * canonicalising a revision key rewrites 100 to {@code "1.0.0"}, 123 to {@code "1.2.3"}, and
+ * so on from revision 100 upward — writing the corruption permanently into migrated data.
+ * {@code NUMERIC} supplies an identity canonicaliser, which is what actually leaves the keys
+ * alone. Revisions 1-99 are unaffected either way, which is why this went unnoticed until it
+ * was reasoned about rather than run. Do not drop the scheme argument on the belief that a
+ * bare integer is not a version — it is one.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped

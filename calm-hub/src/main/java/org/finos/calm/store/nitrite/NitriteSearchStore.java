@@ -220,17 +220,16 @@ public class NitriteSearchStore implements SearchStore {
     }
 
     /**
-     * @return the title from a stored ADR revision, or {@code null} if it cannot be read.
-     * Content is a JSON string in this backend, so the field has to be parsed out; a search
-     * must not fail because one ADR's content is unreadable.
-     */
-    /**
      * Reads an ADR revision's title with the same parser {@code NitriteAdrStore} uses.
      *
      * <p>Deliberately Jackson rather than {@code org.bson.Document.parse}: the two disagree
      * about what is readable, so a BSON-only parse here would show a title in the ADR
      * listing and a bare "ADR n" in search results for the same document. BSON also has no
      * business in the Nitrite path, which stores content as a plain JSON string.</p>
+     *
+     * @return the title from a stored ADR revision, or {@code null} if it cannot be read.
+     * Content is a JSON string in this backend, so the field has to be parsed out; a search
+     * must not fail because one ADR's content is unreadable.
      */
     private String titleOf(String content) {
         try {

@@ -71,11 +71,6 @@ class TestNitriteSearchStoreShould {
         searchStore = new NitriteSearchStore(db);
     }
 
-    /**
-     * Architecture has moved to the header/version shape, so each of its documents is one
-     * architecture rather than a namespace-wide array of them. The other namespaced types
-     * still use the array shape, which is why both fixtures appear in this class.
-     */
     /** Stubs the adrVersions collection: the revision list, and the latest revision's content. */
     private void mockAdrRevisions(List<String> revisions, String latestContent) {
         DocumentCursor cursor = mock(DocumentCursor.class);

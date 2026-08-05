@@ -72,11 +72,6 @@ class TestMongoSearchStoreShould {
     }
 
     /**
-     * Architecture has moved to the header/version shape, so each of its documents is one
-     * architecture rather than a namespace-wide array of them. The other namespaced types
-     * still use the array shape, which is why both fixtures appear in this class.
-     */
-    /**
      * Stubs the adrVersions collection the ADR search reads through: the revision list that
      * ranks them, and the winning revision's content.
      */
