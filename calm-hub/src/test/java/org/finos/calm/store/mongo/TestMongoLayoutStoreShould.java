@@ -135,6 +135,25 @@ class TestMongoLayoutStoreShould {
     }
 
     @Test
+    void surface_capacity_exceeded_when_overwriting_an_existing_entry_hits_the_document_size_limit() {
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        // Namespace documents share Flow's one-document-per-namespace shape, so the $set in
+        // trySetExisting can cross MongoDB's 16MB BSON ceiling (error code 10334) just as the
+        // conditional $push in tryPushNew can — both must map to a capacity-exceeded failure.
+        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenThrow(new MongoWriteException(new WriteError(10334, "object to save is too large", new BsonDocument()), new ServerAddress(), List.of()));
+
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
+
+        assertTrue(exception.isCapacityExceeded());
+        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
+        verify(layoutCollection, never()).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+    }
+
+    @Test
     void push_new_entry_into_existing_namespace_document_when_none_matches() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);

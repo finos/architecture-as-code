@@ -147,11 +147,18 @@ public class MongoLayoutStore implements LayoutStore {
      * @return true if an entry was found and updated
      */
     private boolean trySetExisting(String namespace, int architectureId, Document layoutDoc) {
-        long modified = layoutCollection.updateOne(
-                Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(ENTRY_ID_PATH, architectureId)),
-                Updates.set(LAYOUTS_FIELD + ".$.layout", layoutDoc)
-        ).getModifiedCount();
-        return modified > 0;
+        try {
+            long modified = layoutCollection.updateOne(
+                    Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(ENTRY_ID_PATH, architectureId)),
+                    Updates.set(LAYOUTS_FIELD + ".$.layout", layoutDoc)
+            ).getModifiedCount();
+            return modified > 0;
+        } catch (MongoWriteException e) {
+            // Namespace documents holding a layouts array share Flow's one-document-per-namespace
+            // shape, so this $set can cross the 16MB BSON ceiling. Map it the same way tryPushNew
+            // does, rather than letting it escape unmapped past StorageWriteExceptionMapper.
+            throw MongoWriteFailures.toStorageWriteException(e);
+        }
     }
 
     /**
