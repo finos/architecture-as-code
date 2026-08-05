@@ -413,6 +413,11 @@ public class NitriteVersionDocumentStore {
             // renders it ("<Type> null"), which is the honest representation of a malformed
             // header.
             //
+            // Rendered here but skipped by search (MongoSearchStore/NitriteSearchStore), on
+            // purpose: a search hit is a link the caller is expected to follow, so an
+            // unaddressable one is worse than absent, while a listing row is informational and
+            // showing it is how an operator finds out the bad header exists at all.
+            //
             // Nulls first, not last, so the two backends put it in the same place: BSON's
             // sort order ranks Null below every number, so Mongo's ascending sort returns it
             // first. Under paging the difference is visible — nulls last would surface the

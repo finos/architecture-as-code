@@ -12,11 +12,11 @@ import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 
 import static io.restassured.RestAssured.given;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
@@ -74,15 +74,7 @@ public class MongoPatternIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            // The collection used to be primed with an empty one-document-per-namespace
-            // document, because that shape needed one to exist before anything could be
-            // pushed into it. Under the header/version shape there is no per-namespace
-            // document at all, and priming one is actively harmful: it has no patternId, so
-            // the header reader surfaces it as a pattern named "Pattern null" with zero
-            // versions. Creating the empty collection is all that is needed.
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("patterns")) {
-                database.createCollection("patterns");
-            }
+            primeHeaderCollection(database, "patterns");
 
             counterSetup(database);
             namespaceSetup(database);

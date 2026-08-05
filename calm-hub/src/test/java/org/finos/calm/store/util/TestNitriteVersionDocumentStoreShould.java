@@ -450,6 +450,21 @@ class TestNitriteVersionDocumentStoreShould {
     }
 
     @Test
+    void rank_a_numeric_revision_above_a_smaller_one_that_is_three_digits() {
+        NitriteVersionDocumentStore numericStore = new NitriteVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        stubFind(versionCollection, List.of(versionDocument("99"), versionDocument("100")));
+
+        // The 2-to-3 digit boundary specifically, not the 1-to-2 boundary the test above
+        // covers. "100" is an accepted spelling of 1.0.0 under VERSION_REGEX, so a store
+        // that canonicalises would rewrite it and rank it BELOW "99" — every latest-revision
+        // read would then serve revision 99 while 100 existed. Revisions 1-99 are unaffected,
+        // which is why "10" over "2" passes either way and cannot catch this. Confirmed to
+        // fail against a SEMANTIC-scheme store before being kept.
+        assertThat(numericStore.getLatestVersion(NAMESPACE, RESOURCE_ID), is("100"));
+    }
+
+    @Test
     void return_no_latest_version_for_a_resource_with_none() {
         stubFind(versionCollection, List.of());
 

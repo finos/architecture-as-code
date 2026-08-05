@@ -104,6 +104,14 @@ public class MongoSearchStore implements SearchStore {
                 // NullPointerException thrown out of search() — which builds every type's
                 // results eagerly, so one malformed document fails the whole request rather
                 // than one resource type. A resource with no id is not addressable anyway.
+                //
+                // Deliberately unlike the namespace listing, which renders the same malformed
+                // header as "<Type> null" rather than hiding it (see
+                // NitriteVersionDocumentStore.listSummariesPaged). The two differ because the
+                // outputs differ: a search hit is a link the caller is expected to follow, so
+                // one that cannot be addressed is worse than absent, whereas a listing row is
+                // informational and showing it is how an operator learns the bad header is
+                // there. Dropping it from both would hide the problem entirely.
                 continue;
             }
             String name = header.getString("name");

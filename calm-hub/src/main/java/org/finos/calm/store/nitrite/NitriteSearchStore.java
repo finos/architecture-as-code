@@ -49,6 +49,21 @@ public class NitriteSearchStore implements SearchStore {
     private final NitriteCollection interfaceCollection;
     private final NitriteCollection controlCollection;
     private final NitriteCollection adrCollection;
+    /**
+     * Read-only. Do not add a write path through this field.
+     *
+     * <p>This is a second {@link NitriteVersionDocumentStore} over the same two collections
+     * {@link NitriteAdrStore} uses, and the two carry independent
+     * {@link java.util.concurrent.locks.ReentrantReadWriteLock}s. Writes are safe there only
+     * because that store's lock serialises every writer; a write issued through this instance
+     * would take a different lock and so would not be serialised against them, reintroducing
+     * the duplicate-revision race the lock exists to prevent — {@code createVersion}'s
+     * check-then-act would no longer be atomic with respect to the other instance.</p>
+     *
+     * <p>Reads need no such coordination, which is why two instances are tolerable at all. If
+     * this ever needs to write, share {@code NitriteAdrStore}'s instance rather than widening
+     * this one.</p>
+     */
     private final NitriteVersionDocumentStore adrDocuments;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -109,6 +124,14 @@ public class NitriteSearchStore implements SearchStore {
                 // NullPointerException thrown out of search() — which builds every type's
                 // results eagerly, so one malformed document fails the whole request rather
                 // than one resource type. A resource with no id is not addressable anyway.
+                //
+                // Deliberately unlike the namespace listing, which renders the same malformed
+                // header as "<Type> null" rather than hiding it (see
+                // NitriteVersionDocumentStore.listSummariesPaged). The two differ because the
+                // outputs differ: a search hit is a link the caller is expected to follow, so
+                // one that cannot be addressed is worse than absent, whereas a listing row is
+                // informational and showing it is how an operator learns the bad header is
+                // there. Dropping it from both would hide the problem entirely.
                 continue;
             }
             String name = header.get("name", String.class);

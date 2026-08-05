@@ -11,12 +11,12 @@ import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
@@ -47,15 +47,7 @@ public class MongoInterfaceIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            // The collection used to be primed with an empty one-document-per-namespace
-            // document, because that shape needed one to exist before anything could be
-            // pushed into it. Under the header/version shape there is no per-namespace
-            // document at all, and priming one is actively harmful: it has no interfaceId, so the
-            // header reader surfaces it as a interface named "Interface null" with zero versions.
-            // Creating the empty collection is all that is needed.
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("interfaces")) {
-                database.createCollection("interfaces");
-            }
+            primeHeaderCollection(database, "interfaces");
 
             counterSetup(database);
             namespaceSetup(database);

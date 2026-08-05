@@ -23,12 +23,12 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -74,15 +74,7 @@ public class MongoAdrIntegration {
         try(MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            // The collection used to be primed with an empty one-document-per-namespace
-            // document, because that shape needed one to exist before anything could be
-            // pushed into it. Under the header/version shape there is no per-namespace
-            // document at all, and priming one is actively harmful: it has no adrId, so the
-            // header reader surfaces it as an ADR titled "ADR null" with no revisions.
-            // Creating the empty collection is all that is needed.
-            if(!database.listCollectionNames().into(new ArrayList<>()).contains("adrs")) {
-                database.createCollection("adrs");
-            }
+            primeHeaderCollection(database, "adrs");
 
             counterSetup(database);
             namespaceSetup(database);
