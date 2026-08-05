@@ -52,6 +52,11 @@ final class LocationSegmentParser {
             case USER_ACCESS -> new LocationIds(lastSegment(segments), null);
             // .../decorators/{id}
             case DECORATOR -> new LocationIds(lastSegment(segments), null);
+            // Layout PUT/DELETE always return 204 with no Location header, so this case is
+            // unreachable at runtime — parse() short-circuits on a null/blank locationPath
+            // before reaching this switch. It exists only because the switch is exhaustive
+            // over AuditEntityType and LAYOUT must be handled to compile.
+            case LAYOUT -> new LocationIds(null, null);
         };
     }
 

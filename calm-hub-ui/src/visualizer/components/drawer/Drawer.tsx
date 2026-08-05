@@ -28,7 +28,15 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
     return item?.['unique-id'] || '';
 }
 
-export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: DrawerProps) {
+export function Drawer({
+    data,
+    onItemSelect,
+    decorators: decoratorsProp,
+    viewportKeyOverride,
+    defaultLayout,
+    layoutEpoch,
+    onPositionsChange,
+}: DrawerProps) {
     const calmService = useMemo(() => new CalmService(), []);
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
@@ -73,7 +81,11 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
 
     // Identifies the diagram (ignoring version) so its viewport can be remembered
     // across version/moment switches and refreshes. A dropped file has no identity.
-    const viewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
+    // `viewportKeyOverride` (DiagramSection's resolved namespace/numeric-architectureId)
+    // takes precedence when present, so scratch storage and the server layout share one
+    // key regardless of whether this architecture was reached via a slug or numeric route.
+    const computedViewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
+    const viewportKey = viewportKeyOverride ?? computedViewportKey;
 
     useEffect(() => {
         const source = fileInstance ?? data?.data;
@@ -258,6 +270,9 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
                                 onEdgeClick={handleEdgeClick}
                                 onBackgroundClick={closeSidebar}
                                 viewportKey={viewportKey}
+                                defaultLayout={defaultLayout}
+                                layoutEpoch={layoutEpoch}
+                                onPositionsChange={onPositionsChange}
                             />
                         ) : null}
                     </div>

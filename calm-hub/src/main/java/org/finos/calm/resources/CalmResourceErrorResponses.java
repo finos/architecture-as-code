@@ -33,6 +33,26 @@ public class CalmResourceErrorResponses {
         return Response.status(Response.Status.BAD_REQUEST).entity("Invalid decorator JSON: " + message).build();
     }
 
+    public static Response layoutNotFoundResponse(String namespace, int architectureId) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("No default layout saved for architecture " + architectureId + " in namespace: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
+                .build();
+    }
+
+    /**
+     * Returns a 400 response for a layout PUT whose {@code for} target does not match the
+     * architecture named in the URL. {@code forPath} is user-derived (parsed straight out of
+     * the request body) and is sanitized before being echoed back; {@code expectedPath} is
+     * server-constructed from validated path parameters and is trusted as-is.
+     */
+    public static Response invalidLayoutTargetResponse(String forPath, String expectedPath) {
+        String sanitizedForPath = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(forPath);
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Layout 'for' [" + sanitizedForPath + "] does not match architecture [" + expectedPath + "]")
+                .build();
+    }
+
     /**
      * Returns a 409 response for a namespace-deletion attempt that was refused because the
      * namespace still has content or child namespaces. Only the namespace name — the

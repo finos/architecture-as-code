@@ -25,6 +25,7 @@ import org.finos.calm.resources.DomainResource;
 import org.finos.calm.resources.DomainUserAccessResource;
 import org.finos.calm.resources.FlowResource;
 import org.finos.calm.resources.InterfaceResource;
+import org.finos.calm.resources.LayoutResource;
 import org.finos.calm.resources.MappingControllerResource;
 import org.finos.calm.resources.NamespaceResource;
 import org.finos.calm.resources.PatternResource;
@@ -159,20 +160,22 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             Map.entry(DecoratorResource.class, AuditEntityType.DECORATOR),
             Map.entry(UserAccessResource.class, AuditEntityType.USER_ACCESS),
             Map.entry(DomainUserAccessResource.class, AuditEntityType.USER_ACCESS),
-            Map.entry(CoreSchemaResource.class, AuditEntityType.SCHEMA)
+            Map.entry(CoreSchemaResource.class, AuditEntityType.SCHEMA),
+            Map.entry(LayoutResource.class, AuditEntityType.LAYOUT)
     );
 
     /** The path parameter that names an entity's own ID, for types resolved generically via path params. */
-    private static final Map<AuditEntityType, String> ENTITY_TYPE_TO_ID_PARAM = Map.of(
-            AuditEntityType.ARCHITECTURE, "architectureId",
-            AuditEntityType.PATTERN, "patternId",
-            AuditEntityType.FLOW, "flowId",
-            AuditEntityType.INTERFACE, "interfaceId",
-            AuditEntityType.STANDARD, "standardId",
-            AuditEntityType.TIMELINE, "timelineId",
-            AuditEntityType.ADR, "adrId",
-            AuditEntityType.DECORATOR, "id",
-            AuditEntityType.USER_ACCESS, "userAccessId"
+    private static final Map<AuditEntityType, String> ENTITY_TYPE_TO_ID_PARAM = Map.ofEntries(
+            Map.entry(AuditEntityType.ARCHITECTURE, "architectureId"),
+            Map.entry(AuditEntityType.PATTERN, "patternId"),
+            Map.entry(AuditEntityType.FLOW, "flowId"),
+            Map.entry(AuditEntityType.INTERFACE, "interfaceId"),
+            Map.entry(AuditEntityType.STANDARD, "standardId"),
+            Map.entry(AuditEntityType.TIMELINE, "timelineId"),
+            Map.entry(AuditEntityType.ADR, "adrId"),
+            Map.entry(AuditEntityType.DECORATOR, "id"),
+            Map.entry(AuditEntityType.USER_ACCESS, "userAccessId"),
+            Map.entry(AuditEntityType.LAYOUT, "architectureId")
     );
 
     @Inject

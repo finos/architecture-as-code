@@ -24,7 +24,7 @@ import { EmptyGraphState } from './EmptyGraphState.js';
 import { parseCALMData } from './utils/calmTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
-import { applyStoredPositions } from '../../services/node-position-service.js';
+import { applyPositions, loadStoredNodePositions, toStoredPositions } from '../../services/node-position-service.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useNodeSearch } from './node-search-context.js';
 import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
@@ -67,7 +67,15 @@ function readMinimapHidden(): boolean {
     }
 }
 
-export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewportKey }: ArchitectureGraphProps) {
+export function ArchitectureGraph({
+    jsonData,
+    onNodeClick,
+    onEdgeClick,
+    viewportKey,
+    defaultLayout,
+    layoutEpoch,
+    onPositionsChange,
+}: ArchitectureGraphProps) {
     const isMobile = useIsMobile();
 
     // The viewport store key is namespaced by device. Mobile fits to a far lower zoom
@@ -129,17 +137,48 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         onEdgeClick,
         groupNodeTypes: GROUP_NODE_TYPES,
         persistKey: viewportKey,
+        onPositionsChange,
     });
 
+    // Still fetching the server default for this diagram: hold off applying
+    // positions rather than flashing the auto-layout and then jumping to the
+    // restored one. Only architectures (which have `viewportKey` set by
+    // DiagramSection's useDefaultLayout) ever see `defaultLayout === undefined`;
+    // patterns/dropped files resolve it to `null` immediately.
+    const awaitingDefaultLayout = !!viewportKey && defaultLayout === undefined;
+
     useEffect(() => {
+        if (awaitingDefaultLayout) return;
+
         const { nodes: parsedNodes, edges: parsedEdges } = parseCALMData(jsonData, onNodeClick);
         sourceNodesRef.current = parsedNodes;
-        // Restore any custom layout the user dragged for this diagram, falling
-        // back to the parsed auto-layout when none is stored.
-        setNodes(viewportKey ? applyStoredPositions(viewportKey, parsedNodes) : parsedNodes);
+
+        // Precedence: an unsaved local drag always wins over the saved default —
+        // never silently discard a user's in-progress work — which in turn wins
+        // over the parsed auto-layout when neither is present.
+        const localPositions = viewportKey ? loadStoredNodePositions(viewportKey) : null;
+        const effectivePositions = localPositions ?? defaultLayout ?? null;
+        const positionedNodes = applyPositions(parsedNodes, effectivePositions);
+
+        setNodes(positionedNodes);
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
-    }, [jsonData, setNodes, setEdges, setAvailableNodeTypes, onNodeClick, viewportKey]);
+        onPositionsChange?.(toStoredPositions(positionedNodes));
+        // layoutEpoch has no direct use in the body — it exists purely as a
+        // dependency so "reset to default layout" (which bumps it) forces this
+        // effect to re-run and cleanly re-apply positions.
+    }, [
+        jsonData,
+        setNodes,
+        setEdges,
+        setAvailableNodeTypes,
+        onNodeClick,
+        viewportKey,
+        defaultLayout,
+        layoutEpoch,
+        awaitingDefaultLayout,
+        onPositionsChange,
+    ]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';
@@ -179,6 +218,10 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         return () => window.removeEventListener('resize', refit);
     }, [isMobile]);
 
+    if (awaitingDefaultLayout) {
+        return <EmptyGraphState message="Loading saved layout…" />;
+    }
+
     if (nodes.length === 0) {
         return <EmptyGraphState message="No architecture data to display. Load a CALM architecture to visualize." />;
     }
@@ -195,8 +238,10 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         <div style={{ height: '100%', width: '100%' }}>
             <ReactFlow
                 // Remount when the diagram (resource) changes so a new architecture fits
-                // afresh; switching versions/moments keeps the same key and preserves the view.
-                key={viewportKey}
+                // afresh; switching versions/moments keeps the same key and preserves the
+                // view. layoutEpoch is folded in so "reset to default layout" also forces a
+                // clean remount rather than relying solely on the parse effect re-running.
+                key={layoutEpoch !== undefined ? `${viewportKey}:${layoutEpoch}` : viewportKey}
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}

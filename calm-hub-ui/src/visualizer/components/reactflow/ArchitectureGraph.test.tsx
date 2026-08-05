@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import type { Node } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
+import { saveNodePositions } from '../../services/node-position-service.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -90,7 +92,7 @@ describe('ArchitectureGraph', () => {
             'calm-hub:diagram-viewport',
             JSON.stringify({ key: 'desktop:ns/id', viewport: { x: 5, y: 6, zoom: 0.8 } })
         );
-        render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" />);
+        render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
         expect(reactFlowProps.current?.fitView).toBe(false);
         expect(reactFlowProps.current?.defaultViewport).toEqual({ x: 5, y: 6, zoom: 0.8 });
         expect(reactFlowProps.current?.fitViewOptions).toEqual({
@@ -191,7 +193,7 @@ describe('ArchitectureGraph', () => {
                 JSON.stringify({ key: 'mobile:ns/id', viewport: { x: 0, y: 0, zoom: 1 } })
             );
             mockMobileViewport();
-            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" />);
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
             expect(reactFlowProps.current?.fitView).toBe(true);
             expect(reactFlowProps.current?.defaultViewport).toBeUndefined();
             // Floor drops to the pane minZoom (0.1) + tighter padding so even a wide
@@ -220,6 +222,106 @@ describe('ArchitectureGraph', () => {
             // fitting 390px after rotation / iOS chrome collapse.
             window.dispatchEvent(new Event('resize'));
             expect(fitView).toHaveBeenCalledWith({ padding: 0.1, minZoom: 0.1, maxZoom: 1.2 });
+        });
+    });
+
+    describe('default layout precedence', () => {
+        const key = 'ns/id';
+
+        function nodePosition(id: string) {
+            const nodes = reactFlowProps.current?.nodes as Node[] | undefined;
+            return nodes?.find((n) => n.id === id)?.position;
+        }
+
+        it('applies the local scratch layout, even when a different server default exists', () => {
+            saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
+
+            render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 999, y: 999 } }]}
+                />
+            );
+
+            expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
+        });
+
+        it('applies the server default when no local scratch is stored', () => {
+            render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                />
+            );
+
+            expect(nodePosition('node-1')).toEqual({ x: 333, y: 444 });
+        });
+
+        it('falls back to the auto-layout when neither scratch nor a server default exist', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey={key} defaultLayout={null} />);
+
+            // No loading gate, no forced position — the graph renders with dagre's own layout.
+            expect(screen.getByTestId('react-flow')).toBeInTheDocument();
+            expect(nodePosition('node-1')).toBeDefined();
+        });
+
+        it('shows a loading placeholder and withholds the graph while the server default is still loading', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey={key} defaultLayout={undefined} />);
+
+            expect(screen.getByText('Loading saved layout…')).toBeInTheDocument();
+            expect(screen.queryByTestId('react-flow')).not.toBeInTheDocument();
+        });
+
+        it('does not gate on a missing viewportKey (e.g. a dropped file) even with defaultLayout undefined', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} defaultLayout={undefined} />);
+
+            expect(screen.getByTestId('react-flow')).toBeInTheDocument();
+        });
+
+        it('re-applies positions when layoutEpoch changes, picking up a cleared scratch layout', () => {
+            saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
+
+            const { rerender } = render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                    layoutEpoch={0}
+                />
+            );
+            expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
+
+            // Simulate "reset to default": the scratch entry is cleared and the
+            // epoch bumps, forcing a clean re-apply of the server default.
+            localStorage.removeItem('calm-hub:node-positions:ns/id');
+            rerender(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                    layoutEpoch={1}
+                />
+            );
+
+            expect(nodePosition('node-1')).toEqual({ x: 333, y: 444 });
+        });
+
+        it('reports applied positions upward via onPositionsChange', () => {
+            const onPositionsChange = vi.fn();
+            render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 5, y: 6 } }]}
+                    onPositionsChange={onPositionsChange}
+                />
+            );
+
+            expect(onPositionsChange).toHaveBeenCalled();
+            const reported = onPositionsChange.mock.calls.at(-1)?.[0];
+            expect(reported.find((p: { id: string }) => p.id === 'node-1')?.position).toEqual({ x: 5, y: 6 });
         });
     });
 });

@@ -1,0 +1,63 @@
+import { AxiosInstance } from 'axios';
+import { getAuthHeaders } from '../authService.js';
+import { apiClient } from './utils/api-client.js';
+import { CalmLayout } from '../model/layout.js';
+
+/**
+ * Manages the shared, default layout saved for an architecture — the server-side
+ * counterpart to the browser-local scratch layer in `node-position-service.tsx`.
+ * There is exactly one default layout per architecture; saving is always an upsert.
+ */
+export class LayoutService {
+    private readonly ax: AxiosInstance;
+
+    constructor(axiosInstance?: AxiosInstance) {
+        if (axiosInstance) {
+            this.ax = axiosInstance;
+        } else {
+            this.ax = apiClient;
+        }
+    }
+
+    /** The saved default layout for an architecture, or null when none has been saved. */
+    public async getDefaultLayout(namespace: string, architectureId: number): Promise<CalmLayout | null> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${architectureId}/layout`, { headers })
+            .then((res) => res.data as CalmLayout)
+            .catch((error) => {
+                if (error?.response?.status === 404) {
+                    return null;
+                }
+                const errorMessage = `Error fetching default layout for architecture ${architectureId} in namespace ${namespace}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    /** Save (create or overwrite) the default layout for an architecture. */
+    public async saveDefaultLayout(namespace: string, architectureId: number, layout: CalmLayout): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .put(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${architectureId}/layout`, layout, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = `Error saving default layout for architecture ${architectureId} in namespace ${namespace}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    /** Delete the default layout for an architecture. */
+    public async deleteDefaultLayout(namespace: string, architectureId: number): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .delete(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${architectureId}/layout`, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = `Error deleting default layout for architecture ${architectureId} in namespace ${namespace}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+}
