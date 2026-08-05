@@ -3,6 +3,7 @@ package integration;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
@@ -16,13 +17,14 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-
 import static io.restassured.RestAssured.given;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
@@ -61,16 +63,11 @@ public class MongoLayoutIntegration {
             throw new IllegalStateException("MongoDB URI is not set. Check the EndToEndResource configuration.");
         }
 
+        // Nothing to seed: MongoLayoutStore.upsertLayout's replaceOne(upsert: true) creates
+        // both the "layouts" collection and its documents on first save. The old shape needed
+        // an explicit seed document to upsert an array element into; the flat shape doesn't.
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
-
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("layouts")) {
-                database.createCollection("layouts");
-                database.getCollection("layouts").insertOne(
-                        new Document("namespace", "finos").append("layouts", new ArrayList<>())
-                );
-            }
-
             counterSetup(database);
             namespaceSetup(database);
         }
@@ -106,6 +103,28 @@ public class MongoLayoutIntegration {
 
     @Test
     @Order(3)
+    void store_the_layout_as_one_flat_document_keyed_by_namespace_and_architecture_id() {
+        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
+        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+
+        // Asserts the reshape itself against real MongoDB — the API alone would pass whether
+        // this were stored flat or still nested in a namespace-wide array.
+        try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
+            MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
+            long matching = database.getCollection("layouts")
+                    .countDocuments(Filters.and(Filters.eq("namespace", "finos"), Filters.eq("architectureId", 5)));
+            assertThat(matching, is(1L));
+
+            Document stored = database.getCollection("layouts")
+                    .find(Filters.and(Filters.eq("namespace", "finos"), Filters.eq("architectureId", 5)))
+                    .first();
+            assertThat(stored, is(notNullValue()));
+            assertThat(stored.get("layout"), is(notNullValue()));
+        }
+    }
+
+    @Test
+    @Order(4)
     void end_to_end_save_is_idempotent_and_overwrites_in_place() {
         given()
                 .contentType(ContentType.JSON)
@@ -124,7 +143,7 @@ public class MongoLayoutIntegration {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     void end_to_end_delete_the_layout() {
         given()
                 .when().delete("/api/calm/namespaces/finos/architectures/5/layout")
@@ -139,7 +158,7 @@ public class MongoLayoutIntegration {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     void end_to_end_delete_nonexistent_layout_returns_404() {
         given()
                 .when().delete("/api/calm/namespaces/finos/architectures/5/layout")
