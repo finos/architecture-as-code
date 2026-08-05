@@ -80,12 +80,17 @@ export function Drawer({
     });
 
     // Identifies the diagram (ignoring version) so its viewport can be remembered
-    // across version/moment switches and refreshes. A dropped file has no identity.
-    // `viewportKeyOverride` (DiagramSection's resolved namespace/numeric-architectureId)
-    // takes precedence when present, so scratch storage and the server layout share one
-    // key regardless of whether this architecture was reached via a slug or numeric route.
+    // across version/moment switches and refreshes. A dropped file has no identity,
+    // so it must never resolve to `viewportKeyOverride` (DiagramSection's resolved
+    // namespace/numeric-architectureId for the *currently loaded* architecture) —
+    // otherwise dragging a node on a dropped file would write scratch positions,
+    // and "Save as default layout" would write server positions, under the loaded
+    // architecture's key using the dropped file's unrelated layout.
+    // `viewportKeyOverride` takes precedence when present and no file is dropped,
+    // so scratch storage and the server layout share one key regardless of whether
+    // this architecture was reached via a slug or numeric route.
     const computedViewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
-    const viewportKey = viewportKeyOverride ?? computedViewportKey;
+    const viewportKey = fileInstance ? undefined : (viewportKeyOverride ?? computedViewportKey);
 
     useEffect(() => {
         const source = fileInstance ?? data?.data;
@@ -272,7 +277,16 @@ export function Drawer({
                                 viewportKey={viewportKey}
                                 defaultLayout={defaultLayout}
                                 layoutEpoch={layoutEpoch}
-                                onPositionsChange={onPositionsChange}
+                                // Never reported for a dropped file: `onPositionsChange`
+                                // ultimately feeds DiagramSection's "Save as default
+                                // layout", which is scoped to the *loaded architecture*
+                                // (via `viewportKeyOverride`/`defaultLayoutState`, not
+                                // this component's local `fileInstance` state). Passing
+                                // it through unconditionally would let a locally-dropped
+                                // file's on-screen positions be saved as the shared
+                                // default layout for the architecture actually being
+                                // viewed.
+                                onPositionsChange={fileInstance ? undefined : onPositionsChange}
                             />
                         ) : null}
                     </div>

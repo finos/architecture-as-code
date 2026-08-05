@@ -15,6 +15,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.LayoutStore;
 import org.finos.calm.store.util.MongoWriteFailures;
 import org.slf4j.Logger;
@@ -99,8 +100,14 @@ public class MongoLayoutStore implements LayoutStore {
         }
         // Lost the race either way: a concurrent writer created the namespace document, or
         // the array entry, between the two attempts above. Either way the entry now exists,
-        // so retrying the $set once resolves it.
-        trySetExisting(namespace, architectureId, layoutDoc);
+        // so retrying the $set once resolves it. If it still doesn't match (e.g. a concurrent
+        // delete removed the entry again in that same window), surface a write failure instead
+        // of silently returning as if the save had succeeded.
+        if (!trySetExisting(namespace, architectureId, layoutDoc)) {
+            throw StorageWriteException.writeFailed(new IllegalStateException(
+                    "Failed to persist layout for architecture " + architectureId
+                            + " in namespace '" + namespace + "' after retry"));
+        }
     }
 
     @Override

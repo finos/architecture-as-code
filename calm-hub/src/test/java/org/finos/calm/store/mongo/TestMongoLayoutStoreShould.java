@@ -15,6 +15,7 @@ import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -179,7 +180,11 @@ class TestMongoLayoutStoreShould {
 
         UpdateResult noOp = mock(UpdateResult.class);
         when(noOp.getModifiedCount()).thenReturn(0L);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(noOp);
+        UpdateResult retrySucceeds = mock(UpdateResult.class);
+        when(retrySucceeds.getModifiedCount()).thenReturn(1L);
+        // First call (trySetExisting) misses, second call (the final retry) finds the
+        // entry a concurrent writer just created and succeeds.
+        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(noOp, retrySucceeds);
 
         UpdateResult pushMiss = mock(UpdateResult.class);
         when(pushMiss.getModifiedCount()).thenReturn(0L);
@@ -200,12 +205,39 @@ class TestMongoLayoutStoreShould {
 
         UpdateResult noOp = mock(UpdateResult.class);
         when(noOp.getModifiedCount()).thenReturn(0L);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(noOp);
+        UpdateResult retrySucceeds = mock(UpdateResult.class);
+        when(retrySucceeds.getModifiedCount()).thenReturn(1L);
+        // First call (trySetExisting) misses, second call (the final retry, after the
+        // duplicate-key race) finds the namespace document another writer just created.
+        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(noOp, retrySucceeds);
 
         when(layoutCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
                 .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()));
 
         layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
+
+        verify(layoutCollection, times(2)).updateOne(any(Bson.class), any(Bson.class));
+        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+    }
+
+    @Test
+    void throw_storage_write_exception_when_the_final_retry_also_finds_no_matching_entry() throws NamespaceNotFoundException {
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        // Every trySetExisting attempt misses (including the final retry) — e.g. a
+        // concurrent delete removed the entry again in that same window — so the save
+        // must surface a failure rather than silently returning as if it had persisted.
+        UpdateResult noOp = mock(UpdateResult.class);
+        when(noOp.getModifiedCount()).thenReturn(0L);
+        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(noOp);
+
+        UpdateResult pushMiss = mock(UpdateResult.class);
+        when(pushMiss.getModifiedCount()).thenReturn(0L);
+        when(pushMiss.getUpsertedId()).thenReturn(null);
+        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class))).thenReturn(pushMiss);
+
+        assertThrows(StorageWriteException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
 
         verify(layoutCollection, times(2)).updateOne(any(Bson.class), any(Bson.class));
         verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));

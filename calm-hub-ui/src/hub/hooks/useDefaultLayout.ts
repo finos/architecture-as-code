@@ -148,6 +148,7 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
 
     const reset = useCallback(() => {
         if (viewportKey) clearStoredNodePositions(viewportKey);
+        setSaveError(null);
         setLayoutEpoch((epoch) => epoch + 1);
     }, [viewportKey]);
 
