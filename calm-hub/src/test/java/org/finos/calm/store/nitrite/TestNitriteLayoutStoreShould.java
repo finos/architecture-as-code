@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,15 +56,15 @@ class TestNitriteLayoutStoreShould {
     // ---- getLayout ----
 
     @Test
-    void return_layout_when_entry_exists() throws NamespaceNotFoundException {
+    void return_layout_when_document_exists() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document namespaceDocument = Document.createDocument("namespace", namespace)
-                .put("layouts", List.of(Document.createDocument("architectureId", 5).put("layout", LAYOUT_JSON)));
+        Document document = Document.createDocument("namespace", namespace)
+                .put("architectureId", 5).put("layout", LAYOUT_JSON);
 
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(namespaceDocument);
+        when(cursor.firstOrNull()).thenReturn(document);
 
         Optional<String> result = layoutStore.getLayout(namespace, 5);
 
@@ -73,21 +74,7 @@ class TestNitriteLayoutStoreShould {
     }
 
     @Test
-    void return_empty_when_no_entry_matches_architecture() throws NamespaceNotFoundException {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        Document namespaceDocument = Document.createDocument("namespace", namespace)
-                .put("layouts", List.of(Document.createDocument("architectureId", 99).put("layout", LAYOUT_JSON)));
-
-        when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(namespaceDocument);
-
-        assertFalse(layoutStore.getLayout(namespace, 5).isPresent());
-    }
-
-    @Test
-    void return_empty_when_namespace_document_is_null() throws NamespaceNotFoundException {
+    void return_empty_when_no_document_matches_architecture() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
@@ -108,7 +95,7 @@ class TestNitriteLayoutStoreShould {
     // ---- upsertLayout ----
 
     @Test
-    void insert_new_namespace_document_when_none_exists() throws NamespaceNotFoundException {
+    void insert_a_new_document_when_none_exists_for_this_architecture() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
@@ -120,52 +107,41 @@ class TestNitriteLayoutStoreShould {
         verify(layoutCollection).insert(captor.capture());
         Document inserted = captor.getValue();
         assertEquals(namespace, inserted.get("namespace"));
-        @SuppressWarnings("unchecked")
-        List<Document> layouts = (List<Document>) inserted.get("layouts");
-        assertEquals(1, layouts.size());
-        assertEquals(5, layouts.get(0).get("architectureId"));
-        assertEquals(LAYOUT_JSON, layouts.get(0).get("layout"));
+        assertEquals(5, inserted.get("architectureId"));
+        assertEquals(LAYOUT_JSON, inserted.get("layout"));
     }
 
     @Test
-    void append_new_entry_to_existing_namespace_document() throws NamespaceNotFoundException {
+    void insert_a_second_document_for_another_architecture_in_the_same_namespace() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        Document existingEntry = Document.createDocument("architectureId", 1).put("layout", "{\"pins\":[]}");
-        Document existingNamespaceDoc = Document.createDocument("namespace", namespace)
-                .put("layouts", List.of(existingEntry));
-
+        // find() is scoped to (namespace, architectureId), so a document for a different
+        // architecture in the same namespace never matches — insert, not update.
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(existingNamespaceDoc);
+        when(cursor.firstOrNull()).thenReturn(null);
 
-        layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
+        layoutStore.upsertLayout(namespace, 6, LAYOUT_JSON);
 
-        verify(layoutCollection).update(existingNamespaceDoc);
-        @SuppressWarnings("unchecked")
-        List<Document> layouts = (List<Document>) existingNamespaceDoc.get("layouts");
-        assertEquals(2, layouts.size());
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(layoutCollection).insert(captor.capture());
+        assertEquals(6, captor.getValue().get("architectureId"));
     }
 
     @Test
-    void overwrite_existing_entry_for_the_same_architecture() throws NamespaceNotFoundException {
+    void update_the_existing_document_in_place() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document existingEntry = Document.createDocument("architectureId", 5).put("layout", "{\"pins\":[]}");
-        Document existingNamespaceDoc = Document.createDocument("namespace", namespace)
-                .put("layouts", List.of(existingEntry));
+        Document existing = Document.createDocument("namespace", namespace)
+                .put("architectureId", 5).put("layout", "{\"pins\":[]}");
 
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(existingNamespaceDoc);
+        when(cursor.firstOrNull()).thenReturn(existing);
 
         layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
 
-        verify(layoutCollection).update(existingNamespaceDoc);
-        @SuppressWarnings("unchecked")
-        List<Document> layouts = (List<Document>) existingNamespaceDoc.get("layouts");
-        assertEquals(1, layouts.size());
-        assertEquals(LAYOUT_JSON, layouts.get(0).get("layout"));
+        verify(layoutCollection).update(existing);
+        assertEquals(LAYOUT_JSON, existing.get("layout"));
     }
 
     @Test
@@ -197,44 +173,29 @@ class TestNitriteLayoutStoreShould {
     // ---- deleteLayout ----
 
     @Test
-    void delete_matching_entry_successfully() throws NamespaceNotFoundException, LayoutNotFoundException {
+    void delete_matching_document_successfully() throws NamespaceNotFoundException, LayoutNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document entry = Document.createDocument("architectureId", 5).put("layout", LAYOUT_JSON);
-        Document namespaceDocument = Document.createDocument("namespace", namespace).put("layouts", List.of(entry));
+        Document existing = Document.createDocument("namespace", namespace)
+                .put("architectureId", 5).put("layout", LAYOUT_JSON);
 
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(namespaceDocument);
+        when(cursor.firstOrNull()).thenReturn(existing);
 
         layoutStore.deleteLayout(namespace, 5);
 
-        verify(layoutCollection).update(namespaceDocument);
-        @SuppressWarnings("unchecked")
-        List<Document> remaining = (List<Document>) namespaceDocument.get("layouts");
-        assertTrue(remaining.isEmpty());
+        // By identity — the document is already in hand from the find above, so there is no
+        // filtered remove to verify separately.
+        verify(layoutCollection).remove(existing);
     }
 
     @Test
-    void throw_layout_not_found_when_namespace_document_is_null() {
+    void throw_layout_not_found_when_no_document_matches() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
         when(cursor.firstOrNull()).thenReturn(null);
-
-        assertThrows(LayoutNotFoundException.class, () -> layoutStore.deleteLayout(namespace, 5));
-    }
-
-    @Test
-    void throw_layout_not_found_when_no_entry_matches_architecture() {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        Document entry = Document.createDocument("architectureId", 99).put("layout", LAYOUT_JSON);
-        Document namespaceDocument = Document.createDocument("namespace", namespace).put("layouts", List.of(entry));
-
-        when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(namespaceDocument);
 
         assertThrows(LayoutNotFoundException.class, () -> layoutStore.deleteLayout(namespace, 5));
     }
@@ -255,14 +216,9 @@ class TestNitriteLayoutStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document namespaceDocument = Document.createDocument("namespace", namespace)
-                .put("layouts", List.of(
-                        Document.createDocument("architectureId", 5).put("layout", LAYOUT_JSON),
-                        Document.createDocument("architectureId", 6).put("layout", LAYOUT_JSON)
-                ));
-
-        when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(namespaceDocument);
+        Document first = Document.createDocument("namespace", namespace).put("architectureId", 5).put("layout", LAYOUT_JSON);
+        Document second = Document.createDocument("namespace", namespace).put("architectureId", 6).put("layout", LAYOUT_JSON);
+        stubIterableCursor(List.of(first, second));
 
         List<Integer> ids = layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace);
 
@@ -270,11 +226,21 @@ class TestNitriteLayoutStoreShould {
     }
 
     @Test
-    void return_empty_list_when_namespace_document_is_null_for_ids() throws NamespaceNotFoundException {
+    void skip_a_document_with_no_architecture_id() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(null);
+
+        Document noId = Document.createDocument("namespace", namespace).put("layout", LAYOUT_JSON);
+        stubIterableCursor(List.of(noId));
+
+        assertTrue(layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace).isEmpty());
+    }
+
+    @Test
+    void return_empty_list_when_no_layouts_exist_for_the_namespace() throws NamespaceNotFoundException {
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        stubIterableCursor(List.of());
 
         assertTrue(layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace).isEmpty());
     }
@@ -286,5 +252,11 @@ class TestNitriteLayoutStoreShould {
 
         assertThrows(NamespaceNotFoundException.class, () -> layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace));
         verify(layoutCollection, never()).find(any(Filter.class));
+    }
+
+    /** Models the {@code DocumentCursor}'s plain-iteration path used by the ids listing. */
+    private void stubIterableCursor(List<Document> documents) {
+        when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.iterator()).thenAnswer(invocation -> (Iterator<Document>) documents.iterator());
     }
 }

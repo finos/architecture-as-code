@@ -12,17 +12,14 @@ import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.LayoutStore;
-import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 import io.quarkus.arc.lookup.LookupIfProperty;
@@ -31,10 +28,11 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * NitriteDB implementation of {@link LayoutStore}, used in standalone mode.
  *
  * <h2>Document model</h2>
- * One document per namespace in the {@code layouts} collection, holding a {@code layouts}
- * array of {@code {architectureId, layout}} entries, mirroring
- * {@link org.finos.calm.store.mongo.MongoLayoutStore} but with no {@code versions} level —
- * see {@link LayoutStore}'s class javadoc for why a layout isn't versioned.
+ * One flat document per {@code (namespace, architectureId)} in the {@code layouts} collection,
+ * mirroring {@link org.finos.calm.store.mongo.MongoLayoutStore} — see that class's javadoc for
+ * why this shape was chosen over both the header/version split (ADR 0001) and a
+ * one-document-per-namespace array. There is no {@code versions} level — see
+ * {@link LayoutStore}'s class javadoc for why a layout isn't versioned.
  *
  * <p>Unlike the Mongo store, {@code layout} is kept as a raw JSON <b>string</b> rather than a
  * parsed document, matching {@code NitriteArchitectureStore}'s treatment of architecture
@@ -44,8 +42,12 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  *
  * <h2>Concurrency</h2>
  * All mutating operations run under a single {@link ReentrantLock}, following the
- * check-then-write pattern used by every other Nitrite store — there is no server-side atomic
- * conditional update to lean on the way Mongo does.
+ * check-then-write pattern used by every other Nitrite store — Nitrite has no unique indexes
+ * anywhere in this codebase (see {@code NitriteVersionSplitMigration}'s javadoc), so there is no
+ * server-side atomic conditional update to lean on the way Mongo does. Flattening the document
+ * shape does not remove the need for the lock, only its cost: the critical section used to
+ * serialize a full-namespace read-modify-write of a growing array; it is now a small find plus a
+ * single-document insert or update.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
@@ -55,7 +57,6 @@ public class NitriteLayoutStore implements LayoutStore {
     private static final Logger LOG = LoggerFactory.getLogger(NitriteLayoutStore.class);
     private static final String COLLECTION_NAME = "layouts";
     private static final String NAMESPACE_FIELD = "namespace";
-    private static final String LAYOUTS_FIELD = "layouts";
     private static final String ARCHITECTURE_ID_FIELD = "architectureId";
     private static final String LAYOUT_FIELD = "layout";
 
@@ -74,13 +75,8 @@ public class NitriteLayoutStore implements LayoutStore {
     public Optional<String> getLayout(String namespace, int architectureId) throws NamespaceNotFoundException {
         requireNamespace(namespace);
 
-        Document namespaceDoc = fetchNamespaceDocument(namespace);
-        if (namespaceDoc == null) {
-            return Optional.empty();
-        }
-
-        return findEntry(extractLayouts(namespaceDoc), architectureId)
-                .map(entry -> entry.get(LAYOUT_FIELD, String.class));
+        Document document = fetchLayoutDocument(namespace, architectureId);
+        return document == null ? Optional.empty() : Optional.ofNullable(document.get(LAYOUT_FIELD, String.class));
     }
 
     @Override
@@ -90,26 +86,16 @@ public class NitriteLayoutStore implements LayoutStore {
 
         lock.lock();
         try {
-            Document namespaceDoc = fetchNamespaceDocument(namespace);
-            if (namespaceDoc == null) {
-                Document entry = Document.createDocument(ARCHITECTURE_ID_FIELD, architectureId).put(LAYOUT_FIELD, layoutJson);
-                Document newNamespaceDoc = Document.createDocument(NAMESPACE_FIELD, namespace)
-                        .put(LAYOUTS_FIELD, new ArrayList<>(List.of(entry)));
-                layoutCollection.insert(newNamespaceDoc);
+            Document existing = fetchLayoutDocument(namespace, architectureId);
+            if (existing == null) {
+                layoutCollection.insert(Document.createDocument(NAMESPACE_FIELD, namespace)
+                        .put(ARCHITECTURE_ID_FIELD, architectureId)
+                        .put(LAYOUT_FIELD, layoutJson));
                 LOG.debug("Created default layout for architecture {} in namespace '{}'", architectureId, namespace);
                 return;
             }
-
-            List<Document> mutableLayouts = new ArrayList<>(extractLayouts(namespaceDoc));
-            Optional<Document> existing = findEntry(mutableLayouts, architectureId);
-            if (existing.isPresent()) {
-                existing.get().put(LAYOUT_FIELD, layoutJson);
-            } else {
-                mutableLayouts.add(Document.createDocument(ARCHITECTURE_ID_FIELD, architectureId).put(LAYOUT_FIELD, layoutJson));
-            }
-
-            namespaceDoc.put(LAYOUTS_FIELD, mutableLayouts);
-            layoutCollection.update(namespaceDoc);
+            existing.put(LAYOUT_FIELD, layoutJson);
+            layoutCollection.update(existing);
             LOG.debug("Saved default layout for architecture {} in namespace '{}'", architectureId, namespace);
         } finally {
             lock.unlock();
@@ -122,22 +108,14 @@ public class NitriteLayoutStore implements LayoutStore {
 
         lock.lock();
         try {
-            Document namespaceDoc = fetchNamespaceDocument(namespace);
-            if (namespaceDoc == null) {
-                throw new LayoutNotFoundException();
-            }
-
-            List<Document> layouts = extractLayouts(namespaceDoc);
-            List<Document> remaining = layouts.stream()
-                    .filter(entry -> !matchesArchitecture(entry, architectureId))
-                    .collect(Collectors.toCollection(ArrayList::new));
-            if (remaining.size() == layouts.size()) {
+            Document existing = fetchLayoutDocument(namespace, architectureId);
+            if (existing == null) {
                 LOG.warn("No default layout found for architecture {} in namespace '{}' when deleting", architectureId, namespace);
                 throw new LayoutNotFoundException();
             }
-
-            namespaceDoc.put(LAYOUTS_FIELD, remaining);
-            layoutCollection.update(namespaceDoc);
+            // By identity, not by a filter — the document is already in hand, so there is no
+            // need to re-resolve it.
+            layoutCollection.remove(existing);
             LOG.debug("Deleted default layout for architecture {} in namespace '{}'", architectureId, namespace);
         } finally {
             lock.unlock();
@@ -148,15 +126,17 @@ public class NitriteLayoutStore implements LayoutStore {
     public List<Integer> getArchitectureIdsWithLayoutForNamespace(String namespace) throws NamespaceNotFoundException {
         requireNamespace(namespace);
 
-        Document namespaceDoc = fetchNamespaceDocument(namespace);
-        if (namespaceDoc == null) {
-            return List.of();
+        // Not using DocumentCursor#project here: Nitrite applies a projection in memory after
+        // reading the full document from the store, so it saves nothing at the I/O layer and
+        // only complicates the read below for no benefit.
+        List<Integer> architectureIds = new ArrayList<>();
+        for (Document document : layoutCollection.find(where(NAMESPACE_FIELD).eq(namespace))) {
+            Integer architectureId = document.get(ARCHITECTURE_ID_FIELD, Integer.class);
+            if (architectureId != null) {
+                architectureIds.add(architectureId);
+            }
         }
-
-        return extractLayouts(namespaceDoc).stream()
-                .map(entry -> entry.get(ARCHITECTURE_ID_FIELD, Integer.class))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        return architectureIds;
     }
 
     /**
@@ -176,23 +156,9 @@ public class NitriteLayoutStore implements LayoutStore {
         }
     }
 
-    private Optional<Document> findEntry(List<Document> layouts, int architectureId) {
-        return layouts.stream().filter(entry -> matchesArchitecture(entry, architectureId)).findFirst();
-    }
-
-    private boolean matchesArchitecture(Document entry, int architectureId) {
-        return Integer.valueOf(architectureId).equals(entry.get(ARCHITECTURE_ID_FIELD, Integer.class));
-    }
-
-    private Document fetchNamespaceDocument(String namespace) {
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
+    private Document fetchLayoutDocument(String namespace, int architectureId) {
+        Filter filter = Filter.and(where(NAMESPACE_FIELD).eq(namespace), where(ARCHITECTURE_ID_FIELD).eq(architectureId));
         return layoutCollection.find(filter).firstOrNull();
-    }
-
-    private List<Document> extractLayouts(Document namespaceDoc) {
-        TypeSafeNitriteDocument<Document> typeSafeDoc = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
-        List<Document> layouts = typeSafeDoc.getList(LAYOUTS_FIELD);
-        return layouts == null ? List.of() : layouts;
     }
 
     private void requireNamespace(String namespace) throws NamespaceNotFoundException {

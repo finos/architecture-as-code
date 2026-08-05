@@ -6,13 +6,12 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.result.UpdateResult;
+import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.result.DeleteResult;
 import org.bson.BsonDocument;
-import org.bson.BsonObjectId;
+import org.bson.BsonMaximumSizeExceededException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
 import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StorageWriteException;
@@ -24,12 +23,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -39,6 +40,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TestMongoLayoutStoreShould {
 
+    private interface DocumentFindIterable extends FindIterable<Document> {
+    }
+
     @Mock
     private MongoDatabase database;
 
@@ -47,9 +51,6 @@ class TestMongoLayoutStoreShould {
 
     @Mock
     private MongoNamespaceStore namespaceStore;
-
-    @Mock
-    private FindIterable<Document> findIterable;
 
     private MongoLayoutStore layoutStore;
 
@@ -64,16 +65,16 @@ class TestMongoLayoutStoreShould {
     // ---- getLayout ----
 
     @Test
-    void return_layout_when_entry_exists() throws NamespaceNotFoundException {
+    void return_layout_when_document_exists() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
         Document layoutDoc = Document.parse(LAYOUT_JSON);
-        Document namespaceDocument = new Document("namespace", namespace)
-                .append("layouts", List.of(new Document("architectureId", 5).append("layout", layoutDoc)));
+        Document document = new Document("namespace", namespace).append("architectureId", 5).append("layout", layoutDoc);
 
+        FindIterable<Document> findIterable = mock(DocumentFindIterable.class);
         when(layoutCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(namespaceDocument);
+        when(findIterable.first()).thenReturn(document);
 
         Optional<String> result = layoutStore.getLayout(namespace, 5);
 
@@ -83,15 +84,13 @@ class TestMongoLayoutStoreShould {
     }
 
     @Test
-    void return_empty_when_no_entry_matches_architecture() throws NamespaceNotFoundException {
+    void return_empty_when_no_document_matches_architecture() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document namespaceDocument = new Document("namespace", namespace)
-                .append("layouts", List.of(new Document("architectureId", 99).append("layout", Document.parse(LAYOUT_JSON))));
-
+        FindIterable<Document> findIterable = mock(DocumentFindIterable.class);
         when(layoutCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(namespaceDocument);
+        when(findIterable.first()).thenReturn(null);
 
         Optional<String> result = layoutStore.getLayout(namespace, 5);
 
@@ -99,11 +98,15 @@ class TestMongoLayoutStoreShould {
     }
 
     @Test
-    void return_empty_when_namespace_document_is_null() throws NamespaceNotFoundException {
+    void return_empty_when_the_document_holds_no_layout() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        Document document = new Document("namespace", namespace).append("architectureId", 5);
+
+        FindIterable<Document> findIterable = mock(DocumentFindIterable.class);
         when(layoutCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
+        when(findIterable.first()).thenReturn(document);
 
         assertFalse(layoutStore.getLayout(namespace, 5).isPresent());
     }
@@ -120,161 +123,92 @@ class TestMongoLayoutStoreShould {
     // ---- upsertLayout ----
 
     @Test
-    void update_existing_entry_in_place_when_present() throws NamespaceNotFoundException {
+    void save_via_a_single_replace_one_upsert() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        UpdateResult setResult = mock(UpdateResult.class);
-        when(setResult.getModifiedCount()).thenReturn(1L);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(setResult);
 
         layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
 
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
-        verify(layoutCollection, never()).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(layoutCollection, times(1)).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
     }
 
     @Test
-    void surface_capacity_exceeded_when_overwriting_an_existing_entry_hits_the_document_size_limit() {
+    void retry_the_replace_once_when_two_concurrent_upserts_collide() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        // Namespace documents share Flow's one-document-per-namespace shape, so the $set in
-        // trySetExisting can cross MongoDB's 16MB BSON ceiling (error code 10334) just as the
-        // conditional $push in tryPushNew can — both must map to a capacity-exceeded failure.
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class)))
+        // Both saves missed the filter and both attempted an insert; the unique index on
+        // (namespace, architectureId) let only the other one through.
+        when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
+                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()))
+                .thenReturn(null);
+
+        layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
+
+        verify(layoutCollection, times(2)).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
+    }
+
+    @Test
+    void surface_a_write_failure_when_the_retry_also_hits_a_duplicate_key() {
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        // A second duplicate key on the retry means the index no longer agrees with the
+        // filter — a fault, not a race to keep retrying.
+        when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
+                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()));
+
+        assertThrows(StorageWriteException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
+
+        verify(layoutCollection, times(2)).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
+    }
+
+    @Test
+    void surface_capacity_exceeded_when_the_server_rejects_an_oversized_document() {
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
                 .thenThrow(new MongoWriteException(new WriteError(10334, "object to save is too large", new BsonDocument()), new ServerAddress(), List.of()));
 
         StorageWriteException exception = assertThrows(StorageWriteException.class,
                 () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
 
         assertTrue(exception.isCapacityExceeded());
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
-        verify(layoutCollection, never()).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(layoutCollection, times(1)).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
     }
 
     @Test
-    void push_new_entry_into_existing_namespace_document_when_none_matches() throws NamespaceNotFoundException {
+    void surface_capacity_exceeded_when_the_layout_itself_exceeds_the_bson_limit() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        UpdateResult setResult = mock(UpdateResult.class);
-        when(setResult.getModifiedCount()).thenReturn(0L);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(setResult);
+        // Unlike the old shape, a single write can already exceed the 16MB ceiling before it
+        // is even sent — the driver rejects it client-side while serializing the command, so
+        // no MongoWriteException is ever raised.
+        when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
+                .thenThrow(new BsonMaximumSizeExceededException("document exceeds maximum allowed size"));
 
-        UpdateResult pushResult = mock(UpdateResult.class);
-        when(pushResult.getModifiedCount()).thenReturn(1L);
-        when(pushResult.getUpsertedId()).thenReturn(null);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class))).thenReturn(pushResult);
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
 
-        layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
-
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        assertTrue(exception.isCapacityExceeded());
+        verify(layoutCollection, times(1)).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
     }
 
     @Test
-    void insert_brand_new_namespace_document_via_upsert_when_none_exists() throws NamespaceNotFoundException {
+    void propagate_non_duplicate_key_write_errors() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        UpdateResult setResult = mock(UpdateResult.class);
-        when(setResult.getModifiedCount()).thenReturn(0L);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(setResult);
-
-        UpdateResult pushResult = mock(UpdateResult.class);
-        when(pushResult.getUpsertedId()).thenReturn(new BsonObjectId(new ObjectId()));
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class))).thenReturn(pushResult);
-
-        layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
-
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-    }
-
-    @Test
-    void retry_set_once_when_both_the_set_and_the_conditional_push_lose_the_race() throws NamespaceNotFoundException {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        UpdateResult noOp = mock(UpdateResult.class);
-        when(noOp.getModifiedCount()).thenReturn(0L);
-        UpdateResult retrySucceeds = mock(UpdateResult.class);
-        when(retrySucceeds.getModifiedCount()).thenReturn(1L);
-        // First call (trySetExisting) misses, second call (the final retry) finds the
-        // entry a concurrent writer just created and succeeds.
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(noOp, retrySucceeds);
-
-        UpdateResult pushMiss = mock(UpdateResult.class);
-        when(pushMiss.getModifiedCount()).thenReturn(0L);
-        when(pushMiss.getUpsertedId()).thenReturn(null);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class))).thenReturn(pushMiss);
-
-        layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
-
-        // trySetExisting is attempted, then tryPushNew, then trySetExisting again as the final retry.
-        verify(layoutCollection, times(2)).updateOne(any(Bson.class), any(Bson.class));
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-    }
-
-    @Test
-    void fall_back_to_retrying_set_when_the_conditional_push_hits_a_duplicate_key_error() throws NamespaceNotFoundException {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        UpdateResult noOp = mock(UpdateResult.class);
-        when(noOp.getModifiedCount()).thenReturn(0L);
-        UpdateResult retrySucceeds = mock(UpdateResult.class);
-        when(retrySucceeds.getModifiedCount()).thenReturn(1L);
-        // First call (trySetExisting) misses, second call (the final retry, after the
-        // duplicate-key race) finds the namespace document another writer just created.
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(noOp, retrySucceeds);
-
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()));
-
-        layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
-
-        verify(layoutCollection, times(2)).updateOne(any(Bson.class), any(Bson.class));
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-    }
-
-    @Test
-    void throw_storage_write_exception_when_the_final_retry_also_finds_no_matching_entry() throws NamespaceNotFoundException {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        // Every trySetExisting attempt misses (including the final retry) — e.g. a
-        // concurrent delete removed the entry again in that same window — so the save
-        // must surface a failure rather than silently returning as if it had persisted.
-        UpdateResult noOp = mock(UpdateResult.class);
-        when(noOp.getModifiedCount()).thenReturn(0L);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(noOp);
-
-        UpdateResult pushMiss = mock(UpdateResult.class);
-        when(pushMiss.getModifiedCount()).thenReturn(0L);
-        when(pushMiss.getUpsertedId()).thenReturn(null);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class))).thenReturn(pushMiss);
-
-        assertThrows(StorageWriteException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
-
-        verify(layoutCollection, times(2)).updateOne(any(Bson.class), any(Bson.class));
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-    }
-
-    @Test
-    void propagate_non_duplicate_key_errors_from_the_conditional_push() {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        UpdateResult noOp = mock(UpdateResult.class);
-        when(noOp.getModifiedCount()).thenReturn(0L);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(noOp);
-
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+        when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
                 .thenThrow(new MongoWriteException(new WriteError(12, "some other error", new BsonDocument()), new ServerAddress(), List.of()));
 
-        assertThrows(RuntimeException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
+        StorageWriteException exception = assertThrows(StorageWriteException.class,
+                () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
+
+        assertFalse(exception.isCapacityExceeded());
+        verify(layoutCollection, times(1)).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
     }
 
     @Test
@@ -283,24 +217,23 @@ class TestMongoLayoutStoreShould {
         when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
-        verify(layoutCollection, never()).updateOne(any(Bson.class), any(Bson.class));
-        verify(layoutCollection, never()).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        verify(layoutCollection, never()).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
     }
 
     // ---- deleteLayout ----
 
     @Test
-    void delete_matching_entry_successfully() throws NamespaceNotFoundException, LayoutNotFoundException {
+    void delete_matching_document_successfully() throws NamespaceNotFoundException, LayoutNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        UpdateResult pullResult = mock(UpdateResult.class);
-        when(pullResult.getModifiedCount()).thenReturn(1L);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(pullResult);
+        DeleteResult deleteResult = mock(DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(1L);
+        when(layoutCollection.deleteOne(any(Bson.class))).thenReturn(deleteResult);
 
         layoutStore.deleteLayout(namespace, 5);
 
-        verify(layoutCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
+        verify(layoutCollection, times(1)).deleteOne(any(Bson.class));
     }
 
     @Test
@@ -308,9 +241,9 @@ class TestMongoLayoutStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        UpdateResult pullResult = mock(UpdateResult.class);
-        when(pullResult.getModifiedCount()).thenReturn(0L);
-        when(layoutCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(pullResult);
+        DeleteResult deleteResult = mock(DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(0L);
+        when(layoutCollection.deleteOne(any(Bson.class))).thenReturn(deleteResult);
 
         assertThrows(LayoutNotFoundException.class, () -> layoutStore.deleteLayout(namespace, 5));
     }
@@ -321,7 +254,7 @@ class TestMongoLayoutStoreShould {
         when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class, () -> layoutStore.deleteLayout(namespace, 5));
-        verify(layoutCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+        verify(layoutCollection, never()).deleteOne(any(Bson.class));
     }
 
     // ---- getArchitectureIdsWithLayoutForNamespace ----
@@ -331,14 +264,10 @@ class TestMongoLayoutStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document namespaceDocument = new Document("namespace", namespace)
-                .append("layouts", List.of(
-                        new Document("architectureId", 5).append("layout", Document.parse(LAYOUT_JSON)),
-                        new Document("architectureId", 6).append("layout", Document.parse(LAYOUT_JSON))
-                ));
-
-        when(layoutCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(namespaceDocument);
+        stubProjectedDocuments(List.of(
+                new Document("architectureId", 5),
+                new Document("architectureId", 6)
+        ));
 
         List<Integer> ids = layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace);
 
@@ -346,11 +275,21 @@ class TestMongoLayoutStoreShould {
     }
 
     @Test
-    void return_empty_list_when_namespace_document_is_null_for_ids() throws NamespaceNotFoundException {
+    void skip_a_document_with_no_architecture_id() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        when(layoutCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
+
+        stubProjectedDocuments(List.of(new Document()));
+
+        assertTrue(layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace).isEmpty());
+    }
+
+    @Test
+    void return_empty_list_when_no_layouts_exist_for_the_namespace() throws NamespaceNotFoundException {
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        stubProjectedDocuments(List.of());
 
         assertTrue(layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace).isEmpty());
     }
@@ -362,5 +301,22 @@ class TestMongoLayoutStoreShould {
 
         assertThrows(NamespaceNotFoundException.class, () -> layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace));
         verify(layoutCollection, never()).find(any(Bson.class));
+    }
+
+    /**
+     * Models {@code getArchitectureIdsWithLayoutForNamespace}'s {@code find(...).projection(...).forEach(...)}
+     * chain — the projected iterable drives the given documents through the consumer passed to
+     * {@code forEach}.
+     */
+    @SuppressWarnings("unchecked")
+    private void stubProjectedDocuments(List<Document> documents) {
+        FindIterable<Document> findIterable = mock(DocumentFindIterable.class);
+        when(layoutCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any())).thenReturn(findIterable);
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            documents.forEach(consumer);
+            return null;
+        }).when(findIterable).forEach(any(Consumer.class));
     }
 }
