@@ -32,7 +32,6 @@ public class TestLayoutResourceShould {
 
     private static final String VALID_LAYOUT_JSON = """
             {
-                "$schema": "https://calm.finos.org/draft/2026-03/meta/calm-layout.json",
                 "for": "/api/calm/namespaces/finos/architectures/5",
                 "name": "Default",
                 "pins": [

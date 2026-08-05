@@ -159,9 +159,10 @@ public class LayoutResource {
     /**
      * Parses the layout body just far enough to read its optional {@code for} property,
      * so a save whose {@code for} silently names a different architecture than the URL can be
-     * rejected before it reaches the store. A layout with no {@code for} at all is accepted —
-     * the schema requires it, but this resource doesn't duplicate that structural check (see
-     * {@code layout.json}).
+     * rejected before it reaches the store. A layout with no {@code for} at all is accepted;
+     * the field's contract is defined entirely by this resource's own behaviour — compared
+     * against {@link #canonicalArchitecturePath} and rejected with a 400 on mismatch — not by
+     * an external schema document.
      *
      * @throws JsonParseException if the body is not valid JSON
      */

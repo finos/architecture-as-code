@@ -16,8 +16,9 @@ import java.util.Optional;
  * (see {@code calm-hub-ui/src/visualizer/components/drawer/Drawer.tsx}).
  *
  * <p>The layout content itself is treated as an opaque JSON string here, the same convention
- * as {@link org.finos.calm.store.DecoratorStore} — structural conformance to the
- * {@code layout.json} draft schema is not enforced at this layer.</p>
+ * as {@link org.finos.calm.store.DecoratorStore}. It is a CALM Hub-internal shape, not a
+ * validated CALM community schema; its structure is documented by {@code CalmLayout} on the
+ * frontend and by this interface's own Javadoc, not by an external schema file.</p>
  */
 public interface LayoutStore {
 

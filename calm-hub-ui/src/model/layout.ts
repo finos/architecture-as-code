@@ -8,9 +8,10 @@ export interface CalmLayoutPin {
 
 /**
  * A layout as stored server-side: the shared, default arrangement for an architecture.
- * Mirrors the `layout.json` draft schema (`calm/draft/2026-03/meta/layout.json`) — kept
- * schema-faithful here and converted to/from the ReactFlow-facing `StoredNodePosition[]`
- * shape at the boundary, so `unique-id` never leaks into the visualiser layer.
+ * This is a CALM Hub-internal wire format — not a CALM community schema — and this
+ * interface is its authoritative shape. Converted to/from the ReactFlow-facing
+ * `StoredNodePosition[]` shape at the boundary, so `unique-id` never leaks into the
+ * visualiser layer.
  */
 export interface CalmLayout {
     for?: string;
