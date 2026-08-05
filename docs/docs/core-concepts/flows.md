@@ -1,7 +1,7 @@
 ---
 id: flows
 title: Flows
-sidebar_position: 3
+sidebar_position: 6
 ---
 
 # Flows in CALM
