@@ -9,6 +9,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import integration.IntegrationTestProfile;
+import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,18 +28,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The two halves of issue #2884's document-size story, one per storage shape.
  *
- * <p><b>Pattern</b> still uses the one-document-per-namespace shape, where every version's
- * full content accumulates in a single document. Growing its history eventually crosses
- * MongoDB's 16MB BSON ceiling, and that failure must surface as an honest {@code 413} via
+ * <p><b>Flow</b> still uses the one-document-per-namespace shape, where every version's full
+ * content accumulates in a single document. Growing its history eventually crosses MongoDB's
+ * 16MB BSON ceiling, and that failure must surface as an honest {@code 413} via
  * {@link org.finos.calm.domain.exception.StorageWriteException} — not the misleading
- * {@code 404} the stores used to throw for any {@code MongoWriteException}. This is the
- * original regression test, repointed from Architecture when Architecture migrated.</p>
+ * {@code 404} the stores used to throw for any {@code MongoWriteException}.</p>
  *
- * <p><b>Architecture</b> has moved to the header/version shape, where each version is its
- * own document bounded by its own size. The same history that breaks Pattern must now be
- * writable, which is the whole point of the redesign. Keeping both in one class means the
- * ceiling and its removal are asserted against the same real MongoDB, with the same payload
- * size, rather than being argued about.</p>
+ * <p><b>Architecture and Pattern</b> have moved to the header/version shape, where each
+ * version is its own document bounded by its own size. The same history that breaks Flow
+ * must now be writable, which is the whole point of the redesign. Keeping both halves in one
+ * class means the ceiling and its removal are asserted against the same real MongoDB, with
+ * the same payload size, rather than being argued about.</p>
+ *
+ * <p><b>This test relocates each time a type migrates.</b> It began on Architecture, moved to
+ * Pattern when Architecture migrated, and is now on Flow. When Flow migrates it must move
+ * again — Timeline, Interface, Standard and ADR are the remaining candidates, and Control
+ * keeps the old shape permanently (ADR 0004). A failure here reading "expected a write to
+ * fail" usually means the type under test has just been migrated, not that the 413 mapping
+ * broke.</p>
  */
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
@@ -60,6 +67,24 @@ public class MongoDocumentSizeLimitIntegration {
     /** Roughly 2MB, large enough to cross the ceiling in a handful of writes. */
     private static final String LARGE_CONTENT = "A".repeat(2_000_000);
 
+    /**
+     * Both tests run against their own namespace rather than {@code finos}, because neither
+     * of them can clean up after itself.
+     *
+     * <p>The 413 test deliberately drives the flows document <i>past</i> the 16MB ceiling and
+     * leaves it there — that is the state it asserts on. Nothing drops {@code flows} between
+     * classes ({@code MongoFlowIntegration} creates the collection only when absent), so under
+     * {@code finos} that wedged document would outlive this class: {@code
+     * end_to_end_get_with_no_flow} would find a flow, and every later flow write in the
+     * namespace would fail with 413 rather than 201. Today that is masked only by the order
+     * failsafe happens to run these classes in, which is not a guarantee.</p>
+     *
+     * <p>The same applies to the header/version half, for a less destructive reason: it leaves
+     * roughly 24MB of version documents behind, which would otherwise show up in any later
+     * listing of {@code finos} architectures.</p>
+     */
+    private static final String NAMESPACE = "size-limit";
+
     @BeforeEach
     public void setup() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
@@ -70,6 +95,13 @@ public class MongoDocumentSizeLimitIntegration {
             namespaceSetup(database);
             domainSetup(database);
             counterSetup(database);
+
+            // namespaceSetup only seeds when the collection is empty, so the dedicated
+            // namespace has to be inserted on its own terms.
+            if (database.getCollection("namespaces").countDocuments(new Document("name", NAMESPACE)) == 0) {
+                database.getCollection("namespaces").insertOne(
+                        new Document("name", NAMESPACE).append("description", "document size limit test namespace"));
+            }
         }
     }
 
@@ -87,7 +119,7 @@ public class MongoDocumentSizeLimitIntegration {
                         "name", name,
                         "description", "for document size limit test",
                         jsonField, "{\"v\":\"1.0.0\"}")))
-                .when().post("/api/calm/namespaces/finos/" + path)
+                .when().post("/api/calm/namespaces/" + NAMESPACE + "/" + path)
                 .thenReturn();
         assertEquals(201, response.getStatusCode());
         return extractIdsFromLocations(List.of(response), path + "/(\\d+)").get(0);
@@ -97,19 +129,19 @@ public class MongoDocumentSizeLimitIntegration {
         return given()
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/api/calm/namespaces/finos/" + path + "/" + id + "/versions/" + major + ".0.0")
+                .when().put("/api/calm/namespaces/" + NAMESPACE + "/" + path + "/" + id + "/versions/" + major + ".0.0")
                 .thenReturn();
     }
 
     @Test
     void return_413_when_a_version_write_exceeds_the_document_size_limit() throws Exception {
-        int patternId = createResource("patterns", "patternJson", "size-limit-test-pattern");
-        String requestBody = largeBody("patternJson", "size-limit-test-pattern");
+        int flowId = createResource("flows", "flowJson", "size-limit-test-flow");
+        String requestBody = largeBody("flowJson", "size-limit-test-flow");
 
         Response lastResponse = null;
         int version = 2;
         for (; version < MAX_VERSION_ATTEMPTS; version++) {
-            lastResponse = putVersion("patterns", patternId, version, requestBody);
+            lastResponse = putVersion("flows", flowId, version, requestBody);
             if (lastResponse.getStatusCode() != 201) {
                 break;
             }
@@ -117,8 +149,9 @@ public class MongoDocumentSizeLimitIntegration {
 
         assertTrue(version < MAX_VERSION_ATTEMPTS,
                 "Expected a write to fail with document-too-large before " + MAX_VERSION_ATTEMPTS
-                        + " versions were written. Patterns still accumulate every version's content into "
-                        + "one document per namespace, so this ceiling should still exist for them.");
+                        + " versions were written. Flows still accumulate every version's content into "
+                        + "one document per namespace, so this ceiling should still exist for them. If Flow "
+                        + "has just been migrated, this test needs to move to a type that has not.");
         assertEquals(413, lastResponse.getStatusCode(),
                 "Expected 413 (capacity exceeded) once the document exceeds MongoDB's 16MB limit, got: "
                         + lastResponse.getStatusCode() + " body=" + lastResponse.getBody().asString());
@@ -141,7 +174,7 @@ public class MongoDocumentSizeLimitIntegration {
         // Roughly 24MB of history, against a 16MB per-document limit — proof the accumulated
         // total is no longer what any single write is measured against.
         assertEquals(VERSIONS_BEYOND_OLD_CEILING + 1,
-                given().when().get("/api/calm/namespaces/finos/architectures/" + architectureId + "/versions")
+                given().when().get("/api/calm/namespaces/" + NAMESPACE + "/architectures/" + architectureId + "/versions")
                         .then().statusCode(200).extract().jsonPath().getList("values").size());
     }
 }

@@ -4,12 +4,14 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.exceptions.NitriteException;
 import org.dizitart.no2.filters.Filter;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -62,6 +64,9 @@ public class NitriteVersionDocumentStore {
     static final String DESCRIPTION_FIELD = "description";
     static final String VERSION_COUNT_FIELD = "versionCount";
     static final String METADATA_FIELD = "metadata";
+
+    /** The version every resource is created with. */
+    public static final String INITIAL_VERSION = "1.0.0";
 
     private final NitriteCollection headerCollection;
     private final NitriteCollection versionCollection;
@@ -129,6 +134,33 @@ public class NitriteVersionDocumentStore {
                     namespace, idField, resourceId, e);
         } finally {
             lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Writes the first version of a newly created resource, removing the header again if
+     * that fails. See {@link MongoVersionDocumentStore#createFirstVersion} — the reasoning
+     * for owning this here, and for treating {@code !created} as a real failure, is the
+     * same on both backends.
+     *
+     * <p>Deliberately not held under a single write lock across both steps. Each call it
+     * makes takes the lock itself, and widening that would mean holding the store-wide
+     * write lock across a compensating delete for no gain: the resource id has just been
+     * allocated and is not yet visible to any other caller.</p>
+     */
+    public void createFirstVersion(String namespace, int resourceId, String content) {
+        boolean created;
+        try {
+            created = createVersion(namespace, resourceId, INITIAL_VERSION, content);
+        } catch (RuntimeException e) {
+            deleteHeader(namespace, resourceId);
+            throw e;
+        }
+        if (!created) {
+            deleteHeader(namespace, resourceId);
+            throw StorageWriteException.writeFailed(new IllegalStateException(
+                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
+                            + idField + " " + resourceId + " in namespace " + namespace));
         }
     }
 
@@ -217,15 +249,61 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
+     * Updates the header's {@code name} and {@code description}, ignoring either that is
+     * {@code null} or blank. See {@link MongoVersionDocumentStore#updatePresentHeaderDetails}
+     * for why this exists alongside {@link #updateHeaderDetails}.
+     */
+    public void updatePresentHeaderDetails(String namespace, int resourceId, String name, String description) {
+        if (!isPresent(name) && !isPresent(description)) {
+            return;
+        }
+        lock.writeLock().lock();
+        try {
+            Filter filter = headerFilter(namespace, resourceId);
+            Document header = headerCollection.find(filter).firstOrNull();
+            if (header == null) {
+                LOG.warn("No header to update details on [namespace={}, {}={}]", namespace, idField, resourceId);
+                return;
+            }
+            if (isPresent(name)) {
+                header.put(NAME_FIELD, name);
+            }
+            if (isPresent(description)) {
+                header.put(DESCRIPTION_FIELD, description);
+            }
+            headerCollection.update(filter, header);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    /**
      * @return the stored content for one version, or {@code null} if that version
      * (or the resource) doesn't exist.
+     *
+     * <p>Content that is present but not a string is reported the same way as absent
+     * content. The typed accessor {@code get(key, String.class)} casts, so reading a
+     * document whose {@code content} is a number or a nested document would throw a
+     * {@code ClassCastException} out of the store and surface as a 500. The old
+     * per-type stores guarded this with an {@code instanceof String} check and
+     * returned their version-not-found exception, giving a 404; that guard was
+     * dropped in the port and is restored here. A malformed stored document is not a
+     * version the caller can read, and 404 says so without claiming the server broke.</p>
      */
     public String getVersion(String namespace, int resourceId, String version) {
         lock.readLock().lock();
         try {
             Document versionDocument = versionCollection
                     .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).firstOrNull();
-            return versionDocument == null ? null : versionDocument.get(CONTENT_FIELD, String.class);
+            if (versionDocument == null) {
+                return null;
+            }
+            Object content = versionDocument.get(CONTENT_FIELD);
+            return content instanceof String stored ? stored : null;
         } finally {
             lock.readLock().unlock();
         }
@@ -265,7 +343,14 @@ public class NitriteVersionDocumentStore {
             for (Document header : headerCollection.find(where(NAMESPACE_FIELD).eq(namespace))) {
                 summaries.add(toSummary(header));
             }
-            summaries.sort((left, right) -> Integer.compare(left.getId(), right.getId()));
+            // Null-safe because the id is read straight off the stored header and a header
+            // missing its id field yields a null one. Comparing with Integer.compare unboxes,
+            // so a single such document would NPE the whole listing into a 500 — where Mongo,
+            // which sorts database-side, returns 200 with that row included. Sorting nulls
+            // last keeps the two backends agreeing; toSummary already renders the row itself
+            // ("<Type> null"), which is the honest representation of a malformed header.
+            summaries.sort(Comparator.comparing(NamespaceResourceSummary::getId,
+                    Comparator.nullsLast(Comparator.naturalOrder())));
             return page.apply(summaries);
         } finally {
             lock.readLock().unlock();

@@ -242,6 +242,23 @@ class TestMongoArchitectureVersionSplitStepShould {
     }
 
     @Test
+    void migrate_content_that_is_not_a_document_rather_than_aborting_the_run() {
+        // The typed accessor would cast and throw out of the migration, aborting it with the
+        // schema lock still held — the whole hub then refuses requests over one malformed
+        // document. Carrying the value across unchanged keeps the run going and loses nothing.
+        stubOldDocuments(List.of(new Document("_id", "abc")
+                .append("namespace", "finos")
+                .append("architectures", List.of(new Document("architectureId", 1)
+                        .append("versions", new Document("1-0-0", "a bare string"))))));
+
+        step.apply();
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versions).replaceOne(any(Bson.class), versionCaptor.capture(), any(ReplaceOptions.class));
+        assertThat(versionCaptor.getValue().get("content"), is("a bare string"));
+    }
+
+    @Test
     void write_a_header_but_no_versions_for_an_architecture_that_has_none() {
         stubOldDocuments(List.of(new Document("_id", "abc")
                 .append("namespace", "finos")
@@ -264,6 +281,17 @@ class TestMongoArchitectureVersionSplitStepShould {
         step.apply();
 
         verify(headers, never()).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
+        verify(headers, never()).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void transition_indexes_without_fanning_anything_out() {
+        // The entry point EndToEndResource uses to bring a test database's indexes to the
+        // new shape when it has no old-shape data to migrate. Covered directly because the
+        // fan-out path reaches the shared migration's method, not this class's delegate.
+        step.transitionIndexes();
+
+        verify(headers).createIndex(eq(new Document("namespace", 1).append("architectureId", 1)), any());
         verify(headers, never()).deleteOne(any(Bson.class));
     }
 

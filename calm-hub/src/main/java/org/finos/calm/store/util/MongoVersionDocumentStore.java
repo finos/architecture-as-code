@@ -13,6 +13,7 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
 import org.slf4j.Logger;
@@ -34,8 +35,9 @@ import java.util.List;
  *
  * <h2>Not a base class</h2>
  * Each resource type's store composes one of these rather than extending it,
- * matching the codebase's existing static-helper convention ({@link MongoUpsertPush},
- * {@code MongoResourceSlice}). The type-specific parts — the id field name, the
+ * matching the codebase's existing static-helper convention ({@link MongoUpsertPush};
+ * {@code MongoResourceSlice} was the other, and was deleted once Pattern migrated and
+ * left it with no callers). The type-specific parts — the id field name, the
  * label used when a stored {@code name} is missing — are constructor arguments, so
  * one instance serves exactly one resource type.
  *
@@ -70,6 +72,9 @@ public class MongoVersionDocumentStore {
     static final String DESCRIPTION_FIELD = "description";
     static final String VERSION_COUNT_FIELD = "versionCount";
     static final String METADATA_FIELD = "metadata";
+
+    /** The version every resource is created with. */
+    public static final String INITIAL_VERSION = "1.0.0";
 
     private final MongoCollection<Document> headerCollection;
     private final MongoCollection<Document> versionCollection;
@@ -151,6 +156,38 @@ public class MongoVersionDocumentStore {
             LOG.warn("Failed to remove the header after a failed first version write "
                     + "[namespace={}, {}={}] — it may be left with no versions",
                     namespace, idField, resourceId, e);
+        }
+    }
+
+    /**
+     * Writes the first version of a newly created resource, removing the header again if
+     * that fails, so a half-created resource never survives the request.
+     *
+     * <p>This lives here rather than in each store because it is the {@link #createVersion}
+     * / {@link #deleteHeader} pair used correctly, and getting it wrong is not recoverable:
+     * there is no delete endpoint for any of these types, so a header stranded with
+     * {@code versionCount: 0} stays visible in listings and search permanently. Each store
+     * having its own copy meant a fix applied to one and missed in another, with nothing to
+     * flag the difference.</p>
+     *
+     * <p>The {@code !created} branch looks impossible and is treated as a genuine failure
+     * anyway: {@code resourceId} has just been allocated from the counter, so nothing should
+     * already hold its version 1.0.0. If something does — a rewound counter, a restored
+     * database — reporting success would return 201 for content that was never stored.</p>
+     */
+    public void createFirstVersion(String namespace, int resourceId, Document content) {
+        boolean created;
+        try {
+            created = createVersion(namespace, resourceId, INITIAL_VERSION, content);
+        } catch (RuntimeException e) {
+            deleteHeader(namespace, resourceId);
+            throw e;
+        }
+        if (!created) {
+            deleteHeader(namespace, resourceId);
+            throw StorageWriteException.writeFailed(new IllegalStateException(
+                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
+                            + idField + " " + resourceId + " in namespace " + namespace));
         }
     }
 
@@ -249,6 +286,46 @@ public class MongoVersionDocumentStore {
             LOG.error("Failed to update header details [namespace={}, {}={}]", namespace, idField, resourceId, e);
             throw MongoWriteFailures.toStorageWriteException(e);
         }
+    }
+
+    /**
+     * Updates the header's {@code name} and {@code description}, ignoring either that is
+     * {@code null} or blank.
+     *
+     * <p>The counterpart to {@link #updateHeaderDetails}, and the difference between them
+     * is a real behavioural difference between resource types rather than a style choice.
+     * Architecture's old shape {@code $set} both fields unconditionally, so a version write
+     * carrying no name wiped the stored one; Pattern's guarded them, so it never had that
+     * bug. Both are preserved exactly, which needs two operations.</p>
+     *
+     * <p>If both values are absent this writes nothing at all, rather than issuing an
+     * update that would set two fields to the values they already hold.</p>
+     */
+    public void updatePresentHeaderDetails(String namespace, int resourceId, String name, String description) {
+        List<Bson> updates = new ArrayList<>();
+        if (isPresent(name)) {
+            updates.add(Updates.set(NAME_FIELD, name));
+        }
+        if (isPresent(description)) {
+            updates.add(Updates.set(DESCRIPTION_FIELD, description));
+        }
+        if (updates.isEmpty()) {
+            return;
+        }
+        try {
+            UpdateResult result = headerCollection.updateOne(
+                    headerFilter(namespace, resourceId), Updates.combine(updates));
+            if (result.getMatchedCount() == 0) {
+                LOG.warn("No header to update details on [namespace={}, {}={}]", namespace, idField, resourceId);
+            }
+        } catch (MongoWriteException e) {
+            LOG.error("Failed to update header details [namespace={}, {}={}]", namespace, idField, resourceId, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
+        }
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.isBlank();
     }
 
     /**

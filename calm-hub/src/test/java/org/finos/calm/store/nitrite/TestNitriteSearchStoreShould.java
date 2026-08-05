@@ -207,13 +207,14 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void handle_null_entries_array_gracefully() {
-        // Uses a pattern rather than an architecture: only the array-shaped types can have a
-        // null entries array at all, so this covers the branch where it still exists.
+        // Uses a flow: only the array-shaped types can have a null entries array at all, so
+        // this covers the branch where it still exists. It moves to another unmigrated type
+        // each time one migrates — it was on architectures, then patterns.
         Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("patterns", null);
+                .put("flows", null);
 
-        mockCollectionFind(patternCollection, List.of(namespaceDoc));
-        mockEmptyCollections(architectureCollection, flowCollection, standardCollection,
+        mockCollectionFind(flowCollection, List.of(namespaceDoc));
+        mockEmptyCollections(architectureCollection, patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");

@@ -4,6 +4,7 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.collection.NitriteId;
 import org.dizitart.no2.filters.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,10 +50,22 @@ class TestNitriteArchitectureVersionSplitStepShould {
         stubCollectionContents(List.of());
     }
 
+    /**
+     * Models the step's two-pass read: a scan that keeps only ids, then a re-read of each
+     * document by id. Resolving the second pass against the id rather than returning a
+     * fixed document keeps per-document mistakes visible.
+     */
     private void stubCollectionContents(List<Document> documents) {
         DocumentCursor cursor = mock(DocumentCursor.class);
         when(headers.find()).thenReturn(cursor);
         when(cursor.iterator()).thenAnswer(invocation -> documents.iterator());
+        when(headers.getById(any(NitriteId.class))).thenAnswer(invocation -> {
+            NitriteId id = invocation.getArgument(0);
+            return documents.stream()
+                    .filter(document -> id.equals(document.getId()))
+                    .findFirst()
+                    .orElse(null);
+        });
     }
 
     /** One old-shape namespace document holding one architecture with two versions. */
@@ -139,6 +152,27 @@ class TestNitriteArchitectureVersionSplitStepShould {
         ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
         verify(headers).insert(headerCaptor.capture());
         assertThat(headerCaptor.getValue().get("versionCount", Integer.class), is(1));
+    }
+
+    @Test
+    void migrate_content_that_is_not_a_string_rather_than_aborting_the_run() {
+        // The typed accessor would cast and throw out of the migration, aborting it with the
+        // schema lock still held — the whole hub then refuses requests over one malformed
+        // document. Carrying the value across unchanged keeps the run going and loses
+        // nothing; the read path reports it as not found until it is repaired.
+        stubCollectionContents(List.of(Document.createDocument()
+                .put("namespace", "finos")
+                .put("architectures", List.of(Document.createDocument()
+                        .put("architectureId", 1)
+                        .put("versions", Document.createDocument()
+                                .put("1-0-0", 42))))));
+
+        step.apply();
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versions).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0"));
+        assertThat(versionCaptor.getValue().get("content"), is(42));
     }
 
     @Test

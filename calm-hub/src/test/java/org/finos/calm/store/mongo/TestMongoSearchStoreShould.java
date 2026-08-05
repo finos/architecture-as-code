@@ -138,22 +138,30 @@ class TestMongoSearchStoreShould {
     void return_results_from_multiple_collections() {
         Document archDoc = architectureHeader(1, "Demo Architecture", "demo");
 
-        Document patternEntry = new Document("patternId", 2)
+        Document patternDoc = new Document("namespace", "finos")
+                .append("patternId", 2)
                 .append("name", "Demo Pattern")
                 .append("description", "demo");
-        Document patternDoc = new Document("namespace", "finos")
-                .append("patterns", List.of(patternEntry));
+
+        // A flow, still in the array shape, alongside two header-shaped types — the point
+        // being that both paths run in the same search while the rollout is part-done.
+        Document flowDoc = new Document("namespace", "finos")
+                .append("flows", List.of(new Document("flowId", 3)
+                        .append("name", "Demo Flow")
+                        .append("description", "demo")));
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(patternCollection, List.of(patternDoc));
-        mockEmptyCollections(flowCollection, standardCollection,
-                interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(flowCollection, List.of(flowDoc));
+        mockEmptyCollections(standardCollection, interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("demo");
 
         assertEquals(1, results.getArchitectures().size());
         assertEquals(1, results.getPatterns().size());
         assertEquals("Demo Pattern", results.getPatterns().get(0).getName());
+        assertEquals(1, results.getFlows().size());
+        assertEquals("Demo Flow", results.getFlows().get(0).getName());
     }
 
     @Test
@@ -215,18 +223,19 @@ class TestMongoSearchStoreShould {
 
     @Test
     void handle_null_entries_array_gracefully() {
-        // Uses a pattern rather than an architecture: only the array-shaped types can have a
-        // null entries array at all, so this covers the branch where it still exists.
+        // Uses a flow: only the array-shaped types can have a null entries array at all, so
+        // this covers the branch where it still exists. It moves to another unmigrated type
+        // each time one migrates — it was on architectures, then patterns.
         Document namespaceDoc = new Document("namespace", "finos")
-                .append("patterns", null);
+                .append("flows", null);
 
-        mockCollectionFind(patternCollection, List.of(namespaceDoc));
-        mockEmptyCollections(architectureCollection, flowCollection, standardCollection,
+        mockCollectionFind(flowCollection, List.of(namespaceDoc));
+        mockEmptyCollections(architectureCollection, patternCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
 
-        assertTrue(results.getPatterns().isEmpty());
+        assertTrue(results.getFlows().isEmpty());
     }
 
     @Test

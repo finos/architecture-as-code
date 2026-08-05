@@ -13,7 +13,7 @@ import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 import { select, input } from '@inquirer/prompts';
-import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
+import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-models/types';
 import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared/src/hub/document-id-utils';
 import { loadCliConfig } from '../../cli-config';
@@ -53,7 +53,7 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('<file>', 'Path to the file to add to the bundle')
         .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
         .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
-        .addOption(new Option('--type <type>', 'Document type').choices(CALM_DOCUMENT_TYPES_LIST))
+        .addOption(new Option('--type <type>', 'Document type').choices([...CALM_DOCUMENT_TYPES_LIST]))
         .option('--namespace <namespace>', 'CalmHub namespace to associate with this file')
         .action(async (file: string, options: { id?: string; copy?: boolean; type?: string; namespace?: string }) => {
             try {
@@ -296,7 +296,7 @@ export function setupWorkspaceCommands(program: Command) {
         .command('new')
         .description('Add a new document based on a template and track it in the current workspace. The CalmHub $id is built interactively.')
         .addArgument(new Argument('[type]', 'The type of document to create.')
-            .choices(CALM_DOCUMENT_TYPES_LIST))
+            .choices([...CALM_DOCUMENT_TYPES_LIST]))
         .argument('[name]', 'The title for your new document')
         .argument('[template]', 'The template for your new document')
         .action(async (type, name, template) => {
@@ -546,7 +546,7 @@ async function resolveCalmHubUrl(optionUrl?: string): Promise<string> {
     return calmHubUrl;
 }
 
-async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: string[]): Promise<string> {
+async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: readonly string[]): Promise<string> {
     if (cliInput) {
         // if it was selected already, just use that
         return cliInput;
