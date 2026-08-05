@@ -43,7 +43,8 @@ import org.slf4j.LoggerFactory;
  *   <li>{@code architectures.namespace}, {@code patterns.namespace}, {@code flows.namespace},
  *       {@code timelines.namespace}, {@code standards.namespace}, {@code interfaces.namespace},
  *       {@code adrs.namespace}, {@code decorators.namespace} (unique) — one document
- *       per namespace in each entity collection, containing an array of that entity type</li>
+ *       per namespace in each entity collection, containing an array of that entity type.
+ *       {@code layouts} is deliberately not in this list — see {@link MongoLayoutIndexStep}</li>
  *   <li>{@code controls.domain} (unique) — one document per domain, containing an array
  *       of controls</li>
  *   <li>{@code userAccess.(username, namespace, permission)} and
@@ -158,8 +159,10 @@ public class MongoIndexInitializationStep implements SchemaMigrationStep {
                 .createIndex(new Document("version", 1), uniqueIndex);
         LOG.info("Ensured unique index on schemas.version");
 
-        // Namespace-scoped collections — one document per namespace
-        for (String collection : new String[]{"architectures", "patterns", "flows", "timelines", "standards", "interfaces", "adrs", "decorators", "layouts"}) {
+        // Namespace-scoped collections — one document per namespace. layouts is deliberately
+        // excluded: it is a flat one-document-per-(namespace, architectureId) collection, not
+        // one document per namespace holding an array — see MongoLayoutIndexStep.
+        for (String collection : new String[]{"architectures", "patterns", "flows", "timelines", "standards", "interfaces", "adrs", "decorators"}) {
             database.getCollection(collection)
                     .createIndex(new Document("namespace", 1), uniqueIndex);
             LOG.info("Ensured unique index on {}.namespace", collection);

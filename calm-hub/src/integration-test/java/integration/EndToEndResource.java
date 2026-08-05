@@ -9,6 +9,7 @@ import org.finos.calm.migration.steps.MongoIndexInitializationStep;
 import org.finos.calm.migration.steps.MongoAdrVersionSplitStep;
 import org.finos.calm.migration.steps.MongoFlowVersionSplitStep;
 import org.finos.calm.migration.steps.MongoInterfaceVersionSplitStep;
+import org.finos.calm.migration.steps.MongoLayoutIndexStep;
 import org.finos.calm.migration.steps.MongoPatternVersionSplitStep;
 import org.finos.calm.migration.steps.MongoTimelineVersionSplitStep;
 import org.finos.calm.migration.steps.MongoStandardVersionSplitStep;
@@ -58,6 +59,13 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             new MongoInterfaceVersionSplitStep(database).transitionIndexes();
             new MongoTimelineVersionSplitStep(database).transitionIndexes();
             new MongoAdrVersionSplitStep(database).transitionIndexes();
+            // Not a version split — layout was never in the header/version shape to begin
+            // with — but the same principle applies: without this, MongoIndexInitializationStep
+            // creates no layouts index at all (it was deliberately removed from that step's
+            // loop, since {namespace: 1} unique is wrong for layout's flat shape), so the
+            // container would run with no unique constraint on (namespace, architectureId),
+            // and MongoLayoutStore's duplicate-key retry would go untested against a real index.
+            new MongoLayoutIndexStep(database).createIndexes();
             logger.info("Ensured MongoDB indexes for integration tests");
         }
 
