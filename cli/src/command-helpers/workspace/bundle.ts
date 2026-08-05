@@ -3,7 +3,7 @@ import { mkdir, copyFile, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
-import type { CalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 
 /**
  * Property names that can contain document references (URLs or paths) in CALM JSON.
