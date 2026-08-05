@@ -77,11 +77,15 @@ export function renderFlowOverlay(
     const midX = midPoint.x;
     const midY = midPoint.y;
 
+    // The flow schema defines `description` on transitions; `summary` was a
+    // legacy CalmStudio field. Prefer the schema field, fall back for older files.
+    const transitionLabel =
+      transition.description ?? (transition as { summary?: string }).summary ?? '';
     parts.push(
-      `<g class="flow-badge" data-summary="${escapeAttr(transition.summary)}">`,
+      `<g class="flow-badge" data-summary="${escapeAttr(transitionLabel)}">`,
       `  <circle cx="${midX}" cy="${midY}" r="10" fill="#3b82f6"/>`,
       `  <text x="${midX}" y="${midY}" fill="white" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central">${transition['sequence-number']}</text>`,
-      `  <title>${escapeAttr(transition.summary)}</title>`,
+      `  <title>${escapeAttr(transitionLabel)}</title>`,
       `</g>`
     );
   }

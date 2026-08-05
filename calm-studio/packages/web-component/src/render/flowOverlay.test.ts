@@ -156,6 +156,25 @@ describe('renderFlowOverlay', () => {
     expect(svg).toContain('keyPoints="0;1"');
   });
 
+  it('renders badges from the schema description field when summary is absent', () => {
+    const schemaFlow: CalmFlow = {
+      'unique-id': 'schema-flow',
+      name: 'Schema Flow',
+      description: 'Flow using only schema-defined fields',
+      transitions: [
+        {
+          'relationship-unique-id': 'rel-1',
+          'sequence-number': 1,
+          description: 'Client sends order request',
+          direction: 'source-to-destination',
+        },
+      ],
+    };
+    const svg = renderFlowOverlay(schemaFlow, twoEdgeLayouts);
+    expect(svg).toContain('Client sends order request');
+    expect(svg).not.toContain('undefined');
+  });
+
   it('Test 4: renders sequence badge with correct number for each transition', () => {
     const svg = renderFlowOverlay(sampleFlow, twoEdgeLayouts);
     // Sequence numbers 1 and 2 should appear in badge text elements
