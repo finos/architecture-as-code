@@ -1,7 +1,30 @@
-import { AxiosInstance } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { apiClient } from './utils/api-client.js';
 import { CalmLayout } from '../model/layout.js';
+
+/**
+ * Maps a failed layout request to a message worth showing the user, not just
+ * logging. `useDefaultLayout` assigns this straight to `saveError`, which
+ * DiagramSection now renders inline (see the layout-save-error banner) — so
+ * unlike the generic `errorMessage` prefix logged alongside it, this one has
+ * to mean something to someone who isn't reading the console.
+ */
+function layoutFailureMessage(action: 'save' | 'load', error: unknown): string {
+    const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+    switch (status) {
+        case 403:
+            return `Couldn't ${action} the default layout — you don't have write access to this namespace.`;
+        case 413:
+            return `Couldn't ${action} the default layout — it's too large to store.`;
+        case 404:
+            return `Couldn't ${action} the default layout — this architecture no longer exists.`;
+        default:
+            return status
+                ? `Couldn't ${action} the default layout — the server returned ${status}.`
+                : `Couldn't ${action} the default layout — the server couldn't be reached.`;
+    }
+}
 
 /**
  * Manages the shared, default layout saved for an architecture — the server-side
@@ -31,7 +54,7 @@ export class LayoutService {
                 }
                 const errorMessage = `Error fetching default layout for architecture ${architectureId} in namespace ${namespace}:`;
                 console.error('%s', errorMessage, error);
-                return Promise.reject(new Error(errorMessage));
+                return Promise.reject(new Error(layoutFailureMessage('load', error)));
             });
     }
 
@@ -44,7 +67,7 @@ export class LayoutService {
             .catch((error) => {
                 const errorMessage = `Error saving default layout for architecture ${architectureId} in namespace ${namespace}:`;
                 console.error('%s', errorMessage, error);
-                return Promise.reject(new Error(errorMessage));
+                return Promise.reject(new Error(layoutFailureMessage('save', error)));
             });
     }
 }

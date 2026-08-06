@@ -40,7 +40,9 @@ describe('LayoutService', () => {
         it('rejects on a 500', async () => {
             mock.onGet(`/api/calm/namespaces/${namespace}/architectures/${architectureId}/layout`).reply(500, 'boom');
 
-            await expect(layoutService.getDefaultLayout(namespace, architectureId)).rejects.toThrowError();
+            await expect(layoutService.getDefaultLayout(namespace, architectureId)).rejects.toThrowError(
+                "Couldn't load the default layout — the server returned 500."
+            );
         });
     });
 
@@ -54,10 +56,44 @@ describe('LayoutService', () => {
             await expect(layoutService.saveDefaultLayout(namespace, architectureId, layout)).resolves.toBeUndefined();
         });
 
-        it('rejects when the save fails', async () => {
+        it('rejects with a generic message when the save fails without a recognised status', async () => {
             mock.onPut(`/api/calm/namespaces/${namespace}/architectures/${architectureId}/layout`).reply(400, 'bad request');
 
-            await expect(layoutService.saveDefaultLayout(namespace, architectureId, layout)).rejects.toThrowError();
+            await expect(layoutService.saveDefaultLayout(namespace, architectureId, layout)).rejects.toThrowError(
+                "Couldn't save the default layout — the server returned 400."
+            );
+        });
+
+        it('rejects with a specific message on 403 (no write access)', async () => {
+            mock.onPut(`/api/calm/namespaces/${namespace}/architectures/${architectureId}/layout`).reply(403);
+
+            await expect(layoutService.saveDefaultLayout(namespace, architectureId, layout)).rejects.toThrowError(
+                "Couldn't save the default layout — you don't have write access to this namespace."
+            );
+        });
+
+        it('rejects with a specific message on 413 (too large)', async () => {
+            mock.onPut(`/api/calm/namespaces/${namespace}/architectures/${architectureId}/layout`).reply(413);
+
+            await expect(layoutService.saveDefaultLayout(namespace, architectureId, layout)).rejects.toThrowError(
+                "Couldn't save the default layout — it's too large to store."
+            );
+        });
+
+        it('rejects with a specific message on 404 (architecture no longer exists)', async () => {
+            mock.onPut(`/api/calm/namespaces/${namespace}/architectures/${architectureId}/layout`).reply(404);
+
+            await expect(layoutService.saveDefaultLayout(namespace, architectureId, layout)).rejects.toThrowError(
+                "Couldn't save the default layout — this architecture no longer exists."
+            );
+        });
+
+        it('rejects with a network-failure message when the server cannot be reached', async () => {
+            mock.onPut(`/api/calm/namespaces/${namespace}/architectures/${architectureId}/layout`).networkError();
+
+            await expect(layoutService.saveDefaultLayout(namespace, architectureId, layout)).rejects.toThrowError(
+                "Couldn't save the default layout — the server couldn't be reached."
+            );
         });
     });
 });
