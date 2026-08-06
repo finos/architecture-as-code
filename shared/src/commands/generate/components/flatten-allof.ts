@@ -1,5 +1,5 @@
 import { SchemaDirectory } from '../../../schema-directory';
-import { initLogger } from '../../../logger';
+import { initLogger, Logger } from '../../../logger';
 
 interface SchemaWithAllOf {
     allOf?: object[];
@@ -41,11 +41,14 @@ function deepMergeSchemas(
                 value as unknown[]
             );
         } else {
-            // `items` (the open oneOf/anyOf catalog) falls through here and is not
-            // deep-merged the way `prefixItems` is above - a later allOf branch's
-            // `items` simply replaces an earlier one. Realistic CALM patterns declare
-            // the catalog once per array, so this is not expected to matter in
-            // practice; revisit if patterns start composing `items` across allOf.
+            // Any other key is replaced rather than deep-merged. Note the realistic
+            // "catalog dropped across allOf" case is NOT a top-level `items` reaching
+            // here: a catalog lives under an array property (e.g. `properties.nodes.items`),
+            // so two allOf branches each declaring one collide in the `properties`
+            // branch above, where the shallow spread makes the later branch's whole
+            // array win. `logDroppedItemsCatalogs` (called from `flattenAllOf`) surfaces
+            // that collision at debug level. Realistic patterns declare a catalog once
+            // per array; revisit if patterns start composing `items` across allOf.
             result[key] = value;
         }
     }
@@ -77,6 +80,37 @@ function mergePrefixItems(target: unknown[], source: unknown[]): unknown[] {
     }
 
     return result;
+}
+
+/**
+ * Surfaces, at debug level, an `items` open-catalog that allOf flattening will
+ * silently drop. When two allOf branches each declare a catalog under the same
+ * array property (e.g. both define `properties.nodes.items`), `deepMergeSchemas`
+ * shallow-merges `properties`, so the later branch's array replaces the earlier
+ * one wholesale and the earlier catalog is lost rather than combined. Realistic
+ * patterns declare each catalog once per array, so this is a smell worth making
+ * discoverable under `--verbose`, not an error.
+ */
+function logDroppedItemsCatalogs(
+    target: Record<string, unknown>,
+    source: Record<string, unknown>,
+    logger: Logger
+): void {
+    const targetProps = target['properties'] as Record<string, unknown> | undefined;
+    const sourceProps = source['properties'] as Record<string, unknown> | undefined;
+    if (!targetProps || !sourceProps) return;
+
+    for (const propKey of Object.keys(sourceProps)) {
+        const targetArray = targetProps[propKey] as Record<string, unknown> | undefined;
+        const sourceArray = sourceProps[propKey] as Record<string, unknown> | undefined;
+        if (targetArray?.['items'] !== undefined && sourceArray?.['items'] !== undefined) {
+            logger.debug(
+                `allOf merge drops an 'items' catalog on '${propKey}': a catalog declared in an ` +
+                'earlier allOf branch is being replaced by a later branch rather than combined. ' +
+                'Declare the catalog once per array to avoid silent loss.'
+            );
+        }
+    }
 }
 
 /**
@@ -135,6 +169,7 @@ export async function flattenAllOf(
         resolved = (await flattenAllOf(resolved, schemaDir, debug)) as SchemaWithAllOf;
 
         // Deep merge into accumulated result
+        logDroppedItemsCatalogs(merged, resolved as Record<string, unknown>, logger);
         merged = deepMergeSchemas(merged, resolved);
     }
 
