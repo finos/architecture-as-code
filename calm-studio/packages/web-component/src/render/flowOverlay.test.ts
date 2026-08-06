@@ -226,6 +226,48 @@ describe('renderFlowOverlay', () => {
     expect(badgeCount).toBe(1);
   });
 
+  it('spreads badges when multiple transitions share a relationship, and all remain visible', () => {
+    const sharedFlow: CalmFlow = {
+      'unique-id': 'shared-flow',
+      name: 'Shared',
+      description: 'Two transitions over one relationship',
+      transitions: [
+        {
+          'relationship-unique-id': 'rel-1',
+          'sequence-number': 1,
+          description: 'Request',
+          direction: 'source-to-destination',
+        },
+        {
+          'relationship-unique-id': 'rel-1',
+          'sequence-number': 2,
+          description: 'Response',
+          direction: 'destination-to-source',
+        },
+      ],
+    };
+    const svg = renderFlowOverlay(sharedFlow, twoEdgeLayouts);
+    const badges = (svg.match(/class="flow-badge/g) ?? []).length;
+    expect(badges).toBe(2);
+    expect(svg).toContain('>1<');
+    expect(svg).toContain('>2<');
+    // Badge centers must not coincide: collect cx values of badge circles
+    const cxs = [...svg.matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)" r="10"/g)].map((m) => m[1] + ',' + m[2]);
+    expect(new Set(cxs).size).toBe(cxs.length);
+  });
+
+  it('renders destination-to-source badges hollow (response convention)', () => {
+    const svg = renderFlowOverlay(reverseFlow, twoEdgeLayouts);
+    // reverseFlow's single transition is destination-to-source
+    expect(svg).toContain('class="flow-badge flow-badge-reverse"');
+    expect(svg).toContain('fill="#ffffff"');
+  });
+
+  it('forward badges stay solid', () => {
+    const svg = renderFlowOverlay(sampleFlow, twoEdgeLayouts);
+    expect(svg).not.toContain('flow-badge-reverse');
+  });
+
   it('Test 7: handles flow with 3+ transitions (multi-edge flow)', () => {
     const svg = renderFlowOverlay(multiEdgeFlow, twoEdgeLayouts);
     // Three transitions, rel-3 exists in layout
