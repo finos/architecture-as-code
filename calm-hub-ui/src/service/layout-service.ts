@@ -12,18 +12,29 @@ import { CalmLayout } from '../model/layout.js';
  */
 function layoutFailureMessage(action: 'save' | 'load', error: unknown): string {
     const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-    switch (status) {
-        case 403:
-            return `Couldn't ${action} the default layout — you don't have write access to this namespace.`;
-        case 413:
-            return `Couldn't ${action} the default layout — it's too large to store.`;
-        case 404:
-            return `Couldn't ${action} the default layout — this architecture no longer exists.`;
-        default:
-            return status
-                ? `Couldn't ${action} the default layout — the server returned ${status}.`
-                : `Couldn't ${action} the default layout — the server couldn't be reached.`;
+
+    // 403 and 413 are worded per-action: "write access" and "too large to store"
+    // are both write-side facts and would be actively misleading on a failed GET
+    // (a read-scoped user can still be forbidden, just not for the write reason;
+    // a GET has no body for the server to reject as oversized).
+    if (action === 'save') {
+        switch (status) {
+            case 403:
+                return "Couldn't save the default layout — you don't have write access to this namespace.";
+            case 413:
+                return "Couldn't save the default layout — it's too large to store.";
+            case 404:
+                return "Couldn't save the default layout — this architecture no longer exists.";
+        }
+    } else if (status === 403) {
+        return "Couldn't load the default layout — you don't have access to this namespace.";
+    } else if (status === 404) {
+        return "Couldn't load the default layout — this architecture no longer exists.";
     }
+
+    return status
+        ? `Couldn't ${action} the default layout — the server returned ${status}.`
+        : `Couldn't ${action} the default layout — the server couldn't be reached.`;
 }
 
 /**

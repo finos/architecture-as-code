@@ -181,6 +181,38 @@ public class TestLayoutResourceShould {
     }
 
     @Test
+    void return_400_rather_than_500_when_the_layout_body_is_absent() {
+        // An absent body binds to layoutJson = "" here (empirically confirmed), not null —
+        // Document.parse("") threw an uncaught BsonInvalidOperationException (500) before
+        // parseForTarget started rejecting a null-or-blank body up front.
+        given()
+                .contentType(ContentType.JSON)
+                .when()
+                .put("/api/calm/namespaces/finos/architectures/5/layout")
+                .then()
+                .statusCode(400)
+                .body(containsString("The layout JSON could not be parsed"));
+
+        verifyNoInteractions(mockLayoutStore);
+        verifyNoInteractions(mockArchitectureStore);
+    }
+
+    @Test
+    void return_400_rather_than_500_when_the_layout_body_is_an_empty_string() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("")
+                .when()
+                .put("/api/calm/namespaces/finos/architectures/5/layout")
+                .then()
+                .statusCode(400)
+                .body(containsString("The layout JSON could not be parsed"));
+
+        verifyNoInteractions(mockLayoutStore);
+        verifyNoInteractions(mockArchitectureStore);
+    }
+
+    @Test
     void return_404_when_architecture_does_not_exist_for_put_layout() throws NamespaceNotFoundException {
         when(mockArchitectureStore.architectureExists("finos", 5)).thenReturn(false);
 

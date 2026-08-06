@@ -88,7 +88,9 @@ public class LayoutResource {
      *
      * @param namespace      the namespace the architecture belongs to
      * @param architectureId the id of the architecture
-     * @param layoutJson     the layout as a raw JSON body, conforming to the draft layout schema
+     * @param layoutJson     the layout as a raw JSON body — a CALM Hub-internal shape, not a
+     *                       validated CALM community schema; see {@link LayoutStore}'s class
+     *                       javadoc and ADR 0005
      * @return 204 on success, or an appropriate error response
      */
     @PUT
@@ -143,9 +145,18 @@ public class LayoutResource {
      * against {@link #canonicalArchitecturePath} and rejected with a 400 on mismatch — not by
      * an external schema document.
      *
-     * @throws JsonParseException if the body is not valid JSON
+     * @throws JsonParseException if the body is null, blank, or not valid JSON
      */
     private String parseForTarget(String layoutJson) {
+        // A null body would NPE straight into Document.parse; an absent body instead arrives
+        // here as "" (confirmed empirically — RESTEasy binds a missing raw-String entity to an
+        // empty string, not null), which Document.parse doesn't reject as malformed JSON either
+        // — it throws BsonInvalidOperationException, a different exception entirely, one that
+        // the JsonParseException catch below doesn't see. Both must be rejected up front so
+        // every "no real body" case lands on the same honest 400.
+        if (layoutJson == null || layoutJson.isBlank()) {
+            throw new JsonParseException("Layout JSON must not be null or empty");
+        }
         Document parsed = Document.parse(layoutJson);
         Object forTarget = parsed.get("for");
         return forTarget instanceof String forPath ? forPath : null;

@@ -44,6 +44,16 @@ describe('LayoutService', () => {
                 "Couldn't load the default layout — the server returned 500."
             );
         });
+
+        it('rejects with a load-specific message on 403, not the save-side "write access" wording', async () => {
+            // save and load share status handling, but 403 on a read is not a write-access
+            // failure and 413 does not apply to a GET at all — this pins the load-side wording.
+            mock.onGet(`/api/calm/namespaces/${namespace}/architectures/${architectureId}/layout`).reply(403);
+
+            await expect(layoutService.getDefaultLayout(namespace, architectureId)).rejects.toThrowError(
+                "Couldn't load the default layout — you don't have access to this namespace."
+            );
+        });
     });
 
     describe('saveDefaultLayout', () => {
