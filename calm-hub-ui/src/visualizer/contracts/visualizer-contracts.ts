@@ -23,11 +23,18 @@ export interface DrawerProps {
      * Used by DiagramSection to key the graph off a slug's *resolved numeric*
      * architecture id instead of the raw slug, so the same architecture reached
      * via a slug route and a numeric route share one localStorage scratch entry
-     * and one server layout call. Falls back to Drawer's own computation
-     * (unchanged behaviour) while the id is still resolving, and for patterns
-     * and dropped files, which never receive an override.
+     * and one server layout call. Three states:
+     *  - a string: the resolved key to use.
+     *  - `undefined`: no opinion — Drawer falls back to its own `${data.name}/${data.id}`
+     *    computation. This is the state while a slug is still resolving (never `null`
+     *    then — see `useDefaultLayout`), and always the state for patterns and dropped
+     *    files, which never receive an override.
+     *  - `null`: an explicit "there is no stable key" — a slug that finished resolving
+     *    without a match. Falling back to the slug here would silently key scratch
+     *    storage and the server layout off the very identifier this override exists to
+     *    replace, so `null` suppresses the fallback instead of triggering it.
      */
-    viewportKeyOverride?: string;
+    viewportKeyOverride?: string | null;
     /** Server-stored default layout for an architecture. undefined = loading, null = none stored. */
     defaultLayout?: StoredNodePosition[] | null;
     /** Bumped to force a clean re-apply of positions (used by "reset to default"). */

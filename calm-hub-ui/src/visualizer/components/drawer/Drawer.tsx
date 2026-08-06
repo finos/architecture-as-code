@@ -88,9 +88,12 @@ export function Drawer({
     // architecture's key using the dropped file's unrelated layout.
     // `viewportKeyOverride` takes precedence when present and no file is dropped,
     // so scratch storage and the server layout share one key regardless of whether
-    // this architecture was reached via a slug or numeric route.
+    // this architecture was reached via a slug or numeric route. An explicit `null`
+    // override (a slug that finished resolving with no match) suppresses the
+    // fallback rather than triggering it — falling back to the slug here would
+    // reintroduce exactly the key split the override exists to close.
     const computedViewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
-    const viewportKey = fileInstance ? undefined : (viewportKeyOverride ?? computedViewportKey);
+    const viewportKey = fileInstance || viewportKeyOverride === null ? undefined : (viewportKeyOverride ?? computedViewportKey);
 
     useEffect(() => {
         const source = fileInstance ?? data?.data;

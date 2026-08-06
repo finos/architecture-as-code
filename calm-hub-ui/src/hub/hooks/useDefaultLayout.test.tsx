@@ -10,7 +10,6 @@ const calmServiceMock = {
 const layoutServiceMock = {
     getDefaultLayout: vi.fn(),
     saveDefaultLayout: vi.fn(),
-    deleteDefaultLayout: vi.fn(),
 };
 
 vi.mock('../../service/calm-service.js', () => ({
@@ -24,7 +23,6 @@ vi.mock('../../service/layout-service.js', () => ({
         return {
             getDefaultLayout: layoutServiceMock.getDefaultLayout,
             saveDefaultLayout: layoutServiceMock.saveDefaultLayout,
-            deleteDefaultLayout: layoutServiceMock.deleteDefaultLayout,
         };
     }),
 }));
@@ -116,7 +114,10 @@ describe('useDefaultLayout', () => {
             const { result } = renderHook(() => useDefaultLayout(namespace, 'unknown-slug', 'Architectures'));
 
             await waitFor(() => expect(result.current.defaultLayout).toBeNull());
-            expect(result.current.viewportKey).toBeUndefined();
+            // null, not undefined: resolution settled for a real architecture with no
+            // match, so the caller (Drawer) must not fall back to the raw slug — see
+            // viewportKeyOverride's doc for why undefined and null mean different things.
+            expect(result.current.viewportKey).toBeNull();
             expect(result.current.canSave).toBe(false);
             // Never attempted a layout fetch with an unresolved id.
             expect(layoutServiceMock.getDefaultLayout).not.toHaveBeenCalled();
@@ -129,6 +130,33 @@ describe('useDefaultLayout', () => {
 
             await waitFor(() => expect(result.current.defaultLayout).toBeNull());
             expect(result.current.canSave).toBe(false);
+            // Same as an empty mapping list: a settled-but-unresolved rejection is
+            // null, not undefined, so the slug fallback stays suppressed.
+            expect(result.current.viewportKey).toBeNull();
+        });
+
+        it('keeps the viewportKey undefined (not null) while a slug is still resolving', async () => {
+            let resolveMappings: (value: unknown[]) => void = () => {};
+            calmServiceMock.fetchMappings.mockReturnValue(
+                new Promise((resolve) => {
+                    resolveMappings = resolve;
+                })
+            );
+
+            const { result } = renderHook(() => useDefaultLayout(namespace, 'my-arch', 'Architectures'));
+
+            // Still resolving: undefined signals "loading", distinct from null's
+            // "settled, no match" — ArchitectureGraph's awaitingDefaultLayout gate
+            // relies on this to avoid flashing the auto-layout mid-resolution.
+            expect(result.current.viewportKey).toBeUndefined();
+            expect(result.current.defaultLayout).toBeUndefined();
+
+            await act(async () => {
+                resolveMappings([]);
+                await Promise.resolve();
+            });
+
+            await waitFor(() => expect(result.current.viewportKey).toBeNull());
         });
     });
 

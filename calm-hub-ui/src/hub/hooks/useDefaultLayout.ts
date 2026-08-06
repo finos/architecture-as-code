@@ -10,10 +10,17 @@ export interface UseDefaultLayoutResult {
      * Namespace + resolved numeric architecture id — the single key both the
      * localStorage scratch layer and the server layout are addressed by, so a
      * diagram reached via a slug route and via its numeric route share one
-     * scratch entry and one server call. Undefined while a slug is still
-     * resolving, or when it can't be resolved.
+     * scratch entry and one server call. Three states:
+     *  - a string: the resolved key.
+     *  - `undefined`: not applicable (a pattern or dropped file), or a slug that
+     *    is still resolving — callers with a loading state to show key off this.
+     *  - `null`: this *is* an architecture, but resolution finished without a
+     *    numeric id (an unresolvable slug, or the mapping fetch failed). Never
+     *    `undefined` here — a caller that fell back to some other key (e.g. the
+     *    raw slug) in this state would reintroduce the exact split this key
+     *    exists to prevent. See `Drawer`'s `viewportKeyOverride` handling.
      */
-    viewportKey: string | undefined;
+    viewportKey: string | null | undefined;
     /** undefined = loading, null = none stored, else the resolved default layout. */
     defaultLayout: StoredNodePosition[] | null | undefined;
     /** Bumped after a successful save or a reset, to force a clean re-apply. */
@@ -86,7 +93,16 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
         };
     }, [calmService, namespace, id, isArchitecture]);
 
-    const viewportKey = architectureId !== undefined ? `${namespace}/${architectureId}` : undefined;
+    // undefined only while genuinely inapplicable (not an architecture) or still
+    // resolving; once resolution for an architecture has settled without a
+    // match, this is null — not undefined — so Drawer's fallback is suppressed
+    // rather than silently keying off the raw slug (see viewportKeyOverride's doc).
+    const viewportKey =
+        architectureId !== undefined
+            ? `${namespace}/${architectureId}`
+            : isArchitecture && !resolvingId
+              ? null
+              : undefined;
 
     // Fetch the server default once the architecture id is settled (resolved
     // to a number, or resolution finished without a match).
