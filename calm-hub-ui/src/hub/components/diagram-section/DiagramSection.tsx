@@ -88,6 +88,12 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     );
     const calmService = useMemo(() => new CalmService(), []);
     const defaultLayoutState = useDefaultLayout(data.name, data.id, data.calmType);
+    // Destructured locals so handleSaveLayout/handleResetLayout below can depend
+    // on exactly the (already useCallback-stable) functions they call, rather
+    // than the whole result object — which still changes identity whenever
+    // `saving` flips mid-save, even though the memoised object in useDefaultLayout
+    // stops it changing for unrelated reasons.
+    const { save: saveDefaultLayout, reset: resetDefaultLayout } = defaultLayoutState;
     // Latest on-screen positions, reported by the graph after every apply and at
     // drag-end. Held in a ref (not state) so "Save as default layout" can read
     // it without the graph re-rendering on every drag.
@@ -154,13 +160,14 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const handleSaveLayout = useCallback(() => {
         const positions = latestPositionsRef.current;
         if (!positions) return;
-        // Errors surface via defaultLayoutState.saveError, rendered in the menu below.
-        defaultLayoutState.save(positions).catch(() => {});
-    }, [defaultLayoutState]);
+        // Errors surface via defaultLayoutState.saveError, rendered as an inline
+        // alert below.
+        saveDefaultLayout(positions).catch(() => {});
+    }, [saveDefaultLayout]);
 
     const handleResetLayout = useCallback(() => {
-        defaultLayoutState.reset();
-    }, [defaultLayoutState]);
+        resetDefaultLayout();
+    }, [resetDefaultLayout]);
 
     const handleVersionChange = (version: string) => {
         // Selecting any moment exits compare mode, even if it's the

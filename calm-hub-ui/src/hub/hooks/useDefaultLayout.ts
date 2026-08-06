@@ -168,14 +168,22 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
         setLayoutEpoch((epoch) => epoch + 1);
     }, [viewportKey]);
 
-    return {
-        viewportKey,
-        defaultLayout,
-        layoutEpoch,
-        canSave: architectureId !== undefined,
-        saving,
-        saveError,
-        save,
-        reset,
-    };
+    const canSave = architectureId !== undefined;
+
+    // Memoised so consumers that key a useCallback/useMemo off the whole result
+    // (e.g. DiagramSection's handleSaveLayout) get a stable reference instead of
+    // a fresh object literal — and therefore a fresh dependency — every render.
+    return useMemo(
+        () => ({
+            viewportKey,
+            defaultLayout,
+            layoutEpoch,
+            canSave,
+            saving,
+            saveError,
+            save,
+            reset,
+        }),
+        [viewportKey, defaultLayout, layoutEpoch, canSave, saving, saveError, save, reset]
+    );
 }
