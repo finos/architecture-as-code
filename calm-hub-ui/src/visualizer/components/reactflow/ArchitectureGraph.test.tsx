@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Node } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
@@ -14,6 +14,23 @@ import { saveNodePositions } from '../../services/node-position-service.js';
  */
 const reactFlowProps: { current: Record<string, unknown> | null } = { current: null };
 const miniMapProps: { current: Record<string, unknown> | null } = { current: null };
+// React strips `key` from the props a component receives, so a remount can't be
+// observed by reading reactFlowProps — instead, a lazily-initialised bit of
+// state (set once per mount, never again) doubles as a per-instance identity.
+let reactFlowMountCount = 0;
+
+// A named, capitalised function so react-hooks/rules-of-hooks recognises this
+// as a component (an inline arrow assigned to a lowercase `default:` property
+// doesn't look like one to the rule, even though React treats it as one).
+function MockReactFlow(props: Record<string, unknown>) {
+    reactFlowProps.current = props;
+    const [instanceId] = useState(() => ++reactFlowMountCount);
+    return (
+        <div data-testid="react-flow" data-instance={instanceId}>
+            {props.children as ReactNode}
+        </div>
+    );
+}
 
 vi.mock('reactflow', async () => {
     // Keep the real hooks (useNodesState/useEdgesState/useStore) so the graph's
@@ -23,10 +40,7 @@ vi.mock('reactflow', async () => {
     return {
         ...actual,
         __esModule: true,
-        default: (props: Record<string, unknown>) => {
-            reactFlowProps.current = props;
-            return <div data-testid="react-flow">{props.children as ReactNode}</div>;
-        },
+        default: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
         Controls: ({ children }: { children?: ReactNode }) => (
             <div data-testid="rf-controls">{children}</div>
@@ -67,6 +81,7 @@ describe('ArchitectureGraph', () => {
     beforeEach(() => {
         reactFlowProps.current = null;
         miniMapProps.current = null;
+        reactFlowMountCount = 0;
         sessionStorage.clear();
         vi.clearAllMocks();
     });
@@ -305,6 +320,37 @@ describe('ArchitectureGraph', () => {
                 />
             );
 
+            expect(nodePosition('node-1')).toEqual({ x: 333, y: 444 });
+        });
+
+        it('does not remount ReactFlow on a layoutEpoch bump, so the current viewport survives a save/reset', () => {
+            // The ReactFlow `key` used to fold in layoutEpoch, forcing a remount on
+            // every reset. But savedViewport is memoised on storageKey alone (never
+            // recomputed by an epoch bump), so a remount restored defaultViewport
+            // from whatever was read at *mount* time, not the user's current pan/
+            // zoom — the canvas would snap back on every save. The remount was never
+            // needed for positions: the parse effect already has layoutEpoch in its
+            // own deps and re-applies on its own (proved by the test above).
+            const { rerender } = render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 5, y: 6 } }]}
+                    layoutEpoch={0}
+                />
+            );
+            const instanceBefore = screen.getByTestId('react-flow').getAttribute('data-instance');
+
+            rerender(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                    layoutEpoch={1}
+                />
+            );
+
+            expect(screen.getByTestId('react-flow').getAttribute('data-instance')).toBe(instanceBefore);
             expect(nodePosition('node-1')).toEqual({ x: 333, y: 444 });
         });
 

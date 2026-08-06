@@ -259,9 +259,16 @@ export function ArchitectureGraph({
             <ReactFlow
                 // Remount when the diagram (resource) changes so a new architecture fits
                 // afresh; switching versions/moments keeps the same key and preserves the
-                // view. layoutEpoch is folded in so "reset to default layout" also forces a
-                // clean remount rather than relying solely on the parse effect re-running.
-                key={layoutEpoch !== undefined ? `${viewportKey}:${layoutEpoch}` : viewportKey}
+                // view. layoutEpoch is deliberately NOT folded in here — it used to be, to
+                // force a remount on "reset to default layout", but savedViewport is only
+                // recomputed from storageKey (unchanged by an epoch bump), so a remount
+                // restored defaultViewport from whatever was read at mount time rather than
+                // the user's current pan/zoom: pan, zoom, drag a node, Save, and the canvas
+                // snapped back to the load-time view (worse on mobile, which re-fits
+                // unconditionally). The remount was never load-bearing for reset — the parse
+                // effect below already has layoutEpoch in its deps and re-applies positions
+                // on its own, which is all reset needs.
+                key={viewportKey}
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
