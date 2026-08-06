@@ -51,15 +51,39 @@ mvn -P integration verify
 
 Development mode is designed to provide a great developer experience from using modern tools and build systems.
 
-### Skipping `npm` build
+### Skipping the frontend build
 
 CalmHub will install and build the frontend every time you run it by default.
-This takes a while and can be rather tedious.
-To disable this, set `skip.npm`, which disables the NPM commands of the frontend Maven plugin:
+This takes a while and can be rather tedious for backend-only work.
+
+The `server-only` Maven profile skips the whole frontend stage — Node/npm download,
+the monorepo `npm install`, and the calm-hub-ui build:
+
+```shell
+../mvnw -Pserver-only package
+```
+
+The realistic day-to-day loop for backend work combines it with `standalone`
+(NitriteDB, no external Mongo needed) — profiles compose comma-separated:
+
+```shell
+../mvnw quarkus:dev -Pstandalone,server-only
+```
+
+If you only want to skip the npm commands but still let Maven install/verify the Node
+toolchain, use the narrower `-Dskip.npm` property instead:
 
 ```shell
 ../mvnw quarkus:dev -Dskip.npm
 ```
+
+**Consequence of skipping the frontend build:** the built UI is copied into
+`src/main/resources/META-INF/resources` by the npm script, and that directory is
+gitignored — `mvn clean` does not remove it, since it lives under `src/`, not `target/`.
+So on a fresh clone, `-Pserver-only` produces a jar/dev server with **no UI at all**
+(404 at `/`); on a machine that has built before, it silently keeps serving whatever UI
+was last built. Never use `-Pserver-only` for a release, Docker image, or CI build that
+needs to ship the UI.
 
 ### Storage Modes
 
