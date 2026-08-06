@@ -1,13 +1,28 @@
 # ADR 0002: Version field encoding — dots, not dashes
 
-**Status**: Accepted — partially implemented. Architecture stores
-dot-separated versions; the other six types are still dash-encoded. Note the
-implementation needed more than "write a dot instead of a dash":
-`VERSION_REGEX` makes both separators optional, so six spellings denote the
-same version and the old map-key encoding folded only some of them together.
-`CanonicalVersion` now folds all six at the version-store helpers' entry
-points — see [ADR 0003](0003-shared-version-store-helper.md). Depends on
-[ADR 0001](0001-versioned-artefact-storage.md).
+**Status**: Implemented. Six of the seven versioned types store dot-separated
+versions; ADR is the exception, and not a violation — its history is a
+revision *number*, so it was never dash-encoded and has nothing to convert.
+It is ranked by `NumericVersionOrder` rather than the semantic comparator,
+for reasons recorded in [ADR 0003](0003-shared-version-store-helper.md).
+
+Two things the implementation needed beyond "write a dot instead of a dash":
+
+- `VERSION_REGEX` makes both separators optional, so six spellings denote the
+  same version and the old map-key encoding folded only some of them
+  together. `CanonicalVersion` now folds all six at the version-store
+  helpers' entry points — but only for the semantically-versioned types.
+  ADR is exempt, and the exemption is not cosmetic: its revisions are
+  integers, and `100` is one of the six spellings of `1.0.0`, so folding
+  would have stored revision 100 as `1.0.0`. Which spelling rule applies is
+  now carried by `VersionScheme` together with the ordering rule, because
+  the two must agree and separating them is what let them disagree.
+- `VersionKeySelector.versionCount()` lost its last caller exactly as
+  predicted below and has been deleted. `latestVersionKey()` remains, used
+  only by the two Control stores, and retires with them.
+
+Dash-encoded keys survive in `controls` alone, as this ADR anticipated.
+Depends on [ADR 0001](0001-versioned-artefact-storage.md).
 
 ## Context
 

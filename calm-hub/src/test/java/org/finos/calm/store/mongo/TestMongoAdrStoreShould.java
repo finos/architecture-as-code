@@ -1,6 +1,5 @@
 package org.finos.calm.store.mongo;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mongodb.MongoWriteException;
@@ -9,10 +8,6 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -23,21 +18,36 @@ import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
 import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.adr.Status;
-import org.finos.calm.domain.exception.*;
+import org.finos.calm.domain.exception.AdrNotFoundException;
+import org.finos.calm.domain.exception.AdrRevisionExistsException;
+import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
+/**
+ * Store-level tests for ADR on the header/version shape. ADR is the one type whose history is
+ * an integer revision rather than a semantic version, and whose summary comes from the latest
+ * revision's content rather than from the entity — both are pinned here.
+ */
 @QuarkusTest
 public class TestMongoAdrStoreShould {
 
@@ -50,576 +60,337 @@ public class TestMongoAdrStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private ObjectMapper objectMapper;
-
-    private final String NAMESPACE = "finos";
-    private final AdrMeta simpleAdrMeta = new AdrMeta.AdrMetaBuilder()
-            .setNamespace(NAMESPACE)
-            .setId(42)
-            .setRevision(2)
-            .setAdr(new Adr.AdrBuilder()
-                    .setTitle("My ADR")
-                    .setStatus(Status.superseded)
-                    .setCreationDateTime(LocalDateTime.now())
-                    .setUpdateDateTime(LocalDateTime.now())
-                    .build())
-            .build();
-    private MongoCollection<Document> adrCollection;
-    private MongoAdrStore mongoAdrStore;
-
-    @BeforeEach
-    void setup() {
-        adrCollection = Mockito.mock(DocumentMongoCollection.class);
-
-        when(mongoDatabase.getCollection("adrs")).thenReturn(adrCollection);
-        mongoAdrStore = new MongoAdrStore(mongoDatabase, counterStore, namespaceStore);
-
-        this.objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-    }
-
-    @Test
-    void get_adrs_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(adrCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-        when(documentMock.getList("adrs", Document.class))
-                .thenReturn(new ArrayList<>());
-
-        assertThat(mongoAdrStore.getAdrsForNamespace(NAMESPACE), is(empty()));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_adrs_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(adrCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        assertThat(mongoAdrStore.getAdrsForNamespace(NAMESPACE), is(empty()));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_adrs_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoAdrStore.getAdrsForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void get_adrs_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(adrCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-
-        Document rev1 = new Document("title", "First ADR").append("status", "draft");
-        Document doc1 = new Document("adrId", 1001)
-                .append("revisions", new Document("1", rev1));
-        Document rev2 = new Document("title", "Second ADR").append("status", "accepted");
-        Document doc2 = new Document("adrId", 1002)
-                .append("revisions", new Document("1", rev2));
-
-        when(documentMock.getList("adrs", Document.class))
-                .thenReturn(Arrays.asList(doc1, doc2));
-
-        List<NamespaceAdrSummary> summaries = mongoAdrStore.getAdrsForNamespace(NAMESPACE);
-
-        assertThat(summaries.size(), is(2));
-        assertThat(summaries.get(0).getTitle(), is("First ADR"));
-        assertThat(summaries.get(0).getStatus(), is("draft"));
-        assertThat(summaries.get(0).getId(), is(1001));
-        assertThat(summaries.get(1).getTitle(), is("Second ADR"));
-        assertThat(summaries.get(1).getStatus(), is("accepted"));
-        assertThat(summaries.get(1).getId(), is(1002));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    private FindIterable<Document> setupInvalidAdr() {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
-        when(adrCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        return findIterable;
-    }
-
-    private void mockSetupAdrDocumentWithRevisions() throws JsonProcessingException {
-        Document mainDocument = setupAdrRevisionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(adrCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
-    }
-
-    @Test
-    void return_a_namespace_exception_when_namespace_does_not_exist_when_creating_an_adr() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace(namespace).build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoAdrStore.createAdrForNamespace(adrMeta));
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void return_created_adr_when_parameters_are_valid() throws NamespaceNotFoundException, JsonProcessingException, AdrParseException {
-        String validNamespace = NAMESPACE;
-        int sequenceNumber = 42;
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextAdrSequenceValue()).thenReturn(sequenceNumber);
-        AdrMeta adrMetaToCreate = new AdrMeta.AdrMetaBuilder()
-                .setAdr(new Adr.AdrBuilder().build())
-                .setNamespace(validNamespace)
-                .setRevision(1)
-                .build();
-
-        AdrMeta adrMeta = mongoAdrStore.createAdrForNamespace(adrMetaToCreate);
-
-        AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
-                .setAdr(new Adr.AdrBuilder().build())
-                .setNamespace(validNamespace)
-                .setRevision(1)
-                .setId(sequenceNumber)
-                .build();
-
-        assertThat(adrMeta, is(expectedAdrMeta));
-        Document expectedDoc = new Document("adrId", adrMeta.getId()).append("revisions",
-                new Document("1", Document.parse(objectMapper.writeValueAsString(adrMeta.getAdr()))));
-
-        verify(adrCollection).updateOne(
-                eq(Filters.eq("namespace", validNamespace)),
-                eq(Updates.push("adrs", expectedDoc)),
-                any(UpdateOptions.class));
-    }
-
-    @Test
-    void retry_and_succeed_when_a_concurrent_request_wins_the_first_create_race() throws NamespaceNotFoundException, AdrParseException {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextAdrSequenceValue()).thenReturn(42);
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()))
-                .thenReturn(null);
-        AdrMeta adrMetaToCreate = new AdrMeta.AdrMetaBuilder()
-                .setAdr(new Adr.AdrBuilder().build())
-                .setNamespace(NAMESPACE)
-                .setRevision(1)
-                .build();
-
-        mongoAdrStore.createAdrForNamespace(adrMetaToCreate);
-
-        verify(adrCollection, times(2)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-    }
-
-    @Test
-    void propagate_non_duplicate_key_errors_when_creating_an_adr() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextAdrSequenceValue()).thenReturn(42);
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(12, "some other error", new BsonDocument()), new ServerAddress(), List.of()));
-        AdrMeta adrMetaToCreate = new AdrMeta.AdrMetaBuilder()
-                .setAdr(new Adr.AdrBuilder().build())
-                .setNamespace(NAMESPACE)
-                .setRevision(1)
-                .build();
-
-        assertThrows(MongoWriteException.class,
-                () -> mongoAdrStore.createAdrForNamespace(adrMetaToCreate));
-    }
-
-    @Test
-    void get_adr_revisions_for_invalid_namespace_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace("does-not-exist").build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoAdrStore.getAdrRevisions(adrMeta));
-
-        verify(namespaceStore).namespaceExists(adrMeta.getNamespace());
-    }
-
-    private void mockSetupAdrDocumentWithNoRevisions() {
-        Document mainDocument = setupAdrWithNoRevisions();
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(adrCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
-    }
-
-    @Test
-    void get_adr_revisions_for_invalid_adr_throws_exception() {
-        FindIterable<Document> findIterable = setupInvalidAdr();
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace(NAMESPACE).build();
-
-        assertThrows(AdrNotFoundException.class,
-                () -> mongoAdrStore.getAdrRevisions(adrMeta));
-
-        verify(adrCollection).find(new Document("namespace", adrMeta.getNamespace()));
-        verify(findIterable).projection(Projections.fields(Projections.include("adrs")));
-    }
-
-    @Test
-    void get_adr_revisions_for_valid_adr_returns_list_of_revisions() throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace(NAMESPACE).setId(42).build();
-        List<Integer> adrRevisions = mongoAdrStore.getAdrRevisions(adrMeta);
-
-        assertThat(adrRevisions, is(List.of(1)));
-    }
-
-    @Test
-    void get_adr_revision_for_invalid_namespace_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace("does-not-exist").build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoAdrStore.getAdrRevision(adrMeta));
-
-        verify(namespaceStore).namespaceExists(adrMeta.getNamespace());
-    }
-
-    @Test
-    void throw_an_exception_for_an_invalid_adr_when_retrieving_adr_revision() {
-        FindIterable<Document> findIterable = setupInvalidAdr();
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace(NAMESPACE).build();
-
-        assertThrows(AdrNotFoundException.class,
-                () -> mongoAdrStore.getAdrRevision(adrMeta));
-
-        verify(adrCollection).find(new Document("namespace", adrMeta.getNamespace()));
-        verify(findIterable).projection(Projections.fields(Projections.include("adrs")));
-    }
-
-    @Test
-    void return_an_adr_revision() throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException, JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace(NAMESPACE)
-                .setId(42).setRevision(1).build();
-
-        AdrMeta adrMetaRevision = mongoAdrStore.getAdrRevision(adrMeta);
-        AdrMeta expectedAdrRevisionMeta = new AdrMeta.AdrMetaBuilder(simpleAdrMeta).setRevision(1).build();
-        assertThat(adrMetaRevision, is(expectedAdrRevisionMeta));
-    }
-
-    private Document setupAdrWithNoRevisions() {
-        //Set up an ADR document with 1 ADR with No Revisions
-        return new Document("namespace", NAMESPACE)
-                .append("adrs", List.of(new Document("adrId", 42)));
-    }
-
-    private Document setupAdrRevisionDocument() throws JsonProcessingException {
-        //Set up an ADR document with 2 ADRs in (one with a valid revision)
-        Map<String, Document> revisionMap = new HashMap<>();
-        revisionMap.put("1", Document.parse(objectMapper.writeValueAsString(simpleAdrMeta.getAdr())));
-        Document targetStoredAdr = new Document("adrId", 42)
-                .append("revisions", new Document(revisionMap));
-
-        Document paddingAdr = new Document("adrId", 0);
-
-        return new Document("namespace", NAMESPACE)
-                .append("adrs", Arrays.asList(paddingAdr, targetStoredAdr));
-    }
-
-    @Test
-    void throw_an_exception_when_revision_of_adr_does_not_exist() throws JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace(NAMESPACE)
-                .setId(42).setRevision(9).build();
-
-        assertThrows(AdrRevisionNotFoundException.class,
-                () -> mongoAdrStore.getAdrRevision(adrMeta));
-    }
-
-    @Test
-    void throw_an_exception_when_no_revision_exists_when_getting_adr()  {
-        mockSetupAdrDocumentWithNoRevisions();
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace(NAMESPACE)
-                .setId(42).setRevision(1).build();
-
-        assertThrows(AdrRevisionNotFoundException.class,
-                () -> mongoAdrStore.getAdr(adrMeta));
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
-    private interface DocumentMongoCollection extends MongoCollection<Document> {
+    private MongoCollection<Document> headerCollection;
+    private MongoCollection<Document> versionCollection;
+    private MongoAdrStore store;
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
+    private static final String NAMESPACE = "finos";
+    private static final int ADR_ID = 42;
+
+    @BeforeEach
+    void setup() {
+        headerCollection = Mockito.mock(DocumentMongoCollection.class);
+        versionCollection = Mockito.mock(DocumentMongoCollection.class);
+
+        when(mongoDatabase.getCollection("adrs")).thenReturn(headerCollection);
+        when(mongoDatabase.getCollection("adrVersions")).thenReturn(versionCollection);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+
+        store = new MongoAdrStore(mongoDatabase, counterStore, namespaceStore);
+    }
+
+    private void stubFind(MongoCollection<Document> collection, List<Document> documents) {
+        FindIterable<Document> iterable = Mockito.mock(DocumentFindIterable.class);
+        when(collection.find(any(Bson.class))).thenReturn(iterable);
+        when(iterable.projection(any())).thenReturn(iterable);
+        when(iterable.sort(any())).thenReturn(iterable);
+        when(iterable.skip(anyInt())).thenReturn(iterable);
+        when(iterable.limit(anyInt())).thenReturn(iterable);
+        when(iterable.first()).thenReturn(documents.isEmpty() ? null : documents.get(0));
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            documents.forEach(consumer);
+            return null;
+        }).when(iterable).forEach(any());
+    }
+
+    private void adrExists() {
+        stubFind(headerCollection, List.of(new Document("adrId", ADR_ID)));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+    }
+
+    private void adrDoesNotExist() {
+        stubFind(headerCollection, List.of());
+    }
+
+    private static MongoWriteException writeError(int code, String message) {
+        return new MongoWriteException(new WriteError(code, message, new BsonDocument()), new ServerAddress(), List.of());
+    }
+
+    private static Adr adr(String title, Status status) {
+        return new Adr.AdrBuilder().setTitle(title).setStatus(status).build();
+    }
+
+    private Document contentOf(String title, Status status) throws Exception {
+        return Document.parse(objectMapper.writeValueAsString(adr(title, status)));
+    }
+
+    private static AdrMeta adrMeta(int revision, Adr adr) {
+        return new AdrMeta.AdrMetaBuilder()
+                .setNamespace(NAMESPACE).setId(ADR_ID).setRevision(revision).setAdr(adr).build();
+    }
+
+    /** Version documents as listVersions sees them, plus the content getVersion returns. */
+    private void stubRevisions(List<String> revisions, Document latestContent) {
+        FindIterable<Document> iterable = Mockito.mock(DocumentFindIterable.class);
+        when(versionCollection.find(any(Bson.class))).thenReturn(iterable);
+        when(iterable.projection(any())).thenReturn(iterable);
+        when(iterable.first()).thenReturn(latestContent == null ? null : new Document("content", latestContent));
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            revisions.forEach(revision -> consumer.accept(new Document("version", revision)));
+            return null;
+        }).when(iterable).forEach(any());
+    }
+
+    // --- getAdrsForNamespace ---
+
+    @Test
+    void throw_a_namespace_exception_when_listing_adrs_for_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getAdrsForNamespace(NAMESPACE));
     }
 
     @Test
-    void throw_an_exception_for_an_invalid_adr_when_retrieving_adr() {
-        FindIterable<Document> findIterable = setupInvalidAdr();
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace(NAMESPACE).setId(7).build();
+    void return_an_empty_list_when_a_namespace_has_no_adrs() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of());
 
-        assertThrows(AdrNotFoundException.class,
-                () -> mongoAdrStore.getAdr(adrMeta));
-
-        verify(adrCollection).find(new Document("namespace", adrMeta.getNamespace()));
-        verify(findIterable).projection(Projections.fields(Projections.include("adrs")));
+        assertThat(store.getAdrsForNamespace(NAMESPACE), is(empty()));
     }
 
     @Test
-    void get_adr_for_invalid_namespace_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace("does-not-exist").build();
+    void build_the_summary_from_the_latest_revisions_title_and_status() throws Exception {
+        stubFind(headerCollection, List.of(new Document("adrId", ADR_ID)));
+        stubRevisions(List.of("1", "2"), contentOf("Use Event Sourcing", Status.accepted));
 
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoAdrStore.getAdr(adrMeta));
-
-        verify(namespaceStore).namespaceExists(adrMeta.getNamespace());
+        // Unlike every other type, none of this comes off the header — ADR has no name or
+        // description of its own.
+        assertThat(store.getAdrsForNamespace(NAMESPACE),
+                contains(new NamespaceAdrSummary("Use Event Sourcing", "accepted", ADR_ID)));
     }
 
     @Test
-    void return_the_latest_adr_revision() throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrParseException {
-        mockSetupAdrDocumentWithRevisions();
+    void fall_back_to_placeholders_when_an_adr_has_no_readable_revision() throws Exception {
+        stubFind(headerCollection, List.of(new Document("adrId", 7)));
+        stubRevisions(List.of(), null);
 
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder().setNamespace(NAMESPACE)
-                .setId(42).build();
-
-        AdrMeta latestAdrMeta = mongoAdrStore.getAdr(adrMeta);
-        AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder(simpleAdrMeta).setRevision(1).build();
-        assertThat(latestAdrMeta, is(expectedAdrMeta));
+        assertThat(store.getAdrsForNamespace(NAMESPACE),
+                contains(new NamespaceAdrSummary("ADR 7", "unknown", 7)));
     }
 
     @Test
-    void throw_an_exception_when_update_adr_with_a_namespace_that_doesnt_exists() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+    void render_a_header_with_no_id_rather_than_failing_the_whole_listing() throws Exception {
+        stubFind(headerCollection, List.of(new Document("adrId", null)));
 
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoAdrStore.updateAdrForNamespace(adrMeta));
-
-        verify(namespaceStore, times(1)).namespaceExists(adrMeta.getNamespace());
+        // listSummariesPaged sorts null ids last precisely so one malformed header does not
+        // fail the listing. Resolving its latest revision unboxes the null into the helper's
+        // int parameter, which would turn that tolerance back into a 500 for the namespace.
+        assertThat(store.getAdrsForNamespace(NAMESPACE),
+                contains(new NamespaceAdrSummary("ADR null", "unknown", null)));
     }
 
     @Test
-    void throw_an_exception_when_updating_an_adr_that_doesnt_exist() throws JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
+    void count_adrs_without_resolving_any_revision() throws Exception {
+        when(headerCollection.countDocuments(any(Bson.class))).thenReturn(4L);
 
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(22)
-                .build();
-
-        assertThrows(AdrNotFoundException.class,
-                () -> mongoAdrStore.updateAdrForNamespace(adrMeta));
+        assertThat(store.countAdrsForNamespace(NAMESPACE), is(4));
+        // The whole point: sizing getAdrsForNamespace would read and parse every ADR's
+        // latest revision to produce this number.
+        verifyNoInteractions(versionCollection);
     }
 
     @Test
-    void throw_an_exception_when_updating_an_adr_but_no_revisions_exist() {
-        mockSetupAdrDocumentWithNoRevisions();
+    void throw_a_namespace_exception_when_counting_adrs_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .setAdr(new Adr.AdrBuilder().build())
-                .build();
+        assertThrows(NamespaceNotFoundException.class, () -> store.countAdrsForNamespace(NAMESPACE));
+    }
 
-        assertThrows(AdrRevisionNotFoundException.class,
-                () -> mongoAdrStore.updateAdrForNamespace(adrMeta));
+    // --- createAdrForNamespace ---
+
+    @Test
+    void create_a_header_and_the_first_revision() throws Exception {
+        when(counterStore.getNextAdrSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        AdrMeta created = store.createAdrForNamespace(adrMeta(1, adr("New", Status.draft)));
+
+        assertThat(created.getId(), is(99));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        // Stored as the revision number, not a semantic version.
+        assertThat(versionCaptor.getValue().getString("version"), is("1"));
     }
 
     @Test
-    void throw_a_storage_write_exception_without_capacity_exceeded_when_updating_an_adr_but_mongo_cannot_write_update() throws JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenThrow(new MongoWriteException(new WriteError(1, "error", new BsonDocument()), new ServerAddress(), List.of()));
+    void remove_the_header_again_when_the_first_revision_write_fails() {
+        when(counterStore.getNextAdrSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(versionCollection).insertOne(any(Document.class));
 
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .setAdr(new Adr.AdrBuilder().build())
-                .build();
+        assertThrows(RuntimeException.class,
+                () -> store.createAdrForNamespace(adrMeta(1, adr("New", Status.draft))));
 
-        StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoAdrStore.updateAdrForNamespace(adrMeta));
-        assertThat(exception.isCapacityExceeded(), is(false));
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    // --- getAdr / getAdrRevisions / getAdrRevision ---
+
+    @Test
+    void throw_an_adr_exception_when_the_adr_is_missing() {
+        adrDoesNotExist();
+
+        assertThrows(AdrNotFoundException.class, () -> store.getAdr(adrMeta(1, null)));
     }
 
     @Test
-    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_an_adr_hits_the_document_size_limit() throws JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenThrow(new MongoWriteException(new WriteError(10334, "object to insert too large", new BsonDocument()), new ServerAddress(), List.of()));
+    void resolve_the_latest_revision_numerically_rather_than_lexicographically() throws Exception {
+        adrExists();
+        stubRevisions(List.of("2", "10"), contentOf("Latest", Status.accepted));
 
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .setAdr(new Adr.AdrBuilder().build())
-                .build();
-
-        StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoAdrStore.updateAdrForNamespace(adrMeta));
-        assertThat(exception.isCapacityExceeded(), is(true));
+        // The whole reason ADR needed NumericVersionOrder: a string sort would call 2 the
+        // latest, so every read resolving "latest" would return stale content.
+        assertThat(store.getAdr(adrMeta(1, null)).getRevision(), is(10));
     }
 
     @Test
-    void throw_an_exception_when_a_concurrent_writer_already_created_the_same_adr_revision() throws JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-        UpdateResult conflictingResult = mock(UpdateResult.class);
-        when(conflictingResult.getMatchedCount()).thenReturn(0L);
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(conflictingResult);
+    void resolve_a_three_digit_revision_as_the_latest() throws Exception {
+        adrExists();
+        stubRevisions(List.of("99", "100"), contentOf("Latest", Status.accepted));
 
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .setAdr(new Adr.AdrBuilder().build())
-                .build();
+        // Revision 100 is the first that VERSION_REGEX also reads as a spelling of 1.0.0.
+        // While the helper canonicalised it, it was stored as "1.0.0", which
+        // NumericVersionOrder sorts below "99" — so this returned revision 99's content
+        // while 100 existed, with no error anywhere.
+        assertThat(store.getAdr(adrMeta(1, null)).getRevision(), is(100));
+    }
 
+    @Test
+    void list_three_digit_revisions_without_failing_to_parse_them() throws Exception {
+        adrExists();
+        stubRevisions(List.of("99", "100"), null);
+
+        // getAdrRevisions maps these through Integer.parseInt; a canonicalised "1.0.0"
+        // threw NumberFormatException straight out of the store.
+        assertThat(store.getAdrRevisions(adrMeta(1, null)), contains(99, 100));
+    }
+
+    @Test
+    void throw_a_revision_exception_when_an_adr_has_no_revisions() {
+        adrExists();
+        stubRevisions(List.of(), null);
+
+        assertThrows(AdrRevisionNotFoundException.class, () -> store.getAdr(adrMeta(1, null)));
+    }
+
+    @Test
+    void list_revisions_as_ascending_integers() throws Exception {
+        adrExists();
+        stubRevisions(List.of("10", "2", "1"), contentOf("t", Status.draft));
+
+        assertThat(store.getAdrRevisions(adrMeta(1, null)), contains(1, 2, 10));
+    }
+
+    @Test
+    void throw_a_revision_exception_when_listing_revisions_of_an_adr_with_none() {
+        adrExists();
+        stubRevisions(List.of(), null);
+
+        assertThrows(AdrRevisionNotFoundException.class, () -> store.getAdrRevisions(adrMeta(1, null)));
+    }
+
+    @Test
+    void return_a_specific_revision() throws Exception {
+        adrExists();
+        stubRevisions(List.of("1"), contentOf("Specific", Status.proposed));
+
+        assertThat(store.getAdrRevision(adrMeta(1, null)).getAdr().getTitle(), is("Specific"));
+    }
+
+    @Test
+    void throw_a_revision_exception_when_the_requested_revision_is_missing() {
+        adrExists();
+        stubRevisions(List.of("1"), null);
+
+        assertThrows(AdrRevisionNotFoundException.class, () -> store.getAdrRevision(adrMeta(9, null)));
+    }
+
+    @Test
+    void report_a_parse_failure_when_stored_content_is_not_a_readable_adr() {
+        adrExists();
+        stubRevisions(List.of("1"), new Document("not-an-adr", true).append("title", 42));
+
+        assertThrows(org.finos.calm.domain.exception.AdrParseException.class,
+                () -> store.getAdr(adrMeta(1, null)));
+    }
+
+    @Test
+    void report_a_missing_revision_when_the_latest_disappears_between_resolving_and_reading() {
+        adrExists();
+        // listVersions sees revision 1, but the content read comes back empty — the document
+        // was removed in between. Reporting "no revision" is honest; returning null is not.
+        stubRevisions(List.of("1"), null);
+
+        assertThrows(AdrRevisionNotFoundException.class, () -> store.getAdr(adrMeta(1, null)));
+    }
+
+    @Test
+    void remove_the_header_when_the_first_revision_already_exists_for_a_fresh_id() {
+        when(counterStore.getNextAdrSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // A revision present for an id the counter just issued is a storage inconsistency,
+        // not a normal "already exists".
+        assertThrows(org.finos.calm.domain.exception.StorageWriteException.class,
+                () -> store.createAdrForNamespace(adrMeta(1, adr("New", Status.draft))));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    // --- updateAdrForNamespace / updateAdrStatus ---
+
+    @Test
+    void write_the_next_revision_when_updating_an_adr() throws Exception {
+        adrExists();
+        stubRevisions(List.of("1", "2"), contentOf("Existing", Status.accepted));
+
+        AdrMeta updated = store.updateAdrForNamespace(adrMeta(1, adr("Rewritten", Status.draft)));
+
+        assertThat(updated.getRevision(), is(3));
+        // Status and creation time come from the stored latest revision, not the request.
+        assertThat(updated.getAdr().getStatus(), is(Status.accepted));
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(captor.capture());
+        assertThat(captor.getValue().getString("version"), is("3"));
+    }
+
+    @Test
+    void write_the_next_revision_when_updating_status() throws Exception {
+        adrExists();
+        stubRevisions(List.of("1"), contentOf("Existing", Status.draft));
+
+        AdrMeta updated = store.updateAdrStatus(adrMeta(1, null), Status.accepted);
+
+        assertThat(updated.getRevision(), is(2));
+        assertThat(updated.getAdr().getStatus(), is(Status.accepted));
+    }
+
+    @Test
+    void report_the_revision_already_exists_when_two_writers_race() throws Exception {
+        adrExists();
+        stubRevisions(List.of("1"), contentOf("Existing", Status.draft));
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // Both update paths compute latest + 1, so two concurrent writers land on the same
+        // number. The loser must be told, not silently overwrite the winner.
         assertThrows(AdrRevisionExistsException.class,
-                () -> mongoAdrStore.updateAdrForNamespace(adrMeta));
-    }
-
-    @Test
-    void return_successfully_when_correctly_updating_an_adr() throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException {
-        mockSetupAdrDocumentWithRevisions();
-        UpdateResult successfulResult = mock(UpdateResult.class);
-        when(successfulResult.getMatchedCount()).thenReturn(1L);
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(successfulResult);
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .setRevision(2)
-                .setAdr(new Adr.AdrBuilder().build())
-                .build();
-
-        mongoAdrStore.updateAdrForNamespace(adrMeta);
-
-        verify(adrCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
-    }
-
-    @Test
-    void throw_an_exception_when_updating_status_with_a_namespace_that_doesnt_exists() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoAdrStore.updateAdrStatus(adrMeta, Status.accepted));
-
-        verify(namespaceStore, times(1)).namespaceExists(adrMeta.getNamespace());
-    }
-
-    @Test
-    void throw_an_exception_when_updating_the_status_of_an_adr_that_doesnt_exist() throws JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(22)
-                .build();
-
-        assertThrows(AdrNotFoundException.class,
-                () -> mongoAdrStore.updateAdrStatus(adrMeta, Status.accepted));
-    }
-
-    @Test
-    void throw_an_exception_when_updating_the_status_of_an_adr_but_no_revisions_exist() {
-        mockSetupAdrDocumentWithNoRevisions();
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .build();
-
-        assertThrows(AdrRevisionNotFoundException.class,
-                () -> mongoAdrStore.updateAdrStatus(adrMeta, Status.accepted));
-    }
-
-    @Test
-    void throw_a_storage_write_exception_without_capacity_exceeded_when_updating_the_status_of_an_adr_but_mongo_cannot_write_update() throws JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenThrow(new MongoWriteException(new WriteError(1, "error", new BsonDocument()), new ServerAddress(), List.of()));
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .build();
-
-        StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoAdrStore.updateAdrStatus(adrMeta, Status.proposed));
-        assertThat(exception.isCapacityExceeded(), is(false));
-    }
-
-    @Test
-    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_the_status_of_an_adr_hits_the_document_size_limit() throws JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenThrow(new MongoWriteException(new WriteError(10334, "object to insert too large", new BsonDocument()), new ServerAddress(), List.of()));
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .build();
-
-        StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoAdrStore.updateAdrStatus(adrMeta, Status.proposed));
-        assertThat(exception.isCapacityExceeded(), is(true));
-    }
-
-    @Test
-    void throw_an_exception_when_a_concurrent_writer_already_created_the_same_status_revision() throws JsonProcessingException {
-        mockSetupAdrDocumentWithRevisions();
-        UpdateResult conflictingResult = mock(UpdateResult.class);
-        when(conflictingResult.getMatchedCount()).thenReturn(0L);
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(conflictingResult);
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .build();
-
-        assertThrows(AdrRevisionExistsException.class,
-                () -> mongoAdrStore.updateAdrStatus(adrMeta, Status.accepted));
-    }
-
-    @Test
-    void return_successfully_when_correctly_updating_the_status_of_an_adr() throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException {
-        mockSetupAdrDocumentWithRevisions();
-        UpdateResult successfulResult = mock(UpdateResult.class);
-        when(successfulResult.getMatchedCount()).thenReturn(1L);
-        when(adrCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(successfulResult);
-
-        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .build();
-
-        mongoAdrStore.updateAdrStatus(adrMeta, Status.accepted);
-
-        verify(adrCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
+                () -> store.updateAdrStatus(adrMeta(1, null), Status.accepted));
     }
 }

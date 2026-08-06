@@ -62,7 +62,7 @@ public class NamespaceContentService {
                 || isNotEmpty(() -> patternStore.getPatternsForNamespace(namespace))
                 || isNotEmpty(() -> flowStore.getFlowsForNamespace(namespace))
                 || isNotEmpty(() -> standardStore.getStandardsForNamespace(namespace))
-                || isNotEmpty(() -> adrStore.getAdrsForNamespace(namespace))
+                || hasAny(() -> adrStore.countAdrsForNamespace(namespace))
                 || isNotEmpty(() -> interfaceStore.getInterfacesForNamespace(namespace))
                 || isNotEmpty(() -> timelineStore.getTimelinesForNamespace(namespace))
                 || isNotEmpty(() -> decoratorStore.getDecoratorsForNamespace(namespace, null, null));
@@ -85,8 +85,30 @@ public class NamespaceContentService {
         }
     }
 
+    /**
+     * The counting equivalent of {@link #isNotEmpty}, for ADR — whose summary list costs two
+     * reads and a parse per ADR to build, all of it discarded by an emptiness check.
+     *
+     * <p>Keeps that method's failure policy exactly: a missing namespace is empty, and
+     * anything else propagates rather than being swallowed, because this gates an
+     * irreversible delete and must not report "no content" for content it never confirmed
+     * absent.</p>
+     */
+    private boolean hasAny(NamespaceCountSupplier supplier) {
+        try {
+            return supplier.get() > 0;
+        } catch (NamespaceNotFoundException e) {
+            return false;
+        }
+    }
+
     @FunctionalInterface
     private interface NamespaceListSupplier {
         List<?> get() throws NamespaceNotFoundException;
+    }
+
+    @FunctionalInterface
+    private interface NamespaceCountSupplier {
+        int get() throws NamespaceNotFoundException;
     }
 }

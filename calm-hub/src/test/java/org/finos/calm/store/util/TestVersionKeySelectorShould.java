@@ -36,18 +36,6 @@ class TestVersionKeySelectorShould {
         assertNull(VersionKeySelector.latestVersionKey(Set.of()));
     }
 
-    @Test
-    void return_zero_version_count_for_null_keys() {
-        assertEquals(0, VersionKeySelector.versionCount(null));
-    }
 
-    @Test
-    void return_zero_version_count_for_empty_set() {
-        assertEquals(0, VersionKeySelector.versionCount(Set.of()));
-    }
 
-    @Test
-    void return_size_version_count_for_populated_set() {
-        assertEquals(3, VersionKeySelector.versionCount(Set.of("1-0-0", "1-1-0", "2-0-0")));
-    }
 }

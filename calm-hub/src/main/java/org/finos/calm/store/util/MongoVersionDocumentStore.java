@@ -80,6 +80,7 @@ public class MongoVersionDocumentStore {
     private final MongoCollection<Document> versionCollection;
     private final String idField;
     private final String resourceLabel;
+    private final VersionScheme versionScheme;
 
     /**
      * @param headerCollection  the existing per-type collection, now holding headers
@@ -94,10 +95,25 @@ public class MongoVersionDocumentStore {
                                      MongoCollection<Document> versionCollection,
                                      String idField,
                                      String resourceLabel) {
+        this(headerCollection, versionCollection, idField, resourceLabel, VersionScheme.SEMANTIC);
+    }
+
+    /**
+     * @param versionScheme how this type spells and ranks its versions. Every type but
+     *                      ADR uses {@link VersionScheme#SEMANTIC}; ADR's revisions are
+     *                      integers, which must be stored verbatim and ordered numerically
+     *                      — see {@link VersionScheme}.
+     */
+    public MongoVersionDocumentStore(MongoCollection<Document> headerCollection,
+                                     MongoCollection<Document> versionCollection,
+                                     String idField,
+                                     String resourceLabel,
+                                     VersionScheme versionScheme) {
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
         this.idField = idField;
         this.resourceLabel = resourceLabel;
+        this.versionScheme = versionScheme;
     }
 
     /**
@@ -176,9 +192,18 @@ public class MongoVersionDocumentStore {
      * database — reporting success would return 201 for content that was never stored.</p>
      */
     public void createFirstVersion(String namespace, int resourceId, Document content) {
+        createFirstVersion(namespace, resourceId, INITIAL_VERSION, content);
+    }
+
+    /**
+     * As {@link #createFirstVersion(String, int, Document)}, for a type whose first version is not
+     * {@code 1.0.0}. ADR numbers its revisions from an integer supplied by the caller, so it
+     * needs the same compensation with a different version string — not a second copy of it.
+     */
+    public void createFirstVersion(String namespace, int resourceId, String version, Document content) {
         boolean created;
         try {
-            created = createVersion(namespace, resourceId, INITIAL_VERSION, content);
+            created = createVersion(namespace, resourceId, version, content);
         } catch (RuntimeException e) {
             deleteHeader(namespace, resourceId);
             throw e;
@@ -186,7 +211,7 @@ public class MongoVersionDocumentStore {
         if (!created) {
             deleteHeader(namespace, resourceId);
             throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
+                    "Version " + version + " already exists for newly allocated "
                             + idField + " " + resourceId + " in namespace " + namespace));
         }
     }
@@ -198,7 +223,7 @@ public class MongoVersionDocumentStore {
      * which domain exception that means. Never overwrites.
      */
     public boolean createVersion(String namespace, int resourceId, String version, Document content) {
-        String canonicalVersion = CanonicalVersion.of(version);
+        String canonicalVersion = versionScheme.canonicalise(version);
         Document versionDocument = new Document(NAMESPACE_FIELD, namespace)
                 .append(idField, resourceId)
                 .append(VERSION_FIELD, canonicalVersion)
@@ -234,7 +259,7 @@ public class MongoVersionDocumentStore {
     public void upsertVersion(String namespace, int resourceId, String version, Document content) {
         // Canonical before the filter is built, so an upsert-insert derives its stored
         // version field from the canonical form via the filter's equality conditions.
-        String canonicalVersion = CanonicalVersion.of(version);
+        String canonicalVersion = versionScheme.canonicalise(version);
         Bson update = Updates.combine(
                 Updates.set(CONTENT_FIELD, content),
                 Updates.setOnInsert(METADATA_FIELD, new Document()));
@@ -334,12 +359,12 @@ public class MongoVersionDocumentStore {
      */
     public Document getVersion(String namespace, int resourceId, String version) {
         Document versionDocument = versionCollection
-                .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).first();
+                .find(versionFilter(namespace, resourceId, versionScheme.canonicalise(version))).first();
         return versionDocument == null ? null : versionDocument.get(CONTENT_FIELD, Document.class);
     }
 
     /**
-     * @return every version of one resource, ordered by {@link SemanticVersionOrder}.
+     * @return every version of one resource, ordered by this store's version comparator.
      * Empty means "no versions written" — <em>not</em> "no such resource"; ask
      * {@link #headerExists} to tell those apart. Sorted in memory rather than by the
      * database because semantic ordering isn't expressible as a Mongo sort, which is
@@ -350,8 +375,51 @@ public class MongoVersionDocumentStore {
         versionCollection.find(headerFilter(namespace, resourceId))
                 .projection(Projections.include(VERSION_FIELD))
                 .forEach(document -> versions.add(document.getString(VERSION_FIELD)));
-        versions.sort(SemanticVersionOrder.ASCENDING);
+        versions.sort(versionScheme.order());
         return versions;
+    }
+
+    /**
+     * @return the highest-ranking version of one resource, or {@code null} if it has none.
+     *
+     * <p>Resolved by listing and ranking in memory rather than by a database sort, because
+     * the ordering is type-specific and not expressible as a Mongo sort — the stored values
+     * are strings, so the database would rank {@code 10} below {@code 2}. Only the version
+     * field is projected, so the cost is bounded by the number of versions, not their
+     * content.</p>
+     *
+     * <p>Exists for ADR, whose summary and read paths are defined in terms of the latest
+     * revision. ADR 0001 decided against caching a latest-version pointer on the header, so
+     * this recomputes it; that decision is unchanged.</p>
+     */
+    public String getLatestVersion(String namespace, int resourceId) {
+        List<String> versions = listVersions(namespace, resourceId);
+        return versions.isEmpty() ? null : versions.get(versions.size() - 1);
+    }
+
+    /**
+     * @return the content of the highest-ranking version, or {@code null} if the resource has
+     * no versions. Two reads: one to rank the versions, one to fetch the winner's content.
+     */
+    public Document getLatestVersionContent(String namespace, int resourceId) {
+        String latest = getLatestVersion(namespace, resourceId);
+        return latest == null ? null : getVersion(namespace, resourceId, latest);
+    }
+
+    /**
+     * @return how many resources of this type exist in a namespace.
+     *
+     * <p>Counts header documents and nothing else. Every other type's summary is built
+     * entirely from its header, so a caller wanting only a count can size the summary list
+     * for free — but ADR's summary carries the latest revision's title and status, which
+     * costs two further reads and a parse per resource. Callers that want a number rather
+     * than a list should not pay that, and this is how they avoid it.</p>
+     *
+     * <p>{@code namespace} is the prefix of the unique {@code (namespace, id)} index the
+     * migration creates, so this is answered from the index without fetching documents.</p>
+     */
+    public int countHeaders(String namespace) {
+        return (int) headerCollection.countDocuments(Filters.eq(NAMESPACE_FIELD, namespace));
     }
 
     /**

@@ -32,7 +32,12 @@ import static org.dizitart.no2.filters.FluentFilter.where;
  *       write fail. {@link #createVersion} therefore checks before writing, holding
  *       the write lock across both — which is genuinely safe, rather than a
  *       check-then-act race, because Nitrite is a single-process embedded store and
- *       this lock serialises every write through it. The Mongo helper can instead
+ *       this lock serialises every write through it. Note the lock is per <em>instance</em>,
+ *       so that holds only while one instance owns writes to a given collection pair. It
+ *       does today; {@code NitriteSearchStore} constructs a second instance over
+ *       {@code adrs}/{@code adrVersions} but only reads through it. Adding a write path
+ *       through a second instance would silently drop the guarantee, since there is no
+ *       database constraint underneath to catch it. The Mongo helper can instead
  *       write optimistically and translate a {@code DUPLICATE_KEY} error, because
  *       there a shared database arbitrates between separate application instances.</li>
  *   <li><b>Content is stored as a JSON string</b>, not a parsed document, matching
@@ -72,6 +77,7 @@ public class NitriteVersionDocumentStore {
     private final NitriteCollection versionCollection;
     private final String idField;
     private final String resourceLabel;
+    private final VersionScheme versionScheme;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
@@ -85,10 +91,23 @@ public class NitriteVersionDocumentStore {
                                        NitriteCollection versionCollection,
                                        String idField,
                                        String resourceLabel) {
+        this(headerCollection, versionCollection, idField, resourceLabel, VersionScheme.SEMANTIC);
+    }
+
+    /**
+     * @param versionScheme how this type spells and ranks its versions. See
+     *                      {@link VersionScheme}.
+     */
+    public NitriteVersionDocumentStore(NitriteCollection headerCollection,
+                                       NitriteCollection versionCollection,
+                                       String idField,
+                                       String resourceLabel,
+                                       VersionScheme versionScheme) {
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
         this.idField = idField;
         this.resourceLabel = resourceLabel;
+        this.versionScheme = versionScheme;
     }
 
     /**
@@ -149,9 +168,18 @@ public class NitriteVersionDocumentStore {
      * allocated and is not yet visible to any other caller.</p>
      */
     public void createFirstVersion(String namespace, int resourceId, String content) {
+        createFirstVersion(namespace, resourceId, INITIAL_VERSION, content);
+    }
+
+    /**
+     * As {@link #createFirstVersion(String, int, String)}, for a type whose first version is not
+     * {@code 1.0.0}. ADR numbers its revisions from an integer supplied by the caller, so it
+     * needs the same compensation with a different version string — not a second copy of it.
+     */
+    public void createFirstVersion(String namespace, int resourceId, String version, String content) {
         boolean created;
         try {
-            created = createVersion(namespace, resourceId, INITIAL_VERSION, content);
+            created = createVersion(namespace, resourceId, version, content);
         } catch (RuntimeException e) {
             deleteHeader(namespace, resourceId);
             throw e;
@@ -159,7 +187,7 @@ public class NitriteVersionDocumentStore {
         if (!created) {
             deleteHeader(namespace, resourceId);
             throw StorageWriteException.writeFailed(new IllegalStateException(
-                    "Version " + INITIAL_VERSION + " already exists for newly allocated "
+                    "Version " + version + " already exists for newly allocated "
                             + idField + " " + resourceId + " in namespace " + namespace));
         }
     }
@@ -174,7 +202,7 @@ public class NitriteVersionDocumentStore {
      * @return {@code false} if that version is already present. Never overwrites.
      */
     public boolean createVersion(String namespace, int resourceId, String version, String content) {
-        String canonicalVersion = CanonicalVersion.of(version);
+        String canonicalVersion = versionScheme.canonicalise(version);
         lock.writeLock().lock();
         try {
             if (versionCollection.find(versionFilter(namespace, resourceId, canonicalVersion)).firstOrNull() != null) {
@@ -203,7 +231,7 @@ public class NitriteVersionDocumentStore {
      * as well as overwrite.</p>
      */
     public void upsertVersion(String namespace, int resourceId, String version, String content) {
-        String canonicalVersion = CanonicalVersion.of(version);
+        String canonicalVersion = versionScheme.canonicalise(version);
         lock.writeLock().lock();
         try {
             Filter filter = versionFilter(namespace, resourceId, canonicalVersion);
@@ -298,7 +326,7 @@ public class NitriteVersionDocumentStore {
         lock.readLock().lock();
         try {
             Document versionDocument = versionCollection
-                    .find(versionFilter(namespace, resourceId, CanonicalVersion.of(version))).firstOrNull();
+                    .find(versionFilter(namespace, resourceId, versionScheme.canonicalise(version))).firstOrNull();
             if (versionDocument == null) {
                 return null;
             }
@@ -310,7 +338,7 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
-     * @return every version of one resource, ordered by {@link SemanticVersionOrder}.
+     * @return every version of one resource, ordered by this store's version comparator.
      * Empty means "no versions written" — <em>not</em> "no such resource"; ask
      * {@link #headerExists} to tell those apart.
      */
@@ -321,8 +349,43 @@ public class NitriteVersionDocumentStore {
             for (Document versionDocument : versionCollection.find(headerFilter(namespace, resourceId))) {
                 versions.add(versionDocument.get(VERSION_FIELD, String.class));
             }
-            versions.sort(SemanticVersionOrder.ASCENDING);
+            versions.sort(versionScheme.order());
             return versions;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * @return the highest-ranking version of one resource, or {@code null} if it has none.
+     * See {@link MongoVersionDocumentStore#getLatestVersion} for why this ranks in memory.
+     */
+    public String getLatestVersion(String namespace, int resourceId) {
+        List<String> versions = listVersions(namespace, resourceId);
+        return versions.isEmpty() ? null : versions.get(versions.size() - 1);
+    }
+
+    /**
+     * @return the content of the highest-ranking version, or {@code null} if the resource has
+     * no versions.
+     */
+    public String getLatestVersionContent(String namespace, int resourceId) {
+        String latest = getLatestVersion(namespace, resourceId);
+        return latest == null ? null : getVersion(namespace, resourceId, latest);
+    }
+
+    /**
+     * @return how many resources of this type exist in a namespace. See
+     * {@link MongoVersionDocumentStore#countHeaders} for why this exists.
+     *
+     * <p>A scan rather than an index count — CalmHub creates no Nitrite indexes — but it
+     * reads only the small header documents, where sizing an ADR summary list would read
+     * and parse every ADR's latest revision content.</p>
+     */
+    public int countHeaders(String namespace) {
+        lock.readLock().lock();
+        try {
+            return (int) headerCollection.find(where(NAMESPACE_FIELD).eq(namespace)).size();
         } finally {
             lock.readLock().unlock();
         }
@@ -346,11 +409,21 @@ public class NitriteVersionDocumentStore {
             // Null-safe because the id is read straight off the stored header and a header
             // missing its id field yields a null one. Comparing with Integer.compare unboxes,
             // so a single such document would NPE the whole listing into a 500 — where Mongo,
-            // which sorts database-side, returns 200 with that row included. Sorting nulls
-            // last keeps the two backends agreeing; toSummary already renders the row itself
-            // ("<Type> null"), which is the honest representation of a malformed header.
+            // which sorts database-side, returns 200 with that row included. toSummary
+            // renders it ("<Type> null"), which is the honest representation of a malformed
+            // header.
+            //
+            // Rendered here but skipped by search (MongoSearchStore/NitriteSearchStore), on
+            // purpose: a search hit is a link the caller is expected to follow, so an
+            // unaddressable one is worse than absent, while a listing row is informational and
+            // showing it is how an operator finds out the bad header exists at all.
+            //
+            // Nulls first, not last, so the two backends put it in the same place: BSON's
+            // sort order ranks Null below every number, so Mongo's ascending sort returns it
+            // first. Under paging the difference is visible — nulls last would surface the
+            // row on page 1 here and on the final page there, for the same data.
             summaries.sort(Comparator.comparing(NamespaceResourceSummary::getId,
-                    Comparator.nullsLast(Comparator.naturalOrder())));
+                    Comparator.nullsFirst(Comparator.naturalOrder())));
             return page.apply(summaries);
         } finally {
             lock.readLock().unlock();

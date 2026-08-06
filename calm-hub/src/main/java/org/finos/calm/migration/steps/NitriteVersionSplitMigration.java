@@ -5,7 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.collection.NitriteId;
 import org.dizitart.no2.filters.Filter;
-import org.finos.calm.store.util.CanonicalVersion;
+import org.finos.calm.store.util.VersionScheme;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,22 +42,40 @@ public class NitriteVersionSplitMigration {
     private static final Logger LOG = LoggerFactory.getLogger(NitriteVersionSplitMigration.class);
 
     private static final String NAMESPACE_FIELD = "namespace";
-    private static final String VERSIONS_FIELD = "versions";
     private static final String VERSION_FIELD = "version";
 
     private final NitriteCollection headerCollection;
     private final NitriteCollection versionCollection;
     private final String idField;
     private final String arrayField;
+    private final String versionsField;
     private final String resourceLabel;
+    private final VersionScheme versionScheme;
 
     public NitriteVersionSplitMigration(Nitrite db, String headerCollection, String versionCollection,
                                         String idField, String arrayField, String resourceLabel) {
+        this(db, headerCollection, versionCollection, idField, arrayField, "versions", resourceLabel,
+                VersionScheme.SEMANTIC);
+    }
+
+    /**
+     * @param versionsField the field holding the version map on each old-shape entry.
+     *                      "versions" for every type but ADR, whose map is named "revisions".
+     * @param versionScheme how this type's version keys are spelled. See
+     *                      {@link MongoVersionSplitMigration} — ADR passes
+     *                      {@link VersionScheme#NUMERIC} so revision 100 is not rewritten to
+     *                      "1.0.0" on the way into the new shape.
+     */
+    public NitriteVersionSplitMigration(Nitrite db, String headerCollection, String versionCollection,
+                                      String idField, String arrayField, String versionsField, String resourceLabel,
+                                      VersionScheme versionScheme) {
         this.headerCollection = db.getCollection(headerCollection);
         this.versionCollection = db.getCollection(versionCollection);
         this.idField = idField;
         this.arrayField = arrayField;
+        this.versionsField = versionsField;
         this.resourceLabel = resourceLabel;
+        this.versionScheme = versionScheme;
     }
 
     public void migrate() {
@@ -105,7 +123,7 @@ public class NitriteVersionSplitMigration {
      */
     private int writeOneResource(String namespace, Document entry) {
         Integer resourceId = entry.get(idField, Integer.class);
-        Document storedVersions = entry.get(VERSIONS_FIELD, Document.class);
+        Document storedVersions = entry.get(versionsField, Document.class);
         Map<String, String> keysByCanonicalVersion = collapseToCanonicalVersions(storedVersions, namespace, resourceId);
 
         Filter headerFilter = Filter.and(where(NAMESPACE_FIELD).eq(namespace), where(idField).eq(resourceId));
@@ -172,7 +190,7 @@ public class NitriteVersionSplitMigration {
         for (String storedKey : storedVersions.getFields()) {
             // Same conversion the write path uses, so migrated data is addressable by
             // exactly the spelling the new store looks for.
-            String version = CanonicalVersion.of(storedKey);
+            String version = versionScheme.canonicalise(storedKey);
             String alreadyMapped = keysByCanonicalVersion.putIfAbsent(version, storedKey);
             if (alreadyMapped != null) {
                 LOG.warn("Discarding version key '{}' [namespace={}, {}={}] — it means the same "

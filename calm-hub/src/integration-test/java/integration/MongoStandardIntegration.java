@@ -5,7 +5,6 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.standards.CreateStandardRequest;
@@ -13,12 +12,12 @@ import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
@@ -51,12 +50,7 @@ public class MongoStandardIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("standards")) {
-                database.createCollection("standards");
-                database.getCollection("standards").insertOne(
-                        new Document("namespace", "finos").append("standards", new ArrayList<>())
-                );
-            }
+            primeHeaderCollection(database, "standards");
 
             counterSetup(database);
             namespaceSetup(database);

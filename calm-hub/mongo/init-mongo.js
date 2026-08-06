@@ -42,7 +42,14 @@ function canonicalVersion(version) {
 // flat lists with the parent-child relationship left implicit — so what is written here is
 // deliberately NOT the literal shape of the source below. Change this function, not the
 // data, if the storage shape changes again.
-function seedVersionedResource(groupedByNamespace, headerCollection, versionCollection, arrayField, idField) {
+function seedVersionedResource(groupedByNamespace, headerCollection, versionCollection, arrayField, idField, versionsField, versionScheme) {
+    // "versions" for every type but ADR, whose map is called "revisions".
+    const versionsKey = versionsField || "versions";
+    // "semantic" for every type but ADR, whose revisions are integers and must be stored
+    // verbatim: VERSION_REGEX makes both separators optional, so canonicalVersion reads
+    // "100" as a spelling of 1.0.0 and would store revision 100 as "1.0.0". Mirrors
+    // VersionScheme on the Java side — see calm-hub/decisions/0003.
+    const canonicalise = versionScheme !== "numeric";
     const headers = [];
     const versions = [];
 
@@ -55,14 +62,14 @@ function seedVersionedResource(groupedByNamespace, headerCollection, versionColl
             // inserts — then refuses, aborting the script before it records the schema version.
             // Mirrors collapseToCanonicalVersions in the two migration steps.
             const contentByCanonicalVersion = new Map();
-            for (const storedKey of Object.keys(entry.versions || {})) {
-                const version = canonicalVersion(storedKey);
+            for (const storedKey of Object.keys(entry[versionsKey] || {})) {
+                const version = canonicalise ? canonicalVersion(storedKey) : storedKey;
                 if (contentByCanonicalVersion.has(version)) {
                     logFail(`Seed data has two keys meaning version ${version} for `
                         + `${namespaceDocument.namespace}/${entry[idField]} — keeping the first, dropping '${storedKey}'`);
                     continue;
                 }
-                contentByCanonicalVersion.set(version, entry.versions[storedKey]);
+                contentByCanonicalVersion.set(version, entry[versionsKey][storedKey]);
             }
 
             headers.push({
@@ -134,7 +141,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 4;
+const LATEST_SCHEMA_VERSION = 9;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -149,12 +156,12 @@ if (isEmptyDatabase) {
         { upsert: true });
 
     // Mirrors MongoIndexInitializationStep, which the pin above skips. Keep the two in
-    // step. Two deliberate differences, both because architectures have moved to the
-    // header/version shape (ADR 0001): architectures gets a unique
-    // (namespace, architectureId) instead of (namespace), which is what allows more than
-    // one architecture per namespace at all; and architectureVersions gets a unique
-    // (namespace, architectureId, version). The other six versioned types keep the
-    // one-document-per-namespace index until they migrate.
+    // step. All seven versioned types now use the header/version shape (ADR 0001), so each
+    // gets a unique (namespace, <type>Id) instead of the old unique (namespace) — which is
+    // what allows more than one resource of a type per namespace at all — plus a unique
+    // (namespace, <type>Id, version) on its sibling versions collection. Controls and
+    // decorators keep the one-document-per-namespace index, by ADR 0004 rather than
+    // pending migration.
     db.namespaces.createIndex({ name: 1 }, unique);
     db.domains.createIndex({ name: 1 }, unique);
     db.schemas.createIndex({ version: 1 }, unique);
@@ -163,10 +170,26 @@ if (isEmptyDatabase) {
     db.architectureVersions.createIndex({ namespace: 1, architectureId: 1, version: 1 }, unique);
     db.patterns.createIndex({ namespace: 1, patternId: 1 }, unique);
     db.patternVersions.createIndex({ namespace: 1, patternId: 1, version: 1 }, unique);
+    db.flows.createIndex({ namespace: 1, flowId: 1 }, unique);
+    db.flowVersions.createIndex({ namespace: 1, flowId: 1, version: 1 }, unique);
+    // Standards are not seeded by this script, but the indexes still have to match the
+    // shape the store reads, since pinning the version skips the migration that creates them.
+    db.standards.createIndex({ namespace: 1, standardId: 1 }, unique);
+    db.standardVersions.createIndex({ namespace: 1, standardId: 1, version: 1 }, unique);
+    db.interfaces.createIndex({ namespace: 1, interfaceId: 1 }, unique);
+    db.interfaceVersions.createIndex({ namespace: 1, interfaceId: 1, version: 1 }, unique);
+    // Timelines are not seeded by this script, but the indexes still have to match the
+    // shape the store reads, since pinning the version skips the migration that creates them.
+    db.timelines.createIndex({ namespace: 1, timelineId: 1 }, unique);
+    db.timelineVersions.createIndex({ namespace: 1, timelineId: 1, version: 1 }, unique);
+    db.adrs.createIndex({ namespace: 1, adrId: 1 }, unique);
+    db.adrVersions.createIndex({ namespace: 1, adrId: 1, version: 1 }, unique);
 
     // Still one document per namespace until each of these migrates, at which point its
     // entry moves up alongside architectures and patterns.
-    for (const collection of ["flows", "timelines", "standards", "interfaces", "adrs", "decorators"]) {
+    // Decorator is the only namespaced collection left on the one-document-per-namespace
+    // shape — it is not versioned at all, so this redesign does not touch it (ADR 0004).
+    for (const collection of ["decorators"]) {
         db[collection].createIndex({ namespace: 1 }, unique);
     }
     db.controls.createIndex({ domain: 1 }, unique);
@@ -1928,8 +1951,11 @@ if (isEmptyDatabase && db.patterns.countDocuments() === 0) {
 }
 
 logSection("Flows");
-if (db.flows.countDocuments() === 0) {
-    db.flows.insertMany([
+// Gated on the database being empty, like the other migrated types — the new shape
+// depends on the index swap the schema baseline performs.
+if (isEmptyDatabase && db.flows.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out.
+    const flowsByNamespace = [
         {
             namespace: "finos",
             flows: [
@@ -1939,7 +1965,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "This is a non-compliant flow document. Just creating something to simulate",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-1",
                             "title": "Flow 1",
@@ -1953,7 +1979,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "This is a non-compliant flow document. Just creating something to simulate",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-2",
                             "title": "Flow 2",
@@ -1974,7 +2000,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "Flow for adding or updating account information in the database",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
                             "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
                             "unique-id": "flow-add-update-account",
@@ -2019,7 +2045,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
                             "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
                             "unique-id": "flow-load-list-of-accounts",
@@ -2055,9 +2081,14 @@ if (db.flows.countDocuments() === 0) {
                 }
             ]
         }
-    ]
-    );
-    logSuccess("Initialized flows for finos and traderx namespaces");
+    ];
+
+    const seededFlows = seedVersionedResource(
+        flowsByNamespace, "flows", "flowVersions", "flows", "flowId");
+    logSuccess(`Initialized ${seededFlows.headers} flows and ${seededFlows.versions} versions for finos and traderx namespaces`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding flows; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("Flows already initialized, skipping...");
 }
@@ -6350,8 +6381,11 @@ if (db.userAccess.countDocuments() === 0) {
 }
 
 logSection("ADRs");
-if (db.adrs.countDocuments() === 0) {
-    db.adrs.insertMany([
+// Gated on the database being empty, like the other migrated types.
+if (isEmptyDatabase && db.adrs.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out.
+    // ADR keys its map "revisions", by integer, so the field name is passed explicitly.
+    const adrsByNamespace = [
         {
             namespace: 'finos',
             adrs: [
@@ -6482,8 +6516,13 @@ if (db.adrs.countDocuments() === 0) {
                 },
             ],
         },
-    ]);
-    logSuccess("Initialized ADRs for finos and workshop namespaces");
+    ];
+    const seededAdrs = seedVersionedResource(
+        adrsByNamespace, "adrs", "adrVersions", "adrs", "adrId", "revisions", "numeric");
+    logSuccess(`Initialized ${seededAdrs.headers} ADRs and ${seededAdrs.versions} revisions`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding ADRs; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("ADRs already initialized, skipping...");
 }
@@ -6652,8 +6691,10 @@ if (db.decorators.countDocuments() === 0) {
 
 logSection("Interfaces");
 // Insert a sample Host Port interface for the finos namespace
-if (db.interfaces.countDocuments() === 0) {
-    db.interfaces.insertOne({
+// Gated on the database being empty, like the other migrated types.
+if (isEmptyDatabase && db.interfaces.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out.
+    const interfacesByNamespace = [{
         namespace: "finos",
         interfaces: [
             {
@@ -6661,7 +6702,7 @@ if (db.interfaces.countDocuments() === 0) {
                 name: "Host Port Interface",
                 description: "A standard host and port interface definition for network-accessible services",
                 versions: {
-                    "1-0-0": {
+                    "1.0.0": {
                         "$schema": "https://json-schema.org/draft/2020-12/schema",
                         "$id": "https://calm.finos.org/calm/namespaces/finos/interfaces/1/versions/1.0.0",
                         "title": "Host Port Interface",
@@ -6723,8 +6764,13 @@ if (db.interfaces.countDocuments() === 0) {
                 }
             }
         ]
-    });
-    logSuccess("Initialized interfaces for finos namespace");
+    }];
+    const seededInterfaces = seedVersionedResource(
+        interfacesByNamespace, "interfaces", "interfaceVersions", "interfaces", "interfaceId");
+    logSuccess(`Initialized ${seededInterfaces.headers} interfaces and ${seededInterfaces.versions} versions for finos namespace`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding interfaces; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("Interfaces already initialized, skipping...");
 }

@@ -21,6 +21,8 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +52,9 @@ class TestMongoSearchStoreShould {
     @Mock
     private MongoCollection<Document> adrCollection;
 
+    @Mock
+    private MongoCollection<Document> adrVersionCollection;
+
     private MongoSearchStore searchStore;
 
     @BeforeEach
@@ -62,14 +67,28 @@ class TestMongoSearchStoreShould {
         when(database.getCollection("interfaces")).thenReturn(interfaceCollection);
         when(database.getCollection("controls")).thenReturn(controlCollection);
         when(database.getCollection("adrs")).thenReturn(adrCollection);
+        when(database.getCollection("adrVersions")).thenReturn(adrVersionCollection);
         searchStore = new MongoSearchStore(database);
     }
 
     /**
-     * Architecture has moved to the header/version shape, so each of its documents is one
-     * architecture rather than a namespace-wide array of them. The other namespaced types
-     * still use the array shape, which is why both fixtures appear in this class.
+     * Stubs the adrVersions collection the ADR search reads through: the revision list that
+     * ranks them, and the winning revision's content.
      */
+    @SuppressWarnings("unchecked")
+    private void mockAdrRevisions(List<String> revisions, Document latestContent) {
+        FindIterable<Document> findIterable = mock(FindIterable.class);
+        when(adrVersionCollection.find(any(org.bson.conversions.Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any())).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(
+                latestContent == null ? null : new Document("content", latestContent));
+        doAnswer(invocation -> {
+            java.util.function.Consumer<Document> consumer = invocation.getArgument(0);
+            revisions.forEach(revision -> consumer.accept(new Document("version", revision)));
+            return null;
+        }).when(findIterable).forEach(any());
+    }
+
     private static Document architectureHeader(int id, String name, String description) {
         return architectureHeader("finos", id, name, description);
     }
@@ -143,17 +162,23 @@ class TestMongoSearchStoreShould {
                 .append("name", "Demo Pattern")
                 .append("description", "demo");
 
-        // A flow, still in the array shape, alongside two header-shaped types — the point
-        // being that both paths run in the same search while the rollout is part-done.
         Document flowDoc = new Document("namespace", "finos")
-                .append("flows", List.of(new Document("flowId", 3)
-                        .append("name", "Demo Flow")
-                        .append("description", "demo")));
+                .append("flowId", 3)
+                .append("name", "Demo Flow")
+                .append("description", "demo");
+
+        // Every namespaced type now reads the header shape — the array-shaped path was
+        // retired with Interface, its last caller.
+        Document interfaceDoc = new Document("namespace", "finos")
+                .append("interfaceId", 5)
+                .append("name", "Demo Interface")
+                .append("description", "demo");
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(patternCollection, List.of(patternDoc));
         mockCollectionFind(flowCollection, List.of(flowDoc));
-        mockEmptyCollections(standardCollection, interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(interfaceCollection, List.of(interfaceDoc));
+        mockEmptyCollections(standardCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("demo");
 
@@ -162,6 +187,8 @@ class TestMongoSearchStoreShould {
         assertEquals("Demo Pattern", results.getPatterns().get(0).getName());
         assertEquals(1, results.getFlows().size());
         assertEquals("Demo Flow", results.getFlows().get(0).getName());
+        assertEquals(1, results.getInterfaces().size());
+        assertEquals("Demo Interface", results.getInterfaces().get(0).getName());
     }
 
     @Test
@@ -185,16 +212,37 @@ class TestMongoSearchStoreShould {
     }
 
     @Test
-    void search_adr_by_latest_revision_title() {
-        Document revisionDoc = new Document("title", "Use Event Sourcing");
-        Document adrEntry = new Document("adrId", 1)
-                .append("revisions", new Document("1", revisionDoc));
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("adrs", List.of(adrEntry));
+    void skip_a_header_with_no_id_rather_than_failing_the_search() {
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(architectureCollection, List.of(
+                new Document("namespace", "finos").append("name", "event thing").append("description", "d")));
 
+        // No architectureId. SearchResult takes a primitive id, so unboxing would throw out
+        // of search() — which builds every type's results eagerly, failing the whole request
+        // rather than one type.
+        assertEquals(0, searchStore.search("event").getArchitectures().size());
+    }
+
+    @Test
+    void skip_an_adr_header_with_no_id_rather_than_failing_the_search() {
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(namespaceDoc));
+        mockCollectionFind(adrCollection, List.of(new Document("namespace", "finos").append("adrId", null)));
+
+        // SearchResult takes a primitive id and resolving the latest revision unboxes too, so
+        // one id-less header would 500 the entire /search request — every type, not just ADR.
+        assertEquals(0, searchStore.search("event").getAdrs().size());
+    }
+
+    @Test
+    void search_adr_by_latest_revision_title() {
+        // ADR reads its title from the latest revision's content, so the fixture needs a
+        // header and a revision document rather than one namespace-wide document.
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+        mockCollectionFind(adrCollection, List.of(new Document("namespace", "finos").append("adrId", 1)));
+        mockAdrRevisions(List.of("1"), new Document("title", "Use Event Sourcing"));
 
         GroupedSearchResults results = searchStore.search("event");
 
@@ -204,16 +252,11 @@ class TestMongoSearchStoreShould {
 
     @Test
     void search_adr_uses_latest_revision_when_multiple_exist() {
-        Document revisionDoc1 = new Document("title", "Old Title");
-        Document revisionDoc2 = new Document("title", "New Title");
-        Document adrEntry = new Document("adrId", 1)
-                .append("revisions", new Document("1", revisionDoc1).append("2", revisionDoc2));
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("adrs", List.of(adrEntry));
-
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(namespaceDoc));
+        mockCollectionFind(adrCollection, List.of(new Document("namespace", "finos").append("adrId", 1)));
+        // Two revisions; the search must read the later one's title.
+        mockAdrRevisions(List.of("1", "2"), new Document("title", "New Title"));
 
         GroupedSearchResults results = searchStore.search("New");
 
@@ -221,22 +264,6 @@ class TestMongoSearchStoreShould {
         assertEquals("New Title", results.getAdrs().get(0).getName());
     }
 
-    @Test
-    void handle_null_entries_array_gracefully() {
-        // Uses a flow: only the array-shaped types can have a null entries array at all, so
-        // this covers the branch where it still exists. It moves to another unmigrated type
-        // each time one migrates — it was on architectures, then patterns.
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("flows", null);
-
-        mockCollectionFind(flowCollection, List.of(namespaceDoc));
-        mockEmptyCollections(architectureCollection, patternCollection, standardCollection,
-                interfaceCollection, controlCollection, adrCollection);
-
-        GroupedSearchResults results = searchStore.search("test");
-
-        assertTrue(results.getFlows().isEmpty());
-    }
 
     @Test
     void handle_empty_collections_gracefully() {

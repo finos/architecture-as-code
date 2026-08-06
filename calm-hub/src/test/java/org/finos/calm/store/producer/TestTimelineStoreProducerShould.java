@@ -1,33 +1,47 @@
 package org.finos.calm.store.producer;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.inject.Instance;
 import org.finos.calm.store.TimelineStore;
 import org.finos.calm.store.mongo.MongoTimelineStore;
 import org.finos.calm.store.nitrite.NitriteTimelineStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.Mockito.when;
 
-@QuarkusTest
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
 public class TestTimelineStoreProducerShould {
 
-    @InjectMock
+    @Mock
     MongoTimelineStore mongoTimelineStore;
 
-    @InjectMock
+    @Mock
+    Instance<MongoTimelineStore> mongoTimelineStoreInstance;
+
+    @Mock
     NitriteTimelineStore nitriteTimelineStore;
+
+    @Mock
+    Instance<NitriteTimelineStore> nitriteTimelineStoreInstance;
 
     private TimelineStoreProducer timelineStoreProducer;
 
     @BeforeEach
     void setup() {
         timelineStoreProducer = new TimelineStoreProducer();
-        timelineStoreProducer.mongoTimelineStore = mongoTimelineStore;
-        timelineStoreProducer.standaloneTimelineStore = nitriteTimelineStore;
+        when(mongoTimelineStoreInstance.get()).thenReturn(mongoTimelineStore);
+        timelineStoreProducer.mongoTimelineStore = mongoTimelineStoreInstance;
+        when(nitriteTimelineStoreInstance.get()).thenReturn(nitriteTimelineStore);
+        timelineStoreProducer.standaloneTimelineStore = nitriteTimelineStoreInstance;
     }
 
     @Test
