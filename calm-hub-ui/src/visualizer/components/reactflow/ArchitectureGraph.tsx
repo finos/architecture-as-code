@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
     Node,
     Background,
@@ -24,7 +24,7 @@ import { EmptyGraphState } from './EmptyGraphState.js';
 import { parseCALMData } from './utils/calmTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
-import { applyPositions, loadStoredNodePositions, toStoredPositions } from '../../services/node-position-service.js';
+import { applyPositions, loadStoredNodePositions, toStoredPositions, type StoredNodePosition } from '../../services/node-position-service.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useNodeSearch } from './node-search-context.js';
 import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
@@ -77,6 +77,24 @@ export function ArchitectureGraph({
     onPositionsChange,
 }: ArchitectureGraphProps) {
     const isMobile = useIsMobile();
+
+    // The parse effect below calls onPositionsChange on every apply, not just
+    // drag-end, so it must not itself re-run merely because the caller passed a
+    // new function identity — that would re-parse and re-apply positions for no
+    // data reason, and any future caller passing an inline arrow (rather than
+    // DiagramSection's viewportKey-keyed useCallback) would loop forever: the
+    // effect calls the callback, the callback triggers a parent render, the new
+    // identity re-runs the effect. Hold the latest value in a ref, updated by a
+    // post-commit effect (never during render — that would break under
+    // StrictMode/concurrent rendering), and call through a stable wrapper so the
+    // parse effect's dependency stays honest without an eslint-disable.
+    const onPositionsChangeRef = useRef(onPositionsChange);
+    useEffect(() => {
+        onPositionsChangeRef.current = onPositionsChange;
+    });
+    const reportPositions = useCallback((positions: StoredNodePosition[]) => {
+        onPositionsChangeRef.current?.(positions);
+    }, []);
 
     // The viewport store key is namespaced by device. Mobile fits to a far lower zoom
     // floor (0.1 vs desktop's 0.6), so a viewport saved while mobile must not be
@@ -137,7 +155,7 @@ export function ArchitectureGraph({
         onEdgeClick,
         groupNodeTypes: GROUP_NODE_TYPES,
         persistKey: viewportKey,
-        onPositionsChange,
+        onPositionsChange: reportPositions,
     });
 
     // Still fetching the server default for this diagram: hold off applying
@@ -163,10 +181,12 @@ export function ArchitectureGraph({
         setNodes(positionedNodes);
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
-        onPositionsChange?.(toStoredPositions(positionedNodes));
+        reportPositions(toStoredPositions(positionedNodes));
         // layoutEpoch has no direct use in the body — it exists purely as a
         // dependency so "reset to default layout" (which bumps it) forces this
-        // effect to re-run and cleanly re-apply positions.
+        // effect to re-run and cleanly re-apply positions. reportPositions is a
+        // real dependency that happens to be identity-stable (see its definition
+        // above), so a fresh onPositionsChange from the caller never re-runs this.
     }, [
         jsonData,
         setNodes,
@@ -177,7 +197,7 @@ export function ArchitectureGraph({
         defaultLayout,
         layoutEpoch,
         awaitingDefaultLayout,
-        onPositionsChange,
+        reportPositions,
     ]);
 
     // Search & filter

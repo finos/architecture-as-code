@@ -323,5 +323,54 @@ describe('ArchitectureGraph', () => {
             const reported = onPositionsChange.mock.calls.at(-1)?.[0];
             expect(reported.find((p: { id: string }) => p.id === 'node-1')?.position).toEqual({ x: 5, y: 6 });
         });
+
+        it('does not re-run the parse effect when onPositionsChange gets a new identity', () => {
+            // Held stable across rerenders — a fresh array literal per render would
+            // itself be a real dependency change (defaultLayout) and confound the
+            // thing under test.
+            const stableDefaultLayout = [{ id: 'node-1', position: { x: 5, y: 6 } }];
+
+            const firstCallback = vi.fn();
+            const { rerender } = render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={stableDefaultLayout}
+                    onPositionsChange={firstCallback}
+                />
+            );
+            expect(firstCallback).toHaveBeenCalledTimes(1);
+
+            // Same props except a brand-new function identity — as a naive inline
+            // arrow at a call site would produce. The parse effect must not treat
+            // this as a real dependency change: no second parse-and-apply, and no
+            // call to the stale first callback.
+            const secondCallback = vi.fn();
+            rerender(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={stableDefaultLayout}
+                    onPositionsChange={secondCallback}
+                />
+            );
+
+            expect(firstCallback).toHaveBeenCalledTimes(1);
+            expect(secondCallback).not.toHaveBeenCalled();
+
+            // The next genuine re-apply (layoutEpoch bump) reports through the
+            // *current* callback, proving the ref is kept up to date.
+            rerender(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={stableDefaultLayout}
+                    onPositionsChange={secondCallback}
+                    layoutEpoch={1}
+                />
+            );
+            expect(secondCallback).toHaveBeenCalledTimes(1);
+            expect(firstCallback).toHaveBeenCalledTimes(1);
+        });
     });
 });

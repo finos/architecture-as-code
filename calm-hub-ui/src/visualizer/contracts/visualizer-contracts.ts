@@ -12,6 +12,21 @@ import type { StoredNodePosition } from '../services/node-position-service.js';
 //These types and interfaces are used in the top-level visualizer components e.g. Drawer, Sidebar, ReactFlowVisualizer.
 
 /**
+ * Reports the current on-screen node positions upward so they can be saved as
+ * the shared default layout. Called after every apply — the initial
+ * parse-and-apply as well as drag-end — so a call alone does not mean the
+ * layout actually changed.
+ *
+ * Need not be identity-stable: ArchitectureGraph holds the latest value in a
+ * ref and calls through its own stable wrapper, so passing a fresh inline
+ * function on every render will not re-run its parse effect or re-apply
+ * positions. (Before that ref existed, an inline arrow here would have looped
+ * forever — the effect calls the callback, which triggers a parent render,
+ * which passes a new identity, which re-runs the effect.)
+ */
+export type PositionsChangeHandler = (positions: StoredNodePosition[]) => void;
+
+/**
  * Props for Drawer component
  */
 export interface DrawerProps {
@@ -39,8 +54,7 @@ export interface DrawerProps {
     defaultLayout?: StoredNodePosition[] | null;
     /** Bumped to force a clean re-apply of positions (used by "reset to default"). */
     layoutEpoch?: number;
-    /** Reports the current on-screen positions upward so they can be saved as the default. */
-    onPositionsChange?: (positions: StoredNodePosition[]) => void;
+    onPositionsChange?: PositionsChangeHandler;
 }
 
 /**
@@ -72,8 +86,7 @@ export interface ReactFlowVisualizerProps {
     defaultLayout?: StoredNodePosition[] | null;
     /** Bumped to force a clean re-apply of positions (used by "reset to default"). */
     layoutEpoch?: number;
-    /** Reports the current on-screen positions upward so they can be saved as the default. */
-    onPositionsChange?: (positions: StoredNodePosition[]) => void;
+    onPositionsChange?: PositionsChangeHandler;
 }
 
 /**
@@ -89,8 +102,7 @@ export interface ArchitectureGraphProps {
     defaultLayout?: StoredNodePosition[] | null;
     /** Bumped to force a clean re-apply of positions (used by "reset to default"). */
     layoutEpoch?: number;
-    /** Reports the current on-screen positions upward so they can be saved as the default. */
-    onPositionsChange?: (positions: StoredNodePosition[]) => void;
+    onPositionsChange?: PositionsChangeHandler;
 }
 
 /**
