@@ -168,7 +168,14 @@ function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoic
 }
 
 function flattenOptionsRelationships(pattern: SchemaNode, choices: CalmChoice[]): void {
-    pattern['properties']['relationships']['prefixItems'] = pattern['properties']['relationships']['prefixItems']
+    // Guard the relationships access the same way `flattenCalmItems` guards its
+    // own: a pattern whose nodes are declared entirely through an `items` catalog
+    // may carry no `relationships` property at all, and reaching straight through
+    // to `prefixItems` would throw on that shape.
+    const relationships: SchemaNode | undefined = pattern['properties']?.['relationships'];
+    if (!relationships?.['prefixItems']) return;
+
+    relationships['prefixItems'] = relationships['prefixItems']
         .map((rel: SchemaNode) => flattenOptionsRelationship(rel, choices));
 }
 

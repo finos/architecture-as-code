@@ -368,6 +368,39 @@ describe('Pattern Options', () => {
             expect(result.properties.nodes.prefixItems).toEqual([cache]);
         });
 
+        it('should move a selected items-catalog relationship into prefixItems and delete items', () => {
+            const webapp = buildNode('webapp');
+            const edge = buildConnectsRelationship('webapp-to-db', 'webapp to db', 'webapp', 'db');
+
+            const pattern = buildPatternWithItemsCatalog([webapp], [], [], [edge]);
+
+            const wireChoice: CalmChoice = { description: 'Wire db', nodes: [], relationships: ['webapp-to-db'] };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [wireChoice]) as any;
+
+            expect(result.properties.relationships.prefixItems).toEqual([edge]);
+            expect(result.properties.relationships.items).toBeUndefined();
+        });
+
+        it('should not throw when a pattern has a nodes items catalog and no relationships property', () => {
+            const cache = buildNode('cache');
+            // No `relationships` property at all - the shape a nodes-only catalog pattern takes.
+            const pattern = {
+                'properties': {
+                    'nodes': { 'items': { 'oneOf': [cache] } },
+                },
+            };
+
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+
+            expect(() => selectChoices(pattern, [cacheChoice])).not.toThrow();
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [cacheChoice]) as any;
+            expect(result.properties.nodes.prefixItems).toEqual([cache]);
+        });
+
         it('should not affect a normal pattern', () => {
             const applicationA = buildNode('application-a');
             const applicationB = buildNode('application-b');

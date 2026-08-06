@@ -210,6 +210,53 @@ describe('parsePatternData', () => {
         expect(regularNodes.every((n) => n.parentId === groupNodes[0].id)).toBe(true);
     });
 
+    it('creates an anyOf decision group for an items.anyOf node catalog', () => {
+        // The UI-side anyOf catalog path: nodes declared through items.anyOf must
+        // produce an anyOf-typed decision group whose candidates parent into it,
+        // mirroring the oneOf case above.
+        const pattern = makePatternWithItems(
+            [],
+            [
+                schemaNode('redis', 'Redis', 'service'),
+                schemaNode('kafka', 'Kafka', 'service'),
+            ],
+            [],
+            [],
+            'anyOf'
+        );
+        const result = parsePatternData(pattern);
+
+        const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groupNodes).toHaveLength(1);
+        expect(groupNodes[0].data.decisionType).toBe('anyOf');
+
+        const regularNodes = result.nodes.filter((n) => n.type === 'custom');
+        expect(regularNodes).toHaveLength(2);
+        expect(regularNodes.every((n) => n.parentId === groupNodes[0].id)).toBe(true);
+    });
+
+    it('renders edges from a relationships items catalog as dashed decision edges', () => {
+        // Relationships declared solely through an items.oneOf catalog flow through
+        // the `rel-decision-items` branch and carry a decisionGroupId, so their
+        // edges must render dashed (strokeDasharray '5,5') — unlike the solid edge a
+        // plain prefixItems connects relationship produces.
+        const pattern = makePatternWithItems(
+            [
+                schemaNode('node-1', 'Node 1', 'service'),
+                schemaNode('node-2', 'Node 2', 'service'),
+            ],
+            [],
+            [],
+            [connectsRelationship('rel-cat', 'node-1', 'node-2')]
+        );
+        const result = parsePatternData(pattern);
+
+        expect(result.edges).toHaveLength(1);
+        expect(result.edges[0].source).toBe('node-1');
+        expect(result.edges[0].target).toBe('node-2');
+        expect(result.edges[0].style?.strokeDasharray).toBe('5,5');
+    });
+
     it('creates edges from connects relationships', () => {
         const pattern = makePattern(
             [
