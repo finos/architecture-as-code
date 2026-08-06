@@ -47,17 +47,4 @@ export class LayoutService {
                 return Promise.reject(new Error(errorMessage));
             });
     }
-
-    /** Delete the default layout for an architecture. */
-    public async deleteDefaultLayout(namespace: string, architectureId: number): Promise<void> {
-        const headers = await getAuthHeaders();
-        return this.ax
-            .delete(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${architectureId}/layout`, { headers })
-            .then(() => undefined)
-            .catch((error) => {
-                const errorMessage = `Error deleting default layout for architecture ${architectureId} in namespace ${namespace}:`;
-                console.error('%s', errorMessage, error);
-                return Promise.reject(new Error(errorMessage));
-            });
-    }
 }

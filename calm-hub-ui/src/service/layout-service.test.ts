@@ -60,18 +60,4 @@ describe('LayoutService', () => {
             await expect(layoutService.saveDefaultLayout(namespace, architectureId, layout)).rejects.toThrowError();
         });
     });
-
-    describe('deleteDefaultLayout', () => {
-        it('DELETEs the correct URL', async () => {
-            mock.onDelete(`/api/calm/namespaces/${namespace}/architectures/${architectureId}/layout`).reply(204);
-
-            await expect(layoutService.deleteDefaultLayout(namespace, architectureId)).resolves.toBeUndefined();
-        });
-
-        it('rejects when the delete fails', async () => {
-            mock.onDelete(`/api/calm/namespaces/${namespace}/architectures/${architectureId}/layout`).reply(404, 'not found');
-
-            await expect(layoutService.deleteDefaultLayout(namespace, architectureId)).rejects.toThrowError();
-        });
-    });
 });
