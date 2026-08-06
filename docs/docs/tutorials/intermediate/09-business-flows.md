@@ -4,6 +4,9 @@ title: "Model Business Flows"
 sidebar_position: 3
 ---
 
+import { CalmDiagram } from '@finos/calm-docusaurus-plugin'
+
+
 # Model Business Flows
 
 🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 30-45 minutes
@@ -162,6 +165,18 @@ The same relationship can appear multiple times in a flow with different directi
 - Impact analysis ("which services are in my order flow?")
 - Generating sequence diagrams for documentation
 - Attaching compliance controls to a specific process
+
+## See the Flows Live
+
+Here is the order-processing flow you modelled in step 2, animated over the e-commerce architecture — three transitions, in sequence, with everything outside the flow dimmed:
+
+<CalmDiagram src="./architectures/ecommerce-platform-with-flow.calm.json" flow="order-processing-flow" />
+
+And here is the inventory stock check from step 4 — watch the dots on the inventory-service connections travel **both ways**: steps 4 and 5 reuse the same relationships with `destination-to-source`, exactly the request-response pattern this tutorial teaches:
+
+<CalmDiagram src="./architectures/ecommerce-platform-with-flow.calm.json" flow="inventory-check-flow" />
+
+Both diagrams render from [`ecommerce-platform-with-flow.calm.json`](./architectures/ecommerce-platform-with-flow.calm.json), the beginner-track architecture with the two flows added exactly as described above.
 
 ## Resources
 
