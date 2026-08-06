@@ -33,10 +33,11 @@ vi.mock('../reactflow/MetadataPanel.js', () => ({
 
 // Mock dependencies
 vi.mock('../reactflow/ReactFlowVisualizer.js', () => ({
-    ReactFlowVisualizer: ({ calmData }: ReactFlowVisualizerProps) => (
+    ReactFlowVisualizer: ({ calmData, viewportKey }: ReactFlowVisualizerProps) => (
         <div data-testid="reactflow-visualizer">
             <div data-testid="node-count">{calmData?.nodes?.length ?? 0}</div>
             <div data-testid="relationship-count">{calmData?.relationships?.length ?? 0}</div>
+            <div data-testid="viewport-key">{viewportKey ?? '(none)'}</div>
         </div>
     ),
 }));
@@ -144,6 +145,24 @@ describe('Drawer', () => {
     it('does not show sidebar initially', () => {
         render(<Drawer data={calmData as unknown as Data} />);
         expect(screen.queryByLabelText('Close details')).not.toBeInTheDocument();
+    });
+
+    it('falls back to the name/id key when no viewportKeyOverride is given', () => {
+        render(<Drawer data={calmData as unknown as Data} />);
+        expect(screen.getByTestId('viewport-key')).toHaveTextContent(`${calmData.name}/${calmData.id}`);
+    });
+
+    it('uses the resolved viewportKeyOverride when one is provided', () => {
+        render(<Drawer data={calmData as unknown as Data} viewportKeyOverride="my-namespace/42" />);
+        expect(screen.getByTestId('viewport-key')).toHaveTextContent('my-namespace/42');
+    });
+
+    it('does not fall back to the name/id key when the override is explicitly null', () => {
+        // null means the owner (useDefaultLayout) settled resolution with no match —
+        // falling back to data.id here would key scratch storage and the server
+        // layout off the raw slug, exactly the split the override exists to close.
+        render(<Drawer data={calmData as unknown as Data} viewportKeyOverride={null} />);
+        expect(screen.getByTestId('viewport-key')).toHaveTextContent('(none)');
     });
 
     it('surfaces an error (and does not throw) when a non-JSON file is dropped', async () => {

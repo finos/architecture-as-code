@@ -21,6 +21,7 @@ assuming anything here reflects current behaviour.
 | [0002](0002-version-key-encoding.md) | Version field encoding — dots, not dashes | Implemented |
 | [0003](0003-shared-version-store-helper.md) | Shared header/version store helper | Implemented |
 | [0004](0004-defer-control-and-decorator-storage.md) | Defer Control and Decorator storage redesign | Accepted (no code of its own) |
+| [0005](0005-layout-is-hub-internal-not-a-calm-schema.md) | Layout is a Hub-internal shape, not a CALM schema | Implemented |
 
 0001–0003 cover the seven *versioned* resource types. Control and Decorator
 keep the one-document-per-namespace shape by decision, not by omission — see

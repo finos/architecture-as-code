@@ -8,6 +8,7 @@ import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.InterfaceStore;
+import org.finos.calm.store.LayoutStore;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.StandardStore;
 import org.finos.calm.store.TimelineStore;
@@ -31,6 +32,7 @@ public class NamespaceContentService {
     private final InterfaceStore interfaceStore;
     private final TimelineStore timelineStore;
     private final DecoratorStore decoratorStore;
+    private final LayoutStore layoutStore;
 
     @Inject
     @SuppressWarnings("java:S107") // emptiness check legitimately needs every namespace-scoped store
@@ -41,7 +43,8 @@ public class NamespaceContentService {
                                    AdrStore adrStore,
                                    InterfaceStore interfaceStore,
                                    TimelineStore timelineStore,
-                                   DecoratorStore decoratorStore) {
+                                   DecoratorStore decoratorStore,
+                                   LayoutStore layoutStore) {
         this.architectureStore = architectureStore;
         this.patternStore = patternStore;
         this.flowStore = flowStore;
@@ -50,12 +53,13 @@ public class NamespaceContentService {
         this.interfaceStore = interfaceStore;
         this.timelineStore = timelineStore;
         this.decoratorStore = decoratorStore;
+        this.layoutStore = layoutStore;
     }
 
     /**
      * @param namespace the namespace to check
      * @return true if the namespace holds any architecture, pattern, flow, standard, adr,
-     *         interface, timeline, or decorator
+     *         interface, timeline, decorator, or saved layout
      */
     public boolean hasContent(String namespace) {
         return isNotEmpty(() -> architectureStore.getArchitecturesForNamespace(namespace))
@@ -65,7 +69,14 @@ public class NamespaceContentService {
                 || hasAny(() -> adrStore.countAdrsForNamespace(namespace))
                 || isNotEmpty(() -> interfaceStore.getInterfacesForNamespace(namespace))
                 || isNotEmpty(() -> timelineStore.getTimelinesForNamespace(namespace))
-                || isNotEmpty(() -> decoratorStore.getDecoratorsForNamespace(namespace, null, null));
+                || isNotEmpty(() -> decoratorStore.getDecoratorsForNamespace(namespace, null, null))
+                // A layout can only exist alongside its architecture — LayoutResource.saveLayout
+                // rejects a PUT for an architecture id that doesn't exist — so in practice this
+                // never fires while the architecture branch above would also be empty. Still not
+                // dead code: ArchitectureResource exposes no DELETE, so there is no live path to
+                // remove the architecture out from under an already-saved layout, and this check
+                // stays correct if that ever changes.
+                || isNotEmpty(() -> layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace));
     }
 
     /**

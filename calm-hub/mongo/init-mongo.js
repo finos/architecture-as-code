@@ -141,7 +141,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 9;
+const LATEST_SCHEMA_VERSION = 10;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -155,13 +155,16 @@ if (isEmptyDatabase) {
         { $set: { version: NumberInt(LATEST_SCHEMA_VERSION) } },
         { upsert: true });
 
-    // Mirrors MongoIndexInitializationStep, which the pin above skips. Keep the two in
-    // step. All seven versioned types now use the header/version shape (ADR 0001), so each
-    // gets a unique (namespace, <type>Id) instead of the old unique (namespace) — which is
-    // what allows more than one resource of a type per namespace at all — plus a unique
-    // (namespace, <type>Id, version) on its sibling versions collection. Controls and
-    // decorators keep the one-document-per-namespace index, by ADR 0004 rather than
-    // pending migration.
+    // Mirrors MongoIndexInitializationStep and MongoLayoutIndexStep, which the pin above
+    // skips. Keep all three in step. All seven versioned types now use the header/version
+    // shape (ADR 0001), so each gets a unique (namespace, <type>Id) instead of the old
+    // unique (namespace) — which is what allows more than one resource of a type per
+    // namespace at all — plus a unique (namespace, <type>Id, version) on its sibling
+    // versions collection. Controls and decorators keep the one-document-per-namespace
+    // index, by ADR 0004 rather than pending migration. Layouts is a fourth, distinct
+    // shape: flat and non-versioned, one document per (namespace, architectureId), with
+    // no sibling versions collection and no version axis at all — see MongoLayoutIndexStep.
+    // Do not fold it into the one-document-per-namespace loop below.
     db.namespaces.createIndex({ name: 1 }, unique);
     db.domains.createIndex({ name: 1 }, unique);
     db.schemas.createIndex({ version: 1 }, unique);
@@ -184,6 +187,7 @@ if (isEmptyDatabase) {
     db.timelineVersions.createIndex({ namespace: 1, timelineId: 1, version: 1 }, unique);
     db.adrs.createIndex({ namespace: 1, adrId: 1 }, unique);
     db.adrVersions.createIndex({ namespace: 1, adrId: 1, version: 1 }, unique);
+    db.layouts.createIndex({ namespace: 1, architectureId: 1 }, unique);
 
     // Still one document per namespace until each of these migrates, at which point its
     // entry moves up alongside architectures and patterns.
