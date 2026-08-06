@@ -28,6 +28,10 @@ import { fetchVersionData, fetchVersionList } from './compare/compareData.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { colors } from '../../../theme/colors.js';
 import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
+import { useDefaultLayout } from '../../hooks/useDefaultLayout.js';
+import { loadStoredNodePositions, type StoredNodePosition } from '../../../visualizer/services/node-position-service.js';
+import { useUserAccess } from '../../../admin/context/UserAccessContext.js';
+import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
@@ -83,6 +87,33 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         [nodeSearchTerm, nodeTypeFilter, nodeTypes]
     );
     const calmService = useMemo(() => new CalmService(), []);
+    const defaultLayoutState = useDefaultLayout(data.name, data.id, data.calmType);
+    // Destructured locals so handleSaveLayout/handleResetLayout below can depend
+    // on exactly the (already useCallback-stable) functions they call, rather
+    // than the whole result object — which still changes identity whenever
+    // `saving` flips mid-save, even though the memoised object in useDefaultLayout
+    // stops it changing for unrelated reasons.
+    const { save: saveDefaultLayout, reset: resetDefaultLayout } = defaultLayoutState;
+    // Latest on-screen positions, reported by the graph after every apply and at
+    // drag-end. Held in a ref (not state) so "Save as default layout" can read
+    // it without the graph re-rendering on every drag.
+    const latestPositionsRef = useRef<StoredNodePosition[] | null>(null);
+    // Whether the current diagram has an unsaved local drag to reset away from.
+    const [hasScratchLayout, setHasScratchLayout] = useState(false);
+    const handlePositionsChange = useCallback(
+        (positions: StoredNodePosition[]) => {
+            latestPositionsRef.current = positions;
+            // Reported on every apply (initial parse-apply AND drag-end), not
+            // just drag-end, so a report alone doesn't mean scratch content
+            // changed. Re-check localStorage directly (the source of truth,
+            // and cheap) rather than assuming — this keeps the Reset button's
+            // enabled state accurate after a drag, instead of only refreshing
+            // it when viewportKey/layoutEpoch change (see effect below).
+            const key = defaultLayoutState.viewportKey;
+            setHasScratchLayout(!!key && !!loadStoredNodePositions(key));
+        },
+        [defaultLayoutState.viewportKey]
+    );
     const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
     const [compareTo, setCompareTo] = useState<string | null>(null);
@@ -110,6 +141,33 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const isArchitecture = data.calmType === 'Architectures';
     const urlType = isArchitecture ? 'architectures' : 'patterns';
     const typeLabel = isArchitecture ? 'Architecture' : 'Pattern';
+
+    // Save/reset the shared default layout. Cosmetic gating only — see
+    // canWriteNamespace's own comment; @PermissionsAllowed(WRITE) on the
+    // backend resource is the real gate.
+    const { canWriteNamespace } = useUserAccess();
+    const canSaveLayout = isArchitecture && defaultLayoutState.canSave && canWriteNamespace(data.name);
+
+    // Also re-derive on viewportKey/layoutEpoch changes directly (navigating to
+    // a new diagram, or a save/reset bump) so the button reflects reality
+    // immediately rather than waiting on the graph's own apply effect to
+    // report back through handlePositionsChange above.
+    useEffect(() => {
+        const key = defaultLayoutState.viewportKey;
+        setHasScratchLayout(!!key && !!loadStoredNodePositions(key));
+    }, [defaultLayoutState.viewportKey, defaultLayoutState.layoutEpoch]);
+
+    const handleSaveLayout = useCallback(() => {
+        const positions = latestPositionsRef.current;
+        if (!positions) return;
+        // Errors surface via defaultLayoutState.saveError, rendered as an inline
+        // alert below.
+        saveDefaultLayout(positions).catch(() => {});
+    }, [saveDefaultLayout]);
+
+    const handleResetLayout = useCallback(() => {
+        resetDefaultLayout();
+    }, [resetDefaultLayout]);
 
     const handleVersionChange = (version: string) => {
         // Selecting any moment exits compare mode, even if it's the
@@ -361,6 +419,56 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         </div>
     );
 
+    // Desktop entry point for the shared default layout (mobile's lives in the
+    // view-options menu below). Only meaningful on the diagram tab of an
+    // architecture, and never while comparing versions.
+    const showLayoutActions = !comparing && activeTab === 'diagram' && isArchitecture;
+    const layoutActions = showLayoutActions && (
+        <div className="flex items-center gap-1">
+            {canSaveLayout && (
+                <button
+                    type="button"
+                    aria-label="Save as default layout"
+                    title="Save as default layout"
+                    className="btn btn-ghost btn-sm btn-circle"
+                    disabled={defaultLayoutState.saving}
+                    onClick={handleSaveLayout}
+                >
+                    <IoSaveOutline size={16} />
+                </button>
+            )}
+            <button
+                type="button"
+                aria-label="Reset to default layout"
+                title="Reset to default layout"
+                className="btn btn-ghost btn-sm btn-circle"
+                disabled={!hasScratchLayout}
+                onClick={handleResetLayout}
+            >
+                <IoRefreshOutline size={16} />
+            </button>
+        </div>
+    );
+
+    // Shared error banner for a failed save, rendered in the main pane on both
+    // desktop and mobile — not in the mobile view-options menu, which the two
+    // handlers below close before the async save settles, so an error rendered
+    // there would never be seen. Mirrors Drawer's dropError banner; there is no
+    // toast/notification system in this app.
+    const layoutSaveError = showLayoutActions && defaultLayoutState.saveError && (
+        <div
+            role="alert"
+            className="shrink-0 mx-3 mt-2 px-3 py-2 rounded-md text-[12px]"
+            style={{
+                color: colors.status.error,
+                border: `1px solid ${colors.status.error}`,
+                backgroundColor: colors.redesign.surface,
+            }}
+        >
+            {defaultLayoutState.saveError}
+        </div>
+    );
+
     // Mobile: full-bleed render pane; the view-options menu lives in the navbar
     // and opens as a full-screen overlay styled like the explorer. The trigger
     // shows the active view icon.
@@ -457,6 +565,44 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                                 <span className="flex-1 min-w-0 truncate">Timeline</span>
                             </button>
                         </div>
+                        {!comparing && activeTab === 'diagram' && isArchitecture && (
+                            <div className="divide-y divide-base-200 border-b border-base-200">
+                                {canSaveLayout && (
+                                    <button
+                                        type="button"
+                                        aria-label="Save as default layout"
+                                        onClick={() => {
+                                            setShowViewMenu(false);
+                                            handleSaveLayout();
+                                        }}
+                                        disabled={defaultLayoutState.saving}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 text-base-content disabled:opacity-50"
+                                    >
+                                        <span className="text-base-content/60">
+                                            <IoSaveOutline size={18} />
+                                        </span>
+                                        <span className="flex-1 min-w-0 truncate">
+                                            {defaultLayoutState.saving ? 'Saving…' : 'Save as default layout'}
+                                        </span>
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    aria-label="Reset to default layout"
+                                    onClick={() => {
+                                        setShowViewMenu(false);
+                                        handleResetLayout();
+                                    }}
+                                    disabled={!hasScratchLayout}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 text-base-content disabled:opacity-50"
+                                >
+                                    <span className="text-base-content/60">
+                                        <IoRefreshOutline size={18} />
+                                    </span>
+                                    <span className="flex-1 min-w-0 truncate">Reset to default layout</span>
+                                </button>
+                            </div>
+                        )}
                         {!comparing && activeTab === 'diagram' && (
                             <div className="p-4">
                                 <div className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">
@@ -490,7 +636,15 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         />
     ) : activeTab === 'diagram' ? (
         <div className="w-full h-full">
-            <Drawer data={data} onItemSelect={onItemSelect} decorators={decorators} />
+            <Drawer
+                data={data}
+                onItemSelect={onItemSelect}
+                decorators={decorators}
+                viewportKeyOverride={defaultLayoutState.viewportKey}
+                defaultLayout={defaultLayoutState.defaultLayout}
+                layoutEpoch={defaultLayoutState.layoutEpoch}
+                onPositionsChange={handlePositionsChange}
+            />
         </div>
     ) : activeTab === 'deployments' && isArchitecture ? (
         <div className="h-full bg-base-200 overflow-auto p-4">
@@ -533,10 +687,16 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                         showVersion={false}
                         displayName={displayName}
                         typeLabel={typeLabel}
-                        rightContent={tabs}
+                        rightContent={
+                            <div className="flex items-center gap-2">
+                                {tabs}
+                                {layoutActions}
+                            </div>
+                        }
                         breadcrumbs={breadcrumbs}
                         onBreadcrumbClick={handleBreadcrumbClick}
                     />
+                    {layoutSaveError}
                     <div className="flex-1 min-h-0 overflow-hidden">{content}</div>
                     {timelineBar}
                 </div>
@@ -571,6 +731,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                         </span>
                     </button>
                 )}
+                {layoutSaveError}
                 <div className="flex-1 min-h-0 overflow-hidden relative">
                     {content}
                 </div>

@@ -4,6 +4,7 @@ import com.mongodb.MongoWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteError;
 import org.bson.BsonDocument;
+import org.bson.BsonMaximumSizeExceededException;
 import org.finos.calm.domain.exception.StorageWriteException;
 import org.junit.jupiter.api.Test;
 
@@ -48,5 +49,14 @@ class TestMongoWriteFailuresShould {
         StorageWriteException result = MongoWriteFailures.toStorageWriteException(ex);
 
         assertThat(result.isCapacityExceeded(), is(false));
+    }
+
+    @Test
+    void map_the_drivers_client_side_size_exception_to_a_capacity_exceeded_storage_write_exception() {
+        BsonMaximumSizeExceededException ex = new BsonMaximumSizeExceededException("document exceeds maximum allowed size");
+
+        StorageWriteException result = MongoWriteFailures.toStorageWriteException(ex);
+
+        assertThat(result.isCapacityExceeded(), is(true));
     }
 }

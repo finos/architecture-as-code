@@ -1,7 +1,7 @@
 ---
 id: metadata
 title: Metadata
-sidebar_position: 8
+sidebar_position: 9
 ---
 
 # Metadata in CALM
@@ -46,4 +46,3 @@ Metadata allows you to enrich your architecture model with any additional contex
 - **Drive Automation**: Use metadata to trigger specific behaviors in downstream tools, such as alerting on non-compliant components.
 - **Custom Reporting**: Generate reports or visualizations that include metadata fields to provide additional insights.
 - **Enhance Validation**: Include metadata in validation processes to check for compliance or completeness.
-

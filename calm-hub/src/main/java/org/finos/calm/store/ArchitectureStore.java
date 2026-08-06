@@ -29,6 +29,21 @@ public interface ArchitectureStore {
      * @return a (possibly paged) list of architecture summaries
      */
     List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException;
+
+    /**
+     * Reports whether an architecture exists, without fetching its content or versions.
+     * Used by resources that reference an architecture id from outside the architecture's
+     * own path segment (e.g. {@code LayoutResource}, which addresses
+     * {@code .../architectures/{id}/layout} directly) and need to reject a write against an
+     * id that resolves to nothing, rather than silently creating an orphan.
+     *
+     * @param namespace      the namespace the architecture would belong to
+     * @param architectureId the id to check
+     * @return true if a header document exists for this (namespace, architectureId)
+     * @throws NamespaceNotFoundException if the namespace itself does not exist
+     */
+    boolean architectureExists(String namespace, int architectureId) throws NamespaceNotFoundException;
+
     Architecture createArchitectureForNamespace(Architecture architecture) throws NamespaceNotFoundException;
     List<String> getArchitectureVersions(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException;
     String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException;

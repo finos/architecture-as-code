@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,6 +59,7 @@ class TestNitriteVersionDocumentStoreShould {
         when(collection.find(any(Filter.class))).thenReturn(cursor);
         when(cursor.firstOrNull()).thenReturn(documents.isEmpty() ? null : documents.get(0));
         when(cursor.iterator()).thenAnswer(invocation -> documents.iterator());
+        when(cursor.size()).thenReturn((long) documents.size());
         when(collection.find()).thenReturn(cursor);
     }
 
@@ -413,6 +415,86 @@ class TestNitriteVersionDocumentStoreShould {
         assertThat(store.listVersions(NAMESPACE, RESOURCE_ID), is(empty()));
     }
 
+    // --- getLatestVersion / getLatestVersionContent ---
+
+    @Test
+    void resolve_the_latest_version_by_the_stores_own_ordering() {
+        stubFind(versionCollection, List.of(versionDocument("1.10.0"), versionDocument("1.9.0")));
+
+        assertThat(store.getLatestVersion(NAMESPACE, RESOURCE_ID), is("1.10.0"));
+    }
+
+    @Test
+    void store_a_numeric_revision_verbatim_rather_than_canonicalising_it() {
+        NitriteVersionDocumentStore numericStore = new NitriteVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        stubFind(versionCollection, List.of());
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "name", "description", 0)));
+
+        // See the Mongo twin: "100" is an accepted spelling of 1.0.0, so canonicalising ADR
+        // revisions rewrites revision 100 and makes it sort below 99.
+        numericStore.createVersion(NAMESPACE, RESOURCE_ID, "100", CONTENT);
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(captor.capture());
+        assertThat(captor.getValue().get("version", String.class), is("100"));
+    }
+
+    @Test
+    void resolve_the_latest_version_numerically_when_told_to() {
+        NitriteVersionDocumentStore numericStore = new NitriteVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        stubFind(versionCollection, List.of(versionDocument("2"), versionDocument("10")));
+
+        assertThat(numericStore.getLatestVersion(NAMESPACE, RESOURCE_ID), is("10"));
+    }
+
+    @Test
+    void rank_a_numeric_revision_above_a_smaller_one_that_is_three_digits() {
+        NitriteVersionDocumentStore numericStore = new NitriteVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        stubFind(versionCollection, List.of(versionDocument("99"), versionDocument("100")));
+
+        // The 2-to-3 digit boundary specifically, not the 1-to-2 boundary the test above
+        // covers. "100" is an accepted spelling of 1.0.0 under VERSION_REGEX, so a store
+        // that canonicalises would rewrite it and rank it BELOW "99" — every latest-revision
+        // read would then serve revision 99 while 100 existed. Revisions 1-99 are unaffected,
+        // which is why "10" over "2" passes either way and cannot catch this. Confirmed to
+        // fail against a SEMANTIC-scheme store before being kept.
+        assertThat(numericStore.getLatestVersion(NAMESPACE, RESOURCE_ID), is("100"));
+    }
+
+    @Test
+    void return_no_latest_version_for_a_resource_with_none() {
+        stubFind(versionCollection, List.of());
+
+        assertThat(store.getLatestVersion(NAMESPACE, RESOURCE_ID), is(nullValue()));
+    }
+
+    @Test
+    void return_the_content_of_the_latest_version() {
+        stubFind(versionCollection, List.of(versionDocument("2.0.0").put("content", CONTENT)));
+
+        assertThat(store.getLatestVersionContent(NAMESPACE, RESOURCE_ID), is(CONTENT));
+    }
+
+    @Test
+    void return_no_latest_content_for_a_resource_with_no_versions() {
+        stubFind(versionCollection, List.of());
+
+        assertThat(store.getLatestVersionContent(NAMESPACE, RESOURCE_ID), is(nullValue()));
+    }
+
+    // --- countHeaders ---
+
+    @Test
+    void count_headers_without_reading_any_version_documents() {
+        stubFind(headerCollection, List.of(header(1, "First", "d", 1), header(2, "Second", "d", 0)));
+
+        assertThat(store.countHeaders(NAMESPACE), is(2));
+        verifyNoInteractions(versionCollection);
+    }
+
     // --- listSummariesPaged ---
 
     @Test
@@ -448,16 +530,17 @@ class TestNitriteVersionDocumentStoreShould {
     }
 
     @Test
-    void sort_headers_that_have_no_id_last_rather_than_failing_the_listing() {
+    void sort_headers_that_have_no_id_first_rather_than_failing_the_listing() {
         // Comparing ids with Integer.compare unboxes, so a single id-less header would NPE
-        // the whole namespace listing into a 500 — where Mongo, which sorts database-side,
-        // returns 200 with the row included. The backends have to agree.
+        // the whole namespace listing into a 500. Nulls sort first to match Mongo, whose
+        // database-side ascending sort ranks BSON Null below every number — otherwise the
+        // same malformed row lands on a different page depending on the backend.
         stubFind(headerCollection, List.of(
-                header(null, "No id", "d", 0),
-                header(1, "First", "d", 1)));
+                header(1, "First", "d", 1),
+                header(null, "No id", "d", 0)));
 
         assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED), contains(
-                new NamespaceResourceSummary("First", "d", 1, 1),
-                new NamespaceResourceSummary("No id", "d", null, 0)));
+                new NamespaceResourceSummary("No id", "d", null, 0),
+                new NamespaceResourceSummary("First", "d", 1, 1)));
     }
 }

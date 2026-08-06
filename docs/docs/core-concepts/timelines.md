@@ -1,7 +1,7 @@
 ---
 id: timelines
 title: Timelines
-sidebar_position: 6
+sidebar_position: 7
 ---
 
 # Timelines in CALM
@@ -215,4 +215,3 @@ In addition to schema validation, CALM applies custom validation rules:
 - **Future Moment Dates**: Moments after the current moment should not have `valid-from` dates (they represent planned future states)
 - **Chronological Order**: Moments with `valid-from` dates should be in chronological order
 - **Date Format**: All dates must be valid ISO dates (YYYY-MM-DD)
-

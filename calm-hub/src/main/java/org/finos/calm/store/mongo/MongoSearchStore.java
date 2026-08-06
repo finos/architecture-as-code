@@ -8,6 +8,8 @@ import org.bson.Document;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
+import org.finos.calm.store.util.MongoVersionDocumentStore;
+import org.finos.calm.store.util.VersionScheme;
 import org.finos.calm.store.util.SearchTextMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,7 @@ public class MongoSearchStore implements SearchStore {
     private final MongoCollection<Document> interfaceCollection;
     private final MongoCollection<Document> controlCollection;
     private final MongoCollection<Document> adrCollection;
+    private final MongoVersionDocumentStore adrDocuments;
 
     public MongoSearchStore(MongoDatabase database) {
         this.architectureCollection = database.getCollection("architectures");
@@ -50,6 +53,8 @@ public class MongoSearchStore implements SearchStore {
         this.interfaceCollection = database.getCollection("interfaces");
         this.controlCollection = database.getCollection("controls");
         this.adrCollection = database.getCollection("adrs");
+        this.adrDocuments = new MongoVersionDocumentStore(adrCollection,
+                database.getCollection("adrVersions"), "adrId", "ADR", VersionScheme.NUMERIC);
     }
 
     @Override
@@ -59,9 +64,9 @@ public class MongoSearchStore implements SearchStore {
         return new GroupedSearchResults(
                 searchHeaderCollection(architectureCollection, "architectureId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(patternCollection, "patternId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(interfaceCollection, "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
@@ -71,12 +76,12 @@ public class MongoSearchStore implements SearchStore {
      * Searches a collection in the header/version shape, where each document <em>is</em> one
      * resource rather than a namespace-wide array of them.
      *
-     * <p>Separate from {@link #searchNamespacedCollection} rather than replacing it because
-     * the two shapes coexist: ADR 0001 migrates one resource type at a time, so Architecture
-     * reads this way while patterns, flows, standards and interfaces still read the other.
-     * Note the failure mode if a migrated type is left on the old method — {@code getList}
-     * returns null for a header document, so the loop skips every document and the type
-     * silently returns no results at all, with nothing logged.</p>
+     * <p>This was one of two search paths while ADR 0001's rollout was part-done: the other
+     * read a namespace-wide array of entries and was retired once Interface — the last of the
+     * five namespaced types — moved to this shape. The failure mode it guarded against is
+     * worth remembering for any type still to migrate: leave one on an array-shaped read and
+     * {@code getList} returns null for a header document, so every document is skipped and
+     * the type silently returns no results at all, with nothing logged.</p>
      */
     private List<SearchResult> searchHeaderCollection(MongoCollection<Document> collection,
                                                       String idField,
@@ -92,12 +97,29 @@ public class MongoSearchStore implements SearchStore {
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
+            Integer id = header.getInteger(idField);
+            if (id == null) {
+                // Same reason the ADR branch below skips these: SearchResult takes a
+                // primitive id, so a header missing its id field unboxes to a
+                // NullPointerException thrown out of search() — which builds every type's
+                // results eagerly, so one malformed document fails the whole request rather
+                // than one resource type. A resource with no id is not addressable anyway.
+                //
+                // Deliberately unlike the namespace listing, which renders the same malformed
+                // header as "<Type> null" rather than hiding it (see
+                // NitriteVersionDocumentStore.listSummariesPaged). The two differ because the
+                // outputs differ: a search hit is a link the caller is expected to follow, so
+                // one that cannot be addressed is worse than absent, whereas a listing row is
+                // informational and showing it is how an operator learns the bad header is
+                // there. Dropping it from both would hide the problem entirely.
+                continue;
+            }
             String name = header.getString("name");
             String description = header.getString("description");
             if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                 results.add(new SearchResult(
                         namespace,
-                        header.getInteger(idField),
+                        id,
                         SearchTextMatcher.nullToEmpty(name),
                         SearchTextMatcher.nullToEmpty(description)
                 ));
@@ -107,41 +129,6 @@ public class MongoSearchStore implements SearchStore {
         return results;
     }
 
-    private List<SearchResult> searchNamespacedCollection(MongoCollection<Document> collection,
-                                                          String arrayField,
-                                                          String idField,
-                                                          String lowerQuery,
-                                                          Optional<Set<String>> readableNamespaces) {
-        List<SearchResult> results = new ArrayList<>();
-
-        for (Document namespaceDoc : collection.find()) {
-            String namespace = namespaceDoc.getString("namespace");
-            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
-                continue;
-            }
-            List<Document> entries = namespaceDoc.getList(arrayField, Document.class);
-            if (entries == null) {
-                continue;
-            }
-            for (Document entry : entries) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                String name = entry.getString("name");
-                String description = entry.getString("description");
-                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
-                    results.add(new SearchResult(
-                            namespace,
-                            entry.getInteger(idField),
-                            SearchTextMatcher.nullToEmpty(name),
-                            SearchTextMatcher.nullToEmpty(description)
-                    ));
-                }
-            }
-        }
-
-        return results;
-    }
 
     private List<SearchResult> searchControlCollection(String lowerQuery) {
         List<SearchResult> results = new ArrayList<>();
@@ -172,44 +159,39 @@ public class MongoSearchStore implements SearchStore {
         return results;
     }
 
+    /**
+     * ADR searches on the latest revision's title, so unlike every other type this cannot be
+     * answered from the header alone — the header carries no name. The latest revision is
+     * resolved through the same helper the ADR store uses, which is also what keeps the
+     * integer ordering correct: ranking revisions as strings would make 2 the latest once an
+     * ADR passed revision 9.
+     */
     private List<SearchResult> searchAdrCollection(String lowerQuery, Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
-        for (Document namespaceDoc : adrCollection.find()) {
-            String namespace = namespaceDoc.getString("namespace");
+        for (Document header : adrCollection.find()) {
+            if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                return results;
+            }
+            String namespace = header.getString("namespace");
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
-            List<Document> adrs = namespaceDoc.getList("adrs", Document.class);
-            if (adrs == null) {
+            Integer adrId = header.getInteger("adrId");
+            if (adrId == null) {
+                // SearchResult takes a primitive id, and resolving the latest revision would
+                // unbox this too. An ADR with no id is not addressable, so it is not a result.
                 continue;
             }
-            for (Document adr : adrs) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                int adrId = adr.getInteger("adrId");
-                String title = "ADR " + adrId;
+            String title = "ADR " + adrId;
 
-                Document revisions = (Document) adr.get("revisions");
-                if (revisions != null && !revisions.isEmpty()) {
-                    int latestRevision = revisions.keySet().stream()
-                            .map(Integer::parseInt)
-                            .mapToInt(i -> i)
-                            .max()
-                            .getAsInt();
-                    Document revisionDoc = (Document) revisions.get(String.valueOf(latestRevision));
-                    if (revisionDoc != null) {
-                        String docTitle = revisionDoc.getString("title");
-                        if (docTitle != null) {
-                            title = docTitle;
-                        }
-                    }
-                }
+            Document latest = adrDocuments.getLatestVersionContent(namespace, adrId);
+            if (latest != null && latest.getString("title") != null) {
+                title = latest.getString("title");
+            }
 
-                if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
-                    results.add(new SearchResult(namespace, adrId, title, ""));
-                }
+            if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
+                results.add(new SearchResult(namespace, adrId, title, ""));
             }
         }
 

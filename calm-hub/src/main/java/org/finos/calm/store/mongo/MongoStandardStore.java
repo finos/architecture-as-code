@@ -1,211 +1,137 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.MongoWriteException;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.finos.calm.domain.Standard;
-import org.finos.calm.store.util.MongoUpsertPush;
-import org.finos.calm.store.util.MongoWriteFailures;
-import org.finos.calm.store.util.VersionKeySelector;
-import org.finos.calm.domain.exception.*;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StandardNotFoundException;
+import org.finos.calm.domain.exception.StandardVersionExistsException;
+import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.StandardStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.finos.calm.store.util.MongoVersionDocumentStore;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+
 import io.quarkus.arc.lookup.LookupIfProperty;
+
+import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
 
 /**
  * MongoDB-backed implementation of {@link StandardStore}.
  *
- * <h2>Document model &amp; concurrency</h2>
- * Follows the same namespace-scoped document pattern as {@link MongoArchitectureStore}:
- * one document per namespace (enforced by a unique index on {@code standards.namespace}),
- * with an array of standard sub-documents. New standards are added via upsert + {@code $push},
- * and new versions use an atomic conditional update with {@code $elemMatch} /
- * {@code $exists: false} to prevent duplicate version creation under concurrency.
- * Unique standard IDs are generated atomically by {@link MongoCounterStore}.
+ * <h2>Document model</h2>
+ * One <em>header</em> document per standard in {@code standards}, and one <em>version</em>
+ * document per version in {@code standardVersions}. All document handling lives in
+ * {@link MongoVersionDocumentStore}.
  *
- * @see MongoCounterStore
+ * <p>Two things differ from the Pattern and Flow ports, both preserving Standard's own
+ * behaviour: version writes set name and description <em>unconditionally</em>, as Standard's
+ * old shape did (Architecture's behaviour, not Pattern's); and there is no update path at
+ * all, so nothing here upserts a version.</p>
+ *
+ * <p>Incidentally fixes a bug the old code carried a {@code FIXME} for: its
+ * {@code retrieveStandardVersions} looked up only the namespace and ignored
+ * {@code standardId}, which happened to work while a namespace held one standard. Existence
+ * is now checked against {@code (namespace, standardId)} like every other type.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoStandardStore.class)
 public class MongoStandardStore implements StandardStore {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final String HEADER_COLLECTION = "standards";
+    private static final String VERSION_COLLECTION = "standardVersions";
+    private static final String ID_FIELD = "standardId";
+    private static final String RESOURCE_LABEL = "Standard";
+
     private final MongoCounterStore counterStore;
     private final MongoNamespaceStore namespaceStore;
-    private final MongoCollection<Document> standardCollection;
+    private final MongoVersionDocumentStore documentStore;
 
-    public MongoStandardStore(MongoDatabase database, MongoCounterStore mongoCounterStore, MongoNamespaceStore mongoNamespaceStore) {
-        this.counterStore = mongoCounterStore;
-        this.namespaceStore = mongoNamespaceStore;
-        this.standardCollection = database.getCollection("standards");
+    public MongoStandardStore(MongoDatabase database, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
+        this.counterStore = counterStore;
+        this.namespaceStore = namespaceStore;
+        this.documentStore = new MongoVersionDocumentStore(
+                database.getCollection(HEADER_COLLECTION),
+                database.getCollection(VERSION_COLLECTION),
+                ID_FIELD,
+                RESOURCE_LABEL);
     }
 
     @Override
     public List<NamespaceResourceSummary> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
-        if(!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-
-        Document namespaceDocument = standardCollection.find(Filters.eq("namespace", namespace)).first();
-
-        if(namespaceDocument == null) {
-            return List.of();
-        }
-
-        List<Document> standards = namespaceDocument.getList("standards", Document.class);
-        List<NamespaceResourceSummary> namespaceStandardSummary = new ArrayList<>();
-
-        for (Document standard : standards) {
-            // Count versions from the already-in-memory sub-document (O(1), no extra query).
-            Object rawVersions = standard.get("versions");
-            int versionCount = VersionKeySelector.versionCount(rawVersions instanceof Document d ? d.keySet() : null);
-            NamespaceResourceSummary standardSummary = new NamespaceResourceSummary(
-                    standard.getString("name"),
-                    standard.getString("description"),
-                    standard.getInteger("standardId"),
-                    versionCount
-            );
-
-            namespaceStandardSummary.add(standardSummary);
-        }
-
-        return namespaceStandardSummary;
+        requireNamespace(namespace);
+        return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED);
     }
 
     @Override
     public Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace) throws NamespaceNotFoundException {
-        Standard createdStandard = new Standard(standardRequest);
-        if(!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        requireNamespace(namespace);
+
+        Document content = Document.parse(standardRequest.getStandardJson());
 
         int id = counterStore.getNextStandardSequenceValue();
-        Document standardDocument = new Document("standardId", id)
-                .append("name", standardRequest.getName())
-                .append("description", standardRequest.getDescription())
-                .append("versions",
-                new Document("1-0-0", Document.parse(standardRequest.getStandardJson())));
+        documentStore.createHeader(namespace, id, standardRequest.getName(), standardRequest.getDescription());
+        documentStore.createFirstVersion(namespace, id, content);
 
-        MongoUpsertPush.pushWithDuplicateRetry(standardCollection,
-                Filters.eq("namespace", namespace),
-                "standards", standardDocument);
-
+        Standard createdStandard = new Standard(standardRequest);
         createdStandard.setId(id);
-        createdStandard.setVersion("1.0.0");
-
+        createdStandard.setVersion(INITIAL_VERSION);
         return createdStandard;
     }
 
     @Override
     public List<String> getStandardVersions(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
-        Document result = retrieveStandardVersions(namespace);
-
-        List<Document> standards = result.getList("standards", Document.class);
-        for (Document standardDoc : standards) {
-            if (standardId.equals(standardDoc.getInteger("standardId"))) {
-                // Extract the versions map from the matching standard
-                Document versions = (Document) standardDoc.get("versions");
-                if (versions == null) {
-                    throw new StandardNotFoundException();
-                }
-                Set<String> versionKeys = versions.keySet();
-
-                //Convert from Mongo representation
-                List<String> resourceVersions = new ArrayList<>();
-                for (String versionKey : versionKeys) {
-                    resourceVersions.add(versionKey.replace('-', '.'));
-                }
-                return resourceVersions;  // Return the list of version keys
-            }
-        }
-
-        throw new StandardNotFoundException();
-
-    }
-
-    private Document retrieveStandardVersions(String namespace) throws NamespaceNotFoundException, StandardNotFoundException {
-        //FIXME there is a bug here where standardId is not used, which will be fine when one standard exists
-
-        if(!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-
-        Bson filter = new Document("namespace", namespace);
-        Bson projection = Projections.fields(Projections.include("standards"));
-
-        Document result = standardCollection.find(filter).projection(projection).first();
-
-        if (result == null) {
-            throw new StandardNotFoundException();
-        }
-
-        return result;
+        requireStandard(namespace, standardId);
+        return documentStore.listVersions(namespace, standardId);
     }
 
     @Override
     public String getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
-        Document result = retrieveStandardVersions(namespace);
-        List<Document> standards = result.getList("standards", Document.class);
-        for (Document standardDoc : standards) {
-            if (standardId.equals(standardDoc.getInteger("standardId"))) {
-                Document versions = (Document) standardDoc.get("versions");
-                if (versions == null) {
-                    throw new StandardVersionNotFoundException();
-                }
-                Document versionDoc = (Document) versions.get(version.replace('.', '-'));
-                if(versionDoc == null) {
-                    throw new StandardVersionNotFoundException();
-                }
-                return versionDoc.toJson();
-            }
+        requireStandard(namespace, standardId);
+
+        Document content = documentStore.getVersion(namespace, standardId, version);
+        if (content == null) {
+            throw new StandardVersionNotFoundException();
         }
-        throw new StandardNotFoundException();
+        return content.toJson();
     }
 
     @Override
     public Standard createStandardForVersion(CreateStandardRequest standardRequest, String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException {
-        // Validates namespace and standard existence
-        getStandardVersions(namespace, standardId);
-        String mongoVersion = version.replace('.', '-');
+        requireStandard(namespace, standardId);
 
-        // Atomic conditional update: only succeeds if the version doesn't already exist
-        Document filter = new Document("namespace", namespace)
-                .append("standards", new Document("$elemMatch",
-                        new Document("standardId", standardId)
-                                .append("versions." + mongoVersion, new Document("$exists", false))));
-
-        Document update = new Document("$set", new Document()
-                .append("standards.$.name", standardRequest.getName())
-                .append("standards.$.description", standardRequest.getDescription())
-                .append("standards.$.versions." + mongoVersion, Document.parse(standardRequest.getStandardJson())));
-
-        try {
-            if (standardCollection.updateOne(filter, update).getMatchedCount() == 0) {
-                throw new StandardVersionExistsException();
-            }
-        } catch (MongoWriteException ex) {
-            log.error("Failed to write standard [namespace={}, id={}, version={}] to mongo",
-                    namespace, standardId, version, ex);
-            throw MongoWriteFailures.toStorageWriteException(ex);
+        Document content = Document.parse(standardRequest.getStandardJson());
+        if (!documentStore.createVersion(namespace, standardId, version, content)) {
+            throw new StandardVersionExistsException();
         }
+
+        // Unconditional, matching the old shape: Standard did not guard these on blank.
+        documentStore.updateHeaderDetails(namespace, standardId,
+                standardRequest.getName(), standardRequest.getDescription());
 
         Standard standard = new Standard(standardRequest);
         standard.setId(standardId);
         standard.setVersion(version);
         return standard;
+    }
+
+
+    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
+        if (!namespaceStore.namespaceExists(namespace)) {
+            throw new NamespaceNotFoundException();
+        }
+    }
+
+    private void requireStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
+        requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, standardId)) {
+            throw new StandardNotFoundException();
+        }
     }
 }

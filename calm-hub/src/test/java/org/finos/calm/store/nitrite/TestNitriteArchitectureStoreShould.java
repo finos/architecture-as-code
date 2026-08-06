@@ -158,6 +158,29 @@ public class TestNitriteArchitectureStoreShould {
                 new NamespaceResourceSummary("Second", "", 2, 1)));
     }
 
+    // --- architectureExists ---
+
+    @Test
+    public void throw_a_namespace_exception_when_checking_existence_for_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.architectureExists(NAMESPACE, ARCHITECTURE_ID));
+    }
+
+    @Test
+    public void return_true_when_the_architecture_header_exists() throws NamespaceNotFoundException {
+        architectureExists();
+
+        assertThat(store.architectureExists(NAMESPACE, ARCHITECTURE_ID), is(true));
+    }
+
+    @Test
+    public void return_false_when_the_architecture_header_is_absent() throws NamespaceNotFoundException {
+        architectureDoesNotExist();
+
+        assertThat(store.architectureExists(NAMESPACE, ARCHITECTURE_ID), is(false));
+    }
+
     // --- createArchitectureForNamespace ---
 
     @Test

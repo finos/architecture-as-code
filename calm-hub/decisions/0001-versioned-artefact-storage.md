@@ -1,11 +1,17 @@
 # ADR 0001: Versioned artefact storage redesign
 
-**Status**: Accepted — partially implemented. Architecture uses this shape on
-both backends, complete with its version 2 → 3 migration
-(`MongoArchitectureVersionSplitStep` / `NitriteArchitectureVersionSplitStep`),
-so an existing deployment's data moves on first startup after upgrading. The
-other six versioned types still use the old shape, which is the incremental
-rollout this ADR describes rather than a divergence from it. Tracked in
+**Status**: Implemented. All seven versioned types — Architecture, Pattern,
+Flow, Standard, Interface, Timeline and ADR — use this shape on both
+backends, each with its own migration step, so an existing deployment's data
+moves on first startup after upgrading. Schema versions 2 → 9, one pair of
+steps per type.
+
+`decorators` is the only namespace-scoped collection still on the
+one-document-per-namespace shape, and deliberately so: it is not versioned at
+all, so it never had the growth problem this ADR addresses. `controls` keeps
+the old shape too. Both are excluded by
+[ADR 0004](0004-defer-control-and-decorator-storage.md), which is now worth
+revisiting with the implementation experience it was waiting for. Tracked in
 [#2884](https://github.com/finos/architecture-as-code/issues/2884).
 
 ## Context

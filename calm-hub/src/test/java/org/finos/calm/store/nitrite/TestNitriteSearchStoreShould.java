@@ -4,6 +4,7 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
@@ -15,13 +16,13 @@ import org.mockito.MockitoAnnotations;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -51,6 +52,9 @@ class TestNitriteSearchStoreShould {
     @Mock
     private NitriteCollection adrCollection;
 
+    @Mock
+    private NitriteCollection adrVersionCollection;
+
     private NitriteSearchStore searchStore;
 
     @BeforeEach
@@ -63,14 +67,20 @@ class TestNitriteSearchStoreShould {
         when(db.getCollection("interfaces")).thenReturn(interfaceCollection);
         when(db.getCollection("controls")).thenReturn(controlCollection);
         when(db.getCollection("adrs")).thenReturn(adrCollection);
+        when(db.getCollection("adrVersions")).thenReturn(adrVersionCollection);
         searchStore = new NitriteSearchStore(db);
     }
 
-    /**
-     * Architecture has moved to the header/version shape, so each of its documents is one
-     * architecture rather than a namespace-wide array of them. The other namespaced types
-     * still use the array shape, which is why both fixtures appear in this class.
-     */
+    /** Stubs the adrVersions collection: the revision list, and the latest revision's content. */
+    private void mockAdrRevisions(List<String> revisions, String latestContent) {
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(adrVersionCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(
+                latestContent == null ? null : Document.createDocument("content", latestContent));
+        when(cursor.iterator()).thenAnswer(invocation ->
+                revisions.stream().map(r -> Document.createDocument("version", r)).iterator());
+    }
+
     private static Document architectureHeader(int id, String name, String description) {
         return architectureHeader("finos", id, name, description);
     }
@@ -153,16 +163,36 @@ class TestNitriteSearchStoreShould {
     }
 
     @Test
-    void search_adr_by_latest_revision_title() {
-        Document revisionDoc = Document.createDocument("title", "Use Event Sourcing");
-        Document adrEntry = Document.createDocument("adrId", 1)
-                .put("revisions", Map.of("1", revisionDoc));
-        Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("adrs", List.of(adrEntry));
+    void skip_a_header_with_no_id_rather_than_failing_the_search() {
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(architectureCollection, List.of(
+                Document.createDocument("namespace", "finos").put("name", "event thing").put("description", "d")));
 
+        // See the Mongo twin: one id-less header would 500 the entire /search request.
+        assertEquals(0, searchStore.search("event").getArchitectures().size());
+    }
+
+    @Test
+    void skip_an_adr_header_with_no_id_rather_than_failing_the_search() {
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(namespaceDoc));
+        mockCollectionFind(adrCollection, List.of(
+                Document.createDocument("namespace", "finos").put("adrId", null)));
+
+        // See the Mongo twin: unboxing an absent adrId would 500 the whole /search request,
+        // for every resource type rather than just ADR.
+        assertEquals(0, searchStore.search("event").getAdrs().size());
+    }
+
+    @Test
+    void search_adr_by_latest_revision_title() {
+        // ADR reads its title from the latest revision's content, held here as a JSON string.
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+        mockCollectionFind(adrCollection, List.of(
+                Document.createDocument("namespace", "finos").put("adrId", 1)));
+        mockAdrRevisions(List.of("1"), "{\"title\": \"Use Event Sourcing\"}");
 
         GroupedSearchResults results = searchStore.search("event");
 
@@ -172,16 +202,12 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void search_adr_uses_latest_revision_when_multiple_exist() {
-        Document revisionDoc1 = Document.createDocument("title", "Old Title");
-        Document revisionDoc2 = Document.createDocument("title", "New Title");
-        Document adrEntry = Document.createDocument("adrId", 1)
-                .put("revisions", Map.of("1", revisionDoc1, "2", revisionDoc2));
-        Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("adrs", List.of(adrEntry));
-
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(namespaceDoc));
+        mockCollectionFind(adrCollection, List.of(
+                Document.createDocument("namespace", "finos").put("adrId", 1)));
+        // Two revisions; the search must read the later one's title.
+        mockAdrRevisions(List.of("1", "2"), "{\"title\": \"New Title\"}");
 
         GroupedSearchResults results = searchStore.search("New");
 
@@ -207,15 +233,14 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void handle_null_entries_array_gracefully() {
-        // Uses a flow: only the array-shaped types can have a null entries array at all, so
-        // this covers the branch where it still exists. It moves to another unmigrated type
-        // each time one migrates — it was on architectures, then patterns.
+        // Uses an interface: only the array-shaped types can have a null entries array at
+        // all, so this covers the branch where it still exists. Moves as each type migrates.
         Document namespaceDoc = Document.createDocument("namespace", "finos")
-                .put("flows", null);
+                .put("interfaces", null);
 
-        mockCollectionFind(flowCollection, List.of(namespaceDoc));
-        mockEmptyCollections(architectureCollection, patternCollection, standardCollection,
-                interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(interfaceCollection, List.of(namespaceDoc));
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("test");
 
@@ -240,21 +265,28 @@ class TestNitriteSearchStoreShould {
     void return_results_from_multiple_collections() {
         Document archDoc = architectureHeader(1, "Demo Architecture", "demo");
 
-        Document flowEntry = Document.createDocument("flowId", 3)
+        Document flowDoc = Document.createDocument("namespace", "finos")
+                .put("flowId", 3)
                 .put("name", "Demo Flow")
                 .put("description", "demo");
-        Document flowDoc = Document.createDocument("namespace", "finos")
-                .put("flows", List.of(flowEntry));
+
+        // Every namespaced type now reads the header shape — the array-shaped path was
+        // retired with Interface, its last caller.
+        Document interfaceDoc = Document.createDocument("namespace", "finos")
+                .put("interfaceId", 5)
+                .put("name", "Demo Interface")
+                .put("description", "demo");
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(flowCollection, List.of(flowDoc));
-        mockEmptyCollections(patternCollection, standardCollection,
-                interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(interfaceCollection, List.of(interfaceDoc));
+        mockEmptyCollections(patternCollection, standardCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("demo");
 
         assertEquals(1, results.getArchitectures().size());
         assertEquals(1, results.getFlows().size());
+        assertEquals(1, results.getInterfaces().size());
     }
 
     @Test
@@ -332,21 +364,13 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void filter_adrs_by_readable_namespaces() {
-        Document allowedRev = Document.createDocument("title", "Allowed ADR");
-        Document allowedAdr = Document.createDocument("adrId", 1)
-                .put("revisions", Map.of("1", allowedRev));
-        Document allowedNs = Document.createDocument("namespace", "finos")
-                .put("adrs", List.of(allowedAdr));
-
-        Document forbiddenRev = Document.createDocument("title", "Forbidden ADR");
-        Document forbiddenAdr = Document.createDocument("adrId", 2)
-                .put("revisions", Map.of("1", forbiddenRev));
-        Document forbiddenNs = Document.createDocument("namespace", "secret-ns")
-                .put("adrs", List.of(forbiddenAdr));
-
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(allowedNs, forbiddenNs));
+        mockCollectionFind(adrCollection, List.of(
+                Document.createDocument("namespace", "finos").put("adrId", 1),
+                Document.createDocument("namespace", "secret-ns").put("adrId", 2)));
+        // Both resolve to the same stubbed title; the filter is what decides the result.
+        mockAdrRevisions(List.of("1"), "{\"title\": \"Allowed ADR\"}");
 
         GroupedSearchResults results = searchStore.search("ADR",
                 Optional.of(Set.of("finos")));

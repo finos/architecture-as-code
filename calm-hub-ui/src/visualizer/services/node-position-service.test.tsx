@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Node } from 'reactflow';
 import {
+    applyPositions,
     applyStoredPositions,
+    clearStoredNodePositions,
     loadStoredNodePositions,
     saveNodePositions,
     StoredNodePosition,
+    toStoredPositions,
 } from './node-position-service.js';
 import { createMemoryStorage } from '../../test-support/memory-storage.js';
 
@@ -109,6 +112,70 @@ describe('node-position-service', () => {
             const container = result.find((n) => n.id === 'group')!;
             expect(container.width).toBeGreaterThan(50);
             expect(container.height).toBeGreaterThan(50);
+        });
+    });
+
+    describe('toStoredPositions', () => {
+        it('reduces nodes to id and position only', () => {
+            expect(toStoredPositions(nodes)).toEqual(storedPositions);
+        });
+
+        it('serialises the same shape saveNodePositions persists', () => {
+            saveNodePositions(key, nodes, storage);
+            expect(loadStoredNodePositions(key, storage)).toEqual(toStoredPositions(nodes));
+        });
+    });
+
+    describe('clearStoredNodePositions', () => {
+        it('removes a previously stored entry', () => {
+            saveNodePositions(key, nodes, storage);
+            clearStoredNodePositions(key, storage);
+            expect(loadStoredNodePositions(key, storage)).toBeNull();
+        });
+
+        it('does not affect other diagram keys', () => {
+            saveNodePositions('a/1', nodes, storage);
+            saveNodePositions('b/1', nodes, storage);
+            clearStoredNodePositions('a/1', storage);
+            expect(loadStoredNodePositions('a/1', storage)).toBeNull();
+            expect(loadStoredNodePositions('b/1', storage)).toEqual(storedPositions);
+        });
+
+        it('is a no-op when nothing is stored', () => {
+            expect(() => clearStoredNodePositions(key, storage)).not.toThrow();
+        });
+    });
+
+    describe('applyPositions', () => {
+        it('returns the input nodes unchanged when positions is null', () => {
+            const parsed: Node[] = [{ id: 'node-1', position: { x: 0, y: 0 }, data: {} }];
+            expect(applyPositions(parsed, null)).toBe(parsed);
+        });
+
+        it('returns the input nodes unchanged when positions is empty', () => {
+            const parsed: Node[] = [{ id: 'node-1', position: { x: 0, y: 0 }, data: {} }];
+            expect(applyPositions(parsed, [])).toBe(parsed);
+        });
+
+        it('merges the given positions by id', () => {
+            const parsed: Node[] = [
+                { id: 'node-1', position: { x: 0, y: 0 }, data: {} },
+                { id: 'node-2', position: { x: 0, y: 0 }, data: {} },
+            ];
+            const result = applyPositions(parsed, storedPositions);
+            expect(result.find((n) => n.id === 'node-1')!.position).toEqual({ x: 100, y: 200 });
+            expect(result.find((n) => n.id === 'node-2')!.position).toEqual({ x: 300, y: 400 });
+        });
+
+        it('is what applyStoredPositions delegates to for the merge behaviour', () => {
+            saveNodePositions(key, nodes, storage);
+            const parsed: Node[] = [
+                { id: 'node-1', position: { x: 0, y: 0 }, data: {} },
+                { id: 'node-2', position: { x: 0, y: 0 }, data: {} },
+            ];
+            const viaStorage = applyStoredPositions(key, parsed, storage);
+            const viaDirectPositions = applyPositions(parsed, loadStoredNodePositions(key, storage));
+            expect(viaStorage).toEqual(viaDirectPositions);
         });
     });
 });

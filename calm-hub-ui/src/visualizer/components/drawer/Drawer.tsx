@@ -28,7 +28,15 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
     return item?.['unique-id'] || '';
 }
 
-export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: DrawerProps) {
+export function Drawer({
+    data,
+    onItemSelect,
+    decorators: decoratorsProp,
+    viewportKeyOverride,
+    defaultLayout,
+    layoutEpoch,
+    onPositionsChange,
+}: DrawerProps) {
     const calmService = useMemo(() => new CalmService(), []);
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
@@ -72,8 +80,20 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
     });
 
     // Identifies the diagram (ignoring version) so its viewport can be remembered
-    // across version/moment switches and refreshes. A dropped file has no identity.
-    const viewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
+    // across version/moment switches and refreshes. A dropped file has no identity,
+    // so it must never resolve to `viewportKeyOverride` (DiagramSection's resolved
+    // namespace/numeric-architectureId for the *currently loaded* architecture) —
+    // otherwise dragging a node on a dropped file would write scratch positions,
+    // and "Save as default layout" would write server positions, under the loaded
+    // architecture's key using the dropped file's unrelated layout.
+    // `viewportKeyOverride` takes precedence when present and no file is dropped,
+    // so scratch storage and the server layout share one key regardless of whether
+    // this architecture was reached via a slug or numeric route. An explicit `null`
+    // override (a slug that finished resolving with no match) suppresses the
+    // fallback rather than triggering it — falling back to the slug here would
+    // reintroduce exactly the key split the override exists to close.
+    const computedViewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
+    const viewportKey = fileInstance || viewportKeyOverride === null ? undefined : (viewportKeyOverride ?? computedViewportKey);
 
     useEffect(() => {
         const source = fileInstance ?? data?.data;
@@ -258,6 +278,18 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
                                 onEdgeClick={handleEdgeClick}
                                 onBackgroundClick={closeSidebar}
                                 viewportKey={viewportKey}
+                                defaultLayout={defaultLayout}
+                                layoutEpoch={layoutEpoch}
+                                // Never reported for a dropped file: `onPositionsChange`
+                                // ultimately feeds DiagramSection's "Save as default
+                                // layout", which is scoped to the *loaded architecture*
+                                // (via `viewportKeyOverride`/`defaultLayoutState`, not
+                                // this component's local `fileInstance` state). Passing
+                                // it through unconditionally would let a locally-dropped
+                                // file's on-screen positions be saved as the shared
+                                // default layout for the architecture actually being
+                                // viewed.
+                                onPositionsChange={fileInstance ? undefined : onPositionsChange}
                             />
                         ) : null}
                     </div>

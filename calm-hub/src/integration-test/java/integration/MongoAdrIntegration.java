@@ -7,7 +7,6 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
@@ -24,12 +23,12 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -75,12 +74,7 @@ public class MongoAdrIntegration {
         try(MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            if(!database.listCollectionNames().into(new ArrayList<>()).contains("adrs")) {
-                database.createCollection("adrs");
-                database.getCollection("adrs").insertOne(
-                        new Document("namespace", "finos").append("adrs", new ArrayList<>())
-                );
-            }
+            primeHeaderCollection(database, "adrs");
 
             counterSetup(database);
             namespaceSetup(database);

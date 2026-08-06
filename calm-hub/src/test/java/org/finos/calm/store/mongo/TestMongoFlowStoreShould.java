@@ -6,10 +6,7 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -18,26 +15,42 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Flow;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
-import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+/**
+ * Store-level tests for the header/version shape. Document mechanics are covered by
+ * {@code TestMongoVersionDocumentStoreShould}; what this class pins is the glue — which
+ * domain exception each missing thing produces, and Flow's blank-guarding of
+ * name/description, which is where it deliberately differs from Architecture.
+ */
 @QuarkusTest
 public class TestMongoFlowStoreShould {
 
@@ -50,410 +63,351 @@ public class TestMongoFlowStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private MongoCollection<Document> flowCollection;
-    private MongoFlowStore mongoFlowStore;
-    private final String NAMESPACE = "finos";
-
-    private final String validJson = "{\"test\": \"test\"}";
-
-    @BeforeEach
-    void setup() {
-        flowCollection = Mockito.mock(DocumentMongoCollection.class);
-
-        when(mongoDatabase.getCollection("flows")).thenReturn(flowCollection);
-        mongoFlowStore = new MongoFlowStore(mongoDatabase, counterStore, namespaceStore);
-    }
-
-    @Test
-    void get_flows_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(flowCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-        when(documentMock.getList("flows", Document.class))
-                .thenReturn(new ArrayList<>());
-
-        assertThat(mongoFlowStore.getFlowsForNamespace(NAMESPACE), is(empty()));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_flows_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(flowCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        assertThat(mongoFlowStore.getFlowsForNamespace(NAMESPACE), is(empty()));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_flow_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoFlowStore.getFlowsForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void get_flow_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(flowCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-
-        Document doc1 = new Document("flowId", 1001).append("name", "Flow One").append("description", "First flow")
-                .append("versions", new Document("1-0-0", new Document()).append("2-0-0", new Document()));
-        Document doc2 = new Document("flowId", 1002).append("name", "Flow Two").append("description", "Second flow")
-                .append("versions", new Document("1-0-0", new Document()));
-
-        when(documentMock.getList("flows", Document.class))
-                .thenReturn(Arrays.asList(doc1, doc2));
-
-        List<NamespaceResourceSummary> flows = mongoFlowStore.getFlowsForNamespace(NAMESPACE);
-
-        assertThat(flows.size(), is(2));
-        assertThat(flows.get(0).getName(), is("Flow One"));
-        assertThat(flows.get(0).getDescription(), is("First flow"));
-        assertThat(flows.get(0).getId(), is(1001));
-        assertThat(flows.get(0).getVersionCount(), is(2));
-        assertThat(flows.get(1).getName(), is("Flow Two"));
-        assertThat(flows.get(1).getDescription(), is("Second flow"));
-        assertThat(flows.get(1).getId(), is(1002));
-        assertThat(flows.get(1).getVersionCount(), is(1));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_flow_for_namespace_returns_fallback_for_legacy_documents() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(flowCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-
-        // Legacy document without name or description
-        Document legacyDoc = new Document("flowId", 77);
-
-        when(documentMock.getList("flows", Document.class))
-                .thenReturn(List.of(legacyDoc));
-
-        List<NamespaceResourceSummary> flows = mongoFlowStore.getFlowsForNamespace(NAMESPACE);
-
-        assertThat(flows.size(), is(1));
-        assertThat(flows.get(0).getName(), is("Flow 77"));
-        assertThat(flows.get(0).getDescription(), is(""));
-        assertThat(flows.get(0).getId(), is(77));
-        // Legacy document carries no versions sub-document → count guards to 0.
-        assertThat(flows.get(0).getVersionCount(), is(0));
-    }
-
-    private FindIterable<Document> setupInvalidFlow() {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
-        when(flowCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-
-        return findIterable;
-    }
-
-    private void mockSetupFlowDocumentWithVersions() {
-        Document mainDocument = setupFlowVersionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(flowCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
-    }
-
-    @Test
-    void return_a_namespace_exception_when_namespace_does_not_exist_when_creating_an_flow() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-        CreateFlowRequest request = new CreateFlowRequest("name", "desc", validJson);
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoFlowStore.createFlowForNamespace(request, namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void return_a_json_parse_exception_when_an_invalid_json_object_is_presented() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextFlowSequenceValue()).thenReturn(42);
-        CreateFlowRequest request = new CreateFlowRequest("name", "desc", "Invalid JSON");
-
-        assertThrows(JsonParseException.class,
-                () -> mongoFlowStore.createFlowForNamespace(request, NAMESPACE));
-    }
-
-    @Test
-    void return_created_flow_when_parameters_are_valid() throws NamespaceNotFoundException {
-        String validNamespace = NAMESPACE;
-        int sequenceNumber = 42;
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextFlowSequenceValue()).thenReturn(sequenceNumber);
-        CreateFlowRequest request = new CreateFlowRequest("Test Flow", "A test", validJson);
-
-        Flow flow = mongoFlowStore.createFlowForNamespace(request, validNamespace);
-
-        Flow expectedFlow = new Flow.FlowBuilder().setFlow(validJson)
-                .setNamespace(validNamespace)
-                .setVersion("1.0.0")
-                .setId(sequenceNumber)
-                .build();
-
-        assertThat(flow, is(expectedFlow));
-        Document expectedDoc = new Document("flowId", flow.getId())
-                .append("name", "Test Flow")
-                .append("description", "A test")
-                .append("versions",
-                new Document("1-0-0", Document.parse(flow.getFlowJson())));
-
-        verify(flowCollection).updateOne(
-                eq(Filters.eq("namespace", validNamespace)),
-                eq(Updates.push("flows", expectedDoc)),
-                any(UpdateOptions.class));
-    }
-
-    @Test
-    void retry_and_succeed_when_a_concurrent_request_wins_the_first_create_race() throws NamespaceNotFoundException {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextFlowSequenceValue()).thenReturn(42);
-        when(flowCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()))
-                .thenReturn(null);
-        CreateFlowRequest request = new CreateFlowRequest("Test Flow", "A test", validJson);
-
-        mongoFlowStore.createFlowForNamespace(request, NAMESPACE);
-
-        verify(flowCollection, times(2)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-    }
-
-    @Test
-    void propagate_non_duplicate_key_errors_when_creating_a_flow() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextFlowSequenceValue()).thenReturn(42);
-        when(flowCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(12, "some other error", new BsonDocument()), new ServerAddress(), List.of()));
-        CreateFlowRequest request = new CreateFlowRequest("Test Flow", "A test", validJson);
-
-        assertThrows(MongoWriteException.class,
-                () -> mongoFlowStore.createFlowForNamespace(request, NAMESPACE));
-    }
-
-    @Test
-    void get_flow_version_for_invalid_namespace_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        Flow flow = new Flow.FlowBuilder().setNamespace("does-not-exist").build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoFlowStore.getFlowVersions(flow));
-
-        verify(namespaceStore).namespaceExists(flow.getNamespace());
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
+    private MongoCollection<Document> headerCollection;
+    private MongoCollection<Document> versionCollection;
+    private MongoFlowStore store;
+
+    private static final String NAMESPACE = "finos";
+    private static final int FLOW_ID = 42;
+    private static final String VALID_JSON = "{\"test\": \"test\"}";
+
+    @BeforeEach
+    void setup() {
+        headerCollection = Mockito.mock(DocumentMongoCollection.class);
+        versionCollection = Mockito.mock(DocumentMongoCollection.class);
+
+        when(mongoDatabase.getCollection("flows")).thenReturn(headerCollection);
+        when(mongoDatabase.getCollection("flowVersions")).thenReturn(versionCollection);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+
+        store = new MongoFlowStore(mongoDatabase, counterStore, namespaceStore);
+    }
+
+    private FindIterable<Document> stubFind(MongoCollection<Document> collection, List<Document> documents) {
+        FindIterable<Document> iterable = Mockito.mock(DocumentFindIterable.class);
+        when(collection.find(any(Bson.class))).thenReturn(iterable);
+        when(iterable.projection(any())).thenReturn(iterable);
+        when(iterable.sort(any())).thenReturn(iterable);
+        when(iterable.skip(anyInt())).thenReturn(iterable);
+        when(iterable.limit(anyInt())).thenReturn(iterable);
+        when(iterable.first()).thenReturn(documents.isEmpty() ? null : documents.get(0));
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            documents.forEach(consumer);
+            return null;
+        }).when(iterable).forEach(any());
+        return iterable;
+    }
+
+    private void flowExists() {
+        stubFind(headerCollection, List.of(new Document("flowId", FLOW_ID)));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+    }
+
+    private void flowDoesNotExist() {
+        stubFind(headerCollection, List.of());
+    }
+
+    private static MongoWriteException writeError(int code, String message) {
+        return new MongoWriteException(new WriteError(code, message, new BsonDocument()), new ServerAddress(), List.of());
+    }
+
+    private static Flow flow(String version, String name, String description) {
+        return new Flow.FlowBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(FLOW_ID)
+                .setVersion(version)
+                .setName(name)
+                .setDescription(description)
+                .setFlow(VALID_JSON)
+                .build();
+    }
+
+    private static Flow flow(String version) {
+        return flow(version, "flow-name", "flow-description");
+    }
+
+    private static CreateFlowRequest createRequest() {
+        return new CreateFlowRequest("flow-name", "flow-description", VALID_JSON);
+    }
+
+    // --- getFlowsForNamespace ---
+
     @Test
-    void get_flow_version_for_invalid_pattern_throws_exception() {
-        FindIterable<Document> findIterable = setupInvalidFlow();
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE).build();
+    void throw_a_namespace_exception_when_listing_flows_for_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
-        assertThrows(FlowNotFoundException.class,
-                () -> mongoFlowStore.getFlowVersions(flow));
-
-        verify(flowCollection).find(new Document("namespace", flow.getNamespace()));
-        verify(findIterable).projection(Projections.fields(Projections.include("flows")));
+        assertThrows(NamespaceNotFoundException.class, () -> store.getFlowsForNamespace(NAMESPACE));
     }
 
     @Test
-    void get_flow_versions_for_valid_flow_returns_list_of_versions() throws FlowNotFoundException, NamespaceNotFoundException {
-        mockSetupFlowDocumentWithVersions();
+    void return_an_empty_list_when_a_namespace_has_no_flows() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of());
 
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE).setId(42).build();
-        List<String> flowVersions = mongoFlowStore.getFlowVersions(flow);
-
-        assertThat(flowVersions, is(List.of("1.0.0")));
+        assertThat(store.getFlowsForNamespace(NAMESPACE), is(empty()));
     }
 
     @Test
-    void throw_an_exception_for_an_invalid_namespace_when_retrieving_flow_for_version() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        Flow flow = new Flow.FlowBuilder().setNamespace("does-not-exist").build();
+    void return_a_summary_per_header_document() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of(
+                new Document("flowId", 1).append("name", "First").append("description", "d1")
+                        .append("versionCount", 2),
+                new Document("flowId", 2).append("name", "Second").append("description", "d2")
+                        .append("versionCount", 0)));
+
+        assertThat(store.getFlowsForNamespace(NAMESPACE), contains(
+                new NamespaceResourceSummary("First", "d1", 1, 2),
+                new NamespaceResourceSummary("Second", "d2", 2, 0)));
+    }
+
+    @Test
+    void fall_back_to_a_generated_name_for_headers_missing_one() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of(new Document("flowId", 7)));
+
+        assertThat(store.getFlowsForNamespace(NAMESPACE), contains(
+                new NamespaceResourceSummary("Flow 7", "", 7, 0)));
+    }
+
+
+    // --- createFlowForNamespace ---
+
+    @Test
+    void throw_a_namespace_exception_when_creating_a_flow_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoFlowStore.getFlowVersions(flow));
-
-        verify(namespaceStore).namespaceExists(flow.getNamespace());
+                () -> store.createFlowForNamespace(createRequest(), NAMESPACE));
     }
 
     @Test
-    void throw_an_exception_for_an_invalid_flow_when_retrieving_flow_for_version() {
-        FindIterable<Document> findIterable = setupInvalidFlow();
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE).build();
+    void reject_invalid_json_before_drawing_an_id_or_writing_anything() {
+        CreateFlowRequest invalid = new CreateFlowRequest("n", "d", "{invalid json}");
 
-        assertThrows(FlowNotFoundException.class,
-                () -> mongoFlowStore.getFlowForVersion(flow));
+        assertThrows(JsonParseException.class, () -> store.createFlowForNamespace(invalid, NAMESPACE));
 
-        verify(flowCollection).find(new Document("namespace", flow.getNamespace()));
-        verify(findIterable).projection(Projections.fields(Projections.include("flows")));
+        verify(counterStore, never()).getNextFlowSequenceValue();
+        verify(headerCollection, never()).insertOne(any(Document.class));
     }
 
     @Test
-    void return_an_flow_for_a_given_version() throws FlowNotFoundException, FlowVersionNotFoundException, NamespaceNotFoundException {
-        mockSetupFlowDocumentWithVersions();
+    void create_a_header_and_an_initial_version() throws NamespaceNotFoundException {
+        when(counterStore.getNextFlowSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
 
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.0").build();
+        Flow created = store.createFlowForNamespace(createRequest(), NAMESPACE);
 
-        String flowForVersion = mongoFlowStore.getFlowForVersion(flow);
-        assertThat(flowForVersion, is(validJson));
-    }
+        assertThat(created.getId(), is(99));
+        // Dot-separated on both backends now; Nitrite used to return "1-0-0" here.
+        assertThat(created.getDotVersion(), is("1.0.0"));
 
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insertOne(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().getInteger("flowId"), is(99));
+        assertThat(headerCaptor.getValue().getInteger("versionCount"), is(0));
 
-    private Document setupFlowVersionDocument() {
-        //Set up an flow document with 2 flows in (one with a valid version)
-        Map<String, Document> versionMap = new HashMap<>();
-        versionMap.put("1-0-0", Document.parse(validJson));
-        Document targetStoredFlow = new Document("flowId", 42)
-                .append("versions", new Document(versionMap));
-
-        Document paddingFlow = new Document("flowId", 0);
-
-        return new Document("namespace", NAMESPACE)
-                .append("flows", Arrays.asList(paddingFlow, targetStoredFlow));
-    }
-
-    private interface DocumentMongoCollection extends MongoCollection<Document> {
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.0"));
     }
 
     @Test
-    void throw_an_exception_when_flow_for_given_version_does_not_exist()  {
-        mockSetupFlowDocumentWithVersions();
+    void remove_the_header_again_when_the_first_version_write_fails() {
+        when(counterStore.getNextFlowSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(versionCollection).insertOne(any(Document.class));
 
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("9.0.0").build();
+        assertThrows(StorageWriteException.class,
+                () -> store.createFlowForNamespace(createRequest(), NAMESPACE));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    // --- getFlowVersions ---
+
+    @Test
+    void throw_a_namespace_exception_when_listing_versions_for_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getFlowVersions(flow(null)));
+    }
+
+    @Test
+    void throw_a_flow_exception_when_listing_versions_for_a_missing_flow() {
+        flowDoesNotExist();
+
+        assertThrows(FlowNotFoundException.class, () -> store.getFlowVersions(flow(null)));
+    }
+
+    @Test
+    void list_versions_in_semantic_order() throws NamespaceNotFoundException, FlowNotFoundException {
+        stubFind(headerCollection, List.of(new Document("flowId", FLOW_ID)));
+        stubFind(versionCollection, List.of(
+                new Document("version", "1.10.0"),
+                new Document("version", "1.9.0"),
+                new Document("version", "1.0.0")));
+
+        assertThat(store.getFlowVersions(flow(null)), contains("1.0.0", "1.9.0", "1.10.0"));
+    }
+
+    @Test
+    void return_no_versions_rather_than_not_found_for_a_flow_with_none() throws NamespaceNotFoundException, FlowNotFoundException {
+        stubFind(headerCollection, List.of(new Document("flowId", FLOW_ID)));
+        stubFind(versionCollection, List.of());
+
+        // ADR 0003: the header proves the flow exists, so an empty version list is an
+        // answer rather than evidence of a missing flow.
+        assertThat(store.getFlowVersions(flow(null)), is(empty()));
+    }
+
+    // --- getFlowForVersion ---
+
+    @Test
+    void throw_a_flow_exception_when_getting_a_version_of_a_missing_flow() {
+        flowDoesNotExist();
+
+        assertThrows(FlowNotFoundException.class, () -> store.getFlowForVersion(flow("1.0.0")));
+    }
+
+    @Test
+    void throw_a_version_exception_when_the_version_is_not_stored() {
+        stubFind(headerCollection, List.of(new Document("flowId", FLOW_ID)));
+        stubFind(versionCollection, List.of());
 
         assertThrows(FlowVersionNotFoundException.class,
-                () -> mongoFlowStore.getFlowForVersion(flow));
+                () -> store.getFlowForVersion(flow("9.0.0")));
     }
 
     @Test
-    void throw_an_exception_when_create_or_update_flow_for_version_with_a_namespace_that_doesnt_exists() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+    void return_the_content_of_a_stored_version() throws Exception {
+        stubFind(headerCollection, List.of(new Document("flowId", FLOW_ID)));
+        stubFind(versionCollection, List.of(new Document("content", new Document("test", "test"))));
 
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("9.0.0").build();
+        assertThat(store.getFlowForVersion(flow("1.0.0")), containsString("\"test\""));
+    }
 
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoFlowStore.createFlowForVersion(flow));
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoFlowStore.updateFlowForVersion(flow));
+    // --- createFlowForVersion ---
 
-        verify(namespaceStore, times(2)).namespaceExists(flow.getNamespace());
+    @Test
+    void throw_a_flow_exception_when_creating_a_version_for_a_missing_flow() {
+        flowDoesNotExist();
+
+        assertThrows(FlowNotFoundException.class,
+                () -> store.createFlowForVersion(flow("1.0.1")));
     }
 
     @Test
-    void throw_an_exception_when_create_on_a_version_that_exists() {
-        mockSetupFlowDocumentWithVersions();
-
-        when(flowCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
-
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.0").setFlow(validJson).build();
+    void throw_a_version_exists_exception_when_the_version_is_already_stored() {
+        flowExists();
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
 
         assertThrows(FlowVersionExistsException.class,
-                () -> mongoFlowStore.createFlowForVersion(flow));
+                () -> store.createFlowForVersion(flow("1.0.1")));
     }
 
     @Test
-    void throw_a_flow_not_found_exception_when_creating_or_updating_a_version_for_a_missing_flow() {
-        mockSetupFlowDocumentWithVersions();
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(50).setVersion("1.0.1")
-                .setFlow(validJson).build();
+    void not_rename_the_flow_when_the_version_already_exists() {
+        flowExists();
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
 
-        assertThrows(FlowNotFoundException.class,
-                () -> mongoFlowStore.createFlowForVersion(flow));
-        assertThrows(FlowNotFoundException.class,
-                () -> mongoFlowStore.updateFlowForVersion(flow));
+        assertThrows(FlowVersionExistsException.class,
+                () -> store.createFlowForVersion(flow("1.0.1")));
 
-        // The entity-existence pre-check catches the missing flow before any write is
-        // attempted, so no update is ever sent to Mongo (either overload).
-        verify(flowCollection, never())
-                .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-        verify(flowCollection, never())
-                .updateOne(any(Bson.class), any(Bson.class));
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
     }
 
     @Test
-    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_a_version_hits_the_document_size_limit() {
-        mockSetupFlowDocumentWithVersions();
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.1")
-                .setFlow(validJson).build();
+    void write_the_version_and_then_the_header_details() throws Exception {
+        flowExists();
 
-        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-        when(flowCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
+        store.createFlowForVersion(flow("1.0.1"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.1"));
+        // Two header writes: the versionCount increment and the name/description update.
+        verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void leave_the_stored_name_alone_when_a_version_write_carries_none() throws Exception {
+        flowExists();
+
+        store.createFlowForVersion(flow("1.0.1", null, null));
+
+        // Where Architecture overwrites unconditionally — wiping the display name, bugs.md
+        // #2 — Flow's old shape guarded these fields, so only the count write happens.
+        verify(headerCollection, Mockito.times(1)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void update_only_the_details_that_are_present() throws Exception {
+        flowExists();
+
+        store.createFlowForVersion(flow("1.0.1", "Renamed", "  "));
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), updateCaptor.capture());
+        String detailsUpdate = updateCaptor.getAllValues().get(1).toBsonDocument().toJson();
+        assertThat(detailsUpdate, containsString("Renamed"));
+        assertThat(detailsUpdate, not(containsString("description")));
+    }
+
+    // --- updateFlowForVersion ---
+
+    @Test
+    void throw_a_flow_exception_when_updating_a_version_for_a_missing_flow() {
+        flowDoesNotExist();
+
+        assertThrows(FlowNotFoundException.class,
+                () -> store.updateFlowForVersion(flow("1.0.1")));
+    }
+
+    @Test
+    void force_write_a_version_on_update() throws Exception {
+        flowExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        store.updateFlowForVersion(flow("1.0.1"));
+
+        verify(versionCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        // Replacing an existing version doesn't move the count, so the only header write
+        // here is the name/description update.
+        verify(headerCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void report_capacity_exceeded_when_a_version_write_hits_the_document_size_limit() {
+        flowExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(writeError(10334, "object to insert too large"));
 
         StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoFlowStore.updateFlowForVersion(flow));
+                () -> store.updateFlowForVersion(flow("1.0.1")));
         assertThat(exception.isCapacityExceeded(), is(true));
     }
 
     @Test
-    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_updating_a_version() {
-        mockSetupFlowDocumentWithVersions();
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.1")
-                .setFlow(validJson).build();
-
-        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-        when(flowCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
+    void report_a_plain_write_failure_for_other_version_write_errors() {
+        flowExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(writeError(10107, "not master"));
 
         StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoFlowStore.updateFlowForVersion(flow));
+                () -> store.updateFlowForVersion(flow("1.0.1")));
         assertThat(exception.isCapacityExceeded(), is(false));
-    }
-
-    @Test
-    void accept_the_creation_or_update_of_a_valid_version() throws FlowNotFoundException, NamespaceNotFoundException, FlowVersionExistsException {
-        mockSetupFlowDocumentWithVersions();
-
-        when(flowCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
-
-        Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.1")
-                .setFlow(validJson).build();
-
-        mongoFlowStore.updateFlowForVersion(flow);
-        mongoFlowStore.createFlowForVersion(flow);
-
-        verify(flowCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-        verify(flowCollection).updateOne(any(Bson.class), any(Bson.class));
     }
 }

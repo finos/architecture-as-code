@@ -81,6 +81,9 @@
     },
     "overrides": {
         "@babel/plugin-transform-modules-systemjs": "^7.29.4",
+        "@docusaurus/core": "3.10.1",
+        "@docusaurus/theme-common": "3.10.1",
+        "@docusaurus/theme-mermaid": "3.10.1",
         "@docusaurus/plugin-content-docs": "3.10.1",
         "@hono/node-server": "^2.0.5",
         "@types/node": "^26",

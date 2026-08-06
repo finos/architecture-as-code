@@ -5,6 +5,46 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.53.0] - 2026-08-05
+
+## [1.53.0](https://github.com/finos/architecture-as-code/compare/cli-v1.52.0...cli-v1.53.0) (2026-08-05)
+
+* Merge branch 'main' into refactor/calm-document-types ([](https://github.com/finos/architecture-as-code/commit/e98fe10c0b2483424ce48e3bd7e534c3d9da4564))
+
+### docs
+
+* **calm-hub:** record createFirstVersion in ADR 0003 ([](https://github.com/finos/architecture-as-code/commit/9f49474f2ac7a42e348dc71134fc8582daeead5b))
+
+### feat
+
+* **calm-hub:** carry Pattern through the search, seed and test-fixture changes ([](https://github.com/finos/architecture-as-code/commit/735599289f5138fa4a310104f0b74e35f7d6ac75)), closes [#2923](https://github.com/finos/architecture-as-code/issues/2923)
+* **calm-hub:** port the Pattern stores onto the version helpers ([](https://github.com/finos/architecture-as-code/commit/58e8b39555e8f6a0b2d12f9260fd11dc3493d891))
+* **calm-hub:** prepare the version helpers for Pattern, and stream the Nitrite split ([](https://github.com/finos/architecture-as-code/commit/e82b8fb613ecd33bd0ee557eb205cdba4dc66e44)), closes [#2](https://github.com/finos/architecture-as-code/issues/2) [#2923](https://github.com/finos/architecture-as-code/issues/2923)
+* **calm-hub:** share the version-split migration and add the Pattern steps ([](https://github.com/finos/architecture-as-code/commit/c533e711f7480170e603b6fded6dedba75b15c00))
+* **calm-hub:** versioned artefact storage redesign — Pattern (#2884) ([](https://github.com/finos/architecture-as-code/commit/6363a6b90d64c5d3c1074cd8c46346efda8073f5)), closes [#2884](https://github.com/finos/architecture-as-code/issues/2884)
+
+### fix
+
+* **calm-hub:** report unreadable version content as not found, not a 500 ([](https://github.com/finos/architecture-as-code/commit/8d867a1d7b53106f3360d60e39eafb03eeb67c6e))
+* **calm-hub:** restore the pattern indexes dropped by the integration reset ([](https://github.com/finos/architecture-as-code/commit/f9d4cfc087c2f57c9f32f5b0feea9c5d252f6db9))
+* **calm-hub:** stop one malformed header failing a whole Nitrite listing ([](https://github.com/finos/architecture-as-code/commit/a432d16afe849c8f2061f2130c62c4fb8533e95a))
+
+### refactor
+
+* **calm-hub:** own the first-version write in the version document stores ([](https://github.com/finos/architecture-as-code/commit/7762fd9857728db508a4e7ecedc2b70b2fb6a4a7))
+* **calm-models:** centralize document types ([](https://github.com/finos/architecture-as-code/commit/184d448dadb48cacf00e8a220032b958e70e91c2))
+* **calm-models:** centralize document types ([](https://github.com/finos/architecture-as-code/commit/1fffd0490898f1462058457b1aaedd573dffacce))
+* **shared:** import document types from calm-models ([](https://github.com/finos/architecture-as-code/commit/02f742d4fa692b0617fe096d976cd357c01518a1))
+
+### style
+
+* **calm-hub:** indent the comment left misaligned by a bulk edit ([](https://github.com/finos/architecture-as-code/commit/64e705c026809568d12ac087c7e1427f20964965)), closes [#2934](https://github.com/finos/architecture-as-code/issues/2934)
+
+### test
+
+* **calm-hub:** close the namespace and compensation gaps in the pattern tests ([](https://github.com/finos/architecture-as-code/commit/72a3a2f7a35884d3f700af9fc8ea653743327ce8))
+* **calm-hub:** isolate the document-size-limit tests in their own namespace ([](https://github.com/finos/architecture-as-code/commit/3526cd4fa9602e7a667435a3f36e5b21075c2f54))
+
 ## [1.52.0] - 2026-08-03
 
 ## [1.52.0](https://github.com/finos/architecture-as-code/compare/cli-v1.51.0...cli-v1.52.0) (2026-08-03)

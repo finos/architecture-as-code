@@ -1,5 +1,8 @@
 package org.finos.calm.store.nitrite;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -10,6 +13,8 @@ import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
+import org.finos.calm.store.util.NitriteVersionDocumentStore;
+import org.finos.calm.store.util.VersionScheme;
 import org.finos.calm.store.util.SearchTextMatcher;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
@@ -17,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import io.quarkus.arc.lookup.LookupIfProperty;
@@ -45,6 +49,23 @@ public class NitriteSearchStore implements SearchStore {
     private final NitriteCollection interfaceCollection;
     private final NitriteCollection controlCollection;
     private final NitriteCollection adrCollection;
+    /**
+     * Read-only. Do not add a write path through this field.
+     *
+     * <p>This is a second {@link NitriteVersionDocumentStore} over the same two collections
+     * {@link NitriteAdrStore} uses, and the two carry independent
+     * {@link java.util.concurrent.locks.ReentrantReadWriteLock}s. Writes are safe there only
+     * because that store's lock serialises every writer; a write issued through this instance
+     * would take a different lock and so would not be serialised against them, reintroducing
+     * the duplicate-revision race the lock exists to prevent — {@code createVersion}'s
+     * check-then-act would no longer be atomic with respect to the other instance.</p>
+     *
+     * <p>Reads need no such coordination, which is why two instances are tolerable at all. If
+     * this ever needs to write, share {@code NitriteAdrStore}'s instance rather than widening
+     * this one.</p>
+     */
+    private final NitriteVersionDocumentStore adrDocuments;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Inject
     public NitriteSearchStore(@StandaloneQualifier Nitrite db) {
@@ -55,6 +76,8 @@ public class NitriteSearchStore implements SearchStore {
         this.interfaceCollection = db.getCollection("interfaces");
         this.controlCollection = db.getCollection("controls");
         this.adrCollection = db.getCollection("adrs");
+        this.adrDocuments = new NitriteVersionDocumentStore(adrCollection,
+                db.getCollection("adrVersions"), "adrId", "ADR", VersionScheme.NUMERIC);
         LOG.info("NitriteSearchStore initialized");
     }
 
@@ -65,9 +88,9 @@ public class NitriteSearchStore implements SearchStore {
         return new GroupedSearchResults(
                 searchHeaderCollection(architectureCollection, "architectureId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(patternCollection, "patternId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(interfaceCollection, "interfaceId", lowerQuery, readableNamespaces),
                 searchControlCollection(lowerQuery),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
@@ -75,10 +98,10 @@ public class NitriteSearchStore implements SearchStore {
 
     /**
      * Searches a collection in the header/version shape, where each document <em>is</em> one
-     * resource rather than a namespace-wide array of them. See
-     * {@code MongoSearchStore.searchHeaderCollection} for why both shapes have to be
-     * supported at once, and for the silent failure mode if a migrated type is left on the
-     * array-shaped method.
+     * resource rather than a namespace-wide array of them. The array-shaped path this once
+     * sat beside was retired when Interface, the last of the namespaced types, migrated —
+     * see {@code MongoSearchStore.searchHeaderCollection} for the silent failure mode it
+     * guarded against, which is worth remembering rather than the method itself.
      */
     private List<SearchResult> searchHeaderCollection(NitriteCollection collection,
                                                       String idField,
@@ -94,12 +117,29 @@ public class NitriteSearchStore implements SearchStore {
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
+            Integer id = header.get(idField, Integer.class);
+            if (id == null) {
+                // Same reason the ADR branch below skips these: SearchResult takes a
+                // primitive id, so a header missing its id field unboxes to a
+                // NullPointerException thrown out of search() — which builds every type's
+                // results eagerly, so one malformed document fails the whole request rather
+                // than one resource type. A resource with no id is not addressable anyway.
+                //
+                // Deliberately unlike the namespace listing, which renders the same malformed
+                // header as "<Type> null" rather than hiding it (see
+                // NitriteVersionDocumentStore.listSummariesPaged). The two differ because the
+                // outputs differ: a search hit is a link the caller is expected to follow, so
+                // one that cannot be addressed is worse than absent, whereas a listing row is
+                // informational and showing it is how an operator learns the bad header is
+                // there. Dropping it from both would hide the problem entirely.
+                continue;
+            }
             String name = header.get("name", String.class);
             String description = header.get("description", String.class);
             if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                 results.add(new SearchResult(
                         namespace,
-                        header.get(idField, Integer.class),
+                        id,
                         SearchTextMatcher.nullToEmpty(name),
                         SearchTextMatcher.nullToEmpty(description)
                 ));
@@ -109,42 +149,6 @@ public class NitriteSearchStore implements SearchStore {
         return results;
     }
 
-    private List<SearchResult> searchNamespacedCollection(NitriteCollection collection,
-                                                          String arrayField,
-                                                          String idField,
-                                                          String lowerQuery,
-                                                          Optional<Set<String>> readableNamespaces) {
-        List<SearchResult> results = new ArrayList<>();
-
-        for (Document namespaceDoc : collection.find()) {
-            String namespace = namespaceDoc.get("namespace", String.class);
-            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
-                continue;
-            }
-            TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
-            List<Document> entries = wrapper.getList(arrayField);
-            if (entries == null) {
-                continue;
-            }
-            for (Document entry : entries) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                String name = entry.get("name", String.class);
-                String description = entry.get("description", String.class);
-                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
-                    results.add(new SearchResult(
-                            namespace,
-                            entry.get(idField, Integer.class),
-                            SearchTextMatcher.nullToEmpty(name),
-                            SearchTextMatcher.nullToEmpty(description)
-                    ));
-                }
-            }
-        }
-
-        return results;
-    }
 
     private List<SearchResult> searchControlCollection(String lowerQuery) {
         List<SearchResult> results = new ArrayList<>();
@@ -176,49 +180,63 @@ public class NitriteSearchStore implements SearchStore {
         return results;
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * ADR searches on the latest revision's title. See
+     * {@code MongoSearchStore.searchAdrCollection} for why this goes through the helper.
+     */
     private List<SearchResult> searchAdrCollection(String lowerQuery, Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
-        for (Document namespaceDoc : adrCollection.find()) {
-            String namespace = namespaceDoc.get("namespace", String.class);
+        for (Document header : adrCollection.find()) {
+            if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                return results;
+            }
+            String namespace = header.get("namespace", String.class);
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
-            TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
-            List<Document> adrs = wrapper.getList("adrs");
-            if (adrs == null) {
+            Integer adrId = header.get("adrId", Integer.class);
+            if (adrId == null) {
+                // SearchResult takes a primitive id, and resolving the latest revision would
+                // unbox this too. An ADR with no id is not addressable, so it is not a result.
                 continue;
             }
-            for (Document adr : adrs) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                Integer adrId = adr.get("adrId", Integer.class);
-                String title = "ADR " + adrId;
+            String title = "ADR " + adrId;
 
-                Map<String, Object> revisions = (Map<String, Object>) adr.get("revisions");
-                if (revisions != null && !revisions.isEmpty()) {
-                    int latestRevision = revisions.keySet().stream()
-                            .map(Integer::parseInt)
-                            .mapToInt(i -> i)
-                            .max()
-                            .getAsInt();
-                    Object revObj = revisions.get(String.valueOf(latestRevision));
-                    if (revObj instanceof Document revisionDoc) {
-                        String docTitle = revisionDoc.get("title", String.class);
-                        if (docTitle != null) {
-                            title = docTitle;
-                        }
-                    }
+            String latest = adrDocuments.getLatestVersionContent(namespace, adrId);
+            if (latest != null) {
+                String documentTitle = titleOf(latest);
+                if (documentTitle != null) {
+                    title = documentTitle;
                 }
+            }
 
-                if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
-                    results.add(new SearchResult(namespace, adrId, title, ""));
-                }
+            if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
+                results.add(new SearchResult(namespace, adrId, title, ""));
             }
         }
 
         return results;
+    }
+
+    /**
+     * Reads an ADR revision's title with the same parser {@code NitriteAdrStore} uses.
+     *
+     * <p>Deliberately Jackson rather than {@code org.bson.Document.parse}: the two disagree
+     * about what is readable, so a BSON-only parse here would show a title in the ADR
+     * listing and a bare "ADR n" in search results for the same document. BSON also has no
+     * business in the Nitrite path, which stores content as a plain JSON string.</p>
+     *
+     * @return the title from a stored ADR revision, or {@code null} if it cannot be read.
+     * Content is a JSON string in this backend, so the field has to be parsed out; a search
+     * must not fail because one ADR's content is unreadable.
+     */
+    private String titleOf(String content) {
+        try {
+            JsonNode title = objectMapper.readTree(content).get("title");
+            return title == null || !title.isTextual() ? null : title.asText();
+        } catch (JsonProcessingException | RuntimeException e) {
+            return null;
+        }
     }
 }

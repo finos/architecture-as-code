@@ -1,202 +1,141 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.MongoWriteException;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.finos.calm.domain.CalmInterface;
-import org.finos.calm.domain.exception.*;
-import org.finos.calm.store.util.MongoUpsertPush;
-import org.finos.calm.store.util.MongoWriteFailures;
+import org.finos.calm.domain.exception.InterfaceNotFoundException;
+import org.finos.calm.domain.exception.InterfaceVersionExistsException;
+import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.InterfaceStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.util.MongoVersionDocumentStore;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+
 import io.quarkus.arc.lookup.LookupIfProperty;
+
+import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
 
 /**
  * MongoDB-backed implementation of {@link InterfaceStore}.
  *
- * <h2>Document model &amp; concurrency</h2>
- * Follows the same namespace-scoped document pattern as {@link MongoArchitectureStore}:
- * one document per namespace (enforced by a unique index on {@code interfaces.namespace}),
- * with an array of interface sub-documents. New interfaces are added via upsert + {@code $push},
- * and new versions use an atomic conditional update with {@code $elemMatch} /
- * {@code $exists: false} to prevent duplicate version creation under concurrency.
- * Unique interface IDs are generated atomically by {@link MongoCounterStore}.
+ * <h2>Document model</h2>
+ * One <em>header</em> document per interface in {@code interfaces}, and one <em>version</em>
+ * document per version in {@code interfaceVersions}. All document handling lives in
+ * {@link MongoVersionDocumentStore}.
  *
- * @see MongoCounterStore
+ * <p>Like Standard: version writes set name and description unconditionally, and there is no
+ * update path. Unlike every other type, its listing returns {@link NamespaceInterfaceSummary},
+ * which carries no version count — so the helper's summary is mapped down rather than
+ * returned directly. The count is computed either way; this just doesn't expose it, which is
+ * the interface's existing contract.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoInterfaceStore.class)
 public class MongoInterfaceStore implements InterfaceStore {
 
-    private static final Logger logger = LoggerFactory.getLogger(MongoInterfaceStore.class);
+    private static final String HEADER_COLLECTION = "interfaces";
+    private static final String VERSION_COLLECTION = "interfaceVersions";
+    private static final String ID_FIELD = "interfaceId";
+    private static final String RESOURCE_LABEL = "Interface";
 
     private final MongoCounterStore counterStore;
     private final MongoNamespaceStore namespaceStore;
-    private final MongoCollection<Document> interfaceCollection;
+    private final MongoVersionDocumentStore documentStore;
 
-    public MongoInterfaceStore(MongoDatabase database, MongoCounterStore mongoCounterStore, MongoNamespaceStore mongoNamespaceStore) {
-        this.counterStore = mongoCounterStore;
-        this.namespaceStore = mongoNamespaceStore;
-        this.interfaceCollection = database.getCollection("interfaces");
+    public MongoInterfaceStore(MongoDatabase database, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
+        this.counterStore = counterStore;
+        this.namespaceStore = namespaceStore;
+        this.documentStore = new MongoVersionDocumentStore(
+                database.getCollection(HEADER_COLLECTION),
+                database.getCollection(VERSION_COLLECTION),
+                ID_FIELD,
+                RESOURCE_LABEL);
     }
 
     @Override
     public List<NamespaceInterfaceSummary> getInterfacesForNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        requireNamespace(namespace);
+        return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED).stream()
+                .map(MongoInterfaceStore::toInterfaceSummary)
+                .toList();
+    }
 
-        Document namespaceDocument = interfaceCollection.find(Filters.eq("namespace", namespace)).first();
-
-        if (namespaceDocument == null) {
-            return List.of();
-        }
-
-        List<Document> interfaces = namespaceDocument.getList("interfaces", Document.class);
-        List<NamespaceInterfaceSummary> namespaceInterfaceSummary = new ArrayList<>();
-
-        for (Document interfaceDoc : interfaces) {
-            NamespaceInterfaceSummary summary = new NamespaceInterfaceSummary(
-                    interfaceDoc.getString("name"),
-                    interfaceDoc.getString("description"),
-                    interfaceDoc.getInteger("interfaceId")
-            );
-            namespaceInterfaceSummary.add(summary);
-        }
-
-        return namespaceInterfaceSummary;
+    /** Drops the version count, which {@link NamespaceInterfaceSummary} does not carry. */
+    private static NamespaceInterfaceSummary toInterfaceSummary(NamespaceResourceSummary summary) {
+        return new NamespaceInterfaceSummary(summary.getName(), summary.getDescription(), summary.getId());
     }
 
     @Override
     public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest interfaceRequest, String namespace) throws NamespaceNotFoundException {
         CalmInterface createdInterface = new CalmInterface(interfaceRequest);
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        requireNamespace(namespace);
+
+        Document content = Document.parse(interfaceRequest.getInterfaceJson());
 
         int id = counterStore.getNextInterfaceSequenceValue();
-        Document interfaceDocument = new Document("interfaceId", id)
-                .append("name", interfaceRequest.getName())
-                .append("description", interfaceRequest.getDescription())
-                .append("versions",
-                        new Document("1-0-0", Document.parse(interfaceRequest.getInterfaceJson())));
-
-        MongoUpsertPush.pushWithDuplicateRetry(interfaceCollection,
-                Filters.eq("namespace", namespace),
-                "interfaces", interfaceDocument);
+        documentStore.createHeader(namespace, id, interfaceRequest.getName(), interfaceRequest.getDescription());
+        documentStore.createFirstVersion(namespace, id, content);
 
         createdInterface.setId(id);
-        createdInterface.setVersion("1.0.0");
-
+        createdInterface.setVersion(INITIAL_VERSION);
         return createdInterface;
     }
 
     @Override
     public List<String> getInterfaceVersions(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
-        Document result = retrieveInterfaceVersions(namespace);
-
-        List<Document> interfaces = result.getList("interfaces", Document.class);
-        for (Document interfaceDoc : interfaces) {
-            if (interfaceId.equals(interfaceDoc.getInteger("interfaceId"))) {
-                Document versions = (Document) interfaceDoc.get("versions");
-                if (versions == null) {
-                    throw new InterfaceNotFoundException();
-                }
-                Set<String> versionKeys = versions.keySet();
-
-                List<String> resourceVersions = new ArrayList<>();
-                for (String versionKey : versionKeys) {
-                    resourceVersions.add(versionKey.replace('-', '.'));
-                }
-                return resourceVersions;
-            }
-        }
-
-        throw new InterfaceNotFoundException();
-    }
-
-    private Document retrieveInterfaceVersions(String namespace) throws NamespaceNotFoundException, InterfaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-
-        Bson filter = new Document("namespace", namespace);
-        Bson projection = Projections.fields(Projections.include("interfaces"));
-
-        Document result = interfaceCollection.find(filter).projection(projection).first();
-
-        if (result == null) {
-            throw new InterfaceNotFoundException();
-        }
-
-        return result;
+        requireInterface(namespace, interfaceId);
+        return documentStore.listVersions(namespace, interfaceId);
     }
 
     @Override
     public String getInterfaceForVersion(String namespace, Integer interfaceId, String version) throws NamespaceNotFoundException, InterfaceNotFoundException, InterfaceVersionNotFoundException {
-        Document result = retrieveInterfaceVersions(namespace);
-        List<Document> interfaces = result.getList("interfaces", Document.class);
-        for (Document interfaceDoc : interfaces) {
-            if (interfaceId.equals(interfaceDoc.getInteger("interfaceId"))) {
-                Document versions = (Document) interfaceDoc.get("versions");
-                if (versions == null) {
-                    throw new InterfaceVersionNotFoundException();
-                }
-                Document versionDoc = (Document) versions.get(version.replace('.', '-'));
-                if (versionDoc == null) {
-                    throw new InterfaceVersionNotFoundException();
-                }
-                return versionDoc.toJson();
-            }
+        requireInterface(namespace, interfaceId);
+
+        Document content = documentStore.getVersion(namespace, interfaceId, version);
+        if (content == null) {
+            throw new InterfaceVersionNotFoundException();
         }
-        throw new InterfaceNotFoundException();
+        return content.toJson();
     }
 
     @Override
     public CalmInterface createInterfaceForVersion(CreateInterfaceRequest interfaceRequest, String namespace, Integer interfaceId, String version) throws NamespaceNotFoundException, InterfaceNotFoundException, InterfaceVersionExistsException {
-        // Validates namespace and interface existence
-        getInterfaceVersions(namespace, interfaceId);
+        requireInterface(namespace, interfaceId);
 
-        String mongoVersion = version.replace('.', '-');
-
-        // Atomic conditional update: only succeeds if the version doesn't already exist
-        Document filter = new Document("namespace", namespace)
-                .append("interfaces", new Document("$elemMatch",
-                        new Document("interfaceId", interfaceId)
-                                .append("versions." + mongoVersion, new Document("$exists", false))));
-
-        Document update = new Document("$set", new Document()
-                .append("interfaces.$.name", interfaceRequest.getName())
-                .append("interfaces.$.description", interfaceRequest.getDescription())
-                .append("interfaces.$.versions." + mongoVersion, Document.parse(interfaceRequest.getInterfaceJson())));
-
-        try {
-            if (interfaceCollection.updateOne(filter, update).getMatchedCount() == 0) {
-                throw new InterfaceVersionExistsException();
-            }
-        } catch (MongoWriteException ex) {
-            logger.error("Failed to write interface [namespace={}, id={}, version={}] to mongo",
-                    namespace, interfaceId, version, ex);
-            throw MongoWriteFailures.toStorageWriteException(ex);
+        Document content = Document.parse(interfaceRequest.getInterfaceJson());
+        if (!documentStore.createVersion(namespace, interfaceId, version, content)) {
+            throw new InterfaceVersionExistsException();
         }
+
+        // Unconditional, matching the old shape.
+        documentStore.updateHeaderDetails(namespace, interfaceId,
+                interfaceRequest.getName(), interfaceRequest.getDescription());
 
         CalmInterface calmInterface = new CalmInterface(interfaceRequest);
         calmInterface.setId(interfaceId);
         calmInterface.setVersion(version);
         return calmInterface;
+    }
+
+
+    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
+        if (!namespaceStore.namespaceExists(namespace)) {
+            throw new NamespaceNotFoundException();
+        }
+    }
+
+    private void requireInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
+        requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, interfaceId)) {
+            throw new InterfaceNotFoundException();
+        }
     }
 }
