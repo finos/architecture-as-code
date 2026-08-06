@@ -256,6 +256,27 @@ describe('renderFlowOverlay', () => {
     expect(new Set(cxs).size).toBe(cxs.length);
   });
 
+  it('separates request/response badges even on a short edge (return-lane offset)', () => {
+    const shortLayouts = new Map([
+      ['rel-s', [{ id: 'rel-s', points: [ { x: 100, y: 100 }, { x: 100, y: 140 } ] }]],
+    ]);
+    const rrFlow: CalmFlow = {
+      'unique-id': 'rr',
+      name: 'RR',
+      description: 'request-response on a 40px edge',
+      transitions: [
+        { 'relationship-unique-id': 'rel-s', 'sequence-number': 1, description: 'req', direction: 'source-to-destination' },
+        { 'relationship-unique-id': 'rel-s', 'sequence-number': 2, description: 'res', direction: 'destination-to-source' },
+      ],
+    };
+    const svg = renderFlowOverlay(rrFlow, shortLayouts);
+    const centers = [...svg.matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)" r="10"/g)].map((m) => [Number(m[1]), Number(m[2])]);
+    expect(centers.length).toBe(2);
+    const [a, b] = centers as [[number, number], [number, number]];
+    const dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    expect(dist).toBeGreaterThanOrEqual(18);
+  });
+
   it('renders destination-to-source badges hollow (response convention)', () => {
     const svg = renderFlowOverlay(reverseFlow, twoEdgeLayouts);
     // reverseFlow's single transition is destination-to-source
