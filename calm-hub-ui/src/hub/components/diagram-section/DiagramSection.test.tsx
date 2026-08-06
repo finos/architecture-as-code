@@ -25,7 +25,6 @@ const calmServiceMock = {
 const layoutServiceMock = {
     getDefaultLayout: vi.fn().mockResolvedValue(null),
     saveDefaultLayout: vi.fn().mockResolvedValue(undefined),
-    deleteDefaultLayout: vi.fn().mockResolvedValue(undefined),
 };
 
 vi.mock('react-router-dom', async () => {
@@ -104,7 +103,6 @@ vi.mock('../../../service/layout-service.js', () => ({
     LayoutService: vi.fn().mockImplementation(function () { return {
         getDefaultLayout: layoutServiceMock.getDefaultLayout,
         saveDefaultLayout: layoutServiceMock.saveDefaultLayout,
-        deleteDefaultLayout: layoutServiceMock.deleteDefaultLayout,
     }; }),
 }));
 
@@ -721,6 +719,70 @@ describe('DiagramSection', () => {
 
             await user.click(resetButton);
             await waitFor(() => expect(resetButton).toBeDisabled());
+        });
+
+        it('surfaces a save failure as an inline alert in the main pane on desktop', async () => {
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            layoutServiceMock.saveDefaultLayout.mockRejectedValueOnce(new Error('boom'));
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
+            await user.click(screen.getByText('simulate-drag-report'));
+            const saveButton = await screen.findByLabelText('Save as default layout');
+
+            await user.click(saveButton);
+
+            expect(await screen.findByRole('alert')).toHaveTextContent('boom');
+            // The old wrapper-title tooltip is gone — both buttons' own titles
+            // used to make it unreachable by hover, so it never worked.
+            expect(saveButton.parentElement).not.toHaveAttribute('title');
+        });
+
+        it('does not render an alert after a successful save', async () => {
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
+            await user.click(screen.getByText('simulate-drag-report'));
+            await user.click(await screen.findByLabelText('Save as default layout'));
+
+            await waitFor(() => expect(layoutServiceMock.saveDefaultLayout).toHaveBeenCalled());
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        });
+
+        it('surfaces a save failure as an inline alert on mobile even after the menu closes', async () => {
+            const restore = mockMobileViewport();
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            layoutServiceMock.saveDefaultLayout.mockRejectedValueOnce(new Error('boom'));
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
+            await user.click(screen.getByText('simulate-drag-report'));
+
+            await user.click(screen.getByRole('button', { name: /view options/i }));
+            const saveButton = await screen.findByLabelText('Save as default layout');
+            await user.click(saveButton);
+
+            // The mobile handler closes the overlay before the async save settles —
+            // the alert must still surface once it does, in the main pane underneath.
+            await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+            expect(await screen.findByRole('alert')).toHaveTextContent('boom');
+            restore();
         });
     });
 });

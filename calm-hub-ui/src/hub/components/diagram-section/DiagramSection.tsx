@@ -417,7 +417,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     // architecture, and never while comparing versions.
     const showLayoutActions = !comparing && activeTab === 'diagram' && isArchitecture;
     const layoutActions = showLayoutActions && (
-        <div className="flex items-center gap-1" title={defaultLayoutState.saveError ?? undefined}>
+        <div className="flex items-center gap-1">
             {canSaveLayout && (
                 <button
                     type="button"
@@ -440,6 +440,25 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             >
                 <IoRefreshOutline size={16} />
             </button>
+        </div>
+    );
+
+    // Shared error banner for a failed save, rendered in the main pane on both
+    // desktop and mobile — not in the mobile view-options menu, which the two
+    // handlers below close before the async save settles, so an error rendered
+    // there would never be seen. Mirrors Drawer's dropError banner; there is no
+    // toast/notification system in this app.
+    const layoutSaveError = showLayoutActions && defaultLayoutState.saveError && (
+        <div
+            role="alert"
+            className="shrink-0 mx-3 mt-2 px-3 py-2 rounded-md text-[12px]"
+            style={{
+                color: colors.status.error,
+                border: `1px solid ${colors.status.error}`,
+                backgroundColor: colors.redesign.surface,
+            }}
+        >
+            {defaultLayoutState.saveError}
         </div>
     );
 
@@ -575,11 +594,6 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                                     </span>
                                     <span className="flex-1 min-w-0 truncate">Reset to default layout</span>
                                 </button>
-                                {defaultLayoutState.saveError && (
-                                    <div className="px-4 py-2 text-xs" style={{ color: colors.status.error }}>
-                                        {defaultLayoutState.saveError}
-                                    </div>
-                                )}
                             </div>
                         )}
                         {!comparing && activeTab === 'diagram' && (
@@ -675,6 +689,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                         breadcrumbs={breadcrumbs}
                         onBreadcrumbClick={handleBreadcrumbClick}
                     />
+                    {layoutSaveError}
                     <div className="flex-1 min-h-0 overflow-hidden">{content}</div>
                     {timelineBar}
                 </div>
@@ -709,6 +724,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                         </span>
                     </button>
                 )}
+                {layoutSaveError}
                 <div className="flex-1 min-h-0 overflow-hidden relative">
                     {content}
                 </div>
