@@ -9,7 +9,6 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
-import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.LayoutStore;
 import org.slf4j.Logger;
@@ -97,26 +96,6 @@ public class NitriteLayoutStore implements LayoutStore {
             existing.put(LAYOUT_FIELD, layoutJson);
             layoutCollection.update(existing);
             LOG.debug("Saved default layout for architecture {} in namespace '{}'", architectureId, namespace);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    @Override
-    public void deleteLayout(String namespace, int architectureId) throws NamespaceNotFoundException, LayoutNotFoundException {
-        requireNamespace(namespace);
-
-        lock.lock();
-        try {
-            Document existing = fetchLayoutDocument(namespace, architectureId);
-            if (existing == null) {
-                LOG.warn("No default layout found for architecture {} in namespace '{}' when deleting", architectureId, namespace);
-                throw new LayoutNotFoundException();
-            }
-            // By identity, not by a filter — the document is already in hand, so there is no
-            // need to re-resolve it.
-            layoutCollection.remove(existing);
-            LOG.debug("Deleted default layout for architecture {} in namespace '{}'", architectureId, namespace);
         } finally {
             lock.unlock();
         }

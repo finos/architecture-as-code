@@ -1,6 +1,5 @@
 package org.finos.calm.store;
 
-import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 
 import java.util.List;
@@ -42,16 +41,6 @@ public interface LayoutStore {
      * @throws NamespaceNotFoundException if the namespace does not exist
      */
     void upsertLayout(String namespace, int architectureId, String layoutJson) throws NamespaceNotFoundException;
-
-    /**
-     * Delete the default layout for an architecture.
-     *
-     * @param namespace      the namespace the architecture belongs to
-     * @param architectureId the id of the architecture
-     * @throws NamespaceNotFoundException if the namespace does not exist
-     * @throws LayoutNotFoundException    if no default layout is saved for this architecture
-     */
-    void deleteLayout(String namespace, int architectureId) throws NamespaceNotFoundException, LayoutNotFoundException;
 
     /**
      * Architecture ids in this namespace that currently have a saved default layout. Used

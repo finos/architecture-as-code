@@ -7,14 +7,12 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReplaceOptions;
-import com.mongodb.client.result.DeleteResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.BsonMaximumSizeExceededException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.LayoutStore;
@@ -123,18 +121,6 @@ public class MongoLayoutStore implements LayoutStore {
             }
         }
         LOG.debug("Saved default layout for architecture {} in namespace '{}'", architectureId, namespace);
-    }
-
-    @Override
-    public void deleteLayout(String namespace, int architectureId) throws NamespaceNotFoundException, LayoutNotFoundException {
-        requireNamespace(namespace);
-
-        DeleteResult result = layoutCollection.deleteOne(layoutFilter(namespace, architectureId));
-        if (result.getDeletedCount() == 0) {
-            LOG.warn("No default layout found for architecture {} in namespace '{}' when deleting", architectureId, namespace);
-            throw new LayoutNotFoundException();
-        }
-        LOG.debug("Deleted default layout for architecture {} in namespace '{}'", architectureId, namespace);
     }
 
     @Override

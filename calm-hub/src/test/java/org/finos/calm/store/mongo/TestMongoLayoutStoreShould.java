@@ -7,12 +7,10 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.ReplaceOptions;
-import com.mongodb.client.result.DeleteResult;
 import org.bson.BsonDocument;
 import org.bson.BsonMaximumSizeExceededException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StorageWriteException;
 import org.junit.jupiter.api.BeforeEach;
@@ -218,43 +216,6 @@ class TestMongoLayoutStoreShould {
 
         assertThrows(NamespaceNotFoundException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
         verify(layoutCollection, never()).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
-    }
-
-    // ---- deleteLayout ----
-
-    @Test
-    void delete_matching_document_successfully() throws NamespaceNotFoundException, LayoutNotFoundException {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        DeleteResult deleteResult = mock(DeleteResult.class);
-        when(deleteResult.getDeletedCount()).thenReturn(1L);
-        when(layoutCollection.deleteOne(any(Bson.class))).thenReturn(deleteResult);
-
-        layoutStore.deleteLayout(namespace, 5);
-
-        verify(layoutCollection, times(1)).deleteOne(any(Bson.class));
-    }
-
-    @Test
-    void throw_layout_not_found_when_delete_matches_nothing() {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        DeleteResult deleteResult = mock(DeleteResult.class);
-        when(deleteResult.getDeletedCount()).thenReturn(0L);
-        when(layoutCollection.deleteOne(any(Bson.class))).thenReturn(deleteResult);
-
-        assertThrows(LayoutNotFoundException.class, () -> layoutStore.deleteLayout(namespace, 5));
-    }
-
-    @Test
-    void throw_namespace_not_found_when_deleting_layout_in_unknown_namespace() {
-        String namespace = "unknown";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
-
-        assertThrows(NamespaceNotFoundException.class, () -> layoutStore.deleteLayout(namespace, 5));
-        verify(layoutCollection, never()).deleteOne(any(Bson.class));
     }
 
     // ---- getArchitectureIdsWithLayoutForNamespace ----

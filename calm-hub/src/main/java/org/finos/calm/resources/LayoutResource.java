@@ -6,7 +6,6 @@ import jakarta.inject.Inject;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -18,9 +17,9 @@ import org.bson.Document;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.LayoutStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,11 +44,13 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 public class LayoutResource {
 
     private final LayoutStore layoutStore;
+    private final ArchitectureStore architectureStore;
     private final Logger logger = LoggerFactory.getLogger(LayoutResource.class);
 
     @Inject
-    public LayoutResource(LayoutStore layoutStore) {
+    public LayoutResource(LayoutStore layoutStore, ArchitectureStore architectureStore) {
         this.layoutStore = layoutStore;
+        this.architectureStore = architectureStore;
     }
 
     /**
@@ -98,7 +99,7 @@ public class LayoutResource {
             summary = "Save the default layout for an architecture",
             description = "Creates or overwrites the shared default layout for this architecture, requiring "
                     + "namespace write access. If the layout body includes a `for` target, it must reference "
-                    + "this architecture's canonical path."
+                    + "this architecture's canonical path. The architecture must already exist."
     )
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response saveLayout(
@@ -113,6 +114,16 @@ public class LayoutResource {
                 return CalmResourceErrorResponses.invalidLayoutTargetResponse(forPath, expectedPath);
             }
 
+            // Checked on the write path only, not on get: a layout with nothing to attach to
+            // is a real problem (an orphan that blocks namespace deletion — see
+            // NamespaceContentService.hasContent), but a GET for an unknown architecture id
+            // already 404s via layoutNotFoundResponse below, which the UI already treats as
+            // "no default saved". No need to pay for a second existence check there.
+            if (!architectureStore.architectureExists(namespace, architectureId)) {
+                logger.warn("No architecture [{}] in namespace [{}] to save a layout against", architectureId, namespace);
+                return CalmResourceErrorResponses.architectureNotFoundResponse(namespace, architectureId);
+            }
+
             layoutStore.upsertLayout(namespace, architectureId, layoutJson);
             return Response.noContent().build();
         } catch (JsonParseException e) {
@@ -121,38 +132,6 @@ public class LayoutResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when saving layout for architecture [{}]", namespace, architectureId, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
-        }
-    }
-
-    /**
-     * Delete the default layout for an architecture.
-     *
-     * @param namespace      the namespace the architecture belongs to
-     * @param architectureId the id of the architecture
-     * @return 204 on success, or an appropriate error response
-     */
-    @DELETE
-    @Path("{namespace}/architectures/{architectureId}/layout")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Operation(
-            summary = "Delete the default layout for an architecture",
-            description = "Removes the shared default layout for this architecture, if one exists, requiring "
-                    + "namespace write access."
-    )
-    @PermissionsAllowed(CalmHubScopes.WRITE)
-    public Response deleteLayout(
-            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("architectureId") @Min(value = 1, message = "Architecture ID must be a positive integer") int architectureId
-    ) {
-        try {
-            layoutStore.deleteLayout(namespace, architectureId);
-            return Response.noContent().build();
-        } catch (NamespaceNotFoundException e) {
-            logger.error("Invalid namespace [{}] when deleting layout for architecture [{}]", namespace, architectureId, e);
-            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
-        } catch (LayoutNotFoundException e) {
-            logger.error("No layout found for architecture [{}] in namespace [{}] when deleting", architectureId, namespace, e);
-            return CalmResourceErrorResponses.layoutNotFoundResponse(namespace, architectureId);
         }
     }
 

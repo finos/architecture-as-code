@@ -6,7 +6,6 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
-import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -168,45 +167,6 @@ class TestNitriteLayoutStoreShould {
         assertThrows(NamespaceNotFoundException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
         verify(layoutCollection, never()).insert(any(Document.class));
         verify(layoutCollection, never()).update(any(Document.class));
-    }
-
-    // ---- deleteLayout ----
-
-    @Test
-    void delete_matching_document_successfully() throws NamespaceNotFoundException, LayoutNotFoundException {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        Document existing = Document.createDocument("namespace", namespace)
-                .put("architectureId", 5).put("layout", LAYOUT_JSON);
-
-        when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(existing);
-
-        layoutStore.deleteLayout(namespace, 5);
-
-        // By identity — the document is already in hand from the find above, so there is no
-        // filtered remove to verify separately.
-        verify(layoutCollection).remove(existing);
-    }
-
-    @Test
-    void throw_layout_not_found_when_no_document_matches() {
-        String namespace = "finos";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(null);
-
-        assertThrows(LayoutNotFoundException.class, () -> layoutStore.deleteLayout(namespace, 5));
-    }
-
-    @Test
-    void throw_namespace_not_found_when_deleting_layout_in_unknown_namespace() {
-        String namespace = "unknown";
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
-
-        assertThrows(NamespaceNotFoundException.class, () -> layoutStore.deleteLayout(namespace, 5));
-        verify(layoutCollection, never()).find(any(Filter.class));
     }
 
     // ---- getArchitectureIdsWithLayoutForNamespace ----

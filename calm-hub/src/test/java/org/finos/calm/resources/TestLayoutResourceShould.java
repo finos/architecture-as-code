@@ -5,8 +5,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import org.bson.json.JsonParseException;
-import org.finos.calm.domain.exception.LayoutNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.LayoutStore;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,14 @@ public class TestLayoutResourceShould {
     LayoutStore mockLayoutStore;
 
     @InjectMock
+    ArchitectureStore mockArchitectureStore;
+
+    @InjectMock
     UserAccessStore mockUserAccessStore;
+
+    private void givenArchitectureExists() throws NamespaceNotFoundException {
+        when(mockArchitectureStore.architectureExists("finos", 5)).thenReturn(true);
+    }
 
     private static final String VALID_LAYOUT_JSON = """
             {
@@ -109,6 +116,8 @@ public class TestLayoutResourceShould {
 
     @Test
     void return_204_when_layout_saved() throws NamespaceNotFoundException {
+        givenArchitectureExists();
+
         given()
                 .contentType(ContentType.JSON)
                 .body(VALID_LAYOUT_JSON)
@@ -123,6 +132,7 @@ public class TestLayoutResourceShould {
 
     @Test
     void accept_put_when_for_is_absent() throws NamespaceNotFoundException {
+        givenArchitectureExists();
         String layoutWithoutFor = "{ \"pins\": [] }";
 
         given()
@@ -152,6 +162,7 @@ public class TestLayoutResourceShould {
                 .body(containsString("does not match architecture"));
 
         verifyNoInteractions(mockLayoutStore);
+        verifyNoInteractions(mockArchitectureStore);
     }
 
     @Test
@@ -166,11 +177,28 @@ public class TestLayoutResourceShould {
                 .body(containsString("The layout JSON could not be parsed"));
 
         verifyNoInteractions(mockLayoutStore);
+        verifyNoInteractions(mockArchitectureStore);
+    }
+
+    @Test
+    void return_404_when_architecture_does_not_exist_for_put_layout() throws NamespaceNotFoundException {
+        when(mockArchitectureStore.architectureExists("finos", 5)).thenReturn(false);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_LAYOUT_JSON)
+                .when()
+                .put("/api/calm/namespaces/finos/architectures/5/layout")
+                .then()
+                .statusCode(404)
+                .body(containsString("Architecture 5 does not exist in namespace: finos"));
+
+        verify(mockLayoutStore, never()).upsertLayout(anyString(), anyInt(), anyString());
     }
 
     @Test
     void return_404_when_namespace_not_found_for_put_layout() throws NamespaceNotFoundException {
-        doThrow(new NamespaceNotFoundException()).when(mockLayoutStore).upsertLayout(anyString(), anyInt(), anyString());
+        doThrow(new NamespaceNotFoundException()).when(mockArchitectureStore).architectureExists(anyString(), anyInt());
 
         given()
                 .contentType(ContentType.JSON)
@@ -180,6 +208,8 @@ public class TestLayoutResourceShould {
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace provided: missing"));
+
+        verifyNoInteractions(mockLayoutStore);
     }
 
     @Test
@@ -224,80 +254,6 @@ public class TestLayoutResourceShould {
                 .statusCode(403);
 
         verifyNoInteractions(mockLayoutStore);
-    }
-
-    // ---- DELETE /api/calm/namespaces/{namespace}/architectures/{architectureId}/layout ----
-
-    @Test
-    void return_204_when_layout_deleted() throws Exception {
-        given()
-                .when()
-                .delete("/api/calm/namespaces/finos/architectures/5/layout")
-                .then()
-                .statusCode(204);
-
-        verify(mockLayoutStore, times(1)).deleteLayout("finos", 5);
-    }
-
-    @Test
-    void return_404_when_layout_not_found_for_delete() throws Exception {
-        doThrow(new LayoutNotFoundException()).when(mockLayoutStore).deleteLayout("finos", 5);
-
-        given()
-                .when()
-                .delete("/api/calm/namespaces/finos/architectures/5/layout")
-                .then()
-                .statusCode(404)
-                .body(containsString("No default layout saved for architecture 5 in namespace: finos"));
-    }
-
-    @Test
-    void return_404_when_namespace_not_found_for_delete_layout() throws Exception {
-        doThrow(new NamespaceNotFoundException()).when(mockLayoutStore).deleteLayout("missing", 5);
-
-        given()
-                .when()
-                .delete("/api/calm/namespaces/missing/architectures/5/layout")
-                .then()
-                .statusCode(404)
-                .body(containsString("Invalid namespace provided: missing"));
-    }
-
-    @Test
-    void return_400_when_namespace_invalid_for_delete_layout() {
-        given()
-                .when()
-                .delete("/api/calm/namespaces/invalid@namespace/architectures/5/layout")
-                .then()
-                .statusCode(400)
-                .body(containsString("namespace must match pattern"));
-
-        verifyNoInteractions(mockLayoutStore);
-    }
-
-    @Test
-    void return_400_when_architecture_id_is_zero_for_delete_layout() {
-        given()
-                .when()
-                .delete("/api/calm/namespaces/finos/architectures/0/layout")
-                .then()
-                .statusCode(400)
-                .body(containsString("Architecture ID must be a positive integer"));
-
-        verifyNoInteractions(mockLayoutStore);
-    }
-
-    @Test
-    @TestSecurity(user = "bob")
-    void return_403_when_write_scope_missing_for_delete_layout() {
-        when(mockUserAccessStore.getGrantsForUser("bob")).thenReturn(Collections.emptyList());
-
-        given()
-                .when()
-                .delete("/api/calm/namespaces/finos/architectures/5/layout")
-                .then()
-                .statusCode(403);
-
-        verifyNoInteractions(mockLayoutStore);
+        verifyNoInteractions(mockArchitectureStore);
     }
 }
