@@ -33,6 +33,20 @@ public class CalmResourceErrorResponses {
         return Response.status(Response.Status.BAD_REQUEST).entity("Invalid decorator JSON: " + message).build();
     }
 
+    /**
+     * Returns a 404 response for a layout write against an architecture id that does not
+     * exist. Deliberately not a reuse of {@link org.finos.calm.resources.ArchitectureResource}'s
+     * own not-found response — that one is terser ("Invalid architecture provided") and
+     * changing it would alter five existing, already-tested response bodies for a change
+     * scoped to layout saves.
+     */
+    public static Response architectureNotFoundResponse(String namespace, int architectureId) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Architecture " + architectureId + " does not exist in namespace: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
+                .build();
+    }
+
     public static Response layoutNotFoundResponse(String namespace, int architectureId) {
         return Response.status(Response.Status.NOT_FOUND)
                 .entity("No default layout saved for architecture " + architectureId + " in namespace: "

@@ -70,9 +70,12 @@ public class NamespaceContentService {
                 || isNotEmpty(() -> interfaceStore.getInterfacesForNamespace(namespace))
                 || isNotEmpty(() -> timelineStore.getTimelinesForNamespace(namespace))
                 || isNotEmpty(() -> decoratorStore.getDecoratorsForNamespace(namespace, null, null))
-                // Defensive rather than reachable today: a layout can only exist alongside
-                // its architecture, and ArchitectureResource exposes no DELETE, so there is
-                // no live path to a layouts-only namespace yet.
+                // A layout can only exist alongside its architecture — LayoutResource.saveLayout
+                // rejects a PUT for an architecture id that doesn't exist — so in practice this
+                // never fires while the architecture branch above would also be empty. Still not
+                // dead code: ArchitectureResource exposes no DELETE, so there is no live path to
+                // remove the architecture out from under an already-saved layout, and this check
+                // stays correct if that ever changes.
                 || isNotEmpty(() -> layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace));
     }
 

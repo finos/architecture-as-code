@@ -80,6 +80,12 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     }
 
     @Override
+    public boolean architectureExists(String namespace, int architectureId) throws NamespaceNotFoundException {
+        requireNamespace(namespace);
+        return documentStore.headerExists(namespace, architectureId);
+    }
+
+    @Override
     public Architecture createArchitectureForNamespace(Architecture architecture) throws NamespaceNotFoundException {
         requireNamespace(architecture.getNamespace());
         validateArchitectureJson(architecture.getArchitectureJson());
