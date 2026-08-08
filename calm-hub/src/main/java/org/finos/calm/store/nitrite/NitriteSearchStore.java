@@ -1,8 +1,5 @@
 package org.finos.calm.store.nitrite;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -13,8 +10,6 @@ import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
-import org.finos.calm.store.util.NitriteVersionDocumentStore;
-import org.finos.calm.store.util.VersionScheme;
 import org.finos.calm.store.util.SearchTextMatcher;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
@@ -31,9 +26,10 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * <p>
  * Searches across 7 resource collections by matching the query (case-insensitive)
  * against the {@code name} and {@code description} fields of each resource entry.
- * For ADRs, the {@code title} field of the latest revision is searched.
- * Controls are scoped by domain rather than namespace, so they bypass the
- * readable-namespaces filter.
+ * ADR's header carries a denormalized copy of the latest revision's title (see
+ * {@code calm-hub/decisions/0006-denormalize-adr-title-onto-header.md}), so it reads the
+ * same as every other type. Controls are scoped by domain rather than namespace, so they
+ * bypass the readable-namespaces filter.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
@@ -49,23 +45,6 @@ public class NitriteSearchStore implements SearchStore {
     private final NitriteCollection interfaceCollection;
     private final NitriteCollection controlCollection;
     private final NitriteCollection adrCollection;
-    /**
-     * Read-only. Do not add a write path through this field.
-     *
-     * <p>This is a second {@link NitriteVersionDocumentStore} over the same two collections
-     * {@link NitriteAdrStore} uses, and the two carry independent
-     * {@link java.util.concurrent.locks.ReentrantReadWriteLock}s. Writes are safe there only
-     * because that store's lock serialises every writer; a write issued through this instance
-     * would take a different lock and so would not be serialised against them, reintroducing
-     * the duplicate-revision race the lock exists to prevent — {@code createVersion}'s
-     * check-then-act would no longer be atomic with respect to the other instance.</p>
-     *
-     * <p>Reads need no such coordination, which is why two instances are tolerable at all. If
-     * this ever needs to write, share {@code NitriteAdrStore}'s instance rather than widening
-     * this one.</p>
-     */
-    private final NitriteVersionDocumentStore adrDocuments;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Inject
     public NitriteSearchStore(@StandaloneQualifier Nitrite db) {
@@ -76,8 +55,6 @@ public class NitriteSearchStore implements SearchStore {
         this.interfaceCollection = db.getCollection("interfaces");
         this.controlCollection = db.getCollection("controls");
         this.adrCollection = db.getCollection("adrs");
-        this.adrDocuments = new NitriteVersionDocumentStore(adrCollection,
-                db.getCollection("adrVersions"), "adrId", "ADR", VersionScheme.NUMERIC);
         LOG.info("NitriteSearchStore initialized");
     }
 
@@ -181,8 +158,12 @@ public class NitriteSearchStore implements SearchStore {
     }
 
     /**
-     * ADR searches on the latest revision's title. See
-     * {@code MongoSearchStore.searchAdrCollection} for why this goes through the helper.
+     * ADR's header carries a denormalized copy of the latest revision's title (written by
+     * {@code NitriteAdrStore} on every version write — see
+     * {@code calm-hub/decisions/0006-denormalize-adr-title-onto-header.md}), so this reads
+     * exactly like {@link #searchHeaderCollection} rather than resolving the version
+     * collection per header. The {@code "ADR " + adrId} fallback only fires for a header
+     * that predates both the write-path change and its one-time migration backfill.
      */
     private List<SearchResult> searchAdrCollection(String lowerQuery, Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
@@ -197,18 +178,13 @@ public class NitriteSearchStore implements SearchStore {
             }
             Integer adrId = header.get("adrId", Integer.class);
             if (adrId == null) {
-                // SearchResult takes a primitive id, and resolving the latest revision would
-                // unbox this too. An ADR with no id is not addressable, so it is not a result.
+                // SearchResult takes a primitive id, so a header missing its id field would
+                // unbox to a NullPointerException. An ADR with no id is not addressable.
                 continue;
             }
-            String title = "ADR " + adrId;
-
-            String latest = adrDocuments.getLatestVersionContent(namespace, adrId);
-            if (latest != null) {
-                String documentTitle = titleOf(latest);
-                if (documentTitle != null) {
-                    title = documentTitle;
-                }
+            String title = header.get("name", String.class);
+            if (title == null || title.isBlank()) {
+                title = "ADR " + adrId;
             }
 
             if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
@@ -217,26 +193,5 @@ public class NitriteSearchStore implements SearchStore {
         }
 
         return results;
-    }
-
-    /**
-     * Reads an ADR revision's title with the same parser {@code NitriteAdrStore} uses.
-     *
-     * <p>Deliberately Jackson rather than {@code org.bson.Document.parse}: the two disagree
-     * about what is readable, so a BSON-only parse here would show a title in the ADR
-     * listing and a bare "ADR n" in search results for the same document. BSON also has no
-     * business in the Nitrite path, which stores content as a plain JSON string.</p>
-     *
-     * @return the title from a stored ADR revision, or {@code null} if it cannot be read.
-     * Content is a JSON string in this backend, so the field has to be parsed out; a search
-     * must not fail because one ADR's content is unreadable.
-     */
-    private String titleOf(String content) {
-        try {
-            JsonNode title = objectMapper.readTree(content).get("title");
-            return title == null || !title.isTextual() ? null : title.asText();
-        } catch (JsonProcessingException | RuntimeException e) {
-            return null;
-        }
     }
 }

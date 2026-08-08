@@ -8,8 +8,6 @@ import org.bson.Document;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
-import org.finos.calm.store.util.MongoVersionDocumentStore;
-import org.finos.calm.store.util.VersionScheme;
 import org.finos.calm.store.util.SearchTextMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,9 +23,10 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * <p>
  * Searches across 7 resource collections by matching the query (case-insensitive)
  * against the {@code name} and {@code description} fields of each resource entry.
- * For ADRs, the {@code title} field of the latest revision is searched instead.
- * Controls are scoped by domain rather than namespace, so they bypass the
- * readable-namespaces filter.
+ * ADR's header carries a denormalized copy of the latest revision's title (see
+ * {@code calm-hub/decisions/0006-denormalize-adr-title-onto-header.md}), so it reads the
+ * same as every other type. Controls are scoped by domain rather than namespace, so they
+ * bypass the readable-namespaces filter.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
@@ -43,7 +42,6 @@ public class MongoSearchStore implements SearchStore {
     private final MongoCollection<Document> interfaceCollection;
     private final MongoCollection<Document> controlCollection;
     private final MongoCollection<Document> adrCollection;
-    private final MongoVersionDocumentStore adrDocuments;
 
     public MongoSearchStore(MongoDatabase database) {
         this.architectureCollection = database.getCollection("architectures");
@@ -53,8 +51,6 @@ public class MongoSearchStore implements SearchStore {
         this.interfaceCollection = database.getCollection("interfaces");
         this.controlCollection = database.getCollection("controls");
         this.adrCollection = database.getCollection("adrs");
-        this.adrDocuments = new MongoVersionDocumentStore(adrCollection,
-                database.getCollection("adrVersions"), "adrId", "ADR", VersionScheme.NUMERIC);
     }
 
     @Override
@@ -160,11 +156,12 @@ public class MongoSearchStore implements SearchStore {
     }
 
     /**
-     * ADR searches on the latest revision's title, so unlike every other type this cannot be
-     * answered from the header alone — the header carries no name. The latest revision is
-     * resolved through the same helper the ADR store uses, which is also what keeps the
-     * integer ordering correct: ranking revisions as strings would make 2 the latest once an
-     * ADR passed revision 9.
+     * ADR's header carries a denormalized copy of the latest revision's title (written by
+     * {@code MongoAdrStore} on every version write — see
+     * {@code calm-hub/decisions/0006-denormalize-adr-title-onto-header.md}), so this reads
+     * exactly like {@link #searchHeaderCollection} rather than resolving the version
+     * collection per header. The {@code "ADR " + adrId} fallback only fires for a header
+     * that predates both the write-path change and its one-time migration backfill.
      */
     private List<SearchResult> searchAdrCollection(String lowerQuery, Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
@@ -179,15 +176,13 @@ public class MongoSearchStore implements SearchStore {
             }
             Integer adrId = header.getInteger("adrId");
             if (adrId == null) {
-                // SearchResult takes a primitive id, and resolving the latest revision would
-                // unbox this too. An ADR with no id is not addressable, so it is not a result.
+                // SearchResult takes a primitive id, so a header missing its id field would
+                // unbox to a NullPointerException. An ADR with no id is not addressable.
                 continue;
             }
-            String title = "ADR " + adrId;
-
-            Document latest = adrDocuments.getLatestVersionContent(namespace, adrId);
-            if (latest != null && latest.getString("title") != null) {
-                title = latest.getString("title");
+            String title = header.getString("name");
+            if (title == null || title.isBlank()) {
+                title = "ADR " + adrId;
             }
 
             if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {

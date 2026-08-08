@@ -141,7 +141,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 10;
+const LATEST_SCHEMA_VERSION = 11;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -6395,6 +6395,11 @@ if (isEmptyDatabase && db.adrs.countDocuments() === 0) {
             adrs: [
                 {
                     adrId: NumberInt(1),
+                    // Denormalized copy of revisions[1].title — see
+                    // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md.
+                    // seedVersionedResource writes this onto the header the same way it
+                    // already does for every other type's `name`.
+                    name: 'Example ADR',
                     revisions: {
                         1: {
                             title: 'Example ADR',
@@ -6477,6 +6482,9 @@ if (isEmptyDatabase && db.adrs.countDocuments() === 0) {
             adrs: [
                 {
                     adrId: NumberInt(1),
+                    // Denormalized copy of revisions[1].title — see
+                    // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md.
+                    name: 'Use Load Balancer for Traffic Distribution',
                     revisions: {
                         1: {
                             title: 'Use Load Balancer for Traffic Distribution',
