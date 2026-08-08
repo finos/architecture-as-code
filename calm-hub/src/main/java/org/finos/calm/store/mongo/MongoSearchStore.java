@@ -181,7 +181,7 @@ public class MongoSearchStore implements SearchStore {
                 continue;
             }
             String title = header.getString("name");
-            if (title == null) {
+            if (title == null || title.isBlank()) {
                 title = "ADR " + adrId;
             }
 

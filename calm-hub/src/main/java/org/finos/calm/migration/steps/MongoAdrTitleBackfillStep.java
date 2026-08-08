@@ -2,7 +2,6 @@ package org.finos.calm.migration.steps;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -31,6 +30,14 @@ import java.util.List;
  * A header already carrying a non-blank {@code name} is left alone — that's true of every
  * header this step has already visited, and of any header the application itself created or
  * updated (through {@code MongoAdrStore}) since this step last ran partway and failed.
+ *
+ * <h2>Blank filtered in memory, not by the query</h2>
+ * "Untitled" is decided in Java (null or {@link String#isBlank()}), the same rule
+ * {@code MongoAdrStore#headerTitle} and {@code resolveTitle} below use — not by the Mongo
+ * query, which would need a regex to express "blank or missing" and would be one more query
+ * shape to keep in sync with that rule. Matches {@link NitriteAdrTitleBackfillStep}, which
+ * has to filter in memory anyway since Nitrite has no query-side filtering worth relying on
+ * here.
  *
  * <h2>Why ids are collected before any write</h2>
  * Same reason as {@link MongoVersionSplitMigration}: iterating a cursor while writing through
@@ -80,9 +87,14 @@ public class MongoAdrTitleBackfillStep implements SchemaMigrationStep {
      */
     public void backfill() {
         List<Document> untitledHeaders = new ArrayList<>();
-        headerCollection.find(Filters.or(Filters.exists("name", false), Filters.eq("name", null)))
-                .projection(Projections.include("namespace", "adrId"))
-                .forEach(untitledHeaders::add);
+        headerCollection.find()
+                .projection(Projections.include("namespace", "adrId", "name"))
+                .forEach(header -> {
+                    String name = header.getString("name");
+                    if (name == null || name.isBlank()) {
+                        untitledHeaders.add(header);
+                    }
+                });
 
         int updated = 0;
         for (Document header : untitledHeaders) {

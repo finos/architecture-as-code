@@ -183,7 +183,7 @@ public class NitriteSearchStore implements SearchStore {
                 continue;
             }
             String title = header.get("name", String.class);
-            if (title == null) {
+            if (title == null || title.isBlank()) {
                 title = "ADR " + adrId;
             }
 

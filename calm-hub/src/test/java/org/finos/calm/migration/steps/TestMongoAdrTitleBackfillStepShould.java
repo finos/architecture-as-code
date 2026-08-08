@@ -59,9 +59,10 @@ class TestMongoAdrTitleBackfillStepShould {
         step.databaseMode = "mongo";
     }
 
-    private void stubUntitledHeaders(List<Document> headers) {
+    /** Every header the collection holds — the step filters untitled ones out itself. */
+    private void stubHeaders(List<Document> headers) {
         FindIterable<Document> iterable = mock(DocumentFindIterable.class);
-        when(headerCollection.find(any(Bson.class))).thenReturn(iterable);
+        when(headerCollection.find()).thenReturn(iterable);
         when(iterable.projection(any())).thenReturn(iterable);
         doAnswer(invocation -> {
             Consumer<Document> consumer = invocation.getArgument(0);
@@ -94,23 +95,38 @@ class TestMongoAdrTitleBackfillStepShould {
 
         step.apply();
 
-        verify(headerCollection, never()).find(any(Bson.class));
+        verify(headerCollection, never()).find();
     }
 
     @Test
-    void query_for_headers_with_no_name() {
-        stubUntitledHeaders(List.of());
+    void skip_a_header_that_already_has_a_title() {
+        stubHeaders(List.of(new Document("namespace", "finos").append("adrId", 1).append("name", "Already Titled")));
 
         step.backfill();
 
-        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
-        verify(headerCollection).find(filterCaptor.capture());
-        assertThat(filterCaptor.getValue().toBsonDocument().toJson(), containsString("name"));
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
     }
 
     @Test
     void write_the_resolved_title_onto_an_untitled_header() throws Exception {
-        stubUntitledHeaders(List.of(new Document("namespace", "finos").append("adrId", 1)));
+        stubHeaders(List.of(new Document("namespace", "finos").append("adrId", 1)));
+        stubRevisions(List.of("1"), new Document("title", "Resolved Title"));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        step.backfill();
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).updateOne(any(Bson.class), updateCaptor.capture());
+        assertThat(updateCaptor.getValue().toBsonDocument().toJson(), containsString("Resolved Title"));
+    }
+
+    @Test
+    void write_the_resolved_title_onto_a_header_with_a_blank_title() throws Exception {
+        // A header with name: "   " must be picked up the same as one with no name field at
+        // all — "untitled" is null-or-blank everywhere else in this change, and a Mongo
+        // query for "missing or null" alone would leave a blank title stuck forever.
+        stubHeaders(List.of(new Document("namespace", "finos").append("adrId", 1).append("name", "   ")));
         stubRevisions(List.of("1"), new Document("title", "Resolved Title"));
         when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
@@ -124,7 +140,7 @@ class TestMongoAdrTitleBackfillStepShould {
 
     @Test
     void default_to_untitled_adr_when_the_latest_revision_has_no_title() throws Exception {
-        stubUntitledHeaders(List.of(new Document("namespace", "finos").append("adrId", 1)));
+        stubHeaders(List.of(new Document("namespace", "finos").append("adrId", 1)));
         stubRevisions(List.of("1"), new Document("status", "draft"));
         when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
@@ -138,7 +154,7 @@ class TestMongoAdrTitleBackfillStepShould {
 
     @Test
     void default_to_untitled_adr_when_there_is_no_readable_revision() throws Exception {
-        stubUntitledHeaders(List.of(new Document("namespace", "finos").append("adrId", 1)));
+        stubHeaders(List.of(new Document("namespace", "finos").append("adrId", 1)));
         stubRevisions(List.of(), null);
         when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
@@ -152,7 +168,7 @@ class TestMongoAdrTitleBackfillStepShould {
 
     @Test
     void skip_a_malformed_header_with_no_namespace_or_adr_id() {
-        stubUntitledHeaders(List.of(new Document("adrId", 1)));
+        stubHeaders(List.of(new Document("adrId", 1)));
 
         step.backfill();
 

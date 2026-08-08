@@ -199,6 +199,21 @@ class TestNitriteSearchStoreShould {
     }
 
     @Test
+    void fall_back_to_a_placeholder_title_when_an_adr_header_title_is_blank() {
+        // "Untitled" is null-or-blank everywhere else in this change; a header whose title
+        // somehow ended up blank must fall back the same way a missing one does.
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+        mockCollectionFind(adrCollection, List.of(
+                Document.createDocument("namespace", "finos").put("adrId", 7).put("name", "   ")));
+
+        GroupedSearchResults results = searchStore.search("ADR 7");
+
+        assertEquals(1, results.getAdrs().size());
+        assertEquals("ADR 7", results.getAdrs().get(0).getName());
+    }
+
+    @Test
     void cap_adr_results_at_max_per_type() {
         List<Document> headers = new ArrayList<>();
         for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
