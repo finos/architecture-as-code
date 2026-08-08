@@ -4,7 +4,6 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
-import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
@@ -21,8 +20,6 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -52,9 +49,6 @@ class TestNitriteSearchStoreShould {
     @Mock
     private NitriteCollection adrCollection;
 
-    @Mock
-    private NitriteCollection adrVersionCollection;
-
     private NitriteSearchStore searchStore;
 
     @BeforeEach
@@ -67,18 +61,7 @@ class TestNitriteSearchStoreShould {
         when(db.getCollection("interfaces")).thenReturn(interfaceCollection);
         when(db.getCollection("controls")).thenReturn(controlCollection);
         when(db.getCollection("adrs")).thenReturn(adrCollection);
-        when(db.getCollection("adrVersions")).thenReturn(adrVersionCollection);
         searchStore = new NitriteSearchStore(db);
-    }
-
-    /** Stubs the adrVersions collection: the revision list, and the latest revision's content. */
-    private void mockAdrRevisions(List<String> revisions, String latestContent) {
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(adrVersionCollection.find(any(Filter.class))).thenReturn(cursor);
-        when(cursor.firstOrNull()).thenReturn(
-                latestContent == null ? null : Document.createDocument("content", latestContent));
-        when(cursor.iterator()).thenAnswer(invocation ->
-                revisions.stream().map(r -> Document.createDocument("version", r)).iterator());
     }
 
     private static Document architectureHeader(int id, String name, String description) {
@@ -186,13 +169,14 @@ class TestNitriteSearchStoreShould {
     }
 
     @Test
-    void search_adr_by_latest_revision_title() {
-        // ADR reads its title from the latest revision's content, held here as a JSON string.
+    void search_adr_by_its_denormalized_header_title() {
+        // ADR's header carries a denormalized copy of the latest revision's title (see
+        // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md), so this reads it
+        // straight off the header like every other type — no version collection involved.
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
         mockCollectionFind(adrCollection, List.of(
-                Document.createDocument("namespace", "finos").put("adrId", 1)));
-        mockAdrRevisions(List.of("1"), "{\"title\": \"Use Event Sourcing\"}");
+                Document.createDocument("namespace", "finos").put("adrId", 1).put("name", "Use Event Sourcing")));
 
         GroupedSearchResults results = searchStore.search("event");
 
@@ -201,18 +185,33 @@ class TestNitriteSearchStoreShould {
     }
 
     @Test
-    void search_adr_uses_latest_revision_when_multiple_exist() {
+    void fall_back_to_a_placeholder_title_when_an_adr_header_has_none() {
+        // Only reachable for a header that predates both the write-path denormalization and
+        // its one-time migration backfill.
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(
-                Document.createDocument("namespace", "finos").put("adrId", 1)));
-        // Two revisions; the search must read the later one's title.
-        mockAdrRevisions(List.of("1", "2"), "{\"title\": \"New Title\"}");
+        mockCollectionFind(adrCollection, List.of(Document.createDocument("namespace", "finos").put("adrId", 7)));
 
-        GroupedSearchResults results = searchStore.search("New");
+        GroupedSearchResults results = searchStore.search("ADR 7");
 
         assertEquals(1, results.getAdrs().size());
-        assertEquals("New Title", results.getAdrs().get(0).getName());
+        assertEquals("ADR 7", results.getAdrs().get(0).getName());
+    }
+
+    @Test
+    void cap_adr_results_at_max_per_type() {
+        List<Document> headers = new ArrayList<>();
+        for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
+            headers.add(Document.createDocument("namespace", "finos").put("adrId", i).put("name", "Match " + i));
+        }
+
+        mockCollectionFind(adrCollection, headers);
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+
+        GroupedSearchResults results = searchStore.search("match");
+
+        assertEquals(SearchStore.MAX_RESULTS_PER_TYPE, results.getAdrs().size());
     }
 
     @Test
@@ -367,10 +366,8 @@ class TestNitriteSearchStoreShould {
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
         mockCollectionFind(adrCollection, List.of(
-                Document.createDocument("namespace", "finos").put("adrId", 1),
-                Document.createDocument("namespace", "secret-ns").put("adrId", 2)));
-        // Both resolve to the same stubbed title; the filter is what decides the result.
-        mockAdrRevisions(List.of("1"), "{\"title\": \"Allowed ADR\"}");
+                Document.createDocument("namespace", "finos").put("adrId", 1).put("name", "Allowed ADR"),
+                Document.createDocument("namespace", "secret-ns").put("adrId", 2).put("name", "Allowed ADR")));
 
         GroupedSearchResults results = searchStore.search("ADR",
                 Optional.of(Set.of("finos")));

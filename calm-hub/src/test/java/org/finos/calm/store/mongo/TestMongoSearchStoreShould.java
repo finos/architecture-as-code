@@ -20,9 +20,6 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -52,9 +49,6 @@ class TestMongoSearchStoreShould {
     @Mock
     private MongoCollection<Document> adrCollection;
 
-    @Mock
-    private MongoCollection<Document> adrVersionCollection;
-
     private MongoSearchStore searchStore;
 
     @BeforeEach
@@ -67,26 +61,7 @@ class TestMongoSearchStoreShould {
         when(database.getCollection("interfaces")).thenReturn(interfaceCollection);
         when(database.getCollection("controls")).thenReturn(controlCollection);
         when(database.getCollection("adrs")).thenReturn(adrCollection);
-        when(database.getCollection("adrVersions")).thenReturn(adrVersionCollection);
         searchStore = new MongoSearchStore(database);
-    }
-
-    /**
-     * Stubs the adrVersions collection the ADR search reads through: the revision list that
-     * ranks them, and the winning revision's content.
-     */
-    @SuppressWarnings("unchecked")
-    private void mockAdrRevisions(List<String> revisions, Document latestContent) {
-        FindIterable<Document> findIterable = mock(FindIterable.class);
-        when(adrVersionCollection.find(any(org.bson.conversions.Bson.class))).thenReturn(findIterable);
-        when(findIterable.projection(any())).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(
-                latestContent == null ? null : new Document("content", latestContent));
-        doAnswer(invocation -> {
-            java.util.function.Consumer<Document> consumer = invocation.getArgument(0);
-            revisions.forEach(revision -> consumer.accept(new Document("version", revision)));
-            return null;
-        }).when(findIterable).forEach(any());
     }
 
     private static Document architectureHeader(int id, String name, String description) {
@@ -236,13 +211,14 @@ class TestMongoSearchStoreShould {
     }
 
     @Test
-    void search_adr_by_latest_revision_title() {
-        // ADR reads its title from the latest revision's content, so the fixture needs a
-        // header and a revision document rather than one namespace-wide document.
+    void search_adr_by_its_denormalized_header_title() {
+        // ADR's header carries a denormalized copy of the latest revision's title (see
+        // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md), so this reads it
+        // straight off the header like every other type — no version collection involved.
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(new Document("namespace", "finos").append("adrId", 1)));
-        mockAdrRevisions(List.of("1"), new Document("title", "Use Event Sourcing"));
+        mockCollectionFind(adrCollection, List.of(
+                new Document("namespace", "finos").append("adrId", 1).append("name", "Use Event Sourcing")));
 
         GroupedSearchResults results = searchStore.search("event");
 
@@ -251,17 +227,33 @@ class TestMongoSearchStoreShould {
     }
 
     @Test
-    void search_adr_uses_latest_revision_when_multiple_exist() {
+    void fall_back_to_a_placeholder_title_when_an_adr_header_has_none() {
+        // Only reachable for a header that predates both the write-path denormalization and
+        // its one-time migration backfill.
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(new Document("namespace", "finos").append("adrId", 1)));
-        // Two revisions; the search must read the later one's title.
-        mockAdrRevisions(List.of("1", "2"), new Document("title", "New Title"));
+        mockCollectionFind(adrCollection, List.of(new Document("namespace", "finos").append("adrId", 7)));
 
-        GroupedSearchResults results = searchStore.search("New");
+        GroupedSearchResults results = searchStore.search("ADR 7");
 
         assertEquals(1, results.getAdrs().size());
-        assertEquals("New Title", results.getAdrs().get(0).getName());
+        assertEquals("ADR 7", results.getAdrs().get(0).getName());
+    }
+
+    @Test
+    void cap_adr_results_at_max_per_type() {
+        List<Document> headers = new ArrayList<>();
+        for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
+            headers.add(new Document("namespace", "finos").append("adrId", i).append("name", "Match " + i));
+        }
+
+        mockCollectionFind(adrCollection, headers);
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+
+        GroupedSearchResults results = searchStore.search("match");
+
+        assertEquals(SearchStore.MAX_RESULTS_PER_TYPE, results.getAdrs().size());
     }
 
 
