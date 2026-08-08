@@ -5,6 +5,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.finos.calm.migration.steps.MongoArchitectureVersionSplitStep;
+import org.finos.calm.migration.steps.MongoControlVersionSplitStep;
 import org.finos.calm.migration.steps.MongoIndexInitializationStep;
 import org.finos.calm.migration.steps.MongoAdrVersionSplitStep;
 import org.finos.calm.migration.steps.MongoFlowVersionSplitStep;
@@ -61,6 +62,10 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             new MongoInterfaceVersionSplitStep(database).transitionIndexes();
             new MongoTimelineVersionSplitStep(database).transitionIndexes();
             new MongoAdrVersionSplitStep(database).transitionIndexes();
+            // Control (ADR 0007) — the double-nested type, migrated last. Its transition
+            // creates four indexes rather than two (requirement axis + configuration axis)
+            // but the reason to call it here is identical to every line above.
+            new MongoControlVersionSplitStep(database).transitionIndexes();
             // Not a version split — layout was never in the header/version shape to begin
             // with — but the same principle applies: without this, MongoIndexInitializationStep
             // creates no layouts index at all (it was deliberately removed from that step's

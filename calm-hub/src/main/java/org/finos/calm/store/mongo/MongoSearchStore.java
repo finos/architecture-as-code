@@ -63,7 +63,11 @@ public class MongoSearchStore implements SearchStore {
                 searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(interfaceCollection, "interfaceId", lowerQuery, readableNamespaces),
-                searchControlCollection(lowerQuery),
+                // Control moved onto the same header/version shape as every other type here
+                // (ADR 0007), with its domain stored in the header's "namespace" field —
+                // Optional.empty() is what makes this bypass the readable-namespaces filter,
+                // since controls are scoped by domain rather than namespace.
+                searchHeaderCollection(controlCollection, "controlId", lowerQuery, Optional.empty()),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
     }
@@ -125,35 +129,6 @@ public class MongoSearchStore implements SearchStore {
         return results;
     }
 
-
-    private List<SearchResult> searchControlCollection(String lowerQuery) {
-        List<SearchResult> results = new ArrayList<>();
-
-        for (Document domainDoc : controlCollection.find()) {
-            String domain = domainDoc.getString("domain");
-            List<Document> controls = domainDoc.getList("controls", Document.class);
-            if (controls == null) {
-                continue;
-            }
-            for (Document control : controls) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                String name = control.getString("name");
-                String description = control.getString("description");
-                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
-                    results.add(new SearchResult(
-                            domain,
-                            control.getInteger("controlId"),
-                            SearchTextMatcher.nullToEmpty(name),
-                            SearchTextMatcher.nullToEmpty(description)
-                    ));
-                }
-            }
-        }
-
-        return results;
-    }
 
     /**
      * ADR's header carries a denormalized copy of the latest revision's title (written by
