@@ -16,6 +16,7 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
+import org.finos.calm.store.util.NamespaceGuard;
 import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +91,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
 
         List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (NamespaceResourceSummary header : documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED)) {
@@ -101,7 +102,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public int countAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
         return documentStore.countHeaders(namespace);
     }
 
@@ -138,7 +139,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException {
-        requireNamespace(adrMeta.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, adrMeta.getNamespace());
 
         Document content = toContent(adrMeta);
 
@@ -242,7 +243,6 @@ public class MongoAdrStore implements AdrStore {
                 .build();
     }
 
-
     /**
      * Writes a new revision, rejecting one that already exists.
      *
@@ -276,14 +276,8 @@ public class MongoAdrStore implements AdrStore {
         }
     }
 
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {
-        requireNamespace(adrMeta.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, adrMeta.getNamespace());
         if (!documentStore.headerExists(adrMeta.getNamespace(), adrMeta.getId())) {
             throw new AdrNotFoundException();
         }

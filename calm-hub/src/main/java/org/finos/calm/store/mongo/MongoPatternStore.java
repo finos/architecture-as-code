@@ -14,6 +14,7 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
+import org.finos.calm.store.util.NamespaceGuard;
 
 import java.util.List;
 
@@ -64,13 +65,13 @@ public class MongoPatternStore implements PatternStore {
 
     @Override
     public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
         return documentStore.listSummariesPaged(namespace, page);
     }
 
     @Override
     public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
 
         // Parsed before the counter is drawn and before anything is written, so malformed
         // JSON can't leave a header behind with no version to go with it.
@@ -135,7 +136,6 @@ public class MongoPatternStore implements PatternStore {
         return pattern;
     }
 
-
     /**
      * Applies the name and description that came with a version write, ignoring either that
      * is blank. Called only <em>after</em> the version write succeeds: the old shape set
@@ -147,14 +147,8 @@ public class MongoPatternStore implements PatternStore {
                 pattern.getName(), pattern.getDescription());
     }
 
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requirePattern(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        requireNamespace(pattern.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, pattern.getNamespace());
         if (!documentStore.headerExists(pattern.getNamespace(), pattern.getId())) {
             throw new PatternNotFoundException();
         }

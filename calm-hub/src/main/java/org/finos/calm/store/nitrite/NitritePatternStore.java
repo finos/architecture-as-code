@@ -15,6 +15,7 @@ import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
+import org.finos.calm.store.util.NamespaceGuard;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,13 +69,13 @@ public class NitritePatternStore implements PatternStore {
 
     @Override
     public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
         return documentStore.listSummariesPaged(namespace, page);
     }
 
     @Override
     public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException, JsonParseException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
         validatePatternJson(patternRequest.getPatternJson());
 
         int id = counterStore.getNextPatternSequenceValue();
@@ -115,7 +116,7 @@ public class NitritePatternStore implements PatternStore {
 
     @Override
     public Pattern createPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException {
-        requireNamespace(pattern.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, pattern.getNamespace());
         validatePatternJson(pattern.getPatternJson());
         requirePatternExists(pattern);
 
@@ -133,7 +134,7 @@ public class NitritePatternStore implements PatternStore {
 
     @Override
     public Pattern updatePatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        requireNamespace(pattern.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, pattern.getNamespace());
         validatePatternJson(pattern.getPatternJson());
         requirePatternExists(pattern);
 
@@ -166,7 +167,6 @@ public class NitritePatternStore implements PatternStore {
         }
     }
 
-
     /**
      * Applies the name and description that came with a version write, ignoring either that
      * is blank, and only after the version write succeeds.
@@ -174,13 +174,6 @@ public class NitritePatternStore implements PatternStore {
     private void updateHeaderDetails(Pattern pattern) {
         documentStore.updatePresentHeaderDetails(pattern.getNamespace(), pattern.getId(),
                 pattern.getName(), pattern.getDescription());
-    }
-
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found", namespace);
-            throw new NamespaceNotFoundException();
-        }
     }
 
     private void requirePatternExists(Pattern pattern) throws PatternNotFoundException {
@@ -191,7 +184,7 @@ public class NitritePatternStore implements PatternStore {
     }
 
     private void requirePattern(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        requireNamespace(pattern.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, pattern.getNamespace());
         requirePatternExists(pattern);
     }
 }

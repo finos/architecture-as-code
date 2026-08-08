@@ -14,6 +14,7 @@ import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.util.NamespaceGuard;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,19 +76,19 @@ public class NitriteArchitectureStore implements ArchitectureStore {
 
     @Override
     public List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
         return documentStore.listSummariesPaged(namespace, page);
     }
 
     @Override
     public boolean architectureExists(String namespace, int architectureId) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
         return documentStore.headerExists(namespace, architectureId);
     }
 
     @Override
     public Architecture createArchitectureForNamespace(Architecture architecture) throws NamespaceNotFoundException {
-        requireNamespace(architecture.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, architecture.getNamespace());
         validateArchitectureJson(architecture.getArchitectureJson());
 
         int id = counterStore.getNextArchitectureSequenceValue();
@@ -129,7 +130,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
 
     @Override
     public Architecture createArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionExistsException {
-        requireNamespace(architecture.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, architecture.getNamespace());
         validateArchitectureJson(architecture.getArchitectureJson());
         requireArchitectureExists(architecture);
 
@@ -147,7 +148,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
 
     @Override
     public Architecture updateArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
-        requireNamespace(architecture.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, architecture.getNamespace());
         validateArchitectureJson(architecture.getArchitectureJson());
         requireArchitectureExists(architecture);
 
@@ -180,7 +181,6 @@ public class NitriteArchitectureStore implements ArchitectureStore {
         }
     }
 
-
     /**
      * Applies the name and description that came with a version write. Called only
      * <em>after</em> the version write succeeds, matching the Mongo implementation —
@@ -192,13 +192,6 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                 architecture.getName(), architecture.getDescription());
     }
 
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found", namespace);
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireArchitectureExists(Architecture architecture) throws ArchitectureNotFoundException {
         if (!documentStore.headerExists(architecture.getNamespace(), architecture.getId())) {
             LOG.warn("Architecture with ID {} not found in namespace '{}'", architecture.getId(), architecture.getNamespace());
@@ -207,7 +200,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     }
 
     private void requireArchitecture(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
-        requireNamespace(architecture.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, architecture.getNamespace());
         requireArchitectureExists(architecture);
     }
 }

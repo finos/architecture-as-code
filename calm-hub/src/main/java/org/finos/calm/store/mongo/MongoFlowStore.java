@@ -14,6 +14,7 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
+import org.finos.calm.store.util.NamespaceGuard;
 
 import java.util.List;
 
@@ -63,13 +64,13 @@ public class MongoFlowStore implements FlowStore {
 
     @Override
     public List<NamespaceResourceSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED);
     }
 
     @Override
     public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        NamespaceGuard.requireNamespace(namespaceStore, namespace);
 
         // Parsed before the counter is drawn and before anything is written, so malformed
         // JSON can't leave a header behind with no version to go with it.
@@ -128,7 +129,6 @@ public class MongoFlowStore implements FlowStore {
         return flow;
     }
 
-
     /**
      * Applies the name and description that came with a version write, ignoring either that
      * is blank, and only after the version write succeeds.
@@ -138,14 +138,8 @@ public class MongoFlowStore implements FlowStore {
                 flow.getName(), flow.getDescription());
     }
 
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireFlow(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        requireNamespace(flow.getNamespace());
+        NamespaceGuard.requireNamespace(namespaceStore, flow.getNamespace());
         if (!documentStore.headerExists(flow.getNamespace(), flow.getId())) {
             throw new FlowNotFoundException();
         }
