@@ -156,6 +156,25 @@ describe('renderFlowOverlay', () => {
     expect(svg).toContain('keyPoints="0;1"');
   });
 
+  it('renders badges from the schema description field when summary is absent', () => {
+    const schemaFlow: CalmFlow = {
+      'unique-id': 'schema-flow',
+      name: 'Schema Flow',
+      description: 'Flow using only schema-defined fields',
+      transitions: [
+        {
+          'relationship-unique-id': 'rel-1',
+          'sequence-number': 1,
+          description: 'Client sends order request',
+          direction: 'source-to-destination',
+        },
+      ],
+    };
+    const svg = renderFlowOverlay(schemaFlow, twoEdgeLayouts);
+    expect(svg).toContain('Client sends order request');
+    expect(svg).not.toContain('undefined');
+  });
+
   it('Test 4: renders sequence badge with correct number for each transition', () => {
     const svg = renderFlowOverlay(sampleFlow, twoEdgeLayouts);
     // Sequence numbers 1 and 2 should appear in badge text elements
@@ -205,6 +224,69 @@ describe('renderFlowOverlay', () => {
     expect(svg).toContain('flow-path-rel-fan__1');
     const badgeCount = (svg.match(/class="flow-badge"/g) ?? []).length;
     expect(badgeCount).toBe(1);
+  });
+
+  it('spreads badges when multiple transitions share a relationship, and all remain visible', () => {
+    const sharedFlow: CalmFlow = {
+      'unique-id': 'shared-flow',
+      name: 'Shared',
+      description: 'Two transitions over one relationship',
+      transitions: [
+        {
+          'relationship-unique-id': 'rel-1',
+          'sequence-number': 1,
+          description: 'Request',
+          direction: 'source-to-destination',
+        },
+        {
+          'relationship-unique-id': 'rel-1',
+          'sequence-number': 2,
+          description: 'Response',
+          direction: 'destination-to-source',
+        },
+      ],
+    };
+    const svg = renderFlowOverlay(sharedFlow, twoEdgeLayouts);
+    const badges = (svg.match(/class="flow-badge/g) ?? []).length;
+    expect(badges).toBe(2);
+    expect(svg).toContain('>1<');
+    expect(svg).toContain('>2<');
+    // Badge centers must not coincide: collect cx values of badge circles
+    const cxs = [...svg.matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)" r="10"/g)].map((m) => m[1] + ',' + m[2]);
+    expect(new Set(cxs).size).toBe(cxs.length);
+  });
+
+  it('separates request/response badges even on a short edge (return-lane offset)', () => {
+    const shortLayouts = new Map([
+      ['rel-s', [{ id: 'rel-s', points: [ { x: 100, y: 100 }, { x: 100, y: 140 } ] }]],
+    ]);
+    const rrFlow: CalmFlow = {
+      'unique-id': 'rr',
+      name: 'RR',
+      description: 'request-response on a 40px edge',
+      transitions: [
+        { 'relationship-unique-id': 'rel-s', 'sequence-number': 1, description: 'req', direction: 'source-to-destination' },
+        { 'relationship-unique-id': 'rel-s', 'sequence-number': 2, description: 'res', direction: 'destination-to-source' },
+      ],
+    };
+    const svg = renderFlowOverlay(rrFlow, shortLayouts);
+    const centers = [...svg.matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)" r="10"/g)].map((m) => [Number(m[1]), Number(m[2])]);
+    expect(centers.length).toBe(2);
+    const [a, b] = centers as [[number, number], [number, number]];
+    const dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    expect(dist).toBeGreaterThanOrEqual(18);
+  });
+
+  it('renders destination-to-source badges hollow (response convention)', () => {
+    const svg = renderFlowOverlay(reverseFlow, twoEdgeLayouts);
+    // reverseFlow's single transition is destination-to-source
+    expect(svg).toContain('class="flow-badge flow-badge-reverse"');
+    expect(svg).toContain('fill="#ffffff"');
+  });
+
+  it('forward badges stay solid', () => {
+    const svg = renderFlowOverlay(sampleFlow, twoEdgeLayouts);
+    expect(svg).not.toContain('flow-badge-reverse');
   });
 
   it('Test 7: handles flow with 3+ transitions (multi-edge flow)', () => {

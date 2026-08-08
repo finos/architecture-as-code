@@ -37,6 +37,15 @@ export function renderFlowOverlay(
 ): string {
   const parts: string[] = ['<g class="flow-overlay">'];
 
+  // Count transitions per relationship so badges on a shared edge can be
+  // spread along the path instead of stacking at the midpoint.
+  const perRelationshipCount = new Map<string, number>();
+  for (const t of flow.transitions) {
+    const id = t['relationship-unique-id'];
+    perRelationshipCount.set(id, (perRelationshipCount.get(id) ?? 0) + 1);
+  }
+  const perRelationshipSeen = new Map<string, number>();
+
   for (const transition of flow.transitions) {
     const layouts = (edgeLayoutsByRelationship.get(transition['relationship-unique-id']) ?? []).filter(
       (l) => l.points.length >= 2
@@ -70,18 +79,41 @@ export function renderFlowOverlay(
       );
     }
 
-    // One sequence badge per transition, placed at the first edge's midpoint
-    const midIdx = Math.floor(badgeEdge.points.length / 2);
-    const midPoint = badgeEdge.points[midIdx] ?? badgeEdge.points[0];
-    if (midPoint === undefined) continue;
-    const midX = midPoint.x;
-    const midY = midPoint.y;
+    // One sequence badge per transition. Transitions sharing a relationship
+    // spread along the first edge's path (k-th of n sits at (k+1)/(n+1)) so
+    // request/response pairs never stack invisibly on the midpoint.
+    const relId = transition['relationship-unique-id'];
+    const seen = perRelationshipSeen.get(relId) ?? 0;
+    perRelationshipSeen.set(relId, seen + 1);
+    const count = perRelationshipCount.get(relId) ?? 1;
+    const fraction = (seen + 1) / (count + 1);
+    const badgePoint = pointAtFraction(badgeEdge.points, fraction);
+    if (badgePoint === undefined) continue;
+    // Reverse (response) badges shift perpendicular to the path — a "return
+    // lane" beside the edge — so request/response pairs stay separated even
+    // on edges shorter than a badge diameter.
+    const isReverse = direction === 'destination-to-source';
+    const normal = pathNormalAt(badgeEdge.points, fraction);
+    const laneOffset = isReverse && normal !== undefined ? 22 : 0;
+    const midX = badgePoint.x + (normal?.x ?? 0) * laneOffset;
+    const midY = badgePoint.y + (normal?.y ?? 0) * laneOffset;
 
+    // The flow schema defines `description` on transitions; `summary` was a
+    // legacy CalmStudio field. Prefer the schema field, fall back for older files.
+    const transitionLabel =
+      transition.description ?? (transition as { summary?: string }).summary ?? '';
+    // Static-render convention: forward (request) badges are solid; reverse
+    // destination-to-source (response) badges render hollow, so direction is
+    // legible without the animation.
+    const badgeClass = isReverse ? 'flow-badge flow-badge-reverse' : 'flow-badge';
+    const circleFill = isReverse ? '#ffffff' : '#3b82f6';
+    const circleExtra = isReverse ? ' stroke="#3b82f6" stroke-width="2"' : '';
+    const numberFill = isReverse ? '#3b82f6' : 'white';
     parts.push(
-      `<g class="flow-badge" data-summary="${escapeAttr(transition.summary)}">`,
-      `  <circle cx="${midX}" cy="${midY}" r="10" fill="#3b82f6"/>`,
-      `  <text x="${midX}" y="${midY}" fill="white" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central">${transition['sequence-number']}</text>`,
-      `  <title>${escapeAttr(transition.summary)}</title>`,
+      `<g class="${badgeClass}" data-summary="${escapeAttr(transitionLabel)}">`,
+      `  <circle cx="${midX}" cy="${midY}" r="10" fill="${circleFill}"${circleExtra}/>`,
+      `  <text x="${midX}" y="${midY}" fill="${numberFill}" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central">${transition['sequence-number']}</text>`,
+      `  <title>${escapeAttr(transitionLabel)}</title>`,
       `</g>`
     );
   }
@@ -157,6 +189,70 @@ function getReferencedNodeIdsWithFlatFallback(rel: CalmRelationship): string[] {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Point at a given fraction (0..1) of a polyline's total length. */
+function pointAtFraction(
+  points: Array<{ x: number; y: number }>,
+  fraction: number
+): { x: number; y: number } | undefined {
+  if (points.length === 0) return undefined;
+  const first = points[0];
+  if (points.length === 1 || first === undefined) return first;
+  let total = 0;
+  const segments: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; len: number }> = [];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    if (a === undefined || b === undefined) continue;
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    segments.push({ a, b, len });
+    total += len;
+  }
+  if (total === 0) return first;
+  let target = Math.min(Math.max(fraction, 0), 1) * total;
+  for (const seg of segments) {
+    if (target <= seg.len) {
+      const t = seg.len === 0 ? 0 : target / seg.len;
+      return { x: seg.a.x + (seg.b.x - seg.a.x) * t, y: seg.a.y + (seg.b.y - seg.a.y) * t };
+    }
+    target -= seg.len;
+  }
+  const last = points[points.length - 1];
+  return last;
+}
+
+/** Unit normal (perpendicular) of the polyline segment containing the fraction point. */
+function pathNormalAt(
+  points: Array<{ x: number; y: number }>,
+  fraction: number
+): { x: number; y: number } | undefined {
+  if (points.length < 2) return undefined;
+  // Locate the segment the fraction falls in (same walk as pointAtFraction).
+  let total = 0;
+  const lens: number[] = [];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const len = a !== undefined && b !== undefined ? Math.hypot(b.x - a.x, b.y - a.y) : 0;
+    lens.push(len);
+    total += len;
+  }
+  if (total === 0) return undefined;
+  let target = Math.min(Math.max(fraction, 0), 1) * total;
+  for (let i = 0; i < lens.length; i++) {
+    const len = lens[i] ?? 0;
+    if (target <= len) {
+      const a = points[i];
+      const b = points[i + 1];
+      if (a === undefined || b === undefined || len === 0) return undefined;
+      const tx = (b.x - a.x) / len;
+      const ty = (b.y - a.y) / len;
+      return { x: -ty, y: tx };
+    }
+    target -= len;
+  }
+  return undefined;
+}
 
 function escapeAttr(str: string): string {
   return str
