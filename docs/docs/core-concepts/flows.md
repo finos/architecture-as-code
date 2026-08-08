@@ -112,6 +112,11 @@ calm validate -a path/to/architecture.json
 
 Validation checks that each flow has a `unique-id`, `name`, `description`, and at least one transition, and that every transition has a `relationship-unique-id`, `sequence-number`, and `description`.
 
+Beyond JSON Schema, CALM enforces two additional hard-error rules specific to flows:
+
+- **`flow-transitions-references-existing-relationship-in-architecture`**: every `relationship-unique-id` in a transition must match an existing relationship in the architecture. A dangling reference is a hard error. This is the enforcement behind the "keeping business and technical views consistent" guarantee: you cannot describe a process step that points at a connection that does not exist.
+- **`flow-transitions-have-unique-sequence-numbers`**: sequence numbers within a single flow must be unique. Duplicate numbers make the ordering of steps ambiguous and are rejected as a hard error.
+
 ## Related
 
 - [Relationships](relationships): The connections that transitions reference.

@@ -23,11 +23,13 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 ../mvnw clean package                    # Full build
 ../mvnw -P integration verify            # Include integration tests
 ../mvnw test                              # Unit tests only
+../mvnw -Pserver-only clean package       # Backend only — skips the Node/npm frontend stage
 
 # Development Mode (Hot Reload)
 # NOTE: The default profile is secure (401 on all requests). Use no-auth for local testing.
 ../mvnw quarkus:dev -Dquarkus.profile=no-auth        # No-auth (local testing, MongoDB)
 ../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — no-auth is implicit
+../mvnw quarkus:dev -Pstandalone,server-only         # Standalone + no frontend build — profiles compose
 ../mvnw quarkus:dev -Dquarkus.profile=secure         # Secure mode (Keycloak)
 
 # Docker
@@ -641,6 +643,10 @@ CALM Hub is largely independent - it's a standalone REST API server.
    field into a `Response` entity or log message triggers CodeQL `java/xss`. `@Pattern` validation
    is not a barrier — wrap the value in `STRICT_SANITIZATION_POLICY.sanitize(...)`. See
    [Preventing Cross-Site Scripting (XSS) in Responses](#preventing-cross-site-scripting-xss-in-responses).
+7. **`-Pserver-only` does not build or refresh the bundled UI**: it skips the Node/npm frontend
+   stage entirely (see [README.md](./README.md#skipping-the-frontend-build)). A fresh clone built
+   with this profile ships no UI at all; never use it for a release, Docker image, or CI build
+   that needs to serve the UI.
 
 ## Known Issues
 

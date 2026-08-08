@@ -448,6 +448,31 @@
                 </plugins>
             </build>
         </profile>
+        <!-- Server-only profile: skips the frontend stage (Node download, monorepo
+             npm install, and the calm-hub-ui Vite build) so backend-only work doesn't
+             pay for it. Deliberately NOT active by default.
+
+             Consequence to understand before using it: the UI is copied into
+             src/main/resources/META-INF/resources by the npm script, that directory is
+             gitignored, and `mvn clean` does not remove it (it lives under src/, not
+             target/). So on a fresh clone this profile produces a jar with NO UI at all
+             (404 at /), and on a machine that has built before it silently ships
+             whatever UI was last built. Never use it for a release or Docker image
+             build — see calm-hub/AGENTS.md and README.md for the full explanation. -->
+        <profile>
+            <id>server-only</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <!-- frontend-maven-plugin reads these as the default-value expressions
+                     for its own <skip> parameters (verified against the plugin
+                     descriptor), so this composes cleanly with the -Dskip.npm escape
+                     hatch documented in README.md: CLI user properties still win. -->
+                <skip.installnodenpm>true</skip.installnodenpm>
+                <skip.npm>true</skip.npm>
+            </properties>
+        </profile>
         <profile>
             <id>dependency-check</id>
             <activation>
