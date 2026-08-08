@@ -34,6 +34,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
 class TestMongoLayoutStoreShould {
@@ -55,7 +57,8 @@ class TestMongoLayoutStoreShould {
     private static final String LAYOUT_JSON = "{\"for\": \"/api/calm/namespaces/finos/architectures/5\", \"pins\": []}";
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(database.getCollection("layouts")).thenReturn(layoutCollection);
         layoutStore = new MongoLayoutStore(database, namespaceStore);
     }

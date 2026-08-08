@@ -62,7 +62,7 @@ public class NitriteInterfaceStore implements InterfaceStore {
 
     @Override
     public List<NamespaceInterfaceSummary> getInterfacesForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED).stream()
                 .map(NitriteInterfaceStore::toInterfaceSummary)
                 .toList();
@@ -76,7 +76,7 @@ public class NitriteInterfaceStore implements InterfaceStore {
     @Override
     public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest createInterfaceRequest, String namespace) throws NamespaceNotFoundException {
         CalmInterface createdInterface = new CalmInterface(createInterfaceRequest);
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         validateInterfaceJson(createInterfaceRequest.getInterfaceJson());
 
         int id = counterStore.getNextInterfaceSequenceValue();
@@ -109,7 +109,7 @@ public class NitriteInterfaceStore implements InterfaceStore {
 
     @Override
     public CalmInterface createInterfaceForVersion(CreateInterfaceRequest interfaceRequest, String namespace, Integer interfaceId, String version) throws NamespaceNotFoundException, InterfaceNotFoundException, InterfaceVersionExistsException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         validateInterfaceJson(interfaceRequest.getInterfaceJson());
         requireInterfaceExists(namespace, interfaceId);
 
@@ -146,14 +146,6 @@ public class NitriteInterfaceStore implements InterfaceStore {
         }
     }
 
-
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found", namespace);
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireInterfaceExists(String namespace, Integer interfaceId) throws InterfaceNotFoundException {
         if (!documentStore.headerExists(namespace, interfaceId)) {
             LOG.warn("Interface with ID {} not found in namespace '{}'", interfaceId, namespace);
@@ -162,7 +154,7 @@ public class NitriteInterfaceStore implements InterfaceStore {
     }
 
     private void requireInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         requireInterfaceExists(namespace, interfaceId);
     }
 }
