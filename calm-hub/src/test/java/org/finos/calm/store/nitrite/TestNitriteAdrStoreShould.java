@@ -37,6 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
 /**
  * Store-level tests for ADR on the header/version shape. Mirrors the Mongo class: integer
@@ -65,7 +66,8 @@ public class TestNitriteAdrStoreShould {
     private static final int ADR_ID = 42;
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(mockNamespaceStore).requireNamespace(anyString());
         headerCollection = mock(NitriteCollection.class);
         versionCollection = mock(NitriteCollection.class);
 

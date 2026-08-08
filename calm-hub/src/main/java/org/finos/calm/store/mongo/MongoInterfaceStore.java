@@ -15,7 +15,6 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.InterfaceStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
-import org.finos.calm.store.util.NamespaceGuard;
 
 import java.util.List;
 
@@ -63,7 +62,7 @@ public class MongoInterfaceStore implements InterfaceStore {
 
     @Override
     public List<NamespaceInterfaceSummary> getInterfacesForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED).stream()
                 .map(MongoInterfaceStore::toInterfaceSummary)
                 .toList();
@@ -77,7 +76,7 @@ public class MongoInterfaceStore implements InterfaceStore {
     @Override
     public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest interfaceRequest, String namespace) throws NamespaceNotFoundException {
         CalmInterface createdInterface = new CalmInterface(interfaceRequest);
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document content = Document.parse(interfaceRequest.getInterfaceJson());
 
@@ -127,7 +126,7 @@ public class MongoInterfaceStore implements InterfaceStore {
     }
 
     private void requireInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         if (!documentStore.headerExists(namespace, interfaceId)) {
             throw new InterfaceNotFoundException();
         }

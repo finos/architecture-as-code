@@ -16,7 +16,6 @@ import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.PageRequest;
-import org.finos.calm.store.util.NamespaceGuard;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
 import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
@@ -72,7 +71,7 @@ public class NitriteAdrStore implements AdrStore {
 
     @Override
     public List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (NamespaceResourceSummary header : documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED)) {
@@ -83,7 +82,7 @@ public class NitriteAdrStore implements AdrStore {
 
     @Override
     public int countAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.countHeaders(namespace);
     }
 
@@ -125,7 +124,7 @@ public class NitriteAdrStore implements AdrStore {
 
     @Override
     public AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException {
-        NamespaceGuard.requireNamespace(namespaceStore, adrMeta.getNamespace());
+        namespaceStore.requireNamespace(adrMeta.getNamespace());
 
         String content = toContent(adrMeta);
 
@@ -260,7 +259,7 @@ public class NitriteAdrStore implements AdrStore {
     }
 
     private void requireAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, adrMeta.getNamespace());
+        namespaceStore.requireNamespace(adrMeta.getNamespace());
         if (!documentStore.headerExists(adrMeta.getNamespace(), adrMeta.getId())) {
             LOG.warn("ADR with ID {} not found in namespace '{}'", adrMeta.getId(), adrMeta.getNamespace());
             throw new AdrNotFoundException();

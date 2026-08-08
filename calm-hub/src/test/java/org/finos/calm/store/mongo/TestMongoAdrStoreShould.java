@@ -42,6 +42,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
 /**
  * Store-level tests for ADR on the header/version shape. ADR is the one type whose history is
@@ -75,7 +76,8 @@ public class TestMongoAdrStoreShould {
     private static final int ADR_ID = 42;
 
     @BeforeEach
-    void setup() {
+    void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         headerCollection = Mockito.mock(DocumentMongoCollection.class);
         versionCollection = Mockito.mock(DocumentMongoCollection.class);
 

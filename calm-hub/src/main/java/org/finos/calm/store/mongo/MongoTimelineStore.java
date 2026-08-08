@@ -15,7 +15,6 @@ import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.store.TimelineStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
-import org.finos.calm.store.util.NamespaceGuard;
 
 import java.util.List;
 
@@ -65,7 +64,7 @@ public class MongoTimelineStore implements TimelineStore {
 
     @Override
     public List<NamespaceTimelineSummary> getTimelinesForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED).stream()
                 .map(MongoTimelineStore::toTimelineSummary)
                 .toList();
@@ -78,7 +77,7 @@ public class MongoTimelineStore implements TimelineStore {
 
     @Override
     public Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Parsed before the counter is drawn and before anything is written, so malformed
         // JSON can't leave a header behind with no version to go with it.
@@ -147,7 +146,7 @@ public class MongoTimelineStore implements TimelineStore {
     }
 
     private void requireTimeline(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, timeline.getNamespace());
+        namespaceStore.requireNamespace(timeline.getNamespace());
         if (!documentStore.headerExists(timeline.getNamespace(), timeline.getId())) {
             throw new TimelineNotFoundException();
         }

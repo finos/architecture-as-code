@@ -14,7 +14,6 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
-import org.finos.calm.store.util.NamespaceGuard;
 
 import java.util.List;
 
@@ -65,13 +64,13 @@ public class MongoPatternStore implements PatternStore {
 
     @Override
     public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, page);
     }
 
     @Override
     public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Parsed before the counter is drawn and before anything is written, so malformed
         // JSON can't leave a header behind with no version to go with it.
@@ -148,7 +147,7 @@ public class MongoPatternStore implements PatternStore {
     }
 
     private void requirePattern(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, pattern.getNamespace());
+        namespaceStore.requireNamespace(pattern.getNamespace());
         if (!documentStore.headerExists(pattern.getNamespace(), pattern.getId())) {
             throw new PatternNotFoundException();
         }

@@ -16,7 +16,6 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
-import org.finos.calm.store.util.NamespaceGuard;
 import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +90,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (NamespaceResourceSummary header : documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED)) {
@@ -102,7 +101,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public int countAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.countHeaders(namespace);
     }
 
@@ -139,7 +138,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException {
-        NamespaceGuard.requireNamespace(namespaceStore, adrMeta.getNamespace());
+        namespaceStore.requireNamespace(adrMeta.getNamespace());
 
         Document content = toContent(adrMeta);
 
@@ -277,7 +276,7 @@ public class MongoAdrStore implements AdrStore {
     }
 
     private void requireAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, adrMeta.getNamespace());
+        namespaceStore.requireNamespace(adrMeta.getNamespace());
         if (!documentStore.headerExists(adrMeta.getNamespace(), adrMeta.getId())) {
             throw new AdrNotFoundException();
         }

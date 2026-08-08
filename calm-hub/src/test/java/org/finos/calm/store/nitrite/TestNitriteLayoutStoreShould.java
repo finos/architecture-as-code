@@ -26,6 +26,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
 class TestNitriteLayoutStoreShould {
@@ -47,7 +49,8 @@ class TestNitriteLayoutStoreShould {
     private static final String LAYOUT_JSON = "{\"for\": \"/api/calm/namespaces/finos/architectures/5\", \"pins\": []}";
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(db.getCollection("layouts")).thenReturn(layoutCollection);
         layoutStore = new NitriteLayoutStore(db, namespaceStore);
     }

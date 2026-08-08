@@ -11,7 +11,6 @@ import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.LayoutStore;
-import org.finos.calm.store.util.NamespaceGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +72,7 @@ public class NitriteLayoutStore implements LayoutStore {
 
     @Override
     public Optional<String> getLayout(String namespace, int architectureId) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document document = fetchLayoutDocument(namespace, architectureId);
         return document == null ? Optional.empty() : Optional.ofNullable(document.get(LAYOUT_FIELD, String.class));
@@ -81,7 +80,7 @@ public class NitriteLayoutStore implements LayoutStore {
 
     @Override
     public void upsertLayout(String namespace, int architectureId, String layoutJson) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         validateLayoutJson(layoutJson);
 
         lock.lock();
@@ -104,7 +103,7 @@ public class NitriteLayoutStore implements LayoutStore {
 
     @Override
     public List<Integer> getArchitectureIdsWithLayoutForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Not using DocumentCursor#project here: Nitrite applies a projection in memory after
         // reading the full document from the store, so it saves nothing at the I/O layer and

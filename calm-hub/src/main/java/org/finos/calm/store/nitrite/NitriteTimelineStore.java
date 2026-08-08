@@ -16,7 +16,6 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.store.TimelineStore;
 import org.finos.calm.store.PageRequest;
-import org.finos.calm.store.util.NamespaceGuard;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +67,7 @@ public class NitriteTimelineStore implements TimelineStore {
 
     @Override
     public List<NamespaceTimelineSummary> getTimelinesForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED).stream()
                 .map(NitriteTimelineStore::toTimelineSummary)
                 .toList();
@@ -81,7 +80,7 @@ public class NitriteTimelineStore implements TimelineStore {
 
     @Override
     public Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         validateTimelineJson(timelineRequest.getTimelineJson());
 
         int id = counterStore.getNextTimelineSequenceValue();
@@ -118,7 +117,7 @@ public class NitriteTimelineStore implements TimelineStore {
 
     @Override
     public Timeline createTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionExistsException {
-        NamespaceGuard.requireNamespace(namespaceStore, timeline.getNamespace());
+        namespaceStore.requireNamespace(timeline.getNamespace());
         validateTimelineJson(timeline.getTimelineJson());
         requireTimelineExists(timeline);
 
@@ -134,7 +133,7 @@ public class NitriteTimelineStore implements TimelineStore {
 
     @Override
     public Timeline updateTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, timeline.getNamespace());
+        namespaceStore.requireNamespace(timeline.getNamespace());
         validateTimelineJson(timeline.getTimelineJson());
         requireTimelineExists(timeline);
 
@@ -179,7 +178,7 @@ public class NitriteTimelineStore implements TimelineStore {
     }
 
     private void requireTimeline(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, timeline.getNamespace());
+        namespaceStore.requireNamespace(timeline.getNamespace());
         requireTimelineExists(timeline);
     }
 }

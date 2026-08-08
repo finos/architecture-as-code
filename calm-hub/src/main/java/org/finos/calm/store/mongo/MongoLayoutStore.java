@@ -17,7 +17,6 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.LayoutStore;
 import org.finos.calm.store.util.MongoWriteFailures;
-import org.finos.calm.store.util.NamespaceGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +79,7 @@ public class MongoLayoutStore implements LayoutStore {
 
     @Override
     public Optional<String> getLayout(String namespace, int architectureId) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document document = layoutCollection.find(layoutFilter(namespace, architectureId)).first();
         if (document == null) {
@@ -93,7 +92,7 @@ public class MongoLayoutStore implements LayoutStore {
 
     @Override
     public void upsertLayout(String namespace, int architectureId, String layoutJson) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Parsed before any write, so malformed JSON never reaches the database.
         Document layoutDoc = Document.parse(layoutJson);
@@ -126,7 +125,7 @@ public class MongoLayoutStore implements LayoutStore {
 
     @Override
     public List<Integer> getArchitectureIdsWithLayoutForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Ids only. This guards namespace deletion and never needs the layouts themselves, so
         // there is no reason to parse every layout blob in the namespace just to read one

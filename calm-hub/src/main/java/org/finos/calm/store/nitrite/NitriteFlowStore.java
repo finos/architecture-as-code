@@ -15,7 +15,6 @@ import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.PageRequest;
-import org.finos.calm.store.util.NamespaceGuard;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,13 +66,13 @@ public class NitriteFlowStore implements FlowStore {
 
     @Override
     public List<NamespaceResourceSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED);
     }
 
     @Override
     public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, namespace);
+        namespaceStore.requireNamespace(namespace);
         validateFlowJson(flowRequest.getFlowJson());
 
         int id = counterStore.getNextFlowSequenceValue();
@@ -110,7 +109,7 @@ public class NitriteFlowStore implements FlowStore {
 
     @Override
     public Flow createFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionExistsException {
-        NamespaceGuard.requireNamespace(namespaceStore, flow.getNamespace());
+        namespaceStore.requireNamespace(flow.getNamespace());
         validateFlowJson(flow.getFlowJson());
         requireFlowExists(flow);
 
@@ -126,7 +125,7 @@ public class NitriteFlowStore implements FlowStore {
 
     @Override
     public Flow updateFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, flow.getNamespace());
+        namespaceStore.requireNamespace(flow.getNamespace());
         validateFlowJson(flow.getFlowJson());
         requireFlowExists(flow);
 
@@ -166,7 +165,7 @@ public class NitriteFlowStore implements FlowStore {
     }
 
     private void requireFlow(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        NamespaceGuard.requireNamespace(namespaceStore, flow.getNamespace());
+        namespaceStore.requireNamespace(flow.getNamespace());
         requireFlowExists(flow);
     }
 }
