@@ -19,6 +19,15 @@ on:
                 required: false
                 default: false
                 type: boolean
+            pre_release:
+                description: 'Publish as pre-release (auto = on for odd minor versions, e.g. 0.1.x, 0.3.x)'
+                required: false
+                default: 'auto'
+                type: choice
+                options:
+                    - auto
+                    - 'true'
+                    - 'false'
 
 jobs:
     build-and-test:
@@ -63,10 +72,32 @@ jobs:
             - name: Package VS Code Extension
               run: npm run package:vscode
 
+            - name: Determine pre-release flag
+              id: prerelease
+              if: github.event.inputs.publish_to_marketplace == 'true'
+              working-directory: ./calm-plugins/vscode
+              run: |
+                  case "${{ github.event.inputs.pre_release }}" in
+                    true)
+                      echo "flag=--pre-release" >> "$GITHUB_OUTPUT"
+                      ;;
+                    false)
+                      echo "flag=" >> "$GITHUB_OUTPUT"
+                      ;;
+                    *)
+                      MINOR=$(node -p "require('./package.json').version.split('.')[1]")
+                      if [ $((MINOR % 2)) -eq 1 ]; then
+                        echo "flag=--pre-release" >> "$GITHUB_OUTPUT"
+                      else
+                        echo "flag=" >> "$GITHUB_OUTPUT"
+                      fi
+                      ;;
+                  esac
+
             - name: Publish to VS Code Marketplace
               if: github.event.inputs.publish_to_marketplace == 'true'
               working-directory: ./calm-plugins/vscode
-              run: npx vsce publish --pre-release --packagePath *.vsix
+              run: npx vsce publish ${{ steps.prerelease.outputs.flag }} --packagePath *.vsix
               env:
                   VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
