@@ -41,6 +41,9 @@ vi.mock('../reactflow/ReactFlowVisualizer.js', () => ({
         </div>
     ),
 }));
+vi.mock('../reactflow/PatternVisualizer.js', () => ({
+    PatternVisualizer: () => <div data-testid="pattern-visualizer" />,
+}));
 vi.mock('react-dropzone', async () => {
     const actual = await vi.importActual('react-dropzone');
     return {
@@ -194,6 +197,28 @@ describe('Drawer', () => {
 
         expect(screen.queryByText(/Couldn't read that file/i)).not.toBeInTheDocument();
         expect(screen.getByTestId('reactflow-visualizer')).toBeInTheDocument();
+    });
+
+    it('classifies a catalog-only pattern (nodes via items, no prefixItems) dropped as a file as a pattern', async () => {
+        render(<Drawer />);
+
+        // A pattern whose nodes are declared solely through an `items` catalog has no
+        // `prefixItems`. It must still be routed to the PatternVisualizer, not the
+        // architecture ReactFlowVisualizer, on the file-upload path.
+        await act(async () => {
+            await mockDropzone.onDrop?.([
+                fakeFile(
+                    JSON.stringify({
+                        properties: {
+                            nodes: { items: { oneOf: [{ properties: { 'unique-id': { const: 'cache' } } }] } },
+                        },
+                    })
+                ),
+            ]);
+        });
+
+        expect(screen.getByTestId('pattern-visualizer')).toBeInTheDocument();
+        expect(screen.queryByTestId('reactflow-visualizer')).not.toBeInTheDocument();
     });
 });
 

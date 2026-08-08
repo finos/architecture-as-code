@@ -55,6 +55,61 @@ function makePattern(
     };
 }
 
+// Helper to build a pattern with both prefixItems (mandatory) and an
+// items.oneOf/anyOf open catalog for nodes and/or relationships.
+function makePatternWithItems(
+    prefixNodes: unknown[],
+    itemsCatalogNodes: unknown[] = [],
+    relationships: unknown[] = [],
+    itemsCatalogRelationships: unknown[] = [],
+    catalogType: 'oneOf' | 'anyOf' = 'oneOf'
+) {
+    return {
+        properties: {
+            nodes: {
+                prefixItems: prefixNodes,
+                ...(itemsCatalogNodes.length > 0 && { items: { [catalogType]: itemsCatalogNodes } }),
+            },
+            relationships: {
+                prefixItems: relationships,
+                ...(itemsCatalogRelationships.length > 0 && { items: { [catalogType]: itemsCatalogRelationships } }),
+            },
+        },
+    };
+}
+
+// Helper to build an options (decision) relationship schema item
+function optionsRelationship(
+    uniqueId: string,
+    description: string,
+    choices: { description: string; nodes: string[]; relationships?: string[] }[],
+    optionType: 'oneOf' | 'anyOf' = 'oneOf'
+) {
+    return {
+        properties: {
+            'unique-id': { const: uniqueId },
+            description: { const: description },
+            'relationship-type': {
+                properties: {
+                    options: {
+                        prefixItems: [
+                            {
+                                [optionType]: choices.map((c) => ({
+                                    properties: {
+                                        description: { const: c.description },
+                                        nodes: { const: c.nodes },
+                                        relationships: { const: c.relationships || [] },
+                                    },
+                                })),
+                            },
+                        ],
+                    },
+                },
+            },
+        },
+    };
+}
+
 describe('parsePatternData', () => {
     it('returns empty arrays for null data', () => {
         const result = parsePatternData(null as unknown as Record<string, unknown>);
@@ -125,6 +180,81 @@ describe('parsePatternData', () => {
         const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
         expect(groupNodes).toHaveLength(1);
         expect(groupNodes[0].data.decisionType).toBe('anyOf');
+    });
+
+    it('creates a decision group box for an items catalog with no options relationship', () => {
+        // An items.oneOf catalog with no decision referencing it still renders as a
+        // oneOf-labelled group box (no prompt), exercising the extract-but-never-folded path.
+        const pattern = {
+            properties: {
+                nodes: {
+                    items: {
+                        oneOf: [
+                            schemaNode('cache', 'Cache', 'service'),
+                            schemaNode('queue', 'Queue', 'service'),
+                        ],
+                    },
+                },
+                relationships: { prefixItems: [] },
+            },
+        };
+        const result = parsePatternData(pattern);
+
+        const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groupNodes).toHaveLength(1);
+        expect(groupNodes[0].data.decisionType).toBe('oneOf');
+        expect(groupNodes[0].data.prompt).toBeUndefined();
+
+        const regularNodes = result.nodes.filter((n) => n.type === 'custom');
+        expect(regularNodes).toHaveLength(2);
+        expect(regularNodes.every((n) => n.parentId === groupNodes[0].id)).toBe(true);
+    });
+
+    it('creates an anyOf decision group for an items.anyOf node catalog', () => {
+        // The UI-side anyOf catalog path: nodes declared through items.anyOf must
+        // produce an anyOf-typed decision group whose candidates parent into it,
+        // mirroring the oneOf case above.
+        const pattern = makePatternWithItems(
+            [],
+            [
+                schemaNode('redis', 'Redis', 'service'),
+                schemaNode('kafka', 'Kafka', 'service'),
+            ],
+            [],
+            [],
+            'anyOf'
+        );
+        const result = parsePatternData(pattern);
+
+        const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groupNodes).toHaveLength(1);
+        expect(groupNodes[0].data.decisionType).toBe('anyOf');
+
+        const regularNodes = result.nodes.filter((n) => n.type === 'custom');
+        expect(regularNodes).toHaveLength(2);
+        expect(regularNodes.every((n) => n.parentId === groupNodes[0].id)).toBe(true);
+    });
+
+    it('renders edges from a relationships items catalog as dashed decision edges', () => {
+        // Relationships declared solely through an items.oneOf catalog flow through
+        // the `rel-decision-items` branch and carry a decisionGroupId, so their
+        // edges must render dashed (strokeDasharray '5,5') — unlike the solid edge a
+        // plain prefixItems connects relationship produces.
+        const pattern = makePatternWithItems(
+            [
+                schemaNode('node-1', 'Node 1', 'service'),
+                schemaNode('node-2', 'Node 2', 'service'),
+            ],
+            [],
+            [],
+            [connectsRelationship('rel-cat', 'node-1', 'node-2')]
+        );
+        const result = parsePatternData(pattern);
+
+        expect(result.edges).toHaveLength(1);
+        expect(result.edges[0].source).toBe('node-1');
+        expect(result.edges[0].target).toBe('node-2');
+        expect(result.edges[0].style?.strokeDasharray).toBe('5,5');
     });
 
     it('creates edges from connects relationships', () => {
@@ -400,6 +530,70 @@ describe('parsePatternData', () => {
         expect(groupNode?.data.choices[1].description).toBe('Use Option B');
     });
 
+    it('renders a decision candidate that is also a container child inside the container, not the choice box', () => {
+        // opt-a is both a oneOf decision candidate AND deployed inside the k8s
+        // container. The container must win: opt-a's parent is k8s. opt-b, which is
+        // not in any container, stays in the decision group.
+        const pattern = makePattern(
+            [
+                schemaNode('k8s', 'Kubernetes', 'system'),
+                {
+                    oneOf: [
+                        schemaNode('opt-a', 'Option A', 'service'),
+                        schemaNode('opt-b', 'Option B', 'service'),
+                    ],
+                },
+            ],
+            [
+                {
+                    properties: {
+                        'unique-id': { const: 'deploy-a' },
+                        'relationship-type': {
+                            const: { 'deployed-in': { container: 'k8s', nodes: ['opt-a'] } },
+                        },
+                    },
+                },
+            ]
+        );
+        const result = parsePatternData(pattern);
+
+        expect(result.nodes.find((n) => n.id === 'opt-a')?.parentId).toBe('k8s');
+        const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groupNodes).toHaveLength(1);
+        expect(result.nodes.find((n) => n.id === 'opt-b')?.parentId).toBe(groupNodes[0].id);
+    });
+
+    it('does not render an empty decision box when every candidate is pulled into a container', () => {
+        // Both oneOf candidates are deployed inside k8s, so the decision group is
+        // emptied by container precedence and must not be drawn as an empty box.
+        const pattern = makePattern(
+            [
+                schemaNode('k8s', 'Kubernetes', 'system'),
+                {
+                    oneOf: [
+                        schemaNode('opt-a', 'Option A', 'service'),
+                        schemaNode('opt-b', 'Option B', 'service'),
+                    ],
+                },
+            ],
+            [
+                {
+                    properties: {
+                        'unique-id': { const: 'deploy-both' },
+                        'relationship-type': {
+                            const: { 'deployed-in': { container: 'k8s', nodes: ['opt-a', 'opt-b'] } },
+                        },
+                    },
+                },
+            ]
+        );
+        const result = parsePatternData(pattern);
+
+        expect(result.nodes.filter((n) => n.type === 'decisionGroup')).toHaveLength(0);
+        expect(result.nodes.find((n) => n.id === 'opt-a')?.parentId).toBe('k8s');
+        expect(result.nodes.find((n) => n.id === 'opt-b')?.parentId).toBe('k8s');
+    });
+
     it('sets protocol on edges', () => {
         const pattern = makePattern(
             [
@@ -470,6 +664,77 @@ describe('parsePatternData', () => {
         );
         const result = parsePatternData(pattern);
         expect(result.edges).toHaveLength(0);
+    });
+
+    it('creates a decision group for a decision referencing only items-declared catalog candidates', () => {
+        const pattern = makePatternWithItems(
+            [schemaNode('webapp', 'Web App', 'service')],
+            [schemaNode('cache', 'Cache', 'service'), schemaNode('queue', 'Queue', 'service')],
+            [
+                optionsRelationship('options-rel', 'Choose extras', [
+                    { description: 'Use Cache', nodes: ['cache'] },
+                    { description: 'Use Queue', nodes: ['queue'] },
+                ]),
+            ]
+        );
+        const result = parsePatternData(pattern);
+
+        const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groupNodes).toHaveLength(1);
+        expect(groupNodes[0].data.prompt).toBe('Choose extras');
+        expect(groupNodes[0].data.choices).toHaveLength(2);
+
+        const cacheNode = result.nodes.find((n) => n.id === 'cache');
+        const queueNode = result.nodes.find((n) => n.id === 'queue');
+        expect(cacheNode?.parentId).toBe(groupNodes[0].id);
+        expect(queueNode?.parentId).toBe(groupNodes[0].id);
+    });
+
+    it('folds a decision referencing a mix of prefixItems- and items-declared candidates into one group', () => {
+        const pattern = makePatternWithItems(
+            [
+                {
+                    oneOf: [
+                        schemaNode('option-a', 'Option A', 'service'),
+                        schemaNode('option-b', 'Option B', 'service'),
+                    ],
+                },
+            ],
+            [schemaNode('cache', 'Cache', 'service')],
+            [
+                optionsRelationship('options-rel', 'Choose a setup', [
+                    { description: 'Use A with cache', nodes: ['option-a', 'cache'] },
+                    { description: 'Use B', nodes: ['option-b'] },
+                ]),
+            ]
+        );
+        const result = parsePatternData(pattern);
+
+        const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groupNodes).toHaveLength(1);
+
+        const optionA = result.nodes.find((n) => n.id === 'option-a');
+        const optionB = result.nodes.find((n) => n.id === 'option-b');
+        const cache = result.nodes.find((n) => n.id === 'cache');
+        expect(optionA?.parentId).toBe(groupNodes[0].id);
+        expect(optionB?.parentId).toBe(groupNodes[0].id);
+        expect(cache?.parentId).toBe(groupNodes[0].id);
+    });
+
+    it('renders nothing for a decision referencing only a dangling/typo\'d id', () => {
+        const pattern = makePattern(
+            [schemaNode('webapp', 'Web App', 'service')],
+            [
+                optionsRelationship('options-rel', 'Choose extras', [
+                    { description: 'Use nonexistent', nodes: ['nonexistent-node'] },
+                ]),
+            ]
+        );
+        const result = parsePatternData(pattern);
+
+        const groupNodes = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groupNodes).toHaveLength(0);
+        expect(result.nodes.find((n) => n.id === 'nonexistent-node')).toBeUndefined();
     });
 });
 

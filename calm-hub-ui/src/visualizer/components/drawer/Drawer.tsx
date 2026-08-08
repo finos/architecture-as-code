@@ -12,13 +12,19 @@ import type { DrawerProps, Flow, Control, Decorator } from '../../contracts/cont
 
 /**
  * Detect whether JSON data is a CALM pattern (JSON Schema) or an architecture instance.
- * Patterns have properties.nodes.prefixItems; architectures have nodes directly.
+ * A pattern declares its nodes as a JSON Schema array — either as positional
+ * `prefixItems` slots or as an open `items` catalog (or both); an architecture has
+ * `nodes` directly as a plain array of instances. A catalog-only pattern has no
+ * `prefixItems`, so `items` must be accepted too, otherwise it would be misclassified
+ * as an architecture on the file-upload path (the Hub path is saved separately by the
+ * `calmType === 'Patterns'` fallback below).
  */
 function isPatternData(data: unknown): boolean {
     if (!data || typeof data !== 'object') return false;
     const obj = data as Record<string, unknown>;
     const props = obj['properties'] as Record<string, unknown> | undefined;
-    return !!(props?.['nodes'] && typeof props['nodes'] === 'object' && (props['nodes'] as Record<string, unknown>)['prefixItems']);
+    const nodes = props?.['nodes'] as Record<string, unknown> | undefined;
+    return !!(nodes && typeof nodes === 'object' && (nodes['prefixItems'] || nodes['items']));
 }
 
 /**

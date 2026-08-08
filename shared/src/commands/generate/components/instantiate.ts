@@ -99,6 +99,11 @@ async function instantiateFromProperties(
     for (const [key, def] of Object.entries(properties)) {
         const resolvedDef = await resolveSchema(def as JsonSchema, schemaDir);
 
+        // Arrays declaring an `items.oneOf`/`items.anyOf` open catalog (in addition
+        // to `prefixItems`) are normalized down to a single `prefixItems` array by
+        // `selectChoices()` before `instantiate()` runs, so no separate `items`
+        // handling is needed here - the selected catalog entries are materialized
+        // via the same `prefixItems` path below.
         if (resolvedDef.type === 'array' && resolvedDef.prefixItems) {
             output[key] = await Promise.all(
                 resolvedDef.prefixItems.map(async (itemDef, idx) => {
@@ -109,13 +114,23 @@ async function instantiateFromProperties(
                     return await instantiateObject(resolvedItem, schemaDir, [key, `${idx}`]);
                 })
             );
+        } else if (resolvedDef.const !== undefined) {
+            // const value at the top level. Checked before the bare-array fallback
+            // below so an array schema that carries a `const` still materializes its
+            // const value rather than being emptied to [].
+            output[key] = resolvedDef.const;
+        } else if (resolvedDef.type === 'array') {
+            // An array with no `prefixItems` to materialize - e.g. a nodes array
+            // whose entries are declared entirely through an `items.oneOf`/`anyOf`
+            // open catalog, generated with no choices selected (so `selectChoices()`
+            // never ran to move any chosen candidates into `prefixItems`). The
+            // correct instance is an empty array. Without this branch the value
+            // would fall through to `instantiateObject` and be emitted as `{}`,
+            // producing a structurally invalid architecture (an object where an
+            // array is required).
+            output[key] = [];
         } else {
-            // Check for const values at the top level
-            if (resolvedDef.const !== undefined) {
-                output[key] = resolvedDef.const;
-            } else {
-                output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
-            }
+            output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
         }
     }
 

@@ -128,6 +128,70 @@ describe('interfaceIdExistsOnNode', () => {
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);
     });
 
+    it('should find a node declared in an items.oneOf catalog and validate its interfaces', () => {
+        const input = { node: 'cache', interfaces: ['cache-intf'] };
+        const context = {
+            document: {
+                data: {
+                    properties: {
+                        nodes: {
+                            items: {
+                                oneOf: [
+                                    {
+                                        properties: {
+                                            'unique-id': {const: 'cache'},
+                                            'interfaces': {
+                                                prefixItems: [
+                                                    {properties: {'unique-id': {const: 'cache-intf'}}}
+                                                ]
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
+        expect(result).toEqual([]);
+    });
+
+    it('should report a missing interface on an items-catalog node instead of silently skipping it', () => {
+        const input = { node: 'cache', interfaces: ['does-not-exist'] };
+        const context = {
+            document: {
+                data: {
+                    properties: {
+                        nodes: {
+                            items: {
+                                oneOf: [
+                                    {
+                                        properties: {
+                                            'unique-id': {const: 'cache'},
+                                            'interfaces': {
+                                                prefixItems: [
+                                                    {properties: {'unique-id': {const: 'cache-intf'}}}
+                                                ]
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            path: ['/relationships/0/connects/destination']
+        };
+
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
+        expect(result.length).toBe(1);
+        expect(result[0].message).toBe(`Referenced interface with ID '${input.interfaces[0]}' was not defined on the node with ID '${input.node}'.`);
+    });
+
     it('should return a message when one interface does not exist', () => {
         const input = { node: 'node1', interfaces: ['intf1', 'intf2'] };
         const context = {

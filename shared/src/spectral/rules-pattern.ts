@@ -134,7 +134,11 @@ const patternRules: RulesetDefinition = {
             description: 'Nodes must be referenced by at least one relationship',
             severity: 'warn',
             message: '{{error}}',
-            given: '$.properties.nodes.prefixItems[*].properties.unique-id.const',
+            given: [
+                '$.properties.nodes.prefixItems[*].properties.unique-id.const',
+                '$.properties.nodes.items.oneOf[*].properties.unique-id.const',
+                '$.properties.nodes.items.anyOf[*].properties.unique-id.const',
+            ],
             then: {
                 function: nodeHasRelationship,
             },

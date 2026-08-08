@@ -98,6 +98,72 @@ Patterns use JSON schema constructs to provide choices and options:
 }
 ```
 
+### Optional Nodes with an `items` Catalog (zero or more)
+
+`prefixItems` describes fixed array positions: a slot is always present, and a `oneOf`/`anyOf` inside it chooses *which kind* of node fills that position. Use it when a node must exist and you are only choosing its type.
+
+When you instead want an **open catalog** of optional nodes — "include any combination of these, including none" — declare the candidates under `items` (which applies to every array entry) rather than `prefixItems` (which pins entries to positions). Mandatory nodes go in `prefixItems`; the optional catalog goes in `items`:
+
+```json
+{
+    "properties": {
+        "nodes": {
+            "type": "array",
+            "minItems": 2,
+            "prefixItems": [
+                {
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                    "type": "object",
+                    "properties": {
+                        "unique-id": { "const": "webapp" },
+                        "name": { "const": "Web Application" },
+                        "node-type": { "const": "webclient" }
+                    }
+                },
+                {
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                    "type": "object",
+                    "properties": {
+                        "unique-id": { "const": "database" },
+                        "name": { "const": "Database" },
+                        "node-type": { "const": "database" }
+                    }
+                }
+            ],
+            "items": {
+                "oneOf": [
+                    {
+                        "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "cache" },
+                            "name": { "const": "Cache" },
+                            "node-type": { "const": "service" }
+                        }
+                    },
+                    {
+                        "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "queue" },
+                            "name": { "const": "Message Queue" },
+                            "node-type": { "const": "service" }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
+```
+
+Here `webapp` and `database` are always present, while `cache` and `queue` form an optional catalog: an instantiated architecture may include neither, either, or both. A decision (`relationship-type.options`, see below) references catalog candidates by `unique-id` in exactly the same way it references positional ones, so the same decision mechanism works for both. Relationship candidates can use an `items` catalog in the same way.
+
+Guidance:
+
+- Keep every candidate that a single decision references within one declaration site. A decision whose candidates are split between a `prefixItems` slot and an `items` catalog, or spread across nodes with inconsistent container membership, is a pattern smell — model the choice at one consistent level.
+- Duplicate `unique-id`s inside an `items` catalog are rejected by `calm validate`, and a catalog node that no relationship or decision references produces a warning, exactly as for `prefixItems`.
+
 ### Relationship Options with Decision Points
 
 ```json
@@ -618,7 +684,8 @@ Always use specific interface schema references:
 
 ### Array Handling
 
-- Use `prefixItems` to define specific array positions
+- Use `prefixItems` to define specific array positions (fixed slots)
+- Use `items` with a `oneOf`/`anyOf` to define an open catalog of optional entries (zero or more, any combination); combine with `prefixItems` for mandatory-plus-optional arrays
 - Use `minItems`/`maxItems` to constrain array sizes
 - Each array item should reference base schema + add constraints
 
@@ -643,13 +710,15 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 - `const` - Fixed values that cannot be changed
 - `enum` - List of allowed values
 - `minItems`/`maxItems` - Array size constraints
-- `prefixItems` - Define specific array items
+- `prefixItems` - Define specific array items by position (fixed slots)
+- `items` - Define the rule every array entry must satisfy; with a `oneOf`/`anyOf` inside it, an open catalog of optional entries (zero or more)
 
 ### Option Constructs
 
 - `anyOf` - One or more options can be true
 - `oneOf` - Exactly one option must be true
 - `allOf` - All conditions must be true
+- Placed inside a `prefixItems` slot, `oneOf`/`anyOf` chooses which node fills that fixed position; placed inside `items`, they define the optional catalog an entry may be drawn from
 
 ### Schema References
 
@@ -666,7 +735,8 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 4. Relationship definitions must use `$ref` to core relationship schema
 5. Use `const` for fixed values, `anyOf`/`oneOf` for options
 6. All constraint properties must be valid JSON schema constructs
-7. Pattern should be testable with `calm validate -p <pattern-file>`
+7. `unique-id`s must be unique across the whole pattern, including inside `items.oneOf`/`anyOf` catalogs
+8. Pattern should be testable with `calm validate -p <pattern-file>`
 
 ## Best Practices
 

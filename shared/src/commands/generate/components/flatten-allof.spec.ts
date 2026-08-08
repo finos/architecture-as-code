@@ -2,6 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { flattenAllOf } from './flatten-allof';
 import { SchemaDirectory } from '../../../schema-directory';
 
+// Spy on the logger's debug channel so the dropped-catalog warning can be asserted.
+// Hoisted so the (hoisted) vi.mock factory below can reference it.
+const { mockDebug } = vi.hoisted(() => ({ mockDebug: vi.fn() }));
+vi.mock('../../../logger', () => ({
+    initLogger: () => ({
+        log: vi.fn(),
+        debug: mockDebug,
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    }),
+}));
+
 // Mock SchemaDirectory
 const mockSchemaDir = {
     getDefinition: vi.fn(),
@@ -233,6 +246,40 @@ describe('flattenAllOf', () => {
             level1: { type: 'string' },
             level2: { type: 'string' },
             level3: { type: 'string' }
+        });
+    });
+
+    describe('items open-catalog across allOf', () => {
+        it('logs a debug warning when two allOf branches each declare a nodes items catalog', async () => {
+            // Both branches declare `properties.nodes.items`; the shallow properties
+            // merge makes the later branch's catalog win and silently drops the first.
+            const schema = {
+                allOf: [
+                    { properties: { nodes: { items: { oneOf: [{ const: 'a' }] } } } },
+                    { properties: { nodes: { items: { oneOf: [{ const: 'b' }] } } } },
+                ],
+            };
+
+            await flattenAllOf(schema, mockSchemaDir, true);
+
+            expect(mockDebug).toHaveBeenCalledWith(
+                expect.stringContaining('allOf merge drops an \'items\' catalog on \'nodes\'')
+            );
+        });
+
+        it('does not warn when only one allOf branch declares a catalog', async () => {
+            const schema = {
+                allOf: [
+                    { properties: { nodes: { items: { oneOf: [{ const: 'a' }] } } } },
+                    { properties: { relationships: { prefixItems: [] } } },
+                ],
+            };
+
+            await flattenAllOf(schema, mockSchemaDir, true);
+
+            expect(mockDebug).not.toHaveBeenCalledWith(
+                expect.stringContaining('drops an \'items\' catalog')
+            );
         });
     });
 });
