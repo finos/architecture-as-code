@@ -25,21 +25,34 @@ type SchemaObject = Record<string, any>;
 // ---- Schema traversal helpers ----
 
 /**
- * Gets the prefixItems for a given top-level key (e.g. 'nodes' or 'relationships')
- * from a pattern, handling allOf structures.
+ * Reads an array-valued keyword (e.g. 'prefixItems' or 'items') for a given
+ * top-level key (e.g. 'nodes' or 'relationships') from a pattern, handling allOf
+ * structures. Returns the direct declaration if present, otherwise the first
+ * matching one found across the allOf branches, otherwise undefined. The truthy
+ * check means a present-but-falsy value (e.g. `items: false` closing a tuple) is
+ * treated as absent, exactly as the two callers below relied on.
  */
-function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
-    if (pattern['properties']?.[key]?.['prefixItems']) {
-        return pattern['properties'][key]['prefixItems'];
+function getArrayKeyword(pattern: SchemaObject, key: string, keyword: string): SchemaObject | undefined {
+    if (pattern['properties']?.[key]?.[keyword]) {
+        return pattern['properties'][key][keyword];
     }
     if (pattern['allOf'] && Array.isArray(pattern['allOf'])) {
         for (const schema of pattern['allOf']) {
-            if (schema['properties']?.[key]?.['prefixItems']) {
-                return schema['properties'][key]['prefixItems'];
+            if (schema['properties']?.[key]?.[keyword]) {
+                return schema['properties'][key][keyword];
             }
         }
     }
-    return [];
+    return undefined;
+}
+
+/**
+ * Gets the prefixItems for a given top-level key (e.g. 'nodes' or 'relationships')
+ * from a pattern, handling allOf structures. Absent prefixItems yields an empty
+ * array so callers can iterate unconditionally.
+ */
+function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
+    return getArrayKeyword(pattern, key, 'prefixItems') ?? [];
 }
 
 /**
@@ -48,17 +61,25 @@ function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
  * from a pattern, handling allOf structures.
  */
 function getItems(pattern: SchemaObject, key: string): SchemaObject | undefined {
-    if (pattern['properties']?.[key]?.['items']) {
-        return pattern['properties'][key]['items'];
+    return getArrayKeyword(pattern, key, 'items');
+}
+
+/**
+ * Reads an `items` open-catalog's decision alternatives. Returns the group type
+ * (`oneOf`/`anyOf`) and the alternatives array, or null when the catalog is
+ * neither. Mirrors the original inline logic exactly: `oneOf` wins when both are
+ * present, and either keyword being a non-array leaves the catalog untreated.
+ */
+function catalogAlternatives(items: SchemaObject): { groupType: 'oneOf' | 'anyOf'; alternatives: SchemaObject[] } | null {
+    const hasOneOf = Array.isArray(items['oneOf']);
+    const hasAnyOf = Array.isArray(items['anyOf']);
+    if (!hasOneOf && !hasAnyOf) {
+        return null;
     }
-    if (pattern['allOf'] && Array.isArray(pattern['allOf'])) {
-        for (const schema of pattern['allOf']) {
-            if (schema['properties']?.[key]?.['items']) {
-                return schema['properties'][key]['items'];
-            }
-        }
-    }
-    return undefined;
+    return {
+        groupType: hasOneOf ? 'oneOf' : 'anyOf',
+        alternatives: hasOneOf ? items['oneOf'] : items['anyOf'],
+    };
 }
 
 /**
@@ -238,13 +259,9 @@ function extractNodesFromPattern(pattern: SchemaObject): { nodes: ExtractedNode[
     // that aren't tied to a specific positional slot. Treat the whole catalog as
     // a single decision-group slot.
     if (items) {
-        const hasOneOf = Array.isArray(items['oneOf']);
-        const hasAnyOf = Array.isArray(items['anyOf']);
-
-        if (hasOneOf || hasAnyOf) {
-            const groupType: 'oneOf' | 'anyOf' = hasOneOf ? 'oneOf' : 'anyOf';
-            const alternatives: SchemaObject[] = hasOneOf ? items['oneOf'] : items['anyOf'];
-            extractNodeDecisionGroup(alternatives, 'node-decision-items', groupType, nodes, decisionGroups);
+        const catalog = catalogAlternatives(items);
+        if (catalog) {
+            extractNodeDecisionGroup(catalog.alternatives, 'node-decision-items', catalog.groupType, nodes, decisionGroups);
         }
     }
 
@@ -426,12 +443,9 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
     // Open catalog: `items.oneOf`/`items.anyOf` declares zero-or-more relationship
     // candidates not tied to a specific positional slot.
     if (items) {
-        const hasOneOf = Array.isArray(items['oneOf']);
-        const hasAnyOf = Array.isArray(items['anyOf']);
-
-        if (hasOneOf || hasAnyOf) {
-            const alternatives: SchemaObject[] = hasOneOf ? items['oneOf'] : items['anyOf'];
-            extractRelationshipDecisionGroup(alternatives, 'rel-decision-items', relationships);
+        const catalog = catalogAlternatives(items);
+        if (catalog) {
+            extractRelationshipDecisionGroup(catalog.alternatives, 'rel-decision-items', relationships);
         }
     }
 
