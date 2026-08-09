@@ -21,8 +21,8 @@ describe('idsAreUnique', () => {
             document: {
                 data: {
                     moments: [
-                        {'unique-id': 'node1'},
-                        {'unique-id': 'node2'},
+                        { 'unique-id': 'node1' },
+                        { 'unique-id': 'node2' },
                     ]
                 }
             }
@@ -38,9 +38,9 @@ describe('idsAreUnique', () => {
             document: {
                 data: {
                     moments: [
-                        {'unique-id': 'node1'},
-                        {'unique-id': 'node2'},
-                        {'unique-id': 'node1'}, // duplicate
+                        { 'unique-id': 'node1' },
+                        { 'unique-id': 'node2' },
+                        { 'unique-id': 'node1' }, // duplicate
                     ]
                 }
             }

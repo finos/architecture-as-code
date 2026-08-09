@@ -119,6 +119,15 @@ For complete details on our commit message rules, see our [`commitlint.config.js
 - Update documentation if you're adding new features
 - Consider the appropriate scope for your changes
 
+### Import Formatting
+
+Use spaces inside named-import braces. ESLint enforces this consistently across
+the TypeScript workspaces:
+
+```typescript
+import { CalmWidget } from './types';
+```
+
 ## Responsible Use of AI Coding Assistants
 
 AI coding assistants are welcome, but their output must be treated as draft input. Before submitting a PR, contributors must understand and be able to explain all changes, validate behaviour with the project's required checks, and review the full diff for correctness, security, privacy, licensing, and dependency impact.

@@ -23,7 +23,7 @@ describe('interfaceIdExists', () => {
                         {
                             'unique-id': 'node1',
                             interfaces: [
-                                {'unique-id': 'intf1'}
+                                { 'unique-id': 'intf1' }
                             ]
                         }
                     ]
@@ -44,7 +44,7 @@ describe('interfaceIdExists', () => {
                         {
                             'unique-id': 'node1',
                             interfaces: [
-                                {'unique-id': 'intf1'}
+                                { 'unique-id': 'intf1' }
                             ]
                         }
                     ]

@@ -1,4 +1,4 @@
-import {CalmNodeCanonicalModel, CalmNodeInterfaceCanonicalModel} from '@finos/calm-models/canonical';
+import { CalmNodeCanonicalModel, CalmNodeInterfaceCanonicalModel } from '@finos/calm-models/canonical';
 
 /**
  * Convert an identifier (e.g. "my_service-id") into a human-friendly label. Useful for rendering node names when an explicit label is not provided.

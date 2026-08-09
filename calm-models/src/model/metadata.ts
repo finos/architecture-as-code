@@ -1,6 +1,6 @@
 import { CalmMetadataSchema } from '../types/metadata-types.js';
 import { CalmAdaptable } from './adaptable.js';
-import {CalmMetadataCanonicalModel} from '../canonical/template-models.js';
+import { CalmMetadataCanonicalModel } from '../canonical/template-models.js';
 
 export class CalmMetadata implements CalmAdaptable<CalmMetadataSchema,CalmMetadataCanonicalModel> {
     constructor(

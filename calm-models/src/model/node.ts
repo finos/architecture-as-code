@@ -2,14 +2,14 @@ import { CalmInterface } from './interface.js';
 import { CalmControls } from './control.js';
 import { CalmMetadata } from './metadata.js';
 import { CalmCore } from './core.js';
-import {ResolvableAndAdaptable} from './resolvable.js';
+import { ResolvableAndAdaptable } from './resolvable.js';
 import {
     CalmCoreSchema,
     CalmNodeDetailsSchema,
     CalmNodeSchema
 } from '../types';
-import {CalmAdaptable, NullSchema} from './adaptable.js';
-import {CalmNodeCanonicalModel} from '../canonical/template-models.js';
+import { CalmAdaptable, NullSchema } from './adaptable.js';
+import { CalmNodeCanonicalModel } from '../canonical/template-models.js';
 
 export type CalmNodeType =
     | 'actor'
