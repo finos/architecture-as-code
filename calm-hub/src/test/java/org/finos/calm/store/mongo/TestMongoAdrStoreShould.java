@@ -224,6 +224,37 @@ public class TestMongoAdrStoreShould {
     }
 
     @Test
+    void denormalize_the_title_onto_the_header_at_creation() throws Exception {
+        // See calm-hub/decisions/0006-denormalize-adr-title-onto-header.md: unlike every
+        // other type, ADR has no name of its own to write onto the header at creation — it
+        // has to be resolved from the ADR content instead.
+        when(counterStore.getNextAdrSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        store.createAdrForNamespace(adrMeta(1, adr("New", Status.draft)));
+
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insertOne(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().getString("name"), is("New"));
+    }
+
+    @Test
+    void default_the_header_title_to_untitled_adr_when_the_first_revision_has_none() throws Exception {
+        when(counterStore.getNextAdrSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        store.createAdrForNamespace(adrMeta(1, adr(null, Status.draft)));
+
+        // There's no existing header title a blank one could instead leave standing — this
+        // is the one write establishing it for the first time.
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insertOne(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().getString("name"), is("Untitled ADR"));
+    }
+
+    @Test
     void remove_the_header_again_when_the_first_revision_write_fails() {
         when(counterStore.getNextAdrSequenceValue()).thenReturn(99);
         doAnswer(invocation -> {
@@ -378,6 +409,35 @@ public class TestMongoAdrStoreShould {
 
         assertThat(updated.getRevision(), is(2));
         assertThat(updated.getAdr().getStatus(), is(Status.accepted));
+    }
+
+    @Test
+    void refresh_the_header_title_on_a_new_revision() throws Exception {
+        adrExists();
+        stubRevisions(List.of("1", "2"), contentOf("Existing", Status.accepted));
+
+        store.updateAdrForNamespace(adrMeta(1, adr("Rewritten", Status.draft)));
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection, Mockito.atLeastOnce()).updateOne(any(Bson.class), updateCaptor.capture());
+        boolean sawTheNewTitle = updateCaptor.getAllValues().stream()
+                .anyMatch(update -> update.toBsonDocument().toJson().contains("Rewritten"));
+        assertThat(sawTheNewTitle, is(true));
+    }
+
+    @Test
+    void leave_the_header_title_alone_when_a_new_revision_has_none() throws Exception {
+        adrExists();
+        stubRevisions(List.of("1"), contentOf("Existing", Status.draft));
+
+        // updatePresentHeaderDetails no-ops on a blank title rather than overwriting a real
+        // one with a placeholder — no title-update call should reach headerCollection at all.
+        store.updateAdrForNamespace(adrMeta(1, adr(null, Status.draft)));
+
+        boolean sawATitleUpdate = Mockito.mockingDetails(headerCollection).getInvocations().stream()
+                .filter(invocation -> invocation.getMethod().getName().equals("updateOne"))
+                .anyMatch(invocation -> ((Bson) invocation.getArgument(1)).toBsonDocument().toJson().contains("name"));
+        assertThat(sawATitleUpdate, is(false));
     }
 
     @Test

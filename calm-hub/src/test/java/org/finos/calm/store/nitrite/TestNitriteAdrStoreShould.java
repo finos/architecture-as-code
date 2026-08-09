@@ -212,6 +212,33 @@ public class TestNitriteAdrStoreShould {
         assertThat(captor.getValue().get("version", String.class), is("1"));
     }
 
+    @Test
+    public void denormalize_the_title_onto_the_header_at_creation() throws Exception {
+        // See calm-hub/decisions/0006-denormalize-adr-title-onto-header.md.
+        when(mockCounterStore.getNextAdrSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of(Document.createDocument().put("adrId", 99).put("versionCount", 0)));
+        stubRevisions(List.of(), null);
+
+        store.createAdrForNamespace(adrMeta(1, adr("New", Status.draft)));
+
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insert(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().get("name", String.class), is("New"));
+    }
+
+    @Test
+    public void default_the_header_title_to_untitled_adr_when_the_first_revision_has_none() throws Exception {
+        when(mockCounterStore.getNextAdrSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of(Document.createDocument().put("adrId", 99).put("versionCount", 0)));
+        stubRevisions(List.of(), null);
+
+        store.createAdrForNamespace(adrMeta(1, adr(null, Status.draft)));
+
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insert(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().get("name", String.class), is("Untitled ADR"));
+    }
+
     // --- reads ---
 
     @Test
@@ -313,6 +340,29 @@ public class TestNitriteAdrStoreShould {
 
         assertThat(updated.getRevision(), is(2));
         assertThat(updated.getAdr().getStatus(), is(Status.accepted));
+    }
+
+    @Test
+    public void refresh_the_header_title_on_a_new_revision() throws Exception {
+        adrExists();
+        stubRevisionsForUpdate(List.of("1", "2"), contentOf("Existing", Status.accepted));
+
+        store.updateAdrForNamespace(adrMeta(1, adr("Rewritten", Status.draft)));
+
+        // Two header writes: the versionCount increment and the title refresh.
+        verify(headerCollection, org.mockito.Mockito.times(2)).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    public void leave_the_header_title_alone_when_a_new_revision_has_none() throws Exception {
+        adrExists();
+        stubRevisionsForUpdate(List.of("1"), contentOf("Existing", Status.draft));
+
+        // updatePresentHeaderDetails no-ops on a blank title, so only the versionCount
+        // increment writes the header.
+        store.updateAdrForNamespace(adrMeta(1, adr(null, Status.draft)));
+
+        verify(headerCollection, org.mockito.Mockito.times(1)).update(any(Filter.class), any(Document.class));
     }
 
     @Test
