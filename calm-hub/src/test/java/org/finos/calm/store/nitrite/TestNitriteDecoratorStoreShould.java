@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,7 +52,8 @@ class TestNitriteDecoratorStoreShould {
     private NitriteDecoratorStore decoratorStore;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws NamespaceNotFoundException {
+        lenient().doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(db.getCollection("decorators")).thenReturn(decoratorCollection);
         decoratorStore = new NitriteDecoratorStore(db, namespaceStore, counterStore);
     }

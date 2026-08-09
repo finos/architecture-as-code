@@ -44,7 +44,8 @@ public class TestMongoResourceMappingStoreShould {
     private MongoCollection<Document> mappingCollection;
 
     @BeforeEach
-    void setup() {
+    void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         mappingCollection = Mockito.mock(DocumentMongoCollection.class);
         when(mongoDatabase.getCollection("resource_mappings")).thenReturn(mappingCollection);
         store = new MongoResourceMappingStore(mongoDatabase, namespaceStore);

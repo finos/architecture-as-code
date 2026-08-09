@@ -58,8 +58,8 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
-        
+        namespaceStore.requireNamespace(namespace);
+
         Document namespaceDoc = fetchNamespaceDocument(namespace);
         if (namespaceDoc == null) {
             LOG.debug("No decorators found for namespace '{}'", namespace);
@@ -80,7 +80,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public List<Decorator> getDecoratorValuesForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document namespaceDoc = fetchNamespaceDocument(namespace);
         if (namespaceDoc == null) {
@@ -102,7 +102,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document namespaceDoc = fetchNamespaceDocument(namespace);
         if (namespaceDoc == null) {
@@ -124,7 +124,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document decoratorDoc = parseJsonToNitriteDocument(decoratorJson);
         lock.lock();
@@ -156,7 +156,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public void updateDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document namespaceDoc = fetchNamespaceDocument(namespace);
         if (namespaceDoc == null) {
@@ -180,16 +180,6 @@ public class NitriteDecoratorStore implements DecoratorStore {
         namespaceDoc.put(DECORATORS_FIELD, decorators);
         decoratorCollection.update(namespaceDoc);
         LOG.debug("Updated decorator with ID {} in namespace '{}'", id, namespace);
-    }
-
-    /**
-     * Validates that the namespace exists, throwing an exception if it doesn't
-     */
-    private void validateNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found when retrieving decorators", namespace);
-            throw new NamespaceNotFoundException();
-        }
     }
 
     /**

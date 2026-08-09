@@ -54,9 +54,7 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public ResourceMapping createMapping(String namespace, String customId, ResourceType type, int numericId) throws DuplicateMappingException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Document doc = new Document("namespace", namespace)
                 .append("customId", customId)
@@ -77,9 +75,7 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public ResourceMapping getMapping(String namespace, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Bson filter = Filters.and(
                 Filters.eq("namespace", namespace),
@@ -96,9 +92,7 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public List<ResourceMapping> listMappings(String namespace, ResourceType typeFilter) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Bson filter;
         if (typeFilter != null) {
@@ -119,9 +113,7 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public ResourceMapping getMappingByNumericId(String namespace, ResourceType type, int numericId) throws MappingNotFoundException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Bson filter = Filters.and(
                 Filters.eq("namespace", namespace),
@@ -139,9 +131,7 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public List<ResourceMapping> listMappingsByNumericIds(String namespace, ResourceType type, List<Integer> ids) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Bson filter = Filters.and(
                 Filters.eq("namespace", namespace),
@@ -176,9 +166,7 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public void updateMappingNumericId(String namespace, String customId, int numericId) throws MappingNotFoundException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Bson filter = Filters.and(
                 Filters.eq("namespace", namespace),
@@ -193,9 +181,7 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public void deleteMapping(String namespace, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Bson filter = Filters.and(
                 Filters.eq("namespace", namespace),

@@ -58,9 +58,7 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public ResourceMapping createMapping(String namespace, String customId, ResourceType type, int numericId) throws DuplicateMappingException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         lock.lock();
         try {
@@ -88,9 +86,7 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public ResourceMapping getMapping(String namespace, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Filter filter = where(NAMESPACE_FIELD).eq(namespace).and(where(CUSTOM_ID_FIELD).eq(customId));
         Document result = mappingCollection.find(filter).firstOrNull();
@@ -103,9 +99,7 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public List<ResourceMapping> listMappings(String namespace, ResourceType typeFilter) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Filter filter;
         if (typeFilter != null) {
@@ -123,9 +117,7 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public ResourceMapping getMappingByNumericId(String namespace, ResourceType type, int numericId) throws MappingNotFoundException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Filter nameTypeFilter = where(NAMESPACE_FIELD).eq(namespace)
                 .and(where(RESOURCE_TYPE_FIELD).eq(type.name()));
@@ -143,9 +135,7 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public List<ResourceMapping> listMappingsByNumericIds(String namespace, ResourceType type, List<Integer> ids) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         // Nitrite doesn't have a direct $in operator, so we filter in application code
         Filter filter = where(NAMESPACE_FIELD).eq(namespace)
@@ -181,9 +171,7 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public void updateMappingNumericId(String namespace, String customId, int numericId) throws MappingNotFoundException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         lock.lock();
         try {
@@ -202,9 +190,7 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
 
     @Override
     public void deleteMapping(String namespace, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         lock.lock();
         try {

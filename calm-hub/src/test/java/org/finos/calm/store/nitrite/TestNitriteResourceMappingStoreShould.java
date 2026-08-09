@@ -43,7 +43,8 @@ public class TestNitriteResourceMappingStoreShould {
     private static final String NAMESPACE = "finos";
 
     @BeforeEach
-    void setup() {
+    void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(mockNamespaceStore).requireNamespace(anyString());
         when(mockDb.getCollection(anyString())).thenReturn(mockCollection);
         store = new NitriteResourceMappingStore(mockDb, mockNamespaceStore);
     }
