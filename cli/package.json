@@ -46,7 +46,7 @@
         "commander": "^14.0.0",
         "copyfiles": "^2.4.1",
         "execa": "^9.6.0",
-        "mermaid": "^11.15.0",
+        "mermaid": "^11.16.1",
         "mkdirp": "^3.0.1",
         "playwright-core": "^1.56.0",
         "tree-dump": "^1.1.0",

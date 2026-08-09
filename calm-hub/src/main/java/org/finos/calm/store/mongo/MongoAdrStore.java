@@ -143,8 +143,11 @@ public class MongoAdrStore implements AdrStore {
         Document content = toContent(adrMeta);
 
         int id = counterStore.getNextAdrSequenceValue();
-        // ADRs carry no name or description of their own — both live in the revision content.
-        documentStore.createHeader(adrMeta.getNamespace(), id, null, null);
+        // ADRs carry no name or description of their own — both live in the revision
+        // content — but the header still denormalizes a copy of the title, same as every
+        // other versioned type's header carries its display name. See
+        // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md.
+        documentStore.createHeader(adrMeta.getNamespace(), id, headerTitle(adrMeta), null);
         documentStore.createFirstVersion(adrMeta.getNamespace(), id,
                 String.valueOf(adrMeta.getRevision()), content);
 
@@ -256,6 +259,23 @@ public class MongoAdrStore implements AdrStore {
                 String.valueOf(adrMeta.getRevision()), content)) {
             throw new AdrRevisionExistsException();
         }
+        // Refresh the header's denormalized title after the version write succeeds, never
+        // before — same rule MongoVersionDocumentStore#updateHeaderDetails documents for
+        // every other type. updatePresentHeaderDetails deliberately no-ops on a blank title,
+        // so a revision that omits one leaves the header's existing title standing rather
+        // than overwriting it with a placeholder.
+        documentStore.updatePresentHeaderDetails(adrMeta.getNamespace(), adrMeta.getId(),
+                adrMeta.getAdr().getTitle(), null);
+    }
+
+    /**
+     * Resolves the title to denormalize onto a brand-new header, falling back to a
+     * placeholder rather than leaving it blank — unlike a later revision, there is no
+     * existing header title a blank one could instead leave standing.
+     */
+    private String headerTitle(AdrMeta adrMeta) {
+        String title = adrMeta.getAdr().getTitle();
+        return title == null || title.isBlank() ? "Untitled ADR" : title;
     }
 
     private Document toContent(AdrMeta adrMeta) throws AdrParseException {
