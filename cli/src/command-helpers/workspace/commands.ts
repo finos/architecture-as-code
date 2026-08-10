@@ -17,6 +17,7 @@ import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-m
 import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared/src/hub/document-id-utils';
 import { loadCliConfig } from '../../cli-config';
+import { resolveCalmHubOptions } from '../hub-commands';
 
 const logger: Logger = initLogger(false, 'workspace');
 
@@ -347,13 +348,13 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const calmHubUrl = await resolveCalmHubUrl(options.calmHubUrl);
+                const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
 
                 const gitRoot = findGitRoot(process.cwd());
                 const workspaceConfig = gitRoot ? await loadWorkspaceConfig(gitRoot) : undefined;
                 const failIfModified = options.failIfModified ?? workspaceConfig?.push.failIfModified ?? false;
 
-                const client = new CalmHubClient({ calmHubUrl });
+                const client = new CalmHubClient(calmHubOptions);
                 await pushWorkspaceToHub(bundlePath, client, { failIfModified });
             } catch (err) {
                 logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));
@@ -373,8 +374,8 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const calmHubUrl = await resolveCalmHubUrl(options.calmHubUrl);
-                const client = new CalmHubClient({ calmHubUrl });
+                const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
+                const client = new CalmHubClient(calmHubOptions);
                 const changed = await detectChangedResources(bundlePath, client);
 
                 let needsBump = false;
@@ -436,14 +437,14 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const calmHubUrl = await resolveCalmHubUrl(options.calmHubUrl);
+                const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
 
                 const gitRoot = findGitRoot(process.cwd());
                 const workspaceConfig = gitRoot ? await loadWorkspaceConfig(gitRoot) : undefined;
                 const defaultIncrement: ResourceChangeType =
                     options.major ? 'MAJOR' : options.minor ? 'MINOR' : options.patch ? 'PATCH' : workspaceConfig?.bump.defaultIncrement ?? 'MINOR';
 
-                const client = new CalmHubClient({ calmHubUrl });
+                const client = new CalmHubClient(calmHubOptions);
 
                 // Detect changed resources up-front so interactive prompts can be shown before
                 // any files are written, and to avoid a redundant detection pass inside bumpWorkspace.
@@ -533,20 +534,7 @@ export function setupWorkspaceCommands(program: Command) {
         });
 }
 
-/**
- * Resolve the CalmHub URL from the CLI option or `~/.calm.json`, exiting the process if neither is set.
- */
-async function resolveCalmHubUrl(optionUrl?: string): Promise<string> {
-    const config = await loadCliConfig();
-    const calmHubUrl = optionUrl ?? config?.calmHubUrl;
-    if (!calmHubUrl) {
-        logger.error('No CalmHub URL configured. Use --calm-hub-url or set calmHubUrl in ~/.calm.json');
-        process.exit(1);
-    }
-    return calmHubUrl;
-}
-
-async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: readonly string[]): Promise<string> {
+async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: string[]): Promise<string> {
     if (cliInput) {
         // if it was selected already, just use that
         return cliInput;
