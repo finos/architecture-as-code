@@ -1,6 +1,6 @@
 import { CalmCoreSchema } from '../types/core-types.js';
 import { CalmCore } from './core.js';
-import {ResolvableAndAdaptable} from './resolvable';
+import { ResolvableAndAdaptable } from './resolvable';
 
 describe('CalmCore', () => {
     it('should create from minimal schema', () => {

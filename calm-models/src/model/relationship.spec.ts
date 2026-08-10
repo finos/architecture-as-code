@@ -7,7 +7,7 @@ import {
     CalmOptionsRelationshipType,
     CalmDecisionType
 } from './relationship.js';
-import { CalmRelationshipSchema} from '../types/core-types.js';
+import { CalmRelationshipSchema } from '../types/core-types.js';
 import { CalmNodeInterface } from './interface.js';
 
 describe('CalmRelationship (hibernate-model)', () => {
