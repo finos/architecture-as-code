@@ -423,7 +423,7 @@ public class MongoMappingControllerIntegration {
                 .when().get("/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
-                .body("values.customId", hasItem("repo"));
+                .body("values.customId.count { it == 'repo' }", equalTo(1));
     }
 
     @Test
@@ -433,7 +433,7 @@ public class MongoMappingControllerIntegration {
                 .when().get("/calm/namespaces/finos/architectures")
                 .then()
                 .statusCode(200)
-                .body("values.customId", hasItem("repo"));
+                .body("values.customId.count { it == 'repo' }", equalTo(1));
     }
 
     @Test
