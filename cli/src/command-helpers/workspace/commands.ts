@@ -534,7 +534,7 @@ export function setupWorkspaceCommands(program: Command) {
         });
 }
 
-async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: string[]): Promise<string> {
+async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: readonly string[]): Promise<string> {
     if (cliInput) {
         // if it was selected already, just use that
         return cliInput;
