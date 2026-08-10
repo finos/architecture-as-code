@@ -53,6 +53,8 @@ class TestNitriteDecoratorStoreShould {
 
     @BeforeEach
     void setUp() throws NamespaceNotFoundException {
+        // lenient(): unlike sibling *StoreShould classes, should_log_initialization_message()
+        // below never touches namespaceStore, so strict stubbing would flag this as unused.
         lenient().doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(db.getCollection("decorators")).thenReturn(decoratorCollection);
         decoratorStore = new NitriteDecoratorStore(db, namespaceStore, counterStore);
