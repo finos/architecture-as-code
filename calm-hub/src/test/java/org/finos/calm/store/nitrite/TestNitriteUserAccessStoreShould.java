@@ -45,8 +45,9 @@ public class TestNitriteUserAccessStoreShould {
     private NitriteUserAccessStore userAccessStore;
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws NamespaceNotFoundException {
         when(mockDb.getCollection("userAccess")).thenReturn(mockCollection);
+        lenient().doCallRealMethod().when(mockNamespaceStore).requireNamespace(any());
         userAccessStore = new NitriteUserAccessStore(mockDb, mockNamespaceStore, mockCounterStore);
     }
 

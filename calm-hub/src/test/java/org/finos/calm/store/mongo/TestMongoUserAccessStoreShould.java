@@ -46,10 +46,11 @@ public class TestMongoUserAccessStoreShould {
     private MongoUserAccessStore mongoUserAccessStore;
 
     @BeforeEach
-    void setup() {
+    void setup() throws NamespaceNotFoundException {
         userAccessCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoDatabase.getCollection("userAccess")).thenReturn(userAccessCollection);
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         mongoUserAccessStore = new MongoUserAccessStore(mongoDatabase, namespaceStore, counterStore);
     }
 

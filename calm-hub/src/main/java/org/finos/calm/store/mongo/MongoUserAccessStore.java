@@ -44,8 +44,8 @@ public class MongoUserAccessStore implements UserAccessStore {
             throws NamespaceNotFoundException {
 
         log.info("User-access details: {}", userAccess);
-        if (!GLOBAL_ACCESS.equals(userAccess.getNamespace()) && !namespaceStore.namespaceExists(userAccess.getNamespace())) {
-            throw new NamespaceNotFoundException();
+        if (!GLOBAL_ACCESS.equals(userAccess.getNamespace())) {
+            namespaceStore.requireNamespace(userAccess.getNamespace());
         }
 
         return createUserAccess(userAccess, "namespace", userAccess.getNamespace());
@@ -120,8 +120,8 @@ public class MongoUserAccessStore implements UserAccessStore {
 
     @Override
     public List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
+        if (!GLOBAL_ACCESS.equals(namespace)) {
+            namespaceStore.requireNamespace(namespace);
         }
         List<UserAccess> userAccessList = new ArrayList<>();
         for (Document doc : userAccessCollection.find(Filters.eq("namespace", namespace))) {
@@ -134,9 +134,7 @@ public class MongoUserAccessStore implements UserAccessStore {
     public UserAccess getUserAccessForNamespaceAndId(String namespace, Integer userAccessId)
             throws NamespaceNotFoundException, UserAccessNotFoundException {
 
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Document document = userAccessCollection.find(Filters.and(
                         Filters.eq("namespace", namespace),
@@ -187,8 +185,8 @@ public class MongoUserAccessStore implements UserAccessStore {
     public void deleteUserAccessForNamespace(String namespace, Integer userAccessId)
             throws NamespaceNotFoundException, UserAccessNotFoundException {
 
-        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
+        if (!GLOBAL_ACCESS.equals(namespace)) {
+            namespaceStore.requireNamespace(namespace);
         }
 
         DeleteResult result = userAccessCollection.deleteOne(Filters.and(
