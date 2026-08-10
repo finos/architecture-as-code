@@ -141,7 +141,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 11;
+const LATEST_SCHEMA_VERSION = 12;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
