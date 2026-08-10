@@ -28,12 +28,14 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * <h2>Document model</h2>
  * Uses a flat {@code resource_mappings} collection where each document represents a single
  * mapping: {@code { namespace, customId, resourceType, numericId }}.
- * A unique compound index on {@code (namespace, customId)} prevents duplicate custom IDs
- * within the same namespace.
+ * A unique compound index on {@code (namespace, resourceType, customId)} prevents duplicate
+ * custom IDs within the same namespace and resource type — the same customId may be reused
+ * across different resource types (e.g. a pattern and an architecture can both be named
+ * {@code "repo"}).
  *
  * <h2>Concurrency</h2>
  * Duplicate prevention is handled by the unique index — a second insert with the same
- * {@code (namespace, customId)} throws a {@link MongoWriteException} with
+ * {@code (namespace, resourceType, customId)} throws a {@link MongoWriteException} with
  * {@link ErrorCategory#DUPLICATE_KEY}, which is translated to {@link DuplicateMappingException}.
  *
  */
@@ -74,11 +76,12 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
     }
 
     @Override
-    public ResourceMapping getMapping(String namespace, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
+    public ResourceMapping getMapping(String namespace, ResourceType type, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         Bson filter = Filters.and(
                 Filters.eq("namespace", namespace),
+                Filters.eq("resourceType", type.name()),
                 Filters.eq("customId", customId)
         );
 
@@ -165,11 +168,12 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
     }
 
     @Override
-    public void updateMappingNumericId(String namespace, String customId, int numericId) throws MappingNotFoundException, NamespaceNotFoundException {
+    public void updateMappingNumericId(String namespace, ResourceType type, String customId, int numericId) throws MappingNotFoundException, NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         Bson filter = Filters.and(
                 Filters.eq("namespace", namespace),
+                Filters.eq("resourceType", type.name()),
                 Filters.eq("customId", customId)
         );
 
@@ -180,11 +184,12 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
     }
 
     @Override
-    public void deleteMapping(String namespace, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
+    public void deleteMapping(String namespace, ResourceType type, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         Bson filter = Filters.and(
                 Filters.eq("namespace", namespace),
+                Filters.eq("resourceType", type.name()),
                 Filters.eq("customId", customId)
         );
 

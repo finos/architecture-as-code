@@ -18,8 +18,10 @@ import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.DuplicateMappingException;
 import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.bson.conversions.Bson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.util.List;
@@ -67,6 +69,28 @@ public class TestMongoResourceMappingStoreShould {
     }
 
     @Test
+    void create_mapping_with_same_custom_id_as_a_different_resource_type() throws DuplicateMappingException, NamespaceNotFoundException {
+        // The store itself performs no in-memory duplicate check on create — uniqueness is
+        // enforced by MongoDB's (namespace, resourceType, customId) unique index (see
+        // MongoIndexInitializationStep / MongoResourceMappingIndexStep). This asserts the
+        // document written for each type carries the correct resourceType, so the same
+        // customId ("repo") can be stored once per type without this store layer blocking it.
+        when(namespaceStore.namespaceExists("finos")).thenReturn(true);
+
+        store.createMapping("finos", "repo", ResourceType.PATTERN, 1);
+        store.createMapping("finos", "repo", ResourceType.ARCHITECTURE, 1);
+
+        ArgumentCaptor<Document> insertCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(mappingCollection, times(2)).insertOne(insertCaptor.capture());
+
+        List<Document> inserted = insertCaptor.getAllValues();
+        assertThat(inserted.get(0).getString("customId"), is("repo"));
+        assertThat(inserted.get(0).getString("resourceType"), is("PATTERN"));
+        assertThat(inserted.get(1).getString("customId"), is("repo"));
+        assertThat(inserted.get(1).getString("resourceType"), is("ARCHITECTURE"));
+    }
+
+    @Test
     void throw_namespace_not_found_on_create_when_namespace_does_not_exist() {
         when(namespaceStore.namespaceExists("invalid")).thenReturn(false);
 
@@ -100,7 +124,7 @@ public class TestMongoResourceMappingStoreShould {
         when(mappingCollection.find(any(org.bson.conversions.Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(doc);
 
-        ResourceMapping result = store.getMapping("finos", "api-gateway");
+        ResourceMapping result = store.getMapping("finos", ResourceType.PATTERN, "api-gateway");
 
         assertThat(result.getNamespace(), is("finos"));
         assertThat(result.getCustomId(), is("api-gateway"));
@@ -117,7 +141,7 @@ public class TestMongoResourceMappingStoreShould {
         when(findIterable.first()).thenReturn(null);
 
         assertThrows(MappingNotFoundException.class,
-                () -> store.getMapping("finos", "nonexistent"));
+                () -> store.getMapping("finos", ResourceType.PATTERN, "nonexistent"));
     }
 
     @Test
@@ -125,7 +149,30 @@ public class TestMongoResourceMappingStoreShould {
         when(namespaceStore.namespaceExists("invalid")).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> store.getMapping("invalid", "test"));
+                () -> store.getMapping("invalid", ResourceType.PATTERN, "test"));
+    }
+
+    @Test
+    void scope_get_mapping_query_by_resource_type() throws MappingNotFoundException, NamespaceNotFoundException {
+        // Regression guard for #2970: a customId lookup must be scoped by resourceType, or a
+        // pattern and an architecture sharing a customId (e.g. "repo") collide.
+        when(namespaceStore.namespaceExists("finos")).thenReturn(true);
+
+        Document doc = new Document("namespace", "finos")
+                .append("customId", "repo")
+                .append("resourceType", "ARCHITECTURE")
+                .append("numericId", 1);
+
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        when(mappingCollection.find(filterCaptor.capture())).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(doc);
+
+        store.getMapping("finos", ResourceType.ARCHITECTURE, "repo");
+
+        String filterJson = filterCaptor.getValue().toBsonDocument().toJson();
+        assertThat(filterJson, containsString("\"resourceType\": \"ARCHITECTURE\""));
+        assertThat(filterJson, containsString("\"customId\": \"repo\""));
     }
 
     // --- listMappings ---
@@ -258,7 +305,7 @@ public class TestMongoResourceMappingStoreShould {
         when(updateResult.getMatchedCount()).thenReturn(1L);
         when(mappingCollection.updateOne(any(org.bson.conversions.Bson.class), any(Document.class))).thenReturn(updateResult);
 
-        store.updateMappingNumericId("finos", "api-gateway", 42);
+        store.updateMappingNumericId("finos", ResourceType.PATTERN, "api-gateway", 42);
 
         verify(mappingCollection).updateOne(any(org.bson.conversions.Bson.class), any(Document.class));
     }
@@ -272,7 +319,7 @@ public class TestMongoResourceMappingStoreShould {
         when(mappingCollection.updateOne(any(org.bson.conversions.Bson.class), any(Document.class))).thenReturn(updateResult);
 
         assertThrows(MappingNotFoundException.class,
-                () -> store.updateMappingNumericId("finos", "nonexistent", 42));
+                () -> store.updateMappingNumericId("finos", ResourceType.PATTERN, "nonexistent", 42));
     }
 
     @Test
@@ -280,7 +327,7 @@ public class TestMongoResourceMappingStoreShould {
         when(namespaceStore.namespaceExists("invalid")).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> store.updateMappingNumericId("invalid", "test", 42));
+                () -> store.updateMappingNumericId("invalid", ResourceType.PATTERN, "test", 42));
     }
 
     // --- deleteMapping ---
@@ -293,7 +340,7 @@ public class TestMongoResourceMappingStoreShould {
         when(deleteResult.getDeletedCount()).thenReturn(1L);
         when(mappingCollection.deleteOne(any(org.bson.conversions.Bson.class))).thenReturn(deleteResult);
 
-        store.deleteMapping("finos", "api-gateway");
+        store.deleteMapping("finos", ResourceType.PATTERN, "api-gateway");
 
         verify(mappingCollection).deleteOne(any(org.bson.conversions.Bson.class));
     }
@@ -307,7 +354,7 @@ public class TestMongoResourceMappingStoreShould {
         when(mappingCollection.deleteOne(any(org.bson.conversions.Bson.class))).thenReturn(deleteResult);
 
         assertThrows(MappingNotFoundException.class,
-                () -> store.deleteMapping("finos", "nonexistent"));
+                () -> store.deleteMapping("finos", ResourceType.PATTERN, "nonexistent"));
     }
 
     @Test
@@ -315,7 +362,7 @@ public class TestMongoResourceMappingStoreShould {
         when(namespaceStore.namespaceExists("invalid")).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> store.deleteMapping("invalid", "test"));
+                () -> store.deleteMapping("invalid", ResourceType.PATTERN, "test"));
     }
 
     // --- Helper interfaces for Mockito generics ---

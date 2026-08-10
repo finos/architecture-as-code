@@ -365,4 +365,104 @@ public class MongoMappingControllerIntegration {
                 .then()
                 .statusCode(404);
     }
+
+    // =========================================================================
+    // Regression coverage for #2970 — customId collisions across resource types.
+    // A pattern and an architecture share the customId "repo"; the mapping identity must be
+    // scoped by (namespace, resourceType, customId), not just (namespace, customId).
+    // =========================================================================
+
+    @Test
+    @Order(28)
+    void create_pattern_and_architecture_with_the_same_custom_id() {
+        String patternPayload = "{\"title\": \"Repo Pattern\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/repo/versions/1.0.0\"}";
+        given()
+                .body(patternPayload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/repo/versions/1.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/repo/versions/1.0.0"));
+
+        String architecturePayload = "{\"title\": \"Repo Architecture\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/architectures/repo/versions/1.0.0\"}";
+        given()
+                .body(architecturePayload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/architectures/repo/versions/1.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/architectures/repo/versions/1.0.0"));
+    }
+
+    @Test
+    @Order(29)
+    void reading_pattern_repo_returns_the_pattern_not_the_architecture() {
+        given()
+                .when().get("/calm/namespaces/finos/patterns/repo/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body(containsString("Repo Pattern"))
+                .body(not(containsString("Repo Architecture")));
+    }
+
+    @Test
+    @Order(30)
+    void reading_architecture_repo_returns_the_architecture_not_the_pattern() {
+        given()
+                .when().get("/calm/namespaces/finos/architectures/repo/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body(containsString("Repo Architecture"))
+                .body(not(containsString("Repo Pattern")));
+    }
+
+    @Test
+    @Order(31)
+    void listing_patterns_includes_repo_exactly_once() {
+        given()
+                .when().get("/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values.customId", hasItem("repo"));
+    }
+
+    @Test
+    @Order(32)
+    void listing_architectures_includes_repo_exactly_once() {
+        given()
+                .when().get("/calm/namespaces/finos/architectures")
+                .then()
+                .statusCode(200)
+                .body("values.customId", hasItem("repo"));
+    }
+
+    @Test
+    @Order(33)
+    void adding_a_second_pattern_version_does_not_touch_the_architecture() {
+        String payload = "{\"title\": \"Repo Pattern v2\", \"$id\": \"http://localhost:8080/calm/namespaces/finos/patterns/repo/versions/1.1.0\"}";
+        given()
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/repo/versions/1.1.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/repo/versions/1.1.0"));
+
+        given()
+                .when().get("/calm/namespaces/finos/architectures/repo/versions")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1))
+                .body("values[0]", equalTo("1.0.0"));
+    }
+
+    @Test
+    @Order(34)
+    void repo_pattern_version_1_0_0_is_still_the_pattern_after_the_architecture_was_created() {
+        given()
+                .when().get("/calm/namespaces/finos/patterns/repo/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body(containsString("Repo Pattern"));
+    }
 }

@@ -11,6 +11,7 @@ import org.finos.calm.migration.steps.MongoFlowVersionSplitStep;
 import org.finos.calm.migration.steps.MongoInterfaceVersionSplitStep;
 import org.finos.calm.migration.steps.MongoLayoutIndexStep;
 import org.finos.calm.migration.steps.MongoPatternVersionSplitStep;
+import org.finos.calm.migration.steps.MongoResourceMappingIndexStep;
 import org.finos.calm.migration.steps.MongoTimelineVersionSplitStep;
 import org.finos.calm.migration.steps.MongoStandardVersionSplitStep;
 import org.slf4j.Logger;
@@ -66,6 +67,12 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             // container would run with no unique constraint on (namespace, architectureId),
             // and MongoLayoutStore's duplicate-key retry would go untested against a real index.
             new MongoLayoutIndexStep(database).createIndexes();
+            // Widens resource_mappings' unique index to (namespace, resourceType, customId) —
+            // without this, MongoIndexInitializationStep's own index creation above already
+            // establishes the 3-field shape on a fresh container, but running this step too
+            // keeps the container's index state consistent with what a real deployment ends up
+            // with after both schema versions 0 and 11 have applied.
+            new MongoResourceMappingIndexStep(database).createIndexes();
             logger.info("Ensured MongoDB indexes for integration tests");
         }
 
