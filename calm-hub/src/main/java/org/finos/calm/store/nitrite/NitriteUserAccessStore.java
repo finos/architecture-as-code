@@ -63,8 +63,8 @@ public class NitriteUserAccessStore implements UserAccessStore {
     public UserAccess createUserAccessForNamespace(UserAccess userAccess) throws NamespaceNotFoundException {
         LOG.info("User-access details: {}", userAccess);
 
-        if (!GLOBAL_ACCESS.equals(userAccess.getNamespace()) && !namespaceStore.namespaceExists(userAccess.getNamespace())) {
-            throw new NamespaceNotFoundException();
+        if (!GLOBAL_ACCESS.equals(userAccess.getNamespace())) {
+            namespaceStore.requireNamespace(userAccess.getNamespace());
         }
 
         lock.lock();
@@ -123,8 +123,8 @@ public class NitriteUserAccessStore implements UserAccessStore {
 
     @Override
     public List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
+        if (!GLOBAL_ACCESS.equals(namespace)) {
+            namespaceStore.requireNamespace(namespace);
         }
         Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         List<UserAccess> userAccessList = new ArrayList<>();
@@ -138,9 +138,7 @@ public class NitriteUserAccessStore implements UserAccessStore {
     public UserAccess getUserAccessForNamespaceAndId(String namespace, Integer userAccessId) 
             throws NamespaceNotFoundException, UserAccessNotFoundException {
         
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
 
         Filter filter = where(NAMESPACE_FIELD).eq(namespace).and(where(USER_ACCESS_ID_FIELD).eq(userAccessId));
         Document document = userAccessCollection.find(filter).firstOrNull();
@@ -225,8 +223,8 @@ public class NitriteUserAccessStore implements UserAccessStore {
     public void deleteUserAccessForNamespace(String namespace, Integer userAccessId)
             throws NamespaceNotFoundException, UserAccessNotFoundException {
 
-        if (!GLOBAL_ACCESS.equals(namespace) && !namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
+        if (!GLOBAL_ACCESS.equals(namespace)) {
+            namespaceStore.requireNamespace(namespace);
         }
 
         lock.lock();
