@@ -62,7 +62,7 @@ public class MongoInterfaceStore implements InterfaceStore {
 
     @Override
     public List<NamespaceInterfaceSummary> getInterfacesForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED).stream()
                 .map(MongoInterfaceStore::toInterfaceSummary)
                 .toList();
@@ -76,7 +76,7 @@ public class MongoInterfaceStore implements InterfaceStore {
     @Override
     public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest interfaceRequest, String namespace) throws NamespaceNotFoundException {
         CalmInterface createdInterface = new CalmInterface(interfaceRequest);
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document content = Document.parse(interfaceRequest.getInterfaceJson());
 
@@ -125,15 +125,8 @@ public class MongoInterfaceStore implements InterfaceStore {
         return calmInterface;
     }
 
-
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         if (!documentStore.headerExists(namespace, interfaceId)) {
             throw new InterfaceNotFoundException();
         }

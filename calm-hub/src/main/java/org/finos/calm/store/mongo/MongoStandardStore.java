@@ -65,13 +65,13 @@ public class MongoStandardStore implements StandardStore {
 
     @Override
     public List<NamespaceResourceSummary> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED);
     }
 
     @Override
     public Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document content = Document.parse(standardRequest.getStandardJson());
 
@@ -121,15 +121,8 @@ public class MongoStandardStore implements StandardStore {
         return standard;
     }
 
-
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         if (!documentStore.headerExists(namespace, standardId)) {
             throw new StandardNotFoundException();
         }

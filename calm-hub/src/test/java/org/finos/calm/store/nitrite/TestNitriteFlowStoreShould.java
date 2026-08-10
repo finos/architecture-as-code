@@ -38,6 +38,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
 /**
  * Store-level tests for the header/version shape. Document mechanics are covered by
@@ -69,7 +70,8 @@ public class TestNitriteFlowStoreShould {
     private static final String FLOW_DESCRIPTION = "flow description";
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(mockNamespaceStore).requireNamespace(anyString());
         headerCollection = mock(NitriteCollection.class);
         versionCollection = mock(NitriteCollection.class);
 

@@ -79,7 +79,7 @@ public class MongoLayoutStore implements LayoutStore {
 
     @Override
     public Optional<String> getLayout(String namespace, int architectureId) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document document = layoutCollection.find(layoutFilter(namespace, architectureId)).first();
         if (document == null) {
@@ -92,7 +92,7 @@ public class MongoLayoutStore implements LayoutStore {
 
     @Override
     public void upsertLayout(String namespace, int architectureId, String layoutJson) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Parsed before any write, so malformed JSON never reaches the database.
         Document layoutDoc = Document.parse(layoutJson);
@@ -125,7 +125,7 @@ public class MongoLayoutStore implements LayoutStore {
 
     @Override
     public List<Integer> getArchitectureIdsWithLayoutForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Ids only. This guards namespace deletion and never needs the layouts themselves, so
         // there is no reason to parse every layout blob in the namespace just to read one
@@ -160,12 +160,5 @@ public class MongoLayoutStore implements LayoutStore {
 
     private Bson layoutFilter(String namespace, int architectureId) {
         return Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(ARCHITECTURE_ID_FIELD, architectureId));
-    }
-
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found", namespace);
-            throw new NamespaceNotFoundException();
-        }
     }
 }
