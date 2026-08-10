@@ -69,6 +69,37 @@ describe('node-position-service', () => {
             storage.setItem(`${STORAGE_PREFIX}${key}`, '{"id":"node-1"}');
             expect(loadStoredNodePositions(key, storage)).toBeNull();
         });
+
+        it('falls back to the pre-calmType-qualified key and migrates it forward', () => {
+            const legacyKey = 'finos/42';
+            const newKey = 'finos/Architectures/42';
+            saveNodePositions(legacyKey, nodes, storage);
+
+            expect(loadStoredNodePositions(newKey, storage)).toEqual(storedPositions);
+            // Migrated: readable directly under the new key next time, and the
+            // legacy entry is gone so it can't resurface for a different diagram.
+            expect(storage.getItem(`${STORAGE_PREFIX}${newKey}`)).not.toBeNull();
+            expect(storage.getItem(`${STORAGE_PREFIX}${legacyKey}`)).toBeNull();
+        });
+
+        it('does not fall back when the current key already has stored positions', () => {
+            const legacyKey = 'finos/42';
+            const newKey = 'finos/Architectures/42';
+            saveNodePositions(legacyKey, [{ id: 'legacy-node', position: { x: 1, y: 1 }, data: {} }], storage);
+            saveNodePositions(newKey, nodes, storage);
+
+            expect(loadStoredNodePositions(newKey, storage)).toEqual(storedPositions);
+            // Untouched: the legacy entry belongs to whichever other diagram (if
+            // any) still needs it — only an empty current key triggers migration.
+            expect(storage.getItem(`${STORAGE_PREFIX}${legacyKey}`)).not.toBeNull();
+        });
+
+        it('does not attempt a fallback for a key that has no legacy shape', () => {
+            // A dropped file's key (undefined) never reaches here; a 2-segment key
+            // like the pre-existing `key` fixture already IS the legacy shape.
+            expect(loadStoredNodePositions(key, storage)).toBeNull();
+            expect(storage.length).toBe(0);
+        });
     });
 
     describe('applyStoredPositions', () => {

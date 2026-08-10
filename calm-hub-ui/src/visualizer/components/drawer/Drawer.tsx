@@ -92,7 +92,11 @@ export function Drawer({
     // override (a slug that finished resolving with no match) suppresses the
     // fallback rather than triggering it — falling back to the slug here would
     // reintroduce exactly the key split the override exists to close.
-    const computedViewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
+    // The calmType component guards against a second, independent collision:
+    // architecture ids and pattern ids are allocated from separate counters, so
+    // an Architecture 7 and a Pattern 7 can coexist in the same namespace —
+    // without it they'd share one scratch-position entry and one viewport entry.
+    const computedViewportKey = !fileInstance && data ? `${data.name}/${data.calmType}/${data.id}` : undefined;
     const viewportKey = fileInstance || viewportKeyOverride === null ? undefined : (viewportKeyOverride ?? computedViewportKey);
 
     useEffect(() => {
@@ -270,6 +274,12 @@ export function Drawer({
                                 onEdgeClick={handlePatternEdgeClick}
                                 onBackgroundClick={closeSidebar}
                                 viewportKey={viewportKey}
+                                defaultLayout={defaultLayout}
+                                layoutEpoch={layoutEpoch}
+                                // See ReactFlowVisualizer's onPositionsChange below: never
+                                // reported for a dropped file, which has no stable identity
+                                // to save a shared default layout against.
+                                onPositionsChange={fileInstance ? undefined : onPositionsChange}
                             />
                         ) : calmInstance ? (
                             <ReactFlowVisualizer

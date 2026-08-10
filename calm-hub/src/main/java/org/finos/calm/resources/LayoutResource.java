@@ -13,7 +13,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.bson.Document;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -110,10 +109,10 @@ public class LayoutResource {
             String layoutJson
     ) {
         try {
-            String forPath = parseForTarget(layoutJson);
-            String expectedPath = canonicalArchitecturePath(namespace, architectureId);
+            String forPath = LayoutRequestParsing.parseForTarget(layoutJson);
+            String expectedPath = LayoutRequestParsing.canonicalPath(namespace, "architectures", architectureId);
             if (forPath != null && !forPath.equals(expectedPath)) {
-                return CalmResourceErrorResponses.invalidLayoutTargetResponse(forPath, expectedPath);
+                return CalmResourceErrorResponses.invalidLayoutTargetResponse(forPath, expectedPath, "architecture");
             }
 
             // Checked on the write path only, not on get: a layout with nothing to attach to
@@ -135,34 +134,5 @@ public class LayoutResource {
             logger.error("Invalid namespace [{}] when saving layout for architecture [{}]", namespace, architectureId, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
-    }
-
-    /**
-     * Parses the layout body just far enough to read its optional {@code for} property,
-     * so a save whose {@code for} silently names a different architecture than the URL can be
-     * rejected before it reaches the store. A layout with no {@code for} at all is accepted;
-     * the field's contract is defined entirely by this resource's own behaviour — compared
-     * against {@link #canonicalArchitecturePath} and rejected with a 400 on mismatch — not by
-     * an external schema document.
-     *
-     * @throws JsonParseException if the body is null, blank, or not valid JSON
-     */
-    private String parseForTarget(String layoutJson) {
-        // A null body would NPE straight into Document.parse; an absent body instead arrives
-        // here as "" (confirmed empirically — RESTEasy binds a missing raw-String entity to an
-        // empty string, not null), which Document.parse doesn't reject as malformed JSON either
-        // — it throws BsonInvalidOperationException, a different exception entirely, one that
-        // the JsonParseException catch below doesn't see. Both must be rejected up front so
-        // every "no real body" case lands on the same honest 400.
-        if (layoutJson == null || layoutJson.isBlank()) {
-            throw new JsonParseException("Layout JSON must not be null or empty");
-        }
-        Document parsed = Document.parse(layoutJson);
-        Object forTarget = parsed.get("for");
-        return forTarget instanceof String forPath ? forPath : null;
-    }
-
-    private String canonicalArchitecturePath(String namespace, int architectureId) {
-        return "/api/calm/namespaces/" + namespace + "/architectures/" + architectureId;
     }
 }

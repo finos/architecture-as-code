@@ -142,11 +142,13 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const urlType = isArchitecture ? 'architectures' : 'patterns';
     const typeLabel = isArchitecture ? 'Architecture' : 'Pattern';
 
-    // Save/reset the shared default layout. Cosmetic gating only — see
+    // Save/reset the shared default layout — supported for both architectures
+    // and patterns (backed by separate resources/collections server-side, see
+    // PatternLayoutStore's class javadoc). Cosmetic gating only — see
     // canWriteNamespace's own comment; @PermissionsAllowed(WRITE) on the
     // backend resource is the real gate.
     const { canWriteNamespace } = useUserAccess();
-    const canSaveLayout = isArchitecture && defaultLayoutState.canSave && canWriteNamespace(data.name);
+    const canSaveLayout = defaultLayoutState.canSave && canWriteNamespace(data.name);
 
     // Also re-derive on viewportKey/layoutEpoch changes directly (navigating to
     // a new diagram, or a save/reset bump) so the button reflects reality
@@ -420,9 +422,10 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     );
 
     // Desktop entry point for the shared default layout (mobile's lives in the
-    // view-options menu below). Only meaningful on the diagram tab of an
-    // architecture, and never while comparing versions.
-    const showLayoutActions = !comparing && activeTab === 'diagram' && isArchitecture;
+    // view-options menu below). Only meaningful on the diagram tab, and never
+    // while comparing versions. Not gated on isArchitecture — layout save is
+    // supported for both architectures and patterns.
+    const showLayoutActions = !comparing && activeTab === 'diagram';
     const layoutActions = showLayoutActions && (
         <div className="flex items-center gap-1">
             {canSaveLayout && (
@@ -565,7 +568,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                                 <span className="flex-1 min-w-0 truncate">Timeline</span>
                             </button>
                         </div>
-                        {!comparing && activeTab === 'diagram' && isArchitecture && (
+                        {showLayoutActions && (
                             <div className="divide-y divide-base-200 border-b border-base-200">
                                 {canSaveLayout && (
                                     <button

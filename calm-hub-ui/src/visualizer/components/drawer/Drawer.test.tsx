@@ -3,6 +3,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { Drawer } from './Drawer.js';
 import { Data } from '../../../model/calm.js';
 import type { ReactFlowVisualizerProps } from '../../contracts/contracts.js';
+import type { PatternVisualizerProps } from '../reactflow/PatternVisualizer.js';
 import { DropzoneOptions } from 'react-dropzone';
 
 // Captures the `onDrop` the Drawer hands to react-dropzone so tests can invoke
@@ -38,6 +39,21 @@ vi.mock('../reactflow/ReactFlowVisualizer.js', () => ({
             <div data-testid="node-count">{calmData?.nodes?.length ?? 0}</div>
             <div data-testid="relationship-count">{calmData?.relationships?.length ?? 0}</div>
             <div data-testid="viewport-key">{viewportKey ?? '(none)'}</div>
+        </div>
+    ),
+}));
+vi.mock('../reactflow/PatternVisualizer.js', () => ({
+    PatternVisualizer: ({ viewportKey, defaultLayout, layoutEpoch, onPositionsChange }: PatternVisualizerProps) => (
+        <div data-testid="pattern-visualizer">
+            <div data-testid="viewport-key">{viewportKey ?? '(none)'}</div>
+            <div data-testid="pattern-default-layout">{defaultLayout === undefined ? '(undefined)' : JSON.stringify(defaultLayout)}</div>
+            <div data-testid="pattern-layout-epoch">{layoutEpoch ?? '(none)'}</div>
+            <button
+                data-testid="pattern-report-positions"
+                onClick={() => onPositionsChange?.([{ id: 'n1', position: { x: 1, y: 2 } }])}
+            >
+                report
+            </button>
         </div>
     ),
 }));
@@ -147,9 +163,49 @@ describe('Drawer', () => {
         expect(screen.queryByLabelText('Close details')).not.toBeInTheDocument();
     });
 
-    it('falls back to the name/id key when no viewportKeyOverride is given', () => {
+    it('forwards defaultLayout and layoutEpoch to PatternVisualizer for pattern data', () => {
+        const defaultLayout = [{ id: 'n1', position: { x: 5, y: 10 } }];
+        render(<Drawer data={patternData} defaultLayout={defaultLayout} layoutEpoch={3} />);
+
+        expect(screen.getByTestId('pattern-visualizer')).toBeInTheDocument();
+        expect(screen.getByTestId('pattern-default-layout')).toHaveTextContent(JSON.stringify(defaultLayout));
+        expect(screen.getByTestId('pattern-layout-epoch')).toHaveTextContent('3');
+    });
+
+    it('forwards onPositionsChange to PatternVisualizer for pattern data', () => {
+        const onPositionsChange = vi.fn();
+        render(<Drawer data={patternData} onPositionsChange={onPositionsChange} />);
+
+        screen.getByTestId('pattern-report-positions').click();
+
+        expect(onPositionsChange).toHaveBeenCalledWith([{ id: 'n1', position: { x: 1, y: 2 } }]);
+    });
+
+    it('falls back to the name/calmType/id key when no viewportKeyOverride is given', () => {
         render(<Drawer data={calmData as unknown as Data} />);
-        expect(screen.getByTestId('viewport-key')).toHaveTextContent(`${calmData.name}/${calmData.id}`);
+        expect(screen.getByTestId('viewport-key')).toHaveTextContent(
+            `${calmData.name}/${calmData.calmType}/${calmData.id}`
+        );
+    });
+
+    it('does not collide when an architecture and a pattern share the same namespace and numeric id', () => {
+        // Architecture ids and pattern ids come from independent counters, so an
+        // Architecture 7 and a Pattern 7 can legitimately coexist in one namespace.
+        // Without the calmType component in the fallback key, they would share one
+        // scratch-position entry and one viewport entry.
+        const architectureSeven: Data = { ...architectureData, id: '7' };
+        const patternSeven: Data = { ...patternData, id: '7' };
+
+        const architectureRender = render(<Drawer data={architectureSeven} />);
+        const architectureKey = screen.getByTestId('viewport-key').textContent;
+        architectureRender.unmount();
+
+        render(<Drawer data={patternSeven} />);
+        const patternKey = screen.getByTestId('viewport-key').textContent;
+
+        expect(architectureKey).toBe('my-namespace/Architectures/7');
+        expect(patternKey).toBe('my-namespace/Patterns/7');
+        expect(architectureKey).not.toBe(patternKey);
     });
 
     it('uses the resolved viewportKeyOverride when one is provided', () => {

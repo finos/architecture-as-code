@@ -56,15 +56,38 @@ public class CalmResourceErrorResponses {
     }
 
     /**
+     * Returns a 404 response for a pattern layout write against a pattern id that does not
+     * exist. Mirrors {@link #architectureNotFoundResponse(String, int)}.
+     */
+    public static Response patternNotFoundResponse(String namespace, int patternId) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Pattern " + patternId + " does not exist in namespace: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
+                .build();
+    }
+
+    /**
+     * Mirrors {@link #layoutNotFoundResponse(String, int)} for a pattern's default layout.
+     */
+    public static Response patternLayoutNotFoundResponse(String namespace, int patternId) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("No default layout saved for pattern " + patternId + " in namespace: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
+                .build();
+    }
+
+    /**
      * Returns a 400 response for a layout PUT whose {@code for} target does not match the
-     * architecture named in the URL. {@code forPath} is user-derived (parsed straight out of
+     * resource named in the URL. {@code forPath} is user-derived (parsed straight out of
      * the request body) and is sanitized before being echoed back; {@code expectedPath} is
      * server-constructed from validated path parameters and is trusted as-is.
+     *
+     * @param resourceType the kind of resource the layout belongs to (e.g. "architecture", "pattern")
      */
-    public static Response invalidLayoutTargetResponse(String forPath, String expectedPath) {
+    public static Response invalidLayoutTargetResponse(String forPath, String expectedPath, String resourceType) {
         String sanitizedForPath = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(forPath);
         return Response.status(Response.Status.BAD_REQUEST)
-                .entity("Layout 'for' [" + sanitizedForPath + "] does not match architecture [" + expectedPath + "]")
+                .entity("Layout 'for' [" + sanitizedForPath + "] does not match " + resourceType + " [" + expectedPath + "]")
                 .build();
     }
 

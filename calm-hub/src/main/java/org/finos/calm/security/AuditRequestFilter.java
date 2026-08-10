@@ -28,6 +28,7 @@ import org.finos.calm.resources.InterfaceResource;
 import org.finos.calm.resources.LayoutResource;
 import org.finos.calm.resources.MappingControllerResource;
 import org.finos.calm.resources.NamespaceResource;
+import org.finos.calm.resources.PatternLayoutResource;
 import org.finos.calm.resources.PatternResource;
 import org.finos.calm.resources.StandardResource;
 import org.finos.calm.resources.TimelineResource;
@@ -161,7 +162,8 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             Map.entry(UserAccessResource.class, AuditEntityType.USER_ACCESS),
             Map.entry(DomainUserAccessResource.class, AuditEntityType.USER_ACCESS),
             Map.entry(CoreSchemaResource.class, AuditEntityType.SCHEMA),
-            Map.entry(LayoutResource.class, AuditEntityType.LAYOUT)
+            Map.entry(LayoutResource.class, AuditEntityType.LAYOUT),
+            Map.entry(PatternLayoutResource.class, AuditEntityType.PATTERN_LAYOUT)
     );
 
     /** The path parameter that names an entity's own ID, for types resolved generically via path params. */
@@ -175,7 +177,8 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             Map.entry(AuditEntityType.ADR, "adrId"),
             Map.entry(AuditEntityType.DECORATOR, "id"),
             Map.entry(AuditEntityType.USER_ACCESS, "userAccessId"),
-            Map.entry(AuditEntityType.LAYOUT, "architectureId")
+            Map.entry(AuditEntityType.LAYOUT, "architectureId"),
+            Map.entry(AuditEntityType.PATTERN_LAYOUT, "patternId")
     );
 
     @Inject
