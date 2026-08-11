@@ -31,7 +31,9 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * <h2>Concurrency strategy — ReentrantLock</h2>
  * NitriteDB does not support unique index constraints, so this class uses a
  * {@link ReentrantLock} to serialize write operations and enforce the uniqueness
- * of {@code (namespace, customId)} pairs at the application level.
+ * of {@code (namespace, resourceType, customId)} triples at the application level. The same
+ * customId may be reused across different resource types (e.g. a pattern and an architecture
+ * can both be named {@code "repo"}).
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
@@ -62,8 +64,10 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
 
         lock.lock();
         try {
-            // Check for duplicate (namespace, customId) pair
-            Filter filter = where(NAMESPACE_FIELD).eq(namespace).and(where(CUSTOM_ID_FIELD).eq(customId));
+            // Check for duplicate (namespace, resourceType, customId) triple
+            Filter filter = Filter.and(where(NAMESPACE_FIELD).eq(namespace),
+                    where(RESOURCE_TYPE_FIELD).eq(type.name()),
+                    where(CUSTOM_ID_FIELD).eq(customId));
             Document existing = mappingCollection.find(filter).firstOrNull();
             if (existing != null) {
                 throw new DuplicateMappingException();
@@ -85,10 +89,12 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
     }
 
     @Override
-    public ResourceMapping getMapping(String namespace, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
+    public ResourceMapping getMapping(String namespace, ResourceType type, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace).and(where(CUSTOM_ID_FIELD).eq(customId));
+        Filter filter = Filter.and(where(NAMESPACE_FIELD).eq(namespace),
+                where(RESOURCE_TYPE_FIELD).eq(type.name()),
+                where(CUSTOM_ID_FIELD).eq(customId));
         Document result = mappingCollection.find(filter).firstOrNull();
         if (result == null) {
             throw new MappingNotFoundException();
@@ -170,12 +176,14 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
     }
 
     @Override
-    public void updateMappingNumericId(String namespace, String customId, int numericId) throws MappingNotFoundException, NamespaceNotFoundException {
+    public void updateMappingNumericId(String namespace, ResourceType type, String customId, int numericId) throws MappingNotFoundException, NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         lock.lock();
         try {
-            Filter filter = where(NAMESPACE_FIELD).eq(namespace).and(where(CUSTOM_ID_FIELD).eq(customId));
+            Filter filter = Filter.and(where(NAMESPACE_FIELD).eq(namespace),
+                    where(RESOURCE_TYPE_FIELD).eq(type.name()),
+                    where(CUSTOM_ID_FIELD).eq(customId));
             Document existing = mappingCollection.find(filter).firstOrNull();
             if (existing == null) {
                 throw new MappingNotFoundException();
@@ -189,12 +197,14 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
     }
 
     @Override
-    public void deleteMapping(String namespace, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
+    public void deleteMapping(String namespace, ResourceType type, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         lock.lock();
         try {
-            Filter filter = where(NAMESPACE_FIELD).eq(namespace).and(where(CUSTOM_ID_FIELD).eq(customId));
+            Filter filter = Filter.and(where(NAMESPACE_FIELD).eq(namespace),
+                    where(RESOURCE_TYPE_FIELD).eq(type.name()),
+                    where(CUSTOM_ID_FIELD).eq(customId));
             Document existing = mappingCollection.find(filter).firstOrNull();
             if (existing == null) {
                 throw new MappingNotFoundException();

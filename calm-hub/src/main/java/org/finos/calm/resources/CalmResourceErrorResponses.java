@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import jakarta.ws.rs.core.Response;
+import org.finos.calm.domain.ResourceType;
 
 public class CalmResourceErrorResponses {
     public static Response invalidNamespaceResponse(String namespace) {
@@ -93,6 +94,38 @@ public class CalmResourceErrorResponses {
         String sanitizedDomain = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(domain);
         return Response.status(Response.Status.CONFLICT)
                 .entity("Domain " + sanitizedDomain + " contains controls and cannot be deleted")
+                .build();
+    }
+
+    /**
+     * Returns a 409 response for a resource push whose customId already maps to a resource of
+     * the given type in the namespace. {@code resourceType} is server-controlled (an enum
+     * constant, never user input) and is interpolated as-is; {@code name} and {@code namespace}
+     * are user-derived and sanitized.
+     */
+    public static Response resourceAlreadyExistsResponse(ResourceType resourceType, String name, String namespace) {
+        String sanitizedName = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(name);
+        String sanitizedNamespace = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace);
+        return Response.status(Response.Status.CONFLICT)
+                .entity(resourceType.name().toLowerCase() + " '" + sanitizedName
+                        + "' already exists in namespace '" + sanitizedNamespace + "'")
+                .build();
+    }
+
+    /**
+     * Returns a 409 response for a resource push whose explicit version already exists.
+     * {@code resourceType} is server-controlled and interpolated as-is; {@code version} is
+     * echoed unsanitized, matching every other version-conflict message in this codebase
+     * (e.g. {@code ArchitectureTools}, {@code MongoVersionDocumentStore}) — the version comes
+     * from the request's already {@code @Pattern}-validated version path/field, not free text.
+     * {@code name} and {@code namespace} are user-derived and sanitized.
+     */
+    public static Response versionAlreadyExistsResponse(String version, ResourceType resourceType, String name, String namespace) {
+        String sanitizedName = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(name);
+        String sanitizedNamespace = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace);
+        return Response.status(Response.Status.CONFLICT)
+                .entity("Version " + version + " already exists for " + resourceType.name().toLowerCase()
+                        + " '" + sanitizedName + "' in namespace '" + sanitizedNamespace + "'")
                 .build();
     }
 }

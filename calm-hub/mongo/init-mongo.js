@@ -141,7 +141,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 11;
+const LATEST_SCHEMA_VERSION = 12;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -6788,7 +6788,10 @@ if (isEmptyDatabase && db.interfaces.countDocuments() === 0) {
 }
 
 logSection("Resource Mappings");
-db.resource_mappings.createIndex({ namespace: 1, customId: 1 }, { unique: true });
+// resourceType is part of the unique key so the same customId can be reused across different
+// resource types (e.g. a pattern and an architecture can both be named "repo") — see
+// MongoResourceMappingIndexStep for the migration that carries existing deployments to this shape.
+db.resource_mappings.createIndex({ namespace: 1, resourceType: 1, customId: 1 }, { unique: true });
 db.resource_mappings.createIndex({ namespace: 1, resourceType: 1, numericId: 1 });
 logSuccess("Created resource_mappings indexes");
 
