@@ -40,6 +40,19 @@ import java.util.Map;
  * The old domain document is deleted only once both fan-outs (requirement-level and
  * configuration-level) for every control in it have succeeded, so a crash mid-domain leaves
  * the source intact and the whole domain is redone next attempt.
+ *
+ * <h2>Why the new unique indexes have to wait until after the fan-out</h2>
+ * Unlike {@link MongoVersionSplitMigration}, where the old-shape document's grouping field is
+ * literally named {@code namespace} — so it already carries a distinct value per document, and
+ * only the (missing) {@code idField} collides — Control's old-shape document groups by
+ * {@code domain}, a different field name entirely. Every old-shape control document is
+ * therefore missing <em>both</em> halves of the new {@code (namespace, controlId)} compound
+ * key, and MongoDB treats a missing field as {@code null}: two or more old-shape documents
+ * would all collide on {@code (null, null)}, and building the unique index against them fails
+ * outright with a duplicate-key error before a single one is fanned out. So {@link #migrate()}
+ * creates the new indexes only after the old-shape documents are gone; {@link #transitionIndexes()}
+ * still does both steps together for its other caller (test/integration-harness setup against
+ * an empty database, with nothing to collide).
  */
 public class MongoControlSplitMigration {
 
@@ -72,15 +85,24 @@ public class MongoControlSplitMigration {
     }
 
     public void migrate() {
-        transitionIndexes();
+        dropOldDomainIndex(database.getCollection("controls"));
         fanOutDomainDocuments();
+        createNewIndexes();
     }
 
-    /** Replaces the old one-document-per-domain constraint with the four the new shape needs. */
+    /**
+     * Replaces the old one-document-per-domain constraint with the four the new shape needs,
+     * in one call. Only safe against a database with no old-shape documents left — see the
+     * class javadoc's "Why the new unique indexes have to wait" section. {@link #migrate()}
+     * does not call this; it does the same two things with the fan-out in between.
+     */
     public void transitionIndexes() {
-        MongoCollection<Document> controlHeaders = database.getCollection("controls");
-        dropOldDomainIndex(controlHeaders);
+        dropOldDomainIndex(database.getCollection("controls"));
+        createNewIndexes();
+    }
 
+    private void createNewIndexes() {
+        MongoCollection<Document> controlHeaders = database.getCollection("controls");
         IndexOptions unique = new IndexOptions().unique(true);
         controlHeaders.createIndex(new Document(NAMESPACE_FIELD, 1).append(CONTROL_ID_FIELD, 1), unique);
         LOG.info("Ensured unique index on controls.({}, {})", NAMESPACE_FIELD, CONTROL_ID_FIELD);

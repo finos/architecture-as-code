@@ -110,7 +110,15 @@ renumber this one if another step has claimed `13` in the meantime.
   loads the entire domain document (Mongo) or replaces it wholesale on every
   write (Nitrite) — the specific memory/blast-radius concern #2884 raised
   for Control is gone along with the 16MB ceiling.
+- One externally-visible behavior change: a configuration created without a
+  name used to report a genuine `null` from `GET .../configurations`. The
+  shared helper's `listSummariesPaged` synthesizes `"Configuration " + id`
+  for any header with no stored name instead — the same fallback every other
+  migrated type already gets — so an unnamed configuration's `name` is no
+  longer distinguishable from a name that happens to read the same.
 - `mongo/init-mongo.js` moves its Control seed data (file-loaded controls
   plus the three inline Permitted Connection / Micro-Segmentation / MCP
   Guardrail controls) from the old nested shape into the four new
-  collections, and `LATEST_SCHEMA_VERSION` advances to 12.
+  collections, and `LATEST_SCHEMA_VERSION` advances alongside whatever
+  `fromVersion()` this step ends up claiming — see the "Schema version"
+  section above, not a fixed number here.

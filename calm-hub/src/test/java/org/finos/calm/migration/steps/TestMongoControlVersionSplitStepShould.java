@@ -325,6 +325,28 @@ class TestMongoControlVersionSplitStepShould {
     }
 
     @Test
+    void build_the_new_unique_indexes_only_after_every_old_domain_document_is_fanned_out() {
+        // Regression test: old-shape control documents have neither "namespace" nor
+        // "controlId" — unlike MongoVersionSplitMigration's old shape, which at least shares
+        // the "namespace" field name with the new index. Building controls.(namespace,
+        // controlId) unique while two or more old-shape documents still exist means every one
+        // of them collides on (null, null), and Mongo rejects the index build outright. The
+        // new indexes must only be created once no old-shape document remains.
+        Document second = new Document("_id", "def")
+                .append("domain", "network")
+                .append("controls", List.of(new Document("controlId", 2)
+                        .append("requirement", new Document("1-0-0", new Document()))
+                        .append("configurations", List.of())));
+        stubOldDocuments(List.of(oldDomainDocument(), second));
+
+        step.apply();
+
+        InOrder order = inOrder(controlHeaders);
+        order.verify(controlHeaders, Mockito.times(2)).deleteOne(any(Bson.class));
+        order.verify(controlHeaders).createIndex(any(Document.class), any());
+    }
+
+    @Test
     void do_nothing_to_a_collection_that_holds_only_headers() {
         stubOldDocuments(List.of());
 
