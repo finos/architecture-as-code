@@ -461,9 +461,7 @@ public class MappingControllerService {
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (DuplicateMappingException e) {
-            return Response.status(Response.Status.CONFLICT)
-                    .entity(resourceType.name().toLowerCase() + " '" + STRICT_SANITIZATION_POLICY.sanitize(name)
-                            + "' already exists in namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "'").build();
+            return CalmResourceErrorResponses.resourceAlreadyExistsResponse(resourceType, name, namespace);
         } catch (Exception e) {
             logger.error("Error creating resource [{}] in namespace [{}]",
                     STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -487,11 +485,8 @@ public class MappingControllerService {
             }
             // Reject if the explicit version already exists.
             if (versions.contains(versionSpec.version())) {
-                return Response.status(Response.Status.CONFLICT)
-                        .entity("Version " + versionSpec.version() + " already exists for "
-                                + mapping.getResourceType().name().toLowerCase() + " '"
-                                + STRICT_SANITIZATION_POLICY.sanitize(name) + "' in namespace '"
-                                + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "'").build();
+                return CalmResourceErrorResponses.versionAlreadyExistsResponse(
+                        versionSpec.version(), mapping.getResourceType(), name, namespace);
             }
             String newVersion = versionSpec.version();
             String title = documentParser.extractStringField(json, "title");
