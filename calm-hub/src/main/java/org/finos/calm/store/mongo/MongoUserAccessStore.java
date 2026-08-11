@@ -134,7 +134,9 @@ public class MongoUserAccessStore implements UserAccessStore {
     public UserAccess getUserAccessForNamespaceAndId(String namespace, Integer userAccessId)
             throws NamespaceNotFoundException, UserAccessNotFoundException {
 
-        namespaceStore.requireNamespace(namespace);
+        if (!GLOBAL_ACCESS.equals(namespace)) {
+            namespaceStore.requireNamespace(namespace);
+        }
 
         Document document = userAccessCollection.find(Filters.and(
                         Filters.eq("namespace", namespace),

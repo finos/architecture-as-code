@@ -138,7 +138,9 @@ public class NitriteUserAccessStore implements UserAccessStore {
     public UserAccess getUserAccessForNamespaceAndId(String namespace, Integer userAccessId) 
             throws NamespaceNotFoundException, UserAccessNotFoundException {
         
-        namespaceStore.requireNamespace(namespace);
+        if (!GLOBAL_ACCESS.equals(namespace)) {
+            namespaceStore.requireNamespace(namespace);
+        }
 
         Filter filter = where(NAMESPACE_FIELD).eq(namespace).and(where(USER_ACCESS_ID_FIELD).eq(userAccessId));
         Document document = userAccessCollection.find(filter).firstOrNull();
