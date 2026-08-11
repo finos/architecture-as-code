@@ -173,14 +173,10 @@ public class MongoIndexInitializationStep implements SchemaMigrationStep {
                 .createIndex(new Document("domain", 1), uniqueIndex);
         LOG.info("Ensured unique index on controls.domain");
 
-        // Resource mappings — unique (namespace, resourceType, customId) and reverse lookup
-        // index. resourceType is part of the key so the same customId can be reused across
-        // different resource types (e.g. a pattern and an architecture can both be "repo") —
-        // see MongoResourceMappingIndexStep for the migration that carries existing deployments
-        // to this shape.
+        // Resource mappings — unique (namespace, customId) and reverse lookup index
         database.getCollection("resource_mappings")
-                .createIndex(new Document("namespace", 1).append("resourceType", 1).append("customId", 1), uniqueIndex);
-        LOG.info("Ensured unique index on resource_mappings.(namespace, resourceType, customId)");
+                .createIndex(new Document("namespace", 1).append("customId", 1), uniqueIndex);
+        LOG.info("Ensured unique index on resource_mappings.(namespace, customId)");
 
         database.getCollection("resource_mappings")
                 .createIndex(new Document("namespace", 1).append("resourceType", 1).append("numericId", 1));

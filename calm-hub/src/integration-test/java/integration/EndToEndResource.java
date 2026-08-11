@@ -68,10 +68,11 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             // and MongoLayoutStore's duplicate-key retry would go untested against a real index.
             new MongoLayoutIndexStep(database).createIndexes();
             // Widens resource_mappings' unique index to (namespace, resourceType, customId) —
-            // without this, MongoIndexInitializationStep's own index creation above already
-            // establishes the 3-field shape on a fresh container, but running this step too
-            // keeps the container's index state consistent with what a real deployment ends up
-            // with after both schema versions 0 and 11 have applied.
+            // MongoIndexInitializationStep above only ever creates the old, narrower
+            // (namespace, customId) index (it is never edited after being merged), so without
+            // this the container keeps that 2-field unique index and a customId shared by a
+            // pattern and an architecture would still collide, same as a real deployment
+            // that hadn't yet reached schema version 12.
             new MongoResourceMappingIndexStep(database).createIndexes();
             logger.info("Ensured MongoDB indexes for integration tests");
         }

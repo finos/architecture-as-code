@@ -17,13 +17,16 @@ import org.slf4j.LoggerFactory;
  * {@code (namespace, resourceType, customId)}, so the same customId can be reused across
  * different resource types (e.g. a pattern and an architecture can both be named {@code "repo"}).
  *
- * <h2>Why this is a migration step and not just a corrected line in {@code MongoIndexInitializationStep}</h2>
- * {@code MongoIndexInitializationStep} runs at {@code fromVersion() == 0}, and any deployment
- * already past schema version 0 never re-runs it. Simply correcting that step's index definition
- * would fix fresh databases only — every existing deployment would keep the old 2-field unique
- * index forever, still silently colliding a pattern and an architecture of the same name. A new
- * step at {@link #fromVersion()} {@code == 11} reaches those deployments the same way every other
- * post-launch schema change does. See {@link MongoLayoutIndexStep} for the precedent this follows.
+ * <h2>Why this is a migration step and not a corrected line in {@code MongoIndexInitializationStep}</h2>
+ * Already-merged migration steps must keep working unchanged, in sequence, whether replayed
+ * against an empty CalmHub or applied on top of a fully up-to-date one — so
+ * {@code MongoIndexInitializationStep}, which runs once at {@code fromVersion() == 0}, is never
+ * edited after the fact. That means this step is the only place the 3-field unique index is
+ * established, for a fresh database and an existing deployment alike: a fresh database creates
+ * the old 2-field index at version 0 like it always has, and this step (at
+ * {@link #fromVersion()} {@code == 11}) then widens it, the same way every other post-launch
+ * schema change reaches both new and existing deployments. See {@link MongoLayoutIndexStep} for
+ * the precedent this follows.
  *
  * <h2>Why this needs no data migration</h2>
  * {@code resourceType} is present on every {@code resource_mappings} document already — the
