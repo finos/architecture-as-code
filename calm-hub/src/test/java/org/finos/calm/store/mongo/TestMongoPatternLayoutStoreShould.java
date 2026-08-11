@@ -11,12 +11,13 @@ import org.bson.BsonDocument;
 import org.bson.BsonMaximumSizeExceededException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.StorageWriteException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -35,11 +36,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
-class TestMongoLayoutStoreShould {
+class TestMongoPatternLayoutStoreShould {
 
     private interface DocumentFindIterable extends FindIterable<Document> {
     }
@@ -51,27 +50,26 @@ class TestMongoLayoutStoreShould {
     private MongoCollection<Document> layoutCollection;
 
     @Mock
-    private MongoCollection<Document> architectureHeaderCollection;
+    private MongoCollection<Document> patternHeaderCollection;
 
     @Mock
     private MongoNamespaceStore namespaceStore;
 
-    private MongoLayoutStore layoutStore;
+    private MongoPatternLayoutStore layoutStore;
 
-    private static final String LAYOUT_JSON = "{\"for\": \"/api/calm/namespaces/finos/architectures/5\", \"pins\": []}";
+    private static final String LAYOUT_JSON = "{\"for\": \"/api/calm/namespaces/finos/patterns/5\", \"pins\": []}";
 
     @BeforeEach
-    void setUp() throws NamespaceNotFoundException {
-        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
-        when(database.getCollection("layouts")).thenReturn(layoutCollection);
-        when(database.getCollection("architectures")).thenReturn(architectureHeaderCollection);
-        layoutStore = new MongoLayoutStore(database, namespaceStore);
+    void setUp() {
+        when(database.getCollection("pattern_layouts")).thenReturn(layoutCollection);
+        when(database.getCollection("patterns")).thenReturn(patternHeaderCollection);
+        layoutStore = new MongoPatternLayoutStore(database, namespaceStore);
     }
 
-    /** Stubs the architecture-header existence check {@code upsertLayout} runs before writing. */
-    private void stubArchitectureHeaderExists() {
+    /** Stubs the pattern-header existence check {@code upsertLayout} runs before writing. */
+    private void stubPatternHeaderExists() {
         FindIterable<Document> headerFindIterable = mock(DocumentFindIterable.class);
-        when(architectureHeaderCollection.find(any(Bson.class))).thenReturn(headerFindIterable);
+        when(patternHeaderCollection.find(any(Bson.class))).thenReturn(headerFindIterable);
         when(headerFindIterable.projection(any())).thenReturn(headerFindIterable);
         when(headerFindIterable.first()).thenReturn(new Document("_id", "some-id"));
     }
@@ -84,7 +82,7 @@ class TestMongoLayoutStoreShould {
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
         Document layoutDoc = Document.parse(LAYOUT_JSON);
-        Document document = new Document("namespace", namespace).append("architectureId", 5).append("layout", layoutDoc);
+        Document document = new Document("namespace", namespace).append("patternId", 5).append("layout", layoutDoc);
 
         FindIterable<Document> findIterable = mock(DocumentFindIterable.class);
         when(layoutCollection.find(any(Bson.class))).thenReturn(findIterable);
@@ -98,7 +96,7 @@ class TestMongoLayoutStoreShould {
     }
 
     @Test
-    void return_empty_when_no_document_matches_architecture() throws NamespaceNotFoundException {
+    void return_empty_when_no_document_matches_pattern() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
@@ -116,7 +114,7 @@ class TestMongoLayoutStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document document = new Document("namespace", namespace).append("architectureId", 5);
+        Document document = new Document("namespace", namespace).append("patternId", 5);
 
         FindIterable<Document> findIterable = mock(DocumentFindIterable.class);
         when(layoutCollection.find(any(Bson.class))).thenReturn(findIterable);
@@ -137,10 +135,10 @@ class TestMongoLayoutStoreShould {
     // ---- upsertLayout ----
 
     @Test
-    void save_via_a_single_replace_one_upsert() throws NamespaceNotFoundException, ArchitectureNotFoundException {
+    void save_via_a_single_replace_one_upsert() throws NamespaceNotFoundException, PatternNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
 
         layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
 
@@ -149,13 +147,13 @@ class TestMongoLayoutStoreShould {
 
     @Test
     void retry_the_replace_once_when_two_concurrent_upserts_collide()
-            throws NamespaceNotFoundException, ArchitectureNotFoundException {
+            throws NamespaceNotFoundException, PatternNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
 
         // Both saves missed the filter and both attempted an insert; the unique index on
-        // (namespace, architectureId) let only the other one through.
+        // (namespace, patternId) let only the other one through.
         when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
                 .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()))
                 .thenReturn(null);
@@ -169,7 +167,7 @@ class TestMongoLayoutStoreShould {
     void surface_a_write_failure_when_the_retry_also_hits_a_duplicate_key() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
 
         // A second duplicate key on the retry means the index no longer agrees with the
         // filter — a fault, not a race to keep retrying.
@@ -185,7 +183,7 @@ class TestMongoLayoutStoreShould {
     void surface_capacity_exceeded_when_the_server_rejects_an_oversized_document() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
 
         when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
                 .thenThrow(new MongoWriteException(new WriteError(10334, "object to save is too large", new BsonDocument()), new ServerAddress(), List.of()));
@@ -201,7 +199,7 @@ class TestMongoLayoutStoreShould {
     void surface_capacity_exceeded_when_the_layout_itself_exceeds_the_bson_limit() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
 
         // Unlike the old shape, a single write can already exceed the 16MB ceiling before it
         // is even sent — the driver rejects it client-side while serializing the command, so
@@ -220,7 +218,7 @@ class TestMongoLayoutStoreShould {
     void propagate_non_duplicate_key_write_errors() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
 
         when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
                 .thenThrow(new MongoWriteException(new WriteError(12, "some other error", new BsonDocument()), new ServerAddress(), List.of()));
@@ -242,44 +240,44 @@ class TestMongoLayoutStoreShould {
     }
 
     @Test
-    void throw_architecture_not_found_when_no_architecture_header_exists_for_the_target_id() {
+    void throw_pattern_not_found_when_no_pattern_header_exists_for_the_target_id() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
         FindIterable<Document> headerFindIterable = mock(DocumentFindIterable.class);
-        when(architectureHeaderCollection.find(any(Bson.class))).thenReturn(headerFindIterable);
+        when(patternHeaderCollection.find(any(Bson.class))).thenReturn(headerFindIterable);
         when(headerFindIterable.projection(any())).thenReturn(headerFindIterable);
         when(headerFindIterable.first()).thenReturn(null);
 
-        assertThrows(ArchitectureNotFoundException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
+        assertThrows(PatternNotFoundException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
         verify(layoutCollection, never()).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
     }
 
-    // ---- getArchitectureIdsWithLayoutForNamespace ----
+    // ---- getPatternIdsWithLayoutForNamespace ----
 
     @Test
-    void return_architecture_ids_with_saved_layouts() throws NamespaceNotFoundException {
+    void return_pattern_ids_with_saved_layouts() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
         stubProjectedDocuments(List.of(
-                new Document("architectureId", 5),
-                new Document("architectureId", 6)
+                new Document("patternId", 5),
+                new Document("patternId", 6)
         ));
 
-        List<Integer> ids = layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace);
+        List<Integer> ids = layoutStore.getPatternIdsWithLayoutForNamespace(namespace);
 
         assertEquals(List.of(5, 6), ids);
     }
 
     @Test
-    void skip_a_document_with_no_architecture_id() throws NamespaceNotFoundException {
+    void skip_a_document_with_no_pattern_id() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
         stubProjectedDocuments(List.of(new Document()));
 
-        assertTrue(layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace).isEmpty());
+        assertTrue(layoutStore.getPatternIdsWithLayoutForNamespace(namespace).isEmpty());
     }
 
     @Test
@@ -289,7 +287,7 @@ class TestMongoLayoutStoreShould {
 
         stubProjectedDocuments(List.of());
 
-        assertTrue(layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace).isEmpty());
+        assertTrue(layoutStore.getPatternIdsWithLayoutForNamespace(namespace).isEmpty());
     }
 
     @Test
@@ -297,16 +295,15 @@ class TestMongoLayoutStoreShould {
         String namespace = "unknown";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
 
-        assertThrows(NamespaceNotFoundException.class, () -> layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace));
+        assertThrows(NamespaceNotFoundException.class, () -> layoutStore.getPatternIdsWithLayoutForNamespace(namespace));
         verify(layoutCollection, never()).find(any(Bson.class));
     }
 
     /**
-     * Models {@code getArchitectureIdsWithLayoutForNamespace}'s {@code find(...).projection(...).forEach(...)}
+     * Models {@code getPatternIdsWithLayoutForNamespace}'s {@code find(...).projection(...).forEach(...)}
      * chain — the projected iterable drives the given documents through the consumer passed to
      * {@code forEach}.
      */
-    @SuppressWarnings("unchecked")
     private void stubProjectedDocuments(List<Document> documents) {
         FindIterable<Document> findIterable = mock(DocumentFindIterable.class);
         when(layoutCollection.find(any(Bson.class))).thenReturn(findIterable);
@@ -315,6 +312,6 @@ class TestMongoLayoutStoreShould {
             Consumer<Document> consumer = invocation.getArgument(0);
             documents.forEach(consumer);
             return null;
-        }).when(findIterable).forEach(any(Consumer.class));
+        }).when(findIterable).forEach(ArgumentMatchers.<Consumer<? super Document>>any());
     }
 }

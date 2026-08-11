@@ -22,7 +22,7 @@ import { EmptyGraphState } from './EmptyGraphState.js';
 import { parsePatternData } from './utils/patternTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
-import { applyStoredPositions } from '../../services/node-position-service.js';
+import { applyPositions, loadStoredNodePositions, toStoredPositions, type StoredNodePosition } from '../../services/node-position-service.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useNodeSearch } from './node-search-context.js';
 import { DecisionSelectorPanel } from './DecisionSelectorPanel.js';
@@ -47,13 +47,36 @@ interface PatternGraphProps {
     onNodeClick?: (nodeData: Record<string, unknown>) => void;
     onEdgeClick?: (edgeData: Record<string, unknown>) => void;
     viewportKey?: string;
+    /** Server-stored default layout for a pattern. undefined = loading, null = none stored. */
+    defaultLayout?: StoredNodePosition[] | null;
+    /** Bumped to force a clean re-apply of positions (used by "reset to default"). */
+    layoutEpoch?: number;
+    onPositionsChange?: (positions: StoredNodePosition[]) => void;
 }
 
-export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKey }: PatternGraphProps) {
+export function PatternGraph({
+    patternData,
+    onNodeClick,
+    onEdgeClick,
+    viewportKey,
+    defaultLayout,
+    layoutEpoch,
+    onPositionsChange,
+}: PatternGraphProps) {
     const savedViewport = useMemo<Viewport | undefined>(
         () => (viewportKey ? readViewportForKey(viewportKey) : undefined),
         [viewportKey]
     );
+
+    // See ArchitectureGraph: holds the latest onPositionsChange in a ref so the
+    // parse effect below doesn't have to depend on the caller's function identity.
+    const onPositionsChangeRef = useRef(onPositionsChange);
+    useEffect(() => {
+        onPositionsChangeRef.current = onPositionsChange;
+    });
+    const reportPositions = useCallback((positions: StoredNodePosition[]) => {
+        onPositionsChangeRef.current?.(positions);
+    }, []);
 
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -83,19 +106,46 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
         onEdgeClick,
         groupNodeTypes: GROUP_NODE_TYPES,
         persistKey: viewportKey,
+        onPositionsChange: reportPositions,
     });
 
+    // Still fetching the server default for this diagram: hold off applying
+    // positions rather than flashing the auto-layout and then jumping to the
+    // restored one. See ArchitectureGraph's awaitingDefaultLayout for the
+    // invariant this relies on: DiagramSection is the only caller that ever
+    // sets `viewportKey` here, and it always does so via useDefaultLayout,
+    // which settles `defaultLayout` away from `undefined` for every type it
+    // supports — so this can't get stuck for a caller that forgot to pass one.
+    const awaitingDefaultLayout = !!viewportKey && defaultLayout === undefined;
+
     useEffect(() => {
+        if (awaitingDefaultLayout) return;
+
         const { nodes: parsedNodes, edges: parsedEdges } = parsePatternData(patternData);
         sourceNodesRef.current = parsedNodes;
         sourceEdgesRef.current = parsedEdges;
-        // Restore any custom layout the user dragged for this diagram, falling
-        // back to the parsed auto-layout when none is stored.
-        setNodes(viewportKey ? applyStoredPositions(viewportKey, parsedNodes) : parsedNodes);
+        // Precedence: an unsaved local drag always wins over the saved default,
+        // which in turn wins over the parsed auto-layout when neither is present.
+        const localPositions = viewportKey ? loadStoredNodePositions(viewportKey) : null;
+        const effectivePositions = localPositions ?? defaultLayout ?? null;
+        const positionedNodes = applyPositions(parsedNodes, effectivePositions);
+
+        setNodes(positionedNodes);
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
         setDecisionPoints(extractDecisionPoints(parsedNodes));
-    }, [patternData, setNodes, setEdges, setAvailableNodeTypes, viewportKey]);
+        reportPositions(toStoredPositions(positionedNodes));
+    }, [
+        patternData,
+        setNodes,
+        setEdges,
+        setAvailableNodeTypes,
+        viewportKey,
+        defaultLayout,
+        layoutEpoch,
+        awaitingDefaultLayout,
+        reportPositions,
+    ]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';
@@ -165,6 +215,10 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
     const handleDecisionReset = useCallback(() => {
         setDecisionSelections(new Map());
     }, []);
+
+    if (awaitingDefaultLayout) {
+        return <EmptyGraphState message="Loading saved layout…" />;
+    }
 
     if (nodes.length === 0) {
         return <EmptyGraphState message="No pattern data to display. Load a CALM pattern to visualize." />;

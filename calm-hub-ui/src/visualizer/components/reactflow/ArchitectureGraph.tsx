@@ -160,9 +160,11 @@ export function ArchitectureGraph({
 
     // Still fetching the server default for this diagram: hold off applying
     // positions rather than flashing the auto-layout and then jumping to the
-    // restored one. Only architectures (which have `viewportKey` set by
-    // DiagramSection's useDefaultLayout) ever see `defaultLayout === undefined`;
-    // patterns/dropped files resolve it to `null` immediately.
+    // restored one. Only a resource type useDefaultLayout supports (currently
+    // architectures and patterns — see its SUPPORTED_TYPES — ever has
+    // `viewportKey` set by DiagramSection while `defaultLayout` is still
+    // `undefined`; dropped files resolve it to `null` immediately, and so does
+    // any caller that never sets `viewportKey` in the first place.
     const awaitingDefaultLayout = !!viewportKey && defaultLayout === undefined;
 
     useEffect(() => {

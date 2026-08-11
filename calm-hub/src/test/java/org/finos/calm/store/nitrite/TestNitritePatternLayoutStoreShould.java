@@ -6,8 +6,8 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
-import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,11 +27,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
-class TestNitriteLayoutStoreShould {
+class TestNitritePatternLayoutStoreShould {
 
     @Mock
     private Nitrite db;
@@ -40,7 +38,7 @@ class TestNitriteLayoutStoreShould {
     private NitriteCollection layoutCollection;
 
     @Mock
-    private NitriteCollection architectureHeaderCollection;
+    private NitriteCollection patternHeaderCollection;
 
     @Mock
     private NitriteNamespaceStore namespaceStore;
@@ -51,22 +49,21 @@ class TestNitriteLayoutStoreShould {
     @Mock
     private DocumentCursor headerCursor;
 
-    private NitriteLayoutStore layoutStore;
+    private NitritePatternLayoutStore layoutStore;
 
-    private static final String LAYOUT_JSON = "{\"for\": \"/api/calm/namespaces/finos/architectures/5\", \"pins\": []}";
+    private static final String LAYOUT_JSON = "{\"for\": \"/api/calm/namespaces/finos/patterns/5\", \"pins\": []}";
 
     @BeforeEach
-    void setUp() throws NamespaceNotFoundException {
-        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
-        when(db.getCollection("layouts")).thenReturn(layoutCollection);
-        when(db.getCollection("architectures")).thenReturn(architectureHeaderCollection);
-        layoutStore = new NitriteLayoutStore(db, namespaceStore);
+    void setUp() {
+        when(db.getCollection("pattern_layouts")).thenReturn(layoutCollection);
+        when(db.getCollection("patterns")).thenReturn(patternHeaderCollection);
+        layoutStore = new NitritePatternLayoutStore(db, namespaceStore);
     }
 
-    /** Stubs the architecture-header existence check {@code upsertLayout} runs before writing. */
-    private void stubArchitectureHeaderExists() {
-        when(architectureHeaderCollection.find(any(Filter.class))).thenReturn(headerCursor);
-        when(headerCursor.firstOrNull()).thenReturn(Document.createDocument("architectureId", 5));
+    /** Stubs the pattern-header existence check {@code upsertLayout} runs before writing. */
+    private void stubPatternHeaderExists() {
+        when(patternHeaderCollection.find(any(Filter.class))).thenReturn(headerCursor);
+        when(headerCursor.firstOrNull()).thenReturn(Document.createDocument("patternId", 5));
     }
 
     // ---- getLayout ----
@@ -77,7 +74,7 @@ class TestNitriteLayoutStoreShould {
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
         Document document = Document.createDocument("namespace", namespace)
-                .put("architectureId", 5).put("layout", LAYOUT_JSON);
+                .put("patternId", 5).put("layout", LAYOUT_JSON);
 
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
         when(cursor.firstOrNull()).thenReturn(document);
@@ -90,7 +87,7 @@ class TestNitriteLayoutStoreShould {
     }
 
     @Test
-    void return_empty_when_no_document_matches_architecture() throws NamespaceNotFoundException {
+    void return_empty_when_no_document_matches_pattern() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
@@ -111,11 +108,11 @@ class TestNitriteLayoutStoreShould {
     // ---- upsertLayout ----
 
     @Test
-    void insert_a_new_document_when_none_exists_for_this_architecture()
-            throws NamespaceNotFoundException, ArchitectureNotFoundException {
+    void insert_a_new_document_when_none_exists_for_this_pattern()
+            throws NamespaceNotFoundException, PatternNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
         when(cursor.firstOrNull()).thenReturn(null);
 
@@ -125,18 +122,18 @@ class TestNitriteLayoutStoreShould {
         verify(layoutCollection).insert(captor.capture());
         Document inserted = captor.getValue();
         assertEquals(namespace, inserted.get("namespace"));
-        assertEquals(5, inserted.get("architectureId"));
+        assertEquals(5, inserted.get("patternId"));
         assertEquals(LAYOUT_JSON, inserted.get("layout"));
     }
 
     @Test
-    void insert_a_second_document_for_another_architecture_in_the_same_namespace()
-            throws NamespaceNotFoundException, ArchitectureNotFoundException {
+    void insert_a_second_document_for_another_pattern_in_the_same_namespace()
+            throws NamespaceNotFoundException, PatternNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        stubArchitectureHeaderExists();
-        // find() is scoped to (namespace, architectureId), so a document for a different
-        // architecture in the same namespace never matches — insert, not update.
+        stubPatternHeaderExists();
+        // find() is scoped to (namespace, patternId), so a document for a different pattern in
+        // the same namespace never matches — insert, not update.
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
         when(cursor.firstOrNull()).thenReturn(null);
 
@@ -144,17 +141,17 @@ class TestNitriteLayoutStoreShould {
 
         ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
         verify(layoutCollection).insert(captor.capture());
-        assertEquals(6, captor.getValue().get("architectureId"));
+        assertEquals(6, captor.getValue().get("patternId"));
     }
 
     @Test
-    void update_the_existing_document_in_place() throws NamespaceNotFoundException, ArchitectureNotFoundException {
+    void update_the_existing_document_in_place() throws NamespaceNotFoundException, PatternNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
 
         Document existing = Document.createDocument("namespace", namespace)
-                .put("architectureId", 5).put("layout", "{\"pins\":[]}");
+                .put("patternId", 5).put("layout", "{\"pins\":[]}");
 
         when(layoutCollection.find(any(Filter.class))).thenReturn(cursor);
         when(cursor.firstOrNull()).thenReturn(existing);
@@ -168,7 +165,7 @@ class TestNitriteLayoutStoreShould {
     @Test
     void throw_json_parse_exception_when_layout_json_is_malformed() {
         when(namespaceStore.namespaceExists("finos")).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
 
         assertThrows(JsonParseException.class, () -> layoutStore.upsertLayout("finos", 5, "not-valid-json"));
         verify(layoutCollection, never()).insert(any(Document.class));
@@ -178,7 +175,7 @@ class TestNitriteLayoutStoreShould {
     @Test
     void throw_json_parse_exception_when_layout_json_is_null() {
         when(namespaceStore.namespaceExists("finos")).thenReturn(true);
-        stubArchitectureHeaderExists();
+        stubPatternHeaderExists();
 
         assertThrows(JsonParseException.class, () -> layoutStore.upsertLayout("finos", 5, null));
     }
@@ -194,42 +191,42 @@ class TestNitriteLayoutStoreShould {
     }
 
     @Test
-    void throw_architecture_not_found_when_no_architecture_header_exists_for_the_target_id() {
+    void throw_pattern_not_found_when_no_pattern_header_exists_for_the_target_id() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-        when(architectureHeaderCollection.find(any(Filter.class))).thenReturn(headerCursor);
+        when(patternHeaderCollection.find(any(Filter.class))).thenReturn(headerCursor);
         when(headerCursor.firstOrNull()).thenReturn(null);
 
-        assertThrows(ArchitectureNotFoundException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
+        assertThrows(PatternNotFoundException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
         verify(layoutCollection, never()).insert(any(Document.class));
         verify(layoutCollection, never()).update(any(Document.class));
     }
 
-    // ---- getArchitectureIdsWithLayoutForNamespace ----
+    // ---- getPatternIdsWithLayoutForNamespace ----
 
     @Test
-    void return_architecture_ids_with_saved_layouts() throws NamespaceNotFoundException {
+    void return_pattern_ids_with_saved_layouts() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document first = Document.createDocument("namespace", namespace).put("architectureId", 5).put("layout", LAYOUT_JSON);
-        Document second = Document.createDocument("namespace", namespace).put("architectureId", 6).put("layout", LAYOUT_JSON);
+        Document first = Document.createDocument("namespace", namespace).put("patternId", 5).put("layout", LAYOUT_JSON);
+        Document second = Document.createDocument("namespace", namespace).put("patternId", 6).put("layout", LAYOUT_JSON);
         stubIterableCursor(List.of(first, second));
 
-        List<Integer> ids = layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace);
+        List<Integer> ids = layoutStore.getPatternIdsWithLayoutForNamespace(namespace);
 
         assertEquals(List.of(5, 6), ids);
     }
 
     @Test
-    void skip_a_document_with_no_architecture_id() throws NamespaceNotFoundException {
+    void skip_a_document_with_no_pattern_id() throws NamespaceNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
         Document noId = Document.createDocument("namespace", namespace).put("layout", LAYOUT_JSON);
         stubIterableCursor(List.of(noId));
 
-        assertTrue(layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace).isEmpty());
+        assertTrue(layoutStore.getPatternIdsWithLayoutForNamespace(namespace).isEmpty());
     }
 
     @Test
@@ -238,7 +235,7 @@ class TestNitriteLayoutStoreShould {
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
         stubIterableCursor(List.of());
 
-        assertTrue(layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace).isEmpty());
+        assertTrue(layoutStore.getPatternIdsWithLayoutForNamespace(namespace).isEmpty());
     }
 
     @Test
@@ -246,7 +243,7 @@ class TestNitriteLayoutStoreShould {
         String namespace = "unknown";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
 
-        assertThrows(NamespaceNotFoundException.class, () -> layoutStore.getArchitectureIdsWithLayoutForNamespace(namespace));
+        assertThrows(NamespaceNotFoundException.class, () -> layoutStore.getPatternIdsWithLayoutForNamespace(namespace));
         verify(layoutCollection, never()).find(any(Filter.class));
     }
 

@@ -8,6 +8,7 @@ import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.InterfaceStore;
 import org.finos.calm.store.LayoutStore;
+import org.finos.calm.store.PatternLayoutStore;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.StandardStore;
 import org.finos.calm.store.TimelineStore;
@@ -49,6 +50,8 @@ class TestNamespaceContentServiceShould {
     DecoratorStore mockDecoratorStore;
     @Mock
     LayoutStore mockLayoutStore;
+    @Mock
+    PatternLayoutStore mockPatternLayoutStore;
 
     NamespaceContentService service;
 
@@ -56,7 +59,8 @@ class TestNamespaceContentServiceShould {
     void setUp() {
         service = new NamespaceContentService(
                 mockArchitectureStore, mockPatternStore, mockFlowStore, mockStandardStore,
-                mockAdrStore, mockInterfaceStore, mockTimelineStore, mockDecoratorStore, mockLayoutStore);
+                mockAdrStore, mockInterfaceStore, mockTimelineStore, mockDecoratorStore, mockLayoutStore,
+                mockPatternLayoutStore);
     }
 
     @Test
@@ -72,6 +76,7 @@ class TestNamespaceContentServiceShould {
         verify(mockTimelineStore).getTimelinesForNamespace(NAMESPACE);
         verify(mockDecoratorStore).getDecoratorsForNamespace(NAMESPACE, null, null);
         verify(mockLayoutStore).getArchitectureIdsWithLayoutForNamespace(NAMESPACE);
+        verify(mockPatternLayoutStore).getPatternIdsWithLayoutForNamespace(NAMESPACE);
     }
 
     @Test
@@ -84,10 +89,11 @@ class TestNamespaceContentServiceShould {
         verify(mockPatternStore, never()).getPatternsForNamespace(NAMESPACE);
         verify(mockDecoratorStore, never()).getDecoratorsForNamespace(NAMESPACE, null, null);
         verify(mockLayoutStore, never()).getArchitectureIdsWithLayoutForNamespace(NAMESPACE);
+        verify(mockPatternLayoutStore, never()).getPatternIdsWithLayoutForNamespace(NAMESPACE);
     }
 
     @Test
-    void return_true_when_only_the_last_checked_store_has_content() throws Exception {
+    void return_true_when_only_the_architecture_layout_store_has_content() throws Exception {
         when(mockLayoutStore.getArchitectureIdsWithLayoutForNamespace(NAMESPACE))
                 .thenReturn(List.of(1));
 
@@ -96,6 +102,22 @@ class TestNamespaceContentServiceShould {
         verify(mockArchitectureStore).getArchitecturesForNamespace(NAMESPACE);
         verify(mockTimelineStore).getTimelinesForNamespace(NAMESPACE);
         verify(mockDecoratorStore).getDecoratorsForNamespace(NAMESPACE, null, null);
+        verify(mockLayoutStore).getArchitectureIdsWithLayoutForNamespace(NAMESPACE);
+        verify(mockPatternLayoutStore, never()).getPatternIdsWithLayoutForNamespace(NAMESPACE);
+    }
+
+    @Test
+    void return_true_when_only_the_last_checked_store_has_content() throws Exception {
+        when(mockPatternLayoutStore.getPatternIdsWithLayoutForNamespace(NAMESPACE))
+                .thenReturn(List.of(1));
+
+        assertThat(service.hasContent(NAMESPACE), is(true));
+
+        verify(mockArchitectureStore).getArchitecturesForNamespace(NAMESPACE);
+        verify(mockTimelineStore).getTimelinesForNamespace(NAMESPACE);
+        verify(mockDecoratorStore).getDecoratorsForNamespace(NAMESPACE, null, null);
+        verify(mockLayoutStore).getArchitectureIdsWithLayoutForNamespace(NAMESPACE);
+        verify(mockPatternLayoutStore).getPatternIdsWithLayoutForNamespace(NAMESPACE);
     }
 
     @Test

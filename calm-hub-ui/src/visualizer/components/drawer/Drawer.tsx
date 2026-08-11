@@ -6,6 +6,7 @@ import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
 import { CalmService } from '../../../service/calm-service.js';
+import { buildViewportKey } from '../../services/node-position-service.js';
 import { DropzoneEmptyState } from './DropzoneEmptyState.js';
 import { colors } from '../../../theme/colors.js';
 import type { DrawerProps, Flow, Control, Decorator } from '../../contracts/contracts.js';
@@ -92,8 +93,22 @@ export function Drawer({
     // override (a slug that finished resolving with no match) suppresses the
     // fallback rather than triggering it — falling back to the slug here would
     // reintroduce exactly the key split the override exists to close.
-    const computedViewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
+    // The calmType component guards against a second, independent collision:
+    // architecture ids and pattern ids are allocated from separate counters, so
+    // an Architecture 7 and a Pattern 7 can coexist in the same namespace —
+    // without it they'd share one scratch-position entry and one viewport entry.
+    const computedViewportKey = !fileInstance && data ? buildViewportKey(data.name, data.calmType, data.id) : undefined;
     const viewportKey = fileInstance || viewportKeyOverride === null ? undefined : (viewportKeyOverride ?? computedViewportKey);
+
+    // `defaultLayout`/`layoutEpoch` must collapse alongside `viewportKey` for the same
+    // reason: they describe the currently-*loaded* resource's saved server layout, not
+    // whatever was just dropped. Without this, dragging in a locally-edited copy of the
+    // same file would re-apply the loaded resource's saved positions (matched by node id)
+    // onto the dropped file's freshly-parsed nodes instead of a fresh auto-layout — the
+    // graph's `awaitingDefaultLayout` gate only reads these two props, it doesn't know
+    // about `fileInstance`.
+    const effectiveDefaultLayout = fileInstance ? undefined : defaultLayout;
+    const effectiveLayoutEpoch = fileInstance ? undefined : layoutEpoch;
 
     useEffect(() => {
         const source = fileInstance ?? data?.data;
@@ -270,6 +285,12 @@ export function Drawer({
                                 onEdgeClick={handlePatternEdgeClick}
                                 onBackgroundClick={closeSidebar}
                                 viewportKey={viewportKey}
+                                defaultLayout={effectiveDefaultLayout}
+                                layoutEpoch={effectiveLayoutEpoch}
+                                // See ReactFlowVisualizer's onPositionsChange below: never
+                                // reported for a dropped file, which has no stable identity
+                                // to save a shared default layout against.
+                                onPositionsChange={fileInstance ? undefined : onPositionsChange}
                             />
                         ) : calmInstance ? (
                             <ReactFlowVisualizer
@@ -278,8 +299,8 @@ export function Drawer({
                                 onEdgeClick={handleEdgeClick}
                                 onBackgroundClick={closeSidebar}
                                 viewportKey={viewportKey}
-                                defaultLayout={defaultLayout}
-                                layoutEpoch={layoutEpoch}
+                                defaultLayout={effectiveDefaultLayout}
+                                layoutEpoch={effectiveLayoutEpoch}
                                 // Never reported for a dropped file: `onPositionsChange`
                                 // ultimately feeds DiagramSection's "Save as default
                                 // layout", which is scoped to the *loaded architecture*

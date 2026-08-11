@@ -1,7 +1,5 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.ErrorCategory;
-import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -10,13 +8,12 @@ import com.mongodb.client.model.ReplaceOptions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
-import org.bson.BsonMaximumSizeExceededException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.LayoutStore;
-import org.finos.calm.store.util.MongoWriteFailures;
+import org.finos.calm.store.util.MongoUpsertRetry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +54,13 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * race, so it is surfaced rather than retried further. Two saves racing on the very same
  * architecture's layout are last-write-wins — acceptable for a layout, unlike for versioned
  * content.
+ *
+ * <h2>Existence check</h2>
+ * {@link #upsertLayout} rejects a write against an architecture id with no header document,
+ * by querying the {@code architectures} collection directly rather than delegating to
+ * {@code ArchitectureStore#architectureExists} — that method does its own
+ * {@code requireNamespace} call, and calling it from here would mean two namespace-existence
+ * round trips per save instead of one.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
@@ -67,13 +71,18 @@ public class MongoLayoutStore implements LayoutStore {
     private static final String NAMESPACE_FIELD = "namespace";
     private static final String ARCHITECTURE_ID_FIELD = "architectureId";
     private static final String LAYOUT_FIELD = "layout";
+    // Mirrors MongoArchitectureStore's HEADER_COLLECTION/ID_FIELD — see the class javadoc for
+    // why this queries the collection directly instead of going through that store.
+    private static final String ARCHITECTURE_HEADER_COLLECTION = "architectures";
 
     private final MongoCollection<Document> layoutCollection;
+    private final MongoCollection<Document> architectureHeaderCollection;
     private final MongoNamespaceStore namespaceStore;
 
     @Inject
     public MongoLayoutStore(MongoDatabase database, MongoNamespaceStore namespaceStore) {
         this.layoutCollection = database.getCollection("layouts");
+        this.architectureHeaderCollection = database.getCollection(ARCHITECTURE_HEADER_COLLECTION);
         this.namespaceStore = namespaceStore;
     }
 
@@ -91,8 +100,12 @@ public class MongoLayoutStore implements LayoutStore {
     }
 
     @Override
-    public void upsertLayout(String namespace, int architectureId, String layoutJson) throws NamespaceNotFoundException {
+    public void upsertLayout(String namespace, int architectureId, String layoutJson)
+            throws NamespaceNotFoundException, ArchitectureNotFoundException {
         namespaceStore.requireNamespace(namespace);
+        if (!architectureHeaderExists(namespace, architectureId)) {
+            throw new ArchitectureNotFoundException();
+        }
 
         // Parsed before any write, so malformed JSON never reaches the database.
         Document layoutDoc = Document.parse(layoutJson);
@@ -103,23 +116,7 @@ public class MongoLayoutStore implements LayoutStore {
                 .append(LAYOUT_FIELD, layoutDoc);
         ReplaceOptions upsert = new ReplaceOptions().upsert(true);
 
-        try {
-            replaceLayout(filter, replacement, upsert);
-        } catch (MongoWriteException e) {
-            if (e.getError().getCategory() != ErrorCategory.DUPLICATE_KEY) {
-                throw MongoWriteFailures.toStorageWriteException(e);
-            }
-            // Two saves for the same architecture both missed the filter and both attempted an
-            // insert; the unique index on (namespace, architectureId) let exactly one through.
-            // The document exists now, so the identical call matches and updates it. Retried
-            // once only — a second duplicate key would mean the index no longer agrees with
-            // this filter, which is a fault rather than a race to ride out.
-            try {
-                replaceLayout(filter, replacement, upsert);
-            } catch (MongoWriteException retryFailure) {
-                throw MongoWriteFailures.toStorageWriteException(retryFailure);
-            }
-        }
+        MongoUpsertRetry.replaceOnceWithRetry(layoutCollection, filter, replacement, upsert);
         LOG.debug("Saved default layout for architecture {} in namespace '{}'", architectureId, namespace);
     }
 
@@ -142,23 +139,14 @@ public class MongoLayoutStore implements LayoutStore {
         return architectureIds;
     }
 
-    /**
-     * Isolates the two ways MongoDB's 16MB ceiling can surface on this write: a
-     * {@link MongoWriteException} when the server rejects an oversized document, or (since
-     * unlike the old shape a single write can already exceed the ceiling before it is even
-     * sent) a client-side {@link BsonMaximumSizeExceededException} the driver raises while
-     * serializing the command, which never reaches the server and so is never a
-     * {@code MongoWriteException}. Both must map to the same capacity-exceeded outcome.
-     */
-    private void replaceLayout(Bson filter, Document replacement, ReplaceOptions upsert) {
-        try {
-            layoutCollection.replaceOne(filter, replacement, upsert);
-        } catch (BsonMaximumSizeExceededException e) {
-            throw MongoWriteFailures.toStorageWriteException(e);
-        }
-    }
-
     private Bson layoutFilter(String namespace, int architectureId) {
         return Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(ARCHITECTURE_ID_FIELD, architectureId));
+    }
+
+    private boolean architectureHeaderExists(String namespace, int architectureId) {
+        return architectureHeaderCollection
+                .find(Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(ARCHITECTURE_ID_FIELD, architectureId)))
+                .projection(Projections.include("_id"))
+                .first() != null;
     }
 }

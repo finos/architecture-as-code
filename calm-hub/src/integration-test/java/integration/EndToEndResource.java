@@ -10,6 +10,7 @@ import org.finos.calm.migration.steps.MongoAdrVersionSplitStep;
 import org.finos.calm.migration.steps.MongoFlowVersionSplitStep;
 import org.finos.calm.migration.steps.MongoInterfaceVersionSplitStep;
 import org.finos.calm.migration.steps.MongoLayoutIndexStep;
+import org.finos.calm.migration.steps.MongoPatternLayoutIndexStep;
 import org.finos.calm.migration.steps.MongoPatternVersionSplitStep;
 import org.finos.calm.migration.steps.MongoResourceMappingIndexStep;
 import org.finos.calm.migration.steps.MongoTimelineVersionSplitStep;
@@ -67,6 +68,11 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             // container would run with no unique constraint on (namespace, architectureId),
             // and MongoLayoutStore's duplicate-key retry would go untested against a real index.
             new MongoLayoutIndexStep(database).createIndexes();
+            // Same reasoning as MongoLayoutIndexStep immediately above, mirrored for patterns:
+            // without this, pattern_layouts would run with no unique constraint on
+            // (namespace, patternId) under this container, and MongoPatternLayoutStore's
+            // duplicate-key retry would go untested against a real index.
+            new MongoPatternLayoutIndexStep(database).createIndexes();
             // Widens resource_mappings' unique index to (namespace, resourceType, customId) —
             // MongoIndexInitializationStep above only ever creates the old, narrower
             // (namespace, customId) index (it is never edited after being merged), so without

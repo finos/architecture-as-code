@@ -171,29 +171,6 @@ public class TestMongoArchitectureStoreShould {
                 new NamespaceResourceSummary("Architecture 7", "", 7, 0)));
     }
 
-    // --- architectureExists ---
-
-    @Test
-    void throw_a_namespace_exception_when_checking_existence_for_a_missing_namespace() {
-        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
-
-        assertThrows(NamespaceNotFoundException.class, () -> store.architectureExists(NAMESPACE, ARCHITECTURE_ID));
-    }
-
-    @Test
-    void return_true_when_the_architecture_header_exists() throws NamespaceNotFoundException {
-        architectureExists();
-
-        assertThat(store.architectureExists(NAMESPACE, ARCHITECTURE_ID), is(true));
-    }
-
-    @Test
-    void return_false_when_the_architecture_header_is_absent() throws NamespaceNotFoundException {
-        architectureDoesNotExist();
-
-        assertThat(store.architectureExists(NAMESPACE, ARCHITECTURE_ID), is(false));
-    }
-
     // --- createArchitectureForNamespace ---
 
     @Test
