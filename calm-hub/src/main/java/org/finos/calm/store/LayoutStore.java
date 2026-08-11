@@ -1,5 +1,6 @@
 package org.finos.calm.store;
 
+import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 
 import java.util.List;
@@ -33,14 +34,20 @@ public interface LayoutStore {
 
     /**
      * Save the default layout for an architecture, creating it if none exists yet or
-     * overwriting whatever was saved before.
+     * overwriting whatever was saved before. Rejects a write against an architecture id that
+     * doesn't exist, so a layout can never be saved as an orphan with nothing to attach to
+     * (see {@code NamespaceContentService.hasContent}) — the implementation checks this itself
+     * rather than requiring the caller to check {@code ArchitectureStore} first, so the whole
+     * save is one round trip through the namespace check instead of two.
      *
      * @param namespace      the namespace the architecture belongs to
      * @param architectureId the id of the architecture
      * @param layoutJson     the layout as a raw JSON string
-     * @throws NamespaceNotFoundException if the namespace does not exist
+     * @throws NamespaceNotFoundException    if the namespace does not exist
+     * @throws ArchitectureNotFoundException if no architecture with this id exists in the namespace
      */
-    void upsertLayout(String namespace, int architectureId, String layoutJson) throws NamespaceNotFoundException;
+    void upsertLayout(String namespace, int architectureId, String layoutJson)
+            throws NamespaceNotFoundException, ArchitectureNotFoundException;
 
     /**
      * Architecture ids in this namespace that currently have a saved default layout. Used

@@ -5,8 +5,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.store.PatternLayoutStore;
-import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.Test;
 
@@ -27,14 +27,7 @@ public class TestPatternLayoutResourceShould {
     PatternLayoutStore mockPatternLayoutStore;
 
     @InjectMock
-    PatternStore mockPatternStore;
-
-    @InjectMock
     UserAccessStore mockUserAccessStore;
-
-    private void givenPatternExists() throws NamespaceNotFoundException {
-        when(mockPatternStore.patternExists("finos", 5)).thenReturn(true);
-    }
 
     private static final String VALID_LAYOUT_JSON = """
             {
@@ -114,9 +107,7 @@ public class TestPatternLayoutResourceShould {
     // ---- PUT /api/calm/namespaces/{namespace}/patterns/{patternId}/layout ----
 
     @Test
-    void return_204_when_layout_saved() throws NamespaceNotFoundException {
-        givenPatternExists();
-
+    void return_204_when_layout_saved() throws NamespaceNotFoundException, PatternNotFoundException {
         given()
                 .contentType(ContentType.JSON)
                 .body(VALID_LAYOUT_JSON)
@@ -130,8 +121,7 @@ public class TestPatternLayoutResourceShould {
     }
 
     @Test
-    void accept_put_when_for_is_absent() throws NamespaceNotFoundException {
-        givenPatternExists();
+    void accept_put_when_for_is_absent() throws NamespaceNotFoundException, PatternNotFoundException {
         String layoutWithoutFor = "{ \"pins\": [] }";
 
         given()
@@ -161,7 +151,6 @@ public class TestPatternLayoutResourceShould {
                 .body(containsString("does not match pattern"));
 
         verifyNoInteractions(mockPatternLayoutStore);
-        verifyNoInteractions(mockPatternStore);
     }
 
     @Test
@@ -185,7 +174,6 @@ public class TestPatternLayoutResourceShould {
                 .body(containsString("does not match pattern"));
 
         verifyNoInteractions(mockPatternLayoutStore);
-        verifyNoInteractions(mockPatternStore);
     }
 
     @Test
@@ -200,7 +188,6 @@ public class TestPatternLayoutResourceShould {
                 .body(containsString("The layout JSON could not be parsed"));
 
         verifyNoInteractions(mockPatternLayoutStore);
-        verifyNoInteractions(mockPatternStore);
     }
 
     @Test
@@ -214,7 +201,6 @@ public class TestPatternLayoutResourceShould {
                 .body(containsString("The layout JSON could not be parsed"));
 
         verifyNoInteractions(mockPatternLayoutStore);
-        verifyNoInteractions(mockPatternStore);
     }
 
     @Test
@@ -229,12 +215,13 @@ public class TestPatternLayoutResourceShould {
                 .body(containsString("The layout JSON could not be parsed"));
 
         verifyNoInteractions(mockPatternLayoutStore);
-        verifyNoInteractions(mockPatternStore);
     }
 
     @Test
-    void return_404_when_pattern_does_not_exist_for_put_layout() throws NamespaceNotFoundException {
-        when(mockPatternStore.patternExists("finos", 5)).thenReturn(false);
+    void return_404_when_pattern_does_not_exist_for_put_layout()
+            throws NamespaceNotFoundException, PatternNotFoundException {
+        doThrow(new PatternNotFoundException())
+                .when(mockPatternLayoutStore).upsertLayout(eq("finos"), eq(5), anyString());
 
         given()
                 .contentType(ContentType.JSON)
@@ -244,13 +231,13 @@ public class TestPatternLayoutResourceShould {
                 .then()
                 .statusCode(404)
                 .body(containsString("Pattern 5 does not exist in namespace: finos"));
-
-        verify(mockPatternLayoutStore, never()).upsertLayout(anyString(), anyInt(), anyString());
     }
 
     @Test
-    void return_404_when_namespace_not_found_for_put_layout() throws NamespaceNotFoundException {
-        doThrow(new NamespaceNotFoundException()).when(mockPatternStore).patternExists(anyString(), anyInt());
+    void return_404_when_namespace_not_found_for_put_layout()
+            throws NamespaceNotFoundException, PatternNotFoundException {
+        doThrow(new NamespaceNotFoundException())
+                .when(mockPatternLayoutStore).upsertLayout(anyString(), anyInt(), anyString());
 
         given()
                 .contentType(ContentType.JSON)
@@ -260,8 +247,6 @@ public class TestPatternLayoutResourceShould {
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace provided: missing"));
-
-        verifyNoInteractions(mockPatternLayoutStore);
     }
 
     @Test
@@ -306,6 +291,5 @@ public class TestPatternLayoutResourceShould {
                 .statusCode(403);
 
         verifyNoInteractions(mockPatternLayoutStore);
-        verifyNoInteractions(mockPatternStore);
     }
 }

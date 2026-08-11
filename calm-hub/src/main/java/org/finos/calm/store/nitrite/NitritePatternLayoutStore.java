@@ -10,6 +10,7 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.store.PatternLayoutStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,12 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * Identical to {@link NitriteLayoutStore}: all mutating operations run under a single
  * {@link ReentrantLock}, following the check-then-write pattern used by every other Nitrite
  * store.
+ *
+ * <h2>Existence check</h2>
+ * Identical to {@link NitriteLayoutStore}: {@link #upsertLayout} rejects a write against a
+ * pattern id with no header document by querying the {@code patterns} collection directly,
+ * rather than delegating to {@code PatternStore#patternExists} and paying for a second
+ * namespace-existence round trip.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
@@ -49,14 +56,19 @@ public class NitritePatternLayoutStore implements PatternLayoutStore {
     private static final String NAMESPACE_FIELD = "namespace";
     private static final String PATTERN_ID_FIELD = "patternId";
     private static final String LAYOUT_FIELD = "layout";
+    // Mirrors NitritePatternStore's HEADER_COLLECTION/ID_FIELD — see the class javadoc for why
+    // this queries the collection directly instead of going through that store.
+    private static final String PATTERN_HEADER_COLLECTION = "patterns";
 
     private final NitriteCollection layoutCollection;
+    private final NitriteCollection patternHeaderCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitritePatternLayoutStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore) {
         this.layoutCollection = db.getCollection(COLLECTION_NAME);
+        this.patternHeaderCollection = db.getCollection(PATTERN_HEADER_COLLECTION);
         this.namespaceStore = namespaceStore;
         LOG.info("NitritePatternLayoutStore initialized with collection: {}", COLLECTION_NAME);
     }
@@ -70,8 +82,12 @@ public class NitritePatternLayoutStore implements PatternLayoutStore {
     }
 
     @Override
-    public void upsertLayout(String namespace, int patternId, String layoutJson) throws NamespaceNotFoundException {
+    public void upsertLayout(String namespace, int patternId, String layoutJson)
+            throws NamespaceNotFoundException, PatternNotFoundException {
         requireNamespace(namespace);
+        if (!patternHeaderExists(namespace, patternId)) {
+            throw new PatternNotFoundException();
+        }
         validateLayoutJson(layoutJson);
 
         lock.lock();
@@ -121,6 +137,11 @@ public class NitritePatternLayoutStore implements PatternLayoutStore {
             LOG.error("Invalid JSON format for layout: {}", e.getMessage());
             throw e;
         }
+    }
+
+    private boolean patternHeaderExists(String namespace, int patternId) {
+        Filter filter = Filter.and(where(NAMESPACE_FIELD).eq(namespace), where(PATTERN_ID_FIELD).eq(patternId));
+        return patternHeaderCollection.find(filter).firstOrNull() != null;
     }
 
     private Document fetchLayoutDocument(String namespace, int patternId) {

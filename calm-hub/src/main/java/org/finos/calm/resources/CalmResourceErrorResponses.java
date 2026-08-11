@@ -35,45 +35,44 @@ public class CalmResourceErrorResponses {
     }
 
     /**
-     * Returns a 404 response for a layout write against an architecture id that does not
-     * exist. Deliberately not a reuse of {@link org.finos.calm.resources.ArchitectureResource}'s
-     * own not-found response — that one is terser ("Invalid architecture provided") and
-     * changing it would alter five existing, already-tested response bodies for a change
-     * scoped to layout saves.
+     * Returns a 404 response for a layout write against a resource id that does not exist.
+     * Deliberately not a reuse of {@link org.finos.calm.resources.ArchitectureResource}'s own
+     * not-found response — that one is terser ("Invalid architecture provided") and changing it
+     * would alter five existing, already-tested response bodies for a change scoped to layout
+     * saves. Parameterized on {@code resourceType} rather than one hard-coded-noun method per
+     * type, the same convention {@link #invalidLayoutTargetResponse} already uses — a wording or
+     * sanitization fix here now reaches every layout-owning resource type at once.
+     *
+     * @param resourceType the kind of resource, lowercase (e.g. "architecture", "pattern");
+     *                      capitalized in the response body
+     * @param namespace    the namespace the resource belongs to
+     * @param id           the id of the missing resource
      */
-    public static Response architectureNotFoundResponse(String namespace, int architectureId) {
+    public static Response resourceNotFoundResponse(String resourceType, String namespace, int id) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Architecture " + architectureId + " does not exist in namespace: "
-                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
-                .build();
-    }
-
-    public static Response layoutNotFoundResponse(String namespace, int architectureId) {
-        return Response.status(Response.Status.NOT_FOUND)
-                .entity("No default layout saved for architecture " + architectureId + " in namespace: "
-                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
-                .build();
-    }
-
-    /**
-     * Returns a 404 response for a pattern layout write against a pattern id that does not
-     * exist. Mirrors {@link #architectureNotFoundResponse(String, int)}.
-     */
-    public static Response patternNotFoundResponse(String namespace, int patternId) {
-        return Response.status(Response.Status.NOT_FOUND)
-                .entity("Pattern " + patternId + " does not exist in namespace: "
+                .entity(capitalize(resourceType) + " " + id + " does not exist in namespace: "
                         + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
                 .build();
     }
 
     /**
-     * Mirrors {@link #layoutNotFoundResponse(String, int)} for a pattern's default layout.
+     * Returns a 404 response for a resource with no saved default layout. See
+     * {@link #resourceNotFoundResponse} for why this is parameterized on {@code resourceType}
+     * rather than one method per resource type.
+     *
+     * @param resourceType the kind of resource, lowercase (e.g. "architecture", "pattern")
+     * @param namespace    the namespace the resource belongs to
+     * @param id           the id of the resource
      */
-    public static Response patternLayoutNotFoundResponse(String namespace, int patternId) {
+    public static Response resourceLayoutNotFoundResponse(String resourceType, String namespace, int id) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("No default layout saved for pattern " + patternId + " in namespace: "
+                .entity("No default layout saved for " + resourceType + " " + id + " in namespace: "
                         + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
                 .build();
+    }
+
+    private static String capitalize(String value) {
+        return value.isEmpty() ? value : Character.toUpperCase(value.charAt(0)) + value.substring(1);
     }
 
     /**

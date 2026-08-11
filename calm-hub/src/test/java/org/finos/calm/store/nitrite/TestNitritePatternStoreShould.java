@@ -120,29 +120,6 @@ public class TestNitritePatternStoreShould {
         return new CreatePatternRequest(PATTERN_NAME, PATTERN_DESCRIPTION, VALID_JSON);
     }
 
-    // --- patternExists ---
-
-    @Test
-    public void return_true_when_pattern_exists() throws NamespaceNotFoundException {
-        patternExists();
-
-        assertThat(store.patternExists(NAMESPACE, PATTERN_ID), is(true));
-    }
-
-    @Test
-    public void return_false_when_pattern_does_not_exist() throws NamespaceNotFoundException {
-        patternDoesNotExist();
-
-        assertThat(store.patternExists(NAMESPACE, PATTERN_ID), is(false));
-    }
-
-    @Test
-    public void throw_a_namespace_exception_when_checking_existence_for_a_missing_namespace() {
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
-
-        assertThrows(NamespaceNotFoundException.class, () -> store.patternExists(NAMESPACE, PATTERN_ID));
-    }
-
     // --- getPatternsForNamespace ---
 
     @Test

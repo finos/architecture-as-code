@@ -3,7 +3,7 @@ import { CalmService } from '../../service/calm-service.js';
 import { LayoutService, LayoutResourceType } from '../../service/layout-service.js';
 import { isSlug } from '../../model/calm.js';
 import { CalmLayout, pinsToStoredPositions, storedPositionsToPins } from '../../model/layout.js';
-import { clearStoredNodePositions, StoredNodePosition } from '../../visualizer/services/node-position-service.js';
+import { buildViewportKey, clearStoredNodePositions, StoredNodePosition } from '../../visualizer/services/node-position-service.js';
 
 export interface UseDefaultLayoutResult {
     /**
@@ -14,9 +14,10 @@ export interface UseDefaultLayoutResult {
      * because architecture ids and pattern ids are allocated from independent
      * counters — an Architecture 7 and a Pattern 7 can coexist in the same
      * namespace, and without a type qualifier they would collide on one
-     * scratch-position entry and one viewport entry. `Drawer`'s own fallback
-     * key computation must stay in this same `namespace/calmType/id` shape
-     * for the same reason. Three states:
+     * scratch-position entry and one viewport entry. Built with
+     * `buildViewportKey`, the single source of truth for this shape — shared
+     * with `Drawer`'s own fallback key computation so the two can't drift
+     * apart. Three states:
      *  - a string: the resolved key.
      *  - `undefined`: not applicable (a dropped file, or a calmType this hook
      *    doesn't support), or a slug that is still resolving — callers with a
@@ -114,7 +115,7 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
     // viewportKeyOverride's doc).
     const viewportKey =
         resolvedId !== undefined
-            ? `${namespace}/${calmType}/${resolvedId}`
+            ? buildViewportKey(namespace, calmType, resolvedId)
             : isSupportedType && !resolvingId
               ? null
               : undefined;

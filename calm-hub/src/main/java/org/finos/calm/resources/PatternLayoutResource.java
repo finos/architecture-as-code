@@ -17,9 +17,9 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.PatternLayoutStore;
-import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,14 +28,16 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 
 /**
  * Resource for managing the shared, default layout of a pattern in a given namespace. A
- * structural twin of {@link LayoutResource} — see {@link PatternLayoutStore}'s class javadoc
+ * structural twin of {@link LayoutResource}; see {@link PatternLayoutStore}'s class javadoc
  * for why patterns get their own resource/store/collection rather than a
- * {@code resourceType}-discriminated extension of the architecture layout stack. Keeping this
- * as a separate resource class (rather than adding a {@code {namespace}/patterns/{patternId}/layout}
- * path to {@link LayoutResource} itself) also keeps {@code AuditRequestFilter}'s
- * one-resource-class-to-one-entity-type-to-one-path-param-name mapping simple: a shared
+ * {@code resourceType}-discriminated extension of the architecture layout stack.
+ *
+ * <p>This resource's own reason for existing as a separate class (rather than adding a
+ * {@code {namespace}/patterns/{patternId}/layout} path to {@link LayoutResource} itself) is
+ * independent of the store-level one: it keeps {@code AuditRequestFilter}'s
+ * one-resource-class-to-one-entity-type-to-one-path-param-name mapping simple. A shared
  * resource class serving both {@code architectureId} and {@code patternId} paths would look up
- * the wrong path-param name for one of the two, silently auditing a null entity id.
+ * the wrong path-param name for one of the two, silently auditing a null entity id.</p>
  *
  * <p>As with architecture layouts, a pattern's layout is not versioned — see
  * {@link PatternLayoutStore}'s class javadoc — so there is exactly one layout per pattern,
@@ -55,13 +57,11 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 public class PatternLayoutResource {
 
     private final PatternLayoutStore patternLayoutStore;
-    private final PatternStore patternStore;
     private final Logger logger = LoggerFactory.getLogger(PatternLayoutResource.class);
 
     @Inject
-    public PatternLayoutResource(PatternLayoutStore patternLayoutStore, PatternStore patternStore) {
+    public PatternLayoutResource(PatternLayoutStore patternLayoutStore) {
         this.patternLayoutStore = patternLayoutStore;
-        this.patternStore = patternStore;
     }
 
     /**
@@ -87,7 +87,7 @@ public class PatternLayoutResource {
         try {
             return patternLayoutStore.getLayout(namespace, patternId)
                     .map(layoutJson -> Response.ok(layoutJson).build())
-                    .orElseGet(() -> CalmResourceErrorResponses.patternLayoutNotFoundResponse(namespace, patternId));
+                    .orElseGet(() -> CalmResourceErrorResponses.resourceLayoutNotFoundResponse("pattern", namespace, patternId));
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving layout for pattern [{}]", namespace, patternId, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -128,11 +128,8 @@ public class PatternLayoutResource {
             }
 
             // Checked on the write path only, not on get — mirrors LayoutResource#saveLayout.
-            if (!patternStore.patternExists(namespace, patternId)) {
-                logger.warn("No pattern [{}] in namespace [{}] to save a layout against", patternId, namespace);
-                return CalmResourceErrorResponses.patternNotFoundResponse(namespace, patternId);
-            }
-
+            // The check itself lives inside PatternLayoutStore#upsertLayout — see that
+            // method's javadoc for why it isn't done here via PatternStore#patternExists.
             patternLayoutStore.upsertLayout(namespace, patternId, layoutJson);
             return Response.noContent().build();
         } catch (JsonParseException e) {
@@ -141,6 +138,9 @@ public class PatternLayoutResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when saving layout for pattern [{}]", namespace, patternId, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (PatternNotFoundException e) {
+            logger.warn("No pattern [{}] in namespace [{}] to save a layout against", patternId, namespace);
+            return CalmResourceErrorResponses.resourceNotFoundResponse("pattern", namespace, patternId);
         }
     }
 }

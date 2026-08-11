@@ -41,11 +41,11 @@ class TestMongoPatternLayoutIndexStepShould {
     }
 
     @Test
-    void run_at_schema_version_eleven() {
-        // 10 (MongoAdrTitleBackfillStep) is the highest fromVersion() currently in use; a
+    void run_at_schema_version_twelve() {
+        // 11 (MongoResourceMappingIndexStep) is the highest fromVersion() currently in use; a
         // wrong or duplicate value is a fatal startup IllegalStateException — see
         // SchemaMigrationRunner's duplicate-fromVersion guard.
-        assertThat(step.fromVersion(), is(11));
+        assertThat(step.fromVersion(), is(12));
     }
 
     @Test

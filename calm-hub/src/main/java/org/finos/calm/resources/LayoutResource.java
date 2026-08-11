@@ -16,9 +16,9 @@ import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.LayoutStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,13 +43,11 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 public class LayoutResource {
 
     private final LayoutStore layoutStore;
-    private final ArchitectureStore architectureStore;
     private final Logger logger = LoggerFactory.getLogger(LayoutResource.class);
 
     @Inject
-    public LayoutResource(LayoutStore layoutStore, ArchitectureStore architectureStore) {
+    public LayoutResource(LayoutStore layoutStore) {
         this.layoutStore = layoutStore;
-        this.architectureStore = architectureStore;
     }
 
     /**
@@ -75,7 +73,7 @@ public class LayoutResource {
         try {
             return layoutStore.getLayout(namespace, architectureId)
                     .map(layoutJson -> Response.ok(layoutJson).build())
-                    .orElseGet(() -> CalmResourceErrorResponses.layoutNotFoundResponse(namespace, architectureId));
+                    .orElseGet(() -> CalmResourceErrorResponses.resourceLayoutNotFoundResponse("architecture", namespace, architectureId));
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving layout for architecture [{}]", namespace, architectureId, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -118,13 +116,10 @@ public class LayoutResource {
             // Checked on the write path only, not on get: a layout with nothing to attach to
             // is a real problem (an orphan that blocks namespace deletion — see
             // NamespaceContentService.hasContent), but a GET for an unknown architecture id
-            // already 404s via layoutNotFoundResponse below, which the UI already treats as
-            // "no default saved". No need to pay for a second existence check there.
-            if (!architectureStore.architectureExists(namespace, architectureId)) {
-                logger.warn("No architecture [{}] in namespace [{}] to save a layout against", architectureId, namespace);
-                return CalmResourceErrorResponses.architectureNotFoundResponse(namespace, architectureId);
-            }
-
+            // already 404s via resourceLayoutNotFoundResponse below, which the UI already
+            // treats as "no default saved". No need to pay for a second existence check there.
+            // The check itself lives inside LayoutStore#upsertLayout — see that method's
+            // javadoc for why it isn't done here via ArchitectureStore#architectureExists.
             layoutStore.upsertLayout(namespace, architectureId, layoutJson);
             return Response.noContent().build();
         } catch (JsonParseException e) {
@@ -133,6 +128,9 @@ public class LayoutResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when saving layout for architecture [{}]", namespace, architectureId, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (ArchitectureNotFoundException e) {
+            logger.warn("No architecture [{}] in namespace [{}] to save a layout against", architectureId, namespace);
+            return CalmResourceErrorResponses.resourceNotFoundResponse("architecture", namespace, architectureId);
         }
     }
 }

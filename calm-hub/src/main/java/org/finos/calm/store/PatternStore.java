@@ -32,17 +32,6 @@ public interface PatternStore {
      */
     List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException;
 
-    /**
-     * Whether a pattern with the given id exists in the namespace, regardless of how many
-     * versions it has. Mirrors {@link ArchitectureStore#architectureExists}.
-     *
-     * @param namespace the namespace the pattern belongs to
-     * @param patternId the id of the pattern
-     * @return true if a pattern header exists for this id
-     * @throws NamespaceNotFoundException if the namespace does not exist
-     */
-    boolean patternExists(String namespace, int patternId) throws NamespaceNotFoundException;
-
     Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException, JsonParseException;
     List<String> getPatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException;
     String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException;

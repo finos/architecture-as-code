@@ -24,17 +24,40 @@ const STORAGE_PREFIX = 'calm-hub:node-positions:';
 const storageKeyFor = (key: string) => `${STORAGE_PREFIX}${key}`;
 
 /**
+ * A diagram key has exactly this many `/`-separated segments — see
+ * `buildViewportKey`. Exported so `legacyStorageKeyFor` and any other code
+ * that needs to recognise the shape (rather than build it) shares the same
+ * constant instead of a bare `3` magic number.
+ */
+export const VIEWPORT_KEY_SEGMENTS = 3;
+
+/**
+ * Builds the diagram key identifying a resource's viewport/scratch-position/
+ * default-layout storage, independent of the version being viewed:
+ * `namespace/calmType/id`. The single source of truth for this shape — call
+ * this rather than hand-building the template, so a future change to the key
+ * (e.g. adding a version component) can't update one call site and silently
+ * drift from another, reintroducing the architecture/pattern id collision
+ * this key shape was introduced to close (an Architecture 7 and a Pattern 7
+ * can coexist in one namespace, since the two ids are drawn from independent
+ * counters).
+ */
+export function buildViewportKey(namespace: string, calmType: string, id: string | number): string {
+    return `${namespace}/${calmType}/${id}`;
+}
+
+/**
  * Derives the pre-calmType-qualified key (`namespace/id`) a diagram key
  * (`namespace/calmType/id`) would have been stored under before the calmType
  * component was added to prevent an architecture and a pattern with the same
  * numeric id from colliding. Used only as a one-time read fallback in
  * `loadStoredNodePositions`, so a user's already-dragged-but-unsaved layout
  * from before that change isn't silently discarded. `undefined` for any key
- * not in the three-segment shape (e.g. a dropped file has no key at all).
+ * not in the `buildViewportKey` shape (e.g. a dropped file has no key at all).
  */
 function legacyStorageKeyFor(key: string): string | undefined {
     const parts = key.split('/');
-    return parts.length === 3 ? `${parts[0]}/${parts[2]}` : undefined;
+    return parts.length === VIEWPORT_KEY_SEGMENTS ? `${parts[0]}/${parts[2]}` : undefined;
 }
 
 /** Reduce a diagram's nodes to just the id/position pairs worth persisting. */

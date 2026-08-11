@@ -73,12 +73,6 @@ public class MongoArchitectureStore implements ArchitectureStore {
     }
 
     @Override
-    public boolean architectureExists(String namespace, int architectureId) throws NamespaceNotFoundException {
-        namespaceStore.requireNamespace(namespace);
-        return documentStore.headerExists(namespace, architectureId);
-    }
-
-    @Override
     public Architecture createArchitectureForNamespace(Architecture architecture) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(architecture.getNamespace());
 

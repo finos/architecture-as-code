@@ -16,14 +16,16 @@ import org.slf4j.LoggerFactory;
  * {@code (namespace, patternId)} in the {@code pattern_layouts} collection, mirroring
  * {@link MongoLayoutIndexStep} at {@code fromVersion() == 9} for architecture layouts.
  *
- * <h2>Why {@code fromVersion() == 11}</h2>
+ * <h2>Why {@code fromVersion() == 12}</h2>
  * {@code 9} ({@link MongoLayoutIndexStep}) was the highest {@code fromVersion()} in use when
  * this step was first drafted, making {@code 10} the next unused value — but
  * {@code MongoAdrTitleBackfillStep} landed at {@code fromVersion() == 10} first, so this step
- * was moved to {@code 11}. A wrong or duplicate {@code fromVersion()} is a fatal startup
- * {@code IllegalStateException} — see {@code SchemaMigrationRunner}'s duplicate-{@code fromVersion}
- * guard — so this must be re-verified as still unused immediately before implementing, not just
- * once at design time.
+ * moved to {@code 11}. It was then bumped again to {@code 12}, since {@code
+ * MongoResourceMappingIndexStep} (landed first, fixing the {@code resource_mappings}
+ * namespace+customId collision) took {@code 11}. A wrong or duplicate {@code fromVersion()}
+ * is a fatal startup {@code IllegalStateException} — see {@code SchemaMigrationRunner}'s
+ * duplicate-{@code fromVersion} guard — so this must be re-verified as still unused
+ * immediately before implementing, not just once at design time.
  *
  * <h2>Why this needs no data migration</h2>
  * As with {@link MongoLayoutIndexStep}, this is a brand-new collection with no pre-existing
@@ -32,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * <h2>Why {@code init-mongo.js} must change too</h2>
  * A freshly-seeded database pins {@code LATEST_SCHEMA_VERSION} directly and never runs any
  * migration step, including this one. {@code calm-hub/mongo/init-mongo.js} must create the same
- * unique index at seed time and bump {@code LATEST_SCHEMA_VERSION} to {@code 12} in the same
+ * unique index at seed time and bump {@code LATEST_SCHEMA_VERSION} to {@code 13} in the same
  * change, or a fresh install silently ships with no uniqueness guarantee on
  * {@code pattern_layouts} at all.
  *
@@ -61,7 +63,7 @@ public class MongoPatternLayoutIndexStep implements SchemaMigrationStep {
 
     @Override
     public int fromVersion() {
-        return 11;
+        return 12;
     }
 
     @Override

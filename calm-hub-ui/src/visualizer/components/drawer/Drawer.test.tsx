@@ -34,11 +34,19 @@ vi.mock('../reactflow/MetadataPanel.js', () => ({
 
 // Mock dependencies
 vi.mock('../reactflow/ReactFlowVisualizer.js', () => ({
-    ReactFlowVisualizer: ({ calmData, viewportKey }: ReactFlowVisualizerProps) => (
+    ReactFlowVisualizer: ({ calmData, viewportKey, defaultLayout, layoutEpoch, onPositionsChange }: ReactFlowVisualizerProps) => (
         <div data-testid="reactflow-visualizer">
             <div data-testid="node-count">{calmData?.nodes?.length ?? 0}</div>
             <div data-testid="relationship-count">{calmData?.relationships?.length ?? 0}</div>
             <div data-testid="viewport-key">{viewportKey ?? '(none)'}</div>
+            <div data-testid="architecture-default-layout">{defaultLayout === undefined ? '(undefined)' : JSON.stringify(defaultLayout)}</div>
+            <div data-testid="architecture-layout-epoch">{layoutEpoch ?? '(none)'}</div>
+            <button
+                data-testid="architecture-report-positions"
+                onClick={() => onPositionsChange?.([{ id: 'n1', position: { x: 1, y: 2 } }])}
+            >
+                report
+            </button>
         </div>
     ),
 }));
@@ -250,6 +258,75 @@ describe('Drawer', () => {
 
         expect(screen.queryByText(/Couldn't read that file/i)).not.toBeInTheDocument();
         expect(screen.getByTestId('reactflow-visualizer')).toBeInTheDocument();
+    });
+
+    // Regression coverage for the dropped-file stale-layout bug: `defaultLayout`/
+    // `layoutEpoch` describe the currently-*loaded* resource's saved server layout,
+    // so they must collapse alongside `viewportKey` once a file is dropped —
+    // otherwise a dropped file inherits the previously-loaded resource's positions.
+    it('suppresses defaultLayout/layoutEpoch for a dropped pattern file', async () => {
+        const defaultLayout = [{ id: 'n1', position: { x: 5, y: 10 } }];
+        render(<Drawer data={patternData} defaultLayout={defaultLayout} layoutEpoch={3} />);
+
+        expect(screen.getByTestId('pattern-default-layout')).toHaveTextContent(JSON.stringify(defaultLayout));
+        expect(screen.getByTestId('pattern-layout-epoch')).toHaveTextContent('3');
+
+        await act(async () => {
+            await mockDropzone.onDrop?.([
+                fakeFile(JSON.stringify({ properties: { nodes: { prefixItems: [] } } })),
+            ]);
+        });
+
+        expect(screen.getByTestId('pattern-default-layout')).toHaveTextContent('(undefined)');
+        expect(screen.getByTestId('pattern-layout-epoch')).toHaveTextContent('(none)');
+    });
+
+    it('suppresses defaultLayout/layoutEpoch for a dropped architecture file', async () => {
+        const defaultLayout = [{ id: 'n1', position: { x: 5, y: 10 } }];
+        render(<Drawer data={architectureData} defaultLayout={defaultLayout} layoutEpoch={3} />);
+
+        expect(screen.getByTestId('architecture-default-layout')).toHaveTextContent(JSON.stringify(defaultLayout));
+        expect(screen.getByTestId('architecture-layout-epoch')).toHaveTextContent('3');
+
+        await act(async () => {
+            await mockDropzone.onDrop?.([
+                fakeFile(JSON.stringify({ nodes: [], relationships: [] })),
+            ]);
+        });
+
+        expect(screen.getByTestId('architecture-default-layout')).toHaveTextContent('(undefined)');
+        expect(screen.getByTestId('architecture-layout-epoch')).toHaveTextContent('(none)');
+    });
+
+    it('does not report a dropped pattern file\'s positions via onPositionsChange', async () => {
+        const onPositionsChange = vi.fn();
+        render(<Drawer data={patternData} onPositionsChange={onPositionsChange} />);
+
+        await act(async () => {
+            await mockDropzone.onDrop?.([
+                fakeFile(JSON.stringify({ properties: { nodes: { prefixItems: [] } } })),
+            ]);
+        });
+
+        expect(screen.getByTestId('pattern-report-positions')).toBeInTheDocument();
+        // onPositionsChange itself is undefined once a file is dropped, so the mock's
+        // report button has nothing to call — proven by the click being a no-op.
+        screen.getByTestId('pattern-report-positions').click();
+        expect(onPositionsChange).not.toHaveBeenCalled();
+    });
+
+    it('does not report a dropped architecture file\'s positions via onPositionsChange', async () => {
+        const onPositionsChange = vi.fn();
+        render(<Drawer data={architectureData} onPositionsChange={onPositionsChange} />);
+
+        await act(async () => {
+            await mockDropzone.onDrop?.([
+                fakeFile(JSON.stringify({ nodes: [], relationships: [] })),
+            ]);
+        });
+
+        screen.getByTestId('architecture-report-positions').click();
+        expect(onPositionsChange).not.toHaveBeenCalled();
     });
 });
 

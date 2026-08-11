@@ -11,6 +11,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonMaximumSizeExceededException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StorageWriteException;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,9 @@ class TestMongoLayoutStoreShould {
     private MongoCollection<Document> layoutCollection;
 
     @Mock
+    private MongoCollection<Document> architectureHeaderCollection;
+
+    @Mock
     private MongoNamespaceStore namespaceStore;
 
     private MongoLayoutStore layoutStore;
@@ -60,7 +64,16 @@ class TestMongoLayoutStoreShould {
     void setUp() throws NamespaceNotFoundException {
         doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(database.getCollection("layouts")).thenReturn(layoutCollection);
+        when(database.getCollection("architectures")).thenReturn(architectureHeaderCollection);
         layoutStore = new MongoLayoutStore(database, namespaceStore);
+    }
+
+    /** Stubs the architecture-header existence check {@code upsertLayout} runs before writing. */
+    private void stubArchitectureHeaderExists() {
+        FindIterable<Document> headerFindIterable = mock(DocumentFindIterable.class);
+        when(architectureHeaderCollection.find(any(Bson.class))).thenReturn(headerFindIterable);
+        when(headerFindIterable.projection(any())).thenReturn(headerFindIterable);
+        when(headerFindIterable.first()).thenReturn(new Document("_id", "some-id"));
     }
 
     // ---- getLayout ----
@@ -124,9 +137,10 @@ class TestMongoLayoutStoreShould {
     // ---- upsertLayout ----
 
     @Test
-    void save_via_a_single_replace_one_upsert() throws NamespaceNotFoundException {
+    void save_via_a_single_replace_one_upsert() throws NamespaceNotFoundException, ArchitectureNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        stubArchitectureHeaderExists();
 
         layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON);
 
@@ -134,9 +148,11 @@ class TestMongoLayoutStoreShould {
     }
 
     @Test
-    void retry_the_replace_once_when_two_concurrent_upserts_collide() throws NamespaceNotFoundException {
+    void retry_the_replace_once_when_two_concurrent_upserts_collide()
+            throws NamespaceNotFoundException, ArchitectureNotFoundException {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        stubArchitectureHeaderExists();
 
         // Both saves missed the filter and both attempted an insert; the unique index on
         // (namespace, architectureId) let only the other one through.
@@ -153,6 +169,7 @@ class TestMongoLayoutStoreShould {
     void surface_a_write_failure_when_the_retry_also_hits_a_duplicate_key() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        stubArchitectureHeaderExists();
 
         // A second duplicate key on the retry means the index no longer agrees with the
         // filter — a fault, not a race to keep retrying.
@@ -168,6 +185,7 @@ class TestMongoLayoutStoreShould {
     void surface_capacity_exceeded_when_the_server_rejects_an_oversized_document() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        stubArchitectureHeaderExists();
 
         when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
                 .thenThrow(new MongoWriteException(new WriteError(10334, "object to save is too large", new BsonDocument()), new ServerAddress(), List.of()));
@@ -183,6 +201,7 @@ class TestMongoLayoutStoreShould {
     void surface_capacity_exceeded_when_the_layout_itself_exceeds_the_bson_limit() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        stubArchitectureHeaderExists();
 
         // Unlike the old shape, a single write can already exceed the 16MB ceiling before it
         // is even sent — the driver rejects it client-side while serializing the command, so
@@ -201,6 +220,7 @@ class TestMongoLayoutStoreShould {
     void propagate_non_duplicate_key_write_errors() {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        stubArchitectureHeaderExists();
 
         when(layoutCollection.replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class)))
                 .thenThrow(new MongoWriteException(new WriteError(12, "some other error", new BsonDocument()), new ServerAddress(), List.of()));
@@ -218,6 +238,20 @@ class TestMongoLayoutStoreShould {
         when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
+        verify(layoutCollection, never()).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
+    }
+
+    @Test
+    void throw_architecture_not_found_when_no_architecture_header_exists_for_the_target_id() {
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        FindIterable<Document> headerFindIterable = mock(DocumentFindIterable.class);
+        when(architectureHeaderCollection.find(any(Bson.class))).thenReturn(headerFindIterable);
+        when(headerFindIterable.projection(any())).thenReturn(headerFindIterable);
+        when(headerFindIterable.first()).thenReturn(null);
+
+        assertThrows(ArchitectureNotFoundException.class, () -> layoutStore.upsertLayout(namespace, 5, LAYOUT_JSON));
         verify(layoutCollection, never()).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
     }
 

@@ -141,29 +141,6 @@ public class TestMongoPatternStoreShould {
         return new CreatePatternRequest("pattern-name", "pattern-description", VALID_JSON);
     }
 
-    // --- patternExists ---
-
-    @Test
-    void return_true_when_pattern_exists() throws NamespaceNotFoundException {
-        patternExists();
-
-        assertThat(store.patternExists(NAMESPACE, PATTERN_ID), is(true));
-    }
-
-    @Test
-    void return_false_when_pattern_does_not_exist() throws NamespaceNotFoundException {
-        patternDoesNotExist();
-
-        assertThat(store.patternExists(NAMESPACE, PATTERN_ID), is(false));
-    }
-
-    @Test
-    void throw_a_namespace_exception_when_checking_existence_for_a_missing_namespace() {
-        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
-
-        assertThrows(NamespaceNotFoundException.class, () -> store.patternExists(NAMESPACE, PATTERN_ID));
-    }
-
     // --- getPatternsForNamespace ---
 
     @Test

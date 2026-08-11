@@ -11,6 +11,7 @@ import jakarta.inject.Inject;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.store.PatternLayoutStore;
 import org.finos.calm.store.util.MongoUpsertRetry;
 import org.slf4j.Logger;
@@ -23,23 +24,26 @@ import java.util.Optional;
 import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
- * MongoDB implementation of {@link PatternLayoutStore}.
+ * MongoDB implementation of {@link PatternLayoutStore} — see that interface's class javadoc for
+ * why patterns get their own collection rather than a {@code resourceType}-discriminated
+ * extension of {@link MongoLayoutStore}.
  *
  * <h2>Document model</h2>
  * One flat document per {@code (namespace, patternId)} in its own {@code pattern_layouts}
  * collection: {@code {namespace, patternId, layout}}, enforced by a unique index on
  * {@code (namespace, patternId)} (see {@code MongoPatternLayoutIndexStep}). A structural twin of
- * {@link MongoLayoutStore} — see that class's javadoc for the full shape rationale — kept in a
- * separate collection rather than folded into {@code layouts} with a {@code resourceType}
- * discriminator, because architecture ids and pattern ids are drawn from independent counters
- * (see {@code MongoCounterStore}) and can coincide within one namespace; a single collection
- * keyed only by id would need that discriminator threaded through every filter and the unique
- * index to avoid an architecture and a pattern silently sharing one layout document.
+ * {@link MongoLayoutStore} — see that class's javadoc for the full shape rationale.
  *
  * <h2>Concurrency</h2>
  * Identical to {@link MongoLayoutStore}: a single {@code replaceOne(filter, replacement,
  * upsert(true))}, retried once on a concurrent-insert {@code DUPLICATE_KEY} race via
  * {@link MongoUpsertRetry}.
+ *
+ * <h2>Existence check</h2>
+ * Identical to {@link MongoLayoutStore}: {@link #upsertLayout} rejects a write against a
+ * pattern id with no header document by querying the {@code patterns} collection directly,
+ * rather than delegating to {@code PatternStore#patternExists} and paying for a second
+ * namespace-existence round trip.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
@@ -50,13 +54,18 @@ public class MongoPatternLayoutStore implements PatternLayoutStore {
     private static final String NAMESPACE_FIELD = "namespace";
     private static final String PATTERN_ID_FIELD = "patternId";
     private static final String LAYOUT_FIELD = "layout";
+    // Mirrors MongoPatternStore's HEADER_COLLECTION/ID_FIELD — see the class javadoc for why
+    // this queries the collection directly instead of going through that store.
+    private static final String PATTERN_HEADER_COLLECTION = "patterns";
 
     private final MongoCollection<Document> layoutCollection;
+    private final MongoCollection<Document> patternHeaderCollection;
     private final MongoNamespaceStore namespaceStore;
 
     @Inject
     public MongoPatternLayoutStore(MongoDatabase database, MongoNamespaceStore namespaceStore) {
         this.layoutCollection = database.getCollection("pattern_layouts");
+        this.patternHeaderCollection = database.getCollection(PATTERN_HEADER_COLLECTION);
         this.namespaceStore = namespaceStore;
     }
 
@@ -72,8 +81,12 @@ public class MongoPatternLayoutStore implements PatternLayoutStore {
     }
 
     @Override
-    public void upsertLayout(String namespace, int patternId, String layoutJson) throws NamespaceNotFoundException {
+    public void upsertLayout(String namespace, int patternId, String layoutJson)
+            throws NamespaceNotFoundException, PatternNotFoundException {
         requireNamespace(namespace);
+        if (!patternHeaderExists(namespace, patternId)) {
+            throw new PatternNotFoundException();
+        }
 
         // Parsed before any write, so malformed JSON never reaches the database.
         Document layoutDoc = Document.parse(layoutJson);
@@ -106,6 +119,13 @@ public class MongoPatternLayoutStore implements PatternLayoutStore {
 
     private Bson layoutFilter(String namespace, int patternId) {
         return Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(PATTERN_ID_FIELD, patternId));
+    }
+
+    private boolean patternHeaderExists(String namespace, int patternId) {
+        return patternHeaderCollection
+                .find(Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(PATTERN_ID_FIELD, patternId)))
+                .projection(Projections.include("_id"))
+                .first() != null;
     }
 
     private void requireNamespace(String namespace) throws NamespaceNotFoundException {

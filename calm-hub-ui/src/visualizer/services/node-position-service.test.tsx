@@ -3,6 +3,7 @@ import type { Node } from 'reactflow';
 import {
     applyPositions,
     applyStoredPositions,
+    buildViewportKey,
     clearStoredNodePositions,
     loadStoredNodePositions,
     saveNodePositions,
@@ -99,6 +100,24 @@ describe('node-position-service', () => {
             // like the pre-existing `key` fixture already IS the legacy shape.
             expect(loadStoredNodePositions(key, storage)).toBeNull();
             expect(storage.length).toBe(0);
+        });
+    });
+
+    describe('buildViewportKey', () => {
+        it('joins namespace, calmType and id with a slash', () => {
+            expect(buildViewportKey('finos', 'Architectures', 42)).toBe('finos/Architectures/42');
+        });
+
+        it('accepts a string id, matching a resolved slug id', () => {
+            expect(buildViewportKey('finos', 'Patterns', '7')).toBe('finos/Patterns/7');
+        });
+
+        it('round-trips through legacyStorageKeyFor\'s three-segment recognition', () => {
+            const legacyKey = 'finos/42';
+            const newKey = buildViewportKey('finos', 'Architectures', 42);
+            saveNodePositions(legacyKey, nodes, storage);
+
+            expect(loadStoredNodePositions(newKey, storage)).toEqual(storedPositions);
         });
     });
 

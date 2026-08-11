@@ -69,12 +69,6 @@ public class MongoPatternStore implements PatternStore {
     }
 
     @Override
-    public boolean patternExists(String namespace, int patternId) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
-        return documentStore.headerExists(namespace, patternId);
-    }
-
-    @Override
     public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 

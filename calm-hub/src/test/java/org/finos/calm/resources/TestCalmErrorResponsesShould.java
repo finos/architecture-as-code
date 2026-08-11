@@ -32,4 +32,28 @@ public class TestCalmErrorResponsesShould {
                     equalTo("Version 1.0.1 already exists for architecture 'repo' in namespace 'finos'"));
         }
     }
+
+    @Test
+    void create_a_resource_not_found_response_capitalizing_the_resource_type() {
+        try (Response response = CalmResourceErrorResponses.resourceNotFoundResponse("architecture", "finos", 5)) {
+            assertThat(response.getStatus(), equalTo(404));
+            assertThat(response.getEntity(), equalTo("Architecture 5 does not exist in namespace: finos"));
+        }
+    }
+
+    @Test
+    void create_a_resource_not_found_response_for_a_pattern() {
+        try (Response response = CalmResourceErrorResponses.resourceNotFoundResponse("pattern", "finos", 5)) {
+            assertThat(response.getStatus(), equalTo(404));
+            assertThat(response.getEntity(), equalTo("Pattern 5 does not exist in namespace: finos"));
+        }
+    }
+
+    @Test
+    void create_a_resource_layout_not_found_response() {
+        try (Response response = CalmResourceErrorResponses.resourceLayoutNotFoundResponse("architecture", "finos", 5)) {
+            assertThat(response.getStatus(), equalTo(404));
+            assertThat(response.getEntity(), equalTo("No default layout saved for architecture 5 in namespace: finos"));
+        }
+    }
 }
