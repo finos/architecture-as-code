@@ -57,7 +57,13 @@ V5
 ---
 V6
 - přidat layout Radial do nabídky layoutu 
+- načítani temlates z projektové složky definovane v projekct file.
 - vytvořit deploy do dokeru
+- sjednotit layout diagramů s calm_hub
+- odstranit zobrazeni ralation pro kontejnerove realce (ty co se projevi zmenou vizualizace nodu na kontejner ) nastaveni property pro  vazbu v editoru přidat do hlavičky kontejneru ikonku  pro načtení property pro vazbu do property editoru. 
+- extenzion do samostatné definice pro každou extenzion. Požadavek je aby se definice dala použit napřič spektrem tools jako je CALM-hub a calm plugin pro visual studio a calm-cli. Umožnit načist definici externě ze souboru. 
+- doplnit filter na filter dle typu nodu 
+
 ```
 ## fix
 ```
