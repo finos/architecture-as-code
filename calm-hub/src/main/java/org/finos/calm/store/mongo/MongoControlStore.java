@@ -19,6 +19,7 @@ import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.util.ControlConfigurationNamespace;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
 
 import java.util.ArrayList;
@@ -215,7 +216,7 @@ public class MongoControlStore implements ControlStore {
      * domain name pattern ({@code DomainStore}'s validation) disallows it.
      */
     private String configurationNamespace(String domain, int controlId) {
-        return domain + "::" + controlId;
+        return ControlConfigurationNamespace.of(domain, controlId);
     }
 
     private String titleOf(Document content) {

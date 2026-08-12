@@ -5,6 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.collection.NitriteId;
+import org.dizitart.no2.collection.UpdateOptions;
 import org.dizitart.no2.filters.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,9 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -110,7 +113,7 @@ class TestNitriteControlVersionSplitStepShould {
         step.apply();
 
         ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
-        verify(controlHeaders).insert(captor.capture());
+        verify(controlHeaders).update(any(Filter.class), captor.capture(), any(UpdateOptions.class));
         Document header = captor.getValue();
         assertThat(header.get("namespace", String.class), is("security"));
         assertThat(header.get("controlId", Integer.class), is(1));
@@ -125,7 +128,7 @@ class TestNitriteControlVersionSplitStepShould {
         step.apply();
 
         ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
-        verify(controlVersions, times(2)).insert(captor.capture());
+        verify(controlVersions, times(2)).update(any(Filter.class), captor.capture(), any(UpdateOptions.class));
         assertThat(captor.getAllValues().stream().map(d -> d.get("version", String.class)).toList(),
                 contains("1.0.0", "1.1.0"));
         assertThat(captor.getAllValues().get(0).get("content", String.class), is(CONTENT_1_0_0));
@@ -145,12 +148,12 @@ class TestNitriteControlVersionSplitStepShould {
         step.apply();
 
         ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
-        verify(controlVersions).insert(versionCaptor.capture());
+        verify(controlVersions).update(any(Filter.class), versionCaptor.capture(), any(UpdateOptions.class));
         assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0"));
         assertThat(versionCaptor.getValue().get("content", String.class), is(CONTENT_1_0_0));
 
         ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
-        verify(controlHeaders).insert(headerCaptor.capture());
+        verify(controlHeaders).update(any(Filter.class), headerCaptor.capture(), any(UpdateOptions.class));
         assertThat(headerCaptor.getValue().get("versionCount", Integer.class), is(1));
     }
 
@@ -166,7 +169,7 @@ class TestNitriteControlVersionSplitStepShould {
         step.apply();
 
         ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
-        verify(controlVersions).insert(versionCaptor.capture());
+        verify(controlVersions).update(any(Filter.class), versionCaptor.capture(), any(UpdateOptions.class));
         assertThat(versionCaptor.getValue().get("content"), is(42));
     }
 
@@ -179,9 +182,55 @@ class TestNitriteControlVersionSplitStepShould {
         step.apply();
 
         ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
-        verify(controlHeaders).insert(captor.capture());
+        verify(controlHeaders).update(any(Filter.class), captor.capture(), any(UpdateOptions.class));
         assertThat(captor.getValue().get("versionCount", Integer.class), is(0));
-        verify(controlVersions, never()).insert(any(Document.class));
+        verify(controlVersions, never()).update(any(Filter.class), any(Document.class), any(UpdateOptions.class));
+    }
+
+    // --- malformed data ---
+
+    @Test
+    void throw_a_clear_error_when_a_control_has_no_controlId() {
+        stubCollectionContents(List.of(Document.createDocument()
+                .put("domain", "security")
+                .put("controls", List.of(Document.createDocument()
+                        .put("name", "No id")
+                        .put("requirement", Document.createDocument())
+                        .put("configurations", List.of())))));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> step.apply());
+        assertThat(exception.getMessage(), containsString("control in domain 'security'"));
+        assertThat(exception.getMessage(), containsString("controlId"));
+        verify(controlHeaders, never()).update(any(Filter.class), any(Document.class), any(UpdateOptions.class));
+    }
+
+    @Test
+    void throw_a_clear_error_when_a_control_has_a_non_numeric_controlId() {
+        stubCollectionContents(List.of(Document.createDocument()
+                .put("domain", "security")
+                .put("controls", List.of(Document.createDocument()
+                        .put("controlId", "not-a-number")
+                        .put("requirement", Document.createDocument())
+                        .put("configurations", List.of())))));
+
+        assertThrows(IllegalStateException.class, () -> step.apply());
+    }
+
+    @Test
+    void throw_a_clear_error_when_a_configuration_has_no_configurationId() {
+        Document config = Document.createDocument()
+                .put("versions", Document.createDocument().put("1-0-0", CONFIG_CONTENT));
+        stubCollectionContents(List.of(Document.createDocument()
+                .put("domain", "security")
+                .put("controls", List.of(Document.createDocument()
+                        .put("controlId", 1)
+                        .put("requirement", Document.createDocument())
+                        .put("configurations", List.of(config))))));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> step.apply());
+        assertThat(exception.getMessage(), containsString("configuration of control 1 in domain 'security'"));
+        // The control header (written before the malformed configuration is reached) is not
+        // rolled back — the whole migration attempt fails and retries next startup regardless.
     }
 
     // --- fan-out: configuration level ---
@@ -193,7 +242,7 @@ class TestNitriteControlVersionSplitStepShould {
         step.apply();
 
         ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
-        verify(configHeaders).insert(captor.capture());
+        verify(configHeaders).update(any(Filter.class), captor.capture(), any(UpdateOptions.class));
         Document header = captor.getValue();
         assertThat(header.get("namespace", String.class), is("security::1"));
         assertThat(header.get("configurationId", Integer.class), is(10));
@@ -208,7 +257,7 @@ class TestNitriteControlVersionSplitStepShould {
         step.apply();
 
         ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
-        verify(configVersions).insert(versionCaptor.capture());
+        verify(configVersions).update(any(Filter.class), versionCaptor.capture(), any(UpdateOptions.class));
         assertThat(versionCaptor.getValue().get("namespace", String.class), is("security::1"));
         assertThat(versionCaptor.getValue().get("configurationId", Integer.class), is(10));
         assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0"));
@@ -226,8 +275,8 @@ class TestNitriteControlVersionSplitStepShould {
 
         step.apply();
 
-        verify(configHeaders, never()).insert(any(Document.class));
-        verify(configVersions, never()).insert(any(Document.class));
+        verify(configHeaders, never()).update(any(Filter.class), any(Document.class), any(UpdateOptions.class));
+        verify(configVersions, never()).update(any(Filter.class), any(Document.class), any(UpdateOptions.class));
     }
 
     // --- ordering / idempotency ---
@@ -240,9 +289,9 @@ class TestNitriteControlVersionSplitStepShould {
         step.apply();
 
         InOrder order = inOrder(controlHeaders, controlVersions, configHeaders, configVersions);
-        order.verify(controlHeaders).insert(any(Document.class));
-        order.verify(configHeaders).insert(any(Document.class));
-        order.verify(configVersions).insert(any(Document.class));
+        order.verify(controlHeaders).update(any(Filter.class), any(Document.class), any(UpdateOptions.class));
+        order.verify(configHeaders).update(any(Filter.class), any(Document.class), any(UpdateOptions.class));
+        order.verify(configVersions).update(any(Filter.class), any(Document.class), any(UpdateOptions.class));
         // By identity, not a domain filter: the headers just written share no key with the
         // old domain document.
         order.verify(controlHeaders).remove(oldDocument);
@@ -255,21 +304,26 @@ class TestNitriteControlVersionSplitStepShould {
 
         step.apply();
 
-        verify(controlHeaders, never()).insert(any(Document.class));
+        verify(controlHeaders, never()).update(any(Filter.class), any(Document.class), any(UpdateOptions.class));
         verify(controlHeaders, never()).remove(any(Document.class));
     }
 
     @Test
-    void clear_any_partially_written_target_documents_before_inserting() {
+    void upsert_header_and_version_writes_in_a_single_atomic_call() {
+        // A retried step must not risk a process kill between a remove() and a following
+        // insert() permanently deleting a document that was there before the retry — every
+        // header/version write is a single update(..., insertIfAbsent=true) call instead.
         stubCollectionContents(List.of(oldDomainDocument()));
 
         step.apply();
 
-        // Nitrite has no upsert, so a retried step would otherwise insert a second copy of a
-        // header/version it already wrote — there is no unique index here to stop it.
-        verify(controlHeaders).remove(any(Filter.class));
-        verify(controlVersions, times(2)).remove(any(Filter.class));
-        verify(configHeaders).remove(any(Filter.class));
-        verify(configVersions).remove(any(Filter.class));
+        verify(controlHeaders, never()).insert(any(Document.class));
+        verify(controlVersions, never()).insert(any(Document.class));
+        verify(configHeaders, never()).insert(any(Document.class));
+        verify(configVersions, never()).insert(any(Document.class));
+        verify(controlHeaders, never()).remove(any(Filter.class));
+        verify(controlVersions, never()).remove(any(Filter.class));
+        verify(configHeaders, never()).remove(any(Filter.class));
+        verify(configVersions, never()).remove(any(Filter.class));
     }
 }

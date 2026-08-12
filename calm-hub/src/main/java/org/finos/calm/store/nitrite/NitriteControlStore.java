@@ -19,6 +19,7 @@ import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.util.ControlConfigurationNamespace;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,7 +210,7 @@ public class NitriteControlStore implements ControlStore {
      * method — identical value on both backends.
      */
     private String configurationNamespace(String domain, int controlId) {
-        return domain + "::" + controlId;
+        return ControlConfigurationNamespace.of(domain, controlId);
     }
 
     private String titleFromJsonString(String json) {

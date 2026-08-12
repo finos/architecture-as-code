@@ -4,7 +4,9 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.collection.NitriteId;
+import org.dizitart.no2.collection.UpdateOptions;
 import org.dizitart.no2.filters.Filter;
+import org.finos.calm.store.util.ControlConfigurationNamespace;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
@@ -79,15 +81,18 @@ public class NitriteControlSplitMigration {
             List<Document> controls = new TypeSafeNitriteDocument<>(oldDocument, Document.class).getList(CONTROLS_FIELD);
             if (controls != null) {
                 for (Document control : controls) {
-                    writeControlHeaderAndVersions(domain, control);
+                    int controlId = requireId(control, CONTROL_ID_FIELD, "control in domain '" + domain + "'");
+                    writeControlHeaderAndVersions(domain, controlId, control);
                     migratedControls++;
 
-                    String configNamespace = domain + "::" + control.get(CONTROL_ID_FIELD, Integer.class);
+                    String configNamespace = ControlConfigurationNamespace.of(domain, controlId);
                     List<Document> configurations =
                             new TypeSafeNitriteDocument<>(control, Document.class).getList(CONFIGURATIONS_FIELD);
                     if (configurations != null) {
                         for (Document config : configurations) {
-                            writeConfigurationHeaderAndVersions(configNamespace, config);
+                            int configurationId = requireId(config, CONFIGURATION_ID_FIELD,
+                                    "configuration of control " + controlId + " in domain '" + domain + "'");
+                            writeConfigurationHeaderAndVersions(configNamespace, configurationId, config);
                             migratedConfigurations++;
                         }
                     }
@@ -103,59 +108,78 @@ public class NitriteControlSplitMigration {
                 oldDocumentIds.size(), migratedControls, migratedConfigurations);
     }
 
-    private void writeControlHeaderAndVersions(String domain, Document control) {
-        Integer controlId = control.get(CONTROL_ID_FIELD, Integer.class);
+    /**
+     * Reads a required numeric id field, failing loudly and clearly. See
+     * {@link MongoControlSplitMigration#requireId} for why this throws rather than skipping
+     * or silently building a namespace containing the literal text {@code "null"}.
+     */
+    private int requireId(Document entry, String idField, String description) {
+        Object rawId = entry.get(idField);
+        if (!(rawId instanceof Integer id)) {
+            throw new IllegalStateException("Cannot migrate " + description + ": " + idField
+                    + " is " + (rawId == null ? "missing" : "not a number (" + rawId + ")") + ".");
+        }
+        return id;
+    }
+
+    private void writeControlHeaderAndVersions(String domain, int controlId, Document control) {
         Document storedVersions = control.get(REQUIREMENT_FIELD, Document.class);
         Map<String, String> keysByCanonicalVersion = collapseToCanonicalVersions(storedVersions, domain, controlId);
 
-        Filter headerFilter = Filter.and(where(NAMESPACE_FIELD).eq(domain), where(CONTROL_ID_FIELD).eq(controlId));
-        controlHeaders.remove(headerFilter);
-        controlHeaders.insert(Document.createDocument()
-                .put(NAMESPACE_FIELD, domain)
-                .put(CONTROL_ID_FIELD, controlId)
-                .put(NAME_FIELD, control.get(NAME_FIELD, String.class))
-                .put(DESCRIPTION_FIELD, control.get(DESCRIPTION_FIELD, String.class))
-                .put(VERSION_COUNT_FIELD, keysByCanonicalVersion.size())
-                .put(METADATA_FIELD, Document.createDocument()));
+        UpdateOptions upsert = UpdateOptions.updateOptions(true);
+        controlHeaders.update(
+                Filter.and(where(NAMESPACE_FIELD).eq(domain), where(CONTROL_ID_FIELD).eq(controlId)),
+                Document.createDocument()
+                        .put(NAMESPACE_FIELD, domain)
+                        .put(CONTROL_ID_FIELD, controlId)
+                        .put(NAME_FIELD, control.get(NAME_FIELD, String.class))
+                        .put(DESCRIPTION_FIELD, control.get(DESCRIPTION_FIELD, String.class))
+                        .put(VERSION_COUNT_FIELD, keysByCanonicalVersion.size())
+                        .put(METADATA_FIELD, Document.createDocument()),
+                upsert);
 
         for (Map.Entry<String, String> version : keysByCanonicalVersion.entrySet()) {
-            controlVersions.remove(Filter.and(where(NAMESPACE_FIELD).eq(domain),
-                    where(CONTROL_ID_FIELD).eq(controlId), where(VERSION_FIELD).eq(version.getKey())));
-            controlVersions.insert(Document.createDocument()
-                    .put(NAMESPACE_FIELD, domain)
-                    .put(CONTROL_ID_FIELD, controlId)
-                    .put(VERSION_FIELD, version.getKey())
-                    .put("content", contentOf(storedVersions, version.getValue(), domain, controlId))
-                    .put(METADATA_FIELD, Document.createDocument()));
+            controlVersions.update(
+                    Filter.and(where(NAMESPACE_FIELD).eq(domain), where(CONTROL_ID_FIELD).eq(controlId),
+                            where(VERSION_FIELD).eq(version.getKey())),
+                    Document.createDocument()
+                            .put(NAMESPACE_FIELD, domain)
+                            .put(CONTROL_ID_FIELD, controlId)
+                            .put(VERSION_FIELD, version.getKey())
+                            .put("content", contentOf(storedVersions, version.getValue(), domain, controlId))
+                            .put(METADATA_FIELD, Document.createDocument()),
+                    upsert);
         }
     }
 
-    private void writeConfigurationHeaderAndVersions(String configNamespace, Document config) {
-        Integer configurationId = config.get(CONFIGURATION_ID_FIELD, Integer.class);
+    private void writeConfigurationHeaderAndVersions(String configNamespace, int configurationId, Document config) {
         Document storedVersions = config.get(VERSIONS_FIELD, Document.class);
         Map<String, String> keysByCanonicalVersion =
                 collapseToCanonicalVersions(storedVersions, configNamespace, configurationId);
 
-        Filter headerFilter = Filter.and(
-                where(NAMESPACE_FIELD).eq(configNamespace), where(CONFIGURATION_ID_FIELD).eq(configurationId));
-        configHeaders.remove(headerFilter);
-        configHeaders.insert(Document.createDocument()
-                .put(NAMESPACE_FIELD, configNamespace)
-                .put(CONFIGURATION_ID_FIELD, configurationId)
-                .put(NAME_FIELD, config.get(NAME_FIELD, String.class))
-                .put(DESCRIPTION_FIELD, null)
-                .put(VERSION_COUNT_FIELD, keysByCanonicalVersion.size())
-                .put(METADATA_FIELD, Document.createDocument()));
+        UpdateOptions upsert = UpdateOptions.updateOptions(true);
+        configHeaders.update(
+                Filter.and(where(NAMESPACE_FIELD).eq(configNamespace), where(CONFIGURATION_ID_FIELD).eq(configurationId)),
+                Document.createDocument()
+                        .put(NAMESPACE_FIELD, configNamespace)
+                        .put(CONFIGURATION_ID_FIELD, configurationId)
+                        .put(NAME_FIELD, config.get(NAME_FIELD, String.class))
+                        .put(DESCRIPTION_FIELD, null)
+                        .put(VERSION_COUNT_FIELD, keysByCanonicalVersion.size())
+                        .put(METADATA_FIELD, Document.createDocument()),
+                upsert);
 
         for (Map.Entry<String, String> version : keysByCanonicalVersion.entrySet()) {
-            configVersions.remove(Filter.and(where(NAMESPACE_FIELD).eq(configNamespace),
-                    where(CONFIGURATION_ID_FIELD).eq(configurationId), where(VERSION_FIELD).eq(version.getKey())));
-            configVersions.insert(Document.createDocument()
-                    .put(NAMESPACE_FIELD, configNamespace)
-                    .put(CONFIGURATION_ID_FIELD, configurationId)
-                    .put(VERSION_FIELD, version.getKey())
-                    .put("content", contentOf(storedVersions, version.getValue(), configNamespace, configurationId))
-                    .put(METADATA_FIELD, Document.createDocument()));
+            configVersions.update(
+                    Filter.and(where(NAMESPACE_FIELD).eq(configNamespace),
+                            where(CONFIGURATION_ID_FIELD).eq(configurationId), where(VERSION_FIELD).eq(version.getKey())),
+                    Document.createDocument()
+                            .put(NAMESPACE_FIELD, configNamespace)
+                            .put(CONFIGURATION_ID_FIELD, configurationId)
+                            .put(VERSION_FIELD, version.getKey())
+                            .put("content", contentOf(storedVersions, version.getValue(), configNamespace, configurationId))
+                            .put(METADATA_FIELD, Document.createDocument()),
+                    upsert);
         }
     }
 

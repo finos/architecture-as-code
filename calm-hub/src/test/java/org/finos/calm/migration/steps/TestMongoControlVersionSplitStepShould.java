@@ -21,11 +21,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -79,8 +81,16 @@ class TestMongoControlVersionSplitStepShould {
         stubOldDocuments(List.of());
     }
 
-    /** Models the step's two-pass read, matching every other split step's test. */
+    /**
+     * Models the step's two-pass read, matching every other split step's test. Backed by a
+     * mutable copy so {@code deleteOne} genuinely removes documents — required for
+     * {@code assertNoOldShapeDocumentsRemain}'s guard (exercised by
+     * {@code createNewIndexes()} at the end of a real {@code migrate()} run) to see an empty
+     * collection once fan-out has actually deleted every old-shape document, rather than the
+     * stale original list.
+     */
     private void stubOldDocuments(List<Document> documents) {
+        List<Document> mutableDocuments = new ArrayList<>(documents);
         when(controlHeaders.find(any(Bson.class))).thenAnswer(invocation -> {
             String filter = ((Bson) invocation.getArgument(0)).toBsonDocument().toJson();
             FindIterable<Document> iterable = mock(DocumentFindIterable.class);
@@ -89,18 +99,27 @@ class TestMongoControlVersionSplitStepShould {
             if (filter.contains("controls")) {
                 doAnswer(scan -> {
                     Consumer<Document> consumer = scan.getArgument(0);
-                    documents.forEach(consumer);
+                    mutableDocuments.forEach(consumer);
                     return null;
                 }).when(iterable).forEach(any());
+                // Also used by assertNoOldShapeDocumentsRemain's guard, which calls .first()
+                // on this same exists-filter rather than iterating.
+                when(iterable.first()).thenReturn(mutableDocuments.isEmpty() ? null : mutableDocuments.get(0));
                 return iterable;
             }
 
-            Document match = documents.stream()
+            Document match = mutableDocuments.stream()
                     .filter(document -> filter.contains(String.valueOf(document.get("_id"))))
                     .findFirst()
                     .orElse(null);
             when(iterable.first()).thenReturn(match);
             return iterable;
+        });
+
+        when(controlHeaders.deleteOne(any(Bson.class))).thenAnswer(invocation -> {
+            String filter = ((Bson) invocation.getArgument(0)).toBsonDocument().toJson();
+            mutableDocuments.removeIf(document -> filter.contains(String.valueOf(document.get("_id"))));
+            return null;
         });
     }
 
@@ -241,6 +260,46 @@ class TestMongoControlVersionSplitStepShould {
         verify(controlVersions, never()).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
     }
 
+    // --- malformed data ---
+
+    @Test
+    void throw_a_clear_error_when_a_control_has_no_controlId() {
+        stubOldDocuments(List.of(new Document("_id", "abc")
+                .append("domain", "security")
+                .append("controls", List.of(new Document("name", "No id")
+                        .append("requirement", new Document())
+                        .append("configurations", List.of())))));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> step.apply());
+        assertThat(exception.getMessage(), containsString("control in domain 'security'"));
+        assertThat(exception.getMessage(), containsString("controlId"));
+        verify(controlHeaders, never()).replaceOne(any(Bson.class), any(Document.class), any(ReplaceOptions.class));
+    }
+
+    @Test
+    void throw_a_clear_error_when_a_control_has_a_non_numeric_controlId() {
+        stubOldDocuments(List.of(new Document("_id", "abc")
+                .append("domain", "security")
+                .append("controls", List.of(new Document("controlId", "not-a-number")
+                        .append("requirement", new Document())
+                        .append("configurations", List.of())))));
+
+        assertThrows(IllegalStateException.class, () -> step.apply());
+    }
+
+    @Test
+    void throw_a_clear_error_when_a_configuration_has_no_configurationId() {
+        Document config = new Document("versions", new Document("1-0-0", new Document("setting", "enabled")));
+        stubOldDocuments(List.of(new Document("_id", "abc")
+                .append("domain", "security")
+                .append("controls", List.of(new Document("controlId", 1)
+                        .append("requirement", new Document())
+                        .append("configurations", List.of(config))))));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> step.apply());
+        assertThat(exception.getMessage(), containsString("configuration of control 1 in domain 'security'"));
+    }
+
     // --- fan-out: configuration level ---
 
     @Test
@@ -362,6 +421,19 @@ class TestMongoControlVersionSplitStepShould {
 
         verify(controlHeaders).createIndex(eq(new Document("namespace", 1).append("controlId", 1)), any());
         verify(controlHeaders, never()).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void refuse_to_build_the_new_indexes_while_an_old_shape_document_still_exists() {
+        // Direct test of the code-level guard, independent of migrate()'s own ordering —
+        // protects any future caller (a new test harness, an ops script, a reordering of the
+        // only real caller today) that might invoke transitionIndexes() against a database
+        // that still has old-shape documents.
+        stubOldDocuments(List.of(oldDomainDocument()));
+
+        assertThrows(IllegalStateException.class, () -> step.transitionIndexes());
+
+        verify(controlHeaders, never()).createIndex(eq(new Document("namespace", 1).append("controlId", 1)), any());
     }
 
     @Test

@@ -8,6 +8,7 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReplaceOptions;
 import org.bson.Document;
+import org.finos.calm.store.util.ControlConfigurationNamespace;
 import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,6 +104,7 @@ public class MongoControlSplitMigration {
 
     private void createNewIndexes() {
         MongoCollection<Document> controlHeaders = database.getCollection("controls");
+        assertNoOldShapeDocumentsRemain(controlHeaders);
         IndexOptions unique = new IndexOptions().unique(true);
         controlHeaders.createIndex(new Document(NAMESPACE_FIELD, 1).append(CONTROL_ID_FIELD, 1), unique);
         LOG.info("Ensured unique index on controls.({}, {})", NAMESPACE_FIELD, CONTROL_ID_FIELD);
@@ -119,6 +121,24 @@ public class MongoControlSplitMigration {
                 new Document(NAMESPACE_FIELD, 1).append(CONFIGURATION_ID_FIELD, 1).append(VERSION_FIELD, 1), unique);
         LOG.info("Ensured unique index on controlConfigurationVersions.({}, {}, version)",
                 NAMESPACE_FIELD, CONFIGURATION_ID_FIELD);
+    }
+
+    /**
+     * Guards the precondition the class javadoc documents: building the new unique indexes
+     * while an old-shape domain document remains would collide every such document on
+     * {@code (null, null)} and fail outright. Enforced here, not just in a comment, since a
+     * future caller (a new test harness, an ops script, a reordering of the only real caller
+     * today) could otherwise invoke this against a database that still has some.
+     */
+    private void assertNoOldShapeDocumentsRemain(MongoCollection<Document> controlHeaders) {
+        Document remaining = controlHeaders.find(Filters.exists(CONTROLS_FIELD))
+                .projection(Projections.include("_id"))
+                .first();
+        if (remaining != null) {
+            throw new IllegalStateException("Cannot build the new unique indexes on 'controls' while an "
+                    + "old-shape domain document still exists (_id=" + remaining.get("_id") + ") — every "
+                    + "old-shape document must be fanned out first.");
+        }
     }
 
     private void dropOldDomainIndex(MongoCollection<Document> controlHeaders) {
@@ -156,12 +176,16 @@ public class MongoControlSplitMigration {
             }
             String domain = oldDocument.getString(DOMAIN_FIELD);
             for (Document control : oldDocument.getList(CONTROLS_FIELD, Document.class, List.of())) {
-                writeControlHeaderAndVersions(controlHeaders, controlVersions, domain, control);
+                int controlId = requireId(control, CONTROL_ID_FIELD, "control in domain '" + domain + "'");
+                writeControlHeaderAndVersions(controlHeaders, controlVersions, domain, controlId, control);
                 migratedControls++;
 
-                String configNamespace = domain + "::" + control.getInteger(CONTROL_ID_FIELD);
+                String configNamespace = ControlConfigurationNamespace.of(domain, controlId);
                 for (Document config : control.getList(CONFIGURATIONS_FIELD, Document.class, List.of())) {
-                    writeConfigurationHeaderAndVersions(configHeaders, configVersions, configNamespace, config);
+                    int configurationId = requireId(config, CONFIGURATION_ID_FIELD,
+                            "configuration of control " + controlId + " in domain '" + domain + "'");
+                    writeConfigurationHeaderAndVersions(configHeaders, configVersions, configNamespace,
+                            configurationId, config);
                     migratedConfigurations++;
                 }
             }
@@ -174,9 +198,27 @@ public class MongoControlSplitMigration {
                 oldDocumentIds.size(), migratedControls, migratedConfigurations);
     }
 
+    /**
+     * Reads a required numeric id field, failing loudly and clearly rather than with a raw
+     * {@link ClassCastException} (present but wrong type) or a silent {@code null} folded into
+     * a namespace string as the literal text {@code "null"} (absent). Both are genuinely corrupt
+     * data — nothing in the write path can produce a control or configuration with no id — so
+     * this throws rather than skipping the entry: skipping would either strand it unmigrated
+     * forever (this step never runs again once the schema version advances) or silently drop it,
+     * neither of which beats stopping the whole migration and telling an operator exactly which
+     * document to fix by hand.
+     */
+    private int requireId(Document entry, String idField, String description) {
+        Object rawId = entry.get(idField);
+        if (!(rawId instanceof Integer id)) {
+            throw new IllegalStateException("Cannot migrate " + description + ": " + idField
+                    + " is " + (rawId == null ? "missing" : "not a number (" + rawId + ")") + ".");
+        }
+        return id;
+    }
+
     private void writeControlHeaderAndVersions(MongoCollection<Document> headers, MongoCollection<Document> versions,
-                                               String domain, Document control) {
-        Integer controlId = control.getInteger(CONTROL_ID_FIELD);
+                                               String domain, int controlId, Document control) {
         Document storedVersions = control.get(REQUIREMENT_FIELD, Document.class);
         Map<String, String> keysByCanonicalVersion = collapseToCanonicalVersions(storedVersions, domain, controlId);
 
@@ -207,8 +249,7 @@ public class MongoControlSplitMigration {
     }
 
     private void writeConfigurationHeaderAndVersions(MongoCollection<Document> headers, MongoCollection<Document> versions,
-                                                      String configNamespace, Document config) {
-        Integer configurationId = config.getInteger(CONFIGURATION_ID_FIELD);
+                                                      String configNamespace, int configurationId, Document config) {
         Document storedVersions = config.get(VERSIONS_FIELD, Document.class);
         Map<String, String> keysByCanonicalVersion =
                 collapseToCanonicalVersions(storedVersions, configNamespace, configurationId);
