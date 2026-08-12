@@ -13,14 +13,6 @@ import java.util.Comparator;
  * explicit sort has no defined order at all, so the version-document stores must
  * impose one — this is it.
  *
- * <h2>History: why this was once not {@code VersionKeySelector}</h2>
- * {@code VersionKeySelector.latestVersionKey} used to exist to pick a single winner
- * out of the dash-encoded {@code versions} <em>map</em> used by the pre-redesign
- * document shape, with Control as its last caller. Control has since moved onto
- * the header/version shape too (ADR 0007), so that class and the distinction it
- * drew are gone — every type now ranks versions through this class instead.
- * See {@code calm-hub/decisions/0002-version-key-encoding.md}.
- *
  * <h2>Separators</h2>
  * Parsing is delegated to {@link Semver#tryParse}, so both the canonical
  * dot-separated form and the dash-encoded form order identically. ADR 0002 has

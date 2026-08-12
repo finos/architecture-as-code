@@ -63,10 +63,8 @@ public class MongoSearchStore implements SearchStore {
                 searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(interfaceCollection, "interfaceId", lowerQuery, readableNamespaces),
-                // Control moved onto the same header/version shape as every other type here
-                // (ADR 0007), with its domain stored in the header's "namespace" field —
-                // Optional.empty() is what makes this bypass the readable-namespaces filter,
-                // since controls are scoped by domain rather than namespace.
+                // Optional.empty() bypasses the readable-namespaces filter — controls are
+                // scoped by domain, not namespace (ADR 0007).
                 searchHeaderCollection(controlCollection, "controlId", lowerQuery, Optional.empty()),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );

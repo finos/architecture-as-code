@@ -62,10 +62,6 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             new MongoInterfaceVersionSplitStep(database).transitionIndexes();
             new MongoTimelineVersionSplitStep(database).transitionIndexes();
             new MongoAdrVersionSplitStep(database).transitionIndexes();
-            // Control (ADR 0007) — the double-nested type, migrated last. Its transition
-            // creates four indexes rather than two (requirement axis + configuration axis)
-            // but the reason to call it here is identical to every line above.
-            new MongoControlVersionSplitStep(database).transitionIndexes();
             // Not a version split — layout was never in the header/version shape to begin
             // with — but the same principle applies: without this, MongoIndexInitializationStep
             // creates no layouts index at all (it was deliberately removed from that step's
@@ -85,6 +81,11 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             // pattern and an architecture would still collide, same as a real deployment
             // that hadn't yet reached schema version 12.
             new MongoResourceMappingIndexStep(database).createIndexes();
+            // Control (ADR 0007) — the double-nested type, and the last step registered
+            // (fromVersion() == 13, after the three steps immediately above). Its transition
+            // creates four indexes rather than two (requirement axis + configuration axis)
+            // but the reason to call it here is identical to every line above.
+            new MongoControlVersionSplitStep(database).transitionIndexes();
             logger.info("Ensured MongoDB indexes for integration tests");
         }
 

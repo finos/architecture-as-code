@@ -51,6 +51,18 @@ required any code change. `MongoControlStore`/`NitriteControlStore` become
 thin translations between `ControlStore`'s methods and calls against the two
 composed instances, the same shape every other migrated store already has.
 
+**The stored field is literally named `namespace`, not `domain`, in all
+four collections — this is deliberate, not an oversight.** Reusing the
+helper unmodified means reusing its hardcoded field name too; renaming it
+per caller would mean forking the class (or adding a configurable field
+name) for the sake of one type's terminology, which is exactly the kind of
+per-type variation ADR 0003 already decided composition should absorb
+without touching the shared class. Anyone reading raw `controls` /
+`controlVersions` / `controlConfigurations` / `controlConfigurationVersions`
+documents should expect `namespace` to hold a domain name (or the
+`domain::controlId` composite for the configuration axis), not a namespace
+in the CALM sense.
+
 This also retires `VersionKeySelector` and dash-encoded version keys
 (`"1-0-0"`) entirely — Control adopts `CanonicalVersion`/dot-separated
 versions like every other type, finishing what
