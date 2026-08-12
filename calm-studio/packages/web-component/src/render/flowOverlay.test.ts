@@ -289,6 +289,91 @@ describe('renderFlowOverlay', () => {
     expect(svg).not.toContain('flow-badge-reverse');
   });
 
+  it('labels badges from legacy summary-only transitions (backward compatibility)', () => {
+    const legacyFlow = {
+      'unique-id': 'legacy-flow',
+      name: 'Legacy',
+      description: 'summary-only transition',
+      transitions: [
+        {
+          'relationship-unique-id': 'rel-1',
+          'sequence-number': 1,
+          summary: 'Legacy label text',
+          direction: 'source-to-destination',
+        },
+      ],
+    } as unknown as CalmFlow;
+    const svg = renderFlowOverlay(legacyFlow, twoEdgeLayouts);
+    expect(svg).toContain('Legacy label text');
+    expect(svg).not.toContain('undefined');
+  });
+
+  it('prefers description over summary when both are present', () => {
+    const bothFlow = {
+      'unique-id': 'both-flow',
+      name: 'Both',
+      description: 'both fields',
+      transitions: [
+        {
+          'relationship-unique-id': 'rel-1',
+          'sequence-number': 1,
+          description: 'Schema label',
+          summary: 'Legacy label',
+          direction: 'source-to-destination',
+        },
+      ],
+    } as unknown as CalmFlow;
+    const svg = renderFlowOverlay(bothFlow, twoEdgeLayouts);
+    expect(svg).toContain('Schema label');
+    expect(svg).not.toContain('Legacy label');
+  });
+
+  it('orders badge spread by sequence-number, not document order', () => {
+    const outOfOrder: CalmFlow = {
+      'unique-id': 'ooo',
+      name: 'OOO',
+      description: 'transitions listed out of sequence',
+      transitions: [
+        { 'relationship-unique-id': 'rel-1', 'sequence-number': 2, description: 'second', direction: 'source-to-destination' },
+        { 'relationship-unique-id': 'rel-1', 'sequence-number': 1, description: 'first', direction: 'source-to-destination' },
+      ],
+    };
+    const svg = renderFlowOverlay(outOfOrder, twoEdgeLayouts);
+    // rel-1's path starts at (10,20) and heads toward (200,80): earlier along
+    // the path = smaller x. Badge "1" must sit earlier than badge "2".
+    const badge1 = /<circle cx="([\d.]+)" [^>]*\/>\s*<text[^>]*>1</.exec(svg.replace(/\n/g, ' '));
+    const badge2 = /<circle cx="([\d.]+)" [^>]*\/>\s*<text[^>]*>2</.exec(svg.replace(/\n/g, ' '));
+    expect(badge1).not.toBeNull();
+    expect(badge2).not.toBeNull();
+    expect(Number((badge1 as RegExpExecArray)[1])).toBeLessThan(Number((badge2 as RegExpExecArray)[1]));
+  });
+
+  it('keeps a lone reverse badge on the path (no lateral offset when uncrowded)', () => {
+    const svg = renderFlowOverlay(reverseFlow, twoEdgeLayouts);
+    // reverseFlow: single destination-to-source transition on rel-1. Midpoint of
+    // rel-1's path by length lies on the segment (10,20)->(100,20)->(200,80);
+    // whatever the exact point, an uncrowded badge must sit ON the polyline.
+    const m = /<circle cx="([\d.]+)" cy="([\d.]+)" r="10"/.exec(svg);
+    expect(m).not.toBeNull();
+    const x = Number((m as RegExpExecArray)[1]);
+    const y = Number((m as RegExpExecArray)[2]);
+    // On-path check: y must be 20 (first segment) or on the second segment line
+    const onFirst = Math.abs(y - 20) < 0.01 && x >= 10 && x <= 100;
+    const onSecond = x >= 100 && x <= 200 && Math.abs((y - 20) / (x - 100) - 60 / 100) < 0.01;
+    expect(onFirst || onSecond).toBe(true);
+  });
+
+  it('emits rounded coordinates (max 2 decimal places)', () => {
+    const svg = renderFlowOverlay(sampleFlow, twoEdgeLayouts);
+    expect(/\d\.\d{3,}/.test(svg)).toBe(false);
+  });
+
+  it('uses data-description on badges', () => {
+    const svg = renderFlowOverlay(sampleFlow, twoEdgeLayouts);
+    expect(svg).toContain('data-description=');
+    expect(svg).not.toContain('data-summary=');
+  });
+
   it('Test 7: handles flow with 3+ transitions (multi-edge flow)', () => {
     const svg = renderFlowOverlay(multiEdgeFlow, twoEdgeLayouts);
     // Three transitions, rel-3 exists in layout

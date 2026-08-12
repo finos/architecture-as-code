@@ -37,14 +37,25 @@ export function renderFlowOverlay(
 ): string {
   const parts: string[] = ['<g class="flow-overlay">'];
 
-  // Count transitions per relationship so badges on a shared edge can be
-  // spread along the path instead of stacking at the midpoint.
+  // Rank transitions within each relationship by sequence-number (not document
+  // order) so badges on a shared edge spread along the path in flow order.
   const perRelationshipCount = new Map<string, number>();
-  for (const t of flow.transitions) {
-    const id = t['relationship-unique-id'];
-    perRelationshipCount.set(id, (perRelationshipCount.get(id) ?? 0) + 1);
+  const rankInRelationship = new Map<unknown, number>();
+  {
+    const groups = new Map<string, typeof flow.transitions>();
+    for (const t of flow.transitions) {
+      const id = t['relationship-unique-id'];
+      const g = groups.get(id) ?? [];
+      g.push(t);
+      groups.set(id, g);
+    }
+    for (const [id, g] of groups) {
+      perRelationshipCount.set(id, g.length);
+      [...g]
+        .sort((a, b) => a['sequence-number'] - b['sequence-number'])
+        .forEach((t, rank) => rankInRelationship.set(t, rank));
+    }
   }
-  const perRelationshipSeen = new Map<string, number>();
 
   for (const transition of flow.transitions) {
     const layouts = (edgeLayoutsByRelationship.get(transition['relationship-unique-id']) ?? []).filter(
@@ -80,23 +91,28 @@ export function renderFlowOverlay(
     }
 
     // One sequence badge per transition. Transitions sharing a relationship
-    // spread along the first edge's path (k-th of n sits at (k+1)/(n+1)) so
-    // request/response pairs never stack invisibly on the midpoint.
+    // spread along the first edge's path (rank k of n sits at (k+1)/(n+1),
+    // ranked by sequence-number) so request/response pairs never stack.
     const relId = transition['relationship-unique-id'];
-    const seen = perRelationshipSeen.get(relId) ?? 0;
-    perRelationshipSeen.set(relId, seen + 1);
+    const rank = rankInRelationship.get(transition) ?? 0;
     const count = perRelationshipCount.get(relId) ?? 1;
-    const fraction = (seen + 1) / (count + 1);
-    const badgePoint = pointAtFraction(badgeEdge.points, fraction);
+    const fraction = (rank + 1) / (count + 1);
+    const walk = walkPolyline(badgeEdge.points);
+    const badgePoint = pointOnWalk(walk, fraction);
     if (badgePoint === undefined) continue;
     // Reverse (response) badges shift perpendicular to the path — a "return
-    // lane" beside the edge — so request/response pairs stay separated even
-    // on edges shorter than a badge diameter.
+    // lane" — but only when the edge is crowded: multiple transitions whose
+    // along-path spacing is below a badge diameter. A lone reverse badge
+    // stays on its edge. Which side the lane lands on follows the layout
+    // engine's point ordering; it can in principle overlap a neighbouring
+    // element — biasing away from the diagram centroid would be the fuller
+    // fix if that shows up in practice.
     const isReverse = direction === 'destination-to-source';
-    const normal = pathNormalAt(badgeEdge.points, fraction);
+    const crowded = count > 1 && walk.total / (count + 1) < 20;
+    const normal = crowded ? normalOnWalk(walk, fraction) : undefined;
     const laneOffset = isReverse && normal !== undefined ? 22 : 0;
-    const midX = badgePoint.x + (normal?.x ?? 0) * laneOffset;
-    const midY = badgePoint.y + (normal?.y ?? 0) * laneOffset;
+    const midX = round2(badgePoint.x + (normal?.x ?? 0) * laneOffset);
+    const midY = round2(badgePoint.y + (normal?.y ?? 0) * laneOffset);
 
     // The flow schema defines `description` on transitions; `summary` was a
     // legacy CalmStudio field. Prefer the schema field, fall back for older files.
@@ -110,7 +126,7 @@ export function renderFlowOverlay(
     const circleExtra = isReverse ? ' stroke="#3b82f6" stroke-width="2"' : '';
     const numberFill = isReverse ? '#3b82f6' : 'white';
     parts.push(
-      `<g class="${badgeClass}" data-summary="${escapeAttr(transitionLabel)}">`,
+      `<g class="${badgeClass}" data-description="${escapeAttr(transitionLabel)}">`,
       `  <circle cx="${midX}" cy="${midY}" r="10" fill="${circleFill}"${circleExtra}/>`,
       `  <text x="${midX}" y="${midY}" fill="${numberFill}" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central">${transition['sequence-number']}</text>`,
       `  <title>${escapeAttr(transitionLabel)}</title>`,
@@ -190,16 +206,17 @@ function getReferencedNodeIdsWithFlatFallback(rel: CalmRelationship): string[] {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Point at a given fraction (0..1) of a polyline's total length. */
-function pointAtFraction(
-  points: Array<{ x: number; y: number }>,
-  fraction: number
-): { x: number; y: number } | undefined {
-  if (points.length === 0) return undefined;
-  const first = points[0];
-  if (points.length === 1 || first === undefined) return first;
+/** Precomputed polyline segments and total length, shared by point/normal lookups. */
+interface PolylineWalk {
+  segments: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; len: number }>;
+  total: number;
+  first: { x: number; y: number } | undefined;
+  last: { x: number; y: number } | undefined;
+}
+
+function walkPolyline(points: Array<{ x: number; y: number }>): PolylineWalk {
+  const segments: PolylineWalk['segments'] = [];
   let total = 0;
-  const segments: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; len: number }> = [];
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1];
     const b = points[i];
@@ -208,50 +225,41 @@ function pointAtFraction(
     segments.push({ a, b, len });
     total += len;
   }
-  if (total === 0) return first;
-  let target = Math.min(Math.max(fraction, 0), 1) * total;
-  for (const seg of segments) {
+  return { segments, total, first: points[0], last: points[points.length - 1] };
+}
+
+/** Point at a given fraction (0..1) of the walk; falls back to the first point. */
+function pointOnWalk(walk: PolylineWalk, fraction: number): { x: number; y: number } | undefined {
+  if (walk.total === 0) return walk.first;
+  let target = Math.min(Math.max(fraction, 0), 1) * walk.total;
+  for (const seg of walk.segments) {
     if (target <= seg.len) {
       const t = seg.len === 0 ? 0 : target / seg.len;
-      return { x: seg.a.x + (seg.b.x - seg.a.x) * t, y: seg.a.y + (seg.b.y - seg.a.y) * t };
+      return { x: round2(seg.a.x + (seg.b.x - seg.a.x) * t), y: round2(seg.a.y + (seg.b.y - seg.a.y) * t) };
     }
     target -= seg.len;
   }
-  const last = points[points.length - 1];
-  return last;
+  return walk.last;
 }
 
-/** Unit normal (perpendicular) of the polyline segment containing the fraction point. */
-function pathNormalAt(
-  points: Array<{ x: number; y: number }>,
-  fraction: number
-): { x: number; y: number } | undefined {
-  if (points.length < 2) return undefined;
-  // Locate the segment the fraction falls in (same walk as pointAtFraction).
-  let total = 0;
-  const lens: number[] = [];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1];
-    const b = points[i];
-    const len = a !== undefined && b !== undefined ? Math.hypot(b.x - a.x, b.y - a.y) : 0;
-    lens.push(len);
-    total += len;
-  }
-  if (total === 0) return undefined;
-  let target = Math.min(Math.max(fraction, 0), 1) * total;
-  for (let i = 0; i < lens.length; i++) {
-    const len = lens[i] ?? 0;
-    if (target <= len) {
-      const a = points[i];
-      const b = points[i + 1];
-      if (a === undefined || b === undefined || len === 0) return undefined;
-      const tx = (b.x - a.x) / len;
-      const ty = (b.y - a.y) / len;
+/** Unit normal of the segment containing the fraction point; undefined for degenerate walks. */
+function normalOnWalk(walk: PolylineWalk, fraction: number): { x: number; y: number } | undefined {
+  if (walk.total === 0) return undefined;
+  let target = Math.min(Math.max(fraction, 0), 1) * walk.total;
+  for (const seg of walk.segments) {
+    if (target <= seg.len) {
+      if (seg.len === 0) return undefined;
+      const tx = (seg.b.x - seg.a.x) / seg.len;
+      const ty = (seg.b.y - seg.a.y) / seg.len;
       return { x: -ty, y: tx };
     }
-    target -= len;
+    target -= seg.len;
   }
   return undefined;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 function escapeAttr(str: string): string {
