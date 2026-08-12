@@ -21,18 +21,18 @@
  * - Export dropdown → "CALM JSON (.calm.json)"
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // Intercept Blob-URL based download. We capture the FIRST .calm.json download
 // (not the sidecar .calmstudio.json which fires 200ms later).
 async function injectDownloadInterceptor(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const blobUrlMap = new Map<string, Blob>();
-    (window as Record<string, unknown>)['__blobUrlMap'] = blobUrlMap;
+    (window as unknown as Record<string, unknown>)['__blobUrlMap'] = blobUrlMap;
 
     // Track all captured downloads in order
     const downloads: { href: string; filename: string }[] = [];
-    (window as Record<string, unknown>)['__downloads'] = downloads;
+    (window as unknown as Record<string, unknown>)['__downloads'] = downloads;
 
     const origCreateObjectURL = URL.createObjectURL.bind(URL);
     URL.createObjectURL = (blob: Blob | MediaSource) => {
@@ -53,9 +53,9 @@ async function injectDownloadInterceptor(page: Page): Promise<void> {
           if (anchor.download && anchor.href) {
             downloads.push({ href: anchor.href, filename: anchor.download });
             // Track first download separately for easy access
-            if (!(window as Record<string, unknown>)['__firstDownloadHref']) {
-              (window as Record<string, unknown>)['__firstDownloadHref'] = anchor.href;
-              (window as Record<string, unknown>)['__firstDownloadFilename'] = anchor.download;
+            if (!(window as unknown as Record<string, unknown>)['__firstDownloadHref']) {
+              (window as unknown as Record<string, unknown>)['__firstDownloadHref'] = anchor.href;
+              (window as unknown as Record<string, unknown>)['__firstDownloadFilename'] = anchor.download;
             }
           }
           // Suppress actual download
@@ -68,10 +68,10 @@ async function injectDownloadInterceptor(page: Page): Promise<void> {
 
 async function readFirstDownload(page: Page): Promise<{ content: string; filename: string } | null> {
   return page.evaluate(async () => {
-    const href = (window as Record<string, unknown>)['__firstDownloadHref'] as string | undefined;
-    const filename = (window as Record<string, unknown>)['__firstDownloadFilename'] as string | undefined;
+    const href = (window as unknown as Record<string, unknown>)['__firstDownloadHref'] as string | undefined;
+    const filename = (window as unknown as Record<string, unknown>)['__firstDownloadFilename'] as string | undefined;
     if (!href || !filename) return null;
-    const blobUrlMap = (window as Record<string, unknown>)['__blobUrlMap'] as Map<string, Blob>;
+    const blobUrlMap = (window as unknown as Record<string, unknown>)['__blobUrlMap'] as Map<string, Blob>;
     if (blobUrlMap?.has(href)) {
       const text = await blobUrlMap.get(href)!.text();
       return { content: text, filename };

@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { CalmArchitecture } from '@calmstudio/calm-core';
 import { applyFromJson, resetModel } from '$lib/stores/calmModel.svelte';
 import {
-	runValidation,
+	runValidationAsync,
 	clearValidation,
 	getIssues,
 	getIssuesByElementId,
@@ -34,6 +34,7 @@ const validArch: CalmArchitecture = {
 			'unique-id': 'db-1',
 			'node-type': 'database',
 			name: 'Main DB',
+			description: '',
 		},
 	],
 	relationships: [
@@ -52,11 +53,13 @@ const archWithUnnamedNode: CalmArchitecture = {
 			'unique-id': 'svc-1',
 			'node-type': 'service',
 			name: '', // empty name triggers validation issue
+			description: '',
 		},
 		{
 			'unique-id': 'db-1',
 			'node-type': 'database',
 			name: 'Main DB',
+			description: '',
 		},
 	],
 	relationships: [
@@ -77,30 +80,30 @@ beforeEach(() => {
 // ─── runValidation ────────────────────────────────────────────────────────────
 
 describe('runValidation', () => {
-	it('opens the panel after running validation', () => {
+	it('opens the panel after running validation', async () => {
 		applyFromJson(validArch);
 		expect(isPanelOpen()).toBe(false);
-		runValidation();
+		await runValidationAsync();
 		expect(isPanelOpen()).toBe(true);
 	});
 
-	it('returns issues as an array (may be empty for valid arch)', () => {
+	it('returns issues as an array (may be empty for valid arch)', async () => {
 		applyFromJson(validArch);
-		runValidation();
+		await runValidationAsync();
 		const issues = getIssues();
 		expect(Array.isArray(issues)).toBe(true);
 	});
 
-	it('produces at least one issue for an arch with an unnamed node', () => {
+	it('produces at least one issue for an arch with an unnamed node', async () => {
 		applyFromJson(archWithUnnamedNode);
-		runValidation();
+		await runValidationAsync();
 		const issues = getIssues();
 		expect(issues.length).toBeGreaterThan(0);
 	});
 
-	it('issues are sorted: errors come before warnings', () => {
+	it('issues are sorted: errors come before warnings', async () => {
 		applyFromJson(archWithUnnamedNode);
-		runValidation();
+		await runValidationAsync();
 		const issues = getIssues();
 		if (issues.length >= 2) {
 			const severityOrder: Record<string, number> = { error: 0, warning: 1, info: 2 };
@@ -116,17 +119,17 @@ describe('runValidation', () => {
 // ─── clearValidation ──────────────────────────────────────────────────────────
 
 describe('clearValidation', () => {
-	it('clears all issues', () => {
+	it('clears all issues', async () => {
 		applyFromJson(archWithUnnamedNode);
-		runValidation();
+		await runValidationAsync();
 		expect(getIssues().length).toBeGreaterThan(0);
 		clearValidation();
 		expect(getIssues()).toHaveLength(0);
 	});
 
-	it('closes the panel', () => {
+	it('closes the panel', async () => {
 		applyFromJson(validArch);
-		runValidation();
+		await runValidationAsync();
 		expect(isPanelOpen()).toBe(true);
 		clearValidation();
 		expect(isPanelOpen()).toBe(false);
@@ -142,16 +145,16 @@ describe('clearValidation', () => {
 // ─── getIssuesByElementId ─────────────────────────────────────────────────────
 
 describe('getIssuesByElementId', () => {
-	it('returns empty array when no issues for the given id', () => {
+	it('returns empty array when no issues for the given id', async () => {
 		applyFromJson(validArch);
-		runValidation();
+		await runValidationAsync();
 		const nodeIssues = getIssuesByElementId('nonexistent-id');
 		expect(nodeIssues).toHaveLength(0);
 	});
 
-	it('returns only issues matching the specified element id', () => {
+	it('returns only issues matching the specified element id', async () => {
 		applyFromJson(archWithUnnamedNode);
-		runValidation();
+		await runValidationAsync();
 		const allIssues = getIssues();
 		// For each issue that references an element, verify getIssuesByElementId filters correctly
 		const elementIds = new Set(
@@ -170,9 +173,9 @@ describe('getIssuesByElementId', () => {
 // ─── getErrorCountForElement ──────────────────────────────────────────────────
 
 describe('getErrorCountForElement', () => {
-	it('returns 0 for element with no errors', () => {
+	it('returns 0 for element with no errors', async () => {
 		applyFromJson(validArch);
-		runValidation();
+		await runValidationAsync();
 		expect(getErrorCountForElement('svc-1')).toBe(0);
 	});
 
@@ -180,9 +183,9 @@ describe('getErrorCountForElement', () => {
 		expect(getErrorCountForElement('svc-1')).toBe(0);
 	});
 
-	it('counts only error-severity issues for the element', () => {
+	it('counts only error-severity issues for the element', async () => {
 		applyFromJson(archWithUnnamedNode);
-		runValidation();
+		await runValidationAsync();
 		const allIssues = getIssues();
 		// Find an element that actually has errors
 		const errorIssues = allIssues.filter((i) => i.severity === 'error');
@@ -197,9 +200,9 @@ describe('getErrorCountForElement', () => {
 // ─── getWarningCountForElement ────────────────────────────────────────────────
 
 describe('getWarningCountForElement', () => {
-	it('returns 0 for element with no warnings', () => {
+	it('returns 0 for element with no warnings', async () => {
 		applyFromJson(validArch);
-		runValidation();
+		await runValidationAsync();
 		// Most elements won't have warnings for valid arch — just verify returns number
 		const count = getWarningCountForElement('svc-1');
 		expect(typeof count).toBe('number');
@@ -214,24 +217,24 @@ describe('panel open/close', () => {
 		expect(isPanelOpen()).toBe(false);
 	});
 
-	it('isPanelOpen returns true after runValidation', () => {
+	it('isPanelOpen returns true after runValidation', async () => {
 		applyFromJson(validArch);
-		runValidation();
+		await runValidationAsync();
 		expect(isPanelOpen()).toBe(true);
 	});
 
-	it('closePanel closes the panel without clearing issues', () => {
+	it('closePanel closes the panel without clearing issues', async () => {
 		applyFromJson(archWithUnnamedNode);
-		runValidation();
+		await runValidationAsync();
 		const issuesBefore = getIssues().length;
 		closePanel();
 		expect(isPanelOpen()).toBe(false);
 		expect(getIssues()).toHaveLength(issuesBefore); // issues retained
 	});
 
-	it('openPanel re-opens after closePanel', () => {
+	it('openPanel re-opens after closePanel', async () => {
 		applyFromJson(validArch);
-		runValidation();
+		await runValidationAsync();
 		closePanel();
 		expect(isPanelOpen()).toBe(false);
 		openPanel();
@@ -256,9 +259,9 @@ describe('scroll coordination', () => {
 		expect(isPanelOpen()).toBe(true);
 	});
 
-	it('setScrollToElementId(null) clears the id without closing panel', () => {
+	it('setScrollToElementId(null) clears the id without closing panel', async () => {
 		applyFromJson(validArch);
-		runValidation(); // opens panel
+		await runValidationAsync(); // opens panel
 		setScrollToElementId('svc-1');
 		setScrollToElementId(null);
 		expect(getScrollToElementId()).toBeNull();

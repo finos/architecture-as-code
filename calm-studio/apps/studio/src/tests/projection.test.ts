@@ -4,6 +4,7 @@
 
 import { describe, test, expect, beforeAll } from 'vitest';
 import type { CalmArchitecture } from '@calmstudio/calm-core';
+import type { StudioCalmInterface } from '$lib/canvas/flowTypes';
 import { calmToFlow, flowToCalm } from '$lib/stores/projection';
 import { initAllPacks } from '@calmstudio/extensions';
 
@@ -24,8 +25,8 @@ const actorArch: CalmArchitecture = {
 
 const connectsArch: CalmArchitecture = {
 	nodes: [
-		{ 'unique-id': 'svc-1', 'node-type': 'service', name: 'API' },
-		{ 'unique-id': 'db-1', 'node-type': 'database', name: 'DB' },
+		{ 'unique-id': 'svc-1', 'node-type': 'service', name: 'API', description: '' },
+		{ 'unique-id': 'db-1', 'node-type': 'database', name: 'DB', description: '' },
 	],
 	relationships: [
 		{
@@ -86,6 +87,77 @@ describe('calmToFlow', () => {
 		// db-1 is index 1 in the arch, not in posMap → staggered: x = 100 + 1*160 = 260
 		expect(db.position).toEqual({ x: 260, y: 100 });
 	});
+
+	test('composed-of container uses minimum default size even when positionMap has small dimensions', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{ 'unique-id': 'parent-1', 'node-type': 'service', name: 'Parent', description: '' },
+				{ 'unique-id': 'child-1', 'node-type': 'service', name: 'Child', description: '' },
+			],
+			relationships: [
+				{
+					'unique-id': 'rel-1',
+					'relationship-type': { 'composed-of': { container: 'parent-1', nodes: ['child-1'] } },
+				},
+			],
+		};
+		const posMap = new Map([
+			['parent-1', { x: 100, y: 100, width: 120, height: 60 }],
+			['child-1', { x: 300, y: 100 }],
+		]);
+		const { nodes } = calmToFlow(arch, posMap);
+		const parent = nodes.find((n) => n.id === 'parent-1')!;
+		expect(parent.type).toBe('container');
+		expect(parent.width).toBeGreaterThanOrEqual(300);
+		expect(parent.height).toBeGreaterThanOrEqual(200);
+	});
+
+	test('composed-of sets child parentId and extent', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{ 'unique-id': 'parent-1', 'node-type': 'system', name: 'Parent', description: '' },
+				{ 'unique-id': 'child-1', 'node-type': 'service', name: 'Child', description: '' },
+			],
+			relationships: [
+				{
+					'unique-id': 'rel-1',
+					'relationship-type': { 'composed-of': { container: 'parent-1', nodes: ['child-1'] } },
+				},
+			],
+		};
+		const { nodes } = calmToFlow(arch);
+		const child = nodes.find((n) => n.id === 'child-1')!;
+		expect(child.parentId).toBe('parent-1');
+		expect(child.extent).toBe('parent');
+	});
+
+	test('marks reference nodes with isReference and reference-node class', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{
+					'unique-id': 'ref-1',
+					'node-type': 'system',
+					name: 'External API',
+					description: 'Reference',
+					details: { 'detailed-architecture': '../other/api.json' },
+				},
+			],
+			relationships: [],
+		};
+		const { nodes } = calmToFlow(arch);
+		const ref = nodes.find((n) => n.id === 'ref-1')!;
+		expect(ref.data.isReference).toBe(true);
+		expect(ref.data.calmDetails).toEqual({ 'detailed-architecture': '../other/api.json' });
+		expect(ref.class).toBe('reference-node');
+	});
+
+	test('non-reference nodes are not marked as references', () => {
+		const { nodes } = calmToFlow(connectsArch);
+		for (const n of nodes) {
+			expect(n.data.isReference).toBeFalsy();
+			expect(n.class).toBeUndefined();
+		}
+	});
 });
 
 // ─── flowToCalm tests ─────────────────────────────────────────────────────────
@@ -115,6 +187,27 @@ describe('flowToCalm', () => {
 		expect(rel.protocol).toBe('HTTPS');
 	});
 
+	test('round-trip preserves details.detailed-architecture on reference nodes', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{
+					'unique-id': 'ref-1',
+					'node-type': 'system',
+					name: 'External',
+					description: 'Ref',
+					details: { 'detailed-architecture': 'other/arch.json' },
+				},
+			],
+			relationships: [],
+		};
+		const { nodes, edges } = calmToFlow(arch);
+		const result = flowToCalm(nodes, edges);
+		const cn = result.nodes[0] as CalmArchitecture['nodes'][number] & {
+			details?: { 'detailed-architecture'?: string };
+		};
+		expect(cn.details?.['detailed-architecture']).toBe('other/arch.json');
+	});
+
 	test('round-trip preserves all CALM data (unique-ids, names, types, interfaces, descriptions)', () => {
 		const { nodes, edges } = calmToFlow(actorArch);
 		const result = flowToCalm(nodes, edges);
@@ -124,9 +217,10 @@ describe('flowToCalm', () => {
 		expect(cn.name).toBe('User');
 		expect(cn.description).toBe('The end user');
 		expect(cn.interfaces).toHaveLength(1);
-		expect(cn.interfaces![0]['unique-id']).toBe('iface-1');
-		expect(cn.interfaces![0].type).toBe('url');
-		expect(cn.interfaces![0].value).toBe('https://example.com');
+		const iface = cn.interfaces![0] as StudioCalmInterface;
+		expect(iface['unique-id']).toBe('iface-1');
+		expect(iface.type).toBe('url');
+		expect(iface.value).toBe('https://example.com');
 	});
 
 	test('preserves customMetadata through round-trip', () => {
@@ -136,6 +230,7 @@ describe('flowToCalm', () => {
 					'unique-id': 'svc-x',
 					'node-type': 'service',
 					name: 'MyService',
+					description: '',
 					customMetadata: { team: 'platform', env: 'prod' },
 				},
 			],
@@ -144,6 +239,42 @@ describe('flowToCalm', () => {
 		const { nodes, edges } = calmToFlow(archWithMeta);
 		const result = flowToCalm(nodes, edges);
 		expect(result.nodes[0].customMetadata).toEqual({ team: 'platform', env: 'prod' });
+	});
+
+	test('infers composed-of from parentId when Svelte Flow nested without an edge', () => {
+		const nodes = [
+			{
+				id: 'parent-1',
+				type: 'container',
+				position: { x: 0, y: 0 },
+				data: {
+					calmId: 'parent-1',
+					calmType: 'system',
+					label: 'Parent',
+					description: '',
+				},
+			},
+			{
+				id: 'child-1',
+				type: 'service',
+				position: { x: 20, y: 60 },
+				parentId: 'parent-1',
+				extent: 'parent' as const,
+				data: {
+					calmId: 'child-1',
+					calmType: 'service',
+					label: 'Child',
+					description: '',
+				},
+			},
+		];
+		const result = flowToCalm(nodes, []);
+		expect(result.relationships).toHaveLength(1);
+		const rt = result.relationships[0]!['relationship-type'];
+		expect('composed-of' in rt).toBe(true);
+		if (!('composed-of' in rt)) throw new Error('expected composed-of');
+		expect(rt['composed-of'].container).toBe('parent-1');
+		expect(rt['composed-of'].nodes).toEqual(['child-1']);
 	});
 });
 
@@ -158,7 +289,7 @@ describe('extension pack projection', () => {
 
 	test('calmToFlow produces type="extension" and data.calmType="aws:lambda" for pack node', () => {
 		const arch: CalmArchitecture = {
-			nodes: [{ 'unique-id': 'fn-1', 'node-type': 'aws:lambda', name: 'My Lambda' }],
+			nodes: [{ 'unique-id': 'fn-1', 'node-type': 'aws:lambda', name: 'My Lambda', description: '' }],
 			relationships: [],
 		};
 		const { nodes } = calmToFlow(arch);
@@ -171,7 +302,7 @@ describe('extension pack projection', () => {
 
 	test('flowToCalm preserves "aws:lambda" node-type from data.calmType', () => {
 		const arch: CalmArchitecture = {
-			nodes: [{ 'unique-id': 'fn-1', 'node-type': 'aws:lambda', name: 'My Lambda' }],
+			nodes: [{ 'unique-id': 'fn-1', 'node-type': 'aws:lambda', name: 'My Lambda', description: '' }],
 			relationships: [],
 		};
 		const { nodes, edges } = calmToFlow(arch);
@@ -181,7 +312,7 @@ describe('extension pack projection', () => {
 
 	test('round-trip preserves aws:lambda as node-type string', () => {
 		const arch: CalmArchitecture = {
-			nodes: [{ 'unique-id': 'fn-2', 'node-type': 'aws:lambda', name: 'Lambda Fn' }],
+			nodes: [{ 'unique-id': 'fn-2', 'node-type': 'aws:lambda', name: 'Lambda Fn', description: '' }],
 			relationships: [],
 		};
 		const { nodes, edges } = calmToFlow(arch);
@@ -194,8 +325,8 @@ describe('extension pack projection', () => {
 	test('mixed diagram: core "service" and pack "k8s:pod" both resolve correctly', () => {
 		const arch: CalmArchitecture = {
 			nodes: [
-				{ 'unique-id': 'svc-1', 'node-type': 'service', name: 'API Service' },
-				{ 'unique-id': 'pod-1', 'node-type': 'k8s:pod', name: 'API Pod' },
+				{ 'unique-id': 'svc-1', 'node-type': 'service', name: 'API Service', description: '' },
+				{ 'unique-id': 'pod-1', 'node-type': 'k8s:pod', name: 'API Pod', description: '' },
 			],
 			relationships: [],
 		};

@@ -336,11 +336,11 @@
 								<div class="mitigation-title-row">
 									<!-- Type icon: PREV = shield, DET = magnifier -->
 									{#if mitigation.type === 'PREV'}
-										<svg class="mit-type-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Preventive" title="Preventive">
+										<svg class="mit-type-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Preventive">
 											<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
 										</svg>
 									{:else}
-										<svg class="mit-type-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Detective" title="Detective">
+										<svg class="mit-type-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Detective">
 											<circle cx="11" cy="11" r="8" />
 											<line x1="21" y1="21" x2="16.65" y2="16.65" />
 										</svg>

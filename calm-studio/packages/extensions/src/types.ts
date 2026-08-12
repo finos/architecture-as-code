@@ -24,6 +24,8 @@ export interface NodeTypeEntry {
   description?: string;
   /** If true, this node renders as a container (large box that accepts children). */
   isContainer?: boolean;
+  /** If true, render on canvas as a bordered rectangle with icon beside the label (core style). */
+  rectangleLayout?: boolean;
   /** For containers: auto-populate with these child type IDs when placed on the canvas. */
   defaultChildren?: string[];
 }
@@ -40,4 +42,6 @@ export interface PackDefinition {
   color: PackColor;
   /** All node type entries in this pack. */
   nodes: NodeTypeEntry[];
+  /** Optional JSON Schema URL written to `$schema` when this pack's types are first used. */
+  schemaUrl?: string;
 }

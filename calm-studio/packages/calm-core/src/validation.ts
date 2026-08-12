@@ -9,7 +9,8 @@
  *   1. The FINOS CALM 1.2 meta-schema (vendored under `./schemas`)
  *      via Ajv (draft 2020-12).
  *   2. Semantic rules: dangling refs, duplicates, orphan nodes, self-loops.
- *   3. Info-level rules: nodes missing description.
+ *   3. ArchiMate domain rules (nodes with `archimate:*` node-types).
+ *   4. Info-level rules: nodes missing description.
  *
  * Shared between the studio (reactive store) and the MCP server. No Svelte
  * or browser dependencies — pure TypeScript.
@@ -19,6 +20,11 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import type { CalmArchitecture, CalmRelationship } from './types.js';
 import { getRelationshipVariant, getReferencedNodeIds } from './helpers.js';
+import { runArchimateRules } from './archimate/rules.js';
+import {
+	validateArchimateNodeMetadata,
+	validateArchimateRelationshipMetadata,
+} from './archimate/schema.js';
 
 import calmSchema from './schemas/calm.json' with { type: 'json' };
 import coreSchema from './schemas/core.json' with { type: 'json' };
@@ -91,6 +97,12 @@ export function validateCalmArchitecture(arch: CalmArchitecture): ValidationIssu
 	// 2. Semantic validation (only if basic structure is valid enough to traverse)
 	if (Array.isArray(arch.nodes) && Array.isArray(arch.relationships)) {
 		issues.push(...runSemanticRules(arch));
+		issues.push(
+			...runArchimateRules(arch, {
+				validateNodeMetadata: validateArchimateNodeMetadata,
+				validateRelationshipMetadata: validateArchimateRelationshipMetadata,
+			}),
+		);
 	}
 
 	// Sort: errors first, then warnings, then info

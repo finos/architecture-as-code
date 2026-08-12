@@ -51,7 +51,7 @@ describe('openFile', () => {
 			'FileReader',
 			vi.fn(function () {
 				mockReader.readAsText.mockImplementation(function () {
-					const event = { target: mockReader } as ProgressEvent<FileReader>;
+					const event = { target: mockReader } as unknown as ProgressEvent<FileReader>;
 					if (mockReader.onload) mockReader.onload(event);
 				});
 				return mockReader;

@@ -17,8 +17,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@calmstudio/calm-core": "*",
-    "@calmstudio/extensions": "*",
+    "@calmstudio/calm-core": "file:../calm-core",
+    "@calmstudio/extensions": "file:../extensions",
     "elkjs": "^0.11.1"
   },
   "devDependencies": {

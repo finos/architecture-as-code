@@ -24,6 +24,7 @@ function makeAINode(
     'unique-id': id ?? `node-${type.replace(':', '-')}`,
     'node-type': type,
     name: `Test ${type}`,
+    description: '',
     controls,
   };
 }
@@ -49,8 +50,8 @@ function makeRelationship(
 describe('runAIGFRules — empty/non-AI arch', () => {
   it('returns empty array for architecture with no AI nodes', () => {
     const arch = makeArch([
-      { 'unique-id': 'svc-1', 'node-type': 'service', name: 'My Service' },
-      { 'unique-id': 'db-1', 'node-type': 'database', name: 'My DB' },
+      { 'unique-id': 'svc-1', 'node-type': 'service', name: 'My Service', description: '' },
+      { 'unique-id': 'db-1', 'node-type': 'database', name: 'My DB', description: '' },
     ]);
     const issues = runAIGFRules(arch);
     // aigf-010 always fires (governance score), others should be absent
@@ -81,7 +82,7 @@ describe('aigf-001: AI node missing AIGF controls', () => {
 
   it('does NOT warn for non-AI node with no controls', () => {
     const arch = makeArch([
-      { 'unique-id': 'svc-1', 'node-type': 'service', name: 'My Service' },
+      { 'unique-id': 'svc-1', 'node-type': 'service', name: 'My Service', description: '' },
     ]);
     const issues = runAIGFRules(arch);
     const rule = issues.filter(i => i.message.includes('aigf-001'));
@@ -132,7 +133,7 @@ describe('aigf-004: ai:agent missing least privilege', () => {
 describe('aigf-005: MCP connection without mcp-security', () => {
   it('returns error when relationship with MCP in description but source node missing mcp-security', () => {
     const llm = makeAINode('ai:llm', undefined, 'llm-1');
-    const svc = { 'unique-id': 'svc-1', 'node-type': 'service', name: 'MCP Server' };
+    const svc = { 'unique-id': 'svc-1', 'node-type': 'service', name: 'MCP Server', description: '' };
     const rel = makeRelationship('rel-1', 'llm-1', 'svc-1', 'MCP protocol connection');
     const arch = makeArch([llm, svc], [rel]);
     const issues = runAIGFRules(arch);

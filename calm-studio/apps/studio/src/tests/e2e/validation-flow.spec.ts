@@ -25,7 +25,7 @@
  * - Toggling panel off clears node badges and edge colors
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 async function addNodeFromPalette(page: Page, nodeLabel: string): Promise<void> {
   const btn = page.getByRole('button', {

@@ -12,7 +12,7 @@ const securityControl: CalmControls = {
 	'security-domain': {
 		description: 'LLM security domain control',
 		requirements: [
-			{ 'requirement-url': 'https://finos.org/aigf/controls/security-domain' },
+			{ 'requirement-url': 'https://finos.org/aigf/controls/security-domain', config: {} },
 		],
 	},
 };
@@ -24,7 +24,7 @@ const multipleControls: CalmControls = {
 	},
 	'data-encryption': {
 		description: 'Encrypt data at rest',
-		requirements: [{ 'requirement-url': 'https://example.com/encryption' }],
+		requirements: [{ 'requirement-url': 'https://example.com/encryption', config: {} }],
 	},
 };
 

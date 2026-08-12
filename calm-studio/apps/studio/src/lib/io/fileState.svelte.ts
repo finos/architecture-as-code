@@ -24,7 +24,12 @@
 
 let currentFileName = $state<string | null>(null);
 let fileHandle = $state<FileSystemFileHandle | string | null>(null);
+let fileRelativePath = $state<string | null>(null);
 let isDirty = $state(false);
+/** JSON snapshot at last save/open — used for reliable dirty detection. */
+let cleanSnapshot = $state<string | null>(null);
+
+const EMPTY_MODEL_JSON = JSON.stringify({ nodes: [], relationships: [] }, null, 2);
 
 // ─── Getters ──────────────────────────────────────────────────────────────────
 
@@ -49,9 +54,32 @@ export function getFilePath(): string | null {
 	return typeof fileHandle === 'string' ? fileHandle : null;
 }
 
-/** Returns true if the diagram has unsaved changes. */
+/** Returns the path of the current file relative to the explorer project root. */
+export function getFileRelativePath(): string | null {
+	return fileRelativePath;
+}
+
+/** Returns true if the diagram has unsaved changes (flag or content differs from snapshot). */
 export function getIsDirty(): boolean {
 	return isDirty;
+}
+
+/**
+ * Content-aware dirty check — compares current JSON to the last clean snapshot.
+ * More reliable than the isDirty flag alone (e.g. canvas edits before markDirty).
+ */
+export function hasUnsavedChanges(currentJson: string): boolean {
+	if (isDirty) return true;
+	if (cleanSnapshot === null) {
+		return currentJson.trim() !== EMPTY_MODEL_JSON;
+	}
+	return currentJson !== cleanSnapshot;
+}
+
+/** Store the current JSON as the clean baseline (after open/save/new). */
+export function setCleanSnapshot(currentJson: string): void {
+	cleanSnapshot = currentJson;
+	isDirty = false;
 }
 
 // ─── Mutators ─────────────────────────────────────────────────────────────────
@@ -59,6 +87,18 @@ export function getIsDirty(): boolean {
 /** Mark the diagram as having unsaved changes. */
 export function markDirty(): void {
 	isDirty = true;
+}
+
+/**
+ * If the diagram has unsaved changes, prompt the user to discard them.
+ * @returns true when it is safe to proceed (clean or user confirmed discard).
+ * @deprecated Prefer async prompt with UnsavedChangesDialog via hasUnsavedChanges + UI.
+ */
+export function confirmDiscardUnsavedChanges(
+	message = 'You have unsaved changes. Continue without saving?'
+): boolean {
+	if (!isDirty) return true;
+	return window.confirm(message);
 }
 
 /**
@@ -72,10 +112,13 @@ export function markDirty(): void {
 export function markClean(
 	name?: string,
 	handle?: FileSystemFileHandle | string | null,
+	relativePath?: string | null,
 ): void {
 	isDirty = false;
 	if (name !== undefined) currentFileName = name;
 	if (handle !== undefined) fileHandle = handle;
+	if (relativePath !== undefined) fileRelativePath = relativePath;
+	// Note: caller should also call setCleanSnapshot(getModelJson()) after model is updated.
 }
 
 /**
@@ -85,5 +128,7 @@ export function markClean(
 export function resetFileState(): void {
 	currentFileName = null;
 	fileHandle = null;
+	fileRelativePath = null;
 	isDirty = false;
+	cleanSnapshot = EMPTY_MODEL_JSON;
 }

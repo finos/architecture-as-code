@@ -3,9 +3,12 @@
 <script lang="ts">
 	import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+	import ReferenceGlassesSlot from './ReferenceGlassesSlot.svelte';
+	import { getNodeInterfaces } from './nodeData';
 	let { id, data, selected }: NodeProps = $props();
+	const interfaces = $derived(getNodeInterfaces(data as Record<string, unknown>));
 
-	let collapsed = $state(data.collapsed ?? false);
+	let collapsed = $state((data as Record<string, unknown>).collapsed === true);
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
 
@@ -29,14 +32,15 @@
 <Handle type="target" position={Position.Left} />
 <Handle type="source" position={Position.Right} />
 
-{#if data.interfaces}
-	{#each data.interfaces as iface, i}
+{#if interfaces}
+	{#each interfaces as iface, i}
 		<Handle type="source" position={Position.Right} id={iface['unique-id']} style="top: {20 + i * 20}%" />
 	{/each}
 {/if}
 
 {#if collapsed}
 	<div class="container collapsed" class:selected>
+		<ReferenceGlassesSlot data={data as Record<string, unknown>} />
 		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 		<div class="collapsed-row">
 			<div class="dot"></div>
@@ -48,6 +52,7 @@
 	</div>
 {:else}
 	<div class="container expanded" class:selected>
+		<ReferenceGlassesSlot data={data as Record<string, unknown>} />
 		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 		<div class="header">
 			<div class="header-left">

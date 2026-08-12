@@ -32,23 +32,91 @@
 		type Node,
 		type Edge,
 		type Connection,
-		type NodeDragEvent,
 		type Viewport,
 	} from '@xyflow/svelte';
+	import { tick } from 'svelte';
 	import { shortcut } from '@svelte-put/shortcut';
 	import { nanoid } from 'nanoid';
+	import { setContext } from 'svelte';
 
 	import { nodeTypes, resolveNodeType } from './nodeTypes';
 	import { edgeTypes, DEFAULT_EDGE_TYPE } from './edgeTypes';
-	import { makeContainment, isContainmentType } from './containment';
-	import { resolvePackNode } from '@calmstudio/extensions';
+import { makeContainment, isContainmentType, ensureContainmentEdge } from './containment';
+	import { estimateRectangleNodeSize, ARCHIMATE_ICON_WIDTH } from './rectangleNodeSize';
+	import { resolvePackNode, scaffoldNodeMetadata, scaffoldRelationshipMetadata } from '@calmstudio/extensions';
 	import EdgeMarkers from './edges/EdgeMarkers.svelte';
 	import NodeSearch from '$lib/search/NodeSearch.svelte';
 	import { pushSnapshot, undo, redo } from '$lib/stores/history.svelte';
 	import { copy, paste } from '$lib/stores/clipboard.svelte';
-	import { applyFromCanvas } from '$lib/stores/calmModel.svelte';
+	import { applyFromCanvas, setSchemaHintForNodeType, getModel } from '$lib/stores/calmModel.svelte';
+	import { relativePathBetween } from '$lib/explorer/relativePath';
+	import { CALM_NODE_REF_MIME, type CalmNodeRefDragPayload } from '$lib/explorer/types';
+	import { getFileRelativePath } from '$lib/io/fileState.svelte';
+	import DuplicateNodeDialog, {
+		type DuplicateNodeResult,
+	} from './DuplicateNodeDialog.svelte';
+	import {
+		CANVAS_NODES_CONTEXT,
+		type CanvasNodesGetter,
+	} from './edgeRouting/routedEdgePath';
 
 	import '@xyflow/svelte/dist/style.css';
+
+	function applyRectangleLayoutSize(node: Node, label: string, isReference = false): void {
+		const resolvedType = node.type ?? resolveNodeType(node.data?.calmType as string);
+		const packMeta =
+			typeof node.data?.calmType === 'string' && node.data.calmType.includes(':')
+				? resolvePackNode(node.data.calmType)
+				: null;
+		const isRectangle =
+			resolvedType === 'service' ||
+			resolvedType === 'system' ||
+			(resolvedType === 'extension' && packMeta?.rectangleLayout === true);
+		if (!isRectangle) return;
+		const calmType = node.data?.calmType as string | undefined;
+		const iconWidth = calmType?.startsWith('archimate:') ? ARCHIMATE_ICON_WIDTH : undefined;
+		const size = estimateRectangleNodeSize(label, {
+			hasReference: isReference,
+			hasClassification: !!node.data?.['data-classification'],
+			iconWidth,
+		});
+		node.width = size.width;
+		node.height = size.height;
+	}
+
+	// ─── Node data helper (metadata scaffold R17) ─────────────────────────────
+
+	function buildNodeData(
+		calmType: string,
+		id: string,
+		label: string,
+		description: string,
+		extra: Record<string, unknown> = {},
+	): Record<string, unknown> {
+		const data: Record<string, unknown> = {
+			label,
+			calmId: id,
+			calmType,
+			description,
+			...extra,
+		};
+		const metadata = scaffoldNodeMetadata(calmType);
+		if (metadata) {
+			data.metadata = metadata;
+		}
+		return data;
+	}
+
+	function edgeDataWithScaffold(sourceId: string, targetId: string): Record<string, unknown> {
+		const sourceType = String(nodes.find((n) => n.id === sourceId)?.data?.calmType ?? '');
+		const targetType = String(nodes.find((n) => n.id === targetId)?.data?.calmType ?? '');
+		const base: Record<string, unknown> = { protocol: '', description: '' };
+		const metadata = scaffoldRelationshipMetadata(sourceType, targetType);
+		if (metadata) {
+			base.metadata = metadata;
+		}
+		return base;
+	}
 
 	// ─── Container scaffold helper ──────────────────────────────────────────
 	// When a container with defaultChildren is placed, auto-create child nodes
@@ -85,11 +153,7 @@
 				},
 				parentId: parentNode.id,
 				extent: 'parent',
-				data: {
-					label: `New ${calmType}`,
-					calmId: childId,
-					calmType,
-				},
+				data: buildNodeData(calmType, childId, `New ${calmType}`, `New ${calmType}`),
 			});
 
 			childEdges.push({
@@ -115,6 +179,7 @@
 		oncanvaschange,
 		readonly = false,
 		ondblclicknode,
+		onnavigatereference,
 	}: {
 		nodes?: Node[];
 		edges?: Edge[];
@@ -130,7 +195,15 @@
 		readonly?: boolean;
 		/** Called when a node is double-clicked in readonly mode. Used for C4 drill-down navigation. */
 		ondblclicknode?: (node: Node) => void;
+		/** Called when user double-clicks reference glasses on a node. */
+		onnavigatereference?: (calmId: string) => void;
 	} = $props();
+
+	setContext('referenceNavigation', {
+		onNavigateReference: (calmId: string) => onnavigatereference?.(calmId),
+	});
+
+	setContext(CANVAS_NODES_CONTEXT, (() => nodes) satisfies CanvasNodesGetter);
 
 	/**
 	 * Notify parent of canvas changes. Guards against readonly mode to prevent
@@ -224,6 +297,17 @@
 			return;
 		}
 
+		const refRaw = event.dataTransfer?.getData(CALM_NODE_REF_MIME);
+		if (refRaw) {
+			try {
+				const ref = JSON.parse(refRaw) as CalmNodeRefDragPayload;
+				handleNodeRefDrop(ref, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+			} catch {
+				// ignore malformed payload
+			}
+			return;
+		}
+
 		const calmType = event.dataTransfer?.getData('application/calm-node-type');
 		if (!calmType) return;
 
@@ -232,23 +316,25 @@
 		const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
 		const id = nanoid();
 		const resolvedType = resolveNodeType(calmType);
-
+		const isFirstNode = getModel().nodes.length === 0;
+		if (isFirstNode) {
+			setSchemaHintForNodeType(calmType);
+		}
 		const packMeta = calmType.includes(':') ? resolvePackNode(calmType) : null;
+		const defaultDescription = packMeta?.label ?? `New ${calmType}`;
 		const hasScaffold = resolvedType === 'container' && packMeta?.defaultChildren?.length;
 
 		const newNode: Node = {
 			id,
 			type: resolvedType,
 			position,
-			data: {
-				label: `New ${calmType}`,
-				calmId: id,
-				calmType,
-			},
+			data: buildNodeData(calmType, id, defaultDescription, defaultDescription),
 		};
 		if (resolvedType === 'container') {
 			newNode.width = hasScaffold ? 480 : 300;
 			newNode.height = hasScaffold ? 280 : 200;
+		} else {
+			applyRectangleLayoutSize(newNode, defaultDescription);
 		}
 
 		if (hasScaffold) {
@@ -258,6 +344,45 @@
 		} else {
 			nodes = [...nodes, newNode];
 		}
+		applyFromCanvas(nodes, edges);
+		notifyChange();
+	}
+
+	function handleNodeRefDrop(
+		ref: CalmNodeRefDragPayload,
+		position: { x: number; y: number }
+	) {
+		const id = ref.nodeUniqueId;
+		if (nodes.some((n) => n.id === id || n.data?.calmId === id)) {
+			return;
+		}
+
+		pushSnapshot(nodes, edges);
+
+		const currentPath = getFileRelativePath();
+		const detailedPath = currentPath
+			? relativePathBetween(currentPath, ref.sourceRelativePath)
+			: ref.sourceRelativePath;
+
+		const resolvedType = resolveNodeType(ref.nodeType);
+		const newNode: Node = {
+			id,
+			type: resolvedType,
+			position,
+			class: 'reference-node',
+			data: {
+				label: ref.name,
+				calmId: id,
+				calmType: ref.nodeType,
+				description: ref.description || 'External architecture reference',
+				isReference: true,
+				calmDetails: { 'detailed-architecture': detailedPath },
+			},
+		};
+
+		applyRectangleLayoutSize(newNode, ref.name, true);
+
+		nodes = [...nodes, newNode];
 		applyFromCanvas(nodes, edges);
 		notifyChange();
 	}
@@ -281,19 +406,19 @@
 		const packMeta = calmType.includes(':') ? resolvePackNode(calmType) : null;
 		const hasScaffold = resolvedType === 'container' && packMeta?.defaultChildren?.length;
 
+		const displayLabel = packMeta?.label ?? `New ${calmType}`;
+
 		const newNode: Node = {
 			id,
 			type: resolvedType,
 			position,
-			data: {
-				label: `New ${calmType}`,
-				calmId: id,
-				calmType,
-			},
+			data: buildNodeData(calmType, id, displayLabel, displayLabel),
 		};
 		if (resolvedType === 'container') {
 			newNode.width = hasScaffold ? 480 : 300;
 			newNode.height = hasScaffold ? 280 : 200;
+		} else {
+			applyRectangleLayoutSize(newNode, displayLabel);
 		}
 
 		if (hasScaffold) {
@@ -314,45 +439,52 @@
 
 		pushSnapshot(nodes, edges);
 
-		// Svelte Flow may auto-add an edge via bind:edges before this callback fires.
-		// Check if an edge already exists for this connection.
-		const existing = edges.find(
-			(e) =>
-				(e.source === connection.source && e.target === connection.target) ||
-				(e.source === connection.target && e.target === connection.source)
-		);
-
-		if (existing) {
-			// Edge was auto-added by Svelte Flow — ensure it has our type and data
-			edges = edges.map((e) =>
-				e.id === existing.id
-					? { ...e, type: e.type || DEFAULT_EDGE_TYPE, data: { protocol: '', description: '', ...e.data } }
-					: e
+		const applyConnection = () => {
+			// Svelte Flow may auto-add an edge via bind:edges before this callback fires.
+			const existing = edges.find(
+				(e) =>
+					(e.source === connection.source && e.target === connection.target) ||
+					(e.source === connection.target && e.target === connection.source)
 			);
-		} else {
-			// No auto-added edge — create one ourselves
-			const newEdge: Edge = {
-				id: nanoid(),
-				source: connection.source,
-				target: connection.target,
-				sourceHandle: connection.sourceHandle ?? undefined,
-				targetHandle: connection.targetHandle ?? undefined,
-				type: DEFAULT_EDGE_TYPE,
-				data: {
-					protocol: '',
-					description: '',
-				},
-			};
-			edges = [...edges, newEdge];
-		}
 
-		const edgeType = DEFAULT_EDGE_TYPE;
-		if (isContainmentType(edgeType)) {
-			nodes = makeContainment(connection.source, connection.target, nodes);
-		}
-		// Always sync to model so relationships appear in CALM JSON
-		applyFromCanvas(nodes, edges);
-		notifyChange();
+			if (existing) {
+				edges = edges.map((e) =>
+					e.id === existing.id
+						? {
+								...e,
+								type: e.type || DEFAULT_EDGE_TYPE,
+								data: {
+									...edgeDataWithScaffold(connection.source, connection.target),
+									...e.data,
+									calmVariant: DEFAULT_EDGE_TYPE,
+								},
+							}
+						: e
+				);
+			} else {
+				const newEdge: Edge = {
+					id: nanoid(),
+					source: connection.source,
+					target: connection.target,
+					sourceHandle: connection.sourceHandle ?? undefined,
+					targetHandle: connection.targetHandle ?? undefined,
+					type: DEFAULT_EDGE_TYPE,
+					data: {
+						...edgeDataWithScaffold(connection.source, connection.target),
+						calmVariant: DEFAULT_EDGE_TYPE,
+					},
+				};
+				edges = [...edges, newEdge];
+			}
+
+			if (isContainmentType(DEFAULT_EDGE_TYPE)) {
+				nodes = makeContainment(connection.source, connection.target, nodes);
+			}
+			applyFromCanvas(nodes, edges);
+			notifyChange();
+		};
+
+		void tick().then(applyConnection);
 	}
 
 	/**
@@ -429,13 +561,133 @@
 		);
 	}
 
-	function handleNodeDragStop(event: NodeDragEvent) {
+	let lastNodeClick: { id: string; time: number } | null = null;
+
+	/** R21 — Ctrl/Cmd+drag duplicate state */
+	let duplicateDragOrigin: {
+		nodeId: string;
+		position: { x: number; y: number };
+		parentId?: string;
+	} | null = null;
+	let pendingDuplicate: {
+		source: Node;
+		dropPosition: { x: number; y: number };
+	} | null = $state(null);
+
+	function handleNodeClick({ node }: { node: Node; event: MouseEvent | TouchEvent }) {
+		if (!readonly || !ondblclicknode) return;
+		const now = Date.now();
+		if (lastNodeClick?.id === node.id && now - lastNodeClick.time < 400) {
+			ondblclicknode(node);
+			lastNodeClick = null;
+		} else {
+			lastNodeClick = { id: node.id, time: now };
+		}
+	}
+
+	function handleNodeDragStart({
+		targetNode,
+		event,
+	}: {
+		targetNode: Node | null;
+		nodes: Node[];
+		event: MouseEvent | TouchEvent;
+	}) {
+		if (readonly || !targetNode) {
+			duplicateDragOrigin = null;
+			return;
+		}
+		const ev = event as MouseEvent;
+		if (ev.ctrlKey || ev.metaKey) {
+			duplicateDragOrigin = {
+				nodeId: targetNode.id,
+				position: { ...targetNode.position },
+				parentId: targetNode.parentId,
+			};
+			document.body.style.cursor = 'copy';
+		} else {
+			duplicateDragOrigin = null;
+		}
+	}
+
+	function findContainmentParent(
+		dropPos: { x: number; y: number },
+		excludeId: string
+	): string | null {
+		for (const candidate of nodes) {
+			if (candidate.id === excludeId) continue;
+			if (
+				candidate.type === 'container' ||
+				(candidate.measured?.width && candidate.measured.width > 100)
+			) {
+				const bounds = {
+					x: candidate.position.x,
+					y: candidate.position.y,
+					width: candidate.measured?.width ?? candidate.width ?? 200,
+					height: candidate.measured?.height ?? candidate.height ?? 150,
+				};
+				if (isInsideBounds(dropPos, bounds)) {
+					return candidate.id;
+				}
+			}
+		}
+		return null;
+	}
+
+	function handleNodeDragStop({
+		targetNode,
+		event,
+	}: {
+		targetNode: Node | null;
+		nodes: Node[];
+		event: MouseEvent | TouchEvent;
+	}) {
+		document.body.style.cursor = '';
 		if (readonly) return;
 
-		const draggedNode = event.node;
+		const draggedNode = targetNode;
 		if (!draggedNode) return;
-		// Don't reparent nodes that are already parented or are containers
-		if (draggedNode.type === 'container' || draggedNode.parentId) return;
+
+		// R21 — Ctrl/Cmd+drag → restore original, open duplicate modal
+		if (duplicateDragOrigin && duplicateDragOrigin.nodeId === draggedNode.id) {
+			const origin = duplicateDragOrigin;
+			const dropPosition = { ...draggedNode.position };
+			const sourceSnapshot = JSON.parse(
+				JSON.stringify(nodes.find((n) => n.id === origin.nodeId) ?? draggedNode)
+			) as Node;
+			// Restore original node to pre-drag position
+			nodes = nodes.map((n) =>
+				n.id === origin.nodeId
+					? {
+							...n,
+							position: origin.position,
+							parentId: origin.parentId,
+							selected: false,
+						}
+					: n
+			);
+			duplicateDragOrigin = null;
+			sourceSnapshot.position = origin.position;
+			sourceSnapshot.parentId = origin.parentId;
+			pendingDuplicate = { source: sourceSnapshot, dropPosition };
+			return;
+		}
+		duplicateDragOrigin = null;
+
+		// Svelte Flow may set parentId during drag without creating a CALM edge.
+		// Ensure a composed-of edge exists and sync the canonical model.
+		if (draggedNode.parentId && draggedNode.type !== 'container') {
+			edges = ensureContainmentEdge(draggedNode.parentId, draggedNode.id, edges);
+			applyFromCanvas(nodes, edges);
+			notifyChange();
+			return;
+		}
+
+		if (draggedNode.type === 'container') {
+			applyFromCanvas(nodes, edges);
+			notifyChange();
+			return;
+		}
 
 		// Find any large node whose bounds contain the dragged node's position.
 		// Any node type can become a container when something is dropped into it.
@@ -451,6 +703,7 @@
 				if (isInsideBounds(draggedNode.position, bounds)) {
 					pushSnapshot(nodes, edges);
 					nodes = makeContainment(candidate.id, draggedNode.id, nodes);
+					edges = ensureContainmentEdge(candidate.id, draggedNode.id, edges);
 					applyFromCanvas(nodes, edges);
 					notifyChange();
 					return;
@@ -460,6 +713,70 @@
 		// Regular drag stop (position change only)
 		applyFromCanvas(nodes, edges);
 		notifyChange();
+	}
+
+	function cancelDuplicate() {
+		pendingDuplicate = null;
+	}
+
+	function confirmDuplicate(result: DuplicateNodeResult) {
+		if (!pendingDuplicate) return;
+		const { source, dropPosition } = pendingDuplicate;
+		pendingDuplicate = null;
+
+		const oldId = (source.data?.calmId as string) ?? source.id;
+		const newId = nanoid();
+		pushSnapshot(nodes, edges);
+
+		const clone: Node = {
+			...JSON.parse(JSON.stringify(source)),
+			id: newId,
+			position: { ...dropPosition },
+			selected: true,
+			parentId: undefined,
+			data: {
+				...JSON.parse(JSON.stringify(source.data ?? {})),
+				calmId: newId,
+				label: result.name,
+			},
+		};
+		applyRectangleLayoutSize(clone, result.name, !!(source.data as Record<string, unknown>)?.isReference);
+
+		let nextNodes: Node[] = nodes.map((n) => ({ ...n, selected: false }));
+		nextNodes = [...nextNodes, clone];
+		let nextEdges: Edge[] = edges;
+
+		if (result.duplicateRelationships) {
+			const clonedEdges = edges
+				.filter((e) => e.source === oldId || e.target === oldId || e.source === source.id || e.target === source.id)
+				.map((e) => {
+					const edgeClone = JSON.parse(JSON.stringify(e)) as Edge;
+					edgeClone.id = nanoid();
+					edgeClone.selected = false;
+					if (edgeClone.source === oldId || edgeClone.source === source.id) edgeClone.source = newId;
+					if (edgeClone.target === oldId || edgeClone.target === source.id) edgeClone.target = newId;
+					if (edgeClone.data) {
+						edgeClone.data = {
+							...edgeClone.data,
+							calmRelId: nanoid(),
+						};
+					}
+					return edgeClone;
+				});
+			nextEdges = [...edges, ...clonedEdges];
+		}
+
+		const parentId = findContainmentParent(dropPosition, newId);
+		if (parentId) {
+			nextNodes = makeContainment(parentId, newId, nextNodes);
+			nextEdges = ensureContainmentEdge(parentId, newId, nextEdges);
+		}
+
+		nodes = nextNodes;
+		edges = nextEdges;
+		applyFromCanvas(nodes, edges);
+		notifyChange();
+		onselectionchange?.(newId, null);
 	}
 
 	// ─── Keyboard shortcuts ───────────────────────────────────────────────────
@@ -518,6 +835,20 @@
 		const edgeId = selectedEdges.length > 0 ? selectedEdges[0].id : null;
 		onselectionchange?.(nodeId, edgeId);
 	}
+
+	function handleDelete({
+		nodes: deletedNodes,
+		edges: deletedEdges,
+	}: {
+		nodes: Node[];
+		edges: Edge[];
+	}) {
+		if (readonly) return;
+		if (deletedNodes.length === 0 && deletedEdges.length === 0) return;
+		pushSnapshot(nodes, edges);
+		applyFromCanvas(nodes, edges);
+		notifyChange();
+	}
 </script>
 
 <!--
@@ -560,14 +891,12 @@
 		panOnDrag={true}
 		panOnScroll={false}
 		onconnect={handleConnect}
+		onnodedragstart={handleNodeDragStart}
 		onnodedragstop={handleNodeDragStop}
+		ondelete={handleDelete}
 		onedgecontextmenu={handleEdgeContextMenu}
 		onselectionchange={handleSelectionChange}
-		onnodedblclick={(e) => {
-			if (readonly && ondblclicknode) {
-				ondblclicknode(e.node);
-			}
-		}}
+		onnodeclick={handleNodeClick}
 	>
 		<Background variant={BackgroundVariant.Dots} gap={20} size={1} />
 		<EdgeMarkers />
@@ -606,6 +935,14 @@
 		</div>
 	{/if}
 </div>
+
+{#if pendingDuplicate}
+	<DuplicateNodeDialog
+		defaultName={`${(pendingDuplicate.source.data?.label as string) || 'Node'} (copy)`}
+		onconfirm={confirmDuplicate}
+		oncancel={cancelDuplicate}
+	/>
+{/if}
 
 <style>
 	.edge-menu-backdrop {

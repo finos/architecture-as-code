@@ -12,41 +12,56 @@
 		CalmRelationshipType,
 		CalmRelationshipVariant
 	} from '@calmstudio/calm-core';
-	import { updateEdgeProperty } from '$lib/stores/calmModel.svelte';
+	import { updateEdgeProperty, getModel } from '$lib/stores/calmModel.svelte';
 	import ControlsList from './ControlsList.svelte';
+	import MetadataForm from './MetadataForm.svelte';
+	import { asCalmFlowEdgeData } from '$lib/canvas/flowTypes';
+	import { getMetadataFieldsForRelationship } from '$lib/metadata/metadataForm';
+	import {
+		buildRelationshipTypeForVariant,
+		resolveVariantSyncFromMetadata,
+	} from '$lib/metadata/relationshipVariantSync';
+
+	const SWAPPABLE_VARIANTS: CalmRelationshipVariant[] = [
+		'connects',
+		'interacts',
+		'composed-of',
+		'deployed-in',
+	];
 
 	function buildRelationshipType(
 		variant: CalmRelationshipVariant,
 		source: string,
 		target: string,
 	): CalmRelationshipType {
-		switch (variant) {
-			case 'connects':
-				return {
-					connects: { source: { node: source }, destination: { node: target } },
-				};
-			case 'composed-of':
-				return { 'composed-of': { container: source, nodes: [target] } };
-			case 'deployed-in':
-				return { 'deployed-in': { container: source, nodes: [target] } };
-			case 'interacts':
-				return { interacts: { actor: source, nodes: [target] } };
-			case 'options':
-				return { options: [] };
-		}
+		return buildRelationshipTypeForVariant(variant, source, target);
 	}
 
 	let {
 		edge,
 		onBeforeFirstEdit,
 		onmutate,
+		onswap,
 	}: {
 		edge: Edge;
 		/** Called once before the first mutation per selection — used to push undo snapshot. */
 		onBeforeFirstEdit?: () => void;
 		/** Called after each property mutation to re-project canvas and code panel. */
 		onmutate?: () => void;
+		/** Called to swap edge direction (source ↔ target). */
+		onswap?: () => void;
 	} = $props();
+
+	const ed = $derived(asCalmFlowEdgeData(edge.data as Record<string, unknown>));
+
+	function resolveNodeType(nodeId: string): string {
+		return getModel().nodes.find((n) => n['unique-id'] === nodeId)?.['node-type'] ?? '';
+	}
+
+	const sourceType = $derived(resolveNodeType(edge.source));
+	const targetType = $derived(resolveNodeType(edge.target));
+	const metadataFields = $derived(getMetadataFieldsForRelationship(sourceType, targetType));
+	const edgeMetadata = $derived((ed.metadata as Record<string, unknown> | undefined) ?? {});
 
 	const RELATIONSHIP_TYPES: CalmRelationshipVariant[] = [
 		'connects',
@@ -100,6 +115,7 @@
 		(edge.data?.calmVariant ?? edge.type ?? 'connects') as CalmRelationshipVariant
 	);
 	const showProtocol: boolean = $derived(PROTOCOL_TYPES.includes(relType));
+	const canSwapDirection: boolean = $derived(SWAPPABLE_VARIANTS.includes(relType));
 
 	let descTimer: ReturnType<typeof setTimeout>;
 	let protocolTimer: ReturnType<typeof setTimeout>;
@@ -159,6 +175,26 @@
 		}, 300);
 	}
 
+	function handleSwapDirection() {
+		signalFirstEdit();
+		onswap?.();
+	}
+
+	function handleMetadataCommit(next: Record<string, unknown>) {
+		const currentVariant = relType;
+		const sync = resolveVariantSyncFromMetadata(
+			next,
+			currentVariant,
+			edge.source,
+			edge.target,
+		);
+		updateEdgeProperty(edge.id, 'metadata', sync.metadata);
+		if (sync.relationshipType) {
+			updateEdgeProperty(edge.id, 'relationship-type', sync.relationshipType);
+		}
+		onmutate?.();
+	}
+
 	function getTypeLabel(type: string): string {
 		return type
 			.split('-')
@@ -197,6 +233,14 @@
 				{/each}
 			</select>
 		</div>
+
+		{#if canSwapDirection}
+			<div class="field">
+				<button type="button" class="swap-btn" onclick={handleSwapDirection}>
+					Obrátit směr
+				</button>
+			</div>
+		{/if}
 
 		<!-- protocol (connects + interacts only) -->
 		{#if showProtocol}
@@ -259,9 +303,26 @@
 		</div>
 	</div>
 
+	<!-- Schema-driven relationship metadata (R17) -->
+	<MetadataForm
+		elementId={edge.id}
+		fields={metadataFields}
+		metadata={edgeMetadata}
+		autoBindCalmCoreVariant={true}
+		onBeforeFirstEdit={signalFirstEdit}
+		onCommit={
+			onmutate
+				? (next) => {
+						signalFirstEdit();
+						handleMetadataCommit(next);
+					}
+				: undefined
+		}
+	/>
+
 	<!-- Controls section (CALM 1.2) -->
 	<ControlsList
-		controls={edge.data?.controls}
+		controls={ed.controls}
 		onupdate={(newControls) => {
 			signalFirstEdit();
 			updateEdgeProperty(edge.id, 'controls', newControls);
@@ -415,6 +476,20 @@
 	.field-textarea:focus {
 		border-color: var(--color-accent, #6366f1);
 		box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+	}
+
+	.swap-btn {
+		width: 100%;
+		padding: 6px 10px;
+		font-size: 12px;
+		border-radius: 6px;
+		border: 1px solid var(--color-border, #e2e8f0);
+		background: var(--color-surface, #fff);
+		cursor: pointer;
+	}
+
+	.swap-btn:hover {
+		border-color: var(--color-accent, #6366f1);
 	}
 
 	:global(.dark) .field-textarea {

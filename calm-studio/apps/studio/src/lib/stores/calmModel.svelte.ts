@@ -18,6 +18,7 @@
 import type { Node, Edge } from '@xyflow/svelte';
 import type { CalmArchitecture, CalmInterface, CalmNode, CalmRelationship } from '@calmstudio/calm-core';
 import { flowToCalm } from '$lib/stores/projection';
+import { ensureSchemaOnFirstElement, mergeArchitectureBody } from '$lib/stores/documentEnvelope';
 
 // ─── Module-level state ───────────────────────────────────────────────────────
 
@@ -46,26 +47,168 @@ function withMutex(fn: () => void): boolean {
 
 // ─── Sync entry points ────────────────────────────────────────────────────────
 
+/** Hint for schema envelope when the first palette node is placed. */
+let lastPlacedNodeType: string | undefined;
+
 /**
  * Apply a CalmArchitecture from JSON (e.g., from the code editor or file load).
  * Returns true on success, false if a sync is already in progress.
  */
 export function applyFromJson(arch: CalmArchitecture): boolean {
 	return withMutex(() => {
-		model = { nodes: [...arch.nodes], relationships: [...arch.relationships] };
+		model = {
+			...arch,
+			nodes: [...arch.nodes],
+			relationships: [...(arch.relationships ?? [])],
+		};
+		lastPlacedNodeType = undefined;
 	});
 }
 
 /**
- * Apply Svelte Flow nodes/edges from the canvas (e.g., after drag/drop).
- * Converts via flowToCalm and updates the canonical model.
- * Returns true on success, false if a sync is already in progress.
+ * Merge canvas-projected relationships with the canonical model so metadata and
+ * other CALM fields survive export when Svelte Flow edge data is partial.
  */
+function enrichRelationshipsFromModel(
+	canvasRels: CalmRelationship[],
+	modelRels: CalmRelationship[]
+): CalmRelationship[] {
+	if (modelRels.length === 0) return canvasRels;
+
+	const modelById = new Map(modelRels.map((r) => [r['unique-id'], r]));
+
+	return canvasRels.map((cr) => {
+		const baseId = cr['unique-id'].includes('#')
+			? cr['unique-id'].slice(0, cr['unique-id'].indexOf('#'))
+			: cr['unique-id'];
+		const modelRel = modelById.get(cr['unique-id']) ?? modelById.get(baseId);
+		if (!modelRel) return cr;
+		return {
+			...modelRel,
+			...cr,
+			'relationship-type': cr['relationship-type'],
+		};
+	});
+}
+
+function isContainmentRelationship(rel: CalmRelationship): boolean {
+	const rt = rel['relationship-type'];
+	return 'composed-of' in rt || 'deployed-in' in rt;
+}
+
+/**
+ * When Svelte Flow has parentId nesting but the bound `edges` array is still
+ * empty, keep connects/interacts/options from the model and only refresh
+ * containment from inferred parentId edges.
+ */
+function mergeContainmentFromInferred(
+	modelRels: CalmRelationship[],
+	inferredRels: CalmRelationship[]
+): CalmRelationship[] {
+	const nonContainment = modelRels.filter((r) => !isContainmentRelationship(r));
+	return [...nonContainment, ...inferredRels];
+}
+
+/** Model relationship ids currently represented on the canvas edge list. */
+function representedModelRelIds(flowEdges: Edge[]): Set<string> {
+	const ids = new Set<string>();
+	for (const e of flowEdges) {
+		const d = (e.data ?? {}) as { calmRelId?: string };
+		const base =
+			d.calmRelId ??
+			(e.id.includes('#') ? e.id.slice(0, e.id.indexOf('#')) : e.id);
+		if (!base.startsWith('inferred-')) {
+			ids.add(base);
+		}
+	}
+	return ids;
+}
+
+function appendMissingModelRelationships(
+	canvasRels: CalmRelationship[],
+	modelRels: CalmRelationship[],
+	flowEdges: Edge[]
+): CalmRelationship[] {
+	if (modelRels.length === 0) return canvasRels;
+	const represented = representedModelRelIds(flowEdges);
+	const missing = modelRels.filter((r) => !represented.has(r['unique-id']));
+	if (missing.length === 0) return canvasRels;
+	return [...canvasRels, ...missing];
+}
+
+export type PersistArchitectureOptions = {
+	/** For export/save: keep model relationships not yet bound on the canvas. */
+	preserveMissingFromModel?: boolean;
+};
+
+/**
+ * Build the architecture body to persist/export from the live canvas.
+ *
+ * Canvas edges are authoritative when the bound `edges` array is non-empty.
+ * When it is still empty (import/remount/tab switch), keep canonical model
+ * relationships instead of replacing them with parentId-only containment.
+ */
+export function buildPersistedArchitecture(
+	flowNodes: Node[],
+	flowEdges: Edge[],
+	envelope: CalmArchitecture = model,
+	options?: PersistArchitectureOptions
+): CalmArchitecture {
+	const preserveMissing = options?.preserveMissingFromModel ?? false;
+	const canvasBody = flowToCalm(flowNodes, flowEdges);
+	const modelRelationships = envelope.relationships ?? [];
+
+	if (flowNodes.length === 0 && flowEdges.length === 0) {
+		// Canvas not bound yet (tab switch / remount) — keep loaded model.
+		if (envelope.nodes.length > 0 || (envelope.relationships?.length ?? 0) > 0) {
+			return envelope;
+		}
+		return mergeArchitectureBody(envelope, { nodes: [], relationships: [] });
+	}
+
+	let relationships: CalmRelationship[];
+
+	if (flowEdges.length === 0) {
+		relationships =
+			modelRelationships.length > 0
+				? mergeContainmentFromInferred(modelRelationships, canvasBody.relationships)
+				: canvasBody.relationships;
+	} else {
+		relationships = enrichRelationshipsFromModel(canvasBody.relationships, modelRelationships);
+		if (preserveMissing) {
+			relationships = appendMissingModelRelationships(
+				relationships,
+				modelRelationships,
+				flowEdges
+			);
+		}
+	}
+
+	return mergeArchitectureBody(envelope, { nodes: canvasBody.nodes, relationships });
+}
+
 export function applyFromCanvas(nodes: Node[], edges: Edge[]): boolean {
 	return withMutex(() => {
-		const arch = flowToCalm(nodes, edges);
-		model = { nodes: [...arch.nodes], relationships: [...arch.relationships] };
+		let next = buildPersistedArchitecture(nodes, edges);
+		if (!next['$schema'] && next.nodes.length > 0) {
+			next = ensureSchemaOnFirstElement(next, lastPlacedNodeType);
+		}
+		model = next;
+		lastPlacedNodeType = undefined;
 	});
+}
+
+/** JSON ready for export/save — always merges live canvas with canonical model. */
+export function getExportJson(nodes: Node[], edges: Edge[]): string {
+	const arch = buildPersistedArchitecture(nodes, edges, model, {
+		preserveMissingFromModel: true,
+	});
+	return JSON.stringify(arch, null, 2);
+}
+
+/** Call before placing the first node from the palette to set extension schema hint. */
+export function setSchemaHintForNodeType(calmType: string): void {
+	lastPlacedNodeType = calmType;
 }
 
 // ─── Read accessors ───────────────────────────────────────────────────────────
@@ -175,9 +318,13 @@ export function addCustomMetadata(nodeId: string, key: string, value: string): v
 		...model,
 		nodes: model.nodes.map((n: CalmNode) => {
 			if (n['unique-id'] !== nodeId) return n;
+			const existing =
+				typeof n.customMetadata === 'object' && n.customMetadata !== null
+					? (n.customMetadata as Record<string, string>)
+					: {};
 			return {
 				...n,
-				customMetadata: { ...(n.customMetadata ?? {}), [key]: value },
+				customMetadata: { ...existing, [key]: value },
 			};
 		}),
 	};
@@ -191,7 +338,11 @@ export function removeCustomMetadata(nodeId: string, key: string): void {
 		...model,
 		nodes: model.nodes.map((n: CalmNode) => {
 			if (n['unique-id'] !== nodeId) return n;
-			const updated = { ...(n.customMetadata ?? {}) };
+			const existing =
+				typeof n.customMetadata === 'object' && n.customMetadata !== null
+					? (n.customMetadata as Record<string, string>)
+					: {};
+			const updated = { ...existing };
 			delete updated[key];
 			return { ...n, customMetadata: updated };
 		}),

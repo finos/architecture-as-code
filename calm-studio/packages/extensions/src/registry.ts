@@ -29,6 +29,15 @@ export function resolvePackNode(calmType: string): NodeTypeEntry | null {
   return pack.nodes.find((n) => n.typeId === calmType) ?? null;
 }
 
+/** Resolve the pack definition for a CALM node type (core types map to the core pack). */
+export function getPackForNodeType(calmType: string): PackDefinition | null {
+  const colonIdx = calmType.indexOf(':');
+  if (colonIdx === -1) {
+    return registry.get('core') ?? null;
+  }
+  return registry.get(calmType.slice(0, colonIdx)) ?? null;
+}
+
 /**
  * Returns all currently registered packs as an array.
  */

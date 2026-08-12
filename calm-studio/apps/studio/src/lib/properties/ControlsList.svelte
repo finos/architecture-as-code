@@ -66,7 +66,7 @@
 	function handleAddRequirement(key: string) {
 		const updated: CalmControls = { ...(controls ?? {}) };
 		const reqs = [...(updated[key]?.requirements ?? [])];
-		const newReq: CalmControlRequirement = { 'requirement-url': '' };
+		const newReq: CalmControlRequirement = { 'requirement-url': '', config: {} };
 		reqs.push(newReq);
 		updated[key] = { ...updated[key], requirements: reqs };
 		onupdate(updated);
@@ -90,7 +90,7 @@
 		customControlCounter++;
 		const key = `custom-control-${customControlCounter}`;
 		const updated: CalmControls = { ...(controls ?? {}) };
-		updated[key] = { description: '', requirements: [{ 'requirement-url': '' }] };
+		updated[key] = { description: '', requirements: [{ 'requirement-url': '', config: {} }] };
 		onupdate(updated);
 		// Auto-expand the new control
 		const next = new Set(expandedControls);

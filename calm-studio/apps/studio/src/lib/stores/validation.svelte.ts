@@ -18,6 +18,8 @@
 import { getModel } from './calmModel.svelte';
 import { validateCalmArchitecture, type ValidationIssue } from '@calmstudio/calm-core';
 import { runAIGFRules } from '$lib/validation/aigf-rules';
+import { runProjectSpectralRules } from '$lib/project/spectralBridge';
+import { getProjectConfig, getProjectRootHandle } from '$lib/project/projectStore.svelte';
 
 // Re-export ValidationIssue for consumers that cannot resolve @calmstudio/calm-core via tsconfig
 export type { ValidationIssue };
@@ -28,20 +30,36 @@ let issues = $state<ValidationIssue[]>([]);
 let panelOpen = $state(false);
 let scrollToId = $state<string | null>(null);
 
+function sortIssues(list: ValidationIssue[]): ValidationIssue[] {
+	const severityOrder: Record<string, number> = { error: 0, warning: 1, info: 2 };
+	return [...list].sort(
+		(a, b) => (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2)
+	);
+}
+
 // ─── On-demand validation ────────────────────────────────────────────────────
 
 /**
  * Run validation on the current model and open the panel with results.
- * Called explicitly by the user (e.g., clicking a "Validate" button).
+ * Core CALM + AIGF always run; project Spectral rulesets supplement when configured (R25).
  */
 export function runValidation(): void {
+	void runValidationAsync();
+}
+
+/**
+ * Async validation including project Spectral rulesets (R25 / #19).
+ */
+export async function runValidationAsync(): Promise<void> {
 	const model = getModel();
 	const structural = validateCalmArchitecture(model);
 	const aigf = runAIGFRules(model);
-	issues = [...structural, ...aigf];
-	// Sort by severity: errors first, then warnings, then info
-	const severityOrder: Record<string, number> = { error: 0, warning: 1, info: 2 };
-	issues.sort((a, b) => (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2));
+	const spectral = await runProjectSpectralRules(
+		model,
+		getProjectConfig(),
+		getProjectRootHandle()
+	);
+	issues = sortIssues([...structural, ...aigf, ...spectral]);
 	panelOpen = true;
 }
 

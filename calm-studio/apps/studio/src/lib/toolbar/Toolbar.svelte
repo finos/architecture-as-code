@@ -18,6 +18,9 @@
 		onopen,
 		onsave,
 		onsaveas,
+		onsaveall,
+		onfindneighbors,
+		findNeighborsEnabled = false,
 		onnew,
 		onvalidate,
 		onexportcalm,
@@ -41,6 +44,9 @@
 		onopen: () => void;
 		onsave: () => void;
 		onsaveas: () => void;
+		onsaveall?: () => void;
+		onfindneighbors?: () => void;
+		findNeighborsEnabled?: boolean;
 		onnew: () => void;
 		onvalidate: () => void;
 		onexportcalm: () => void;
@@ -301,6 +307,41 @@
 			<span class="btn-label">Save</span>
 		</button>
 
+		{#if onsaveall}
+			<button
+				type="button"
+				class="toolbar-btn"
+				onclick={onsaveall}
+				aria-label="Save all dirty diagrams"
+				title="Save all"
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+					<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+					<polyline points="17 21 17 13 7 13 7 21" />
+					<polyline points="7 3 7 8 15 8" />
+					<line x1="12" y1="11" x2="12" y2="17" />
+				</svg>
+				<span class="btn-label">Save all</span>
+			</button>
+		{/if}
+
+		{#if onfindneighbors}
+			<button
+				type="button"
+				class="toolbar-btn"
+				onclick={onfindneighbors}
+				disabled={!findNeighborsEnabled}
+				aria-label="Find neighbors of selected node"
+				title={findNeighborsEnabled ? 'Find neighbors' : 'Select a node in a project folder'}
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+					<circle cx="11" cy="11" r="8" />
+					<line x1="21" y1="21" x2="16.65" y2="16.65" />
+				</svg>
+				<span class="btn-label">Neighbors</span>
+			</button>
+		{/if}
+
 		<!-- Validate -->
 		<button
 			type="button"
@@ -508,6 +549,11 @@
 		background: var(--color-surface-tertiary);
 		color: var(--color-text-primary);
 		border-color: var(--color-border);
+	}
+
+	.toolbar-btn:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
 	}
 
 	:global(.dark) .toolbar-btn {

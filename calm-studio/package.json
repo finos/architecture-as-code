@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=26.0.0"
+    "node": "^22.14.0 || >=24.10.0"
   },
   "workspaces": [
     "apps/studio",
     "packages/calm-core",
     "packages/extensions",
+    "packages/calmscript",
     "packages/mcp-server",
     "packages/github-action",
     "packages/vscode-extension",

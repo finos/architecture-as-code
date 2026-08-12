@@ -35,7 +35,7 @@ describe('GovernancePanel — no selection / empty state', () => {
 	it('shows "No governance recommendations" message for non-AI node type', () => {
 		resetModel();
 		applyFromJson({
-			nodes: [{ 'unique-id': 'svc-1', 'node-type': 'service', name: 'Regular Service' }],
+			nodes: [{ 'unique-id': 'svc-1', 'node-type': 'service', name: 'Regular Service', description: '' }],
 			relationships: [],
 		});
 		refreshGovernance();

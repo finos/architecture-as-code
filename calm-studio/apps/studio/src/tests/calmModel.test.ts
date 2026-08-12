@@ -5,11 +5,16 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import type { Node, Edge } from '@xyflow/svelte';
 import type { CalmArchitecture, CalmInterface } from '@calmstudio/calm-core';
+import type { StudioCalmInterface } from '$lib/canvas/flowTypes';
+import { calmToFlow } from '$lib/stores/projection';
+import { createMinimalArch } from '@calmstudio/calm-core/test-fixtures';
 import {
 	applyFromJson,
 	applyFromCanvas,
 	getModel,
 	getModelJson,
+	getExportJson,
+	buildPersistedArchitecture,
 	updateNodeProperty,
 	updateEdgeProperty,
 	addInterface,
@@ -35,6 +40,7 @@ const baseArch: CalmArchitecture = {
 			'unique-id': 'db-1',
 			'node-type': 'database',
 			name: 'Main DB',
+			description: '',
 		},
 	],
 	relationships: [
@@ -206,7 +212,7 @@ describe('interface CRUD', () => {
 	test('updateInterface updates type and value fields', () => {
 		updateInterface('svc-1', 'iface-1', { type: 'host-port', value: '9090' });
 		const node = getModel().nodes.find((n) => n['unique-id'] === 'svc-1')!;
-		const iface = node.interfaces![0];
+		const iface = node.interfaces![0] as StudioCalmInterface;
 		expect(iface.type).toBe('host-port');
 		expect(iface.value).toBe('9090');
 	});
@@ -242,5 +248,125 @@ describe('custom metadata', () => {
 		const node = getModel().nodes.find((n) => n['unique-id'] === 'svc-1')!;
 		expect(node.customMetadata!['team']).toBeUndefined();
 		expect(node.customMetadata!['env']).toBe('prod');
+	});
+});
+
+// ─── Export / persist merge ───────────────────────────────────────────────────
+
+describe('buildPersistedArchitecture / getExportJson', () => {
+	beforeEach(() => {
+		resetModel();
+	});
+
+	test('preserves model relationships when canvas edges are not yet bound', () => {
+		const arch = createMinimalArch();
+		applyFromJson(arch);
+		const { nodes } = calmToFlow(arch);
+
+		const persisted = buildPersistedArchitecture(nodes, []);
+		expect(persisted.relationships).toHaveLength(arch.relationships.length);
+		expect(persisted.relationships[0]!['unique-id']).toBe('api-to-db');
+	});
+
+	test('getExportJson includes relationships after connecting on canvas', () => {
+		const arch = createMinimalArch();
+		applyFromJson(arch);
+		const { nodes, edges } = calmToFlow(arch);
+
+		const exported = JSON.parse(getExportJson(nodes, edges)) as CalmArchitecture;
+		expect(exported.relationships).toHaveLength(1);
+		const rt = exported.relationships[0]!['relationship-type'];
+		expect('connects' in rt).toBe(true);
+	});
+
+	test('getExportJson keeps relationship metadata from model', () => {
+		const arch: CalmArchitecture = {
+			...createMinimalArch(),
+			relationships: [
+				{
+					'unique-id': 'api-to-db',
+					'relationship-type': {
+						connects: { source: { node: 'api-service' }, destination: { node: 'main-db' } },
+					},
+					metadata: { archimate: { relationship: 'Flow', 'calm-core-variant': 'connects' } },
+				},
+			],
+		};
+		applyFromJson(arch);
+		const { nodes, edges } = calmToFlow(arch);
+
+		const exported = JSON.parse(getExportJson(nodes, edges)) as CalmArchitecture;
+		expect(exported.relationships[0]!.metadata?.archimate).toBeDefined();
+	});
+
+	test('preserves connects when canvas has parentId but edges array is empty', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{ 'unique-id': 'c1', 'node-type': 'system', name: 'Container', description: '' },
+				{ 'unique-id': 's1', 'node-type': 'service', name: 'Inner', description: '' },
+				{ 'unique-id': 's2', 'node-type': 'service', name: 'Outer', description: '' },
+			],
+			relationships: [
+				{
+					'unique-id': 'contain',
+					'relationship-type': { 'composed-of': { container: 'c1', nodes: ['s1'] } },
+				},
+				{
+					'unique-id': 'connect',
+					'relationship-type': {
+						connects: { source: { node: 's1' }, destination: { node: 's2' } },
+					},
+				},
+			],
+		};
+		applyFromJson(arch);
+		const { nodes } = calmToFlow(arch);
+
+		const persisted = buildPersistedArchitecture(nodes, []);
+		expect(persisted.relationships).toHaveLength(2);
+		expect(persisted.relationships.some((r) => 'connects' in r['relationship-type'])).toBe(true);
+	});
+
+	test('preserves model when canvas nodes and edges are both empty', () => {
+		const arch = createMinimalArch();
+		applyFromJson(arch);
+
+		const persisted = buildPersistedArchitecture([], []);
+		expect(persisted.nodes).toHaveLength(arch.nodes.length);
+		expect(persisted.relationships).toHaveLength(arch.relationships.length);
+
+		const exported = JSON.parse(getExportJson([], [])) as CalmArchitecture;
+		expect(exported.nodes).toHaveLength(arch.nodes.length);
+		expect(exported.relationships).toHaveLength(arch.relationships.length);
+	});
+
+	test('getExportJson appends model relationships missing from partial canvas edges', () => {
+		const arch: CalmArchitecture = {
+			nodes: [
+				{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: '' },
+				{ 'unique-id': 'b', 'node-type': 'service', name: 'B', description: '' },
+				{ 'unique-id': 'c', 'node-type': 'service', name: 'C', description: '' },
+			],
+			relationships: [
+				{
+					'unique-id': 'a-b',
+					'relationship-type': {
+						connects: { source: { node: 'a' }, destination: { node: 'b' } },
+					},
+				},
+				{
+					'unique-id': 'b-c',
+					'relationship-type': {
+						connects: { source: { node: 'b' }, destination: { node: 'c' } },
+					},
+				},
+			],
+		};
+		applyFromJson(arch);
+		const { nodes, edges } = calmToFlow(arch);
+		const partialEdges = edges.filter((e) => e.id === 'a-b');
+
+		const exported = JSON.parse(getExportJson(nodes, partialEdges)) as CalmArchitecture;
+		expect(exported.relationships).toHaveLength(2);
 	});
 });

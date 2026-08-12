@@ -19,6 +19,7 @@ export interface MenuHandlers {
 	openFromPath: (path: string) => void | Promise<void>;
 	save: () => void | Promise<void>;
 	saveAs: () => void | Promise<void>;
+	saveAll?: () => void | Promise<void>;
 	newFile: () => void | Promise<void>;
 	exportCalm: () => void | Promise<void>;
 	exportSvg: () => void | Promise<void>;
@@ -90,6 +91,16 @@ export async function buildAppMenu(handlers: MenuHandlers): Promise<void> {
 				accelerator: 'CmdOrCtrl+Shift+S',
 				action: () => { void handlers.saveAs(); },
 			}),
+			...(handlers.saveAll
+				? [
+						await MenuItem.new({
+							id: 'save-all',
+							text: 'Save All',
+							accelerator: 'CmdOrCtrl+Alt+S',
+							action: () => { void handlers.saveAll?.(); },
+						}),
+					]
+				: []),
 			await PredefinedMenuItem.new({ item: 'Separator' }),
 			await MenuItem.new({
 				id: 'export-calm',

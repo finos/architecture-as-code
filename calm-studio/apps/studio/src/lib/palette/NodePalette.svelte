@@ -134,7 +134,11 @@
 							aria-label="Drag or double-click to place {node.label} node"
 							title={node.description ?? node.label}
 						>
-							<span class="item-icon" style="background: {node.color.border}20; color: {node.color.stroke};">
+							<span
+								class="item-icon"
+								class:archimate-icon={pack.id === 'archimate'}
+								style="background: {node.color.border}20; color: {node.color.stroke};"
+							>
 								{@html node.icon}
 							</span>
 							<span class="item-label">{node.label}</span>
@@ -197,7 +201,11 @@
 										aria-label="Drag or double-click to place {node.label} node"
 										title={node.description ?? node.label}
 									>
-										<span class="item-icon" style="background: {node.color.border}20; color: {node.color.stroke};">
+										<span
+								class="item-icon"
+								class:archimate-icon={pack.id === 'archimate'}
+								style="background: {node.color.border}20; color: {node.color.stroke};"
+							>
 											{@html node.icon}
 										</span>
 										<span class="item-label">{node.label}</span>
@@ -250,9 +258,9 @@
 		display: flex;
 		flex-direction: column;
 		width: 100%;
-		max-width: 280px;
+		min-width: 0;
 		height: 100%;
-		flex-shrink: 0;
+		flex: 1;
 		background: var(--color-surface);
 		border-right: 1px solid var(--color-border);
 		font-family: var(--font-sans);
@@ -412,6 +420,17 @@
 		border-radius: 7px;
 		flex-shrink: 0;
 		transition: all 0.15s ease;
+	}
+
+	.item-icon.archimate-icon {
+		font-size: 12.5px;
+		width: 36px;
+		height: 36px;
+	}
+
+	.item-icon.archimate-icon :global(svg) {
+		width: 2em;
+		height: 2em;
 	}
 
 	:global(.dark) .item-icon {

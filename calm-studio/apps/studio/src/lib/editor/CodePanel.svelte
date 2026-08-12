@@ -26,55 +26,78 @@
 
 	let { value, onchange, parseError, selectedNodeId, selectedEdgeId }: Props = $props();
 
-	// Hold the CodeMirror EditorView reference to dispatch scroll/selection commands.
 	let editorView = $state<EditorView | undefined>(undefined);
+	let localValue = $state(value);
+	let isFocused = $state(false);
+	let lastSyncedExternal = $state(value);
+	let lastSelectionNodeId = $state<string | null | undefined>(undefined);
+	let lastSelectionEdgeId = $state<string | null | undefined>(undefined);
 
-	// Build extensions list reactively — includes JSON linting and optional dark theme.
 	const extensions = $derived<Extension[]>([
 		linter(jsonParseLinter()),
 		lintGutter(),
 		EditorView.lineWrapping,
 	]);
 
-	// When selectedNodeId changes, scroll the editor to that node's JSON block.
+	// Sync external model → editor only when not actively typing.
 	$effect(() => {
-		const nodeId = selectedNodeId;
-		if (!nodeId || !editorView) return;
-
-		const offsets = findNodeOffset(value, nodeId);
-		if (!offsets) return;
-
-		editorView.dispatch({
-			selection: { anchor: offsets.start, head: offsets.end },
-			scrollIntoView: true,
-		});
+		const external = value;
+		if (external === lastSyncedExternal) return;
+		lastSyncedExternal = external;
+		if (!isFocused) {
+			localValue = external;
+		}
 	});
 
-	// When selectedEdgeId changes, scroll the editor to that edge's JSON block.
-	$effect(() => {
-		const edgeId = selectedEdgeId;
-		if (!edgeId || !editorView) return;
-
-		const offsets = findRelationshipOffset(value, edgeId);
+	function scrollToSelection(
+		id: string | null | undefined,
+		finder: (json: string, id: string) => { start: number; end: number } | null
+	) {
+		if (!id || !editorView) return;
+		const offsets = finder(localValue, id);
 		if (!offsets) return;
-
 		editorView.dispatch({
 			selection: { anchor: offsets.start, head: offsets.end },
 			scrollIntoView: true,
 		});
+	}
+
+	$effect(() => {
+		const nodeId = selectedNodeId;
+		if (nodeId === lastSelectionNodeId) return;
+		lastSelectionNodeId = nodeId;
+		scrollToSelection(nodeId, findNodeOffset);
+	});
+
+	$effect(() => {
+		const edgeId = selectedEdgeId;
+		if (edgeId === lastSelectionEdgeId) return;
+		lastSelectionEdgeId = edgeId;
+		scrollToSelection(edgeId, findRelationshipOffset);
 	});
 
 	function handleChange(newValue: string) {
+		localValue = newValue;
 		onchange?.(newValue);
 	}
 
 	function handleReady(view: EditorView) {
 		editorView = view;
 	}
+
+	function handleFocus() {
+		isFocused = true;
+	}
+
+	function handleBlur() {
+		isFocused = false;
+		if (localValue !== value) {
+			lastSyncedExternal = value;
+		}
+	}
 </script>
 
 <div class="code-panel" class:dark={isDark()}>
-	<!-- Tab bar -->
 	<div class="tab-bar">
 		<div class="tabs">
 			<button class="tab active" type="button">CALM JSON</button>
@@ -94,10 +117,9 @@
 		</span>
 	</div>
 
-	<!-- CodeMirror editor -->
-	<div class="editor-wrap">
+	<div class="editor-wrap" onfocusin={handleFocus} onfocusout={handleBlur}>
 		<CodeMirror
-			{value}
+			value={localValue}
 			lang={json()}
 			theme={isDark() ? oneDark : undefined}
 			{extensions}
@@ -124,7 +146,6 @@
 		overflow: hidden;
 	}
 
-	/* Tab bar */
 	.tab-bar {
 		display: flex;
 		align-items: center;
@@ -173,7 +194,6 @@
 		background: var(--color-surface-tertiary, rgba(0, 0, 0, 0.06));
 	}
 
-	/* Status indicator */
 	.status {
 		display: inline-flex;
 		align-items: center;
@@ -186,7 +206,7 @@
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: #22c55e; /* green */
+		background: #22c55e;
 		flex-shrink: 0;
 	}
 
@@ -198,7 +218,6 @@
 		background: #ef4444;
 	}
 
-	/* Editor fill */
 	.editor-wrap {
 		flex: 1;
 		overflow: hidden;
@@ -206,7 +225,6 @@
 		flex-direction: column;
 	}
 
-	/* Reach into CodeMirror host to fill height */
 	.editor-wrap :global(.codemirror-wrapper) {
 		height: 100%;
 		display: flex;
@@ -217,7 +235,6 @@
 		height: 100%;
 	}
 
-	/* Dark mode overrides */
 	:global(.dark) .code-panel {
 		background: #0d1117;
 		border-top-color: #334155;

@@ -3,7 +3,10 @@
 <script lang="ts">
 	import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+	import ReferenceGlassesSlot from './ReferenceGlassesSlot.svelte';
+	import { getNodeInterfaces } from './nodeData';
 	let { id, data, selected }: NodeProps = $props();
+	const interfaces = $derived(getNodeInterfaces(data as Record<string, unknown>));
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
 	const dataClassification = $derived((data as Record<string, unknown>)['data-classification'] as string | undefined);
@@ -25,13 +28,14 @@
 <Handle type="target" position={Position.Left} />
 <Handle type="source" position={Position.Right} />
 
-{#if data.interfaces}
-	{#each data.interfaces as iface, i}
+{#if interfaces}
+	{#each interfaces as iface, i}
 		<Handle type="source" position={Position.Right} id={iface['unique-id']} style="top: {20 + i * 20}%" />
 	{/each}
 {/if}
 
 <div class="node" class:selected>
+	<ReferenceGlassesSlot data={data as Record<string, unknown>} />
 	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 	<span class="label">{data.label ?? data.calmId}</span>
 	{#if data.calmType}

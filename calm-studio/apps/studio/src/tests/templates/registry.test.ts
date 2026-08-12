@@ -23,6 +23,7 @@ function makeTemplate(id: string, category: string): CalmTemplate {
 				'unique-id': `${id}-svc`,
 				'node-type': 'service',
 				name: `${id} Service`,
+				description: '',
 			},
 		],
 		relationships: [],

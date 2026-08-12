@@ -27,8 +27,8 @@ beforeEach(() => {
 	resetModel();
 	applyFromJson({
 		nodes: [
-			{ 'unique-id': 'svc-1', 'node-type': 'service', name: 'API Service' },
-			{ 'unique-id': 'db-1', 'node-type': 'database', name: 'Main DB' },
+			{ 'unique-id': 'svc-1', 'node-type': 'service', name: 'API Service', description: '' },
+			{ 'unique-id': 'db-1', 'node-type': 'database', name: 'Main DB', description: '' },
 		],
 		relationships: [
 			{
@@ -112,5 +112,76 @@ describe('EdgeProperties', () => {
 			props: { edge: makeFlowEdge('rel-1', 'connects', 'svc-1', 'db-1', 'HTTPS') },
 		});
 		expect(getByText('rel-1')).toBeTruthy();
+	});
+
+	it('shows metadata section for archimate relationships', () => {
+		resetModel();
+		applyFromJson({
+			nodes: [
+				{
+					'unique-id': 'app-1',
+					'node-type': 'archimate:applicationComponent',
+					name: 'App',
+					description: '',
+					metadata: {
+						owner: 'TBD',
+						archimate: {
+							layer: 'Application',
+							element: 'archimate:applicationComponent',
+							viewpoint: 'ApplicationCooperation',
+						},
+					},
+				},
+				{
+					'unique-id': 'svc-1',
+					'node-type': 'archimate:applicationService',
+					name: 'Service',
+					description: '',
+					metadata: {
+						owner: 'TBD',
+						archimate: {
+							layer: 'Application',
+							element: 'archimate:applicationService',
+							viewpoint: 'ApplicationCooperation',
+						},
+					},
+				},
+			],
+			relationships: [
+				{
+					'unique-id': 'rel-arch',
+					'relationship-type': {
+						interacts: { actor: 'app-1', nodes: ['svc-1'] },
+					},
+					metadata: {
+						archimate: {
+							relationship: 'Serving',
+							'calm-core-variant': 'interacts',
+						},
+					},
+				},
+			],
+		});
+		const edge: Edge = {
+			id: 'rel-arch',
+			source: 'app-1',
+			target: 'svc-1',
+			type: 'interacts',
+			data: {
+				calmVariant: 'interacts',
+				metadata: {
+					archimate: {
+						relationship: 'Serving',
+						'calm-core-variant': 'interacts',
+					},
+				},
+			},
+		};
+		const { getByText, getByLabelText } = render(EdgeProperties, {
+			props: { edge, onmutate: () => {} },
+		});
+		expect(getByText('Metadata')).toBeTruthy();
+		const select = getByLabelText(/archimate relationship/i) as HTMLSelectElement;
+		expect(select.value).toBe('Serving');
 	});
 });

@@ -13,7 +13,7 @@
  * - Open: stub showOpenFilePicker (FSA API) to serve previously exported content
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // Intercept the anchor-click-based Blob export
 // The app uses: `const a = document.createElement('a'); a.href = blobUrl; a.download = filename; a.click()`
@@ -21,7 +21,7 @@ import { test, expect, Page } from '@playwright/test';
 async function injectDownloadInterceptor(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const captured: { href: string; filename: string }[] = [];
-    (window as Record<string, unknown>)['__capturedDownloads'] = captured;
+    (window as unknown as Record<string, unknown>)['__capturedDownloads'] = captured;
 
     // Track blob URLs created so we can read them back
     const blobUrlMap = new Map<string, Blob>();
@@ -30,7 +30,7 @@ async function injectDownloadInterceptor(page: Page): Promise<void> {
       const url = origCreateObjectURL(blob);
       if (blob instanceof Blob) {
         blobUrlMap.set(url, blob);
-        (window as Record<string, unknown>)['__blobUrlMap'] = blobUrlMap;
+        (window as unknown as Record<string, unknown>)['__blobUrlMap'] = blobUrlMap;
       }
       return url;
     };
@@ -46,8 +46,8 @@ async function injectDownloadInterceptor(page: Page): Promise<void> {
           const anchor = el as HTMLAnchorElement;
           if (anchor.download && anchor.href) {
             captured.push({ href: anchor.href, filename: anchor.download });
-            (window as Record<string, unknown>)['__lastDownloadFilename'] = anchor.download;
-            (window as Record<string, unknown>)['__lastDownloadHref'] = anchor.href;
+            (window as unknown as Record<string, unknown>)['__lastDownloadFilename'] = anchor.download;
+            (window as unknown as Record<string, unknown>)['__lastDownloadHref'] = anchor.href;
           }
           // Do not actually trigger download — we captured it
         };
@@ -60,12 +60,12 @@ async function injectDownloadInterceptor(page: Page): Promise<void> {
 // Read the content of the last intercepted download by fetching the blob URL
 async function readLastDownload(page: Page): Promise<{ content: string; filename: string } | null> {
   const result = await page.evaluate(async () => {
-    const href = (window as Record<string, unknown>)['__lastDownloadHref'] as string | undefined;
-    const filename = (window as Record<string, unknown>)['__lastDownloadFilename'] as string | undefined;
+    const href = (window as unknown as Record<string, unknown>)['__lastDownloadHref'] as string | undefined;
+    const filename = (window as unknown as Record<string, unknown>)['__lastDownloadFilename'] as string | undefined;
     if (!href || !filename) return null;
 
     // Re-fetch the blob URL from our map
-    const blobUrlMap = (window as Record<string, unknown>)['__blobUrlMap'] as Map<string, Blob> | undefined;
+    const blobUrlMap = (window as unknown as Record<string, unknown>)['__blobUrlMap'] as Map<string, Blob> | undefined;
     if (blobUrlMap && blobUrlMap.has(href)) {
       const blob = blobUrlMap.get(href)!;
       const text = await blob.text();

@@ -32,6 +32,7 @@ export const aiPack: PackDefinition = {
   label: 'AI / Agentic',
   version: '1.0.0',
   color: aiColor,
+  schemaUrl: 'https://calm.finos.org/release/1.2/meta/ai.json',
   nodes: [
     node('ai:llm', 'LLM', 'llm', 'Large Language Model inference endpoint'),
     node('ai:agent', 'Agent', 'agent', 'An autonomous AI agent that takes actions'),

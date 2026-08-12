@@ -15,7 +15,8 @@
 		nodeId,
 		metadata = {},
 		onmutate,
-	}: { nodeId: string; metadata: Record<string, string>; onmutate?: () => void } = $props();
+		readonly = false,
+	}: { nodeId: string; metadata: Record<string, string>; onmutate?: () => void; readonly?: boolean } = $props();
 
 	// Local state for the "new row" form
 	let newKey = $state('');
@@ -29,6 +30,7 @@
 	const entries = $derived(Object.entries(metadata));
 
 	function handleValueChange(key: string, value: string) {
+		if (readonly) return;
 		clearTimeout(debounceTimers[key]);
 		debounceTimers[key] = setTimeout(() => {
 			addCustomMetadata(nodeId, key, value);
@@ -37,11 +39,13 @@
 	}
 
 	function handleDelete(key: string) {
+		if (readonly) return;
 		removeCustomMetadata(nodeId, key);
 		onmutate?.();
 	}
 
 	function handleAddClick() {
+		if (readonly) return;
 		showNewRow = true;
 		// Focus the key input on next tick
 		setTimeout(() => newKeyInput?.focus(), 0);
@@ -96,7 +100,9 @@
 						oninput={(e) => handleValueChange(key, (e.target as HTMLInputElement).value)}
 						placeholder="value"
 						aria-label="Property value for {key}"
+						disabled={readonly}
 					/>
+					{#if !readonly}
 					<button
 						class="delete-btn"
 						onclick={() => handleDelete(key)}
@@ -107,6 +113,7 @@
 							<path d="M18 6 6 18M6 6l12 12" />
 						</svg>
 					</button>
+					{/if}
 				</div>
 			{/each}
 		</div>
@@ -148,7 +155,7 @@
 		<p class="new-hint">Tab/Enter to save &middot; Esc to cancel</p>
 	{/if}
 
-	{#if !showNewRow}
+	{#if !showNewRow && !readonly}
 		<button class="add-btn" onclick={handleAddClick} type="button">
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 				<line x1="12" y1="5" x2="12" y2="19" />

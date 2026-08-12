@@ -24,8 +24,12 @@
 		selectedEdge = null,
 		onBeforeFirstEdit,
 		onmutate,
+		onswapedge,
 		ontogglepin,
 		readonly = false,
+		onopenreference,
+		onextract,
+		onfindneighbors,
 	}: {
 		selectedNode?: Node | null;
 		selectedEdge?: Edge | null;
@@ -33,10 +37,18 @@
 		onBeforeFirstEdit?: () => void;
 		/** Called after each property mutation to re-project canvas and code panel. */
 		onmutate?: () => void;
+		/** Called to swap direction of the selected edge. */
+		onswapedge?: () => void;
 		/** Called to toggle pin state for a node. */
 		ontogglepin?: (nodeId: string) => void;
 		/** When true, renders node/edge info but disables all editing (C4 view mode). */
 		readonly?: boolean;
+		/** Open source diagram for a reference node. */
+		onopenreference?: (nodeId: string) => void;
+		/** Extract node to separate diagram (R27). */
+		onextract?: (nodeId: string) => void;
+		/** Find project-wide neighbors (R28). */
+		onfindneighbors?: (nodeId: string) => void;
 	} = $props();
 
 	/** Prefer node when both are somehow selected. */
@@ -124,12 +136,16 @@
 						onBeforeFirstEdit={readonly ? undefined : onBeforeFirstEdit}
 						onmutate={readonly ? undefined : onmutate}
 						ontogglepin={readonly ? undefined : ontogglepin}
+						onopenreference={onopenreference}
+						onextract={readonly ? undefined : onextract}
+						onfindneighbors={onfindneighbors}
 					/>
 				{:else if activeEdge}
 					<EdgeProperties
 						edge={activeEdge}
 						onBeforeFirstEdit={readonly ? undefined : onBeforeFirstEdit}
 						onmutate={readonly ? undefined : onmutate}
+						onswap={readonly ? undefined : onswapedge}
 					/>
 				{/if}
 			{:else if activeTab === 'governance'}

@@ -17,12 +17,19 @@
 	import InterfaceList from './InterfaceList.svelte';
 	import ControlsList from './ControlsList.svelte';
 	import CustomMetadata from './CustomMetadata.svelte';
+	import MetadataForm from './MetadataForm.svelte';
+	import { asCalmFlowNodeData } from '$lib/canvas/flowTypes';
+	import { isReferenceNode, getDetailedArchitectureHref } from '$lib/metadata/referenceNode';
+	import { getMetadataFieldsForNodeType } from '$lib/metadata/metadataForm';
 
 	let {
 		node,
 		onBeforeFirstEdit,
 		onmutate,
 		ontogglepin,
+		onopenreference,
+		onextract,
+		onfindneighbors,
 	}: {
 		node: Node;
 		/** Called once before the first mutation per selection — used to push undo snapshot. */
@@ -31,7 +38,18 @@
 		onmutate?: () => void;
 		/** Called to toggle pin state for this node. */
 		ontogglepin?: (nodeId: string) => void;
+		/** Open the source diagram for a reference node (R16/R18). */
+		onopenreference?: (nodeId: string) => void;
+		/** Extract node to its own diagram file (R27). */
+		onextract?: (nodeId: string) => void;
+		/** Find project-wide neighbors (R28). */
+		onfindneighbors?: (nodeId: string) => void;
 	} = $props();
+
+	const nd = $derived(asCalmFlowNodeData(node.data as Record<string, unknown>));
+	const isReference = $derived(isReferenceNode(nd));
+	const referenceHref = $derived(getDetailedArchitectureHref(nd));
+	const isReadOnly = $derived(isReference);
 
 	const CALM_NODE_TYPES: CalmNodeType[] = [
 		'actor',
@@ -56,19 +74,19 @@
 	});
 
 	// Local state for debounced fields
-	let localName = $state(String(node.data?.label ?? node.data?.calmId ?? ''));
-	let localDescription = $state(String(node.data?.description ?? ''));
+	let localName = $state('');
+	let localDescription = $state('');
 	let localCustomType = $state('');
 
 	// Sync local state when node changes (selection change)
 	$effect(() => {
-		localName = String(node.data?.label ?? node.data?.calmId ?? '');
-		localDescription = String(node.data?.description ?? '');
+		localName = String(nd.label ?? nd.calmId ?? '');
+		localDescription = String(nd.description ?? '');
 		// Reset custom type when selection changes
 		localCustomType = '';
 	});
 
-	const calmType: string = $derived(String(node.data?.calmType ?? 'system'));
+	const calmType: string = $derived(String(nd.calmType ?? 'system'));
 	const isCustomType: boolean = $derived(!CALM_NODE_TYPES.includes(calmType as CalmNodeType));
 
 	let nameTimer: ReturnType<typeof setTimeout>;
@@ -83,45 +101,49 @@
 	}
 
 	function handleNameInput(e: Event) {
+		if (isReadOnly) return;
 		const value = (e.target as HTMLInputElement).value;
 		localName = value;
 		signalFirstEdit();
 		clearTimeout(nameTimer);
 		nameTimer = setTimeout(() => {
-			updateNodeProperty(node.data.calmId, 'name', value);
+			updateNodeProperty(nd.calmId, 'name', value);
 			onmutate?.();
 		}, 300);
 	}
 
 	function handleDescriptionInput(e: Event) {
+		if (isReadOnly) return;
 		const value = (e.target as HTMLTextAreaElement).value;
 		localDescription = value;
 		signalFirstEdit();
 		clearTimeout(descTimer);
 		descTimer = setTimeout(() => {
-			updateNodeProperty(node.data.calmId, 'description', value);
+			updateNodeProperty(nd.calmId, 'description', value);
 			onmutate?.();
 		}, 300);
 	}
 
 	function handleTypeChange(e: Event) {
+		if (isReadOnly) return;
 		const value = (e.target as HTMLSelectElement).value;
 		signalFirstEdit();
 		if (value !== 'custom') {
-			updateNodeProperty(node.data.calmId, 'node-type', value);
+			updateNodeProperty(nd.calmId, 'node-type', value);
 			onmutate?.();
 		}
 		// If custom, wait for the custom input to commit
 	}
 
 	function handleCustomTypeInput(e: Event) {
+		if (isReadOnly) return;
 		const value = (e.target as HTMLInputElement).value;
 		localCustomType = value;
 		signalFirstEdit();
 		clearTimeout(customTypeTimer);
 		customTypeTimer = setTimeout(() => {
 			if (value.trim()) {
-				updateNodeProperty(node.data.calmId, 'node-type', value.trim());
+				updateNodeProperty(nd.calmId, 'node-type', value.trim());
 				onmutate?.();
 			}
 		}, 300);
@@ -135,12 +157,50 @@
 	}
 </script>
 
-<div class="node-props">
+<div class="node-props" class:reference-readonly={isReference}>
+	{#if isReference}
+		<div class="reference-banner" role="status">
+			<p class="reference-banner-text">Referenční uzel — upravte zdrojový diagram</p>
+			{#if onopenreference}
+				<button
+					type="button"
+					class="open-source-btn"
+					onclick={() => onopenreference(nd.calmId)}
+					aria-label="Otevřít zdrojový diagram"
+				>
+					Otevřít zdroj
+				</button>
+			{/if}
+		</div>
+	{/if}
+
 	<!-- Header -->
 	<div class="props-header">
 		<span class="header-label">Node Properties</span>
 		<div class="header-actions">
-			{#if ontogglepin}
+			{#if onfindneighbors}
+				<button
+					type="button"
+					class="extract-btn"
+					onclick={() => onfindneighbors(nd.calmId)}
+					title="Find neighbors across the project"
+					aria-label="Find neighbors"
+				>
+					Neighbors…
+				</button>
+			{/if}
+			{#if onextract && !isReference}
+				<button
+					type="button"
+					class="extract-btn"
+					onclick={() => onextract(nd.calmId)}
+					title="Extract to separate diagram"
+					aria-label="Extract to diagram"
+				>
+					Extract…
+				</button>
+			{/if}
+			{#if ontogglepin && !isReference}
 				<button
 					type="button"
 					class="pin-toggle-btn"
@@ -165,7 +225,7 @@
 		<!-- unique-id: read-only -->
 		<div class="field">
 			<label class="field-label" for="node-unique-id">Unique ID</label>
-			<div class="read-only-field" id="node-unique-id" title={node.data?.calmId}>{node.data?.calmId}</div>
+			<div class="read-only-field" id="node-unique-id" title={nd.calmId}>{nd.calmId}</div>
 		</div>
 
 		<!-- name -->
@@ -179,6 +239,7 @@
 				oninput={handleNameInput}
 				placeholder="Node name"
 				aria-label="Node name"
+				disabled={isReadOnly}
 			/>
 		</div>
 
@@ -193,6 +254,7 @@
 				oninput={handleDescriptionInput}
 				placeholder="Node description"
 				aria-label="Node description"
+				disabled={isReadOnly}
 			></textarea>
 		</div>
 
@@ -205,6 +267,7 @@
 				value={isCustomType ? 'custom' : calmType}
 				onchange={handleTypeChange}
 				aria-label="Node type"
+				disabled={isReadOnly}
 			>
 				{#each CALM_NODE_TYPES as t}
 					<option value={t}>{getTypeLabel(t)}</option>
@@ -225,27 +288,66 @@
 					oninput={handleCustomTypeInput}
 					placeholder="Enter custom type"
 					aria-label="Custom node type string"
+					disabled={isReadOnly}
 				/>
+			</div>
+		{/if}
+
+		{#if isReference && referenceHref}
+			<div class="field">
+				<label class="field-label" for="node-detailed-architecture">Detailed architecture</label>
+				<div class="read-only-field" id="node-detailed-architecture" title={referenceHref}>
+					{referenceHref}
+				</div>
 			</div>
 		{/if}
 	</div>
 
+	<!-- Schema-driven metadata (R17) -->
+	<MetadataForm
+		elementId={nd.calmId}
+		fields={getMetadataFieldsForNodeType(calmType)}
+		metadata={(nd.metadata as Record<string, unknown> | undefined) ?? {}}
+		fallbackValues={{ element: calmType }}
+		readonly={isReference}
+		{onBeforeFirstEdit}
+		onCommit={
+			isReference
+				? undefined
+				: (next) => {
+						updateNodeProperty(nd.calmId, 'metadata', next);
+						onmutate?.();
+					}
+		}
+	/>
+
 	<!-- Interfaces section -->
-	<InterfaceList nodeId={node.data?.calmId} interfaces={node.data?.interfaces ?? []} {onmutate} />
+	<InterfaceList
+		nodeId={nd.calmId}
+		interfaces={nd.interfaces ?? []}
+		onmutate={isReference ? undefined : onmutate}
+		readonly={isReference}
+	/>
 
 	<!-- Controls section (CALM 1.2) -->
 	<ControlsList
-		controls={node.data?.controls}
+		controls={nd.controls}
 		onupdate={(newControls) => {
+			if (isReadOnly) return;
 			signalFirstEdit();
-			updateNodeProperty(node.data.calmId, 'controls', newControls);
+			updateNodeProperty(nd.calmId, 'controls', newControls);
 			onmutate?.();
 		}}
-		readonly={!onmutate}
+		readonly={isReference || !onmutate}
 	/>
 
 	<!-- Custom metadata section -->
-	<CustomMetadata nodeId={node.data?.calmId} metadata={node.data?.customMetadata ?? {}} {onmutate} />
+	<CustomMetadata
+		nodeId={nd.calmId}
+		metadata={nd.customMetadata ?? {}}
+		onmutate={isReference ? undefined : onmutate}
+		readonly={isReference}
+	/>
 </div>
 
 <style>
@@ -315,6 +417,22 @@
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.15s;
+	}
+
+	.extract-btn {
+		padding: 2px 6px;
+		border: 1px solid var(--color-border, #e2e8f0);
+		border-radius: 6px;
+		background: var(--color-surface, #fff);
+		color: var(--color-text-secondary, #475569);
+		font-size: 10px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.extract-btn:hover {
+		background: var(--color-surface-secondary, #f1f5f9);
+		color: var(--color-text-primary, #1e293b);
 	}
 
 	.pin-toggle-btn:hover {
@@ -484,6 +602,61 @@
 
 	:global(.dark) .field-select:focus {
 		border-color: #818cf8;
+	}
+
+	.reference-banner {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 10px 12px;
+		background: rgba(59, 130, 246, 0.08);
+		border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+	}
+
+	.reference-banner-text {
+		margin: 0;
+		font-size: 11px;
+		line-height: 1.4;
+		color: var(--color-text-secondary, #475569);
+	}
+
+	.open-source-btn {
+		align-self: flex-start;
+		padding: 4px 10px;
+		font-size: 11px;
+		font-weight: 600;
+		font-family: inherit;
+		color: var(--color-accent, #3b82f6);
+		background: var(--color-surface, #fff);
+		border: 1px solid var(--color-accent, #3b82f6);
+		border-radius: 6px;
+		cursor: pointer;
+	}
+
+	.open-source-btn:hover {
+		background: rgba(59, 130, 246, 0.08);
+	}
+
+	:global(.dark) .reference-banner {
+		background: rgba(96, 165, 250, 0.1);
+		border-color: rgba(96, 165, 250, 0.25);
+	}
+
+	:global(.dark) .reference-banner-text {
+		color: #94a3b8;
+	}
+
+	:global(.dark) .open-source-btn {
+		background: #111827;
+		color: #60a5fa;
+		border-color: #60a5fa;
+	}
+
+	.field-input:disabled,
+	.field-textarea:disabled,
+	.field-select:disabled {
+		opacity: 0.75;
+		cursor: not-allowed;
 	}
 
 </style>

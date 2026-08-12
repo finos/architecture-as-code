@@ -57,6 +57,26 @@ describe('PackRegistry', () => {
 		expect(result?.typeId).toBe('test:foo');
 	});
 
+	it('resolvePackNode preserves rectangleLayout when set on a node entry', () => {
+		const testPack: PackDefinition = {
+			id: 'test',
+			label: 'Test Pack',
+			version: '1.0.0',
+			color: { bg: '#fff', border: '#000', stroke: '#000' },
+			nodes: [
+				{
+					typeId: 'test:rect',
+					label: 'Rect',
+					icon: '<svg/>',
+					color: { bg: '#fff', border: '#000', stroke: '#000' },
+					rectangleLayout: true,
+				},
+			],
+		};
+		registerPack(testPack);
+		expect(resolvePackNode('test:rect')?.rectangleLayout).toBe(true);
+	});
+
 	it('getPacksForTypes returns unique pack IDs from colon-prefixed types, ignoring unprefixed', () => {
 		const packs = getPacksForTypes(['aws:lambda', 'actor', 'k8s:pod']);
 		expect(packs).toContain('aws');
@@ -94,6 +114,8 @@ describe('corePack', () => {
 			'ecosystem',
 			'ldap',
 			'data-asset',
+			
+			
 		];
 		for (const t of expectedTypes) {
 			expect(typeIds).toContain(t);
@@ -112,9 +134,9 @@ describe('initAllPacks', () => {
 		expect(packs.some((p) => p.id === 'core')).toBe(true);
 	});
 
-	it('getAllPacks() returns 10 packs after initAllPacks()', () => {
+	it('getAllPacks() returns 11 packs after initAllPacks()', () => {
 		initAllPacks();
-		expect(getAllPacks()).toHaveLength(10);
+		expect(getAllPacks()).toHaveLength(11);
 	});
 
 	it('AWS pack has >= 30 node entries', () => {

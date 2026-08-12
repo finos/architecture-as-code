@@ -8,12 +8,20 @@
   Flow overlays render as sibling group (outside the dimmed wrapper).
 -->
 <script lang="ts">
-	import { BaseEdge, EdgeLabel, getSmoothStepPath, type EdgeProps } from '@xyflow/svelte';
+	import { getContext } from 'svelte';
+	import { BaseEdge, EdgeLabel, type EdgeProps, type Node } from '@xyflow/svelte';
 	import FlowOverlay from './FlowOverlay.svelte';
 	import type { CalmTransition } from '@calmstudio/calm-core';
+	import {
+		CANVAS_NODES_CONTEXT,
+		getRoutedEdgePath,
+		type CanvasNodesGetter,
+	} from '../edgeRouting/routedEdgePath';
 
 	let {
 		id,
+		source,
+		target,
 		sourceX,
 		sourceY,
 		targetX,
@@ -26,8 +34,19 @@
 		style
 	}: EdgeProps = $props();
 
+	const getCanvasNodes = getContext<CanvasNodesGetter>(CANVAS_NODES_CONTEXT) ?? (() => [] as Node[]);
+
 	const [edgePath, labelX, labelY] = $derived(
-		getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+		getRoutedEdgePath(getCanvasNodes(), {
+			sourceX,
+			sourceY,
+			sourcePosition,
+			targetX,
+			targetY,
+			targetPosition,
+			sourceId: source,
+			targetId: target,
+		})
 	);
 
 	const protocolLabel = $derived((data as Record<string, unknown>)?.protocol ?? label);
@@ -67,7 +86,7 @@
 		edgePath={edgePath}
 		edgeId={id}
 		sequenceNumber={flowTransition['sequence-number']}
-		summary={flowTransition.summary}
+		summary={flowTransition.description}
 		direction={flowTransition.direction ?? 'source-to-destination'}
 		labelX={labelX}
 		labelY={labelY}

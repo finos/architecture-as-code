@@ -3,19 +3,30 @@
 <script lang="ts">
 	import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
+	import ReferenceGlassesSlot from './ReferenceGlassesSlot.svelte';
+	import { getNodeInterfaces } from './nodeData';
+	import { estimateRectangleNodeSize } from '$lib/canvas/rectangleNodeSize';
 	let { id, data, selected }: NodeProps = $props();
+	const interfaces = $derived(getNodeInterfaces(data as Record<string, unknown>));
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
+	const label = $derived((data as Record<string, unknown>).label as string ?? (data as Record<string, unknown>).calmId as string ?? id);
+	const details = $derived((data as Record<string, unknown>).calmDetails as Record<string, unknown> | undefined);
+	const hasReference = $derived(
+		Boolean((data as Record<string, unknown>).isReference) ||
+			(typeof details?.['detailed-architecture'] === 'string' && details['detailed-architecture'].length > 0),
+	);
+	const minSize = $derived(estimateRectangleNodeSize(label, { hasReference }));
 </script>
 
-<NodeResizer minWidth={90} minHeight={50} isVisible={selected} />
+<NodeResizer minWidth={minSize.width} minHeight={minSize.height} isVisible={selected} />
 <Handle type="target" position={Position.Top} />
 <Handle type="source" position={Position.Bottom} />
 <Handle type="target" position={Position.Left} />
 <Handle type="source" position={Position.Right} />
 
-{#if data.interfaces}
-	{#each data.interfaces as iface, i}
+{#if interfaces}
+	{#each interfaces as iface, i}
 		<Handle type="source" position={Position.Right} id={iface['unique-id']} style="top: {20 + i * 20}%" />
 	{/each}
 {/if}
@@ -29,6 +40,7 @@
 		</svg>
 	</div>
 	<span class="label">{data.label ?? data.calmId}</span>
+	<ReferenceGlassesSlot data={data as Record<string, unknown>} placement="inline" />
 </div>
 
 <style>
@@ -61,6 +73,8 @@
 		font-size: 10px;
 		font-weight: 600;
 		color: var(--node-label-color);
+		flex: 1;
+		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;

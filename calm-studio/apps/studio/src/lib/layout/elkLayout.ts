@@ -22,6 +22,7 @@ import type {
 	CalmRelationship,
 	CalmRelationshipVariant
 } from '@calmstudio/calm-core';
+import { resolveSiblingOverlaps } from '../canvas/edgeRouting/obstacleRouter';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,7 +102,8 @@ const elk = new ELK();
 export async function layoutCalm(
 	arch: CalmArchitecture,
 	pinnedIds: Set<string>,
-	direction: LayoutDirection = 'DOWN'
+	direction: LayoutDirection = 'DOWN',
+	sizeHints?: Map<string, { width: number; height: number }>
 ): Promise<PositionMap> {
 	const freeNodes = arch.nodes.filter((n) => !pinnedIds.has(n['unique-id']));
 	if (freeNodes.length === 0) return new Map();
@@ -181,10 +183,11 @@ export async function layoutCalm(
 	// Build ELK node tree recursively
 	function buildElkNode(nodeId: string): ElkNode {
 		const children = parentChildren.get(nodeId);
+		const hint = sizeHints?.get(nodeId);
 		const elkNode: ElkNode = {
 			id: nodeId,
-			width: NODE_WIDTH,
-			height: NODE_HEIGHT,
+			width: hint?.width ?? NODE_WIDTH,
+			height: hint?.height ?? NODE_HEIGHT,
 		};
 
 		if (children && children.size > 0) {
@@ -280,19 +283,19 @@ export async function layoutCalm(
 				elkNode.layoutOptions = {
 					'elk.algorithm': 'layered',
 					'elk.direction': edgeDirection,
-					'elk.padding': '[top=48,left=32,bottom=32,right=32]',
-					'elk.spacing.nodeNode': '50',
-					'elk.layered.spacing.nodeNodeBetweenLayers': '60',
-					'elk.spacing.edgeNode': '30',
-					'elk.spacing.edgeEdge': '20',
-					'elk.layered.spacing.edgeNodeBetweenLayers': '30',
+					'elk.padding': '[top=56,left=40,bottom=40,right=40]',
+					'elk.spacing.nodeNode': '80',
+					'elk.layered.spacing.nodeNodeBetweenLayers': '100',
+					'elk.spacing.edgeNode': '40',
+					'elk.spacing.edgeEdge': '25',
+					'elk.layered.spacing.edgeNodeBetweenLayers': '40',
 					'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
 				};
 			} else {
 				elkNode.layoutOptions = {
 					'elk.algorithm': 'rectpacking',
-					'elk.padding': '[top=48,left=32,bottom=32,right=32]',
-					'elk.spacing.nodeNode': '50',
+					'elk.padding': '[top=56,left=40,bottom=40,right=40]',
+					'elk.spacing.nodeNode': '80',
 					'elk.aspectRatio': direction === 'DOWN' ? '99' : '0.01',
 				};
 			}
@@ -341,11 +344,11 @@ export async function layoutCalm(
 		layoutOptions: {
 			'elk.algorithm': 'layered',
 			'elk.direction': direction,
-			'elk.layered.spacing.nodeNodeBetweenLayers': '120',
-			'elk.spacing.nodeNode': '100',
-			'elk.spacing.edgeNode': '40',
-			'elk.spacing.edgeEdge': '25',
-			'elk.layered.spacing.edgeNodeBetweenLayers': '40',
+			'elk.layered.spacing.nodeNodeBetweenLayers': '160',
+			'elk.spacing.nodeNode': '120',
+			'elk.spacing.edgeNode': '50',
+			'elk.spacing.edgeEdge': '30',
+			'elk.layered.spacing.edgeNodeBetweenLayers': '50',
 			'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
 		},
 		children: topLevelNodes,
@@ -371,7 +374,107 @@ export async function layoutCalm(
 	}
 	extractPositions(layouted);
 
-	return positionMap;
+	// Prefer measured/estimated sizes over ELK defaults so post-pass matches canvas chrome
+	for (const [id, pos] of positionMap) {
+		const hint = sizeHints?.get(id);
+		if (!hint) continue;
+		const isContainer = parentChildren.has(id);
+		if (isContainer) {
+			// Keep ELK container size as floor; grow if hint is larger
+			positionMap.set(id, {
+				...pos,
+				width: Math.max(pos.width ?? 0, hint.width),
+				height: Math.max(pos.height ?? 0, hint.height),
+			});
+		} else {
+			positionMap.set(id, {
+				...pos,
+				width: hint.width,
+				height: hint.height,
+			});
+		}
+	}
+
+	// Also seed sizeHints for any free node missing from ELK output positions
+	for (const n of freeNodes) {
+		const id = n['unique-id'];
+		if (positionMap.has(id)) continue;
+		const hint = sizeHints?.get(id);
+		if (hint) {
+			positionMap.set(id, { x: 0, y: 0, width: hint.width, height: hint.height });
+		}
+	}
+
+	const GAP = 28;
+	const PAD = { top: 56, left: 40, bottom: 40, right: 40 };
+
+	// Resolve overlaps deepest-first so parent resize sees final child positions
+	const groupsByDepth: string[][] = [];
+	function depthOf(id: string): number {
+		let d = 0;
+		let cur = id;
+		while (childToParent.has(cur)) {
+			cur = childToParent.get(cur)!;
+			d += 1;
+		}
+		return d;
+	}
+	for (const [, children] of parentChildren) {
+		const ids = Array.from(children);
+		if (ids.length >= 2) groupsByDepth.push(ids);
+	}
+	groupsByDepth.sort((a, b) => depthOf(a[0]) - depthOf(b[0])); // shallow first… then reverse
+	groupsByDepth.reverse(); // deepest first
+
+	const topLevelIds = freeNodes
+		.filter((n) => !childToParent.has(n['unique-id']))
+		.map((n) => n['unique-id']);
+	if (topLevelIds.length >= 2) {
+		groupsByDepth.push(topLevelIds);
+	}
+
+	let result: PositionMap = positionMap;
+	for (const group of groupsByDepth) {
+		result = resolveSiblingOverlaps(result, group, GAP);
+	}
+
+	// Expand containers to fit children after separation (bottom-up)
+	const containerIds = Array.from(parentChildren.keys()).sort(
+		(a, b) => depthOf(b) - depthOf(a)
+	);
+	for (const parentId of containerIds) {
+		const children = parentChildren.get(parentId);
+		if (!children || children.size === 0) continue;
+		const parentPos = result.get(parentId);
+		if (!parentPos) continue;
+
+		let maxR = 0;
+		let maxB = 0;
+		for (const childId of children) {
+			const c = result.get(childId);
+			if (!c) continue;
+			const cw = c.width ?? sizeHints?.get(childId)?.width ?? NODE_WIDTH;
+			const ch = c.height ?? sizeHints?.get(childId)?.height ?? NODE_HEIGHT;
+			maxR = Math.max(maxR, c.x + cw);
+			maxB = Math.max(maxB, c.y + ch);
+		}
+		const nextW = Math.max(parentPos.width ?? 0, maxR + PAD.right);
+		const nextH = Math.max(parentPos.height ?? 0, maxB + PAD.bottom);
+		result.set(parentId, {
+			...parentPos,
+			x: parentPos.x,
+			y: parentPos.y,
+			width: nextW,
+			height: nextH,
+		});
+	}
+
+	// Re-resolve parent sibling groups after container resize (sizes changed)
+	for (const group of groupsByDepth) {
+		result = resolveSiblingOverlaps(result, group, GAP);
+	}
+
+	return result;
 }
 
 /**

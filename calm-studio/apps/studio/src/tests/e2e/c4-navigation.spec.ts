@@ -23,7 +23,7 @@
  *   - Level badge: aria-label="C4 level: {level}"
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 async function loadFluxNovaPlatformTemplate(page: Page): Promise<void> {
   // Register dialog handler BEFORE any action that might trigger it

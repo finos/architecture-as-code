@@ -17,7 +17,7 @@
 	// Register all templates at module load time alongside packs.
 	initAllTemplates();
 	import DnDProvider from '$lib/palette/DnDProvider.svelte';
-	import NodePalette from '$lib/palette/NodePalette.svelte';
+	import LeftSidebar from '$lib/explorer/LeftSidebar.svelte';
 	import CalmCanvas from '$lib/canvas/CalmCanvas.svelte';
 	import CodePanel from '$lib/editor/CodePanel.svelte';
 	import PropertiesPanel from '$lib/properties/PropertiesPanel.svelte';
@@ -45,19 +45,53 @@
 	} from '$lib/c4/c4Filter';
 	import type { C4Level } from '$lib/c4/c4Filter';
 	import { toggleTheme, isDark } from '$lib/stores/theme.svelte';
-	import { getModelJson, applyFromJson, applyFromCanvas, getModel, resetModel } from '$lib/stores/calmModel.svelte';
+	import { getModelJson, getExportJson, applyFromJson, applyFromCanvas, getModel, resetModel, updateEdgeProperty } from '$lib/stores/calmModel.svelte';
 	import { calmToFlow } from '$lib/stores/projection';
-	import { pushSnapshot, resetHistory, undo, redo } from '$lib/stores/history.svelte';
+	import { applyContainmentFromEdges } from '$lib/canvas/containment';
+	import { pushSnapshot, resetHistory, undo, redo, exportHistoryState, loadHistoryState, createEmptyHistoryState } from '$lib/stores/history.svelte';
 	import { layoutCalm, type LayoutDirection } from '$lib/layout/elkLayout';
+	import { buildLayoutSizeHints } from '$lib/layout/layoutSizeHints';
 	import { openFile, saveFile, saveFileAs } from '$lib/io/fileSystem';
 	import {
 		getFileName,
 		getFileHandle,
-		getIsDirty,
+		getFileRelativePath,
+		hasUnsavedChanges,
 		markDirty,
 		markClean,
-		resetFileState
+		resetFileState,
+		setCleanSnapshot,
 	} from '$lib/io/fileState.svelte';
+	import UnsavedChangesDialog from '$lib/io/UnsavedChangesDialog.svelte';
+	import BulkUnsavedDialog from '$lib/io/BulkUnsavedDialog.svelte';
+	import DiagramTabBar from '$lib/tabs/DiagramTabBar.svelte';
+	import type { DiagramTabState } from '$lib/tabs/tabManager';
+	import {
+		MAX_DIAGRAM_TABS,
+		closeTab,
+		findTabByFile,
+		openOrActivateTab,
+		patchTabState,
+		pickFifoEvictionCandidate,
+	} from '$lib/tabs/tabManager';
+	import { tabsToClose, type BulkCloseMode } from '$lib/tabs/bulkClose';
+	import FindNeighborsDialog from '$lib/neighbors/FindNeighborsDialog.svelte';
+	import { scanProjectNeighbors, type NeighborHit } from '$lib/neighbors/findNeighbors';
+	import { addNeighborsToCanvas } from '$lib/neighbors/addNeighbors';
+	import DiagramFilterBar from '$lib/filter/DiagramFilterBar.svelte';
+	import {
+		DEFAULT_DIAGRAM_FILTER,
+		applyFogClasses,
+		collectMetadataFilterKeys,
+		collectMetadataValuesOnDiagram,
+		computeFogMatchSet,
+		type DiagramFilterState,
+	} from '$lib/filter/diagramFilter';
+	import { swapRelationshipDirection } from '$lib/stores/relationshipSwap';
+	import { resolveDetailedArchitecture } from '$lib/reference/resolveReference';
+	import OutsideProjectInfobox from '$lib/reference/OutsideProjectInfobox.svelte';
+	import { findFileInTree, readFileContent } from '$lib/explorer/folderScan';
+	import { getExplorerTree } from '$lib/explorer/explorerTree.svelte';
 	import { isTauri } from '$lib/desktop/isTauri';
 	import { updateWindowTitle } from '$lib/desktop/titleBar';
 	import { buildAppMenu, updateRecentFilesMenu } from '$lib/desktop/menu';
@@ -82,6 +116,7 @@
 		setScrollToElementId,
 		clearValidation,
 		runValidation,
+		runValidationAsync,
 	} from '$lib/stores/validation.svelte';
 	import {
 		refreshGovernance,
@@ -96,11 +131,40 @@
 		getFlowTransitionForEdge,
 		isNodeInActiveFlow,
 	} from '$lib/stores/flowState.svelte';
+	import { applyExtractToParent } from '$lib/project/extractSubgraph';
+	import { resolveExtractPath } from '$lib/project/naming';
+	import {
+		ensureWritePermission,
+		projectRelativeFileExists,
+		writeProjectRelativeFile,
+	} from '$lib/project/projectFs';
+	import { getProjectConfig, getProjectRootHandle } from '$lib/project/projectStore.svelte';
+	import { relativePathBetween } from '$lib/explorer/relativePath';
+	import ExtractToDiagramDialog from '$lib/project/ExtractToDiagramDialog.svelte';
+	import { isReferenceNode } from '$lib/metadata/referenceNode';
+	import { asCalmFlowNodeData } from '$lib/canvas/flowTypes';
 
 	let nodes = $state.raw<Node[]>([]);
 	let edges = $state.raw<Edge[]>([]);
 
+	let diagramTabs = $state<DiagramTabState[]>([]);
+	let activeTabId = $state<string | null>(null);
+	/** Bumped on tab restore to force Svelte Flow remount with fresh nodes/edges. */
+	let tabRenderKey = $state(0);
+	let outsideProjectHref = $state<string | null>(null);
+
 	let canvas: CalmCanvas;
+	let leftSidebar: LeftSidebar | undefined = $state();
+	let referenceFocusWarning = $state<string | null>(null);
+
+	// ─── Extract to diagram (R27) ─────────────────────────────────────────────
+	let extractDialog = $state<{
+		nodeId: string;
+		folder: string;
+		fileName: string;
+		warning: string | null;
+	} | null>(null);
+	let extractError = $state<string | null>(null);
 
 	// ─── Desktop: native title bar sync ───────────────────────────────────────
 
@@ -108,7 +172,7 @@
 	// Only active in Tauri desktop mode — no-ops in browser builds.
 	$effect(() => {
 		if (isTauri()) {
-			updateWindowTitle(getFileName(), getIsDirty());
+			updateWindowTitle(getFileName(), isDocumentModified);
 		}
 	});
 
@@ -197,8 +261,10 @@
 			clearNodeEdgeValidation();
 			return;
 		}
-		runValidation();
-		enrichNodesEdgesWithValidation();
+		void (async () => {
+			await runValidationAsync();
+			enrichNodesEdgesWithValidation();
+		})();
 	}
 
 	/** Strip validation data from nodes/edges so badges and edge colors disappear. */
@@ -296,7 +362,12 @@
 
 		if (subArch.nodes.length === 0) return;
 
-		const positions = await layoutCalm(subArch, new Set(), layoutDirection);
+		const positions = await layoutCalm(
+			subArch,
+			new Set(),
+			layoutDirection,
+			buildLayoutSizeHints(subArch, nodes)
+		);
 		c4PositionOverrides = positions;
 
 		await tick();
@@ -368,6 +439,514 @@
 	/** When true, the full-screen TemplatePicker modal is shown. */
 	let showTemplatePicker = $state(false);
 
+	// ─── Unsaved changes dialog (Save / Don't save / Cancel) ─────────────────
+
+	type UnsavedChoice = 'save' | 'discard' | 'cancel';
+
+	let showUnsavedDialog = $state(false);
+	let unsavedDialogResolver: ((choice: UnsavedChoice) => void) | null = null;
+
+	type BulkUnsavedChoice = 'save' | 'discard' | 'cancel';
+	let showBulkUnsavedDialog = $state(false);
+	let bulkUnsavedFilenames = $state<string[]>([]);
+	let bulkUnsavedResolver: ((choice: BulkUnsavedChoice) => void) | null = null;
+
+	let neighborsDialogOpen = $state(false);
+	let neighborsLoading = $state(false);
+	let neighborsError = $state<string | null>(null);
+	let neighborsHits = $state<NeighborHit[]>([]);
+	let neighborsFocusId = $state<string | null>(null);
+	let neighborsSearchRoots = $state<string[]>([]);
+
+	let diagramFilter = $state<DiagramFilterState>({ ...DEFAULT_DIAGRAM_FILTER });
+	let tabFilters = $state<Record<string, DiagramFilterState>>({});
+
+	function promptUnsavedChanges(): Promise<UnsavedChoice> {
+		return new Promise((resolve) => {
+			unsavedDialogResolver = resolve;
+			showUnsavedDialog = true;
+		});
+	}
+
+	function resolveUnsavedDialog(choice: UnsavedChoice) {
+		showUnsavedDialog = false;
+		unsavedDialogResolver?.(choice);
+		unsavedDialogResolver = null;
+	}
+
+	function promptBulkUnsaved(filenames: string[]): Promise<BulkUnsavedChoice> {
+		return new Promise((resolve) => {
+			bulkUnsavedFilenames = filenames;
+			bulkUnsavedResolver = resolve;
+			showBulkUnsavedDialog = true;
+		});
+	}
+
+	function resolveBulkUnsavedDialog(choice: BulkUnsavedChoice) {
+		showBulkUnsavedDialog = false;
+		bulkUnsavedResolver?.(choice);
+		bulkUnsavedResolver = null;
+	}
+
+	function markDocumentClean(
+		name?: string,
+		handle?: FileSystemFileHandle | string | null,
+		relativePath?: string | null
+	) {
+		markClean(name, handle, relativePath);
+		setCleanSnapshot(getModelJson());
+	}
+
+	async function ensureCanProceedWithUnsavedChanges(): Promise<boolean> {
+		if (!hasUnsavedChanges(getModelJson())) return true;
+
+		const choice = await promptUnsavedChanges();
+		if (choice === 'cancel') return false;
+		if (choice === 'save') {
+			await handleSave();
+			if (hasUnsavedChanges(getModelJson())) return false;
+		}
+		return true;
+	}
+
+	// ─── Diagram tabs (P1 R15) ───────────────────────────────────────────────
+
+	function isTabDirty(tab: DiagramTabState): boolean {
+		if (tab.id === activeTabId) {
+			return hasUnsavedChanges(getModelJson());
+		}
+		return tab.modelJson !== tab.cleanSnapshot;
+	}
+
+	function cloneFlowState<T>(value: T): T {
+		return JSON.parse(JSON.stringify(value)) as T;
+	}
+
+	function buildFlowPositionMap(
+		tabNodes: Node[],
+		arch?: CalmArchitecture
+	): Map<string, { x: number; y: number; width?: number; height?: number }> {
+		const allowedIds = arch ? new Set(arch.nodes.map((n) => n['unique-id'])) : null;
+		const positionMap = new Map<string, { x: number; y: number; width?: number; height?: number }>();
+		for (const n of tabNodes) {
+			const calmId = n.data?.calmId as string | undefined;
+			if (!calmId || (allowedIds && !allowedIds.has(calmId))) continue;
+			positionMap.set(calmId, {
+				...n.position,
+				width: n.measured?.width ?? n.width,
+				height: n.measured?.height ?? n.height,
+			});
+		}
+		return positionMap;
+	}
+
+	/** Clear nested Svelte Flow nodes before replacing the diagram (avoids ghost containers). */
+	async function flushCanvasBeforeReplace(): Promise<void> {
+		selectedNodeId = null;
+		selectedEdgeId = null;
+		nodes = [];
+		edges = [];
+		tabRenderKey += 1;
+		await tick();
+	}
+
+	function applyArchitectureToCanvas(
+		arch: CalmArchitecture,
+		positionMap: Map<string, { x: number; y: number; width?: number; height?: number }>
+	): void {
+		const projected = calmToFlow(arch, positionMap);
+		edges = projected.edges;
+		nodes = applyContainmentFromEdges(projected.nodes, projected.edges);
+		applyFromCanvas(nodes, edges);
+	}
+
+	function persistActiveTab(): void {
+		if (!activeTabId) return;
+		applyFromCanvas(nodes, edges);
+		const json = getModelJson();
+		diagramTabs = patchTabState(diagramTabs, activeTabId, {
+			nodes: cloneFlowState(nodes),
+			edges: cloneFlowState(edges),
+			history: exportHistoryState(),
+			modelJson: json,
+			selectedNodeId,
+			selectedEdgeId,
+		});
+	}
+
+	async function restoreTabState(tab: DiagramTabState): Promise<void> {
+		importError = null;
+		extensionPackBanner = false;
+		clearValidation();
+		clearTimeout(codeChangeTimer);
+		codeParseError = null;
+
+		const arch = JSON.parse(tab.modelJson) as CalmArchitecture;
+		loadHistoryState(tab.history);
+		applyFromJson(arch);
+
+		// Flush first — Svelte Flow keeps parent/container nodes unless the canvas is cleared.
+		await flushCanvasBeforeReplace();
+		// Restore canvas snapshot (edges may be ahead of modelJson if sync was missed).
+		nodes = applyContainmentFromEdges(cloneFlowState(tab.nodes), cloneFlowState(tab.edges));
+		edges = cloneFlowState(tab.edges);
+		applyFromCanvas(nodes, edges);
+
+		markClean(tab.label, tab.fileHandle, tab.relativePath);
+		setCleanSnapshot(tab.cleanSnapshot);
+		selectedNodeId = tab.selectedNodeId;
+		selectedEdgeId = tab.selectedEdgeId;
+		refreshGovernance();
+
+		await tick();
+		canvas?.fitViewport();
+	}
+
+	async function evictOldestTabIfNeeded(): Promise<boolean> {
+		if (diagramTabs.length < MAX_DIAGRAM_TABS) return true;
+		const victim = pickFifoEvictionCandidate(
+			diagramTabs.filter((t) => t.id !== activeTabId)
+		);
+		if (!victim) return true;
+		if (isTabDirty(victim)) {
+			const confirmed = window.confirm(
+				`Zavřít nejstarší záložku „${victim.label}" s neuloženými změnami?`
+			);
+			if (!confirmed) return false;
+		}
+		diagramTabs = diagramTabs.filter((t) => t.id !== victim.id);
+		if (activeTabId === victim.id) {
+			activeTabId = diagramTabs[0]?.id ?? null;
+			if (activeTabId) {
+				const next = diagramTabs.find((t) => t.id === activeTabId);
+				if (next) await restoreTabState(next);
+			}
+		}
+		return true;
+	}
+
+	function registerCurrentDocumentAsTab(
+		label: string,
+		handle: FileSystemFileHandle | string | null,
+		relativePath: string | null
+	): void {
+		const json = getModelJson();
+		const tabId = crypto.randomUUID();
+		const result = openOrActivateTab(diagramTabs, activeTabId, tabId, {
+			label,
+			fileHandle: handle,
+			relativePath,
+			nodes,
+			edges,
+			history: exportHistoryState(),
+			modelJson: json,
+			cleanSnapshot: json,
+			selectedNodeId,
+			selectedEdgeId,
+		});
+		diagramTabs = result.tabs;
+		activeTabId = result.activeTabId;
+	}
+
+	async function handleActivateTab(tabId: string): Promise<void> {
+		if (tabId === activeTabId) return;
+		// Per R15: tab switch persists in-memory state without an unsaved-changes dialog.
+		persistActiveTab();
+		if (activeTabId) {
+			tabFilters = { ...tabFilters, [activeTabId]: { ...diagramFilter } };
+		}
+		const tab = diagramTabs.find((t) => t.id === tabId);
+		if (!tab) return;
+		activeTabId = tabId;
+		diagramFilter = tabFilters[tabId] ? { ...tabFilters[tabId]! } : { ...DEFAULT_DIAGRAM_FILTER };
+		await restoreTabState(tab);
+		refreshDiagramFog();
+	}
+
+	async function handleCloseTab(tabId: string): Promise<void> {
+		const tab = diagramTabs.find((t) => t.id === tabId);
+		if (!tab) return;
+
+		if (tabId === activeTabId) {
+			if (!(await ensureCanProceedWithUnsavedChanges())) return;
+		} else if (isTabDirty(tab)) {
+			const confirmed = window.confirm(
+				`Zavřít záložku „${tab.label}" s neuloženými změnami?`
+			);
+			if (!confirmed) return;
+		}
+
+		await closeTabImmediate(tabId);
+	}
+
+	async function closeTabImmediate(tabId: string): Promise<void> {
+		const result = closeTab(diagramTabs, activeTabId, tabId);
+		diagramTabs = result.tabs;
+		activeTabId = result.activeTabId;
+		const { [tabId]: _removed, ...restFilters } = tabFilters;
+		tabFilters = restFilters;
+
+		if (activeTabId) {
+			const next = diagramTabs.find((t) => t.id === activeTabId);
+			if (next) {
+				diagramFilter = tabFilters[activeTabId]
+					? { ...tabFilters[activeTabId]! }
+					: { ...DEFAULT_DIAGRAM_FILTER };
+				await restoreTabState(next);
+				refreshDiagramFog();
+			}
+		} else {
+			resetModel();
+			resetHistory();
+			resetFileState();
+			nodes = [];
+			edges = [];
+			diagramFilter = { ...DEFAULT_DIAGRAM_FILTER };
+			setCleanSnapshot(getModelJson());
+		}
+	}
+
+	async function handleBulkClose(clickedTabId: string, mode: BulkCloseMode): Promise<void> {
+		persistActiveTab();
+		const targets = tabsToClose(diagramTabs, clickedTabId, mode);
+		if (targets.length === 0) return;
+
+		const dirtyTargets = targets.filter((t) => isTabDirty(t));
+		if (dirtyTargets.length > 0) {
+			const choice = await promptBulkUnsaved(dirtyTargets.map((t) => t.label));
+			if (choice === 'cancel') return;
+			if (choice === 'save') {
+				const ok = await saveTabsSubset(dirtyTargets.map((t) => t.id));
+				if (!ok) return;
+			}
+		}
+
+		// Close from the end so indices stay stable relative to remaining tabs
+		const ids = targets.map((t) => t.id);
+		for (const id of [...ids].reverse()) {
+			await closeTabImmediate(id);
+		}
+	}
+
+	/** Save a subset of tabs (by id). Returns false if aborted (e.g. Save As cancel). */
+	async function saveTabsSubset(tabIds: string[]): Promise<boolean> {
+		persistActiveTab();
+		for (const tabId of tabIds) {
+			const tab = diagramTabs.find((t) => t.id === tabId);
+			if (!tab || !isTabDirty(tab)) continue;
+
+			const isUntitled = !tab.fileHandle && (!tab.relativePath || tab.label === 'Untitled');
+			if (isUntitled || !tab.fileHandle) {
+				if (tabId !== activeTabId) {
+					await handleActivateTab(tabId);
+				}
+				await handleSaveAs();
+				if (hasUnsavedChanges(getModelJson())) return false;
+				continue;
+			}
+
+			if (tabId === activeTabId) {
+				await handleSave();
+				if (hasUnsavedChanges(getModelJson())) return false;
+			} else {
+				try {
+					const handle = await saveFile(
+						tab.modelJson,
+						tab.fileHandle,
+						tab.label || 'architecture.calm.json'
+					);
+					const clean = tab.modelJson;
+					diagramTabs = patchTabState(diagramTabs, tabId, {
+						cleanSnapshot: clean,
+						fileHandle: handle ?? tab.fileHandle,
+					});
+					if (tab.relativePath) {
+						await leftSidebar?.refreshSavedFile(tab.relativePath);
+					}
+				} catch {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	async function handleSaveAll(): Promise<void> {
+		persistActiveTab();
+		const dirtyIds = diagramTabs.filter((t) => isTabDirty(t)).map((t) => t.id);
+		if (dirtyIds.length === 0) return;
+		await saveTabsSubset(dirtyIds);
+	}
+
+	async function openFindNeighbors(focusId?: string | null): Promise<void> {
+		const id = focusId ?? selectedNodeId;
+		const root = getProjectRootHandle();
+		if (!id || !root) return;
+
+		neighborsFocusId = id;
+		neighborsDialogOpen = true;
+		neighborsLoading = true;
+		neighborsError = null;
+		neighborsHits = [];
+		const searchRoots = getProjectConfig()?.neighbors?.searchRoots ?? [];
+		neighborsSearchRoots = [...searchRoots];
+		try {
+			neighborsHits = await scanProjectNeighbors(root, id, getFileRelativePath(), {
+				searchRoots,
+				activeArchitecture: getModel(),
+			});
+		} catch (e) {
+			neighborsError = e instanceof Error ? e.message : 'Failed to scan project neighbors';
+		} finally {
+			neighborsLoading = false;
+		}
+	}
+
+	function handleNeighborsConfirm(selected: NeighborHit[]): void {
+		if (!neighborsFocusId || selected.length === 0) {
+			neighborsDialogOpen = false;
+			return;
+		}
+		try {
+			pushSnapshot(nodes, edges);
+			const result = addNeighborsToCanvas({
+				hits: selected,
+				nodes,
+				edges,
+				focusUniqueId: neighborsFocusId,
+				currentRelativePath: getFileRelativePath(),
+			});
+			nodes = result.nodes;
+			edges = result.edges;
+			applyFromCanvas(nodes, edges);
+			markDirty();
+			neighborsDialogOpen = false;
+			refreshDiagramFog();
+		} catch (e) {
+			console.error('Failed to add neighbors:', e);
+			neighborsError = e instanceof Error ? e.message : 'Failed to add neighbors';
+		}
+	}
+
+	function refreshDiagramFog(): void {
+		const match = computeFogMatchSet(diagramFilter, nodes, edges, selectedNodeId);
+		const fogged = applyFogClasses(nodes, edges, match);
+		// Only assign when references changed — prevents Svelte Flow selection ↔ fog loops.
+		if (fogged.nodes !== nodes) nodes = fogged.nodes;
+		if (fogged.edges !== edges) edges = fogged.edges;
+	}
+
+	function handleDiagramFilterChange(next: DiagramFilterState): void {
+		diagramFilter = next;
+		if (activeTabId) {
+			tabFilters = { ...tabFilters, [activeTabId]: { ...next } };
+		}
+		refreshDiagramFog();
+	}
+
+	async function handleNewTab(): Promise<void> {
+		if (!(await ensureCanProceedWithUnsavedChanges())) return;
+		if (!(await evictOldestTabIfNeeded())) return;
+		persistActiveTab();
+
+		resetModel();
+		resetHistory();
+		resetFileState();
+		clearValidation();
+		nodes = [];
+		edges = [];
+		selectedNodeId = null;
+		selectedEdgeId = null;
+		const json = getModelJson();
+		setCleanSnapshot(json);
+
+		const tabId = crypto.randomUUID();
+		const newTab: DiagramTabState = {
+			id: tabId,
+			label: 'Untitled',
+			fileHandle: null,
+			relativePath: null,
+			openedAt: Date.now(),
+			nodes: [],
+			edges: [],
+			history: createEmptyHistoryState(),
+			modelJson: json,
+			cleanSnapshot: json,
+			selectedNodeId: null,
+			selectedEdgeId: null,
+		};
+		diagramTabs = [...diagramTabs, newTab];
+		activeTabId = tabId;
+	}
+
+	async function handleNavigateReference(calmId: string): Promise<void> {
+		const node = nodes.find((n) => n.data?.calmId === calmId || n.id === calmId);
+		if (!node) return;
+		const details = node.data?.calmDetails as Record<string, string> | undefined;
+		const href = details?.['detailed-architecture'];
+		if (!href) return;
+
+		// R22 — focus this unique-id in the target diagram after open
+		const focusUniqueId = (node.data?.calmId as string) ?? calmId;
+
+		const resolved = resolveDetailedArchitecture(getFileRelativePath(), href);
+		if (resolved.kind === 'external') {
+			outsideProjectHref = resolved.url;
+			return;
+		}
+		if (resolved.kind === 'outside-project') {
+			outsideProjectHref = resolved.href;
+			return;
+		}
+
+		const file = findFileInTree(getExplorerTree(), resolved.relativePath);
+		if (!file) {
+			importError = `Referenced file not found in project: ${resolved.relativePath}`;
+			return;
+		}
+		const content = await readFileContent(file);
+		const opened = await openCalmFileAfterConfirm(content, file.name, file.handle, file.relativePath);
+		if (!opened) return;
+
+		await tick();
+		const target = nodes.find(
+			(n) => (n.data?.calmId as string) === focusUniqueId || n.id === focusUniqueId
+		);
+		if (target) {
+			selectedNodeId = focusUniqueId;
+			selectedEdgeId = null;
+			canvas?.navigateToNode(focusUniqueId);
+			referenceFocusWarning = null;
+		} else {
+			referenceFocusWarning = `Referenced node "${focusUniqueId}" was not found in the target diagram.`;
+			setTimeout(() => {
+				if (referenceFocusWarning?.includes(focusUniqueId)) referenceFocusWarning = null;
+			}, 4000);
+		}
+	}
+
+	function handleSwapSelectedEdge(): void {
+		if (!selectedEdge) return;
+		const variant = (selectedEdge.data?.calmVariant ??
+			selectedEdge.type ??
+			'connects') as import('@calmstudio/calm-core').CalmRelationshipVariant;
+		const swapped = swapRelationshipDirection(
+			variant,
+			selectedEdge.source,
+			selectedEdge.target
+		);
+		const relId = (selectedEdge.data?.calmRelId as string) ?? selectedEdge.id;
+		updateEdgeProperty(relId, 'relationship-type', swapped.relationshipType);
+		edges = edges.map((e) =>
+			e.id === selectedEdge.id
+				? { ...e, source: swapped.source, target: swapped.target }
+				: e
+		);
+		nodes = applyContainmentFromEdges(nodes, edges);
+		handlePropertyMutation();
+		markDirty();
+	}
+
 	/**
 	 * Load a template onto the canvas.
 	 * If the canvas has content, prompts the user to confirm overwrite.
@@ -375,7 +954,7 @@
 	 */
 	async function handleTemplateLoad(templateId: string) {
 		// Dirty-state guard — templates replace the whole canvas
-		if (getIsDirty() || nodes.length > 0) {
+		if (hasUnsavedChanges(getModelJson()) || nodes.length > 0) {
 			const confirmed = window.confirm('You have unsaved changes. Load template anyway?');
 			if (!confirmed) return;
 		}
@@ -389,7 +968,7 @@
 		await importCalmFile(JSON.stringify(arch));
 
 		// Template load doesn't bind to a file — mark clean but without filename
-		markClean();
+		markDocumentClean();
 
 		// Initialize governance score for the loaded template
 		refreshGovernance();
@@ -401,12 +980,29 @@
 
 	// ─── Forward sync: model -> JSON string for code panel ───────────────────
 
-	const calmJson = $derived(getModelJson());
+	// Re-derive JSON when the active tab changes so the code panel tracks tab switches.
+	const calmJson = $derived.by(() => {
+		activeTabId;
+		// Track model mutations (canvas sync, property edits, code panel apply).
+		getModel();
+		return getModelJson();
+	});
+	const isDocumentModified = $derived(hasUnsavedChanges(calmJson));
 
 	// ─── Selection state ─────────────────────────────────────────────────────
 
 	let selectedNodeId = $state<string | null>(null);
 	let selectedEdgeId = $state<string | null>(null);
+
+	const metadataFilterKeys = $derived(collectMetadataFilterKeys(nodes));
+	const metadataFilterValues = $derived(
+		diagramFilter.metadataKey
+			? collectMetadataValuesOnDiagram(nodes, diagramFilter.metadataKey.split('.'))
+			: []
+	);
+	const findNeighborsEnabled = $derived(
+		!!selectedNodeId && !!getProjectRootHandle()
+	);
 
 	// Derive selected node/edge objects for properties panel
 	const selectedNode = $derived(
@@ -417,8 +1013,13 @@
 	);
 
 	function handleSelectionChange(nodeId: string | null, edgeId: string | null) {
+		const focusChanged = nodeId !== selectedNodeId;
 		selectedNodeId = nodeId;
 		selectedEdgeId = edgeId;
+		// Recompute fog only when the focused node changes — not on every SF selection echo.
+		if (diagramFilter.mode === 'focus-neighbors' && focusChanged) {
+			refreshDiagramFog();
+		}
 	}
 
 	// ─── Governance store wiring ──────────────────────────────────────────────
@@ -469,6 +1070,8 @@
 	let codeChangeTimer: ReturnType<typeof setTimeout>;
 
 	function handleCodeChange(newValue: string) {
+		// Mark dirty immediately so open/save guards work before debounced parse.
+		markDirty();
 		// Debounce: wait 400ms after last change before parsing
 		clearTimeout(codeChangeTimer);
 		codeChangeTimer = setTimeout(() => {
@@ -503,7 +1106,7 @@
 					);
 					edges = projected.edges;
 
-					// Mark dirty on code-driven changes
+					// dirty already set on keystroke; keep explicit for canvas-driven paths
 					markDirty();
 				}
 			} catch (e) {
@@ -538,7 +1141,7 @@
 
 		const projected = calmToFlow(model, positionMap);
 		// Preserve node selection state so SvelteFlow doesn't fire deselection
-		nodes = projected.nodes.map((n) =>
+		let nextNodes = projected.nodes.map((n) =>
 			selectionMap.has(n.data?.calmId as string)
 				? { ...n, selected: true }
 				: n
@@ -581,6 +1184,10 @@
 			return e;
 		});
 
+		// composed-of / deployed-in: enlarge container and fix child positions
+		nextNodes = applyContainmentFromEdges(nextNodes, edges);
+		nodes = nextNodes;
+
 		// Mark dirty on property mutations
 		markDirty();
 	}
@@ -602,9 +1209,146 @@
 				: n
 		);
 		applyFromCanvas(nodes, edges);
+		markDirty();
+	}
+
+	/** R27 — open Extract dialog with naming defaults from .calmrj. */
+	function handleExtractRequest(nodeId: string) {
+		extractError = null;
+		const root = getProjectRootHandle();
+		if (!root) {
+			extractError = 'Open a project folder before extracting to a diagram.';
+			return;
+		}
+		const currentPath = getFileRelativePath();
+		if (!currentPath) {
+			extractError = 'Save the current diagram into the project folder first.';
+			return;
+		}
+		applyFromCanvas(nodes, edges);
+		const model = getModel();
+		const node = model.nodes.find((n) => n['unique-id'] === nodeId);
+		if (!node) return;
+		const flowNode = nodes.find((n) => n.data?.calmId === nodeId);
+		if (flowNode && isReferenceNode(asCalmFlowNodeData(flowNode.data as Record<string, unknown>))) {
+			return;
+		}
+		const naming = resolveExtractPath(
+			String(node['node-type']),
+			{ name: node.name || nodeId },
+			getProjectConfig(),
+			currentPath
+		);
+		extractDialog = {
+			nodeId,
+			folder: naming.folder,
+			fileName: naming.fileName,
+			warning: naming.warning ?? null,
+		};
+	}
+
+	async function handleExtractConfirm(result: { folder: string; fileName: string }) {
+		if (!extractDialog) return;
+		const nodeId = extractDialog.nodeId;
+		extractDialog = null;
+		extractError = null;
+
+		const root = getProjectRootHandle();
+		const currentPath = getFileRelativePath();
+		if (!root || !currentPath) {
+			extractError = 'Project folder or current file path is missing.';
+			return;
+		}
+
+		const ok = await ensureWritePermission(root);
+		if (!ok) {
+			extractError = 'Write permission required to create the extracted diagram.';
+			return;
+		}
+
+		const relativeChild = result.folder
+			? `${result.folder.replace(/\/+$/, '')}/${result.fileName}`
+			: result.fileName;
+
+		if (await projectRelativeFileExists(root, relativeChild)) {
+			const overwrite = confirm(`File already exists:\n${relativeChild}\n\nOverwrite?`);
+			if (!overwrite) return;
+		}
+
+		try {
+			applyFromCanvas(nodes, edges);
+			pushSnapshot(nodes, edges);
+			const model = getModel();
+			const detailedHref = relativePathBetween(currentPath, relativeChild);
+			const { parentArchitecture, childArchitecture } = applyExtractToParent(
+				model,
+				nodeId,
+				detailedHref
+			);
+
+			const childJson = JSON.stringify(childArchitecture, null, 2) + '\n';
+			const childHandle = await writeProjectRelativeFile(root, relativeChild, childJson);
+
+			applyFromJson(parentArchitecture);
+			const positionMap = new Map<string, { x: number; y: number; width?: number; height?: number }>();
+			for (const n of nodes) {
+				if (n.data?.calmId) {
+					positionMap.set(n.data.calmId as string, {
+						...n.position,
+						width: n.measured?.width ?? n.width,
+						height: n.measured?.height ?? n.height,
+					});
+				}
+			}
+			applyArchitectureToCanvas(parentArchitecture, positionMap);
+			markDirty();
+			await leftSidebar?.rescanTree();
+
+			const childName = relativeChild.split('/').pop() ?? result.fileName;
+			// Parent tab already holds the stub (dirty); skip unsaved prompt so Extract can open the child.
+			await openCalmFileAfterConfirm(childJson, childName, childHandle, relativeChild, {
+				skipUnsavedPrompt: true,
+			});
+		} catch (e) {
+			extractError = (e as Error).message;
+		}
 	}
 
 	// ─── CALM file import ─────────────────────────────────────────────────────
+
+	/**
+	 * Open a CALM file after optional unsaved-changes confirmation.
+	 */
+	async function openCalmFileAfterConfirm(
+		content: string,
+		name: string,
+		handle: FileSystemFileHandle | string | null = null,
+		relativePath: string | null = null,
+		options?: { skipUnsavedPrompt?: boolean }
+	): Promise<boolean> {
+		const existing = findTabByFile(diagramTabs, relativePath, handle);
+		if (existing) {
+			await handleActivateTab(existing.id);
+			return true;
+		}
+
+		if (!options?.skipUnsavedPrompt && !(await ensureCanProceedWithUnsavedChanges())) {
+			return false;
+		}
+		if (!(await evictOldestTabIfNeeded())) {
+			return false;
+		}
+
+		persistActiveTab();
+		resetHistory();
+		await importCalmFile(content, name);
+		markDocumentClean(name, handle, relativePath);
+		registerCurrentDocumentAsTab(name, handle, relativePath);
+		// Canvas must sync after activeTabId is set (import alone updates JSON before the tab switch).
+		const activeTab = diagramTabs.find((t) => t.id === activeTabId);
+		if (activeTab) await restoreTabState(activeTab);
+		return true;
+	}
 
 	/**
 	 * Import a CALM JSON file from string content.
@@ -648,12 +1392,11 @@
 		applyFromJson(parsed);
 
 		// Auto-layout with no pinned nodes on fresh import
-		const positionMap = await layoutCalm(parsed, new Set(), 'DOWN');
+		const importHints = buildLayoutSizeHints(parsed);
+		const positionMap = await layoutCalm(parsed, new Set(), 'DOWN', importHints);
 
-		// Project to Svelte Flow
-		const projected = calmToFlow(parsed, positionMap);
-		nodes = projected.nodes;
-		edges = projected.edges;
+		await flushCanvasBeforeReplace();
+		applyArchitectureToCanvas(parsed, positionMap);
 
 		// Fit view after DOM update
 		await tick();
@@ -665,12 +1408,25 @@
 
 	// ─── File operations ──────────────────────────────────────────────────────
 
+	async function handleOpenExplorerFile(
+		content: string,
+		name: string,
+		relativePath: string,
+		handle: FileSystemFileHandle
+	) {
+		await openCalmFileAfterConfirm(content, name, handle, relativePath);
+	}
+
 	async function handleOpen() {
 		try {
 			const result = await openFile();
-			await importCalmFile(result.content, result.name);
-			// On success, importCalmFile clears importError; mark clean with new file info
-			markClean(result.name, result.handle);
+			const opened = await openCalmFileAfterConfirm(
+				result.content,
+				result.name,
+				result.handle,
+				null
+			);
+			if (!opened) return;
 			// Desktop: add to recent files and refresh menu
 			if (isTauri() && typeof result.handle === 'string') {
 				const recent = await addRecentFile(result.handle);
@@ -681,18 +1437,30 @@
 		}
 	}
 
+	async function handleFileImport(content: string, filename?: string) {
+		const name = filename ?? 'imported.calm.json';
+		await openCalmFileAfterConfirm(content, name, null, null);
+	}
+
 	async function handleLoadDemo(demo: { id: string; name: string; path: string }) {
 		const response = await fetch(demo.path);
 		const content = await response.text();
-		await importCalmFile(content, demo.name);
-		markClean(demo.name + '.calm.json', null);
+		await openCalmFileAfterConfirm(content, demo.name + '.calm.json', null, null);
+	}
+
+	async function refreshExplorerAfterSave(): Promise<void> {
+		const relativePath = getFileRelativePath();
+		if (!relativePath) return;
+		await leftSidebar?.refreshSavedFile(relativePath);
 	}
 
 	async function handleSave() {
 		try {
-			const json = getModelJson();
+			const json = getExportJson(nodes, edges);
+			syncCanvasToModel();
 			const handle = await saveFile(json, getFileHandle(), getFileName() ?? 'architecture.calm.json');
-			markClean(undefined, handle);
+			markDocumentClean(undefined, handle);
+			await refreshExplorerAfterSave();
 		} catch (e) {
 			// User cancelled or save failed — remain dirty
 		}
@@ -700,7 +1468,8 @@
 
 	async function handleSaveAs() {
 		try {
-			const json = getModelJson();
+			const json = getExportJson(nodes, edges);
+			syncCanvasToModel();
 			const handle = await saveFileAs(json, getFileName() ?? 'architecture.calm.json');
 			// saveFileAs returns:
 			// - string path (Tauri desktop)
@@ -709,30 +1478,22 @@
 			if (typeof handle === 'string') {
 				// Tauri desktop: extract filename from path
 				const name = handle.split(/[\\/]/).pop() ?? getFileName() ?? undefined;
-				markClean(name, handle);
+				markDocumentClean(name, handle);
 			} else if (handle) {
 				// Browser FSA: use handle.name
-				markClean(handle.name ?? getFileName() ?? undefined, handle);
+				markDocumentClean(handle.name ?? getFileName() ?? undefined, handle);
 			} else {
 				// Blob download — we can mark clean since content was "saved" (downloaded)
-				markClean();
+				markDocumentClean();
 			}
+			await refreshExplorerAfterSave();
 		} catch (e) {
 			// User cancelled or save failed — remain dirty
 		}
 	}
 
 	async function handleNew() {
-		if (getIsDirty()) {
-			const confirmed = window.confirm('You have unsaved changes. Continue without saving?');
-			if (!confirmed) return;
-		}
-		resetModel();
-		resetHistory();
-		resetFileState();
-		clearValidation();
-		nodes = [];
-		edges = [];
+		await handleNewTab();
 	}
 
 	// ─── Desktop: open file from path (drag-drop, file association, recent files) ─
@@ -746,8 +1507,8 @@
 		try {
 			const content = await readTextFile(path);
 			const name = path.split(/[\\/]/).pop() ?? path;
-			await importCalmFile(content, name);
-			markClean(name, path);
+			const opened = await openCalmFileAfterConfirm(content, name, path, null);
+			if (!opened) return;
 			const recent = await addRecentFile(path);
 			await updateRecentFilesMenu(recent);
 		} catch (e) {
@@ -768,6 +1529,7 @@
 			openFromPath: handleOpenFromPath,
 			save: handleSave,
 			saveAs: handleSaveAs,
+			saveAll: handleSaveAll,
 			newFile: handleNew,
 			exportCalm: handleExportCalm,
 			exportSvg: handleExportSvg,
@@ -777,6 +1539,7 @@
 				if (snapshot) {
 					nodes = snapshot.nodes;
 					edges = snapshot.edges;
+					applyFromCanvas(nodes, edges);
 				}
 			},
 			redo: () => {
@@ -784,6 +1547,7 @@
 				if (snapshot) {
 					nodes = snapshot.nodes;
 					edges = snapshot.edges;
+					applyFromCanvas(nodes, edges);
 				}
 			},
 			zoomIn: () => { /* TODO: wire to canvas zoom via useSvelteFlow */ },
@@ -827,26 +1591,41 @@
 
 	// ─── Export operations ────────────────────────────────────────────────────
 
+	/** Sync live canvas into the canonical model before save/tab persist. */
+	function syncCanvasToModel(): void {
+		applyFromCanvas(nodes, edges);
+	}
+
 	function handleExportCalm() {
-		exportAsCalm(getModelJson());
+		exportAsCalm(getExportJson(nodes, edges));
 	}
 
 	async function handleExportSvg() {
-		await exportAsSvg(nodes);
+		await tick();
+		if (nodes.length === 0) {
+			window.alert('Export SVG: diagram has no nodes on canvas.');
+			return;
+		}
+		await exportAsSvg(nodes, edges);
 	}
 
 	async function handleExportPng() {
-		await exportAsPng(nodes);
+		await tick();
+		if (nodes.length === 0) {
+			window.alert('Export PNG: diagram has no nodes on canvas.');
+			return;
+		}
+		await exportAsPng(nodes, edges);
 	}
 
 	function handleExportCalmscript() {
 		// Phase 4 stub: export CALM JSON with a header comment — Phase 5 will provide real calmscript
-		const json = getModelJson();
+		const json = getExportJson(nodes, edges);
 		exportAsCalmscript(`// calmscript export — full DSL support coming in Phase 5\n// CALM JSON representation:\n${json}\n`);
 	}
 
 	function handleExportScalerToml() {
-		const arch = JSON.parse(getModelJson()) as CalmArchitecture;
+		const arch = JSON.parse(getExportJson(nodes, edges)) as CalmArchitecture;
 		exportAsScalerToml(arch);
 	}
 
@@ -945,20 +1724,31 @@
 			nodes.filter((n) => n.data?.pinned).map((n) => n.id)
 		);
 
+		// Size hints must match rendered label chrome — otherwise ELK packs too tight
+		const sizeHints = buildLayoutSizeHints(model, nodes);
+
 		// Run ELK for free (unpinned) nodes
-		const elkPositions = await layoutCalm(model, pinnedIds, direction);
+		const elkPositions = await layoutCalm(model, pinnedIds, direction, sizeHints);
 
 		// Build final position map: ELK results + pinned node current positions
-		const finalPositions = new Map<string, { x: number; y: number }>();
+		const finalPositions = new Map<
+			string,
+			{ x: number; y: number; width?: number; height?: number }
+		>();
 
 		// Inject pinned positions from current canvas state
 		for (const n of nodes) {
 			if (pinnedIds.has(n.id)) {
-				finalPositions.set(n.id, { ...n.position });
+				const hint = sizeHints.get(n.id);
+				finalPositions.set(n.id, {
+					...n.position,
+					width: hint?.width ?? n.measured?.width ?? n.width,
+					height: hint?.height ?? n.measured?.height ?? n.height,
+				});
 			}
 		}
 
-		// Add ELK-computed positions for free nodes
+		// Add ELK-computed positions for free nodes (include width/height for projection)
 		for (const [id, pos] of elkPositions) {
 			finalPositions.set(id, pos);
 		}
@@ -980,6 +1770,8 @@
 	// ─── Keyboard shortcuts and beforeunload ──────────────────────────────────
 
 	onMount(() => {
+		setCleanSnapshot(getModelJson());
+
 		function handleKeydown(e: KeyboardEvent) {
 			// Option+N (Mac) / Alt+N: new diagram
 			// Use e.code because Option+N produces 'ñ' for e.key on Mac
@@ -1047,7 +1839,7 @@
 
 	$effect(() => {
 		const filename = getFileName();
-		const dirty = getIsDirty();
+		const dirty = isDocumentModified;
 
 		if (filename) {
 			document.title = dirty ? `${filename} \u2022 CalmStudio` : `${filename} - CalmStudio`;
@@ -1075,6 +1867,9 @@
 			onopen={handleOpen}
 			onsave={handleSave}
 			onsaveas={handleSaveAs}
+			onsaveall={handleSaveAll}
+			onfindneighbors={() => void openFindNeighbors()}
+			findNeighborsEnabled={findNeighborsEnabled}
 			onnew={handleNew}
 			onvalidate={handleValidate}
 			onexportcalm={handleExportCalm}
@@ -1085,7 +1880,7 @@
 			onloaddemo={handleLoadDemo}
 			ontemplates={() => (showTemplatePicker = true)}
 			filename={getFileName()}
-			isDirty={getIsDirty()}
+			isDirty={isDocumentModified}
 			c4Level={getC4Level()}
 			onc4levelchange={handleC4LevelChange}
 			governanceScore={getArchitectureScore()}
@@ -1094,6 +1889,24 @@
 			flows={flows}
 			activeFlowId={activeFlowId}
 			onflowchange={setActiveFlowId}
+		/>
+
+		<DiagramTabBar
+			tabs={diagramTabs}
+			{activeTabId}
+			isTabDirty={isTabDirty}
+			onactivate={handleActivateTab}
+			onclose={handleCloseTab}
+			onnew={handleNewTab}
+			onbulkclose={handleBulkClose}
+		/>
+
+		<DiagramFilterBar
+			filter={diagramFilter}
+			metadataKeys={metadataFilterKeys}
+			metadataValues={metadataFilterValues}
+			hasSelection={!!selectedNodeId}
+			onchange={handleDiagramFilterChange}
 		/>
 
 		<!-- Error banner: below toolbar, above canvas panes -->
@@ -1105,6 +1918,22 @@
 					class="error-dismiss"
 					onclick={() => (importError = null)}
 					aria-label="Dismiss error"
+				>
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+						<line x1="18" y1="6" x2="6" y2="18" />
+						<line x1="6" y1="6" x2="18" y2="18" />
+					</svg>
+				</button>
+			</div>
+		{/if}
+		{#if referenceFocusWarning}
+			<div class="error-banner" role="status">
+				<span class="error-message">{referenceFocusWarning}</span>
+				<button
+					type="button"
+					class="error-dismiss"
+					onclick={() => (referenceFocusWarning = null)}
+					aria-label="Dismiss warning"
 				>
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
 						<line x1="18" y1="6" x2="6" y2="18" />
@@ -1140,7 +1969,12 @@
 					<!-- Left: Node Palette (hidden in C4 mode) -->
 					{#if !isC4Mode()}
 						<Pane defaultSize={15} minSize={8}>
-							<NodePalette onplacenode={handlePalettePlace} />
+							<LeftSidebar
+								bind:this={leftSidebar}
+								onplacenode={handlePalettePlace}
+								currentFileRelativePath={getFileRelativePath()}
+								onopenexplorerfile={handleOpenExplorerFile}
+							/>
 						</Pane>
 
 						<PaneResizer class="resizer resizer-vertical" />
@@ -1220,6 +2054,7 @@
 								</button>
 							</div>
 
+							{#key tabRenderKey}
 							<SvelteFlowProvider>
 								{#if isC4Mode() && c4DisplayNodes.length === 0}
 									<!-- Empty C4 view -->
@@ -1245,8 +2080,9 @@
 										bind:edges
 										onplacenode={handlePalettePlace}
 										onselectionchange={handleSelectionChange}
-										onfileimport={importCalmFile}
+										onfileimport={handleFileImport}
 										oncanvaschange={markDirty}
+										onnavigatereference={handleNavigateReference}
 									/>
 								{/if}
 
@@ -1264,6 +2100,7 @@
 									</div>
 								{/if}
 							</SvelteFlowProvider>
+							{/key}
 						</div>
 					</Pane>
 
@@ -1276,7 +2113,11 @@
 							{selectedEdge}
 							onBeforeFirstEdit={handleBeforeFirstEdit}
 							onmutate={handlePropertyMutation}
+							onswapedge={handleSwapSelectedEdge}
 							ontogglepin={handleTogglePin}
+							onopenreference={handleNavigateReference}
+							onextract={handleExtractRequest}
+							onfindneighbors={(id) => void openFindNeighbors(id)}
 							readonly={isC4Mode()}
 						/>
 					</Pane>
@@ -1287,6 +2128,7 @@
 
 			<!-- Middle: Code editor panel (full width) -->
 			<Pane defaultSize={25} minSize={10}>
+				{#key tabRenderKey}
 				<CodePanel
 					value={calmJson}
 					onchange={handleCodeChange}
@@ -1294,6 +2136,7 @@
 					selectedNodeId={selectedNodeId}
 					selectedEdgeId={selectedEdgeId}
 				/>
+				{/key}
 			</Pane>
 
 			{#if isPanelOpen()}
@@ -1322,6 +2165,59 @@
 			/>
 		{/if}
 
+		{#if showUnsavedDialog}
+			<UnsavedChangesDialog
+				filename={getFileName()}
+				onsave={() => resolveUnsavedDialog('save')}
+				ondiscard={() => resolveUnsavedDialog('discard')}
+				oncancel={() => resolveUnsavedDialog('cancel')}
+			/>
+		{/if}
+
+		{#if showBulkUnsavedDialog}
+			<BulkUnsavedDialog
+				filenames={bulkUnsavedFilenames}
+				onsaveall={() => resolveBulkUnsavedDialog('save')}
+				ondiscard={() => resolveBulkUnsavedDialog('discard')}
+				oncancel={() => resolveBulkUnsavedDialog('cancel')}
+			/>
+		{/if}
+
+		{#if neighborsDialogOpen}
+			<FindNeighborsDialog
+				hits={neighborsHits}
+				loading={neighborsLoading}
+				error={neighborsError}
+				searchRoots={neighborsSearchRoots}
+				onconfirm={handleNeighborsConfirm}
+				oncancel={() => (neighborsDialogOpen = false)}
+			/>
+		{/if}
+
+		{#if outsideProjectHref}
+			<OutsideProjectInfobox
+				href={outsideProjectHref}
+				onclose={() => (outsideProjectHref = null)}
+			/>
+		{/if}
+
+		{#if extractDialog}
+			<ExtractToDiagramDialog
+				defaultFolder={extractDialog.folder}
+				defaultFileName={extractDialog.fileName}
+				warning={extractDialog.warning}
+				onconfirm={(r) => void handleExtractConfirm(r)}
+				oncancel={() => (extractDialog = null)}
+			/>
+		{/if}
+
+		{#if extractError}
+			<div class="extract-error" role="alert">
+				<span>{extractError}</span>
+				<button type="button" onclick={() => (extractError = null)}>Dismiss</button>
+			</div>
+		{/if}
+
 		<!-- Bottom: Status bar -->
 		<footer class="status-bar">
 			<span class="beta-badge">BETA</span>
@@ -1337,6 +2233,19 @@
 </DnDProvider>
 
 <style>
+	/* External architecture reference nodes (drag from file explorer) */
+	:global(.svelte-flow__node.reference-node) {
+		outline: 2px dashed var(--color-accent, #3b82f6);
+		outline-offset: 2px;
+		border-radius: 10px;
+	}
+
+	:global(.svelte-flow__node.diagram-fogged),
+	:global(.svelte-flow__edge.diagram-fogged) {
+		opacity: 0.18 !important;
+		pointer-events: none;
+	}
+
 	/* Full-height app shell — toolbar + pane group stack vertically */
 	.app-shell {
 		display: flex;
@@ -1346,6 +2255,36 @@
 	}
 
 	/* ─── Status bar ────────────────────────────────────────────── */
+
+	.extract-error {
+		position: fixed;
+		bottom: 36px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 10001;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		max-width: min(560px, calc(100vw - 24px));
+		padding: 10px 14px;
+		border-radius: 8px;
+		background: #fef2f2;
+		border: 1px solid #fecaca;
+		color: #991b1b;
+		font-size: 12px;
+		box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+	}
+
+	.extract-error button {
+		flex-shrink: 0;
+		padding: 4px 10px;
+		border-radius: 4px;
+		border: 1px solid #fecaca;
+		background: #fff;
+		color: #991b1b;
+		font-size: 11px;
+		cursor: pointer;
+	}
 
 	.status-bar {
 		display: flex;

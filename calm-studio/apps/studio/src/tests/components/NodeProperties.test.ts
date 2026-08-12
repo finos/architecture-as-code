@@ -108,7 +108,7 @@ describe('NodeProperties', () => {
 	it('renders different node types from data (database)', () => {
 		resetModel();
 		applyFromJson({
-			nodes: [{ 'unique-id': 'db-1', 'node-type': 'database', name: 'Main DB' }],
+			nodes: [{ 'unique-id': 'db-1', 'node-type': 'database', name: 'Main DB', description: '' }],
 			relationships: [],
 		});
 		const { getByRole } = render(NodeProperties, {
@@ -116,5 +116,55 @@ describe('NodeProperties', () => {
 		});
 		const select = getByRole('combobox', { name: /node type/i }) as HTMLSelectElement;
 		expect(select.value).toBe('database');
+	});
+
+	it('disables editable fields for reference nodes (R18)', () => {
+		const refNode: Node = {
+			id: 'ref-1',
+			type: 'extension',
+			position: { x: 0, y: 0 },
+			data: {
+				label: 'API Gateway',
+				calmId: 'ref-1',
+				calmType: 'archimate:applicationComponent',
+				description: 'Reference',
+				isReference: true,
+				calmDetails: { 'detailed-architecture': '../arch/api.json' },
+			},
+		};
+		const { getByLabelText, getByText, getByRole } = render(NodeProperties, {
+			props: { node: refNode, onmutate: () => {}, onopenreference: () => {} },
+		});
+		expect(getByText(/referenční uzel/i)).toBeTruthy();
+		expect(getByText('../arch/api.json')).toBeTruthy();
+		expect((getByLabelText(/node name/i) as HTMLInputElement).disabled).toBe(true);
+		expect(getByRole('button', { name: /otevřít zdroj/i })).toBeTruthy();
+	});
+
+	it('shows metadata section for archimate nodes', () => {
+		const archNode: Node = {
+			id: 'arch-1',
+			type: 'extension',
+			position: { x: 0, y: 0 },
+			data: {
+				label: 'Service',
+				calmId: 'arch-1',
+				calmType: 'archimate:applicationService',
+				description: 'App service',
+				metadata: {
+					owner: 'TBD',
+					archimate: {
+						layer: 'Application',
+						element: 'archimate:applicationService',
+						viewpoint: 'ApplicationCooperation',
+					},
+				},
+			},
+		};
+		const { getByText, getByLabelText } = render(NodeProperties, {
+			props: { node: archNode, onmutate: () => {} },
+		});
+		expect(getByText('Metadata')).toBeTruthy();
+		expect((getByLabelText(/owner/i) as HTMLInputElement).value).toBe('TBD');
 	});
 });

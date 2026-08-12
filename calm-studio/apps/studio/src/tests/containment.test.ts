@@ -4,7 +4,7 @@
 
 import { describe, test, expect } from 'vitest';
 import type { Node } from '@xyflow/svelte';
-import { makeContainment, removeContainment, isContainmentType } from '$lib/canvas/containment';
+import { makeContainment, removeContainment, isContainmentType, ensureContainmentEdge, applyContainmentFromEdges, CONTAINER_DEFAULT_WIDTH, CONTAINER_DEFAULT_HEIGHT } from '$lib/canvas/containment';
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -47,13 +47,27 @@ describe('makeContainment', () => {
 	});
 
 	test('converts parent to container type if not already a container', () => {
-		const parent = makeNode('parent-1', 'system');
+		const parent = makeNode('parent-1', 'system', { width: 120, height: 60 });
 		const child = makeNode('child-1', 'service');
 
 		const result = makeContainment('parent-1', 'child-1', [parent, child]);
 
 		const updatedParent = result.find((n) => n.id === 'parent-1')!;
 		expect(updatedParent.type).toBe('container');
+		expect(updatedParent.width).toBe(CONTAINER_DEFAULT_WIDTH);
+		expect(updatedParent.height).toBe(CONTAINER_DEFAULT_HEIGHT);
+	});
+
+	test('converts absolute child position to parent-relative when nesting', () => {
+		const parent = makeNode('parent-1', 'system', { position: { x: 100, y: 100 }, width: 120, height: 60 });
+		const child = makeNode('child-1', 'service', { position: { x: 400, y: 120 } });
+
+		const result = makeContainment('parent-1', 'child-1', [parent, child]);
+
+		const updatedChild = result.find((n) => n.id === 'child-1')!;
+		expect(updatedChild.parentId).toBe('parent-1');
+		expect(updatedChild.position.x).toBeLessThan(CONTAINER_DEFAULT_WIDTH);
+		expect(updatedChild.position.y).toBeGreaterThanOrEqual(40);
 	});
 
 	test('leaves parent type unchanged when already a container', () => {
@@ -164,5 +178,110 @@ describe('isContainmentType', () => {
 
 	test('returns false for unknown strings', () => {
 		expect(isContainmentType('unknown-type')).toBe(false);
+	});
+});
+
+describe('ensureContainmentEdge', () => {
+	test('adds composed-of edge when missing', () => {
+		const edges = ensureContainmentEdge('parent', 'child', []);
+		expect(edges).toHaveLength(1);
+		expect(edges[0].source).toBe('parent');
+		expect(edges[0].target).toBe('child');
+		expect(edges[0].type).toBe('composed-of');
+	});
+
+	test('does not duplicate existing edge', () => {
+		const initial = ensureContainmentEdge('parent', 'child', []);
+		const again = ensureContainmentEdge('parent', 'child', initial);
+		expect(again).toHaveLength(1);
+	});
+});
+
+describe('applyContainmentFromEdges', () => {
+	test('enlarges parent when composed-of edge exists', () => {
+		const parent = makeNode('parent-1', 'service', { width: 120, height: 60 });
+		const child = makeNode('child-1', 'service', { position: { x: 300, y: 0 } });
+		const edges = [
+			{ id: 'e1', source: 'parent-1', target: 'child-1', type: 'composed-of', data: {} },
+		] as import('@xyflow/svelte').Edge[];
+
+		const result = applyContainmentFromEdges([parent, child], edges);
+		const updatedParent = result.find((n) => n.id === 'parent-1')!;
+		expect(updatedParent.type).toBe('container');
+		expect(updatedParent.width).toBe(CONTAINER_DEFAULT_WIDTH);
+		expect(updatedParent.height).toBe(CONTAINER_DEFAULT_HEIGHT);
+	});
+
+	test('applies deployed-in containment', () => {
+		const parent = makeNode('host-1', 'system', { width: 80, height: 40 });
+		const child = makeNode('app-1', 'service', { position: { x: 500, y: 50 } });
+		const edges = [
+			{ id: 'e1', source: 'host-1', target: 'app-1', type: 'deployed-in', data: {} },
+		] as import('@xyflow/svelte').Edge[];
+
+		const result = applyContainmentFromEdges([parent, child], edges);
+		const updatedChild = result.find((n) => n.id === 'app-1')!;
+		expect(updatedChild.parentId).toBe('host-1');
+		expect(result.find((n) => n.id === 'host-1')!.type).toBe('container');
+	});
+
+	test('ignores non-containment edges', () => {
+		const a = makeNode('a', 'service');
+		const b = makeNode('b', 'service');
+		const edges = [
+			{ id: 'e1', source: 'a', target: 'b', type: 'connects', data: {} },
+		] as import('@xyflow/svelte').Edge[];
+
+		const result = applyContainmentFromEdges([a, b], edges);
+		expect(result.find((n) => n.id === 'b')!.parentId).toBeUndefined();
+		expect(result.find((n) => n.id === 'a')!.type).toBe('service');
+	});
+
+	test('uses measured dimensions when larger than container defaults', () => {
+		const parent = makeNode('parent-1', 'system', {
+			width: 100,
+			height: 50,
+			measured: { width: 400, height: 280 },
+		});
+		const child = makeNode('child-1', 'service');
+		const edges = [
+			{ id: 'e1', source: 'parent-1', target: 'child-1', type: 'composed-of', data: {} },
+		] as import('@xyflow/svelte').Edge[];
+
+		const result = applyContainmentFromEdges([parent, child], edges);
+		const updatedParent = result.find((n) => n.id === 'parent-1')!;
+		expect(updatedParent.width).toBe(400);
+		expect(updatedParent.height).toBe(280);
+	});
+
+	test('clamps small measured dimensions to container defaults', () => {
+		const parent = makeNode('parent-1', 'system', {
+			width: 100,
+			height: 50,
+			measured: { width: 250, height: 180 },
+		});
+		const child = makeNode('child-1', 'service');
+		const edges = [
+			{ id: 'e1', source: 'parent-1', target: 'child-1', type: 'composed-of', data: {} },
+		] as import('@xyflow/svelte').Edge[];
+
+		const result = applyContainmentFromEdges([parent, child], edges);
+		const updatedParent = result.find((n) => n.id === 'parent-1')!;
+		expect(updatedParent.width).toBe(CONTAINER_DEFAULT_WIDTH);
+		expect(updatedParent.height).toBe(CONTAINER_DEFAULT_HEIGHT);
+	});
+
+	test('applies multiple containment edges in sequence', () => {
+		const root = makeNode('root', 'system', { width: 120, height: 60 });
+		const child1 = makeNode('c1', 'service');
+		const child2 = makeNode('c2', 'service');
+		const edges = [
+			{ id: 'e1', source: 'root', target: 'c1', type: 'composed-of', data: {} },
+			{ id: 'e2', source: 'root', target: 'c2', type: 'composed-of', data: {} },
+		] as import('@xyflow/svelte').Edge[];
+
+		const result = applyContainmentFromEdges([root, child1, child2], edges);
+		expect(result.find((n) => n.id === 'c1')!.parentId).toBe('root');
+		expect(result.find((n) => n.id === 'c2')!.parentId).toBe('root');
 	});
 });

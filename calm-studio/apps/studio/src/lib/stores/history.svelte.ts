@@ -21,6 +21,24 @@ export interface Snapshot {
 	edges: Edge[];
 }
 
+export interface HistoryState {
+	stack: Snapshot[];
+	pointer: number;
+}
+
+const MAX_HISTORY = 50;
+
+function cloneSnapshot(s: Snapshot): Snapshot {
+	return {
+		nodes: JSON.parse(JSON.stringify(s.nodes)),
+		edges: JSON.parse(JSON.stringify(s.edges)),
+	};
+}
+
+export function createEmptyHistoryState(): HistoryState {
+	return { stack: [], pointer: -1 };
+}
+
 // Module-level Svelte 5 rune state
 let stack = $state<Snapshot[]>([]);
 let pointer = $state(-1);
@@ -39,6 +57,10 @@ export function pushSnapshot(nodes: Node[], edges: Edge[]): void {
 	// Drop future history (everything after the current pointer)
 	stack = stack.slice(0, pointer + 1);
 	stack = [...stack, snapshot];
+	if (stack.length > MAX_HISTORY) {
+		const overflow = stack.length - MAX_HISTORY;
+		stack = stack.slice(overflow);
+	}
 	pointer = stack.length - 1;
 }
 
@@ -83,4 +105,18 @@ export function canRedo(): boolean {
 export function resetHistory(): void {
 	stack = [];
 	pointer = -1;
+}
+
+/** Export current undo stack for tab persistence. */
+export function exportHistoryState(): HistoryState {
+	return {
+		stack: stack.map(cloneSnapshot),
+		pointer,
+	};
+}
+
+/** Restore undo stack when activating a tab. */
+export function loadHistoryState(state: HistoryState): void {
+	stack = state.stack.map(cloneSnapshot);
+	pointer = state.pointer;
 }

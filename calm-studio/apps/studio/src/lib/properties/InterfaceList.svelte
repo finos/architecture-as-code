@@ -7,7 +7,7 @@
 -->
 <script lang="ts">
 	import { nanoid } from 'nanoid';
-	import type { CalmInterface } from '@calmstudio/calm-core';
+	import type { StudioCalmInterface } from '$lib/canvas/flowTypes';
 	import {
 		addInterface,
 		removeInterface,
@@ -18,19 +18,22 @@
 		nodeId,
 		interfaces = [],
 		onmutate,
-	}: { nodeId: string; interfaces: CalmInterface[]; onmutate?: () => void } = $props();
+		readonly = false,
+	}: { nodeId: string; interfaces: StudioCalmInterface[]; onmutate?: () => void; readonly?: boolean } = $props();
 
 	const INTERFACE_TYPES = ['url', 'host-port', 'container-image', 'port', 'custom'] as const;
 
 	// Debounce timers per interface ID
 	let debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
-	function handleTypeChange(iface: CalmInterface, newType: string) {
+	function handleTypeChange(iface: StudioCalmInterface, newType: string) {
+		if (readonly) return;
 		updateInterface(nodeId, iface['unique-id'], { type: newType });
 		onmutate?.();
 	}
 
-	function handleValueChange(iface: CalmInterface, newValue: string) {
+	function handleValueChange(iface: StudioCalmInterface, newValue: string) {
+		if (readonly) return;
 		clearTimeout(debounceTimers[iface['unique-id']]);
 		debounceTimers[iface['unique-id']] = setTimeout(() => {
 			updateInterface(nodeId, iface['unique-id'], { value: newValue });
@@ -38,12 +41,14 @@
 		}, 300);
 	}
 
-	function handleDelete(iface: CalmInterface) {
+	function handleDelete(iface: StudioCalmInterface) {
+		if (readonly) return;
 		removeInterface(nodeId, iface['unique-id']);
 		onmutate?.();
 	}
 
 	function handleAdd() {
+		if (readonly) return;
 		addInterface(nodeId, { 'unique-id': nanoid(), type: 'url', value: '' });
 		onmutate?.();
 	}
@@ -66,6 +71,7 @@
 						value={iface.type}
 						onchange={(e) => handleTypeChange(iface, (e.target as HTMLSelectElement).value)}
 						aria-label="Interface type"
+						disabled={readonly}
 					>
 						{#each INTERFACE_TYPES as t}
 							<option value={t} selected={iface.type === t}>{t}</option>
@@ -81,7 +87,9 @@
 						oninput={(e) => handleValueChange(iface, (e.target as HTMLInputElement).value)}
 						placeholder="value"
 						aria-label="Interface value"
+						disabled={readonly}
 					/>
+					{#if !readonly}
 					<button
 						class="delete-btn"
 						onclick={() => handleDelete(iface)}
@@ -92,6 +100,7 @@
 							<path d="M18 6 6 18M6 6l12 12" />
 						</svg>
 					</button>
+					{/if}
 				</div>
 			{/each}
 		</div>
@@ -99,6 +108,7 @@
 		<p class="empty-hint">No interfaces defined</p>
 	{/if}
 
+	{#if !readonly}
 	<button class="add-btn" onclick={handleAdd} type="button">
 		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 			<line x1="12" y1="5" x2="12" y2="19" />
@@ -106,6 +116,7 @@
 		</svg>
 		Add Interface
 	</button>
+	{/if}
 </div>
 
 <style>

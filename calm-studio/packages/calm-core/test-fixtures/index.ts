@@ -171,6 +171,7 @@ export function createAIGovernanceArch(overrides?: Partial<CalmArchitecture>): C
             requirements: [
               {
                 'requirement-url': 'https://finos.org/aigf/controls/security-domain',
+                config: {},
               },
             ],
           },
