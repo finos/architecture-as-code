@@ -5,6 +5,33 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.55.0] - 2026-08-12
+
+## [1.55.0](https://github.com/finos/architecture-as-code/compare/cli-v1.54.0...cli-v1.55.0) (2026-08-12)
+
+### feat
+
+* **calm-hub:** add layout persistence support for patterns (#2969) ([](https://github.com/finos/architecture-as-code/commit/effbcd4f52c7623f9454142eabdfdb66948097fa)), closes [#2969](https://github.com/finos/architecture-as-code/issues/2969) [#2971](https://github.com/finos/architecture-as-code/issues/2971)
+
+### fix
+
+* **calm-hub:** apply GLOBAL_ACCESS guard to getUserAccessForNamespaceAndId ([](https://github.com/finos/architecture-as-code/commit/7f78f21b77338a9ac83d901f2418d905805fb56e))
+* **calm-hub:** apply GLOBAL_ACCESS guard to getUserAccessForNamespaceAndId ([](https://github.com/finos/architecture-as-code/commit/3e0402a1a473e2aa7b3dba6290d62dcd508381e5))
+* **calm-hub:** bump LATEST_SCHEMA_VERSION for the new resource-mapping index step ([](https://github.com/finos/architecture-as-code/commit/9170317d72c41fcec493541f675c7c8fae5939d1))
+* **calm-hub:** migrate UserAccessStore namespace checks to requireNamespace ([](https://github.com/finos/architecture-as-code/commit/bf40d7d428eb96f92bb35479aa070a020e1115ed))
+* **calm-hub:** migrate UserAccessStore namespace checks to requireNamespace ([](https://github.com/finos/architecture-as-code/commit/dceaec5073a20b9c9ff731a6fa60a44820f27c7d)), closes [#2959](https://github.com/finos/architecture-as-code/issues/2959)
+* **calm-hub:** scope resource mapping identity by resource type ([](https://github.com/finos/architecture-as-code/commit/5bbbe626621d48e459716ec7a4c683254711ce57))
+* **calm-hub:** scope resource mapping identity by resource type ([](https://github.com/finos/architecture-as-code/commit/bde86bc8871df8faf48c4581f254f485683d803a))
+* **calm-hub:** stop editing the merged MongoIndexInitializationStep ([](https://github.com/finos/architecture-as-code/commit/a9b9bfd23ec4360acf15d595ff02bfc1261a2683))
+
+### refactor
+
+* **calm-hub:** centralize mapping-conflict 409 responses ([](https://github.com/finos/architecture-as-code/commit/ac41f32f2942c6630100e7f835809739e12daac1))
+
+### test
+
+* **calm-hub:** assert exact repo count in cross-type mapping list tests ([](https://github.com/finos/architecture-as-code/commit/048f1317e0ed75e9b0649efbada2ec5dec22ebdf)), closes [#2970](https://github.com/finos/architecture-as-code/issues/2970)
+
 ## [1.54.0] - 2026-08-10
 
 ## [1.54.0](https://github.com/finos/architecture-as-code/compare/cli-v1.53.0...cli-v1.54.0) (2026-08-10)
