@@ -30,9 +30,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         try {
             this.calmHubOrigin = new URL(calmHubUrl).origin;
         } catch (err) {
-            // Fail fast: a calmHubUrl that isn't a parseable absolute URL means the origin check
-            // below would silently reject every http(s) reference forever, masking a config typo
-            // behind a confusing "not from this CALMHub origin" error at load time instead.
+            // Fail fast on a bad calmHubUrl, rather than silently rejecting every http(s) ref later.
             const reason = err instanceof Error ? `: ${err.message}` : '';
             throw new Error(
                 `Invalid CalmHub URL '${calmHubUrl}': must be an absolute URL, e.g. 'https://calmhub.example.com'${reason}.`
