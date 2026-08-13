@@ -11,9 +11,8 @@ export class CalmHubDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;
     private readonly authPlugin?: AuthPlugin;
     // The origin (protocol + host + port) that an http(s) reference must match to be considered
-    // "ours". undefined (calmHubUrl isn't a parseable absolute URL) means no http(s) reference
-    // will ever match, so such references fall through to other loaders instead of crashing here.
-    private readonly calmHubOrigin: string | undefined;
+    // "ours". calmHubUrl must be a parseable absolute URL — see the constructor validation below.
+    private readonly calmHubOrigin: string;
 
     constructor(private calmHubUrl: string, debug: boolean, authPlugin?: AuthPlugin, axiosInstance?: Axios) {
         if (axiosInstance) {
@@ -30,8 +29,14 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         this.authPlugin = authPlugin;
         try {
             this.calmHubOrigin = new URL(calmHubUrl).origin;
-        } catch {
-            this.calmHubOrigin = undefined;
+        } catch (err) {
+            // Fail fast: a calmHubUrl that isn't a parseable absolute URL means the origin check
+            // below would silently reject every http(s) reference forever, masking a config typo
+            // behind a confusing "not from this CALMHub origin" error at load time instead.
+            const reason = err instanceof Error ? `: ${err.message}` : '';
+            throw new Error(
+                `Invalid CalmHub URL '${calmHubUrl}': must be an absolute URL, e.g. 'https://calmhub.example.com'${reason}.`
+            );
         }
 
         if (this.authPlugin) {
@@ -73,14 +78,22 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         const protocol = url.protocol;
         if (!CALM_HUB_PROTOS.some(p => p === protocol)) {
             // Not a protocol we recognise — recoverable, let other loaders try.
-            throw new Error(`CalmHubDocumentLoader can only load documents with protocol '${CALM_HUB_PROTOS.join(', ')}'. (Requested: ${protocol})`);
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: `CalmHubDocumentLoader can only load documents with protocol '${CALM_HUB_PROTOS.join(', ')}'. (Requested: ${protocol})`,
+                recoverable: true
+            });
         }
 
         // An http(s) reference is only ours if it actually points at this CalmHub instance.
         // Anything else (e.g. an allowlisted external host meant for DirectUrlDocumentLoader) is
         // recoverable — let other loaders try. calm: references are host-agnostic and always ours.
         if ((protocol === 'http:' || protocol === 'https:') && url.origin !== this.calmHubOrigin) {
-            throw new Error(`CalmHubDocumentLoader only loads http(s) documents from the configured CALMHub origin '${this.calmHubOrigin}'. (Requested: ${url.origin})`);
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: `CalmHubDocumentLoader only loads http(s) documents from the configured CALMHub origin '${this.calmHubOrigin}'. (Requested: ${url.origin})`,
+                recoverable: true
+            });
         }
 
         // From here the reference is ours: any failure is fatal and must not fall through to

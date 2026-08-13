@@ -68,8 +68,14 @@ describe('calmhub-document-loader', () => {
 
         const promise = calmHubDocumentLoader.loadMissingDocument(externalUrl, 'schema');
         await expect(promise).rejects.toThrow('only loads http(s) documents from the configured CALMHub origin');
-        // Recoverable: a plain Error, not a fatal DocumentLoadError, so MultiStrategyDocumentLoader falls through.
-        await expect(promise).rejects.not.toBeInstanceOf(DocumentLoadError);
+        // Recoverable: a DocumentLoadError with recoverable: true, so MultiStrategyDocumentLoader falls through.
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toMatchObject({ recoverable: true });
+    });
+
+    it('rejects a calmHubUrl that is not a parseable absolute URL', () => {
+        expect(() => new CalmHubDocumentLoader('not-a-url', false, undefined, ax))
+            .toThrow('Invalid CalmHub URL');
     });
 
     it('loads an http(s) URL whose origin matches this CalmHub instance', async () => {
