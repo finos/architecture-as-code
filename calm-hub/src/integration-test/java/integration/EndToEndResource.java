@@ -5,6 +5,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.finos.calm.migration.steps.MongoArchitectureVersionSplitStep;
+import org.finos.calm.migration.steps.MongoControlVersionSplitStep;
 import org.finos.calm.migration.steps.MongoIndexInitializationStep;
 import org.finos.calm.migration.steps.MongoAdrVersionSplitStep;
 import org.finos.calm.migration.steps.MongoFlowVersionSplitStep;
@@ -80,6 +81,11 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             // pattern and an architecture would still collide, same as a real deployment
             // that hadn't yet reached schema version 12.
             new MongoResourceMappingIndexStep(database).createIndexes();
+            // Control (ADR 0007) — the double-nested type, and the last step registered
+            // (fromVersion() == 13, after the three steps immediately above). Its transition
+            // creates four indexes rather than two (requirement axis + configuration axis)
+            // but the reason to call it here is identical to every line above.
+            new MongoControlVersionSplitStep(database).transitionIndexes();
             logger.info("Ensured MongoDB indexes for integration tests");
         }
 

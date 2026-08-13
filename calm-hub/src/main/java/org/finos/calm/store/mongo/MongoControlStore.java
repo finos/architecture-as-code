@@ -1,16 +1,10 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.MongoWriteException;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -22,44 +16,29 @@ import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.ControlStore;
-import org.finos.calm.store.util.MongoUpsertPush;
-import org.finos.calm.store.util.MongoWriteFailures;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.util.ControlConfigurationNamespace;
+import org.finos.calm.store.util.MongoVersionDocumentStore;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+
 import io.quarkus.arc.lookup.LookupIfProperty;
-import org.finos.calm.store.util.VersionKeySelector;
 
 /**
  * MongoDB-backed implementation of {@link ControlStore}.
  *
  * <h2>Document model</h2>
- * The {@code controls} collection has <em>one document per domain</em>, enforced by a
- * unique index on the {@code domain} field (created by {@code MongoIndexInitializationStep}).
- * Each document contains a {@code controls} array of control sub-documents. Each control
- * in turn contains a {@code requirement} map (version → JSON) and a {@code configurations}
- * array of configuration sub-documents, each with its own versioned content.
- *
- * <h2>Concurrency strategy — creating controls</h2>
- * New controls are added via {@code updateOne} with {@code upsert: true} and {@code $push}.
- * The unique index on {@code domain} prevents duplicate domain documents. Unique
- * {@code controlId} and {@code configurationId} values are generated atomically by
- * {@link MongoCounterStore}.
- *
- * <h2>Concurrency strategy — creating requirement/configuration versions</h2>
- * New versions use an <b>atomic conditional update</b>: the query filter includes
- * {@code $elemMatch} combined with {@code $exists: false} on the target version key.
- * If a concurrent request already wrote the version, the filter won't match and
- * {@code matchedCount == 0} signals a conflict. For deeply nested configuration versions,
- * the update uses <b>array filters</b> ({@code arrayFilters}) to target the correct
- * control and configuration sub-documents within the nested arrays.
- *
- * <p>This pattern ensures version writes are atomic and conflict-free without requiring
- * application-level locking.
+ * Two header/version collection pairs, both driven by {@link MongoVersionDocumentStore} —
+ * the same shared helper every other versioned type composes. A control's requirement is
+ * keyed by {@code (domain, controlId)} in {@code controls}/{@code controlVersions}, exactly
+ * like the other seven types. A configuration is keyed by {@code (domain::controlId,
+ * configurationId)} in {@code controlConfigurations}/{@code controlConfigurationVersions} —
+ * the synthetic composite namespace scopes listing ("configurations belonging to this
+ * control"); uniqueness itself already comes from {@code configurationId} being a global
+ * counter. See {@code calm-hub/decisions/0007-control-storage-header-version-split.md}.
  *
  * @see MongoCounterStore
  */
@@ -68,42 +47,31 @@ import org.finos.calm.store.util.VersionKeySelector;
 @Typed(MongoControlStore.class)
 public class MongoControlStore implements ControlStore {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
-    private final MongoCollection<Document> controlCollection;
     private final MongoCounterStore counterStore;
     private final MongoDomainStore domainStore;
+    private final MongoVersionDocumentStore requirementStore;
+    private final MongoVersionDocumentStore configurationStore;
 
     @Inject
     public MongoControlStore(MongoDatabase database, MongoCounterStore counterStore, MongoDomainStore domainStore) {
-        this.controlCollection = database.getCollection("controls");
         this.counterStore = counterStore;
         this.domainStore = domainStore;
+        this.requirementStore = new MongoVersionDocumentStore(
+                database.getCollection("controls"), database.getCollection("controlVersions"),
+                "controlId", "Control");
+        this.configurationStore = new MongoVersionDocumentStore(
+                database.getCollection("controlConfigurations"), database.getCollection("controlConfigurationVersions"),
+                "configurationId", "Configuration");
     }
 
     @Override
     public List<ControlDetail> getControlsForDomain(String domain) throws DomainNotFoundException {
         validateDomain(domain);
 
-        Document domainDoc = controlCollection.find(Filters.eq("domain", domain)).first();
-        if (domainDoc == null) {
-            return List.of();
-        }
-
-        List<Document> controls = domainDoc.getList("controls", Document.class);
-        if (controls == null) {
-            return List.of();
-        }
-
         List<ControlDetail> result = new ArrayList<>();
-        for (Document control : controls) {
-            Document requirement = (Document) control.get("requirement");
-            String title = titleFromRequirementDoc(requirement);
-            result.add(new ControlDetail(
-                    control.getInteger("controlId"),
-                    control.getString("name"),
-                    control.getString("description"),
-                    title
-            ));
+        for (NamespaceResourceSummary summary : requirementStore.listSummariesPaged(domain, PageRequest.UNPAGED)) {
+            String title = titleOf(requirementStore.getLatestVersionContent(domain, summary.getId()));
+            result.add(new ControlDetail(summary.getId(), summary.getName(), summary.getDescription(), title));
         }
         return result;
     }
@@ -112,289 +80,147 @@ public class MongoControlStore implements ControlStore {
     public ControlDetail createControlRequirement(CreateControlRequirement request, String domain) throws DomainNotFoundException {
         validateDomain(domain);
 
+        // Parsed before the counter is drawn and before anything is written, so malformed
+        // JSON can't leave a header behind with no version to go with it.
+        Document content = Document.parse(request.getRequirementJson());
+
         int controlId = counterStore.getNextControlSequenceValue();
+        requirementStore.createHeader(domain, controlId, request.getName(), request.getDescription());
+        requirementStore.createFirstVersion(domain, controlId, content);
 
-        Document parsedRequirement = Document.parse(request.getRequirementJson());
-        String name = request.getName();
-        String description = request.getDescription();
-
-        Document requirementVersions = new Document("1-0-0", parsedRequirement);
-
-        Document controlDoc = new Document("controlId", controlId)
-                .append("name", name)
-                .append("description", description)
-                .append("requirement", requirementVersions)
-                .append("configurations", new ArrayList<>());
-
-        MongoUpsertPush.pushWithDuplicateRetry(controlCollection,
-                Filters.eq("domain", domain),
-                "controls", controlDoc);
-
-        return new ControlDetail(controlId, name, description);
+        return new ControlDetail(controlId, request.getName(), request.getDescription());
     }
 
     @Override
     public List<String> getRequirementVersions(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        Document controlDoc = findControl(domain, controlId);
-        Document requirement = (Document) controlDoc.get("requirement");
-        if (requirement == null) {
-            return List.of();
-        }
-
-        Set<String> versionKeys = requirement.keySet();
-        List<String> versions = new ArrayList<>();
-        for (String key : versionKeys) {
-            versions.add(key.replace('-', '.'));
-        }
-        return versions;
+        requireControl(domain, controlId);
+        return requirementStore.listVersions(domain, controlId);
     }
 
     @Override
     public String getRequirementForVersion(String domain, int controlId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException {
-        Document controlDoc = findControl(domain, controlId);
-        Document requirement = (Document) controlDoc.get("requirement");
+        requireControl(domain, controlId);
 
-        if (requirement == null) {
+        Document content = requirementStore.getVersion(domain, controlId, version);
+        if (content == null) {
             throw new ControlRequirementVersionNotFoundException();
         }
+        return content.toJson();
+    }
 
-        String mongoVersion = version.replace('.', '-');
-        Document versionDoc = (Document) requirement.get(mongoVersion);
-        if (versionDoc == null) {
-            throw new ControlRequirementVersionNotFoundException();
+    @Override
+    public void createRequirementForVersion(String domain, int controlId, String version, CreateControlRequirement request) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
+        requireControl(domain, controlId);
+
+        Document content = Document.parse(request.getRequirementJson());
+        boolean created = requirementStore.createVersion(domain, controlId, version, content);
+        if (!created) {
+            throw new ControlRequirementVersionExistsException();
         }
 
-        return versionDoc.toJson();
+        // Defensive: the REST layer enforces @NotBlank on name/description via CreateControlRequirement,
+        // so a blank value here is only reachable from non-REST callers (e.g. direct store usage in tests).
+        requirementStore.updatePresentHeaderDetails(domain, controlId, request.getName(), request.getDescription());
     }
 
     @Override
     public List<Integer> getConfigurationsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        Document controlDoc = findControl(domain, controlId);
-        List<Document> configurations = controlDoc.getList("configurations", Document.class);
-        if (configurations == null) {
-            return List.of();
-        }
+        requireControl(domain, controlId);
 
         List<Integer> configIds = new ArrayList<>();
-        for (Document config : configurations) {
-            configIds.add(config.getInteger("configurationId"));
+        for (NamespaceResourceSummary summary
+                : configurationStore.listSummariesPaged(configurationNamespace(domain, controlId), PageRequest.UNPAGED)) {
+            configIds.add(summary.getId());
         }
         return configIds;
     }
 
     @Override
     public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        Document controlDoc = findControl(domain, controlId);
-        List<Document> configurations = controlDoc.getList("configurations", Document.class);
-        if (configurations == null) {
-            return List.of();
-        }
+        requireControl(domain, controlId);
 
+        String configNamespace = configurationNamespace(domain, controlId);
         List<ControlConfigDetail> details = new ArrayList<>();
-        for (Document config : configurations) {
-            Document versions = (Document) config.get("versions");
-            String title = titleFromVersionsDoc(versions);
-            details.add(new ControlConfigDetail(
-                    config.getInteger("configurationId"),
-                    config.getString("name"),
-                    title));
+        for (NamespaceResourceSummary summary : configurationStore.listSummariesPaged(configNamespace, PageRequest.UNPAGED)) {
+            String title = titleOf(configurationStore.getLatestVersionContent(configNamespace, summary.getId()));
+            details.add(new ControlConfigDetail(summary.getId(), summary.getName(), title));
         }
         return details;
     }
 
     @Override
-    public List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
-        Document configDoc = findConfiguration(domain, controlId, configurationId);
-        Document versions = (Document) configDoc.get("versions");
-        if (versions == null) {
-            return List.of();
-        }
-
-        List<String> versionList = new ArrayList<>();
-        for (String key : versions.keySet()) {
-            versionList.add(key.replace('-', '.'));
-        }
-        return versionList;
-    }
-
-    @Override
-    public String getConfigurationForVersion(String domain, int controlId, int configurationId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException {
-        Document configDoc = findConfiguration(domain, controlId, configurationId);
-        Document versions = (Document) configDoc.get("versions");
-
-        if (versions == null) {
-            throw new ControlConfigurationVersionNotFoundException();
-        }
-
-        String mongoVersion = version.replace('.', '-');
-        Document versionDoc = (Document) versions.get(mongoVersion);
-        if (versionDoc == null) {
-            throw new ControlConfigurationVersionNotFoundException();
-        }
-
-        return versionDoc.toJson();
-    }
-
-    @Override
-    public void createRequirementForVersion(String domain, int controlId, String version, CreateControlRequirement request) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
-        // Validate domain and control exist
-        findControl(domain, controlId);
-
-        String mongoVersion = version.replace('.', '-');
-
-        Document parsedRequirement = Document.parse(request.getRequirementJson());
-
-        // Atomic conditional update: only succeeds if the requirement version doesn't already exist
-        Document filter = new Document("domain", domain)
-                .append("controls", new Document("$elemMatch",
-                        new Document("controlId", controlId)
-                                .append("requirement." + mongoVersion, new Document("$exists", false))));
-
-        Document setFields = new Document("controls.$.requirement." + mongoVersion, parsedRequirement);
-        // Defensive: the REST layer enforces @NotBlank on name/description via CreateControlRequirement,
-        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
-        if (request.getName() != null && !request.getName().isBlank()) {
-            setFields.append("controls.$.name", request.getName());
-        }
-        if (request.getDescription() != null && !request.getDescription().isBlank()) {
-            setFields.append("controls.$.description", request.getDescription());
-        }
-        Document update = new Document("$set", setFields);
-
-        try {
-            if (controlCollection.updateOne(filter, update).getMatchedCount() == 0) {
-                throw new ControlRequirementVersionExistsException();
-            }
-        } catch (MongoWriteException ex) {
-            log.error("Failed to write control requirement [domain={}, controlId={}, version={}] to mongo",
-                    domain, controlId, version, ex);
-            throw MongoWriteFailures.toStorageWriteException(ex);
-        }
-    }
-
-    @Override
     public int createControlConfiguration(CreateControlConfiguration request, String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        findControl(domain, controlId);
+        requireControl(domain, controlId);
+
+        Document content = Document.parse(request.getConfigurationJson());
 
         int configurationId = counterStore.getNextControlConfigurationSequenceValue();
-
-        Document configDoc = new Document("configurationId", configurationId)
-                .append("versions", new Document("1-0-0", Document.parse(request.getConfigurationJson())));
-        if (request.getName() != null) {
-            configDoc.append("name", request.getName());
-        }
-
-        Document filter = new Document("domain", domain)
-                .append("controls.controlId", controlId);
-
-        controlCollection.updateOne(
-                filter,
-                Updates.push("controls.$.configurations", configDoc)
-        );
+        String configNamespace = configurationNamespace(domain, controlId);
+        configurationStore.createHeader(configNamespace, configurationId, request.getName(), null);
+        configurationStore.createFirstVersion(configNamespace, configurationId, content);
 
         return configurationId;
     }
 
     @Override
+    public List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        requireConfiguration(domain, controlId, configurationId);
+        return configurationStore.listVersions(configurationNamespace(domain, controlId), configurationId);
+    }
+
+    @Override
+    public String getConfigurationForVersion(String domain, int controlId, int configurationId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException {
+        requireConfiguration(domain, controlId, configurationId);
+
+        Document content = configurationStore.getVersion(configurationNamespace(domain, controlId), configurationId, version);
+        if (content == null) {
+            throw new ControlConfigurationVersionNotFoundException();
+        }
+        return content.toJson();
+    }
+
+    @Override
     public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, CreateControlConfiguration request) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
-        // Validate domain, control, and configuration exist
-        findConfiguration(domain, controlId, configurationId);
+        requireConfiguration(domain, controlId, configurationId);
 
-        String mongoVersion = version.replace('.', '-');
-
-        // Atomic conditional update: the query filter uses nested $elemMatch to assert that
-        // the target configuration exists AND the desired version does NOT yet exist.
-        // If a concurrent request already wrote this version, the filter won't match
-        // (matchedCount == 0) and we throw ControlConfigurationVersionExistsException.
-        // Array filters (ctrl, cfg) are used in the update path to target the correct
-        // nested sub-documents without relying on positional operators for multiple levels.
-        Bson filter = Filters.and(
-                Filters.eq("domain", domain),
-                Filters.elemMatch("controls",
-                        Filters.and(
-                                Filters.eq("controlId", controlId),
-                                Filters.elemMatch("configurations",
-                                        Filters.and(
-                                                Filters.eq("configurationId", configurationId),
-                                                Filters.exists("versions." + mongoVersion, false)
-                                        )
-                                )
-                        )
-                )
-        );
-
-        try {
-            if (controlCollection.updateOne(
-                    filter,
-                    Updates.set("controls.$[ctrl].configurations.$[cfg].versions." + mongoVersion,
-                            Document.parse(request.getConfigurationJson())),
-                    new UpdateOptions().arrayFilters(List.of(
-                            Filters.eq("ctrl.controlId", controlId),
-                            Filters.eq("cfg.configurationId", configurationId)
-                    ))
-            ).getMatchedCount() == 0) {
-                throw new ControlConfigurationVersionExistsException();
-            }
-        } catch (MongoWriteException ex) {
-            log.error("Failed to write control configuration [domain={}, controlId={}, configurationId={}, version={}] to mongo",
-                    domain, controlId, configurationId, version, ex);
-            throw MongoWriteFailures.toStorageWriteException(ex);
+        Document content = Document.parse(request.getConfigurationJson());
+        // No header-details update here, matching the old behavior: only a requirement
+        // version write syncs the wrapper name/description, a configuration version
+        // write never has.
+        boolean created = configurationStore.createVersion(
+                configurationNamespace(domain, controlId), configurationId, version, content);
+        if (!created) {
+            throw new ControlConfigurationVersionExistsException();
         }
     }
 
-    private Document findControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
+    private void requireControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
         validateDomain(domain);
-
-        Document domainDoc = controlCollection.find(Filters.eq("domain", domain)).first();
-        if (domainDoc == null) {
+        if (!requirementStore.headerExists(domain, controlId)) {
             throw new ControlNotFoundException();
         }
-
-        List<Document> controls = domainDoc.getList("controls", Document.class);
-        if (controls == null) {
-            throw new ControlNotFoundException();
-        }
-
-        for (Document control : controls) {
-            if (controlId == control.getInteger("controlId")) {
-                return control;
-            }
-        }
-
-        throw new ControlNotFoundException();
     }
 
-    private Document findConfiguration(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
-        Document controlDoc = findControl(domain, controlId);
-
-        List<Document> configurations = controlDoc.getList("configurations", Document.class);
-        if (configurations == null) {
+    private void requireConfiguration(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        requireControl(domain, controlId);
+        if (!configurationStore.headerExists(configurationNamespace(domain, controlId), configurationId)) {
             throw new ControlConfigurationNotFoundException();
         }
-
-        for (Document config : configurations) {
-            if (configurationId == config.getInteger("configurationId")) {
-                return config;
-            }
-        }
-
-        throw new ControlConfigurationNotFoundException();
     }
 
-    private String titleFromRequirementDoc(Document requirement) {
-        if (requirement == null || requirement.isEmpty()) return null;
-        String latestKey = VersionKeySelector.latestVersionKey(requirement.keySet());
-        if (latestKey == null) return null;
-        Document versionDoc = (Document) requirement.get(latestKey);
-        return versionDoc != null ? versionDoc.getString("title") : null;
+    /**
+     * Configurations are scoped under a synthetic namespace combining the domain and owning
+     * control id, so a control's configurations can be listed without a second nesting level
+     * — {@code configurationId} is already globally unique (see class javadoc), so this
+     * exists purely to scope listing, not to establish uniqueness. {@code ":"} is safe: the
+     * domain name pattern ({@code DomainStore}'s validation) disallows it.
+     */
+    private String configurationNamespace(String domain, int controlId) {
+        return ControlConfigurationNamespace.of(domain, controlId);
     }
 
-    private String titleFromVersionsDoc(Document versions) {
-        if (versions == null || versions.isEmpty()) return null;
-        String latestKey = VersionKeySelector.latestVersionKey(versions.keySet());
-        if (latestKey == null) return null;
-        Document versionDoc = (Document) versions.get(latestKey);
-        return versionDoc != null ? versionDoc.getString("title") : null;
+    private String titleOf(Document content) {
+        return content != null ? content.getString("title") : null;
     }
 
     private void validateDomain(String domain) throws DomainNotFoundException {
