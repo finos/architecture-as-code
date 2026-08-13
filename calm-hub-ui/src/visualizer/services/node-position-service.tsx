@@ -4,6 +4,8 @@ import { reflowContainersToFitChildren } from '../components/reactflow/utils/lay
 export interface StoredNodePosition {
     id: string;
     position: { x: number; y: number };
+    width?: number;
+    height?: number;
 }
 
 /**
@@ -60,12 +62,18 @@ function legacyStorageKeyFor(key: string): string | undefined {
     return parts.length === VIEWPORT_KEY_SEGMENTS ? `${parts[0]}/${parts[2]}` : undefined;
 }
 
-/** Reduce a diagram's nodes to just the id/position pairs worth persisting. */
+/** Reduce a diagram's nodes to id, position, and measured dimensions worth persisting. */
 export function toStoredPositions(nodes: Node[]): StoredNodePosition[] {
-    return nodes.map((node) => ({
-        id: node.id,
-        position: { x: node.position.x, y: node.position.y },
-    }));
+    return nodes.map((node) => {
+        const n = node as Node & { width?: number; height?: number; measured?: { width?: number; height?: number } };
+        const w = n.width ?? n.measured?.width;
+        const h = n.height ?? n.measured?.height;
+        return {
+            id: node.id,
+            position: { x: node.position.x, y: node.position.y },
+            ...(w != null && h != null ? { width: w, height: h } : {}),
+        };
+    });
 }
 
 /** Persist the current positions of every node for the given diagram key. */
@@ -123,22 +131,42 @@ function parseStoredPositions(data: string): StoredNodePosition[] | null {
 }
 
 /**
- * Merge a set of positions onto freshly parsed nodes, matching by id, then
- * reflow containers so they re-hug their restored children. Returns the nodes
- * unchanged when there is nothing to apply, so callers fall back to the
- * auto-layout. Pure — shared by the localStorage scratch path
- * (`applyStoredPositions`) and by applying a server-saved default layout.
+ * Merge a set of positions (and optional dimensions) onto freshly parsed nodes,
+ * matching by id. When all container nodes have explicit width/height in the
+ * stored positions data, reflow is skipped — the layout is fully deterministic.
+ * Otherwise, containers are reflowed to fit their children (backward compat with
+ * position-only data). Returns the nodes unchanged when there is nothing to
+ * apply, so callers fall back to the auto-layout.
  */
 export function applyPositions(nodes: Node[], positions: StoredNodePosition[] | null): Node[] {
     if (!positions || positions.length === 0) return nodes;
 
-    const positionsById = new Map(positions.map((p) => [p.id, p.position]));
+    const positionsById = new Map(positions.map((p) => [p.id, p]));
     const merged = nodes.map((node) => {
-        const position = positionsById.get(node.id);
-        return position ? { ...node, position: { ...position } } : node;
+        const stored = positionsById.get(node.id);
+        if (!stored) return node;
+        const updated = { ...node, position: { ...stored.position } } as Node & { width?: number; height?: number };
+        if (stored.width != null && stored.height != null) {
+            updated.width = stored.width;
+            updated.height = stored.height;
+            updated.style = { ...updated.style, width: stored.width, height: stored.height };
+        }
+        return updated;
     });
 
-    return reflowContainersToFitChildren(merged);
+    // Only skip reflow when every container's dimensions came from the stored
+    // positions (not from the node's own pre-existing width/height). This ensures
+    // position-only restores (legacy data, localStorage scratch) still reflow.
+    const containerIds = new Set(
+        merged.filter((n) => n.type === 'group').map((n) => n.id)
+    );
+    const allContainersDimensioned = containerIds.size === 0 ||
+        [...containerIds].every((id) => {
+            const stored = positionsById.get(id);
+            return stored?.width != null && stored?.height != null;
+        });
+
+    return allContainersDimensioned ? merged : reflowContainersToFitChildren(merged);
 }
 
 /**

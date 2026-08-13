@@ -85,7 +85,7 @@ describe('PatternGraph', () => {
             return nodes?.find((n) => n.id === id)?.position;
         }
 
-        it('applies the local scratch layout, even when a different server default exists', () => {
+        it('applies the default layout over local scratch when both exist', () => {
             saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
 
             render(
@@ -96,7 +96,7 @@ describe('PatternGraph', () => {
                 />
             );
 
-            expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
+            expect(nodePosition('node-1')).toEqual({ x: 999, y: 999 });
         });
 
         it('applies the server default when no local scratch is stored', () => {
@@ -132,22 +132,20 @@ describe('PatternGraph', () => {
             expect(screen.getByTestId('react-flow')).toBeInTheDocument();
         });
 
-        it('re-applies positions when layoutEpoch changes, picking up a cleared scratch layout', () => {
+        it('falls back to scratch when no default layout is provided, then applies default on epoch bump', () => {
             saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
 
             const { rerender } = render(
                 <PatternGraph
                     patternData={mockPatternData}
                     viewportKey={key}
-                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                    defaultLayout={null}
                     layoutEpoch={0}
                 />
             );
             expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
 
-            // Simulate "reset to default": the scratch entry is cleared and the
-            // epoch bumps, forcing a clean re-apply of the server default.
-            localStorage.removeItem('calm-hub:node-positions:ns/id');
+            // A default layout arrives (e.g. source switch) and epoch bumps.
             rerender(
                 <PatternGraph
                     patternData={mockPatternData}

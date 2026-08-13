@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalmService } from '../../service/calm-service.js';
 import { LayoutService, LayoutResourceType } from '../../service/layout-service.js';
 import { isSlug } from '../../model/calm.js';
-import { CalmLayout, pinsToStoredPositions, storedPositionsToPins } from '../../model/layout.js';
+import { CalmLayout, apiResponseToStoredPositions, storedPositionsToLayoutMap, layoutMapToStoredPositions, type LayoutMap } from '../../model/layout.js';
 import { buildViewportKey, clearStoredNodePositions, StoredNodePosition } from '../../visualizer/services/node-position-service.js';
+
+export type LayoutSource = 'document' | 'server' | 'auto';
 
 export interface UseDefaultLayoutResult {
     /**
@@ -40,6 +42,30 @@ export interface UseDefaultLayoutResult {
     saveError: string | null;
     save: (positions: StoredNodePosition[]) => Promise<void>;
     reset: () => void;
+    /** Layout extracted from the architecture document's metadata._layout, if present. */
+    documentLayout: StoredNodePosition[] | null;
+    /** Which layout source is currently active. */
+    layoutSource: LayoutSource;
+    /** Switch between document and server layout sources. */
+    setLayoutSource: (source: LayoutSource) => void;
+    /** Whether both document and server layouts are available (show the toggle). */
+    hasBothSources: boolean;
+}
+
+const LAYOUT_SOURCE_PREFIX = 'calm-hub:layout-source:';
+
+function loadPreferredSource(viewportKey: string | null | undefined): LayoutSource | null {
+    if (!viewportKey) return null;
+    try {
+        return localStorage.getItem(`${LAYOUT_SOURCE_PREFIX}${viewportKey}`) as LayoutSource | null;
+    } catch { return null; }
+}
+
+function savePreferredSource(viewportKey: string | null | undefined, source: LayoutSource): void {
+    if (!viewportKey) return;
+    try {
+        localStorage.setItem(`${LAYOUT_SOURCE_PREFIX}${viewportKey}`, source);
+    } catch { /* ignore */ }
 }
 
 const SUPPORTED_TYPES: Partial<Record<string, LayoutResourceType>> = {
@@ -52,8 +78,12 @@ const SUPPORTED_TYPES: Partial<Record<string, LayoutResourceType>> = {
  * pattern, and owns the save/reset actions. Returns an inert result (no
  * fetch, no key) for anything else — dropped files and any other calmType
  * are out of scope for server-side layouts.
+ *
+ * When `architectureData` includes `metadata._layout`, it is offered as a
+ * layout source alongside the server-side saved layout, with a user-selectable
+ * toggle when both are available.
  */
-export function useDefaultLayout(namespace: string, id: string, calmType: string): UseDefaultLayoutResult {
+export function useDefaultLayout(namespace: string, id: string, calmType: string, architectureData?: Record<string, unknown>): UseDefaultLayoutResult {
     const calmService = useMemo(() => new CalmService(), []);
     const layoutService = useMemo(() => new LayoutService(), []);
     const urlType = SUPPORTED_TYPES[calmType];
@@ -74,6 +104,16 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
     const [layoutEpoch, setLayoutEpoch] = useState(0);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
+
+    // Extract layout from architecture document metadata._layout if present.
+    const documentLayout = useMemo<StoredNodePosition[] | null>(() => {
+        if (!isSupportedType || !architectureData) return null;
+        const metadata = architectureData.metadata;
+        if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+        const layoutData = (metadata as Record<string, unknown>)._layout;
+        if (!layoutData || typeof layoutData !== 'object' || Array.isArray(layoutData)) return null;
+        return layoutMapToStoredPositions(layoutData as LayoutMap);
+    }, [isSupportedType, architectureData]);
 
     // Resolve a slug id to its numeric id once per (namespace, id, calmType).
     useEffect(() => {
@@ -120,6 +160,22 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
               ? null
               : undefined;
 
+    // Layout source selection — user can toggle between document and server layouts.
+    const [layoutSource, setLayoutSourceState] = useState<LayoutSource>('auto');
+
+    useEffect(() => {
+        const saved = loadPreferredSource(viewportKey);
+        if (saved) setLayoutSourceState(saved);
+        else setLayoutSourceState('auto');
+    }, [viewportKey]);
+
+    const setLayoutSource = useCallback((source: LayoutSource) => {
+        setLayoutSourceState(source);
+        savePreferredSource(viewportKey, source);
+        if (viewportKey) clearStoredNodePositions(viewportKey);
+        setLayoutEpoch((epoch) => epoch + 1);
+    }, [viewportKey]);
+
     // Fetch the server default once the id is settled (resolved to a number,
     // or resolution finished without a match).
     useEffect(() => {
@@ -144,7 +200,7 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
             .getDefaultLayout(namespace, resolvedId, urlType)
             .then((layout) => {
                 if (cancelled) return;
-                setDefaultLayout(layout ? pinsToStoredPositions(layout) : null);
+                setDefaultLayout(layout ? apiResponseToStoredPositions(layout as unknown as Record<string, unknown>) : null);
             })
             .catch(() => {
                 if (!cancelled) setDefaultLayout(null);
@@ -162,7 +218,7 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
             try {
                 const layout: CalmLayout = {
                     for: `/api/calm/namespaces/${namespace}/${urlType}/${resolvedId}`,
-                    pins: storedPositionsToPins(positions),
+                    nodes: storedPositionsToLayoutMap(positions),
                 };
                 await layoutService.saveDefaultLayout(namespace, resolvedId, layout, urlType);
                 if (viewportKey) clearStoredNodePositions(viewportKey);
@@ -186,20 +242,38 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
 
     const canSave = resolvedId !== undefined;
 
+    // The server-side layout fetched from the API.
+    const serverLayout = defaultLayout;
+
+    const hasBothSources = documentLayout != null && serverLayout != null;
+
+    // Resolve which layout to expose as `defaultLayout` based on user selection.
+    const effectiveDefaultLayout = useMemo<StoredNodePosition[] | null | undefined>(() => {
+        if (layoutSource === 'document' && documentLayout) return documentLayout;
+        if (layoutSource === 'server') return serverLayout ?? null;
+        // 'auto': prefer document if it exists, else server
+        if (documentLayout) return documentLayout;
+        return serverLayout;
+    }, [layoutSource, documentLayout, serverLayout]);
+
     // Memoised so consumers that key a useCallback/useMemo off the whole result
     // (e.g. DiagramSection's handleSaveLayout) get a stable reference instead of
     // a fresh object literal — and therefore a fresh dependency — every render.
     return useMemo(
         () => ({
             viewportKey,
-            defaultLayout,
+            defaultLayout: effectiveDefaultLayout,
             layoutEpoch,
             canSave,
             saving,
             saveError,
             save,
             reset,
+            documentLayout,
+            layoutSource,
+            setLayoutSource,
+            hasBothSources,
         }),
-        [viewportKey, defaultLayout, layoutEpoch, canSave, saving, saveError, save, reset]
+        [viewportKey, effectiveDefaultLayout, layoutEpoch, canSave, saving, saveError, save, reset, documentLayout, layoutSource, setLayoutSource, hasBothSources]
     );
 }
