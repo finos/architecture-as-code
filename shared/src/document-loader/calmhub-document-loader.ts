@@ -10,6 +10,10 @@ export class CalmHubDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private readonly logger: Logger;
     private readonly authPlugin?: AuthPlugin;
+    // The origin (protocol + host + port) that an http(s) reference must match to be considered
+    // "ours". undefined (calmHubUrl isn't a parseable absolute URL) means no http(s) reference
+    // will ever match, so such references fall through to other loaders instead of crashing here.
+    private readonly calmHubOrigin: string | undefined;
 
     constructor(private calmHubUrl: string, debug: boolean, authPlugin?: AuthPlugin, axiosInstance?: Axios) {
         if (axiosInstance) {
@@ -24,7 +28,12 @@ export class CalmHubDocumentLoader implements DocumentLoader {
             });
         }
         this.authPlugin = authPlugin;
-        
+        try {
+            this.calmHubOrigin = new URL(calmHubUrl).origin;
+        } catch {
+            this.calmHubOrigin = undefined;
+        }
+
         if (this.authPlugin) {
             this.ax.interceptors.request.use(async (config) => {
                 const fullUrl = (config.baseURL || '') + (config.url || '');
@@ -63,8 +72,15 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         const url = new URL(documentId);
         const protocol = url.protocol;
         if (!CALM_HUB_PROTOS.some(p => p === protocol)) {
-            // Not a calm: reference — recoverable, let other loaders try.
+            // Not a protocol we recognise — recoverable, let other loaders try.
             throw new Error(`CalmHubDocumentLoader can only load documents with protocol '${CALM_HUB_PROTOS.join(', ')}'. (Requested: ${protocol})`);
+        }
+
+        // An http(s) reference is only ours if it actually points at this CalmHub instance.
+        // Anything else (e.g. an allowlisted external host meant for DirectUrlDocumentLoader) is
+        // recoverable — let other loaders try. calm: references are host-agnostic and always ours.
+        if ((protocol === 'http:' || protocol === 'https:') && url.origin !== this.calmHubOrigin) {
+            throw new Error(`CalmHubDocumentLoader only loads http(s) documents from the configured CALMHub origin '${this.calmHubOrigin}'. (Requested: ${url.origin})`);
         }
 
         // From here the reference is ours: any failure is fatal and must not fall through to
