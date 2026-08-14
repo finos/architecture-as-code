@@ -11,7 +11,6 @@ import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
 import org.finos.calm.store.util.SearchTextMatcher;
-import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +67,9 @@ public class NitriteSearchStore implements SearchStore {
                 searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(interfaceCollection, "interfaceId", lowerQuery, readableNamespaces),
-                searchControlCollection(lowerQuery),
+                // Optional.empty() bypasses the readable-namespaces filter — controls are
+                // scoped by domain, not namespace (ADR 0007).
+                searchHeaderCollection(controlCollection, "controlId", lowerQuery, Optional.empty()),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
     }
@@ -126,36 +127,6 @@ public class NitriteSearchStore implements SearchStore {
         return results;
     }
 
-
-    private List<SearchResult> searchControlCollection(String lowerQuery) {
-        List<SearchResult> results = new ArrayList<>();
-
-        for (Document domainDoc : controlCollection.find()) {
-            String domain = domainDoc.get("domain", String.class);
-            TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(domainDoc, Document.class);
-            List<Document> controls = wrapper.getList("controls");
-            if (controls == null) {
-                continue;
-            }
-            for (Document control : controls) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                String name = control.get("name", String.class);
-                String description = control.get("description", String.class);
-                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
-                    results.add(new SearchResult(
-                            domain,
-                            control.get("controlId", Integer.class),
-                            SearchTextMatcher.nullToEmpty(name),
-                            SearchTextMatcher.nullToEmpty(description)
-                    ));
-                }
-            }
-        }
-
-        return results;
-    }
 
     /**
      * ADR's header carries a denormalized copy of the latest revision's title (written by

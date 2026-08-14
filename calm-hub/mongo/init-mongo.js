@@ -103,6 +103,93 @@ function seedVersionedResource(groupedByNamespace, headerCollection, versionColl
     return { headers: headers.length, versions: versions.length };
 }
 
+// Writes controls in the two-axis header/version shape of
+// calm-hub/decisions/0007-control-storage-header-version-split.md: a control's requirement
+// splits into controls/controlVersions exactly like seedVersionedResource above (domain
+// standing in for namespace), and each control's configurations split into a second pair,
+// controlConfigurations/controlConfigurationVersions, scoped under a synthetic
+// "domain::controlId" namespace.
+//
+// domainDocs is the OLD shape in memory — grouped by domain, each holding a nested controls[]
+// array with dash-encoded requirement/configuration version maps — deliberately not rewritten,
+// since it reads far better grouped by domain than as flat lists with the parent-child
+// relationship left implicit. Mirrors seedVersionedResource's split between source shape and
+// write shape.
+function seedControls(domainDocs) {
+    const controlHeaders = [];
+    const controlVersions = [];
+    const configHeaders = [];
+    const configVersions = [];
+
+    function collapse(versionsMap, scopeLabel, id) {
+        const byCanonical = new Map();
+        for (const storedKey of Object.keys(versionsMap || {})) {
+            const version = canonicalVersion(storedKey);
+            if (byCanonical.has(version)) {
+                logFail(`Seed data has two keys meaning version ${version} for ${scopeLabel}/${id} — `
+                    + `keeping the first, dropping '${storedKey}'`);
+                continue;
+            }
+            byCanonical.set(version, versionsMap[storedKey]);
+        }
+        return byCanonical;
+    }
+
+    for (const domainDoc of domainDocs) {
+        for (const control of (domainDoc.controls || [])) {
+            const requirementByVersion = collapse(control.requirement, domainDoc.domain, control.controlId);
+
+            controlHeaders.push({
+                namespace: domainDoc.domain,
+                controlId: control.controlId,
+                name: control.name,
+                description: control.description,
+                versionCount: NumberInt(requirementByVersion.size),
+                metadata: {}
+            });
+            for (const [version, content] of requirementByVersion) {
+                controlVersions.push({
+                    namespace: domainDoc.domain,
+                    controlId: control.controlId,
+                    version: version,
+                    content: content,
+                    metadata: {}
+                });
+            }
+
+            const configNamespace = `${domainDoc.domain}::${control.controlId}`;
+            for (const config of (control.configurations || [])) {
+                const versionsByVersion = collapse(config.versions, configNamespace, config.configurationId);
+
+                configHeaders.push({
+                    namespace: configNamespace,
+                    configurationId: config.configurationId,
+                    name: config.name || null,
+                    description: null,
+                    versionCount: NumberInt(versionsByVersion.size),
+                    metadata: {}
+                });
+                for (const [version, content] of versionsByVersion) {
+                    configVersions.push({
+                        namespace: configNamespace,
+                        configurationId: config.configurationId,
+                        version: version,
+                        content: content,
+                        metadata: {}
+                    });
+                }
+            }
+        }
+    }
+
+    if (controlHeaders.length > 0) db.controls.insertMany(controlHeaders);
+    if (controlVersions.length > 0) db.controlVersions.insertMany(controlVersions);
+    if (configHeaders.length > 0) db.controlConfigurations.insertMany(configHeaders);
+    if (configVersions.length > 0) db.controlConfigurationVersions.insertMany(configVersions);
+
+    return { controls: controlHeaders.length, configurations: configHeaders.length };
+}
+
 const dbName = (typeof process !== 'undefined' && process.env.CALM_DB_NAME)
     ? process.env.CALM_DB_NAME
     : 'calmSchemas';
@@ -157,13 +244,15 @@ if (isEmptyDatabase) {
 
     // Mirrors MongoIndexInitializationStep, MongoLayoutIndexStep, and
     // MongoPatternLayoutIndexStep, which the pin above skips. Keep all four in step. All
-    // seven versioned types now use the header/version shape (ADR 0001), so each gets a
-    // unique (namespace, <type>Id) instead of the old unique (namespace) — which is what
-    // allows more than one resource of a type per namespace at all — plus a unique
-    // (namespace, <type>Id, version) on its sibling versions collection. Controls and
-    // decorators keep the one-document-per-namespace index, by ADR 0004 rather than
-    // pending migration. Layouts and pattern_layouts are a fourth, distinct shape: flat
-    // and non-versioned, one document per (namespace, architectureId) / (namespace,
+    // seven versioned types plus Control now use the header/version shape (ADR 0001, ADR
+    // 0007), so each gets a unique (namespace, <type>Id) instead of the old unique
+    // (namespace) — which is what allows more than one resource of a type per namespace at
+    // all — plus a unique (namespace, <type>Id, version) on its sibling versions collection.
+    // Control's configurations are a second, independently versioned axis under a synthetic
+    // (domain::controlId) namespace — see ADR 0007. Decorator alone keeps the
+    // one-document-per-namespace index (ADR 0004 — never versioned, no growth problem this
+    // redesign exists to solve). Layouts and pattern_layouts are a fourth, distinct shape:
+    // flat and non-versioned, one document per (namespace, architectureId) / (namespace,
     // patternId), with no sibling versions collection and no version axis at all — see
     // MongoLayoutIndexStep / MongoPatternLayoutIndexStep. Do not fold either into the
     // one-document-per-namespace loop below.
@@ -191,15 +280,20 @@ if (isEmptyDatabase) {
     db.adrVersions.createIndex({ namespace: 1, adrId: 1, version: 1 }, unique);
     db.layouts.createIndex({ namespace: 1, architectureId: 1 }, unique);
     db.pattern_layouts.createIndex({ namespace: 1, patternId: 1 }, unique);
+    // Control (ADR 0007): the requirement axis is keyed exactly like the other seven types
+    // above, domain standing in for namespace. The configuration axis is a second, independent
+    // header/version pair keyed by a synthetic (domain::controlId) namespace, since a
+    // configuration's id is already globally unique and this only needs to scope listing.
+    db.controls.createIndex({ namespace: 1, controlId: 1 }, unique);
+    db.controlVersions.createIndex({ namespace: 1, controlId: 1, version: 1 }, unique);
+    db.controlConfigurations.createIndex({ namespace: 1, configurationId: 1 }, unique);
+    db.controlConfigurationVersions.createIndex({ namespace: 1, configurationId: 1, version: 1 }, unique);
 
-    // Still one document per namespace until each of these migrates, at which point its
-    // entry moves up alongside architectures and patterns.
-    // Decorator is the only namespaced collection left on the one-document-per-namespace
-    // shape — it is not versioned at all, so this redesign does not touch it (ADR 0004).
+    // Still one document per namespace — Decorator is not versioned at all, so this redesign
+    // does not touch it (ADR 0004).
     for (const collection of ["decorators"]) {
         db[collection].createIndex({ namespace: 1 }, unique);
     }
-    db.controls.createIndex({ domain: 1 }, unique);
 
     // Two partial indexes rather than one compound: namespace-scoped and domain-scoped
     // grant documents share no discriminating field.
@@ -410,10 +504,7 @@ function loadControlsFromDir(baseDir) {
         }
         domainDocs.push({ domain, controls });
     }
-    if (domainDocs.length > 0) {
-        db.controls.insertMany(domainDocs);
-        logSuccess(`Inserted controls for domains: ${domainDocs.map(d => d.domain).join(', ')}`);
-    }
+    return domainDocs;
 }
 
 logSection("Namespaces");
@@ -452,61 +543,64 @@ logSection("Controls");
 // Controls are loaded from files under CALM_CONTROLS_BASE_PATH (default: /controls).
 // Each subdirectory represents a domain; each JSON file within is one control.
 if (db.controls.countDocuments() === 0) {
-    loadControlsFromDir(controlsBasePath);
+    const domainDocs = loadControlsFromDir(controlsBasePath);
+    if (domainDocs.length > 0) {
+        logSuccess(`Loaded controls for domains: ${domainDocs.map(d => d.domain).join(', ')}`);
+    }
 
     // Add Permitted Connection control to the file-seeded security domain
-    db.controls.updateOne(
-        { domain: "security" },
+    let securityDomainDoc = domainDocs.find(d => d.domain === "security");
+    if (!securityDomainDoc) {
+        securityDomainDoc = { domain: "security", controls: [] };
+        domainDocs.push(securityDomainDoc);
+    }
+    securityDomainDoc.controls.push(
         {
-            $push: {
-                controls: {
-                    controlId: NumberInt(2),
-                    name: "Permitted Connection",
-                    description: "Defines requirements for explicitly authorizing connections between services. Every connection must declare the protocol being used and provide a business justification for why the connection is necessary.",
-                    requirement: {
-                        "1-0-0": {
-                            "$schema": "https://calm.finos.org/release/1.0/meta/control.json",
-                            "$id": "https://calm.finos.org/qcon/controls/permitted-connection.requirement.json",
-                            "title": "Permitted Connection Control Requirement",
-                            "description": "Defines requirements for explicitly authorizing connections between services. Every connection must declare the protocol being used and provide a business justification for why the connection is necessary.",
-                            "control-id": "security-002",
-                            "type": "object",
-                            "properties": {
-                                "reason": {
-                                    "type": "string",
-                                    "description": "Business justification for why this connection is required"
-                                },
-                                "protocol": {
-                                    "type": "string",
-                                    "enum": ["HTTP", "HTTPS", "JDBC", "gRPC", "WebSocket", "TCP", "UDP"],
-                                    "description": "The network protocol used for this connection"
-                                }
-                            },
-                            "required": [
-                                "reason",
-                                "protocol"
-                            ]
+            controlId: NumberInt(2),
+            name: "Permitted Connection",
+            description: "Defines requirements for explicitly authorizing connections between services. Every connection must declare the protocol being used and provide a business justification for why the connection is necessary.",
+            requirement: {
+                "1-0-0": {
+                    "$schema": "https://calm.finos.org/release/1.0/meta/control.json",
+                    "$id": "https://calm.finos.org/qcon/controls/permitted-connection.requirement.json",
+                    "title": "Permitted Connection Control Requirement",
+                    "description": "Defines requirements for explicitly authorizing connections between services. Every connection must declare the protocol being used and provide a business justification for why the connection is necessary.",
+                    "control-id": "security-002",
+                    "type": "object",
+                    "properties": {
+                        "reason": {
+                            "type": "string",
+                            "description": "Business justification for why this connection is required"
+                        },
+                        "protocol": {
+                            "type": "string",
+                            "enum": ["HTTP", "HTTPS", "JDBC", "gRPC", "WebSocket", "TCP", "UDP"],
+                            "description": "The network protocol used for this connection"
                         }
                     },
-                    configurations: [
-                        {
-                            configurationId: NumberInt(1),
-                            versions: {
-                                "1-0-0": {
-                                    "reason": "MCP client and Trades API require HTTP access to MCP server for querying trade data",
-                                    "protocol": "HTTP"
-                                }
-                            }
-                        }
+                    "required": [
+                        "reason",
+                        "protocol"
                     ]
                 }
-            }
+            },
+            configurations: [
+                {
+                    configurationId: NumberInt(1),
+                    versions: {
+                        "1-0-0": {
+                            "reason": "MCP client and Trades API require HTTP access to MCP server for querying trade data",
+                            "protocol": "HTTP"
+                        }
+                    }
+                }
+            ]
         }
     );
     logSuccess("Added Permitted Connection control to security domain");
 
-    // Insert Micro-Segmentation control for the network domain
-    db.controls.insertOne({
+    // Add Micro-Segmentation control for the network domain
+    domainDocs.push({
         domain: "network",
         controls: [
             {
@@ -553,8 +647,8 @@ if (db.controls.countDocuments() === 0) {
     });
     logSuccess("Initialized controls for network domain with Micro-Segmentation control");
 
-    // Insert MCP Guardrail control for the mcp-controls domain
-    db.controls.insertOne({
+    // Add MCP Guardrail control for the mcp-controls domain
+    domainDocs.push({
         domain: "mcp-controls",
         controls: [
             {
@@ -603,6 +697,10 @@ if (db.controls.countDocuments() === 0) {
         ]
     });
     logSuccess("Initialized controls for mcp-controls domain with MCP Guardrail control");
+
+    const written = seedControls(domainDocs);
+    logSuccess(`Seeded ${written.controls} control(s) and ${written.configurations} configuration(s) `
+        + `in the header/version shape`);
 } else {
     logSkip("Controls already exist, no initialization needed");
 }
