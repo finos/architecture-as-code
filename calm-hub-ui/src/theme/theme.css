@@ -82,9 +82,9 @@
     --calm-redesign-body: #41506A;
     --calm-redesign-body-alt: #475569;
     --calm-redesign-muted: #5A6678;
-    --calm-redesign-muted-alt: #64748B;
+    --calm-redesign-muted-alt: #5A6678; /* was #64748B, 4.23:1 on the badge bg */
     --calm-redesign-faint: #8A94A6;
-    --calm-redesign-faint-alt: #9AA6B8;
+    --calm-redesign-faint-alt: #64748B; /* was #9AA6B8, 2.46:1 on white */
     --calm-redesign-disabled: #B6BECC;
     --calm-redesign-active-text: #1D4ED8;
     --calm-interaction-text: #2563EB;
@@ -237,9 +237,9 @@
     --calm-redesign-body: #B6C2D4;
     --calm-redesign-body-alt: #94A3B8;
     --calm-redesign-muted: #94A3B8;
-    --calm-redesign-muted-alt: #8A94A6;
+    --calm-redesign-muted-alt: #A4ACBA; /* was #8A94A6, 3.39:1 on the badge bg */
     --calm-redesign-faint: #64748B;
-    --calm-redesign-faint-alt: #64748B;
+    --calm-redesign-faint-alt: #8A94A6; /* was #64748B, 3.07:1 on the rail surface */
     --calm-redesign-disabled: #475569;
     --calm-redesign-active-text: #93B4FF;
     --calm-interaction-text: #93B4FF;
