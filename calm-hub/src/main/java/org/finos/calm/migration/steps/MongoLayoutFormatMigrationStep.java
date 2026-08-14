@@ -50,7 +50,7 @@ public class MongoLayoutFormatMigrationStep implements SchemaMigrationStep {
 
     @Override
     public int fromVersion() {
-        return 13;
+        return 14;
     }
 
     @Override
