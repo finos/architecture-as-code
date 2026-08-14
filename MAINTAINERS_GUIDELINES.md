@@ -77,6 +77,15 @@ Maintainers are expected to protect repository quality, not just merge code:
 - For dependency and security remediation PRs, verify that the selected version, override, or workflow change actually fixes the reported issue rather than only appearing newer.
 - Handle security vulnerabilities privately according to [SECURITY.md](./SECURITY.md); do not use public issues for undisclosed vulnerabilities.
 
+## GitHub Actions
+
+When maintaining workflows, use the existing repository guidance as the source of truth rather than restating it here:
+
+- Follow the naming and documentation expectations in [README.md](./README.md#github-actions), especially when adding new workflows or less-familiar third-party actions.
+- Keep workflow runtime assumptions aligned with the CI standards in [AGENTS.md](./AGENTS.md), especially the [Node 26 requirement](./AGENTS.md#node-version-requirements) and [lockfile regeneration rules](./AGENTS.md#lockfile-regeneration), because those expectations are enforced by workflows such as [validate-lockfile.yml](./.github/workflows/validate-lockfile.yml).
+- For release-oriented workflow changes or manual runs, review the release guidance in [CONTRIBUTING.md](./CONTRIBUTING.md#-why-we-use-semantic-release) and the workflow-specific comments and inputs in [automated-release.yml](./.github/workflows/automated-release.yml), [automated-release-calm-server.yml](./.github/workflows/automated-release-calm-server.yml), [release-calm-models-maven.yml](./.github/workflows/release-calm-models-maven.yml), and [build-vscode-extension.yml](./.github/workflows/build-vscode-extension.yml) before approving or triggering release automation.
+- Use the PR template's CI/CD and testing sections when reviewing workflow changes, and remember the note in [pull_request_template.md](./.github/pull_request_template.md) that only `(cli)`-scoped commits trigger the CLI automated release flow.
+
 ## Release and Version Management
 
 This repository contains multiple independently released components, so maintainers should be deliberate about release-related changes:
