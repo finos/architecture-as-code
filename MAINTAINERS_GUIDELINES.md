@@ -38,7 +38,7 @@ When reviewing a pull request:
 
 - Use the [PR template](./.github/pull_request_template.md) to verify the change type, affected components, testing notes, and follow-up documentation.
 - Confirm that project-wide contribution requirements are met, including the expectations documented in [finos/calm-governance/CONTRIBUTING.md](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md).
-- Make sure the right reviewers are involved based on the affected paths in [.github/CODEOWNERS](./.github/CODEOWNERS) and the subproject ownership listed in [README.md](./README.md#projects).
+- Make sure the right reviewers are involved based on the affected paths in [.github/CODEOWNERS](./.github/CODEOWNERS), which is the repository's primary PR review-routing map for changed files, and the subproject ownership listed in [README.md](./README.md#projects).
 - Ask for tests, migration notes, or documentation updates when behavior, interfaces, workflows, or public examples change.
 - Ask specifically for regression coverage when a change fixes a bug, alters migration behavior, or introduces stateful UI or persistence logic where a precise failure mode should stay pinned by tests.
 - Prefer shared helpers over copied logic for keys, namespace rules, error responses, and similar repeated behavior; if duplication is kept deliberately, ask for the rationale to be made explicit in the code or PR discussion.
@@ -64,6 +64,8 @@ Maintainers help keep work discoverable and moving:
 - Apply existing labels, close duplicates, and redirect out-of-scope requests to the right place.
 - Route governance matters, including maintainer roster changes, to [finos/calm-governance](https://github.com/finos/calm-governance) and use the [Maintainer Update template](./.github/ISSUE_TEMPLATE/Maintainer_update.md) when this repository needs a maintainer change processed.
 - Keep the [Projects table](./README.md#projects) and [.github/CODEOWNERS](./.github/CODEOWNERS) aligned when component ownership changes.
+- Remember that [.github/CODEOWNERS](./.github/CODEOWNERS) also establishes repo-wide ownership for dependency and build-manifest files such as `package.json`, `package-lock.json`, and `pom.xml`, so changes to those files should usually be treated as cross-cutting review rather than package-local review.
+- If a path does not have a more specific owner entry, GitHub falls back to the default owners in [.github/CODEOWNERS](./.github/CODEOWNERS); when adding a new top-level area or changing review routing expectations, update `CODEOWNERS` deliberately rather than relying on the fallback by accident.
 
 ## Quality, CI, and Security Responsibilities
 
