@@ -40,6 +40,8 @@ When reviewing a pull request:
 - Confirm that project-wide contribution requirements are met, including the expectations documented in [finos/calm-governance/CONTRIBUTING.md](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md).
 - Make sure the right reviewers are involved based on the affected paths in [.github/CODEOWNERS](./.github/CODEOWNERS) and the subproject ownership listed in [README.md](./README.md#projects).
 - Ask for tests, migration notes, or documentation updates when behavior, interfaces, workflows, or public examples change.
+- Ask specifically for regression coverage when a change fixes a bug, alters migration behavior, or introduces stateful UI or persistence logic where a precise failure mode should stay pinned by tests.
+- Prefer shared helpers over copied logic for keys, namespace rules, error responses, and similar repeated behavior; if duplication is kept deliberately, ask for the rationale to be made explicit in the code or PR discussion.
 - Pull in additional maintainers early for cross-cutting changes, schema changes, release automation changes, or changes that affect multiple packages or services.
 
 ## Approval and Merge Expectations
@@ -70,7 +72,9 @@ Maintainers are expected to protect repository quality, not just merge code:
 - Keep required workflows green before merge and investigate recurring failures instead of normalizing them.
 - Pay close attention to repository-wide automation such as CodeQL, Semgrep, CVE scanning, license scanning, lockfile validation, and component build workflows.
 - Make sure documentation and examples evolve with behavior changes so contributor and user guidance stays trustworthy.
+- Make sure technical rationale is documented clearly and locally when the design is non-obvious; avoid circular comments or explanations that force readers to bounce between files to understand a decision.
 - Treat dependency updates, workflow changes, and shared-package changes as potentially cross-cutting work that may affect multiple downstream components.
+- For dependency and security remediation PRs, verify that the selected version, override, or workflow change actually fixes the reported issue rather than only appearing newer.
 - Handle security vulnerabilities privately according to [SECURITY.md](./SECURITY.md); do not use public issues for undisclosed vulnerabilities.
 
 ## Release and Version Management
@@ -89,6 +93,7 @@ For large or high-risk changes:
 - Ask for an issue or design discussion before merge when the change is breaking, architectural, security-sensitive, or spans multiple subprojects.
 - Involve all affected maintainers early rather than relying on a single late-stage review.
 - Require clear rollout or migration notes when the change impacts consumers, contributors, or release workflows.
+- Treat schema and data-migration changes as sequence-sensitive, high-risk work: review them for malformed legacy data handling, atomicity, ordering, rollback or retry safety, and avoid changing the behavior of already-merged migration steps unless there is a compelling reason and the impact is fully understood.
 - Use the governance process in [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md) when escalation or formal maintainer decision-making is needed.
 
 ## Supporting Contributors
