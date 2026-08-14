@@ -96,37 +96,27 @@ describe('Flow 2: generate/validate (local + CalmHub refs)', () => {
         expect(nodes.length).toBeGreaterThan(0);
     });
 
-    // Known limitation tracked by #2827: when validating with `-c`, CalmHubDocumentLoader claims
-    // external http(s) control-schema references (here https://calm.finos.org/...) and fetches them
-    // path-only against the `-c` hub, which fails. We deliberately assert this unsupported behaviour
-    // so that adopting a loader routing rule (host-scoped fall-through) trips this test and forces an
-    // update, rather than the limitation regressing silently.
-    test('validate with -c against a pattern referencing cross-host CalmHub control schemas is not supported yet (see #2827)', async () => {
+    // #2827 fixed: an http(s) control-schema ref on a different host to `-c` now falls through to
+    // DirectUrlDocumentLoader (calm.finos.org is allowlisted by default) instead of being wrongly
+    // claimed and fetched path-only against the wrong hub.
+    test('validate with -c against a pattern referencing cross-host CalmHub control schemas resolves them via DirectUrlDocumentLoader (#2827)', async () => {
         const arch = path.join(cli.tempDir, 'hub-arch.json');
         expect(fs.existsSync(arch)).toBe(true);
 
-        const result = await cli
-            .run(['validate', '-p', PATTERN_URL, '-a', arch, '-f', 'json', '-c', SMOKE_HUB_URL])
-            .catch(e => e);
+        const { stdout } = await cli.run(['validate', '-p', PATTERN_URL, '-a', arch, '-f', 'json', '-c', SMOKE_HUB_URL]);
 
-        expect(result.exitCode).toBe(1);
-
-        const parsed = JSON.parse(result.stdout) as ValidationResult;
-        expect(parsed.hasErrors).toBe(true);
+        const parsed = JSON.parse(stdout) as ValidationResult;
+        expect(parsed.hasErrors).toBe(false);
 
         const controlErrors = parsed.jsonSchemaValidationOutputs.filter(
             o => o.code === 'control-requirement-validation'
         );
-        expect(controlErrors.length).toBeGreaterThan(0);
-        expect(
-            controlErrors.every(o => (o.message ?? '').includes('Failed to load document from CALMHub'))
-        ).toBe(true);
+        expect(controlErrors).toEqual([]);
     });
 
-    // Online counterpart to the #2827 limitation above: when the control requirement and config are
-    // hosted on the SAME host as -c, CalmHubDocumentLoader resolves them correctly and the control is
-    // validated end to end. The good architecture also carries a node-details detailed-architecture
-    // (itself hub-hosted), exercising the recursive descent into detailed architectures.
+    // Same-host counterpart to #2827 above: requirement/config hosted on the same host as -c, so
+    // CalmHubDocumentLoader resolves them directly. Also exercises recursive descent into a
+    // hub-hosted node-details detailed-architecture.
     test('a compliant control validated against its CalmHub-hosted requirement passes', async () => {
         const { stdout } = await cli.run(['validate', '-a', GOOD_CONTROL_ARCH, '-c', SMOKE_HUB_URL, '-f', 'json']);
         const result = JSON.parse(stdout) as ValidationResult;
