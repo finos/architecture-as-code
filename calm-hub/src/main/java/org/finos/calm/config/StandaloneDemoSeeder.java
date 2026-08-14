@@ -37,8 +37,16 @@ public class StandaloneDemoSeeder {
     @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
     String databaseMode;
 
+    @ConfigProperty(name = "calm.standalone.seed-demo-data", defaultValue = "true")
+    boolean seedDemoEnabled;
+
     void onStart(@Observes StartupEvent ev) {
         if (!"standalone".equals(databaseMode)) {
+            return;
+        }
+
+        if (!seedDemoEnabled) {
+            LOG.info("Demo data seeding disabled (calm.standalone.seed-demo-data=false) — skipping demo seed");
             return;
         }
 
