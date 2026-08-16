@@ -1,4 +1,5 @@
 import { initLogger } from '../../../logger';
+import { getPatternArray } from '@finos/calm-models/pattern';
 
 /**
  * A node within a CALM pattern's JSON schema. The pattern is unvalidated JSON
@@ -51,21 +52,7 @@ function extractOptionsFromBlock(optionsRelationship: SchemaNode, blockType: 'on
  * @returns The prefixItems array from relationships, or empty array if not found
  */
 function getRelationshipsPrefixItems(pattern: SchemaNode): SchemaNode[] {
-    // Direct access for standard patterns
-    if (pattern['properties']?.['relationships']?.['prefixItems']) {
-        return pattern['properties']['relationships']['prefixItems'];
-    }
-
-    // Handle allOf patterns - look for relationships in each allOf schema
-    if (pattern['allOf'] && Array.isArray(pattern['allOf'])) {
-        for (const schema of pattern['allOf']) {
-            if (schema['properties']?.['relationships']?.['prefixItems']) {
-                return schema['properties']['relationships']['prefixItems'];
-            }
-        }
-    }
-
-    return [];
+    return getPatternArray(pattern, 'relationships').prefixItems as SchemaNode[];
 }
 
 /**

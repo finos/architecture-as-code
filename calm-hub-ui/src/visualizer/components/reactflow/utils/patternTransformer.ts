@@ -9,6 +9,7 @@ import {
 import { createEdge } from './edgeFactory';
 import { GRAPH_LAYOUT } from './constants';
 import { THEME } from '../theme';
+import { getPatternArray, readCatalog } from '@finos/calm-models/pattern';
 
 /**
  * Result of parsing pattern data into ReactFlow elements
@@ -25,34 +26,12 @@ type SchemaObject = Record<string, any>;
 // ---- Schema traversal helpers ----
 
 /**
- * Reads an array-valued keyword (e.g. 'prefixItems' or 'items') for a given
- * top-level key (e.g. 'nodes' or 'relationships') from a pattern, handling allOf
- * structures. Returns the direct declaration if present, otherwise the first
- * matching one found across the allOf branches, otherwise undefined. The truthy
- * check means a present-but-falsy value (e.g. `items: false` closing a tuple) is
- * treated as absent, exactly as the two callers below relied on.
- */
-function getArrayKeyword(pattern: SchemaObject, key: string, keyword: string): SchemaObject | undefined {
-    if (pattern['properties']?.[key]?.[keyword]) {
-        return pattern['properties'][key][keyword];
-    }
-    if (pattern['allOf'] && Array.isArray(pattern['allOf'])) {
-        for (const schema of pattern['allOf']) {
-            if (schema['properties']?.[key]?.[keyword]) {
-                return schema['properties'][key][keyword];
-            }
-        }
-    }
-    return undefined;
-}
-
-/**
  * Gets the prefixItems for a given top-level key (e.g. 'nodes' or 'relationships')
  * from a pattern, handling allOf structures. Absent prefixItems yields an empty
  * array so callers can iterate unconditionally.
  */
-function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
-    return getArrayKeyword(pattern, key, 'prefixItems') ?? [];
+function getPrefixItems(pattern: SchemaObject, key: 'nodes' | 'relationships'): SchemaObject[] {
+    return getPatternArray(pattern, key).prefixItems as SchemaObject[];
 }
 
 /**
@@ -60,26 +39,18 @@ function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
  * declaration) for a given top-level key (e.g. 'nodes' or 'relationships')
  * from a pattern, handling allOf structures.
  */
-function getItems(pattern: SchemaObject, key: string): SchemaObject | undefined {
-    return getArrayKeyword(pattern, key, 'items');
+function getItems(pattern: SchemaObject, key: 'nodes' | 'relationships'): SchemaObject | undefined {
+    return getPatternArray(pattern, key).catalog as SchemaObject | undefined;
 }
 
 /**
  * Reads an `items` open-catalog's decision alternatives. Returns the group type
  * (`oneOf`/`anyOf`) and the alternatives array, or null when the catalog is
- * neither. Mirrors the original inline logic exactly: `oneOf` wins when both are
- * present, and either keyword being a non-array leaves the catalog untreated.
+ * neither. `oneOf` wins when both are present, and either keyword being a
+ * non-array leaves the catalog untreated.
  */
 function catalogAlternatives(items: SchemaObject): { groupType: 'oneOf' | 'anyOf'; alternatives: SchemaObject[] } | null {
-    const hasOneOf = Array.isArray(items['oneOf']);
-    const hasAnyOf = Array.isArray(items['anyOf']);
-    if (!hasOneOf && !hasAnyOf) {
-        return null;
-    }
-    return {
-        groupType: hasOneOf ? 'oneOf' : 'anyOf',
-        alternatives: hasOneOf ? items['oneOf'] : items['anyOf'],
-    };
+    return readCatalog(items) as { groupType: 'oneOf' | 'anyOf'; alternatives: SchemaObject[] } | null;
 }
 
 /**

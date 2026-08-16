@@ -22,6 +22,11 @@
       "types": "./dist/diff/index.d.ts",
       "import": "./dist/diff/index.js",
       "default": "./dist/diff/index.js"
+    },
+    "./pattern": {
+      "types": "./dist/pattern/index.d.ts",
+      "import": "./dist/pattern/index.js",
+      "default": "./dist/pattern/index.js"
     }
   },
   "files": [
