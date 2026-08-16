@@ -157,11 +157,73 @@ When you instead want an **open catalog** of optional nodes — "include any com
 }
 ```
 
-Here `webapp` and `database` are always present, while `cache` and `queue` form an optional catalog: an instantiated architecture may include neither, either, or both. A decision (`relationship-type.options`, see below) references catalog candidates by `unique-id` in exactly the same way it references positional ones, so the same decision mechanism works for both. Relationship candidates can use an `items` catalog in the same way.
+Here `webapp` and `database` are always present, while `cache` and `queue` form an optional catalog: an instantiated architecture may include neither, either, or both.
+
+A catalog on its own does nothing. Two different kinds of object are involved, and it is worth being precise about which is which:
+
+- A **candidate** is a concrete node or relationship that may or may not end up in the generated architecture. Candidates are what an `items` catalog holds. Relationship candidates can use an `items` catalog exactly as node candidates do.
+- A **decision holder** is a relationship carrying `relationship-type.options`. It is not part of the architecture being described — it asks the user a question and lists the choice bundles that answer it. Each bundle names candidates by `unique-id`.
+
+A candidate is included in the output only when a chosen bundle names its `unique-id`. So every catalog needs a decision holder pointing at it, and **a decision holder must be declared in `properties.relationships.prefixItems`** — never inside an `items` catalog itself. A holder is the mechanism that drives generation, so it must always be present; putting it in a catalog makes the question itself optional, and `calm generate` will not offer it.
+
+Use `anyOf` inside the holder's `options` for a zero-or-more catalog (the user may pick any combination, including none) and `oneOf` where exactly one candidate must be chosen. The holder that drives the catalog above looks like this:
+
+```json
+{
+    "properties": {
+        "relationships": {
+            "type": "array",
+            "prefixItems": [
+                {
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                    "type": "object",
+                    "properties": {
+                        "unique-id": { "const": "optional-components" },
+                        "description": { "const": "Which optional components do you want?" },
+                        "relationship-type": {
+                            "type": "object",
+                            "properties": {
+                                "options": {
+                                    "type": "array",
+                                    "prefixItems": [
+                                        {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "description": { "const": "Add a cache" },
+                                                        "nodes": { "const": ["cache"] },
+                                                        "relationships": { "const": [] }
+                                                    }
+                                                },
+                                                {
+                                                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "description": { "const": "Add a message queue" },
+                                                        "nodes": { "const": ["queue"] },
+                                                        "relationships": { "const": [] }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}
+```
 
 Guidance:
 
 - Keep every candidate that a single decision references within one declaration site. A decision whose candidates are split between a `prefixItems` slot and an `items` catalog, or spread across nodes with inconsistent container membership, is a pattern smell — model the choice at one consistent level.
+- Declare every decision holder (a relationship with `relationship-type.options`) in `properties.relationships.prefixItems`. A catalog with no holder pointing at it can never be selected from, and `calm validate` warns that its candidates are unreferenced.
 - Duplicate `unique-id`s inside an `items` catalog are rejected by `calm validate`, and a catalog node that no relationship or decision references produces a warning, exactly as for `prefixItems`.
 
 ### Relationship Options with Decision Points

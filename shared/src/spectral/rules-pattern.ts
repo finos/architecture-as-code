@@ -1,5 +1,5 @@
 import { RulesetDefinition } from '@stoplight/spectral-core';
-import { pattern, truthy, length, xor } from '@stoplight/spectral-functions';
+import { falsy, pattern, truthy, length, xor } from '@stoplight/spectral-functions';
 import { numericalPlaceHolder } from './functions/helper-functions';
 import nodeIdExists from './functions/pattern/node-id-exists';
 import idsAreUnique from './functions/pattern/ids-are-unique';
@@ -201,6 +201,24 @@ const patternRules: RulesetDefinition = {
                 functionOptions: {
                     max: 1
                 },
+            },
+        },
+        'pattern-option-relationship-must-be-in-prefix-items': {
+            // A decision holder (a relationship carrying `relationship-type.options`) states a
+            // decision the architect must actively make - even when the answer is "add none".
+            // Declaring it in an `items` catalog is valid JSON Schema but makes the *decision*
+            // itself optional, so `calm generate` never offers it and the pattern no longer
+            // requires the resulting architecture to contain it. Candidates belong in the
+            // catalog; the decision that selects them belongs in `prefixItems`.
+            description: 'Options relationships must be declared in relationships.prefixItems, not in an items catalog',
+            severity: 'error',
+            message: 'A relationship declaring "relationship-type.options" must be in "properties.relationships.prefixItems". Declaring a decision inside an "items" catalog makes the decision itself optional - move the options relationship into prefixItems and leave only its candidates in the catalog.',
+            given: [
+                '$..relationships.items.oneOf[*].properties.relationship-type.properties.options',
+                '$..relationships.items.anyOf[*].properties.relationship-type.properties.options',
+            ],
+            then: {
+                function: falsy,
             },
         }
     }
