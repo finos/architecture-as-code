@@ -781,6 +781,7 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 - `oneOf` - Exactly one option must be true
 - `allOf` - All conditions must be true
 - Placed inside a `prefixItems` slot, `oneOf`/`anyOf` chooses which node fills that fixed position; placed inside `items`, they define the optional catalog an entry may be drawn from
+- Do not split a single property's definition (e.g. `properties.nodes`) across separate `allOf` branches — the merge is shallow, so the later branch's definition replaces the earlier one wholesale rather than combining them. `allOf` is unsupported for `relationships`: decision holders are only discovered in `properties.relationships.prefixItems` on the raw pattern, before `allOf` is flattened
 
 ### Schema References
 
